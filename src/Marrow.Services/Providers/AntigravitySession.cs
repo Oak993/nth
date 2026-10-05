@@ -14,7 +14,7 @@ namespace Marrow.Services.Providers;
 /// events on stdout. (:3-13)
 /// </summary>
 // :14-719. @MainActor final class -> sealed class used only on main (R-ISO-1).
-public sealed class AntigravitySession : ProviderSession
+public sealed class AntigravitySession : ProviderSession, Port.Skills.Providers.ISkillSessionLifetime
 {
     public Action<ProviderEvent>? OnEvent { get; set; } // :16
 
@@ -66,6 +66,9 @@ public sealed class AntigravitySession : ProviderSession
     }
 
     public bool IsRunning => process?.IsRunning ?? false; // :64
+
+    // PORT-ONLY: SK-17. Stop requests termination; generation readers end only when the child has actually exited.
+    public Task SkillReadersExited => process is { IsRunning: true } child ? child.WaitForExit() : Task.CompletedTask;
 
     private string WorkingDirectory => configuration.WorkingDirectory.Path; // :66
 

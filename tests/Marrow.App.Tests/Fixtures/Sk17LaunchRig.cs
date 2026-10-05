@@ -34,12 +34,13 @@ public sealed class Sk17LaunchRig : IDisposable
             return fake;
         }));
         var prepare = (Ambient<Func<string, string, Task<Generation>>>)skillsType.GetProperty("Prepare", BindingFlags.Static | BindingFlags.Public)!.GetValue(null)!;
-        scopes.Add(prepare.Override((chat, directory) =>
+        scopes.Add(prepare.Override(async (chat, directory) =>
         {
             PreparedDirectories.Add(directory);
             var generation = generations.Start("agy", chat, [item], Files.Switches((item, true)), Files.Budget);
             Leases.Add(generation);
-            return Task.FromResult(generation);
+            if (PreparationGate is { } gate) await gate.Task;
+            return generation;
         }));
     }
     public ThreadRuntimeTurnRig RuntimeRig { get; }
@@ -50,9 +51,12 @@ public sealed class Sk17LaunchRig : IDisposable
     public Exception? StartFailure { get; set; }
     public bool StartFailureOnce { get; set; }
     public Exception? ConstructionFailure { get; set; }
+    public TaskCompletionSource? PreparationGate { get; set; }
+    public Task<ProviderSession> BeginEnsure(bool allowNew = true) =>
+        RuntimeRig.H.Main.OnMain(() => ThreadRuntimeReflection.Call<Task<ProviderSession>>(RuntimeRig.Runtime, "EnsureSession", RuntimeRig.Directory, allowNew)!);
     public ProviderSession Ensure(bool allowNew = true)
     {
-        var task = RuntimeRig.H.Main.OnMain(() => ThreadRuntimeReflection.Call<Task<ProviderSession>>(RuntimeRig.Runtime, "EnsureSession", RuntimeRig.Directory, allowNew)!);
+        var task = BeginEnsure(allowNew);
         return RuntimeRig.H.Main.Loop.Run(() => task, AppModelHarness.Bound);
     }
     public void Stop() => RuntimeRig.H.Main.OnMain(() => RuntimeRig.Runtime.StopSession());

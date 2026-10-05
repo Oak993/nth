@@ -551,3 +551,12 @@ The ready Plugins/Skills page bodies and all staging-ready Settings pages are re
 Antigravity 1.2.17 discovers the Marrow-owned .agents/skills tree under a second --add-dir root. The generation layout and verified provider launch endpoint are implemented. Cursor 2026.10.01-e373342 passed print-mode discovery, but its production ACP routes did not; it remains explicit-only. Evidence: porting/first-release/reports/SK-17-live-test.md; ED-NEW-sk-17.
 
 **Incomplete / UNRESOLVED:** the required staging ref lacks shared SK-11/SK-16 generation preparation and lease ownership at ThreadRuntime.EnsureSession; no caller currently supplies SessionConfiguration.SkillGeneration. SK-17 has no queue entry, so mark.mjs SK-17 DONE is rejected. The endpoint and live decision do not close the full integration gate. No Marrow app, native test, installer or packaging was run.
+
+
+## SK-17 T12 shared launch completion (2026-10-05)
+
+The lead accepted Antigravity automatic discovery and Cursor explicit-only, then authorized the missing shared launch integration. ThreadRuntime.EnsureSession now supplies a verified owned generation for every Antigravity launch, including resumes/restarts/runtime-created heads. Trusted installed pins, current switches, reviewed defaults and read-only user/project clashes feed SK-9 admission. Per-turn verification and actual-child-exit lease ownership are wired. Cursor's ACP path remains explicit-only.
+
+The lead-approved conservative admission cap is 8,192 characters; WU-11 retains actual CLI-limit measurement. The earlier missing shared caller/lease integration is CLOSED by this follow-up. Queue entries and mark.mjs remain the lead's job and do not block the worker verdict. No T13 trial-h work is present; the accidental commit remains on its preserved branch.
+
+Validation: final focused Services 2/2 and App 14/14; Skills/Providers/Traceability Core 691, Services 2912, UI 9, App including ThreadRuntime 934; zero failures/skips and clean builds through lead wrappers in unchanged heavy slots. No owner app, real CLI in tests, native, installer or packaging run. READY for lead integration. Full evidence, test-first failures and limits: porting/first-release/reports/SK-17-launch-integration.md; ED-NEW-sk-17. This supersedes the historical SK-17 Incomplete/UNRESOLVED paragraph above.

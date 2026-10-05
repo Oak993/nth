@@ -1,5 +1,7 @@
 # SK-17 supervised local CLI evidence
 
+Current status after the lead's accepted live decision: **READY** for integration. Shared Antigravity launch preparation, verification and lease ownership are complete; Cursor remains explicit-only. See [SK-17-launch-integration.md](SK-17-launch-integration.md) for test-first evidence, final scoped counts and the approved conservative cap. The earlier NOT READY and queue-blocker statements below describe the endpoint-only stage and are superseded. The lead owns marking and queue entries.
+
 Date: 2026-10-05, owner's Windows PC. Worktree: `E:\Droppy\wt\cx\sk-17-live`; branch: `codex/sk-17-live`; base: `origin/claude/verify-terminal-20261001` at `18bb508c7fe0f17a3682f8a52380d5db54846188`. Authorization: lead T12 packet and OD-0099 Q-SKILLS-8 A. No Marrow app was run. These are live account calls, separate from the offline tests.
 
 ## Verdicts

@@ -1,0 +1,28 @@
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Cursor_new_and_resumed_launches_never_receive_an_automatic_generation(resume: null) [64 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Cursor_new_and_resumed_launches_never_receive_an_automatic_generation(resume: "prior-cursor-chat") [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.A_failed_resume_releases_its_lease_before_the_new_conversation_retry [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Every_new_or_resumed_Antigravity_launch_receives_a_verified_owned_generation(resume: null) [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Every_new_or_resumed_Antigravity_launch_receives_a_verified_owned_generation(resume: "prior-chat") [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Failed_start_releases_its_lease_and_allows_the_same_chat_to_start_again [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.A_reused_session_refuses_a_generation_damaged_between_turns [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Reuse_keeps_the_same_lease_and_stop_releases_it_before_a_fresh_launch [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Constructor_failure_releases_the_prepared_generation [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+Failed!  - Failed:     9, Passed:     0, Skipped:     0, Total:     9, Duration: 77 ms - Marrow.App.Tests.dll (net10.0)

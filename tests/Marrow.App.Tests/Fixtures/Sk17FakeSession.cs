@@ -1,11 +1,12 @@
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.Services.Port.Skills.Providers;
 
 namespace Marrow.App.Tests.Fixtures;
 
 // SK-17: an in-memory session, never a CLI or account.
-public sealed class Sk17FakeSession(SessionConfiguration configuration) : ProviderSession
+public sealed class Sk17FakeSession(SessionConfiguration configuration) : ProviderSession, ISkillSessionLifetime
 {
     public SessionConfiguration Configuration { get; } = configuration;
     public Action<ProviderEvent>? OnEvent { get; set; }
@@ -13,6 +14,7 @@ public sealed class Sk17FakeSession(SessionConfiguration configuration) : Provid
     public int Starts { get; private set; }
     public int Stops { get; private set; }
     public Exception? StartFailure { get; init; }
+    public Task SkillReadersExited { get; set; } = Task.CompletedTask;
     public Task<string> Start()
     {
         Starts++;

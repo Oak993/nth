@@ -1,0 +1,232 @@
+[
+  {
+    "file": "integration-app-933-build.log",
+    "sha256": "CDE9E202C5E270ED0DDE2A2C7678863162C270669AA543B6967AC56C59C2D5D4",
+    "bytes": 82
+  },
+  {
+    "file": "integration-app-933-tests.log",
+    "sha256": "AD441E7595F09CC43B74499C5DC9DFE9F5532E2E3C957D5DB3C6B938AD31039B",
+    "bytes": 123
+  },
+  {
+    "file": "integration-app-final-build.log",
+    "sha256": "F918EABEBF73018C5AE39F63F0A4531F7F6584211AB5BFB0B0D79355E8C56721",
+    "bytes": 82
+  },
+  {
+    "file": "integration-app-final-tests.log",
+    "sha256": "755034A73C9F5E71F0776D3E58DE414715733A701163308E3201A9DE7534BC48",
+    "bytes": 123
+  },
+  {
+    "file": "integration-branch-purity.json",
+    "sha256": "FD76E5198FF1EA682DD9D08169DEF68016C5EA01858BB9BCF84D49FD326001AA",
+    "bytes": 704
+  },
+  {
+    "file": "integration-errors-green-build.log",
+    "sha256": "80FD9D792D2AEFB2CEA04EF63FB16255FB885A83833559E607CA83D8464A28C0",
+    "bytes": 82
+  },
+  {
+    "file": "integration-errors-green-Marrow.App.Tests.log",
+    "sha256": "A5B736EA858F4DF4C86D82324D9C91B013952E5DF59BBFA2D7D0E31643BBF472",
+    "bytes": 121
+  },
+  {
+    "file": "integration-errors-green-Marrow.Services.Tests.log",
+    "sha256": "14EF584103B44972960731A27DCF8CC5161E20EED668E5EEEAFA025565ACEC66",
+    "bytes": 126
+  },
+  {
+    "file": "integration-errors-red-build.log",
+    "sha256": "E0A285BD2A59DE5FCF7503452847EB92CB6E489C27F576A0B4AF6E7FD02FFDEE",
+    "bytes": 82
+  },
+  {
+    "file": "integration-errors-red-Marrow.App.Tests.log",
+    "sha256": "806645D95030BE3E6B9F2BED8B4A486995C661191F466BE5A99B7E9CA0AFF8C0",
+    "bytes": 799
+  },
+  {
+    "file": "integration-errors-red-Marrow.Services.Tests.log",
+    "sha256": "6715B93F4F1270C8886D6358EC243E3CB5B762A0C3ABDCAA310193FFCD2190F0",
+    "bytes": 126
+  },
+  {
+    "file": "integration-final-Marrow.App.Tests-build.log",
+    "sha256": "6927284AC19AFC90F6B636E04CA1D40BE8A2874F77A1F162E7E3482F2B3E1C3F",
+    "bytes": 82
+  },
+  {
+    "file": "integration-final-Marrow.App.Tests-tests.log",
+    "sha256": "A10B634FC6E7FDE97E5B96921203FA3864051E946543623A06B296497B8AB3B8",
+    "bytes": 123
+  },
+  {
+    "file": "integration-final-Marrow.Core.Tests-build.log",
+    "sha256": "7BFBD1CC5BF2FAB1341BA602DAFF5DFE28290793BB701E189C7BBABC948C88DD",
+    "bytes": 82
+  },
+  {
+    "file": "integration-final-Marrow.Core.Tests-tests.log",
+    "sha256": "C47D23862A84D4092579B24676703B86E693F3DEC88A9806FEA79C30098734C9",
+    "bytes": 122
+  },
+  {
+    "file": "integration-final-Marrow.Services.Tests-tests.log",
+    "sha256": "B956A335D7B4302ED0AE65766F31BB219560557AFCCBBD5E9AFE440EFB8E758F",
+    "bytes": 128
+  },
+  {
+    "file": "integration-green-build.log",
+    "sha256": "F24464D4E56630C28A8C71EABEB7824029CBF9B00BBAF7C8D5F621654F825905",
+    "bytes": 82
+  },
+  {
+    "file": "integration-green-Marrow.App.Tests.log",
+    "sha256": "2D876CE762B17954FAD5AFD363F48C7ED4731D636E6B637AEDDE13C18F27845B",
+    "bytes": 331
+  },
+  {
+    "file": "integration-green-Marrow.Services.Tests.log",
+    "sha256": "5D2FA229733023FFABC7CA75279E8043BF93F85C80BE2C6807AFADD466F15F20",
+    "bytes": 522
+  },
+  {
+    "file": "integration-green2-build.log",
+    "sha256": "59BD8F0C3DC3DD1DA55CEE5BF4E3BBDFC9D6C77FF5350229CE7FEA79024AA9E0",
+    "bytes": 82
+  },
+  {
+    "file": "integration-green2-Marrow.App.Tests.log",
+    "sha256": "755D74E8EFFAF2CB828E4203F286177E44A4A0FE12DD41D6768D6FFABE94BDCB",
+    "bytes": 121
+  },
+  {
+    "file": "integration-green2-Marrow.Services.Tests.log",
+    "sha256": "324151BC8FDEE00A354DA348B10108735920446EDE019310D6A132C3C21FF41B",
+    "bytes": 126
+  },
+  {
+    "file": "integration-isolated-A_failed_resume_releases_its_lease_before_the_new_conversation_retry-1.log",
+    "sha256": "5032BEF4A415A969A2BD5A41683BB470784E72A369A5B0972D028CF8E49259DD",
+    "bytes": 365
+  },
+  {
+    "file": "integration-isolated-A_failed_resume_releases_its_lease_before_the_new_conversation_retry-2.log",
+    "sha256": "5032BEF4A415A969A2BD5A41683BB470784E72A369A5B0972D028CF8E49259DD",
+    "bytes": 365
+  },
+  {
+    "file": "integration-isolated-The_host_composes_installed_pins_current_switches_defaults_and_user_clashes-1.log",
+    "sha256": "5B48768D71E7D393666824BF207575D9F43D2A4778965678BE466A6F227708A8",
+    "bytes": 537
+  },
+  {
+    "file": "integration-isolated-The_host_composes_installed_pins_current_switches_defaults_and_user_clashes-2.log",
+    "sha256": "7466E6AF73F2A3E3EE06A936B95213D2F230F2779D91C3D72A71EB5352460B7A",
+    "bytes": 537
+  },
+  {
+    "file": "integration-ledger-prefix.json",
+    "sha256": "4027E1C0E0F98865C9E46B038CF8E68C889A8B9D872080D237C3556F2FF38400",
+    "bytes": 455
+  },
+  {
+    "file": "integration-lifetime-green-build.log",
+    "sha256": "A9B94CDFAFB8039A76A48022EE8FF9FDE473367863A0B383C00D8B236E7B2511",
+    "bytes": 82
+  },
+  {
+    "file": "integration-lifetime-green-Marrow.App.Tests.log",
+    "sha256": "4EDD66247B8674953706B0632DD23BA043DB626CFC006AA7C665D264BD2B0E88",
+    "bytes": 121
+  },
+  {
+    "file": "integration-lifetime-green-Marrow.Services.Tests.log",
+    "sha256": "324151BC8FDEE00A354DA348B10108735920446EDE019310D6A132C3C21FF41B",
+    "bytes": 126
+  },
+  {
+    "file": "integration-lifetime-red-build.log",
+    "sha256": "6BC38BDCF6595EEF1A4B432A2225556413BF54F9C2E8B6A25521636A07E2407B",
+    "bytes": 82
+  },
+  {
+    "file": "integration-lifetime-red-Marrow.App.Tests.log",
+    "sha256": "C5215AF0765C29F8886D830F9120D69752629C57DD7A206D70F97D9813CFEFB8",
+    "bytes": 543
+  },
+  {
+    "file": "integration-lifetime-red-Marrow.Services.Tests.log",
+    "sha256": "037E3F732FDA85F70D7F9A72580521CF1AF0500DD94B0517A7AA25B2342A07A8",
+    "bytes": 126
+  },
+  {
+    "file": "integration-red-build.log",
+    "sha256": "1F55BAE7045465F475ACC698141C08329FC2454244986AD2AFDFB3BD9689961A",
+    "bytes": 1461
+  },
+  {
+    "file": "integration-red2-build.log",
+    "sha256": "5667F7329562946AD58C7A7316F41945100040EAD05528222C0C3389A0AA5593",
+    "bytes": 82
+  },
+  {
+    "file": "integration-red2-Marrow.App.Tests.log",
+    "sha256": "AC6658B6A09DA0A28A24E68D105FD46334F152682BB9012201486FA3713C61FF",
+    "bytes": 2040
+  },
+  {
+    "file": "integration-red2-Marrow.Services.Tests.log",
+    "sha256": "6A21564D1D1F818E9E0BB981FA19D3C877E24481DD07B69AE250C27E293CF15E",
+    "bytes": 591
+  },
+  {
+    "file": "integration-slices-Marrow.App.Tests-build.log",
+    "sha256": "D708216088DD7476DC5B1E2DA5FC91C2073E4C19D0B1512C30E46C8910AF5F56",
+    "bytes": 82
+  },
+  {
+    "file": "integration-slices-Marrow.App.Tests-tests.log",
+    "sha256": "4C2A666FBAC878B0F473BF8BAAA83E69388B124158A16CCEECB5767202D32B45",
+    "bytes": 122
+  },
+  {
+    "file": "integration-slices-Marrow.Core.Tests-tests.log",
+    "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "bytes": 0
+  },
+  {
+    "file": "integration-slices-Marrow.Services.Tests-tests.log",
+    "sha256": "F325F96890326FB8C04FF6ACFDD5BD55D62F80EFB190B45F63339BC4C7CAC3F4",
+    "bytes": 128
+  },
+  {
+    "file": "integration-slices-Marrow.UI.Tests-build.log",
+    "sha256": "9C592D1F6105305DD180B52E92BDCAF4E2033CD2EF962BF93FE541E1990582CC",
+    "bytes": 82
+  },
+  {
+    "file": "integration-slices-Marrow.UI.Tests-tests.log",
+    "sha256": "C23B3CB8C7A8E4AEA67257CD646855727BF221DC9C618939C0707B8AAE84A400",
+    "bytes": 120
+  },
+  {
+    "file": "integration-startup-red-build.log",
+    "sha256": "F9F1E3F454DC958406BB355199BB2DD57494068CD0BE54D493FDA964371F635E",
+    "bytes": 82
+  },
+  {
+    "file": "integration-startup-red-Marrow.App.Tests.log",
+    "sha256": "7206EA745F231F55B29822FB4B56007986C25AEF19832731FF7942689322DFEA",
+    "bytes": 726
+  },
+  {
+    "file": "integration-startup-red-Marrow.Services.Tests.log",
+    "sha256": "9D5FAAE9428D595F698C069FD162E342E19CC0441D469F0640BB5AF98E7820B9",
+    "bytes": 126
+  }
+]

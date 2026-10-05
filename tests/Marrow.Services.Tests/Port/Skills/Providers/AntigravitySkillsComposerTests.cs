@@ -2,6 +2,7 @@ using System.Reflection;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Port.Skills.Host;
+using Marrow.Services.Port.Skills.Pipelines;
 using Marrow.Services.Tests.Fixtures;
 using Marrow.Services.Tests.Port.Skills.Generations;
 using Marrow.Services.Tests.Port.Skills.Install;
@@ -27,6 +28,9 @@ public sealed class AntigravitySkillsComposerTests
         var named = f.Add("O1", "screenshot");
         var off = f.Add("O2", "aspnet-core");
         var items = new[] { pdf, design, named, off };
+        Directory.CreateDirectory(f.Paths.Addons);
+        foreach (var item in items)
+            PipelineRoutes.Prepare(f.Paths.StateFile, new(item.Store.Catalogue.Id, item.Store.Pin, item.Store.Folder, [], []));
         AddonsStateStore.Save(f.Paths.StateFile, AddonsState.Restore(items.Select(i => new ItemRecord(i.Store.Catalogue.Id, ItemState.Installed, i.Store.Pin, null, null)), [], [], []));
         var catalogue = SkillsHostRig.Catalogue(items.Select(i => i.Store.Catalogue).ToArray());
         using var host = SkillsHost.Open(f.Paths.Root, new SkillsHostOptions
