@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Linq;
 using Marrow.Core.Models;
+using Marrow.Core.Port.Accounts;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
@@ -34,6 +35,9 @@ public sealed record TurnInput
 // :22-47. Everything a provider session needs to launch.
 public sealed record SessionConfiguration
 {
+    // PORT-ONLY: OD-0114 / ED-NEW-ma-1; null only for legacy call sites/test fixtures.
+    public Guid? AccountId { get; init; }
+    public HandshakePoint? AccountHandshakePoint { get; init; }
     public required ProviderKind Provider { get; init; }                 // :23
     public SwiftURL? Executable { get; init; }                           // :24
     public required SwiftURL WorkingDirectory { get; init; }             // :25

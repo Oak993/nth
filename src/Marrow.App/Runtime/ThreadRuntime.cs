@@ -241,6 +241,7 @@ public sealed class ThreadRuntime : MainActorModel
     private sealed record SessionSignature
     {
         public required ProviderKind Provider { get; init; }          // :511
+        public Guid? AccountId { get; init; } // PORT-ONLY: OD-0114 / ED-NEW-ma-1; process identity.
         public required string Directory { get; init; }               // :512
         public RuntimeMode? LaunchRuntimeMode { get; init; }          // :513
         public string? LaunchEffort { get; init; }                    // :514
@@ -1723,7 +1724,7 @@ public sealed class ThreadRuntime : MainActorModel
             if (unsentSessionID is { } pendingSessionID)
             {
                 unsentSessionID = null;
-                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = pendingSessionID });
+                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = pendingSessionID, ProviderAccountID = sessionSignature?.AccountId ?? current.ProviderAccountID });
             }
             if (command is not null) app.Providers.RecordCommand(command.Name, thread.Provider);
         }
@@ -1876,6 +1877,7 @@ public sealed class ThreadRuntime : MainActorModel
         return new SessionSignature
         {
             Provider = thread.Provider,
+            AccountId = thread.ProviderAccountID,
             Directory = directory,
             LaunchRuntimeMode = thread.Provider is ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin or ProviderKind.Antigravity
                 ? thread.RuntimeMode
@@ -1904,7 +1906,16 @@ public sealed class ThreadRuntime : MainActorModel
         }
 
         var hydra = KeepsHydraPolicyInSystemPrompt(thread.Provider) ? app.HydraLaunch(thread) : null;
-        var signature = MakeSessionSignature(thread, directory, app.Settings.AntiSlopEnabled, hydra);
+        // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Existing native IDs belong to the unmoved legacy root.
+        var accounts = app.Settings.Accounts;
+        var boundID = thread.ProviderAccountID;
+        if (boundID is null && thread.ProviderSessionID is not null)
+            boundID = accounts.ForService(thread.Provider).FirstOrDefault(a => a.UsesLegacyCredentials)?.Id
+                ?? throw new InvalidOperationException("The original account for this conversation is unavailable.");
+        var account = accounts.Choose(thread.Provider, boundID)
+            ?? throw new InvalidOperationException("No enabled account is available for this conversation.");
+        var launchThread = account.UsesLegacyCredentials ? thread : thread with { ProviderAccountID = account.Id };
+        var signature = MakeSessionSignature(launchThread, directory, app.Settings.AntiSlopEnabled, hydra);
         if (session is { IsRunning: true } && sessionSignature == signature) return session;
 
         // Resolve the login environment before tearing down the current session.
@@ -1914,7 +1925,7 @@ public sealed class ThreadRuntime : MainActorModel
 
         if (thread.Provider.IsAPIKeyBased)
         {
-            var apiKey = app.Settings.ApiKey(thread.Provider);
+            var apiKey = app.Providers.ApiKey(account.Id);
             if (apiKey.Length == 0)
                 throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
 
@@ -1925,7 +1936,8 @@ public sealed class ThreadRuntime : MainActorModel
                     Provider = thread.Provider,
                     Executable = null,
                     WorkingDirectory = SessionDirectoryUrl(directory),
-                    Environment = app.Providers.Environment(thread.Provider),
+                    AccountId = account.Id,
+                    Environment = app.Providers.Environment(account.Id),
                     ResumeID = resumeID,
                     ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
                     Model = thread.Model,
@@ -1939,6 +1951,8 @@ public sealed class ThreadRuntime : MainActorModel
                     IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
                     AntiSlopEnabled = signature.AntiSlopEnabled,
                 };
+
+                configuration = app.Providers.PrepareSession(configuration, account.Id, useAccountDefaults: false);
 
                 ProviderSession created = thread.Provider switch
                 {
@@ -1979,7 +1993,7 @@ public sealed class ThreadRuntime : MainActorModel
                 if (!ReferenceEquals(session, candidate) || SwiftTask.IsCancelled)
                     throw new CancellationError();
                 started = true;
-                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = sessionID });
+                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = sessionID, ProviderAccountID = launchThread.ProviderAccountID });
                 return candidate;
             }
             finally
@@ -2003,7 +2017,8 @@ public sealed class ThreadRuntime : MainActorModel
                 Provider = thread.Provider,
                 Executable = executable,
                 WorkingDirectory = SessionDirectoryUrl(directory),
-                Environment = app.Providers.Environment(thread.Provider),
+                AccountId = account.Id,
+                Environment = app.Providers.Environment(account.Id),
                 ResumeID = resumeID,
                 ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
                 Model = thread.Model,
@@ -2014,6 +2029,8 @@ public sealed class ThreadRuntime : MainActorModel
                 Hydra = hydra,
                 AntiSlopEnabled = signature.AntiSlopEnabled,
             };
+
+            configuration = app.Providers.PrepareSession(configuration, account.Id, useAccountDefaults: false);
 
             ProviderSession created = thread.Provider switch
             {
@@ -2068,6 +2085,8 @@ public sealed class ThreadRuntime : MainActorModel
             if (!ReferenceEquals(session, cliCandidate) || SwiftTask.IsCancelled)
                 throw new CancellationError();
             cliStarted = true;
+            if (launchThread.ProviderAccountID is not null)
+                app.UpdateThread(ThreadID, current => current with { ProviderAccountID = launchThread.ProviderAccountID });
             RecordSessionID(sessionID);
             return cliCandidate;
         }
@@ -2896,7 +2915,7 @@ public sealed class ThreadRuntime : MainActorModel
         }
         else
         {
-            app.UpdateThread(ThreadID, thread => thread with { ProviderSessionID = sessionID });
+            app.UpdateThread(ThreadID, thread => thread with { ProviderSessionID = sessionID, ProviderAccountID = sessionSignature?.AccountId ?? thread.ProviderAccountID });
         }
     }
 

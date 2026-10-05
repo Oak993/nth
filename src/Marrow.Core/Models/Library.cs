@@ -280,6 +280,8 @@ public sealed record ChatThread
     public string? WorktreePath { get; init; }                               // :135
     public string? Branch { get; init; }                                      // :136
     public string? ProviderSessionID { get; init; }                             // :137
+    // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Null binds pre-MA-1 native sessions to legacy Account 1 in place.
+    public Guid? ProviderAccountID { get; init; }
     public string? ProviderResumeAt { get; init; }                                // :138
     public bool IsPinned { get; init; }                                            // :139
     public bool IsArchived { get; init; }                                           // :140
@@ -466,7 +468,11 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             runtimeMode, interactionMode, worktreePath, branch, providerSessionID, providerResumeAt, isPinned,
             isArchived, isSettled, settledAt, hasUnread, hasCustomTitle, sortOrder, activityOrder, activityOrderDay,
             lastStatus, parentThreadID, isInPanel, expandsHelpers, hydraEnabled, hydraEnabledIsExplicit, hydraPairID,
-            hydraSpawnCount, hydra);
+            hydraSpawnCount, hydra) with
+        {
+            ProviderAccountID = element.TryGetProperty("providerAccountID", out var accountBinding) && accountBinding.ValueKind != JsonValueKind.Null
+                ? Coding.Value<Guid?>(element, "providerAccountID", field => SwiftDecoding.ReadUUID(field), () => Guid.Empty) : null,
+        };
     }
 
     public override void Write(Utf8JsonWriter writer, ChatThread value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -490,6 +496,7 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         if (value.Branch is { } branch) writer.WriteString("branch", branch);
         if (value.ProviderSessionID is { } providerSessionID) writer.WriteString("providerSessionID", providerSessionID);
         if (value.ProviderResumeAt is { } providerResumeAt) writer.WriteString("providerResumeAt", providerResumeAt);
+        if (value.ProviderAccountID is { } accountID) writer.WriteString("providerAccountID", SwiftUUID.UuidString(accountID));
         writer.WriteBoolean("isPinned", value.IsPinned);
         writer.WriteBoolean("isArchived", value.IsArchived);
         writer.WriteBoolean("isSettled", value.IsSettled);
