@@ -10,6 +10,12 @@ public static class ImportWords
     public const string SectionNote = "Skills you brought in from other apps on this PC. Marrow gives them to your chats like any other skill.";
     public const string ActionNote = "Bring in skills that other AI apps keep on this PC. Nothing in those apps is changed.";
 
+    // ---- the quiet line (OD-0118 addendum: found by itself)
+    public const string FoundImport = "Import";
+    public const string FoundDismiss = "Dismiss";
+    public static string Found(int skills, IReadOnlyList<string> apps) =>
+        "Found " + skills + (skills == 1 ? " skill" : " skills") + " in " + (apps.Count <= 1 ? string.Concat(apps) : string.Join(", ", apps.Take(apps.Count - 1)) + " and " + apps[^1]);
+
     // ---- the sheet
     public const string Title = "Import skills";
     public const string Sub = "Looking where other AI apps keep their skills on this PC.";
