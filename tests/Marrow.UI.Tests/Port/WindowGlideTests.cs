@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Marrow.UI.Tests.Port;
 
-// PR-COMPOSER-003 (ComposerView.swift:23-25, :52-56) through the foundation's WindowGlide (ED-NEW-rec-composer 9): a stack pinned to the bottom of its
+// PR-COMPOSER-003 (ComposerView.swift:23-25, :52-56) through the foundation's WindowGlide (ED-333 9): a stack pinned to the bottom of its
 // window, as the composer's approval area is. A glide that a second change interrupts goes on from where the view is drawn at that instant to its newest
 // place, never jumping; a view that leaves before it was ever laid out still has its removal run to its end.
 [Collection("Headless")]

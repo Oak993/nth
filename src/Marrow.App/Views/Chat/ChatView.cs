@@ -2048,7 +2048,7 @@ internal sealed class ScriptsMenu : Decorator
         PresentScriptsEditor(model, projectID, null));
 
     // :1456-1463. `.presentationBackground { WindowBackdrop(opacity:) }`: glass over the app's own window (OD-0005 (b)), so the sheet is drawn
-    // in its window and its backdrop's glass is the app's material (ED-NEW-rec-composer).
+    // in its window and its backdrop's glass is the app's material (ED-333).
     private static void PresentScriptsEditor(AppModel model, Guid projectID, Control? anchor) => ChatSheetPresentation.Show(anchor, dismiss =>
     {
         var editor = new ScriptsEditor(model, projectID, dismiss).PresentedChrome();

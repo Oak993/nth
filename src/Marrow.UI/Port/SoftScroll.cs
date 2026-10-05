@@ -1,5 +1,5 @@
 // PORT-ONLY (OD-0071, ED-246): the one soft, weighted scrolling behaviour every scroll area of the app uses.
-// Taken from unit/premium-scroll (9964d3af4, not merged) for the chat timeline only (UI-CHAT-001, ED-NEW-rec-composer): a
+// Taken from unit/premium-scroll (9964d3af4, not merged) for the chat timeline only (UI-CHAT-001, ED-333): a
 // ScrollViewer takes it when SoftScroll.IsEnabled is set on it (the timeline's); every other scroll view keeps Avalonia's
 // own until the shared unit lands (its overlay indicator, ScrollIndicator, is not taken: the timeline hides its indicators).
 //
@@ -430,7 +430,7 @@ public sealed class ScrollPhysics
 
     /// <summary>Animates to <paramref name="destination"/> along <paramref name="animation"/>, carrying any speed in. With
     /// <paramref name="runsOut"/> off the curve is followed exactly and ends at its duration, as the port's other programmatic
-    /// animations do (ED-NEW-rec-composer: the chat timeline's, pinned by its tests, until ED-246 (4) is ruled on there).</summary>
+    /// animations do (ED-333: the chat timeline's, pinned by its tests, until ED-246 (4) is ruled on there).</summary>
     public void AnimateTo(double destination, Animation animation, double now, bool runsOut = true)
     {
         Advance(now);
@@ -997,7 +997,7 @@ public static class SoftScroll
     /// <summary>The curve keyboard scrolls take: <c>.smooth(duration: 0.25)</c> (see the file note).</summary>
     public static Animation KeyAnimation { get; } = Animation.Smooth(0.25);
 
-    /// <summary>Whether the ScrollViewer scrolls softly, inherited by the scroll views inside it (ED-NEW-rec-composer: the chat timeline's, until every
+    /// <summary>Whether the ScrollViewer scrolls softly, inherited by the scroll views inside it (ED-333: the chat timeline's, until every
     /// scroll view does).</summary>
     public static readonly AttachedProperty<bool> IsEnabledProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>("SoftScrollIsEnabled", typeof(SoftScroll), inherits: true);

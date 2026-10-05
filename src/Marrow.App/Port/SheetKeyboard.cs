@@ -1,4 +1,4 @@
-// PORT-ONLY (ED-NEW-rec-composer 5, review of 4a608bb54): a sheet over a window takes the window's keyboard, as an NSWindow's attached sheet is the key
+// PORT-ONLY (ED-333 5, review of 4a608bb54): a sheet over a window takes the window's keyboard, as an NSWindow's attached sheet is the key
 // window while it shows: the window's Escape closes it before anything under it acts on the key (the composer would take a running turn back,
 // ComposerView.cs's Escape), and, for a sheet drawn in the window, no key or text reaches the content under it. Its window reads it as its attached
 // sheet (ThreadWindow.AttachedSheet: the thread chords stand still under a sheet, ThreadWindow.swift:12-14, :26). The same hook as PopoverHost.Listen:

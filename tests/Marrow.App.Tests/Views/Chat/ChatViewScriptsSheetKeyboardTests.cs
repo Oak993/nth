@@ -16,7 +16,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Chat;
 
-// PR-TERM-074 (ChatView.swift:1456-1463 `.sheet`), the in-window scripts sheet as a sheet (ED-NEW-rec-composer 5, after the review of 4a608bb54): an attached
+// PR-TERM-074 (ChatView.swift:1456-1463 `.sheet`), the in-window scripts sheet as a sheet (ED-333 5, after the review of 4a608bb54): an attached
 // sheet is its window's key window while it shows, so it takes the keyboard when it opens, its window reads it as its attached sheet (ThreadWindow.swift:12-14,
 // :26: the thread chords stand still), the keyboard goes back to where it was once it is dismissed, and the window can still be dragged by its own drag region
 // beside it (a Mac window with a sheet can be).

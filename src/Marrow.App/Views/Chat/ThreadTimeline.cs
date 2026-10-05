@@ -261,7 +261,7 @@ public sealed class ThreadTimeline : Decorator
                     tracking.HoldEnd(1.5);
                     scroll = new ScrollViewer { Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
                     currentScroll = scroll; initialAnchorApplied = false;
-                    SoftScroll.SetIsEnabled(scroll, true); // OD-0071 (ED-246, ED-NEW-rec-composer): eased wheel steps, momentum, a soft settle at the ends
+                    SoftScroll.SetIsEnabled(scroll, true); // OD-0071 (ED-246, ED-333): eased wheel steps, momentum, a soft settle at the ends
                     scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); if (drawnColumn is { } current) current.MinHeight = viewportHeight; paneWidth = scroll.Bounds.Width; RefreshLayoutWidth(); }; // :446-450
                     var oldMetrics = new ScrollMetrics();
                     scroll.ScrollChanged += (_, change) =>
@@ -666,7 +666,7 @@ public sealed class ThreadTimeline : Decorator
     private void EndWithAnimation(Animation? animation) { if (currentScroll is { } scroll) ScrollTo(new Vector(scroll.Offset.X, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)), animation); }
     // :242-252. Avalonia offsets are not SwiftUI state; the source curve runs on the shared soft scrolling (ED-246), which
     // the reader's own wheel or touchpad takes over from, and which an unanimated move sets at once. The curve is followed
-    // exactly to its duration, as before ED-246 here (ED-NEW-rec-composer: ED-246 (4)'s run-out spring is not ruled on for it).
+    // exactly to its duration, as before ED-246 here (ED-333: ED-246 (4)'s run-out spring is not ruled on for it).
     private void ScrollTo(Vector target, Animation? animation)
     {
         if (currentScroll is { } scroll) SoftScroll.ScrollTo(scroll, target, animation, runsOut: false);
@@ -703,7 +703,7 @@ public sealed class ThreadTimeline : Decorator
         // :511 `> 1`: one Mac wheel step moves the view by many points at once. The port's soft scrolling (ED-246) spreads a step over the
         // frames of its glide, whose last ones move under a point: while the reader's own wheel or touchpad glides the view (not a
         // programmatic animation), any movement is the reader's, or a pinned reader one notch up was taken for drift and snapped back
-        // to the end (ED-NEW-rec-composer).
+        // to the end (ED-333).
         var readerGlide = currentScroll is { } gliding && SoftScroll.IsScrolling(gliding) && SoftScroll.For(gliding).Phase != ScrollPhase.Animating;
         var readerMoved = Math.Abs(next.Offset - old.Offset - anchorMove) > (readerGlide ? 0.001 : 1);
         if (readerMoved) tracking.NoteReaderMovement(); var scrolled = tracking.IsUserScrolling || (!tracking.IsArriving && readerMoved && next.ContainerHeight == old.ContainerHeight && !tracking.IsCoasting); var atRest = !tracking.IsUserScrolling && !tracking.IsCoasting;

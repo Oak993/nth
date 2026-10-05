@@ -339,7 +339,7 @@ namespace Marrow.UI.Chrome
 
         /// <param name="opacity">:205 <c>let opacity: Double</c>.</param>
         /// <param name="wallpaper">:207 <c>var wallpaper: NSImage? = nil</c>.</param>
-        /// <param name="overAppContent">PORT-ONLY (OD-0005 (b), ED-NEW-rec-composer): the backdrop lies over the app's own window, not the desktop
+        /// <param name="overAppContent">PORT-ONLY (OD-0005 (b), ED-333): the backdrop lies over the app's own window, not the desktop
         /// (the scripts sheet's <c>.presentationBackground</c>, ChatView.swift:1459-1463), so its glass is the app's material, which frosts what
         /// the window drew under it, instead of the window's Acrylic.</param>
         // :217-272 body

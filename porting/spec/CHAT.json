@@ -2563,7 +2563,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One checklist per turn; identity is positional, so the animation must key on the step array rather than on synthesized ids. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison across the three statuses plus an interaction test on an update",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3291,7 +3291,7 @@
       "cancellation": "The task is keyed on the body text and is cancelled when it changes or the row goes away.",
       "windows_path": "Same warm-on-appear behavior for the merge pill (TimelineRows.swift:1030-1033).",
       "verification_method": "interaction test measuring the frame time of the first tap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3898,7 +3898,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One composited material pass for the whole row, not one per control, because the row floats over scrolling content and per-control sampling was the cost the source is avoiding. The slot order, the two spacings (10 outer, 8 between the trailing capsules), the container spacing 2 and the three conditional slots are all directly reproducible. The glass material is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001).",
       "verification_method": "capture comparison plus a structural test asserting the control order under the four combinations of project present and repository present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4476,7 +4476,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:325-341"
       ],
       "notes": "The column width and padding are shared with the composer so messages line up with its edges. contentTopInset must be computed from its three parts, not hard-coded, even though it equals veilHeight by coincidence. OD-0013 (the live-resize edge strip of probe P4 must be fixed) is closed by OD-0017: every resizable window uses `stretch` (ED-101), which removes the shrink clips and lowers the moving grow-edge strip from 2.54 % to 0.16 % of samples; the DWM type B frame (one frame, 3 to 9 px of what is behind the window) and the one-frame scaled frames that remain are a named deviation in the final report. OD-0071: the timeline scrolls softly (ED-246). OD-0105 (1): rows that leave together fold shut together, in about 0.3 s, where the Mac removes them at once (:339). OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
-      "b2_change": "Typography: B1 fonts were `Font.chat(style, zoom:)` at the chat zoom (B1 ChatView.swift:123) -> B2 `Font.chat(style)` with no zoom (ChatFont.swift:6). Rows are built by the extracted row(_:rewindable:) (B2 ThreadTimeline.swift:325-341) with RowContext chronological false. The scroll content moved from B1 :323-408 to B2 :359-425; geometry and colours are unchanged."
+      "b2_change": "Typography: B1 fonts were `Font.chat(style, zoom:)` at the chat zoom (B1 ChatView.swift:123) -> B2 `Font.chat(style)` with no zoom (ChatFont.swift:6). Rows are built by the extracted row(_:rewindable:) (B2 ThreadTimeline.swift:325-341) with RowContext chronological false. The scroll content moved from B1 :323-408 to B2 :359-425; geometry and colours are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-002",

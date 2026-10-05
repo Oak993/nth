@@ -22,7 +22,7 @@ internal static class ChatSheetPresentation
             if (owner.Child is null) owner.Child = content(model, () => owner.GetValue(DismissProperty)?.Invoke());
         });
 
-    /// <param name="inWindow">PORT-ONLY (ED-NEW-rec-composer): the sheet is drawn in its anchor's window (WindowSheetLayer) instead of a
+    /// <param name="inWindow">PORT-ONLY (ED-333): the sheet is drawn in its anchor's window (WindowSheetLayer) instead of a
     /// Popup window of its own, for a sheet whose background is glass over the app (ChatView.swift:1459-1463): the app's material reads only
     /// what its own window drew under it. A window whose content is not a plain panel (none the port's factory makes) keeps the Popup.</param>
     public static void Show(Control? anchor, Func<Action, Control> content, Action? onDismiss = null, bool inWindow = false)

@@ -57,7 +57,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:325-341"
       ],
       "notes": "The column width and padding are shared with the composer so messages line up with its edges. contentTopInset must be computed from its three parts, not hard-coded, even though it equals veilHeight by coincidence. OD-0013 (the live-resize edge strip of probe P4 must be fixed) is closed by OD-0017: every resizable window uses `stretch` (ED-101), which removes the shrink clips and lowers the moving grow-edge strip from 2.54 % to 0.16 % of samples; the DWM type B frame (one frame, 3 to 9 px of what is behind the window) and the one-frame scaled frames that remain are a named deviation in the final report. OD-0071: the timeline scrolls softly (ED-246). OD-0105 (1): rows that leave together fold shut together, in about 0.3 s, where the Mac removes them at once (:339). OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
-      "b2_change": "Typography: B1 fonts were `Font.chat(style, zoom:)` at the chat zoom (B1 ChatView.swift:123) -> B2 `Font.chat(style)` with no zoom (ChatFont.swift:6). Rows are built by the extracted row(_:rewindable:) (B2 ThreadTimeline.swift:325-341) with RowContext chronological false. The scroll content moved from B1 :323-408 to B2 :359-425; geometry and colours are unchanged."
+      "b2_change": "Typography: B1 fonts were `Font.chat(style, zoom:)` at the chat zoom (B1 ChatView.swift:123) -> B2 `Font.chat(style)` with no zoom (ChatFont.swift:6). Rows are built by the extracted row(_:rewindable:) (B2 ThreadTimeline.swift:325-341) with RowContext chronological false. The scroll content moved from B1 :323-408 to B2 :359-425; geometry and colours are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -2189,7 +2190,8 @@
         "DroppyCode/App/Views/Composer/ComposerTextView.swift:249 textContainerInset = NSSize(width: 0, height: 2); :360-376 updateHeight, total = ceil(max(18, contentHeight) + textContainerInset.height * 2)",
         "DroppyCode/App/Views/Composer/ComposerView.swift:157-158 the source comment (44); :552-564 the column's textHeight starts at 20 and is clamped to at least 20"
       ],
-      "notes": "The dots must be inside the glass content, not a sibling background: a glass view renders above ordinary siblings and would cover them. The r 22 corner on the 46 point pill is drawn as the circular arc the reference video measures (ED-275 (2); OD-0102 keeps the composer as measured), not the continuous curve the source names."
+      "notes": "The dots must be inside the glass content, not a sibling background: a glass view renders above ordinary siblings and would cover them. The r 22 corner on the 46 point pill is drawn as the circular arc the reference video measures (ED-275 (2); OD-0102 keeps the composer as measured), not the continuous curve the source names.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2568,7 +2570,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:661-675"
       ],
       "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that.",
-      "status": "SPECIFIED"
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",
@@ -2853,7 +2855,8 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:526-533",
         "DroppyCode/App/Views/Composer/PromptEditor.swift:117-124"
       ],
-      "notes": "\"Attach\" is the accept button's label, not the dialog title."
+      "notes": "\"Attach\" is the accept button's label, not the dialog title.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "COMPOSER",

@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Marrow.UI.Tests.Port;
 
-// ED-NEW-rec-composer: the soft scrolling of ED-246 (OD-0071) is taken from unit/premium-scroll for the chat timeline only, as an opt-in
+// ED-333: the soft scrolling of ED-246 (OD-0071) is taken from unit/premium-scroll for the chat timeline only, as an opt-in
 // (SoftScroll.IsEnabled): a scroll view that has not opted in keeps Avalonia's own wheel, which moves 50 points a notch in the report's own
 // frame; one that has glides there along the measured curve (SoftScrollTests).
 [Collection("Headless")]
