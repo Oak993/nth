@@ -147,8 +147,8 @@ public sealed class ComposerViewBlitzPillTests(HeadlessSession headless)
             var presenter = new RecordingPresenter();
             using var presenterSeam = Presentation.Presenter.Override(presenter);
             var recents = new ObservableBoolBox();
-            var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime, h.Thread, true, true, false, false, null,
-                recents.AsBinding(), _ => { }, () => { }, () => { }));
+            // the attachment button moved out of ComposerControls to the pill's left (V-14.1, owner-ruled): the same button, built on its own
+            var controls = h.Main.OnMain(() => new ComposerAttachButton(ComposerAttachPlace.Inside, true, recents.AsBinding(), _ => { }, () => { }));
             var window = h.Main.OnMain(() => Show(controls, h.App, 400));
             Pump(h, window);
             var button = h.Main.OnMain(() => Named(controls, "Attach files"));

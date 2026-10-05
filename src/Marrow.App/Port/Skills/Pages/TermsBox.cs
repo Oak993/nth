@@ -1,5 +1,5 @@
 // PORT-ONLY: first-release feature unit SK-15 (DL-17, ONDEMAND-PLAN.md 2.5, DL-15). The terms step of an item under a vendor's terms: the row label ("Under Anthropic's terms"), the licence text of the pinned file, and the
-// separate "I have read these terms" control that stores the acceptance with its date and the licence hash. The Download button of the item waits for it. ENGINEERING DECISION (ED-NEW-f-sk-15): the control stays off
+// separate "I have read these terms" control that stores the acceptance with its date and the licence hash. The Download button of the item waits for it. ENGINEERING DECISION (ED-354): the control stays off
 // until the text is on screen (a user cannot say they read what failed to load), and a licence the catalogue holds no hash for yet cannot be accepted: the refusal's own words are shown.
 using Avalonia;
 using Avalonia.Automation;

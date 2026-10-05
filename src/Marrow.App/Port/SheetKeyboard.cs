@@ -14,6 +14,12 @@ namespace Marrow.App.Port;
 
 internal static class SheetKeyboard
 {
+    // The windows a sheet has taken the keyboard of, one entry per sheet showing (VT-10 review: a voice session's Escape yields to a sheet opened after it went live).
+    private static readonly List<WeakReference<TopLevel>> Taken = [];
+
+    /// <summary>Whether a sheet showing now has taken the keyboard of <paramref name="window"/>.</summary>
+    public static bool IsTaken(TopLevel window) => Taken.Exists(entry => entry.TryGetTarget(out var held) && ReferenceEquals(held, window));
+
     /// <summary>
     /// While the sheet shows: Escape on <paramref name="window"/> calls <paramref name="dismiss"/> and is handled; with <paramref name="blockUnder"/>, a key or
     /// text whose target is not inside the sheet (<paramref name="inside"/>) is handled before it reaches it. Returns the call that stops it.
@@ -44,8 +50,11 @@ internal static class SheetKeyboard
         window.AddHandler(InputElement.TextInputEvent, OnText, RoutingStrategies.Tunnel);
         var threadWindow = window as ThreadWindow;
         if (threadWindow is not null) threadWindow.AttachedSheet = sheet;
+        var entry = new WeakReference<TopLevel>(window);
+        Taken.Add(entry);
         return () =>
         {
+            Taken.Remove(entry);
             window.RemoveHandler(InputElement.KeyDownEvent, OnKey);
             window.RemoveHandler(InputElement.KeyUpEvent, OnKeyUp);
             window.RemoveHandler(InputElement.TextInputEvent, OnText);

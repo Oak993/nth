@@ -34,6 +34,15 @@ public enum CaptureDeviceEventKind
 /// </summary>
 public interface IAudioCaptureSink
 {
+    /// <summary>
+    /// The processing thread's tap (V-2.2 items 2 and 4, VT-11): each batch the capture drains, in the format the capture started in, handed over on the thread that drained it and
+    /// before the batch is posted to the main executor, so the level and bands are computed off the UI thread. It must not allocate or block. Optional: a sink that wants only the
+    /// main executor's batches does nothing here.
+    /// </summary>
+    void OnAudioBlock(CaptureFormat format, ReadOnlySpan<float> interleavedSamples)
+    {
+    }
+
     void OnAudio(ReadOnlySpan<float> interleavedSamples);
 
     void OnDeviceEvent(CaptureDeviceEventKind kind);

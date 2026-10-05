@@ -9,7 +9,7 @@ using Marrow.Services.Port.Skills.Terms;
 namespace Marrow.Services.Port.Skills.Pages;
 
 /// <summary>
-/// ENGINEERING DECISIONS (ED-NEW-f-sk-15): (1) the page keeps its own run state beside the pipeline's: an item that is queued, downloading, checking, failed or just installed by this page shows
+/// ENGINEERING DECISIONS (ED-354): (1) the page keeps its own run state beside the pipeline's: an item that is queued, downloading, checking, failed or just installed by this page shows
 /// that state until the pipeline's own state says the item is installed (the first-install path is SK-16's, ED-326 (6)(a)); (2) downloads of the page run one at a time, a second one waits
 /// as Queued; (3) Pause cancels the transfer in flight and starts it again at Resume (the installer keeps what it fetched, 3.2); Cancel stops the rest and keeps what finished; (4) an item
 /// under terms the user has not accepted, or one the catalogue holds no size for, is never part of a run; (5) a switch the backend cannot write is left as it was.

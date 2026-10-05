@@ -20,10 +20,10 @@ Plan / ED extensions (not silently attributed to the design):
 - FoundOnThisPc: ONDEMAND-PLAN 3.6, actual reported path only.
 - ProvidersHeading, ProvidersNote: Q8/ONDEMAND-PLAN 4.3 read-only reports; no copying or download claims.
 - ResetAction, ResetWhy: ONDEMAND-PLAN 3.8; two-step reset, preserving switches and accepted terms.
-- DownloadsUnavailable: existing ED-NEW-f-sk-15 reason, now a disabled-control explanation rather than a failure after Queued.
+- DownloadsUnavailable: existing ED-354 reason, now a disabled-control explanation rather than a failure after Queued.
 - SizeEstimateNote: T7 item 7; `Sizes are estimates. Unpacked size is not known yet.` No exact-size claim. SK-2 must supply measured unpacked sizes.
-- SizeUnknown: existing ED-NEW-f-sk-15 exclusion for a catalogue item without any size.
-- Unavailable: existing ED-NEW-f-sk-15 unavailable-host explanation.
+- SizeUnknown: existing ED-354 exclusion for a catalogue item without any size.
+- Unavailable: existing ED-354 unavailable-host explanation.
 
 Existing catalogue limitations remain explicit: no measured instruction-description token counts, no reviewed default-on metadata, and no unpacked-size field. The counts therefore omit the prototype's token estimates; singular grammar is retained by the existing exact tests. Terms/no-size skip suffixes come from the existing SK-15 decisions, not an invented prototype state. Fixture catalogue names, paths, licence text and item summaries are data, not UI-copy replacements.
 

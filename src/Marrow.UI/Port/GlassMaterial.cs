@@ -106,9 +106,24 @@ internal static class GlassMaterial
 
         public void Queue()
         {
+            // ED-356 (the first frame): until a piece has synchronised once, its window's renderer step (WindowHook) synchronises it right
+            // after the renderer's own update, in the composition update that draws the window's first frame: the Loaded post below lands a frame
+            // or more later (the knob-cache unit measured the glass 34 to 53 ms after a window was shown: pop-in).
+            if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top).Pending.Add(this);
             if (queued) return;
             queued = true;
             Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
+        }
+
+        private bool synchronizedOnce;
+
+        // Run by the window's renderer step (WindowHook.Repair), after the renderer's update and before the frame is committed.
+        internal void SynchronizeFirst(WindowHook hook)
+        {
+            if (synchronizedOnce || !owner.IsAttachedToVisualTree()) return;
+            Synchronize();
+            if (!synchronizedOnce) hook.Later.Add(this); // its visuals are made by a later update: tried at the next step
+            TraceForTests?.Invoke(synchronizedOnce ? "first synchronised in the renderer step" : "first synchronisation waits: no composition visual yet");
         }
 
         // Synchronise at the next composition update, without a dispatcher hop: for a change that is already on the render path.
@@ -194,6 +209,7 @@ internal static class GlassMaterial
             if (spacing is null && ContainerOf(owner) is { } group)
             {
                 RemoveMaterial();
+                synchronizedOnce = true; // the container draws it
                 AttachmentFor(group).Queue();
                 return;
             }
@@ -201,20 +217,24 @@ internal static class GlassMaterial
             var nextParent = owner.GetVisualParent() is { } p ? ElementComposition.GetElementVisual(p) as CompositionContainerVisual : null;
             if ((spacing is null && ownEffect is null) || visual is null || nextParent is null || SwiftGlass.GetUsesDesktopBackdrop(owner))
             {
+                // Settled when there is nothing to draw; a piece whose composition visuals are not made yet is tried again at the next step.
+                synchronizedOnce = visual is not null && nextParent is not null;
                 RemoveMaterial();
                 return;
             }
+            Handler? fresh = null;
             if (parent != nextParent)
             {
                 RemoveMaterial();
                 parent = nextParent;
-                material = visual.Compositor.CreateCustomVisual(new Handler());
+                material = visual.Compositor.CreateCustomVisual(fresh = new Handler());
                 // A custom visual clips to its Size unless told not to, and that clip also cut its render bounds back to the owner's: Avalonia then
                 // redrew only the owner's box when the material appeared or changed, not the margin it reads (SampledMargin, Backdrop).
                 material.ClipToBounds = false;
             }
             var index = parent.Children.IndexOf(visual);
             if (index < 0 || material is null) return;
+            synchronizedOnce = true;
             Place(visual);
             Hook(this);
             // Preserve source control type, layout, tint, hairline and foreground; draw immediately before it.
@@ -255,6 +275,9 @@ internal static class GlassMaterial
             if (previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
             {
                 previous = state;
+                // ED-356 (the first frame): a material made in this update holds its state before the batch that makes it is committed, so
+                // the frame that first draws it already has its bounds and its regions (a message is taken a frame later for a new visual).
+                fresh?.Prime(state);
                 material.SendHandlerMessage(state);
             }
         }
@@ -393,9 +416,23 @@ internal static class GlassMaterial
     private sealed class WindowHook
     {
         public readonly HashSet<Attachment> Materials = [];
+        /// <summary>Pieces not yet synchronised (Attachment.Queue): synchronised here first, so a window's first frame already has its glass. A piece in
+        /// a container queues the container, which is taken in the same step (a few rounds at most: a container of containers is not made).</summary>
+        public readonly HashSet<Attachment> Pending = [];
+        public readonly List<Attachment> Later = [];
         private readonly List<Attachment> pass = [];
         public void Repair()
         {
+            if (Pending.Count > 0) TraceForTests?.Invoke($"renderer step with {Pending.Count} pending");
+            for (var round = 0; round < 4 && Pending.Count > 0; round++)
+            {
+                pass.AddRange(Pending);
+                Pending.Clear();
+                foreach (var piece in pass) piece.SynchronizeFirst(this);
+                pass.Clear();
+            }
+            foreach (var piece in Later) Pending.Add(piece);
+            Later.Clear();
             if (Materials.Count == 0) return;
             pass.AddRange(Materials);
             foreach (var material in pass) material.Reinsert();
@@ -405,16 +442,19 @@ internal static class GlassMaterial
     private static readonly ConditionalWeakTable<TopLevel, WindowHook> windows = new();
     private static readonly ConditionalWeakTable<Attachment, TopLevel> hooked = new();
 
+    private static WindowHook HookOf(TopLevel top)
+    {
+        if (windows.TryGetValue(top, out var hook)) return hook;
+        hook = new WindowHook();
+        windows.Add(top, hook);
+        Install(top, hook);
+        return hook;
+    }
+
     private static void Hook(Attachment attachment)
     {
         if (hooked.TryGetValue(attachment, out _) || TopLevel.GetTopLevel(attachment.Owner) is not { } top) return;
-        if (!windows.TryGetValue(top, out var hook))
-        {
-            hook = new WindowHook();
-            windows.Add(top, hook);
-            Install(top, hook);
-        }
-        hook.Materials.Add(attachment);
+        HookOf(top).Materials.Add(attachment);
         hooked.Add(attachment, top);
     }
 
@@ -432,9 +472,10 @@ internal static class GlassMaterial
             var renderer = typeof(TopLevel).GetProperty("Renderer", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(top);
             var update = renderer?.GetType().GetField("_update", BindingFlags.Instance | BindingFlags.NonPublic);
             if (renderer is null || update?.GetValue(renderer) is not Action original) return;
-            update.SetValue(renderer, new Action(() => { original(); hook.Repair(); }));
+            update.SetValue(renderer, new Action(() => { TraceForTests?.Invoke("renderer update"); original(); hook.Repair(); }));
             // An update already queued holds the old delegate: one more step, after it, in the next composition update.
-            if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(hook.Repair);
+            if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
+            TraceForTests?.Invoke("hook installed");
         }
         catch (Exception e) when (e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException) { }
     }
@@ -447,6 +488,9 @@ internal static class GlassMaterial
     {
         private State? state;
         private readonly Backdrop backdrop = new();
+        // Called on the UI thread for a handler whose visual is made in the same update, before that batch is committed (the render thread has not
+        // seen the handler yet).
+        public void Prime(State first) => state = first;
         private Reach? reach;
         public override void OnMessage(object message)
         {
@@ -463,11 +507,22 @@ internal static class GlassMaterial
             if (feature is null) return;
             using var lease = feature.Lease();
             DrawsForTests++;
+            if (DrawsForTests == 1) TraceForTests?.Invoke("first draw (render thread)");
             Backdrop.DisposeReleased();
             var target = Frame.Target(this);
             var next = target is null ? null : Frame.ReachOf(target);
             if (next != reach) { reach?.Remove(this); reach = next; }
+            var cost = FrameCostForTests;
+            var watch = cost is null ? null : Wait(lease);
             if (Draw(lease, s, backdrop, target is null ? null : Frame.Dirty(target)) is { } drawn) reach?.Set(this, drawn);
+            if (cost is not null && watch is not null) { Wait(lease); cost(s.Regions[0].Size, watch.Elapsed); }
+        }
+
+        // The GPU's queued work done (flushed and waited on), then a clock started: so the time to the next wait is the material's alone.
+        private static Stopwatch Wait(ISkiaSharpApiLease lease)
+        {
+            lease.GrContext?.Flush(true, true);
+            return Stopwatch.StartNew();
         }
     }
 
@@ -478,13 +533,22 @@ internal static class GlassMaterial
     // Test-only readback (InternalsVisibleTo): how many times any material has drawn, on the render thread.
     internal static int DrawsForTests;
 
+    // Test-only (InternalsVisibleTo), ED-356's frame cost: while set, each draw waits for the GPU's work before and after itself and reports its
+    // first piece's size and how long the draw took, the GPU's part included. Called on the render thread.
+    internal static volatile Action<Size, TimeSpan>? FrameCostForTests;
+
+    // Test-only (InternalsVisibleTo): the first-frame steps (a piece's first synchronisation, the first draw), for the native first-frame test.
+    internal static volatile Action<string>? TraceForTests;
+
     // Sent before a material leaves its parent: its handler gives up the backdrop it keeps (disposed at the next render, where the GPU context is current).
     private sealed class Released { public static readonly Released Message = new(); }
 
-    // How far past its shape the material reads the pixels under it: the blur's 3 sigma, the refraction's largest displacement and the antialiased edge (Draw).
+    // How far past its shape the material reads the pixels under it: the blur's 3 sigma (36), the refraction's largest displacement (Optics.MaxBend plus
+    // Optics.MaxRing, the red channel's at the edge: 50; the unlit band reads 72 inward) and the antialiased edge (Draw).
     // It is also the material's render bounds: whenever the material appears, moves or changes, Avalonia redraws all it reads, so the backdrop it keeps is
     // taken whole there (Backdrop; GlassMaterialPartialRedrawTests, the label beside a piece that appears).
-    private const double SampledMargin = 66;
+    private const double UnlitBandSigmas = 6, MaxReadDisplacement = UnlitBandSigmas * 12;
+    private const double SampledMargin = 3 * 12 + MaxReadDisplacement + 2;
 
     private static Rect UnionBounds(State s)
     {
@@ -527,9 +591,30 @@ internal static class GlassMaterial
         """.Replace("EXTENT", ContinuousCorner.Extent.ToString("R", CultureInfo.InvariantCulture), StringComparison.Ordinal));
     private static readonly ConcurrentDictionary<int, Lazy<SKRuntimeEffect>> effects = new();
 
+    // OD-0108 (ED-NEW-fix-knobcache, on unit/fix-knobcache: GlassWarmup, GpuWarmup's "glass"): the programs the material draws with, for the GPU
+    // warm-up, made by the material's own builders, so a change to the shader is warmed as it is drawn. The same API as that unit's, for its merge.
+    // ED-356: one program per shape count (a container merges its pieces in one smoothUnion program), 1 to WarmShapes; the inside of a lone
+    // piece is the same program (its `interior` uniform), and so are both draws of a pixel (the `stage` uniform: DstOut, then Plus), so there are no
+    // separate inside programs to warm any more. A warm-up that mirrors the draws must draw each program twice, with BlendMode.DstOut and with
+    // BlendMode.Plus, and the blur as a Clamp image shader under the blur filter (Draw).
+    internal const int WarmShapes = 8;
+
+    internal static IReadOnlyList<SKRuntimeEffect> WarmupPrograms() => [.. Enumerable.Range(1, WarmShapes).Select(Effect)];
+
+    /// <summary>The program for <paramref name="count"/> shapes (the warm-up's), made as a draw makes it.</summary>
+    internal static SKRuntimeEffect WarmupProgram(int count) => Effect(count);
+
+    /// <summary>Raised the first time a draw asks for the program of a shape count in this process (render thread; the warm-up records it).</summary>
+    internal static event Action<int>? ShapeCountDrawn;
+    private static readonly ConcurrentDictionary<int, bool> drawnCounts = new();
+
+    /// <summary>The backdrop blur's sigma (device px) for a piece whose smaller side is <paramref name="smaller"/> pt, at <paramref name="scale"/>:
+    /// 12 pt on a panel, 15 % of the smaller side on a small lens (Draw).</summary>
+    internal static float BlurSigma(double smaller, float scale) => (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+
     private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
     {
-        var source = new StringBuilder(ShaderHeader);
+        var source = new StringBuilder(ShaderHeader).Append("\nuniform float stage;\nuniform float interior;\nuniform float4 window;\n");
         for (var i = 0; i < n; i++) source.Append(CultureInfo.InvariantCulture, $$"""
 
             uniform float4 transform{{i}};
@@ -537,7 +622,9 @@ internal static class GlassMaterial
             uniform float2 size{{i}};
             uniform float4 corners{{i}};
             uniform float4 tint{{i}};
-            uniform float4 frost{{i}};
+            uniform float4 film{{i}};
+            uniform float4 law{{i}};
+            uniform float4 optics{{i}};
             uniform float4 flags{{i}};
             uniform float4 pointer{{i}};
             float2 local{{i}}(float2 xy) {
@@ -550,59 +637,164 @@ internal static class GlassMaterial
             """);
         source.Append("\nfloat sceneDistance(float2 xy) { float d = distance0(xy);\n");
         for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"d = smoothUnion(d, distance{i}(xy));\n");
-        source.Append("return d; }\nhalf4 main(float2 xy) { float raw = distance0(xy); float4 tint = tint0; float4 frost = frost0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0;\n");
-        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; frost = frost{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; }}\n");
+        source.Append("return d; }\n");
+        source.Append(BodySource);
+        source.Append("half4 main(float2 xy) { float4 tint = tint0; float4 film = film0; float4 law = law0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0; float4 optics = optics0;\n");
+        // ED-320 16: the inside of a lone rounded rectangle (Draw's Inside) is drawn with `interior` set: what the shader computes past Optics.Deep,
+        // without the shape's distance. It is the same program and the same arithmetic as the whole shader's deep branch below, so the two are
+        // byte-identical (GlassMaterialReachReviewTests). A container's union never has one (Inside is null): its pointer is the nearest piece's.
+        if (n == 1) source.Append("""
+            float2 delta = at - ptr.xy;
+            float highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;
+            if (interior > 0.5) return inside(backdrop.eval(xy), at, extent, film, law, tint, ptr.w < 0.5, highlight, flags.w);
+            float raw = distance0(xy);
+
+            """);
+        else source.Append("float raw = distance0(xy);\n");
+        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; film = film{i}; law = law{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; optics = optics{i}; }}\n");
+        if (n > 1) source.Append("float2 delta = at - ptr.xy;\nfloat highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;\n");
         // With one shape the scene's distance is the shape's own (no union): it is not evaluated twice.
         source.Append(n == 1 ? "float d = -raw;\n" : "float d = -sceneDistance(xy);\n");
         source.Append("""
+            // Past the contact line outside the shape the material leaves the pixel as it is (both stages add nothing).
+            if (d <= -1.25) return half4(0.0);
             float coverage = clamp(d + 0.5, 0.0, 1.0);
-            if (coverage <= 0.0) return half4(0.0);
-            // The refracting band and its bend scale with the shape, capped at the panel values: on a small lens (the
-            // effort knob, 28 pt) a fixed 46 pt band made the whole disc an edge that bent in the dark surroundings,
-            // where the reference video shows a light disc with a thin refracting rim (2-chat-use.mov 35.5 s, 43.9 s).
-            // A band of 3.5 % of the smaller side plus blur is the same idea in rizzytoday/liquid-glass (MIT,
-            // technique only). ENGINEERING DECISION, UNVERIFIED fractions (35 % band, 20 % bend).
-            float smaller = min(extent.x, extent.y);
-            float band = min(46.0, max(smaller * 0.35, 1.0));
-            // The inner shade sits 5 pt in on a panel; on a small lens it keeps to the same share of the band.
-            float shadeAt = min(5.0, band * 0.3);
-            half3 col;
-            float rim = 0.0, light = 0.0, inner = 0.0, shade = 0.0;
-            // ED-320 16: past the band the lens bends nothing (the three reads are one), and past where the rim light and the inner
-            // shade fall under 1e-7 of a level the normal changes nothing either: the inside of a shape skips the normal's four distances.
-            if (d >= band && d > 11.5 && d > shadeAt + 4.0 * sqrt(2.0 * shadeAt * shadeAt + 0.5)) {
-                col = half3(backdrop.eval(xy).rgb);
-            } else {
+            // ED-320 16 / ED-356: past the bend's support, the ring's, the inner light's and the rim's (Optics.Deep in C#) the
+            // lens bends nothing and lights nothing: the inside of a shape reads one texel and skips the normal's four distances.
+            float deep = max(max(optics.z + LG_BENDSUPPORT * optics.y, LG_GLOWREACH), LG_RINGREACH);
+            float2 n = float2(0.0, 0.0);
+            float lit = 1.0;
+            if (d < deep) {
                 // P1 finite-difference inward normal follows curved edges and the merged neck.
                 float2 normal = float2(-sceneDistance(xy + float2(1.0, 0.0)) + sceneDistance(xy - float2(1.0, 0.0)),
                                       -sceneDistance(xy + float2(0.0, 1.0)) + sceneDistance(xy - float2(0.0, 1.0)));
-                float2 n = normalize(normal + float2(0.000001));
-                float lens = pow(clamp(1.0 - d / band, 0.0, 1.0), 2.2);
-                float disp = lens * min(26.0, smaller * 0.2);
-                half4 r = backdrop.eval(xy - n * disp * 1.10);
-                half4 g = backdrop.eval(xy - n * disp);
-                half4 b = backdrop.eval(xy - n * disp * 0.90);
-                col = half3(r.r, g.g, b.b);
-                rim = exp(-pow(d - 1.5, 2.0) / 6.0);
-                light = pow(clamp(-n.x * 0.7 - n.y * 0.7, 0.0, 1.0), 1.5);
-                inner = exp(-pow(d - shadeAt, 2.0) / (2.0 * shadeAt * shadeAt + 0.5));
-                shade = pow(clamp(n.x * 0.7 + n.y * 0.7, 0.0, 1.0), 1.5);
+                n = normalize(normal + float2(0.000001));
+                // ED-358's law (item 4): the edge's light (rim, inner light, contact line) and its bend follow how light the backdrop is
+                // 24 pt in from the edge (0.6 of a smaller piece's smaller side), past where the card's scrim shadow thins: the Mac's large dark card (27 under its scrim and shadow) has none, the composer pill (57) and the title
+                // capsules (52) have it whole. A transparent backdrop (the Acrylic) counts as a mid grey.
+                half4 deepRead = backdrop.eval(clamp(xy + n * min(24.0, 0.6 * min(extent.x, extent.y)), window.xy, window.zw));
+                half4 deepColour = unpremultiply(deepRead);
+                float level = float(dot(deepColour.rgb, half3(0.2126, 0.7152, 0.0722)) * deepRead.a + (1.0 - deepRead.a) * 0.25);
+                // Small surfaces retain the rim on a dark backdrop too; the panel law takes over between 60 and 120 pt
+                // on the smaller side (OD-0107, T2's small-surface ruling; GlassMaterialPanelLawTests).
+                lit = mix(1.0, smoothstep(LG_LITFROM, LG_LITTO, level), law.w);
+                if (lit < 1.0) {
+                    // The deep inward band needs a direction that varies smoothly through a rounded corner's medial axis.
+                    // Average its distance gradient over one blur sigma; the lit lens keeps its one-pixel edge normal.
+                    float span = clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
+                    float2 broad = float2(-sceneDistance(xy + float2(span, 0.0)) + sceneDistance(xy - float2(span, 0.0)),
+                                          -sceneDistance(xy + float2(0.0, span)) + sceneDistance(xy - float2(0.0, span)));
+                    n = mix(n, normalize(broad + float2(0.000001)), 1.0 - lit);
+                }
             }
-            col = mix(col, half3(frost.rgb), half(frost.a));
+            // The contact line just outside the edge, dark where the edge faces sideways (the Mac frames' 1 px dark line at a capsule's
+            // ends), and dashersw/liquid-glass-js's soft shadow in miniature.
+            float shade = d < 0.25 ? clamp(1.0 - abs(d + 0.5) / 0.75, 0.0, 1.0) * (LG_SHADEBASE + LG_SHADESIDE * n.x * n.x) * (LG_SHADEDARK + (1.0 - LG_SHADEDARK) * lit) : 0.0;
+            // What the pixel becomes is mix(under, value, amount): stage 0 (BlendMode.DstOut) takes `amount` of the pixel under away,
+            // stage 1 (BlendMode.Plus) adds value * amount. The glass is translucent: its value keeps the alpha of what lies under it.
+            float amount = flags.w * (1.0 - (1.0 - coverage) * (1.0 - shade));
+            if (stage < 0.5) return half4(0.0, 0.0, 0.0, half(amount));
+            half4 outside = half4(0.0, 0.0, 0.0, half(flags.w * (1.0 - coverage) * shade));
+            if (coverage <= 0.0) return outside;
             // Avoid double tinting existing overlays; tint the merged neck outside those overlays.
-            if (ptr.w < 0.5 || raw > 0.0) col = mix(col, half3(tint.rgb), half(tint.a));
-            col += half3(half(rim * light * 0.55));
-            col *= half(1.0 - inner * shade * 0.12);
-            float2 delta = at - ptr.xy;
-            float highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;
-            col += half3(half(highlight));
-            half alpha = half(coverage * flags.w);
-            return half4(clamp(col, 0.0, 1.0) * alpha, alpha);
+            bool tinted = ptr.w < 0.5 || raw > 0.0;
+            if (d >= deep) return inside(backdrop.eval(xy), at, extent, film, law, tint, tinted, highlight, flags.w);
+            // rizzytoday/liquid-glass's displacement map (buildDisplacementMap): a full bend at the edge that falls off as the
+            // complement of the blurred neutral centre (a Gaussian edge, here its logistic form), with the per-channel scales of its
+            // chromatic aberration (scale -180 + 0 / 10 / 20: red 1, green 0.944, blue 0.889); plus dashersw/liquid-glass-js's rim
+            // ring (rimIntensity * exp(-rimDistance * d), rimDistance 0.8). Sampled outward along the inward normal.
+            float dd = max(d, 0.0);
+            float lens = (1.0 + exp(-LG_LOGISTIC * optics.z / optics.y)) / (1.0 + exp(LG_LOGISTIC * (dd - optics.z) / optics.y));
+            lens = max(lens - LG_BENDFLOOR, 0.0) / (1.0 - LG_BENDFLOOR);
+            float disp = (optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR)) * lit;
+            // The reads stay inside the window's surface (`window`, half a device pixel in): past it the backdrop holds nothing, so a piece that fills its
+            // window read transparent at its edge and its outer ring came out translucent over an opaque backdrop (REVIEW_GlassWindowEdgeTests).
+            // An unlit (dark, large) piece reads its band 6 blur sigmas in. Three removed the outside backdrop's bleed, but still read the
+            // thin part of g3's real radius-28 cast shadow (native Mac calibration: band 48.10 against 43.99 +/- 3). Six reaches the body's
+            // darker coverage while the small, lit surfaces keep their refraction (ED-359; Draw's BlurSigma).
+            float reach = LG_BANDSIGMAS * clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
+            // Meet the unbent fast body with zero displacement and zero slope; an abrupt end leaves a rectangular seam.
+            disp -= (1.0 - lit) * max(reach - dd, 0.0) * (1.0 - smoothstep(0.0, deep, dd));
+            half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
+            half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
+            half4 b = backdrop.eval(clamp(xy - n * (disp * LG_BLUE), window.xy, window.zw));
+            // Each read is lifted on its own, so the fringe is the bend's (not amplified by the saturation); deep inside the three are one.
+            half4 col = filmed(half3(lift(r, film.w, law.x).r, lift(g, film.w, law.x).g, lift(b, film.w, law.x).b), g.a, at, extent, film, law);
+            if (tinted) col = over(col, half3(tint.rgb), half(tint.a));
+            // The specular rim: a bright line on the edge's first point, all around and strongest where the edge faces up or down,
+            // the top brightest (the Mac frames: +33 to +41 levels on the composer pill and the title capsules); the light inner edge
+            // under it.
+            float rim = clamp(1.5 - d, 0.0, 1.0);
+            float facing = n.y * n.y;
+            float spec = lit * rim * (LG_RIMBASE + (1.0 - LG_RIMBASE) * facing) * (n.y > 0.0 ? LG_RIMTOP : LG_RIMBOTTOM);
+            float glow = d < LG_GLOWREACH ? lit * LG_GLOW * pow(clamp(1.0 - (d - 1.0) / (LG_GLOWREACH - 1.0), 0.0, 1.0), 3.0) * (LG_GLOWSIDE + (1.0 - LG_GLOWSIDE) * facing) * (1.0 - rim) : 0.0;
+            col = over(col, half3(1.0), half(clamp(spec + glow + highlight, 0.0, 1.0)));
+            return col * half(coverage * flags.w) + outside;
             }
             """);
-        return SKRuntimeEffect.CreateShader(source.ToString(), out var error)
+        return SKRuntimeEffect.CreateShader(Constants(source.ToString()), out var error)
             ?? throw new InvalidOperationException("Glass shader did not compile: " + error);
     })).Value;
+
+    // The glass body, the same at the edge and inside. `under` is the blurred backdrop, premultiplied,
+    // with whatever alpha the pixels under the glass have (the Acrylic window's transparent or scrim pixels show through: nothing is
+    // filled in under them). Its colour takes a saturation lift (Apple's vibrancy; rizzytoday/liquid-glass's `saturate()`), then
+    // dashersw/liquid-glass-js's tint gradient over it: a grey from film.x at the top to film.y at the bottom, at film.z
+    // (Container.setupShader: topTint 1.0, bottomTint 0.7, tintOpacity 0.2), as a translucent layer: over a transparent pixel it is
+    // that light film alone, never black.
+    private const string BodySource = """
+        half4 unpremultiply(half4 c) { return c.a > 0.002 ? half4(c.rgb / c.a, c.a) : half4(0.0); }
+        half4 over(half4 below, half3 colour, half alpha) { return half4(colour * alpha + below.rgb * (1.0 - alpha), alpha + below.a * (1.0 - alpha)); }
+        half3 lift(half4 under, float saturation, float gain) {
+            half4 c = unpremultiply(under);
+            half luma = dot(c.rgb, half3(0.2126, 0.7152, 0.0722));
+            half3 s = clamp(luma + (c.rgb - luma) * half(saturation), 0.0, 1.0);
+            // ED-358's law (item 4), the Mac's dark glass a gain on what lies under it: c + gain c (1 - c)^2.
+            return s + half(gain) * s * (1.0 - s) * (1.0 - s);
+        }
+        half4 filmed(half3 lifted, half alpha, float2 at, float2 extent, float4 film, float4 law) {
+            half ramp = half(smoothstep(LG_FILMBEGIN, LG_FILMEND, clamp(at.y / max(extent.y, 1.0), 0.0, 1.0)));
+            half grey = half(mix(film.x, film.y, ramp));
+            // The film covers what the backdrop leaves transparent at film.z (the Acrylic shows through it, lifted) and an opaque backdrop at law.y.
+            half cover = half(film.z) * (1.0 - alpha) + half(law.y) * alpha;
+            return over(half4(lifted * (1.0 - half(law.z) * ramp) * alpha, alpha), half3(grey), cover);
+        }
+        half4 body(half4 under, float2 at, float2 extent, float4 film, float4 law) { return filmed(lift(under, film.w, law.x), under.a, at, extent, film, law); }
+        // The inside of a shape, past Optics.Deep: the body, the tint, the pointer's highlight (the deep branch and the `interior` drawing).
+        half4 inside(half4 texel, float2 at, float2 extent, float4 film, float4 law, float4 tint, bool tinted, float highlight, float amount) {
+            half4 col = body(texel, at, extent, film, law);
+            if (tinted) col = over(col, half3(tint.rgb), half(tint.a));
+            return over(col, half3(1.0), half(clamp(highlight, 0.0, 1.0))) * half(amount);
+        }
+
+        """;
+
+    // The optical constants, written into the shaders' source once (they are the same for every piece).
+    private static string Constants(string source)
+    {
+        string F(double value) => value.ToString("0.0###########", CultureInfo.InvariantCulture);
+        return source.Replace("LG_BENDSUPPORT", F(Optics.BendSupport), StringComparison.Ordinal)
+            .Replace("LG_BENDFLOOR", F(Optics.BendFloor), StringComparison.Ordinal)
+            .Replace("LG_RINGFLOOR", F(Optics.RingFloor), StringComparison.Ordinal)
+            .Replace("LG_RINGREACH", F(Optics.RingReach), StringComparison.Ordinal)
+            .Replace("LG_GLOWREACH", F(Optics.GlowReach), StringComparison.Ordinal)
+            .Replace("LG_LOGISTIC", F(Optics.Logistic), StringComparison.Ordinal)
+            .Replace("LG_GREEN", F(Optics.Green), StringComparison.Ordinal)
+            .Replace("LG_BLUE", F(Optics.Blue), StringComparison.Ordinal)
+            .Replace("LG_SHADEBASE", F(Optics.ShadeBase), StringComparison.Ordinal)
+            .Replace("LG_SHADESIDE", F(Optics.ShadeSide), StringComparison.Ordinal)
+            .Replace("LG_RIMBASE", F(Optics.RimBase), StringComparison.Ordinal)
+            .Replace("LG_RIMTOP", F(Optics.RimTop), StringComparison.Ordinal)
+            .Replace("LG_RIMBOTTOM", F(Optics.RimBottom), StringComparison.Ordinal)
+            .Replace("LG_GLOWSIDE", F(Optics.GlowSide), StringComparison.Ordinal)
+            .Replace("LG_GLOW", F(Optics.Glow), StringComparison.Ordinal)
+            .Replace("LG_FILMBEGIN", F(FilmBegin), StringComparison.Ordinal)
+            .Replace("LG_FILMEND", F(FilmEnd), StringComparison.Ordinal)
+            .Replace("LG_BANDSIGMAS", F(UnlitBandSigmas), StringComparison.Ordinal)
+            .Replace("LG_LITFROM", F(LitFrom), StringComparison.Ordinal)
+            .Replace("LG_LITTO", F(LitTo), StringComparison.Ordinal)
+            .Replace("LG_SHADEDARK", F(Optics.ShadeDark), StringComparison.Ordinal);
+    }
 
     // The pixels under a material as they are when it draws: what a whole drawing of the window has drawn before it (ED-320 11). The surface
     // holds them only inside the region Avalonia redraws in this frame; outside it the surface is the last finished frame, the glass itself and what lies
@@ -620,6 +812,9 @@ internal static class GlassMaterial
         private IntPtr surface, context, blurredContext; // blurredContext: the GPU context the blur's own surface was made on
         private SKSizeI size, keptSize, blurredSize;
         private bool valid;
+
+        /// <summary>The window surface's size at the last Take (device pixels).</summary>
+        public SKSizeI Whole => size;
 
         public static void DisposeReleased()
         {
@@ -881,8 +1076,95 @@ internal static class GlassMaterial
         }
     }
 
-    // The veil's channel between the light appearance's and the dark one's (a whole level, as the two ends were): darkness 0 is light, 1 is dark.
-    private static byte Veil(double darkness, int dark, int light) => (byte)Math.Round(light + (dark - light) * Math.Clamp(darkness, 0, 1));
+    // ED-356: the film over the glass body (BodySource), between the light appearance's and the dark one's: darkness 0 is light, 1 is dark.
+    // x and y are the grey at the top and at the bottom, z its opacity, w the saturation of the colour under it. The dark ends are
+    // dashersw/liquid-glass-js's tint gradient (topTint 1.0, bottomTint 0.7, tintOpacity 0.2) fitted to the Mac composer pill over its backdrop
+    // of about 57 (frames 01, 29, 30): 0.17 of a grey of 0.94 above the middle and 0.7 at the bottom gives 88 at the middle and 77 low down,
+    // against 88 and 77 (dashersw's own 0.2 and 1.0 gave 89 and a top 6 levels too light); the disabled small glass button over (52,59,60)
+    // comes out (82,90,91) against the reference's (75,84,85). The light ends are a whiter, stronger frost (no light-appearance frame was
+    // measured). The saturation is the lift of the Mac glass's colour (outside G-B 10, inside 12 after the film).
+    internal static float[] Film(double darkness)
+    {
+        var t = Math.Clamp(darkness, 0, 1);
+        static float Mix(double light, double dark, double t) => (float)(light + (dark - light) * t);
+        return [Mix(FilmLight[0], FilmDark[0], t), Mix(FilmLight[1], FilmDark[1], t), Mix(FilmLight[2], FilmDark[2], t), Mix(FilmLight[3], FilmDark[3], t)];
+    }
+    internal static readonly double[] FilmDark = [0.94, 0.70, 0.17, 1.4];
+    internal static readonly double[] FilmLight = [1.0, 0.90, 0.30, 1.25];
+
+    // ED-358's law (its item 4), measured by glass-g3 on the Mac frames: over an opaque backdrop the dark glass is a gain, body = 1.47 x
+    // backdrop + 4 on the composer pill (88 over 57) and the head card (43.8 under its tint, over 27 under its scrim and shadow), not a white film,
+    // which over-lit the dark card (57.3 against 43.4). Here c + 0.95 c (1 - c)^2 per channel (89.8 and 47.5 there; it leaves white white and
+    // keeps the effort knob's peach, GlassSmallLensTests). The film stays for the part of the backdrop that is transparent (over the Acrylic) and,
+    // in the light appearance, over everything (no light frame was measured). x the gain, y the film over an opaque backdrop, z the darkening at
+    // the bottom of a small piece (the pill's 77 low down against 88 at its middle; the 267 pt card is flat, 43.4 and 42.7), w the panel share of the edge law.
+    internal static float[] Law(double darkness, Size size)
+    {
+        var t = Math.Clamp(darkness, 0, 1);
+        var small = Math.Clamp((LawFlatFrom - size.Height) / (LawFlatFrom - LawShadedTo), 0, 1);
+        var panel = Math.Clamp((Math.Min(size.Width, size.Height) - LawShadedTo) / (LawFlatFrom - LawShadedTo), 0, 1);
+        return [(float)(LawGain * t), (float)(FilmLight[2] * (1 - t)), (float)(LawBottom * small), (float)panel];
+    }
+    internal const double LawGain = 0.95, LawBottom = 0.13, LawShadedTo = 60, LawFlatFrom = 120;
+
+    // The backdrop's level 12 pt in from the edge from which the edge is lit (none at or below LitFrom, whole from LitTo): the card's 27 / 255 is
+    // 0.106 (0.13 to 0.15 near its edge, where the scrim's cast shadow thins), the title capsules' 52 is 0.204 and the pill's 57 is 0.224.
+    internal const double LitFrom = 0.15, LitTo = 0.20;
+
+    // Where the film turns from its top grey to its bottom one, as fractions of the piece's height: dashersw's ramp is linear over the whole
+    // height; the Mac pill is flat (87 to 88) down to about half its height and darkens to 77 by four fifths of it.
+    internal const double FilmBegin = 0.45, FilmEnd = 0.85;
+
+    // ED-356: a piece's refraction, by its size (the shader's `optics`: x the bend at the edge, y the fall-off's width, z the border
+    // before it falls, w the rim ring at the edge, all in the piece's units).
+    //   - rizzytoday/liquid-glass (MIT, (c) 2026 Riz Roze), core/liquid-glass.ts buildDisplacementMap: the map is the full displacement (scale -180,
+    //     half of it at the edge: 90 px) under a neutral grey centre blurred by 11 px and inset by 3.5 % of the smaller side, so the bend is
+    //     full at the edge and falls off as a Gaussian edge does (its complement) over about the blur. On its 52 px pill that is a bend of about
+    //     the pill's height at the edge over a 14 px band. Here the fall-off is 21 % of the smaller side up to 11 (its 11 on 52), the border 3.5 %
+    //     up to 3, and the bend 55 % of the smaller side up to 40 on a piece of 100 pt or more. A smaller piece takes a smaller share, a fifth of it
+    //     at 32 pt and under: the Mac frames show the small pieces read little from past their edge (the title capsules' first pixel 68 beside
+    //     a backdrop of 50 that a bright strip 15 pt out lifts to 68 under a long bend; the composer pill's top 3 to 6 levels lighter than the Mac's
+    //     where the backdrop above it lightens), and the effort knob, 28 pt, keeps the colour under it (GlassSmallLensTests). The per-channel
+    //     scales of its chromatic aberration (0 / 10 / 20 on 180) are the fringe: green bends 0.944 and blue 0.889 of red, about 4 to 6 pt from
+    //     red to blue at a panel's edge.
+    //   - dashersw/liquid-glass-js (MIT, (c) 2025 Armagan Amcalar), container.js setupShader: the rim ring, rimIntensity * exp(-rimDistance * d)
+    //     with rimDistance 0.8 per pixel, a sharp extra bend on the edge's first pixels; here 8 % of the smaller side up to 10 pt.
+    internal readonly record struct Optics(double Bend, double Sigma, double Border, double Ring)
+    {
+        internal const double MaxBend = 40, MaxRing = 10;
+        internal const double Logistic = 1.702; // the logistic form of the normal distribution (within 0.0095 of it)
+        internal const double BendFloor = 0.01; // the bend's last 1 % is dropped, so it ends: at BendSupport fall-off widths past the border
+        internal const double BendSupport = 3.12; // ln(199) / 1.702, where the normalised logistic tail reaches the floor
+        internal const double RingFloor = 0.001;
+        internal static readonly double RingReach = Math.Log(1 / RingFloor) / 0.8; // where exp(-0.8 d) reaches the floor: 8.63
+        internal const double GlowReach = 12; // the light inner edge ends 12 pt in
+        internal const double Green = 1 - 10 / 180.0, Blue = 1 - 20 / 180.0;
+        // Calibrated on the Mac composer pill (frames 01, 29, 30; compare\pill*.png), 1 px = 1 pt:
+        //   - the contact line outside the edge: none where the edge faces up or down (the pill's top and bottom: 60 and 53 outside, as around it),
+        //     dark where it faces sideways (its ends: 9 against 32 around);
+        //   - the rim's white over the body, all around (15 % of it at the sides) and by how much the edge faces up or down: the top 124 and the
+        //     bottom 123 over a body of 88 and 77 (the port: 123 and 124 over the same backdrop);
+        //   - the light inner edge: +9, +6, +5, +3, +2 levels 1.5 to 5.5 pt under the top rim (with the bend's own lift there), a fifth of it at the sides.
+        internal const double ShadeBase = 0, ShadeSide = 0.6;
+        internal const double ShadeDark = 0.05; // the contact line's share left on a dark backdrop (the Mac card: none outside its edge, -3 on its first point)
+        internal const double RimBase = 0.15, RimTop = 0.21, RimBottom = 0.20;
+        internal const double Glow = 0.035, GlowSide = 0.2;
+
+        public static Optics For(Size size)
+        {
+            var smaller = Math.Max(1, Math.Min(size.Width, size.Height));
+            var small = Math.Clamp((smaller - 16) / 84, 0.2, 1);
+            return new Optics(Math.Min(MaxBend, 0.55 * smaller * small), Math.Clamp(0.21 * smaller, 1, 11), Math.Min(3, 0.035 * smaller), Math.Min(MaxRing, 0.08 * smaller));
+        }
+
+        /// <summary>How far in from the edge anything but the body is drawn: past it the shader reads one texel.</summary>
+        public double Deep => Math.Max(Math.Max(Border + BendSupport * Sigma, GlowReach), RingReach);
+
+        /// <summary>The largest displacement, the red channel's at the edge.</summary>
+        public double Reach => Bend + Ring;
+
+        public float[] Uniform => [(float)Bend, (float)Sigma, (float)Border, (float)Ring];
+    }
 
     // How far a change under a material reaches into what it draws, in the surface's pixels: through the blur (3 sigma) everywhere, and through the
     // refraction as well (SampledMargin in all) within the refracting band at the shape's edge. Inner is the part of the output no band can reach into
@@ -900,10 +1182,13 @@ internal static class GlassMaterial
     }
 
     // Draws the material; returns what it covers in the surface's pixels and how far a change under it reaches, for the window's Reach.
+    // ED-356: the glass is translucent (it keeps the alpha of the pixels under it), so it cannot be drawn over them: the sharp pixels would show
+    // through it. Each pixel becomes mix(under, value, amount) in two draws of the one shader: stage 0 with BlendMode.DstOut takes `amount` of the pixel away,
+    // stage 1 with BlendMode.Plus adds value * amount. The second is the material; the first evaluates only the shape's distance and its edge.
     private static Spread? Draw(ISkiaSharpApiLease lease, State state, Backdrop kept, SKRectI? dirty)
     {
         var canvas = lease.SkCanvas;
-        var bounds = UnionBounds(state).Inflate(state.Spacing / 2 + 1);
+        var bounds = UnionBounds(state).Inflate(state.Spacing / 2 + 2); // the contact line reaches 1.25 past the shape
         var local = new SKRect((float)bounds.Left, (float)bounds.Top, (float)bounds.Right, (float)bounds.Bottom);
         var transform = canvas.TotalMatrix;
         var scale = MathF.Max(MathF.Sqrt(transform.ScaleX * transform.ScaleX + transform.SkewY * transform.SkewY),
@@ -911,26 +1196,31 @@ internal static class GlassMaterial
         if (scale <= 0) return null;
         var sampled = transform.MapRect(local);
         var output = SKRectI.Ceiling(sampled);
-        sampled.Inflate((float)SampledMargin * scale, (float)SampledMargin * scale); // 3 sigma (36), max P1 displacement (28.6), antialias margin.
+        sampled.Inflate((float)SampledMargin * scale, (float)SampledMargin * scale); // 3 sigma (36), the largest read displacement (72), antialias margin.
         var crop = SKRectI.Ceiling(sampled);
         // Immutable app-owned pixels: no screen capture or visual-tree replay.
         var under = kept.Take(lease, crop, dirty);
         var surface = kept.Blurred(lease, crop);
         if (surface is null) return null;
         // The blur is read only where the shader draws in this frame (the canvas's clip on the shapes) and as far as the refraction displaces from
-        // there (26 pt times 1.1, the red channel's, and the linear filter's pixel): only that much is cleared and blurred (ED-320 16).
+        // there (the largest bend and ring, the red channel's, and the linear filter's pixel): only that much is cleared and blurred (ED-320 16).
         var reads = SKRectI.Intersect(canvas.DeviceClipBounds, output);
         var smaller = state.Regions.Max(r => Math.Min(r.Size.Width, r.Size.Height));
         // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
         // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
-        var radius = (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+        var radius = BlurSigma(smaller, scale);
+        var reach = state.Regions.Max(r => Math.Max(Optics.For(r.Size).Reach,
+            Math.Min(r.Size.Width, r.Size.Height) > LawShadedTo ? UnlitBandSigmas * BlurSigma(Math.Min(r.Size.Width, r.Size.Height), 1) : 0)
+            * Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)));
         var spread = SpreadOf(state, output, scale, radius);
         if (reads.IsEmpty) return spread;
-        var shift = (int)Math.Ceiling(28.6 * scale) + 2;
+        var shift = (int)Math.Ceiling(reach * scale) + 2;
         var blurredCanvas = surface.Canvas;
         blurredCanvas.Save();
         blurredCanvas.ClipRect(new SKRect(reads.Left - shift - crop.Left, reads.Top - shift - crop.Top, reads.Right + shift - crop.Left, reads.Bottom + shift - crop.Top));
-        blurredCanvas.Clear(new SKColor(Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 30, 245), Veil(state.Regions[0].Darkness, 32, 247)));
+        // ED-356: cleared to nothing, not to a veil: where the window's pixels are transparent (the Acrylic) or translucent (its scrim), the
+        // glass keeps them so (it was an opaque #1E1E20 there, near-black glass over the Acrylic).
+        blurredCanvas.Clear(SKColors.Transparent);
         if (under is { } taken)
         {
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
@@ -947,68 +1237,78 @@ internal static class GlassMaterial
         using var backdrop = image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
             new SKSamplingOptions(SKFilterMode.Linear), shaderTransform);
         var effect = Effect(state.Regions.Length);
-        var uniforms = new SKRuntimeEffectUniforms(effect) { ["merge"] = (float)(2 * state.Spacing) };
-        var first = new List<(string Name, float[] Value)>(6); // region 0's values, for Inner
+        if (drawnCounts.TryAdd(state.Regions.Length, true)) ShapeCountDrawn?.Invoke(state.Regions.Length);
+        // The window's surface in the shader's coordinates, half a device pixel in (the bend's reads are clamped to it).
+        var surfaceRect = kept.Whole.Width > 0 && kept.Whole.Height > 0 ? new SKRect(0.5f, 0.5f, kept.Whole.Width - 0.5f, kept.Whole.Height - 0.5f) : new SKRect(-1e6f, -1e6f, 1e6f, 1e6f);
+        var windowLocal = transform.TryInvert(out var toLocal) ? toLocal.MapRect(surfaceRect) : surfaceRect;
+        var uniforms = new SKRuntimeEffectUniforms(effect)
+        {
+            ["merge"] = (float)(2 * state.Spacing), ["stage"] = 0f, ["interior"] = 0f, ["window"] = new[] { windowLocal.Left, windowLocal.Top, windowLocal.Right, windowLocal.Bottom },
+        };
         for (var i = 0; i < state.Regions.Length; i++)
         {
             var r = state.Regions[i];
             var inverse = r.Transform.Invert();
-            uniforms[$"transform{i}"] = new[] { (float)inverse.M11, (float)inverse.M12, (float)inverse.M21, (float)inverse.M22 };
-            uniforms[$"translate{i}"] = new[] { (float)inverse.M31, (float)inverse.M32 };
-            uniforms[$"size{i}"] = new[] { (float)r.Size.Width, (float)r.Size.Height };
-            uniforms[$"corners{i}"] = new[] { (float)r.Corners.TopLeft, (float)r.Corners.TopRight, (float)r.Corners.BottomRight, (float)r.Corners.BottomLeft };
-            uniforms[$"tint{i}"] = new[] { r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f };
-            uniforms[$"frost{i}"] = new[] { Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 32, 247) / 255f, 0.18f };
-            var distanceScale = Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21));
-            uniforms[$"flags{i}"] = new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f, (float)distanceScale, (float)r.Opacity };
-            uniforms[$"pointer{i}"] = new[] { (float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f };
-            if (i == 0)
+            var values = new (string Name, float[] Value)[]
             {
-                first.Add(("transform0", new[] { (float)inverse.M11, (float)inverse.M12, (float)inverse.M21, (float)inverse.M22 }));
-                first.Add(("translate0", new[] { (float)inverse.M31, (float)inverse.M32 }));
-                first.Add(("tint0", new[] { r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f }));
-                first.Add(("frost0", new[] { Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 30, 245) / 255f, Veil(r.Darkness, 32, 247) / 255f, 0.18f }));
-                first.Add(("flags0", new[] { (float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f, (float)distanceScale, (float)r.Opacity }));
-                first.Add(("pointer0", new[] { (float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f }));
-            }
+                ($"transform{i}", [(float)inverse.M11, (float)inverse.M12, (float)inverse.M21, (float)inverse.M22]),
+                ($"translate{i}", [(float)inverse.M31, (float)inverse.M32]),
+                ($"size{i}", [(float)r.Size.Width, (float)r.Size.Height]),
+                ($"corners{i}", [(float)r.Corners.TopLeft, (float)r.Corners.TopRight, (float)r.Corners.BottomRight, (float)r.Corners.BottomLeft]),
+                ($"tint{i}", [r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f]),
+                ($"film{i}", Film(r.Darkness)),
+                ($"law{i}", Law(r.Darkness, r.Size)),
+                ($"optics{i}", Optics.For(r.Size).Uniform),
+                ($"flags{i}", [(float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f,
+                    (float)Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)), (float)r.Opacity]),
+                ($"pointer{i}", [(float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f]),
+            };
+            foreach (var (name, value) in values) uniforms[name] = value;
         }
         var children = new SKRuntimeEffectChildren(effect) { ["backdrop"] = backdrop };
+        using var maskShader = effect.ToShader(uniforms, children);
+        uniforms["stage"] = 1f;
         using var shader = effect.ToShader(uniforms, children);
-        using var paint = new SKPaint { Shader = shader, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
+        // One rule for the opacity bytes: rounded. The inside's DstOut fill is the edge stage's amount there (the piece's opacity times this paint's alpha).
+        var faded = SKColors.White.WithAlpha((byte)Math.Clamp(Math.Round(lease.CurrentOpacity * 255), 0, 255));
+        using var mask = new SKPaint { Shader = maskShader, Color = faded, BlendMode = SKBlendMode.DstOut };
+        using var paint = new SKPaint { Shader = shader, Color = faded, BlendMode = SKBlendMode.Plus };
         if (Inside(state) is not { } inside)
         {
-            canvas.DrawRect(local, paint); // One SDF clips, refracts, lights and merges the same shape.
+            canvas.DrawRect(local, mask); // One SDF clips, refracts, lights and merges the same shape.
+            canvas.DrawRect(local, paint);
             return spread;
         }
-        // ED-320 16: the inside of one rounded rectangle (Inside) is drawn by Inner, which computes there what the whole shader does;
-        // the shader draws the rest. The two clips are the same rectangle, not antialiased, so each pixel is drawn once.
-        var innerEffect = state.Regions[0] is { Hovered: false, Pressed: false } ? Unlit.Value : Inner.Value;
-        var innerUniforms = new SKRuntimeEffectUniforms(innerEffect);
-        foreach (var (name, value) in first) if (innerEffect.Uniforms.Contains(name)) innerUniforms[name] = value;
-        using var innerShader = innerEffect.ToShader(innerUniforms, new SKRuntimeEffectChildren(innerEffect) { ["backdrop"] = backdrop });
-        using var innerPaint = new SKPaint { Shader = innerShader, Color = paint.Color };
+        // ED-320 16: the inside of one rounded rectangle (Inside) is drawn by the same shader with `interior` set, which computes there what its deep
+        // branch does without the shape's distance; the shader draws the rest. The two clips are the same rectangle, not antialiased, so each pixel
+        // is drawn once.
+        uniforms["interior"] = 1f;
+        using var innerShader = effect.ToShader(uniforms, children);
+        using var innerPaint = new SKPaint { Shader = innerShader, Color = faded, BlendMode = SKBlendMode.Plus };
+        // Inside, the amount is the piece's opacity alone (its coverage is whole and no contact line reaches there).
+        using var innerMask = new SKPaint { Color = SKColors.Black.WithAlpha((byte)Math.Clamp(Math.Round(faded.Alpha * state.Regions[0].Opacity), 0, 255)), BlendMode = SKBlendMode.DstOut };
         canvas.Save();
         canvas.ClipRect(inside);
+        canvas.DrawRect(inside, innerMask);
         canvas.DrawRect(inside, innerPaint);
         canvas.Restore();
         canvas.Save();
         canvas.ClipRect(inside, SKClipOperation.Difference);
+        canvas.DrawRect(local, mask);
         canvas.DrawRect(local, paint);
         canvas.Restore();
         return spread;
     }
 
     // The inside of a lone rounded rectangle, in the material's coordinates: past 1.6 corner radii from every side (Apple's corner curve lies within them,
-    // ContinuousCorner.Extent) and deeper than the band, 11.5 and the inner shade's reach (the shader's own test, half a unit further in): there the shader
-    // reads one texel and its rim and shade add nothing. Null for a container's union, a turned or a non-rectangular shape, or one too small to have one.
+    // ContinuousCorner.Extent) and deeper than Optics.Deep (the shader's own test, half a unit further in): there the shader reads one texel and its
+    // bend, ring, rim, inner light and contact line add nothing. Null for a container's union, a turned or a non-rectangular shape, or one too small to have one.
     private static SKRect? Inside(State state)
     {
         if (state.Regions is not [{ Shape.Kind: GlassShapeKind.RoundedRectangle, Transform: { M12: 0, M21: 0 } } r]) return null;
         var distanceScale = Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22));
         if (distanceScale <= 0) return null;
-        var band = Math.Min(46.0, Math.Max(Math.Min(r.Size.Width, r.Size.Height) * 0.35, 1.0));
-        var shadeAt = Math.Min(5.0, band * 0.3);
-        var deep = Math.Max(Math.Max(band, 11.5), shadeAt + 4.0 * Math.Sqrt(2.0 * shadeAt * shadeAt + 0.5)) / distanceScale;
+        var deep = Optics.For(r.Size).Deep / distanceScale;
         var corners = Math.Max(Math.Max(r.Corners.TopLeft, r.Corners.TopRight), Math.Max(r.Corners.BottomRight, r.Corners.BottomLeft));
         var inset = Math.Max(1.6 * corners, deep) + 0.5;
         if (r.Size.Width <= 2 * inset || r.Size.Height <= 2 * inset) return null;
@@ -1016,53 +1316,16 @@ internal static class GlassMaterial
         return new SKRect((float)box.Left, (float)box.Top, (float)box.Right, (float)box.Bottom);
     }
 
-    // The shader's own sum inside a shape (the branch of Effect past the band, with coverage 1 and the shape's own tint): one texel, the frost, the tint,
-    // the pointer's highlight; Unlit is the same with no pointer on the piece (its highlight is 0 times a positive number: nothing).
-    private static readonly Lazy<SKRuntimeEffect> Unlit = new(() => SKRuntimeEffect.CreateShader("""
-        uniform shader backdrop;
-        uniform float4 tint0;
-        uniform float4 frost0;
-        uniform float4 flags0;
-        uniform float4 pointer0;
-        half4 main(float2 xy) {
-            half3 col = half3(backdrop.eval(xy).rgb);
-            col = mix(col, half3(frost0.rgb), half(frost0.a));
-            if (pointer0.w < 0.5) col = mix(col, half3(tint0.rgb), half(tint0.a));
-            half alpha = half(1.0 * flags0.w);
-            return half4(clamp(col, 0.0, 1.0) * alpha, alpha);
-        }
-        """, out var error) ?? throw new InvalidOperationException("Glass inside shader did not compile: " + error));
-    private static readonly Lazy<SKRuntimeEffect> Inner = new(() => SKRuntimeEffect.CreateShader("""
-        uniform shader backdrop;
-        uniform float4 transform0;
-        uniform float2 translate0;
-        uniform float4 tint0;
-        uniform float4 frost0;
-        uniform float4 flags0;
-        uniform float4 pointer0;
-        half4 main(float2 xy) {
-            half3 col = half3(backdrop.eval(xy).rgb);
-            col = mix(col, half3(frost0.rgb), half(frost0.a));
-            if (pointer0.w < 0.5) col = mix(col, half3(tint0.rgb), half(tint0.a));
-            float2 at = float2(xy.x * transform0.x + xy.y * transform0.z, xy.x * transform0.y + xy.y * transform0.w) + translate0;
-            float2 delta = at - pointer0.xy;
-            float highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * pointer0.z;
-            col += half3(half(highlight));
-            half alpha = half(1.0 * flags0.w);
-            return half4(clamp(col, 0.0, 1.0) * alpha, alpha);
-        }
-        """, out var error) ?? throw new InvalidOperationException("Glass inside shader did not compile: " + error));
-
     private static Spread SpreadOf(State state, SKRectI output, float scale, float radius)
     {
         var margin = (int)Math.Ceiling(SampledMargin * scale);
         var blur = (int)Math.Ceiling(3 * radius) + 2; // the blur's 3 sigma (radius is the sigma) and the linear filter's pixel
-        var bend = (int)Math.Ceiling(28.6 * scale) + 2; // the refraction's largest displacement, 26 pt times 1.1
+        var bend = (int)Math.Ceiling(MaxReadDisplacement * scale) + 2; // the larger of the 50 pt lit bend and the 72 pt unlit band read
         var inner = SKRectI.Empty;
         if (state.Regions is [{ Transform: { M12: 0, M21: 0 } } only])
         {
-            // The band is at most 46 pt in from the edge; a corner's curve, Apple's included (ContinuousCorner, under 1.6 times its radius), lies inside
-            // the box the corners' radii take from it.
+            // The band ends Optics.Deep in from the edge, at most 37.4 pt (3 + 3.12 * 11): 48 holds it with room. A corner's curve, Apple's included
+            // (ContinuousCorner, under 1.6 times its radius), lies inside the box the corners' radii take from it.
             var corners = Math.Max(Math.Max(only.Corners.TopLeft, only.Corners.TopRight), Math.Max(only.Corners.BottomRight, only.Corners.BottomLeft));
             if (only.Shape.Kind != GlassShapeKind.RoundedRectangle) corners = Math.Min(only.Size.Width, only.Size.Height) / 2;
             var inset = (int)Math.Ceiling((48 + 1.6 * corners) * scale * Math.Max(Math.Abs(only.Transform.M11), Math.Abs(only.Transform.M22)));

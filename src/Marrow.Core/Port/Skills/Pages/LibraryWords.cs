@@ -1,6 +1,6 @@
 // PORT-ONLY: first-release feature unit SK-15 (DL-17). The words of the Plugins and Skills pages: words set S1 (Plain) of the owner's pick (OD-0099), taken from the final
 // skills-downloads design page (E:\Droppy\work\design\decisions-2026-10-04\skills-downloads\src\sd-page.js, TX and LV). A string the page needed that the design does not draw is marked
-// ENGINEERING DECISION (ED-NEW-f-sk-15). Vendor and product names are plain text only (skills-PLAN.md 3.1), and no string names an image.
+// ENGINEERING DECISION (ED-354). Vendor and product names are plain text only (skills-PLAN.md 3.1), and no string names an image.
 namespace Marrow.Core.Port.Skills.Pages;
 
 public static class LibraryWords

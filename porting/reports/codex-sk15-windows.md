@@ -49,6 +49,6 @@ UNRESOLVED: SK-2 must supply measured download/unpacked sizes. approxSizeMb is a
 
 UNRESOLVED: Your Claude account provides this requires a synced-account origin/equivalence fact absent from ProviderSkillGroup; a Claude provider name also covers own/system skills. Record this for SK-11/SK-16 rather than making a false account claim. This deferral is expressly permitted by T7 item 5.
 
-Existing open work: real first-install/manual-file wiring, catalogue pins/descriptions/default metadata, provider reports, Minimize/pill, Add, Tools and live/native appearance proof. No global DONE/port-parity claim is made. Review decisions are appended under ED-NEW-codex-sk-15; original STATE and ED prefixes remain byte-exact.
+Existing open work: real first-install/manual-file wiring, catalogue pins/descriptions/default metadata, provider reports, Minimize/pill, Add, Tools and live/native appearance proof. No global DONE/port-parity claim is made. Review decisions are appended under ED-355; original STATE and ED prefixes remain byte-exact.
 
 Evidence: `E:/Droppy/work/scratch/codex-sk-15/` contains the red tests, clean builds, required combined/full logs, exact isolated reruns, mutation logs and original-byte backups. `app-full.log` is the raw full result; `full1-alone-*-*.log` records both reruns for every distinct failed method.

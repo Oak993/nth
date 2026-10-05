@@ -1,0 +1,84 @@
+<div class="dk-page">
+  <header class="dk-hdr">
+    <div class="dk-tags"><span class="dk-tag">OD-0099: Page D · Offer A · Words S1</span><span class="dk-tag">Separate pages · Minimize A · Invoke A</span><span class="dk-tag">Custom C</span><span class="dk-tag">All picks made</span><span class="dk-tag">OD-0076 transitioned</span></div>
+    <h1>Plugins, Skills and Tools pages, Download all, and skills the way Claude uses them</h1>
+    <p>The picked design, complete. Plugins and Skills are two Settings pages next to each other in the sidebar, Plugins directly above Skills, and Tools join the existing Tools page. All three use layout D (the library list with the detail pane), each has its own Download all, and each has an Add button with a chevron at the right end of its title row for adding your own. Every session lists the names and short descriptions of the installed, enabled skills, and the model calls any of them by itself when a task needs it, as Claude’s app does. Typing “/” is your optional way to name one. Play runs each part, and the buttons drawn in the windows work, in dark and light.</p>
+  </header>
+
+  <section class="dk-glass allp" aria-label="All picks made">
+    <div class="ah"><h2>All picks made</h2><span class="ok"><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="7"/><path d="m4 7.2 2 2 4-4.4"/></svg><span>Nothing is left to choose</span></span></div>
+    <p class="sub">The owner’s picks, as drawn on this page. The last one, Custom, was made on 2026-10-04 (OD-0099): only the Add button was taken from the Claude screenshot, and only for its place. It is drawn in Marrow’s own glass style.</p>
+    <div class="pgrid" id="picked"></div>
+    <div class="legend" aria-label="Legend"><span><b class="lt2 pk">PICK</b>an owner’s pick</span><span><b class="lt2">SF</b>read or run at the source</span><span><b class="lt2">ED</b>a proposal</span><span><b class="lt2 un">UN</b>to be checked live before it is built</span></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="The Settings pages">
+    <h2>The Settings pages: Plugins, Skills and Tools</h2>
+    <p class="sub"><b>Play</b> opens the Skills page on OpenAI’s document skills: what each skill adds to every session, and its Enable switch. It turns one skill off, then opens Download all on Plugins: 32 MB, so the size is stated plainly. Then Download all on Tools: 1.04 GB, so it shows the large-download warning. It continues, pauses, resumes, hits two failures, installs LibreOffice from a file you downloaded yourself (Check again), and retries Git. Python and its Office and PDF packages are already on this PC, so they are skipped.</p>
+    <div class="ctl">
+      <button class="dk-btn pri" id="playS" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span>Play</span></button>
+      <div class="dk-grp"><span class="dk-glab">State</span><div id="segS"></div></div>
+      <div class="dk-grp"><span class="dk-glab">Download all on</span><div id="segScope"></div></div>
+      <div class="dk-grp"><span class="dk-glab">Theme</span><div id="segT"></div></div>
+    </div>
+    <div class="stage" id="stageS"><div class="wallbg"></div><div class="wallbg l"></div><div class="slots" id="slotsS"></div></div>
+    <div class="rd"><span><b id="phS">Browsing</b></span><span class="cap">Up to 100 MB the confirmation states the size plainly (“About 32 MB to download, about 32 MB on disk.”). Above 100 MB it adds the amber large-download warning. A failed item offers Retry and “Download it yourself”.</span></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="Hiding a download">
+    <h2>Hide it and keep working (Minimize A, picked)</h2>
+    <p class="sub">While Download all runs, <b>Hide</b> sends it into a glass pill: above Settings in the main window’s sidebar (OD-0100’s update pill, place D), or below About at the lower left of the Settings window. The pill shows a ring and “Downloading 3 of 12”. Clicking it opens a popover rising from the pill with the bar, the current item, Pause or Resume, and Cancel. The ↗ in the popover’s caption opens Settings on that page with the full dialog. At the end, the ring completes and turns into a check, or keeps a warning badge if something failed. <b>Play</b> runs the whole trip.</p>
+    <div class="ctl">
+      <button class="dk-btn pri" id="playM" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span>Play</span></button>
+      <div class="dk-grp"><span class="dk-glab">State</span><div id="segM"></div></div>
+    </div>
+    <div class="stage" id="stageM"><div class="wallbg"></div><div class="wallbg l"></div><div class="slots" id="slotsM"></div></div>
+    <div class="rd"><span><b id="phM">Dialog open</b></span><span class="cap">The pill stays until you open it and press Close, so a finished or partly failed run is never missed (ED).</span></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="Adding your own">
+    <h2>Adding your own: the Add button on each page (Custom C)</h2>
+    <p class="sub">Plugins, Skills and Tools each have an <b>Add</b> button with a chevron at the right end of the title row. It is the page’s own glass button, and its menu is the page’s menu style: <b>From a folder…</b>, <b>From a .zip…</b>, <b>From GitHub…</b>. Each item opens the add sheet with that source. A folder and a .zip are chosen, never typed: <b>From a folder…</b> opens the system folder picker, <b>From a .zip…</b> the system file picker filtered to .zip files, and the sheet then shows a read-only field (“No folder chosen” or “No .zip chosen” until you pick, the chosen path after) with a <b>Browse…</b> button beside it, and Check stays off until something is chosen. A web page cannot open the real Windows dialog, so it is drawn here as a labelled stand-in with a couple of entries to pick; the app opens the real one. <b>From GitHub…</b> stays a link field, because there is nothing local to browse. The sheet then checks what it finds (a skill needs SKILL.md with a name and a description, a plugin its manifest, a tool an .exe, a name and the command it provides), lists every item with a box to tick and a <b>Select all</b>, and greys out the invalid ones with the reason. The ticked ones install side by side: each row’s ring turns into a green circle with a white check as it finishes, a failed one gets a warning and <b>Retry</b>, and the footer counts “3 of 5 added”. They land under <b>Your own</b> in the list, removable, with the same Enable switches. The buttons work: click Add, pick a source, browse and choose, Check, tick, Add. <b>Play</b> browses to a folder with no SKILL.md (nothing valid), chooses another, finds six skills (one invalid, one failing and retried), then does a .zip of plugins, a folder with a tool and a GitHub link.</p>
+    <div class="ctl">
+      <button class="dk-btn pri" id="playU" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span>Play</span></button>
+      <div class="dk-grp"><span class="dk-glab">Page</span><div id="segUP"></div></div>
+      <div class="dk-grp"><span class="dk-glab">Menu item</span><div id="segUS"></div></div>
+      <div class="dk-grp"><span class="dk-glab">State</span><div id="segU"></div></div>
+    </div>
+    <div class="stage" id="stageU"><div class="wallbg"></div><div class="wallbg l"></div><div class="slots" id="slotsU"></div></div>
+    <div class="rd"><span><b id="phU">Add menu open</b></span><span class="cap">Esc closes the system dialog first, then the menu or the sheet; a click outside closes the menu. Closing the sheet from its scrim or Cancel adds nothing.</span></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="A skill in a chat">
+    <h2>In a chat: the model calls a skill by itself</h2>
+    <p class="sub">The session knows the enabled skills by name and description from the start, and calls one when a task needs it, as Claude’s app does. You ask for <b>proposal.docx</b> and pick nothing. The model invokes <code>doc</code>, and the timeline shows a “Skill · doc” row saying the model invoked it. <b>Play</b> shows that first, then the optional way: you type “/”, pick <code>doc</code> and send, and the row says you invoked it.</p>
+    <div class="ctl">
+      <button class="dk-btn pri" id="playC" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 2.2 9.8 6 3.5 9.8Z" fill="currentColor"/></svg><span>Play</span></button>
+      <div class="dk-grp"><span class="dk-glab">State</span><div id="segC"></div></div>
+    </div>
+    <div class="stage" id="stageC"><div class="wallbg"></div><div class="wallbg l"></div><div class="slots" id="slotsC"></div></div>
+    <div class="rd"><span><b id="phC">The model invokes it</b></span><span class="cap">Invoke A: one timeline row names the skill and who invoked it. “/” opens a picker of the enabled skills.</span></div>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="What each page holds">
+    <h2>What each page holds</h2>
+    <p class="sub"><b>Plugins</b> holds the vendors’ bundles: Anthropic’s knowledge-work and financial-services plugins, OpenAI’s open plugins and its proprietary-labelled ones. <b>Skills</b> holds the skill sets: Anthropic’s document, example and life-sciences skills, OpenAI’s document and curated skills, and Codex’s built-in skills. <b>Tools</b> (the existing page, next to the provider CLIs and OD-0100’s update rows) holds the programs they run: Python and its package sets, Node.js, LibreOffice, Poppler, qpdf, pandoc, Git, GitHub CLI, uv and Playwright’s Chromium. Every set and plugin Anthropic and OpenAI publish is offered. Each one downloads only when you ask, from the vendor’s official source, with its licence file kept, and none is bundled with Marrow (owner, 2026-10-04). Your own additions join each page under Your own.</p>
+    <p class="sub">Each page’s Download all takes the items on that page that aren’t on this PC yet. The confirmation shows the exact download size, the disk space it takes, the free space, where it comes from and every item included. Above 100 MB it opens with the amber “This can be a large download” warning; at 100 MB or under it states the size plainly. Then Cancel or Continue, and nothing downloads before Continue. After that: downloading (overall and per item, with Hide, Pause and Cancel), paused, done, and partly failed with Retry and the manual fallback. Getting everything means confirming on Plugins, Skills and Tools in turn.</p>
+  </section>
+
+  <section class="dk-glass stagecard" aria-label="How each provider is told">
+    <h2>How each provider lists the enabled skills and loads one on use</h2>
+    <p class="sub">From the skills research notes, the add-ons plan (<code>PLAN.md</code> 2.1 to 2.7) and the on-demand plan (<code>ONDEMAND-PLAN.md</code> section 4). Each chat gets a folder Marrow builds when the chat starts. It holds the installed skills that are enabled, and nothing else, so a skill that is not installed or is switched off is never listed. Every provider then does what Claude does with it. The names and descriptions go into the model’s context: Claude Code within 1% of the context window, each description cut at 1,536 characters; Codex within 2% by default. A skill’s full text loads when it is used (<b>SF</b>). <b>SF</b> read or run at the source, <b>ED</b> a proposal, <b>UN</b> to be checked live before it is built.</p>
+    <div class="cov" id="prov"></div>
+    <p class="sub" style="margin:0">Two honest limits. (1) The listing is paid in every session: the detail pane shows each skill’s share, and Marrow keeps its skills to at most half of each provider’s listing budget, leaving its own lowest-priority skills out first (PLAN.md 2.7). (2) A switch applies to new chats. A running chat keeps the folder it started with (ONDEMAND-PLAN 4.4).</p>
+  </section>
+
+  <section class="dk-notes">
+    <div class="dk-note dk-glass"><h3>The totals (ED, sizes SF)</h3><p>Plugins 32.2 MB (4 items), Skills 16.5 MB (6 items), Tools 1.08 GB (1,077.1 MB, 14 items, about 2.9 GB on disk). All three pages together: 1.13 GB (1,125.8 MB), about 3.0 GB on disk. On this page Python, its Office and PDF packages and two skill sets are already here, so the buttons show 32 MB for plugins, 8.2 MB for skills and 1.04 GB for the tools. Only Tools is over the 100 MB warning line.</p></div>
+    <div class="dk-note dk-glass"><h3>Download it yourself (ED)</h3><p>When an item fails, including after Retry, its row offers the vendor’s official page, the exact pinned file, and an Open folder button for <code>%LOCALAPPDATA%\Marrow Code\addons\downloads\manual\</code>. The folder name is a proposal (<b>ED</b>, <b>UN</b> until built); <code>addons\downloads\</code> is the plan’s own (3.1). Check again verifies the file against the pinned SHA-256 (every file, for a skill set) and installs it the normal way. A file that doesn’t match is refused, as in 3.3.</p></div>
+    <div class="dk-note dk-glass"><h3>Pause, Cancel, Retry (ED)</h3><p>Download all runs one item at a time, as in OD-0100’s update run. Pause stops the current file where it is, and Resume carries on from there (downloads are resumable, plan 3.2). Cancel stops the rest, and what is already downloaded stays. A failed item doesn’t stop the others. Your own additions are copied side by side, because they are local or small.</p></div>
+    <div class="dk-note dk-glass"><h3>Real and illustrative</h3><p>Names, versions, download sizes, file names, skill counts and sources are the plan’s pinned ones (2026-10-04), including the proprietary sets: Anthropic’s document skills (5 skills, 3.5 MB) and OpenAI’s proprietary-labelled plugins (8 plugins, 124 skills, 18.2 MB). The token figures, “212 GB free on C:”, the chats and the northwind repos are examples. Disk sizes are estimates (<b>UN</b>): the plan’s unpacked figures, and 2.5 times the download for the Python package sets. Downloads are sped up.</p></div>
+  </section>
+
+  <p class="dk-foot">Every change is transitioned (OD-0076): sidebar pages crossfade, the confirmation rises from a dimmed window and eases its height between phases, Hide shrinks it away as the pill rises in the sidebar, the popover rises from the pill, the pill’s ring completes into a check, bars and rings ease, rows change status with a crossfade and finished ones pop into the green check, the fallback folds open, the Add menu, the add sheet and the system dialog unfold where they stand, with no icon or text sliding, as the chevron turns, the add sheet’s results fold in, Enable switches slide, the picker rises from the composer, and a loaded skill’s row folds into the timeline. Reduce Motion stills the movement to quick fades.</p>
+</div>

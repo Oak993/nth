@@ -13,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using Marrow.App.Port.Voice;
 using Marrow.Core.Port;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
@@ -179,6 +180,100 @@ public sealed class ComposerNSTextView : TextBox
         }
     }
 
+    // PORT-ONLY (voice-SPEC V-14.6, OD-0076): the placeholder is one of the field's layers and crossfades with a voice note: its opacity and how far it sits below its
+    // place, in px (FieldFade).
+    private double placeholderOpacity = 1;
+    private double placeholderRise;
+
+    public double PlaceholderOpacity => placeholderOpacity;
+
+    public void SetPlaceholderFade(double opacity, double rise)
+    {
+        if (opacity == placeholderOpacity && rise == placeholderRise) return;
+        placeholderOpacity = opacity;
+        placeholderRise = rise;
+        if (string.IsNullOrEmpty(Text)) InvalidateVisual();
+    }
+
+    // PORT-ONLY (voice-SPEC V-8.5, Q-V-10): while voice input is live the editor is read-only, takes no typing, no paste and no Return, and its selection stays where
+    // it was; Esc still reaches the composer (it cancels the session), and the pointer does not take the keyboard from whatever has it.
+    private bool dictating;
+
+    public bool Dictating
+    {
+        get => dictating;
+        set
+        {
+            if (dictating == value) return;
+            dictating = value;
+            IsReadOnly = value;
+        }
+    }
+
+    // PORT-ONLY (voice-SPEC V-8.3, VT-11): while the dictation layer draws the words the editor keeps its text and draws none of it: its text, selection and caret are clear, and the
+    // layer draws what the draft will be. LiveText is that text (null when no dictation is drawing): the composer measures its height from it, and a draft written meanwhile does not
+    // reach the editor (ComposerTextView.Update).
+    private IBrush? hiddenForeground;
+    private IBrush? hiddenSelection;
+    private IBrush? hiddenCaret;
+    private Avalonia.Controls.Presenters.TextPresenter? hiddenPresenter;
+
+    public string? LiveText { get; set; }
+
+    /// <summary>True while <see cref="EnterDictation"/> has hidden the editor's own drawing of its text.</summary>
+    public bool TextHidden => hiddenPresenter is not null;
+
+    public void EnterDictation()
+    {
+        if (hiddenPresenter is not null) return;
+        hiddenPresenter = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(this).OfType<Avalonia.Controls.Presenters.TextPresenter>().FirstOrDefault();
+        hiddenForeground = Foreground;
+        Foreground = Brushes.Transparent;
+        if (hiddenPresenter is null) return;
+        hiddenSelection = hiddenPresenter.SelectionBrush;
+        hiddenCaret = hiddenPresenter.CaretBrush;
+        hiddenPresenter.SelectionBrush = Brushes.Transparent;
+        hiddenPresenter.CaretBrush = Brushes.Transparent;
+    }
+
+    public void ExitDictation()
+    {
+        if (hiddenPresenter is null && hiddenForeground is null) return;
+        Foreground = hiddenForeground;
+        if (hiddenPresenter is not null)
+        {
+            hiddenPresenter.SelectionBrush = hiddenSelection;
+            hiddenPresenter.CaretBrush = hiddenCaret;
+        }
+        hiddenPresenter = null;
+        hiddenForeground = hiddenSelection = hiddenCaret = null;
+    }
+
+    /// <summary>Runs <paramref name="write"/> with the editor open to programmatic edits (it is read-only while dictating) and shut again after.</summary>
+    public void RunUnlocked(Action write)
+    {
+        var was = IsReadOnly;
+        IsReadOnly = false;
+        try
+        {
+            write();
+        }
+        finally
+        {
+            IsReadOnly = was;
+        }
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        if (dictating)
+        {
+            e.Handled = true;
+            return;
+        }
+        base.OnPointerPressed(e);
+    }
+
     public Action<IReadOnlyList<AttachmentSource>>? OnAttach { get; set; } // :120
     public Action? OnWidthChange { get; set; } // :121
     public Action? OnResign { get; set; } // :122
@@ -258,6 +353,13 @@ public sealed class ComposerNSTextView : TextBox
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (dictating)
+        {
+            // V-8.5: typing, paste, Return and the arrows do nothing while the words are being written. Esc is the composer's, which cancels the session before the
+            // editor sees the key (ComposerView.OnVoiceKey); it is not the editor's Esc (a list closing, a turn taken back) until the session is over.
+            if (e.Key != Key.Escape) e.Handled = true;
+            return;
+        }
         // :154-161 override func performKeyEquivalent(with event: NSEvent) -> Bool. This accelerator is the
         // port's whole reachable path to paste(_:) (no OS Edit menu exists to gate through validateUserInterfaceItem,
         // OD-0008 C3); Ctrl is the Windows chord mapping for Command.
@@ -432,8 +534,8 @@ public sealed class ComposerNSTextView : TextBox
             typeface,
             FontSize,
             SwiftColor.PlaceholderTextColor.Brush(this)); // :203-204 font, .placeholderTextColor
-        var origin = new Point(Padding.Left, Padding.Top); // :206-209 inset.width + lineFragmentPadding, inset.height
-        context.DrawText(formatted, origin); // :210
+        var origin = new Point(Padding.Left, Padding.Top + placeholderRise); // :206-209 inset.width + lineFragmentPadding, inset.height
+        using (context.PushOpacity(placeholderOpacity)) context.DrawText(formatted, origin); // :210
     }
 }
 
@@ -495,14 +597,19 @@ public sealed class ComposerTextView : Decorator
             Background = Brushes.Transparent, // :234 drawsBackground = false
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto, // :236-238 hasVerticalScroller, overlay style
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            Content = textView,
         };
+        // PORT-ONLY (voice-SPEC V-8.3, VT-11): the dictation layer lies exactly over the editor, in the same scrolled content
+        Dictation = new DictationLayer(textView, scroll);
+        scroll.Content = new Grid { Children = { textView, Dictation } };
         Child = scroll; // :273 scrollView.documentView = textView
 
         controller.TextViewInstance = textView; // :274
 
         AttachedToVisualTree += (_, _) => MainActor.Spawn(() => RunAppear(takesFocusOnAppear)); // :283-289
     }
+
+    /// <summary>PORT-ONLY (voice-SPEC V-8.3, VT-11): the layer that draws live dictation over the editor.</summary>
+    internal DictationLayer Dictation { get; }
 
     private Task RunAppear(bool takesFocusOnAppear)
     {
@@ -541,6 +648,12 @@ public sealed class ComposerTextView : Decorator
             textView.Placeholder = newPlaceholder;
         }
         textView.CaretBrush = Chrome.AccentNSColor.Brush(textView); // :298-300 the caret follows the theme's accent
+        if (textView.LiveText is not null)
+        {
+            // PORT-ONLY (VT-11): a dictation is drawing: the draft follows it, the editor keeps the pre-dictation text (its undo history, its selection), only the height follows
+            UpdateHeight();
+            return;
+        }
         if (textView.Text != text.Value) // :301, hasMarkedText check UNVERIFIED, see ComposerNSTextView remarks
         {
             textView.Text = text.Value; // :302
@@ -550,13 +663,16 @@ public sealed class ComposerTextView : Decorator
         }
     }
 
+    /// <summary>PORT-ONLY (voice-SPEC V-14.6): the placeholder's opacity and how far below its place it sits, for the crossfade with a voice note.</summary>
+    public void SetPlaceholderFade(double opacity, double rise) => textView.SetPlaceholderFade(opacity, rise);
+
     // :360-376 func updateHeight()
     private void UpdateHeight()
     {
         if (textView.Bounds.Width <= 24) return; // :361
         var typeface = new Typeface(textView.FontFamily, textView.FontStyle, textView.FontWeight);
         using var layout = new TextLayout(
-            textView.Text ?? "", typeface, textView.FontSize, null,
+            textView.LiveText ?? textView.Text ?? "", typeface, textView.FontSize, null,
             textWrapping: TextWrapping.Wrap, maxWidth: textView.Bounds.Width); // :363-372
         var contentHeight = layout.Height;
         var total = Math.Ceiling(Math.Max(18, contentHeight) + textView.Padding.Top + textView.Padding.Bottom); // :374

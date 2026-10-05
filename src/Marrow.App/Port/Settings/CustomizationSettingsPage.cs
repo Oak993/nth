@@ -1,8 +1,8 @@
 // PORT-ONLY, first-release CZ-4 (customization-SPEC CZ-2.2, CZ-3, CZ-5, CZ-6, CZ-7, CZ-8, CZ-13.1; OWNER OD-0085, OD-0089, OD-0076): the Customization page, layout B "Stage". The chrome row carries the Preview state control (Rest,
 // Typing, Running a turn: session state, bound to PreviewSession). Under it, in the page's column: the pinned block (CZ-3's CustomizationStage: the heading, the preview composer on its stage and the model switch), the Style cards, and
 // the sections of the picked style (Border beam, Uiverse light or Off), each folding open and shut as the style changes. Every setting is the app's composer light (AppSettings.ComposerLight): a change reaches every composer at once.
-// NOT HERE (other units, hooks marked below): the sticky behaviour of the pinned block (CZ-6), the Voice orb section (CZ-7) and the Working dots section (CZ-5), which belong at the end of `Sticky`, and the Speech section, which
-// belongs in `Rest`, after the point where the pinned block lets go.
+// The pinned block is sticky (CZ-6, StickyStageController): it stays at the top of the Settings scroll viewer while the sections of `Sticky` scroll under it, folds its stage as the page scrolls, and lets go when `Sticky` ends.
+// NOT HERE (other units, hooks marked below): the live voice preview (CZ-7b) and the Speech section, which belongs in `Rest`, after the point where the pinned block lets go.
 using Avalonia;
 using Avalonia.Controls;
 using Marrow.Core.Models.ComposerLights;
@@ -25,17 +25,22 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
     /// <summary>CZ-3.2: the Preview state control in the chrome row.</summary>
     internal CzSegmentedControl PreviewStatePick { get; }
 
-    /// <summary>CZ-3.3: the sticky container's children: the pinned block, Style, the style's sections. HOOK: CZ-5 and CZ-7 add the Voice orb and Working dots sections at its end; CZ-6 turns the container sticky.</summary>
+    /// <summary>CZ-3.3: the sticky container's children: the pinned block, Style, the style's sections. CZ-6 makes the pinned block sticky inside it, and it ends where the block lets go. HOOK: CZ-5 and CZ-7 add the Voice orb and Working dots sections at its end (the controller picks up every child: each is clipped under the block).</summary>
     internal StackPanel Sticky { get; } = new() { Orientation = Avalonia.Layout.Orientation.Vertical };
 
     /// <summary>CZ-3.3: what follows the sticky container, where the pinned block lets go. HOOK: the Speech section (CZ-11).</summary>
     internal StackPanel Rest { get; } = new() { Orientation = Avalonia.Layout.Orientation.Vertical };
 
     internal CustomizationStage? Stage { get; private set; }
+
+    /// <summary>CZ-3.5: what pins and compacts the stage, clips the sections under it and keeps keyboard focus clear of it.</summary>
+    internal StickyStageController? Stickiness { get; private set; }
     internal CzStyleCards? StyleCards { get; private set; }
     internal BeamSections? Beam { get; private set; }
     internal AuraSections? Aura { get; private set; }
     internal CzSection? Off { get; private set; }
+    internal VoiceOrbSections? Voice { get; private set; }
+    internal WorkingDotsSections? Dots { get; private set; }
     internal CzAdvancedState Advanced { get; } = new();
     internal PreviewSession? Session => session;
 
@@ -49,7 +54,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Margin = new Thickness(0, -CustomizationStage.TopInset, 0, 0);
         // on attach, in this order: the page is built from the app's model, then it follows the app's settings
         this.Track(() => AppEnvironment.GetAppModel(this), Build);
-        this.Track(() => { var settings = AppEnvironment.GetAppModel(this).Settings; return (Light: settings.ComposerLight, settings.Accent); }, shown => Apply(shown.Light));
+        this.Track(() => { var settings = AppEnvironment.GetAppModel(this).Settings; return (Light: settings.ComposerLight, settings.Accent, settings.WorkingDots, settings.VoiceOrb, settings.VoiceTyping); }, shown => Apply(shown.Light));
     }
 
     /// <inheritdoc />
@@ -68,7 +73,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         var style = settings.ComposerLight.Style;
 
         // the pinned block (CZ-3.4): the stage and its foot; bound to the app's settings by the two functions it reads inside tracked reads
-        Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
+        Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session, () => settings.WorkingDots) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
 
         // Style (CZ-5)
         StyleCards = new CzStyleCards(StyleId(style));
@@ -87,7 +92,18 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         foreach (var section in Beam.Sections) Sticky.Children.Add(section);
         foreach (var section in Aura.Sections) Sticky.Children.Add(section);
         Sticky.Children.Add(Off);
+
+        // CZ-7a: the voice rows precede Working dots. CZ-7b subscribes to the session's preview seam.
+        Voice = new VoiceOrbSections(settings, session.VoicePreviewTouched);
+        Sticky.Children.Add(Voice.Section);
+
+        // Working dots (CZ-10): after the style's sections; the Voice orb section (CZ-7a) goes before it
+        Dots = new WorkingDotsSections(() => settings.WorkingDots, value => settings.WorkingDots = value, () => PreviewMakers.For(session.Maker).Name, session.WorkingDotsTouched);
+        Sticky.Children.Add(Dots.Section);
         Sticky.Children.Add(Aura.Picker);
+
+        // CZ-3.5: the block is sticky in the scroll viewer the page sits in (found on attach)
+        Stickiness = new StickyStageController(this, Sticky, Stage);
 
         // the chrome row's Preview state control is the session's pick (CZ-3.2, CZ-4.6); the session can move it too (touching Working dots)
         PreviewStatePick.SelectionChanged += id => { if (!echoing) session.Pick(StateOf(id)); };
@@ -96,6 +112,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
 
         ActualThemeVariantChanged += (_, _) => Apply(settings.ComposerLight);
         session.Changed += () => Aura.Apply();
+        session.Changed += Dots.Apply; // the Model colour detail names the preview's maker
     }
 
     private void ShowState()
@@ -115,12 +132,14 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         finally { echoing = false; }
         Beam.Apply();
         Aura.Apply();
+        Dots?.Apply();
+        Voice?.Apply();
         foreach (var section in Beam.Sections) section.Open = light.Style == ComposerLightStyle.Beam;
         foreach (var section in Aura.Sections) section.Open = light.Style == ComposerLightStyle.Aura;
         Off.Open = light.Style == ComposerLightStyle.Off;
     }
 
-    // CZ-6: the Auto values are the preview composer's: 472 wide and 46 high, the real pill's height (SPEC CZ-6 and ED-NEW-f-cz-3 item 2; the playground's 52 is a web mock)
+    // CZ-6: the Auto values are the preview composer's: 472 wide and 46 high, the real pill's height (SPEC CZ-6 and ED-335 item 2; the playground's 52 is a web mock)
     private static (double Width, double Height) ComposerSize() => (ComposerPreview.ComposerWidth, ComposerPreview.PillHeight);
 
     private static string AccentName(AppSettings settings)

@@ -1,7 +1,8 @@
 // PORT-ONLY CZ-3 (customization-SPEC CZ-3.3 to CZ-3.4, CZ-4.1, CZ-4.2, CZ-4.4; OWNER OD-0089 amendment, layout B "Stage"): the Customization page's pinned block. The heading
 // "Composer light", then a card holding the stage (a small chat window, 496 x 212, radius 10: the window's own backdrop, the end of a conversation and the preview composer) and
 // its foot (the preview model switch at the left, the caption of what the light is at the right). It is 372 high at rest: the page's 60 top inset, the heading's 18 and 10,
-// the card's 12 + 212 + 46, and 14 below it; the 2 points to the Style section are the page's (GapBelow). It scrolls with the page for now: CZ-6 pins and compacts it.
+// the card's 12 + 212 + 46, and 14 below it; the 2 points to the Style section are the page's (GapBelow). CZ-6 makes it sticky (StickyStageController): the page moves it with PinTo (a transform, no layout),
+// folds the stage with Compact (the stage 212 down to 120, the conversation text fading and lifting; the slot the block asks of the page stays 372, so no section moves) and fades its Hairline.
 // The settings it wears are read through the two functions it is given inside tracked reads, so they follow the app's settings live (CZ-13.1) whatever holds them.
 using Avalonia;
 using Avalonia.Controls;
@@ -45,10 +46,20 @@ internal sealed class CustomizationStage : Decorator
     internal PreviewModelSwitch Switch { get; }
     internal CzCrossfadeText Caption { get; }
 
+    /// <summary>CZ-3.5.2: how far the stage has folded (0 to 92).</summary>
+    internal double Compaction { get; private set; }
+
+    /// <summary>CZ-3.5.5: the 1 point line along the block's bottom edge, in the row divider's colour; it fades in and out with the page's scroll.</summary>
+    internal Border Hairline { get; }
+
+    private readonly CzNumber hairlineOpacity;
+    private readonly TranslateTransform pin = new(), lift = new();
+
     /// <param name="settings">The composer light's settings as the app holds them; read inside a tracked read.</param>
     /// <param name="backdropOpacity">The app's backdrop opacity, the stage's own backdrop wearing it; read inside a tracked read.</param>
     /// <param name="session">The preview's maker and state (CZ-4.5.3, CZ-4.6).</param>
-    internal CustomizationStage(Func<ComposerLightSettings> settings, Func<double> backdropOpacity, PreviewSession session)
+    /// <param name="workingDots">CZ-5: the working dots' setting as the app holds it, read inside a tracked read; null leaves the dots in the accent.</param>
+    internal CustomizationStage(Func<ComposerLightSettings> settings, Func<double> backdropOpacity, PreviewSession session, Func<WorkingDotsSettings>? workingDots = null)
     {
         this.settings = settings;
         this.session = session;
@@ -62,7 +73,9 @@ internal sealed class CustomizationStage : Decorator
         // the stage: the window's backdrop, the conversation, the composer, and an inset hairline in the divider colour
         backdrop = new WindowBackdrop(backdropOpacity()) { Margin = new Thickness(-1) }; // its own hairline falls outside the clip; the stage draws the one CZ-4.1 asks for
         (Chat, ChatHeading, ChatBody) = MakeChat();
-        Preview = new ComposerPreview(session) { Settings = settings() };
+        // the composer keeps its 12 above the stage's bottom edge whatever the stage's height (CZ-3.5.2): it is as tall as the stage at rest and sits at the bottom, the stage clipping what the compaction takes off its top
+        Preview = new ComposerPreview(session) { Settings = settings(), Height = StageHeight, VerticalAlignment = VerticalAlignment.Bottom };
+        Chat.RenderTransform = lift;
         var hairline = new Border { IsHitTestVisible = false, BorderThickness = new Thickness(1) }.RoundedRectangle(StageRadius, RoundedCornerStyle.Circular);
         var divider = new AnimatedColor(hairline);
         divider.Set(Chrome.Overlay(0.12), null);
@@ -80,13 +93,57 @@ internal sealed class CustomizationStage : Decorator
         Foot.Children.Add(Caption);
 
         var card = new ChromeCard(() => new StackPanel { Orientation = Orientation.Vertical, Children = { Surface, Foot } });
-        Child = new Border { Padding = new Thickness(0, 0, 0, BottomPadding), Child = new StackPanel { Orientation = Orientation.Vertical, Children = { HeadingBox, card } } };
+        var content = new Border { Padding = new Thickness(0, 0, 0, BottomPadding), Child = new StackPanel { Orientation = Orientation.Vertical, Children = { HeadingBox, card } } };
+
+        // CZ-3.5.5: the hairline on the block's bottom edge, which is the bottom of what is laid out (the content is 372 less the compaction high), in ChromeRowDivider's colour (Overlay 0.12, following the appearance)
+        Hairline = new Border { Height = 1, VerticalAlignment = VerticalAlignment.Bottom, IsHitTestVisible = false, Opacity = 0 };
+        var ink = new AnimatedColor(Hairline);
+        ink.Set(Chrome.Overlay(0.12), null);
+        Hairline.Background = ink.Brush;
+        hairlineOpacity = new CzNumber(new CzMotion(this), 0, value => Hairline.Opacity = value);
+        Child = new Grid { Children = { content, Hairline } };
+        RenderTransform = pin;
 
         session.Changed += OnSession;
         DetachedFromVisualTree += (_, _) => session.Changed -= OnSession;
         AttachedToVisualTree += (_, _) => { session.Changed -= OnSession; session.Changed += OnSession; };
         this.Track(settings, value => { Preview.Settings = value; Caption.SetText(Describe()); });
         this.Track(backdropOpacity, opacity => backdrop.Update(opacity, null));
+        if (workingDots is not null) this.Track(workingDots, value => Preview.WorkingDots = value);
+    }
+
+    /// <summary>CZ-3.5.1: puts the block <paramref name="y"/> below where it lies at rest: a transform only, nothing is laid out again.</summary>
+    internal void PinTo(double y)
+    {
+        if (pin.Y != y) pin.Y = y;
+    }
+
+    /// <summary>CZ-3.5.2: folds the stage by <paramref name="compaction"/> (0 to 92): the stage is 212 less that high, the conversation text above the composer fades with `1 - 1.8 k` and lifts `14 k` (k = compaction / 92), and
+    /// the composer stays 12 above the stage's bottom. The slot the block asks of the page is its rest height, whatever the compaction (so the sections below never move faster than the scroll); only the stage's own layout changes.</summary>
+    internal void Compact(double compaction)
+    {
+        if (compaction == Compaction) return;
+        Compaction = compaction;
+        Surface.Height = StickyStage.StageHeight(StageHeight, compaction);
+        Chat.Opacity = StickyStage.ChatOpacity(compaction);
+        lift.Y = StickyStage.ChatOffset(compaction);
+        InvalidateArrange(); // the child is arranged at the rest height less the compaction (below)
+    }
+
+    /// <summary>CZ-3.5.5: the hairline fades in (shown) or out over 0.25 s ease; at once under reduce motion.</summary>
+    internal void ShowHairline(bool shown) => hairlineOpacity.To(shown ? 1 : 0, CzMotion.Ease(StickyStage.HairlineSeconds));
+
+    // the slot asks for its rest height: what the content needs plus what the compaction has taken off it (so it is 372 at every compaction and the page does not lay anything else out)
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var size = base.MeasureOverride(availableSize);
+        return new Size(size.Width, size.Height + Compaction);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        base.ArrangeOverride(new Size(finalSize.Width, Math.Max(0, finalSize.Height - Compaction)));
+        return finalSize;
     }
 
     private string Describe() => PreviewCaption.Text(settings(), PreviewMakers.For(session.Maker).Name);

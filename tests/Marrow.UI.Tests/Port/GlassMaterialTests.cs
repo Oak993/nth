@@ -149,27 +149,32 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:179-182; addendum specular rim and inner shadow; P1 directional rim
-    public void AFlatBackdropHasASpecularRimAndAnInnerShadow() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:179-182; addendum specular rim; OD-0107 the Mac frames' rim (ED-356)
+    public void AFlatBackdropHasASpecularRimBrightestAtTheTopAndALightInnerEdge() => headless.OnUiThread(() =>
     {
+        // ED-356 changed the design this test measured (P1's light from the bottom right, a dark inner shade at the top left): the Mac frames
+        // (the composer pill, the title capsules) show the rim brightest at the top, bright at the bottom, faint at the sides, and a light inner edge under
+        // the top rim, not a shade. The rim is now each edge's first pixel; the old points (138 and 27) lie 1.5 and 7.5 pt in.
         using var scene = new Scene(new Pattern { Flat = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
         var pixels = scene.Pixels();
         var centre = pixels(128, 80).R;
-        Assert.True(pixels(128, 138).R > centre + 8, "P1's light-facing rim must pick up a specular highlight.");
-        Assert.True(pixels(128, 27).R < centre - 2, "The opposing inner edge must have a subtle inner shadow.");
+        Assert.True(pixels(128, 20).R > centre + 8, "The light-facing (top) rim must pick up a specular highlight.");
+        Assert.True(pixels(128, 139).R > pixels(128, 133).R + 8, "The bottom rim must pick up a specular highlight.");
+        Assert.True(pixels(128, 21).R > pixels(128, 29).R + 2, "The inner edge under the top rim must be lighter.");
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:179-182; addendum edge refraction; P1 band 46 / strength 26
+    [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:179-182; addendum edge refraction; ED-356 bend 40 / fall-off 11 (rizzytoday's map)
     public void EdgeRefractionBendsABroadGradientOutward() => headless.OnUiThread(() =>
     {
         using var scene = new Scene(new Pattern { Gradient = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
         var pixels = scene.Pixels("glass-material-refraction.png");
-        // An affine gradient survives blur. A 0.18 frost wash alone gives ~50/~170 here;
-        // these engineering thresholds require displacement beyond the rim/shadow contribution.
-        Assert.True(pixels(54, 80).R < 42, "The left edge must sample farther left than plain frost.");
-        Assert.True(pixels(201, 80).R > 180, "The right edge must sample farther right than plain frost.");
-        Assert.InRange(pixels(128, 80).R, (byte)98, (byte)122); // deep interior retains the undistorted gradient
+        // An affine gradient survives blur. ED-356 replaced the 0.18 dark frost (alone ~50/~170 here, the old thresholds 42/180) with
+        // glass-g3's gain law (c + 0.95 c (1 - c)^2): undisplaced it gives 86 at x 54, 210 at x 201 and 158 in the middle.
+        // These thresholds still require a displacement of at least 9 px beyond the body, rim and inner light.
+        Assert.True(pixels(54, 80).R < 75, "The left edge must sample farther left than the plain film.");
+        Assert.True(pixels(201, 80).R > 217, "The right edge must sample farther right than the plain film.");
+        Assert.InRange(pixels(128, 80).R, (byte)148, (byte)168); // deep interior retains the undistorted gradient (128 lifted to 158)
     });
 
     [Fact]
@@ -205,8 +210,10 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         setSpacing.Invoke(null, [container, spacing]);
         using var scene = new Scene(new Pattern(), container);
         var pixels = scene.Pixels();
-        var contrast = Math.Abs(pixels(124, 80).R - pixels(126, 80).R);
-        Assert.True(joins ? contrast < 64 : contrast == 255, $"Source container spacing {spacing} must govern joining the six-DIP gap.");
+        // ED-356: the gap's first pixels (124 and, through the smooth union's neck, 125) carry the left piece's contact line, so the gap is
+        // read at 127 and 128, mid-gap (black and white in the pattern, as 126 and 124 were).
+        var contrast = Math.Abs(pixels(127, 80).R - pixels(128, 80).R);
+        Assert.True(joins ? contrast < 64 : contrast == 255, $"Source container spacing {spacing} must govern joining the six-DIP gap: " + string.Join(" ", Enumerable.Range(120, 14).Select(x => $"{x}:{pixels(x, 80).R}")));
     });
 
     // ---- PR-CHAT-171 / UI-CHAT-073: a container draws every piece from the opacity and place the piece has NOW ---------------------

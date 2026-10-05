@@ -1054,3 +1054,66 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Approval, owner, 2026-10-05 (chat, verbatim):** "All wallpapers approved"
   - **What was approved:** both published library pages. Animated: https://claude.ai/artifact/LFRLdPKiHhScEMwqBBs55c, 72 wallpapers (version 2). Static: https://claude.ai/artifact/CrziwfNftCftsFK6mGgUPz, 90 wallpapers.
   - **Effect:** all 162 wallpapers ship as drawn, in the design snapshot at porting/first-release/design-src/wallpaper-library (static at ab4308969, animated at 76a61a4e2). That snapshot is the source of truth for the app's per-wallpaper fidelity tests. This includes the four premium options (Dynamic, Match accent, Perspective, Focus) and the names, all unique across both collections.
+
+## OD-0111 Every update ships with its What's new, and the app shows it with the update (2026-10-05)
+
+- **Context:** the self-update (UE-1, ED-320) already reads a release's markdown notes and the About page shows them as section cards, but the packaging script's `-ReleaseNotesFile` was optional, so a release could go out with no notes.
+- **Owner, verbatim:** "अच्छा एक चीज़ मैंडेटरी करवा देना कि आपकी जो अपडेट होती है ना जो मैं फॉर एग्जांपल अपने गिट हब पे अपलोड करूँगा न्यू अपडेट तो जब ऐप के अंदर शो होगी किसी और यूज़र को कि अपडेट आई हुई है ठीक है ना तो यू नो इट शुड शो कि न्यू वर्जन के अंदर क्या चेंजेस हैं क्या अपडेट्स हैं ठीक है ना वो एक चेंज लॉग और अपडेट्स व्हाट्स न्यू ठीक है ना वो होना चाहिए ठीक है ना विथ एवरी पुश ऑफ न्यू अपडेट ये चीज़ साथ साथ पुश होनी चाहिए ताकि जिसका भी ऐप में अपडेट आए उसको पता हो कि क्या चीज़ चेंज हो रही है क्या अपडेट हो रहा है क्या नई चीज़ ऐड हो रही है एवरी थिंग ठीक है ना"
+- **In English:** "Make one thing mandatory. When I upload a new update to my GitHub and the app shows another user that an update is available, it should show what changed in the new version: a changelog and What's new. It must be pushed together with every new update, so whoever gets the update knows what is changing, what is updated and what is new."
+- **Effect:**
+  - Release notes are mandatory. A release cannot be packaged or uploaded without a What's new for that exact version: packaging fails closed when the notes are missing, empty, for another version, or have no recognised section.
+  - The notes come from the repository's CHANGELOG, one section per version, in the parity headings (New features, Bug fixes, Refinements), so every pushed update carries its own changelog.
+  - When the app offers an update, the user sees that version's What's new (the parity section cards) before installing, and can read it again after updating.
+  - Nothing is published or uploaded without the owner's word (unchanged).
+
+## OD-0112 The app icon is D "Aurora" (2026-10-05)
+
+- **Asked:** 2026-10-05. The owner found the OD-0015 icon and its animation less premium than the app ("an app's icon tells you what the app will be like inside") and asked for twenty original directions, each with a launch animation and an idle loop, free of the old three-colour mark. Page: https://claude.ai/artifact/1FCzPs4jpmNAFidJ5FRotZ (copy: `porting/first-release/design-src/app-icon/`).
+- **Answer, verbatim:** "app-icon: D lock it and ship it, see who you want to delegate this task to , claude helper or codex whichever"
+- **Effect:**
+  - Supersedes OD-0015. The port ships D "Aurora": a tile of smoked night glass holding an aurora curtain (emerald foot, teal above, violet fringe) over a dark ridge and a few stars. The locked source is `porting/first-release/design-src/app-icon/src/icons-a-j/D-aurora.js` with `iconkit.js`, including its own small-size art for 16 to 32 px.
+  - Every place OD-0015 named uses it: the executable and its `icon.ico`, the window, the taskbar, Alt-Tab, Start, toasts, the in-app logo images, and later the installer.
+  - The loading mark and boot animation (OD-0016, OD-0018 "Comet", ED-097/102/103/154) are remade from D's launch animation and idle loop. That motion goes to the owner as a review page before it ships; OD-0108's warm-up behind the boot animation is unchanged.
+  - The OD-0015 files stay in history only. The deviation list in the final report names the new icon.
+
+## OD-0113 Boot animation B and three Aurora loaders (2026-10-05)
+
+- **Asked:** 2026-10-05, after OD-0112. Page: https://claude.ai/artifact/UqPvGBv5E3ToEtMLXrihvo (version 2; copy: `porting/first-release/design-src/loading-aurora/`). Round 1 had three boot variants, a per-turn pulse and an icon-based loading mark; the owner picked boot B but asked that it grow into the real window's shape, rejected the icon as a loader, and asked for five new loaders that only lightly resemble the Aurora. The per-turn pulse was dropped: OD-0018's "one pulse per turn" meant a turn of the old spiral, and the chat keeps the composer's working dots.
+- **Answer, verbatim:** "loading: boot=B, loader=?, history=2, diff=5, attachment=4"
+- **Effect:**
+  - Boot: variant B. The Aurora tile appears large over the dimmed desktop, runs D's launch, and when the app is ready its rectangle grows into the main window's exact frame (position, size, Windows 11 corner radius, title-bar band) on the window's own reveal timing, so its last frame is the window; the glass and content fade in inside that rectangle. The OD-0108 warm-up runs behind it with the window hidden. It replaces OD-0018's Comet boot.
+  - Loaders (OD-0016 / ED-097 sites, 400 ms rule kept): the older-chat history load uses loader 2 "Curtain Fold"; the diff pane (above its "Reading the diff..." label) uses loader 5 "Aurora Sheen"; the large attachment preview uses loader 4 "Flow Arc". The icon is never a loader. Under Reduce Motion each is a still pose that only breathes in opacity.
+  - Nothing in the chat moves while the model works except the composer's working dots (parity, CZ customization).
+
+## OD-0114 Multiple accounts ship in the first release (2026-10-05)
+
+- **Context:** the owner's multiple-accounts feature (several accounts per service, the Handshake, Pills, link up, one-message opinions, local models, per-account enable/disable), designed with the owner on 2026-10-05. Everything agreed is in `E:\Droppy\work\design\ideas\multi-account.md`; the design page is https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X. The feasibility study (branch codex/ma-0, `porting/first-release/multi-account-FEASIBILITY.md`) found it technically feasible for file-based CLIs (Copilot CLI and Antigravity keep sign-ins in Windows Credential Manager and stay single-account), and quoted provider terms against bypassing protective measures and circumventing rate limits; the lead raised this risk with the owner before this decision.
+- **Owner, verbatim:** "once we finalize the multi account page, that too needs to get pushed in this release"
+- **Effect:** multiple accounts join the first-release scope (OD-0103) as a new feature family. Its interface is built only after the owner finalizes the design page, and its picks are then recorded verbatim; design-independent foundations (accounts store, per-account isolation and limits, the local provider) may start at once. The installer still comes last (OD-0105).
+
+## OD-0115 Multiple accounts: the design picks (2026-10-05)
+
+- **Page:** https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X (version 8; copy: `porting/first-release/design-src/multi-account/`). Every agreed rule: `porting/first-release/multi-account-NOTES.md`.
+- **Owner, verbatim:** "multi-account: handshake=A, composer=A, popover=ok, link=A, opinions=B, usage=B, card-layout=A" and "Just fix that generic toggle and ship it with the current release."
+- **Effect:**
+  - Handshake animation A (neural filaments), from and to the shared capsule, in the usage light.
+  - Composer account control A (the glass capsule), styles from Customization, default Merged capsule.
+  - The account popover as shown; link up A (tap the link beside an account); one-message opinions B (an "Ask others" button); usage panel B (the current account, the others one tap away); first-time card layout A.
+  - Every switch is the port's own SmallSwitch (SettingsView.cs, ED-280), never the page's generic toggle.
+  - It ships in the first release (OD-0114).
+
+## OD-0116 Automatic account switching is off by default and asked the first time (2026-10-05)
+
+- **Context:** the feasibility study (codex/ma-0) and the Handshake engine (cloud/ma-5) note that provider terms forbid bypassing protective measures or circumventing rate limits; the lead asked whether "Keep me going" starts on or off.
+- **Owner, verbatim:** "Switched off by default, app asks user the first time."
+- **Effect:** automatic switching ("Keep me going", the Handshake into another account) is off by default for every service. The first time an account runs out, the first-time card asks the user (OD-0115 layout A, with the Remember line); nothing switches automatically until the user chooses it. Pills a user creates are that user's explicit choice.
+
+## OD-0117 The Pills section is visible to everyone (2026-10-05)
+
+- **Owner, verbatim:** "Also, pills section in settings will be visible to users who have single accounts connected as well, just the options will be disabled with a message letting them know what this feature is and what would enable its functionality (multiple accounts)"
+- **Effect:** amends the notes' "Pills only once 2+ accounts or services are connected". Settings › Pills always shows in the sidebar. With fewer than two accounts or services connected, its controls are present but disabled (dimmed, not focusable as actions), under one short plain message that says what Pills are (a chain of accounts and models that Marrow moves through when one runs out) and what turns them on (connecting a second account or service, with a button to Settings › Models). Everything enables live, with a transition, the moment a second account or service is connected.
+
+## OD-0118 Import skills from other apps on the PC (2026-10-05)
+
+- **Owner, verbatim:** "Also, can we have an option to import skills from other apps and llms on the pc in skills settings?" then "It goes in this release"
+- **Effect:** a new first-release unit SK-18 in Settings › Skills: an "Import skills" action scans the places other AI tools on this PC keep skills (Claude Code's skills and plugins folders, Codex's skills, Antigravity's, Cursor's rules, and any folder the user picks), lists what it found grouped by app (name, one-line description, source), and imports the ticked ones either as a Copy (Marrow's own) or a Link (kept in sync with the original). Nothing in the other apps is moved or changed; duplicates offer keep both / replace / skip; imported skills carry a quiet "from <app>" tag and can be removed; they then work wherever Marrow gives skills. Design follows the existing Skills pages (SK-15) and goes to the owner only if a new layout is needed.
