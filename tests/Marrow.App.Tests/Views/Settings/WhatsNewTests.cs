@@ -13,6 +13,7 @@ using Marrow.Core.Port.SelfUpdate;
 using Marrow.Core.Port.Updates;
 using Marrow.Testing;
 using Marrow.UI.Port;
+using Marrow.UI.Markdown;
 
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -29,10 +30,10 @@ public sealed class WhatsNewTests(HeadlessSession headless)
         PageURL = SwiftURL.Create("https://example.invalid/release")!,
     };
 
-    private static UpdateChecker Inject(TestRuntime runtime, AvailableUpdate update, string running)
+    private static UpdateChecker Inject(TestRuntime runtime, AvailableUpdate update, string running, FakeSelfUpdateEngine? engine = null)
     {
         runtime.Defaults.Set("updateChecker_release", AvailableUpdate.EncodeToBytes(update));
-        return runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running(running), [], ""));
+        return runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running(running), [], engine is null ? "" : MarrowReleaseFeed.Url, engine));
     }
 
     private static Avalonia.Controls.Window Show(Control content)
@@ -69,6 +70,9 @@ public sealed class WhatsNewTests(HeadlessSession headless)
             Assert.Contains(version, texts);
             Assert.Contains(expected[i], texts);
             Assert.DoesNotContain("Contributor is not a fourth card", texts);
+            buttons[i].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(presenter.Calls.Last().Presented);
         }
     }
 
@@ -121,6 +125,154 @@ public sealed class WhatsNewTests(HeadlessSession headless)
             ReadCards(page, "1.8.0", "Added update notes");
             Assert.DoesNotContain(page.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Update & restart");
             Assert.Equal(new[] { "IsInstalled", "Check" }, engine.Calls);
+        }
+        finally { window.Close(); }
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Spec", "UE-T77")]
+    public void Each_offer_uses_its_own_Marrow_item_even_when_the_shared_checker_offers_a_different_release(bool sidebar) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var sharedChecker = Inject(runtime, Release(), "1.7.0");
+        using var shared = UpdateChecker.OverrideShared(sharedChecker);
+        var release = Release("1.9.0", "The actual offered feature");
+        var engine = new FakeSelfUpdateEngine { Offer = new SelfUpdateOffer(release.Version, release.Notes, 100) };
+        var offeredChecker = Inject(runtime, release, "1.7.0", engine);
+        var item = new MarrowUpdateItem(offeredChecker, engine, (_, _) => throw new InvalidOperationException("Restart forbidden"));
+        var service = runtime.OnMain(() => new UpdateEverythingService([item], () => throw new InvalidOperationException("Restart forbidden")));
+        runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+        Control offer = sidebar ? new UpdatePopoverContent(service) : new UpdatesSettingsPage(service);
+        var window = Show(offer);
+        try
+        {
+            ReadCards(offer, "1.9.0", "The actual offered feature");
+            Assert.Equal("1.9.0", Assert.Single(service.Rows).Latest);
+            Assert.Equal("1.8.0", sharedChecker.Update!.Version);
+            Assert.DoesNotContain(engine.Calls, call => call.StartsWith("Download", StringComparison.Ordinal));
+            // Reconfiguring the live runner removes the offer and its notes, on both surfaces.
+            runtime.OnMain(() => service.Configure([], () => throw new InvalidOperationException("Restart forbidden")));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Empty(offer.GetVisualDescendants().OfType<UpdateReleaseSectionCards>());
+        }
+        finally { window.Close(); }
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Spec", "UE-T78")]
+    public void An_actual_offer_with_empty_notes_explains_the_missing_notes_before_install(bool sidebar) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var engine = new FakeSelfUpdateEngine { Offer = new SelfUpdateOffer("1.8.0", "", 100) };
+        var checker = Inject(runtime, Release() with { Notes = "" }, "1.7.0", engine);
+        var service = runtime.OnMain(() => new UpdateEverythingService([new MarrowUpdateItem(checker, engine, (_, _) => throw new InvalidOperationException("Restart forbidden"))], () => { }));
+        runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+        Control offer = sidebar ? new UpdatePopoverContent(service) : new UpdatesSettingsPage(service);
+        var window = Show(offer);
+        try
+        {
+            Assert.Contains(offer.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Release notes are unavailable for Marrow 1.8.0.");
+            Assert.DoesNotContain(engine.Calls, call => call.StartsWith("Download", StringComparison.Ordinal));
+        }
+        finally { window.Close(); }
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Spec", "UE-T80")]
+    public void Plain_notes_from_the_actual_item_match_About_on_both_offer_surfaces(bool sidebar) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        const string notes = "Plain prose summary of the actual offered release.";
+        var engine = new FakeSelfUpdateEngine { Offer = new SelfUpdateOffer("1.8.0", notes, 100) };
+        var checker = Inject(runtime, Release() with { Notes = notes }, "1.7.0", engine);
+        using var shared = UpdateChecker.OverrideShared(checker);
+        var service = runtime.OnMain(() => new UpdateEverythingService([new MarrowUpdateItem(checker, engine, (_, _) => throw new InvalidOperationException("Restart forbidden"))], () => { }));
+        runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+        Control offer = sidebar ? new UpdatePopoverContent(service) : new UpdatesSettingsPage(service);
+        var about = new AboutSoftwareUpdateSection();
+        var window = Show(new StackPanel { Children = { offer, about } });
+        try
+        {
+            Assert.Equal(notes, Assert.Single(offer.GetVisualDescendants().OfType<MarkdownView>()).Text);
+            Assert.Equal(notes, Assert.Single(about.GetVisualDescendants().OfType<MarkdownView>()).Text);
+            Assert.DoesNotContain(engine.Calls, call => call.StartsWith("Download", StringComparison.Ordinal));
+        }
+        finally { window.Close(); }
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Spec", "UE-T81")]
+    public void A_later_checker_offer_cannot_change_the_displayed_install_or_downloaded_restart_target(bool sidebar) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var release = Release();
+        runtime.Defaults.Set("updateChecker_release", AvailableUpdate.EncodeToBytes(release));
+        var engine = new FakeSelfUpdateEngine { Offer = new SelfUpdateOffer("1.8.0", release.Notes, 100) };
+        var checker = runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], MarrowReleaseFeed.Url, engine));
+        var applied = new List<string>();
+        var item = new MarrowUpdateItem(checker, engine, (_, version) => applied.Add(version));
+        var service = runtime.OnMain(() => new UpdateEverythingService([item], item.Restart));
+        runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+        Control offer = sidebar ? new UpdatePopoverContent(service) : new UpdatesSettingsPage(service);
+        var window = Show(offer);
+        try
+        {
+            engine.Offer = new SelfUpdateOffer("1.9.0", Release("1.9.0", "Future feature").Notes, 100);
+            runtime.OnMain(() => checker.Check().GetAwaiter().GetResult());
+            Dispatcher.UIThread.RunJobs();
+            ReadCards(offer, "1.8.0", "Added update notes");
+            runtime.OnMain(() => ((IUpdatesRunner)service).UpdateOne("marrow").GetAwaiter().GetResult());
+            Assert.Contains("Download(1.8.0)", engine.Calls);
+            Assert.DoesNotContain("Download(1.9.0)", engine.Calls);
+            runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+            Dispatcher.UIThread.RunJobs();
+            ReadCards(offer, "1.8.0", "Added update notes");
+            Assert.Equal("1.8.0", Assert.Single(service.Rows).Latest);
+            Assert.Equal("1.9.0", checker.Update!.Version);
+            Assert.Equal("1.8.0", service.MarrowOffer!.Version);
+            item.Restart();
+            Assert.Equal(new[] { "1.8.0" }, applied);
+        }
+        finally { window.Close(); }
+    });
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [Trait("Spec", "UE-T82")]
+    public void A_noninstalled_or_current_Marrow_item_never_shows_the_shared_checkers_offer(bool sidebar, bool installed) => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var sharedChecker = Inject(runtime, Release(), "1.7.0");
+        using var shared = UpdateChecker.OverrideShared(sharedChecker);
+        var engine = new FakeSelfUpdateEngine { Installed = installed };
+        var checker = Inject(runtime, Release(), installed ? "1.8.0" : "1.7.0", engine);
+        var service = runtime.OnMain(() => new UpdateEverythingService([new MarrowUpdateItem(checker, engine, (_, _) => throw new InvalidOperationException("Restart forbidden"))], () => { }));
+        runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+        Control offer = sidebar ? new UpdatePopoverContent(service) : new UpdatesSettingsPage(service);
+        var window = Show(offer);
+        try
+        {
+            Assert.Null(service.MarrowOffer);
+            Assert.Empty(offer.GetVisualDescendants().OfType<UpdateReleaseSectionCards>());
+            Assert.Empty(offer.GetVisualDescendants().OfType<MarkdownView>());
+            Assert.Equal(installed ? UpdateRowState.UpToDate : UpdateRowState.NotInstalled, Assert.Single(service.Rows).State);
         }
         finally { window.Close(); }
     });

@@ -20,6 +20,9 @@ internal sealed class ReleaseNotesScriptRig : IDisposable
         foreach (var script in new[] { "package-windows.ps1", "release-notes.ps1", "extract-release-notes.ps1" })
             if (File.Exists(Path.Combine(root, "scripts", script))) File.Copy(Path.Combine(root, "scripts", script), Path.Combine(Folder, "scripts", script));
         var source = Directory.CreateDirectory(Path.Combine(Folder, "src", "Marrow.App")).FullName;
+        var parser = "src/Marrow.Core/Port/SelfUpdate/ReleaseNotesParser.cs";
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(Folder, parser))!);
+        File.Copy(Path.Combine(root, parser), Path.Combine(Folder, parser));
         File.WriteAllText(Path.Combine(source, "AssemblyInfo.cs"), "[assembly: AssemblyMetadata(\"CFBundleShortVersionString\", \"1.7.0\")]\n[assembly: AssemblyMetadata(\"CFBundleVersion\", \"21\")]");
         File.WriteAllText(Path.Combine(Folder, "Directory.Packages.props"), "<PackageVersion Include=\"Velopack\" Version=\"0.0.0\" />");
         File.WriteAllText(Path.Combine(Folder, "guard.ps1"), """

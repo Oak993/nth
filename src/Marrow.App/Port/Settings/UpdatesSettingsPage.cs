@@ -66,7 +66,7 @@ internal sealed class UpdatesSettingsPage : Decorator, ISettingsPageChrome
         BannerFold = new CzFoldRow(banner, view.Banner.Visible);
 
         Build(view);
-        Child = new StackPanel { Orientation = Orientation.Vertical, Children = { new UpdateWhatsNew(), header, BannerFold, sections } };
+        Child = new StackPanel { Orientation = Orientation.Vertical, Children = { new UpdateWhatsNew(runner), header, BannerFold, sections } };
         built = true;
 
         AttachedToVisualTree += (_, _) =>

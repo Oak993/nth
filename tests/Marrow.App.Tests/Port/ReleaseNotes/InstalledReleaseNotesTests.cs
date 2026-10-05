@@ -1,4 +1,5 @@
 using Marrow.App.Port.Updates;
+using Marrow.App.Port.Settings;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port;
 using Marrow.Core.Port.SelfUpdate;
@@ -18,6 +19,30 @@ public sealed class InstalledReleaseNotesTests
         Version = "1.8.0", Tag = "v1.8.0", Notes = Notes,
         DownloadURL = SwiftURL.Create("https://example.invalid/package")!, PageURL = SwiftURL.Create("https://example.invalid/release")!,
     };
+
+    [Fact]
+    [Trait("Spec", "UE-T84")]
+    public void A_pending_restart_has_one_target_even_when_the_checker_has_found_a_later_release()
+    {
+        using var runtime = new TestRuntime();
+        runtime.Defaults.Set("updateChecker_release", AvailableUpdate.EncodeToBytes(Offered()));
+        var engine = new FakeSelfUpdateEngine { Offer = new SelfUpdateOffer("1.8.0", Notes, 100) };
+        var checker = runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], MarrowReleaseFeed.Url, engine));
+        var item = new MarrowUpdateItem(checker, engine, (_, _) => { });
+        var service = runtime.OnMain(() => new UpdateEverythingService([item], item.Restart));
+        runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+        runtime.OnMain(() => ((IUpdatesRunner)service).UpdateOne("marrow").GetAwaiter().GetResult());
+        engine.Offer = new SelfUpdateOffer("1.9.0", "### Bug fixes\n- Future notes", 100);
+        runtime.OnMain(() => checker.Check().GetAwaiter().GetResult());
+        runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
+        var row = Assert.Single(service.Rows);
+        Assert.True(row.RestartRequired);
+        Assert.Equal("1.8.0", row.Latest);
+        Assert.Equal(Marrow.Core.Port.Updates.UpdateRowState.UpToDate, row.State);
+        Assert.Equal("1.8.0", service.MarrowOffer!.Version);
+        runtime.OnMain(() => Assert.Throws<InvalidOperationException>(() => ((IUpdatesRunner)service).UpdateOne("marrow").GetAwaiter().GetResult()));
+        Assert.Equal("1.9.0", checker.Update!.Version);
+    }
 
     [Fact]
     [Trait("Spec", "UE-T75")]

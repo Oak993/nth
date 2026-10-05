@@ -76,6 +76,16 @@ function Get-ReleaseNotes {
             if (-not [string]::IsNullOrWhiteSpace($bullet)) { $recognised = $true }
         }
     }
+    # Final authority is the exact parser compiled into the app's digest. The upstream-format checks above remain
+    # deliberately stricter (fences, canonical titles, dash bullets and empty emphasis); they cannot license a card.
+    # Add-Type compiles only this dependency-free source in memory: no build, artifacts, native tools or network.
+    if ($recognised) {
+        if (-not ('Marrow.Core.Port.SelfUpdate.ReleaseNotesParser' -as [type])) {
+            $parser = Join-Path $PSScriptRoot '../src/Marrow.Core/Port/SelfUpdate/ReleaseNotesParser.cs'
+            Add-Type -Path $parser -ErrorAction Stop
+        }
+        $recognised = [Marrow.Core.Port.SelfUpdate.ReleaseNotesParser]::Parse($notes).Count -gt 0
+    }
     if (-not $recognised) {
         throw "Release notes for version $Version contain no populated recognised section (New features, Bug fixes, Refinements): $inputFile."
     }

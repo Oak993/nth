@@ -136,6 +136,38 @@ public sealed class ReleaseNotesPackagingTests
         Assert.False(File.Exists(rig.Output));
     }
 
+    [Theory]
+    [InlineData("**Thanks**")]
+    [InlineData("**Unknown section**")]
+    [InlineData("####### Thanks")]
+    [Trait("Spec", "UE-T79")]
+    public void Every_app_header_boundary_ends_the_section_for_the_packaging_guard(string header)
+    {
+        using var rig = new ReleaseNotesScriptRig();
+        File.WriteAllText(rig.Changelog, $"## [1.7.0]\n### New features\n{header}\n- Not a feature\n");
+        Refuses(rig, "recognised", []);
+        var result = rig.Run("scripts/extract-release-notes.ps1", "-Version", "1.7.0", "-ChangelogFile", rig.Changelog, "-OutputFile", rig.Output);
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.False(File.Exists(rig.Output));
+        rig.AssertNoCommandsOrArtifacts();
+    }
+
+    [Fact]
+    [Trait("Spec", "UE-T85")]
+    public void The_shared_parser_compiles_with_the_documented_Windows_PowerShell_CSharp_language_version()
+    {
+        using var rig = new ReleaseNotesScriptRig();
+        File.WriteAllText(Path.Combine(rig.Folder, "parser-compat.ps1"), """
+            $ErrorActionPreference = 'Stop'
+            Add-Type -Path (Join-Path $PSScriptRoot 'src/Marrow.Core/Port/SelfUpdate/ReleaseNotesParser.cs') -CompilerOptions '/langversion:5', '/nullable:disable'
+            if ([Marrow.Core.Port.SelfUpdate.ReleaseNotesParser]::Parse("### Bug fixes`n- Fixed").Count -ne 1) { throw 'No card' }
+            if ([Marrow.Core.Port.SelfUpdate.ReleaseNotesParser]::Parse("### Bug fixes`n**Thanks**`n- Someone").Count -ne 0) { throw 'Thanks became a card' }
+            """);
+        var result = rig.Run("parser-compat.ps1");
+        Assert.True(result.ExitCode == 0, result.Text);
+        rig.AssertNoCommandsOrArtifacts();
+    }
+
     private static void Refuses(ReleaseNotesScriptRig rig, string message, string[] args)
     {
         var before = Directory.GetFiles(rig.Folder, "*", SearchOption.AllDirectories).ToDictionary(path => path, File.ReadAllBytes);
