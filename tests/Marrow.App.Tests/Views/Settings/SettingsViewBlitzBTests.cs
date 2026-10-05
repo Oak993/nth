@@ -1,3 +1,4 @@
+using Marrow.App.Port.Settings;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -79,7 +80,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             var checker = UpdateChecker.Shared; Assert.Null(checker.LastError);
             var sidebar = Field<Control>(view, "sidebar"); var field = Assert.Single(Nodes<TextBox>(sidebar));
             var about = Nodes<SidebarRow>(view).Single(row => Text(row).Contains("About"));
-            Assert.Equal(10, Nodes<SidebarRow>(view).Length);
+            Assert.Equal(SettingsSidebar.Pages("").Count, Nodes<SidebarRow>(view).Length);
             Click(w, about); Drain(w);
             Assert.Single(Nodes<AboutSettingsPage>(view)); Assert.Empty(Nodes<GeneralSettingsPage>(view)); // the click selects the page
             for (var i = 0; i < 50 && checker.LastError is null; i++) Drain(w);

@@ -72,7 +72,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
     {
         With(() => new SettingsView(), (view, _, h, w) =>
         {
-            var titles = new[] { "General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About" }; // :4-15 declaration order, :19-32 titles
+            var titles = new[] { "General", "Hydra", "Appearance", "Providers", "MCP", "Plugins", "Skills", "Models", "Source control", "Shortcuts", "Archive", "About" }; // :4-15 plus the two pages SK-15 builds declaration order, :19-32 titles
             Assert.Equal(titles, Titles(view)); var list = Field<StackPanel>(view, "rows"); Assert.Equal(1, list.Spacing); // :147 rows separated by 1pt
             void Check(string selected, double settle = 150)
             {
