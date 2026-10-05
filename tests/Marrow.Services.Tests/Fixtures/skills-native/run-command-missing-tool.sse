@@ -1,0 +1,4 @@
+data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call-3","function":{"name":"run_command","arguments":"{\"command\":\"soffice --headless --convert-to pdf report.docx\"}"}}]}}]}
+
+data: [DONE]
+
