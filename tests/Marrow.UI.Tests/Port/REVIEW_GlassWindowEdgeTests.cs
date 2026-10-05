@@ -20,6 +20,9 @@ public sealed class REVIEW_GlassWindowEdgeTests(HeadlessSession headless)
     [Theory]
     [InlineData(256, 160, 16)]
     [InlineData(520, 320, 26)]
+    [Trait("Rule", "R-VIEW-11")]
+    [Trait("Decision", "ED-NEW-glass-g1")]
+    [Trait("Req", "PR-WIN-180")]
     public void REVIEW_a_window_filling_piece_keeps_its_outer_ring_opaque_over_an_opaque_backdrop(int w, int h, int radius) => headless.OnUiThread(() =>
     {
         var piece = new Border { Background = Brushes.Transparent, CornerRadius = new CornerRadius(radius), Width = w, Height = h };
