@@ -167,12 +167,77 @@ public sealed class UpdatePillProjectorTests
     [Fact]
     [Trait("Feature", "UE-5")]
     [Trait("Rule", "R-TEST-4")]
-    public void A_run_that_needs_no_restart_leaves_nothing_out_of_date_so_the_pill_goes()
+    public void A_run_that_needs_no_restart_stays_as_the_done_phase_with_the_designs_done_words()
     {
         var state = Project(
             Row("c", "Claude Code", UpdateRowState.Updated, "2.1.290", "2.1.290"),
             Row("x", "Codex", UpdateRowState.UpToDate, "0.160.0", "0.160.0"));
+        Assert.Equal(UpdatePillPhase.Done, state.Phase);
+        Assert.Equal("1 updated", state.PillText);
+        Assert.Equal("1 updated", state.Title);
+        Assert.Equal("Updated Claude Code.", state.Detail);
+        Assert.Equal("Check now", state.ButtonText);
+        Assert.Equal(UpdatePillAction.CheckNow, state.Action);
+        Assert.True(state.ButtonEnabled);
+    }
+
+    [Fact]
+    [Trait("Feature", "UE-5")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_done_phase_leaves_once_it_is_acknowledged_and_comes_back_with_the_next_run()
+    {
+        var projector = new UpdatePillProjector();
+        var done = new[] { Row("c", "Claude Code", UpdateRowState.Updated, "2.1.290", "2.1.290"), Row("x", "Codex", UpdateRowState.Updated, "0.160.0", "0.160.0") };
+        Assert.Equal("2 updated", projector.Project(done, busy: false).Title);
+        Assert.Equal("Updated Claude Code and Codex.", projector.Project(done, busy: false).Detail);
+        projector.Acknowledge();
+        Assert.Equal(UpdatePillPhase.Hidden, projector.Project(done, busy: false).Phase);
+        projector.Project([Row("c", "Claude Code", UpdateRowState.Queued)], busy: true);
+        Assert.Equal(UpdatePillPhase.Done, projector.Project(done, busy: false).Phase);
+    }
+
+    [Fact]
+    [Trait("Feature", "UE-5")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_check_that_finds_the_updated_items_current_ends_the_done_phase()
+    {
+        var state = Project(Row("c", "Claude Code", UpdateRowState.UpToDate, "2.1.290", "2.1.290"));
         Assert.Equal(UpdatePillPhase.Hidden, state.Phase);
+    }
+
+    [Fact]
+    [Trait("Feature", "UE-5")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_failure_outranks_an_available_update_and_a_restart()
+    {
+        var state = Project(
+            Row("c", "Claude Code", UpdateRowState.UpdateAvailable, "2.1.283", "2.1.290"),
+            Row("x", "Codex", UpdateRowState.Failed, "0.157.1", "0.160.0", message: "no"),
+            Row("m", "Marrow", UpdateRowState.Updated, "1.1.0", "1.1.0", restart: true, kind: UpdateItemKind.Marrow));
+        Assert.Equal(UpdatePillPhase.Failed, state.Phase);
+        Assert.Equal(UpdatePillAction.Retry, state.Action);
+    }
+
+    [Fact]
+    [Trait("Feature", "UE-5")]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_list_puts_Marrow_first_and_each_row_carries_the_designs_sub_line()
+    {
+        var state = Project(
+            Row("cli:claude", "Claude Code", UpdateRowState.UpdateAvailable, "2.1.283", "2.1.290"),
+            Row("marrow", "Marrow", UpdateRowState.UpdateAvailable, "1.0.0", "1.1.0", kind: UpdateItemKind.Marrow));
+        Assert.Equal(["marrow", "cli:claude"], state.Rows.Select(r => r.Id));
+        Assert.Equal(["The app", "claude update"], state.Rows.Select(r => r.Subtitle));
+    }
+
+    [Fact]
+    [Trait("Feature", "UE-5")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Marrows_sub_line_reads_the_download_percent_while_it_downloads()
+    {
+        var projector = new UpdatePillProjector();
+        var state = projector.Project([Row("marrow", "Marrow", UpdateRowState.Updating, "1.0.0", "1.1.0", progress: 0.4, kind: UpdateItemKind.Marrow)], busy: true);
+        Assert.Equal("Downloading 40%", state.Rows.Single().Subtitle);
     }
 
     [Fact]
