@@ -642,7 +642,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-231")] // App/Views/Settings/SettingsView.swift:638-641,738-757
     public void Provider_sections_are_all_eager_and_usage_is_absent_for_uninstalled_accounts() => WithView(() => new ProvidersSettingsPage(), (view, _, _) =>
     {
-        Assert.Equal(15, Nodes<ProviderSettingsSection>(view).Length);
+        Assert.Equal(16, Nodes<ProviderSettingsSection>(view).Length);
         foreach (var section in Nodes<ProviderSettingsSection>(view)) Assert.Single(Nodes<ChromeCard>(section));
         Assert.Empty(Nodes<Marrow.App.Views.Usage.PlanLimitsView>(view)); Assert.Empty(Nodes<Marrow.App.Views.Usage.CreditsView>(view));
         Assert.Equal(20, Assert.IsType<StackPanel>(Assert.IsType<ProvidersSettingsPage>(view).Child).Spacing);

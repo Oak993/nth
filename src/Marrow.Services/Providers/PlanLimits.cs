@@ -137,7 +137,7 @@ public static partial class PlanLimitsReader
         ProviderKind.Commandcode => CommandCodeAPI.PlanLimits(environment),
         ProviderKind.Pi => PiPlanLimits.Read(environment),
         ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or
-            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin or ProviderKind.OpenRouter => Task.FromResult<PlanLimits?>(null),
+            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-NEW-ma-3: no quota
     };
 
     // :84-90. API-key subscriptions read their windows from the API instead of a CLI. PR-PROVREG-171.
@@ -147,7 +147,7 @@ public static partial class PlanLimitsReader
         ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Cursor or ProviderKind.Opencode or
             ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Deepseek or ProviderKind.Meta or
             ProviderKind.Devin or ProviderKind.Antigravity or ProviderKind.Copilot or ProviderKind.Commandcode or
-            ProviderKind.Pi or ProviderKind.OpenRouter => Task.FromResult<PlanLimits?>(null),
+            ProviderKind.Pi or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-NEW-ma-3
     };
 
     // DEVIATION OD-0114 / ED-NEW-ma-2: explicit account selection must never consult a global login.
