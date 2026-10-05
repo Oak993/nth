@@ -36,9 +36,10 @@ public sealed class VoiceTrashButton : VoiceGlyphButton
     /// <summary>The icon's opacity now (0 hidden, 1 shown).</summary>
     public double RevealOpacity => reveal.Value;
 
-    /// <summary>Names the model the button removes, for the name a screen reader gives.</summary>
+    /// <summary>Names the model the button removes, for the name a screen reader gives. A different model than before disarms it.</summary>
     public void SetSubject(string modelName)
     {
+        if (!string.Equals(subject, modelName, StringComparison.Ordinal)) Disarm(); // armed for one file, it must not remove another (the row changed variant)
         subject = modelName;
         Rename();
     }

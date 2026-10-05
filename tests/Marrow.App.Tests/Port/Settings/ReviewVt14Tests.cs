@@ -12,6 +12,8 @@ namespace Marrow.App.Tests.Port.Settings;
 public sealed class ReviewVt14Tests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Spec", "V-T95")]
+    [Trait("Decision", "ED-267")] // Q-V-13 B: the second click confirms the removal of the file the first one armed
     public void REVIEW_Arming_the_trash_does_not_survive_a_change_of_the_variant_it_would_remove() => VoiceTypingPageRig.Run(headless, scene =>
     {
         var backend = (ScriptedSpeechModelBackend)scene.Backend;
@@ -33,6 +35,8 @@ public sealed class ReviewVt14Tests(HeadlessSession headless)
     // holds back for 250 ms when voiceTyping was written a moment before. SpeechModelController.Answer writes voiceTyping twice in a row (the answer, then the model), so for that long the store
     // (and every row's state face and the Remove guard) reads the model before the answer.
     [Fact]
+    [Trait("Spec", "V-T95")]
+    [Trait("Decision", "ED-267")] // CZ-13.5: the readers bound at start-up see the settings object's value, not the store a write behind
     public void REVIEW_The_model_in_use_the_store_reads_is_the_one_just_selected() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();

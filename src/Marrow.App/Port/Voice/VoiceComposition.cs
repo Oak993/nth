@@ -45,9 +45,15 @@ internal static class VoiceComposition
         return new VoiceCompositionParts(host, new MicrophoneAccess(new WinRtMicrophonePrivacySource(), host), new WasapiCapture(host, microphone), probe, models);
     }
 
-    /// <summary>The stored <c>voiceTyping</c> as the settings store holds it now; the default when nothing is stored.</summary>
-    internal static VoiceTypingSettings StoredTyping() =>
-        UserDefaults.Standard.Current.Data(VoiceTypingSettings.StoreKey) is { } stored ? VoiceTypingSettings.FromJson(stored) : VoiceTypingSettings.Default;
+    /// <summary>
+    /// <c>voiceTyping</c> as the settings object holds it now (<see cref="VoiceTypingMirror"/>: the store can be a write behind, CZ-13.5); before any settings object exists, as the store holds it;
+    /// the default when nothing is stored.
+    /// </summary>
+    internal static VoiceTypingSettings StoredTyping()
+    {
+        var store = UserDefaults.Standard.Current;
+        return VoiceTypingMirror.Read(store) ?? (store.Data(VoiceTypingSettings.StoreKey) is { } stored ? VoiceTypingSettings.FromJson(stored) : VoiceTypingSettings.Default);
+    }
 
     /// <summary>Binds the production parts as the process defaults. Called once, from the application's AfterSetup, after the storage roots are bound.</summary>
     public static void Install()

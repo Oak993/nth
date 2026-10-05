@@ -106,8 +106,11 @@ public sealed class VoiceCompositionTests
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "Marrow.App", "Port", "MarrowApplication.cs"));
         if (!File.Exists(root)) root = FindFile("MarrowApplication.cs");
         var text = File.ReadAllText(root);
-        Assert.Contains("VoiceComposition.Install();", text, StringComparison.Ordinal);
-        Assert.True(text.IndexOf("SystemReduceMotion.Install();", StringComparison.Ordinal) < text.IndexOf("VoiceComposition.Install();", StringComparison.Ordinal));
+        // a call on a line of its own that is not a comment: a commented-out call must not pass
+        var call = System.Text.RegularExpressions.Regex.Match(text, @"^[ 	]*VoiceComposition\.Install\(\);", System.Text.RegularExpressions.RegexOptions.Multiline);
+        var before = System.Text.RegularExpressions.Regex.Match(text, @"^[ 	]*SystemReduceMotion\.Install\(\);", System.Text.RegularExpressions.RegexOptions.Multiline);
+        Assert.True(call.Success, "MarrowApplication does not call VoiceComposition.Install();");
+        Assert.True(before.Success && before.Index < call.Index);
         var program = File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(root))!, "Program.cs"));
         Assert.True(program.IndexOf("StoragePaths.Locations.SetProcessDefault", StringComparison.Ordinal) < program.IndexOf("BuildAvaloniaApp", StringComparison.Ordinal));
     }
