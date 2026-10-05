@@ -264,7 +264,10 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
         Assert.False(progress.IsVisible);
 
         var folder = PictureFiles.Folder();
-        var path = PictureFiles.Png(folder, "a.png", side: 512); // large enough that installing is still on screen one turn later
+        var path = PictureFiles.Png(folder, "a.png");
+        // Hold the completion hop, so decode speed and UI-thread scheduling cannot erase this state.
+        using var completion = new MainExecutorGate(AvaloniaMainExecutor.Instance);
+        using var main = Marrow.Core.Port.MainActor.Executor.Override(completion);
         scope.Store.Install(from: path);
         scope.Pump();
 
@@ -273,6 +276,7 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
         var choose = Assert.Single(CardQuery.ButtonsLabelled(scope.Card, "Choose…"));
         Assert.False(choose.IsEnabled);
 
+        completion.Release();
         scope.WaitFor(() => !scope.Store.IsInstalling);
         Assert.False(progress.IsVisible);
     });

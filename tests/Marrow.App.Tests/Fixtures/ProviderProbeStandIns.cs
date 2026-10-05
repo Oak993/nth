@@ -110,15 +110,13 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
     /// matches Marrow.Services.Tests.Fixtures.ProviderProbeStandIns.RecordedCalls).</summary>
     public IReadOnlyList<IReadOnlyList<string>> RecordedCalls()
     {
-        if (!File.Exists(Path.Combine(Folder, "wait-for-release.txt"))) return ReadRecordedCalls();
-        // Match the controlled stand-in's lock: Windows can expose the renamed path before closing
-        // its rename handle, so a reader must join publication as well as seeing complete argv.
         var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(Folder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         string lockName;
         using (var hash = System.Security.Cryptography.SHA256.Create())
             lockName = "Local\\MarrowProviderProbe-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "", StringComparison.Ordinal);
         using var recording = new Mutex(false, lockName);
-        recording.WaitOne();
+        try { recording.WaitOne(); }
+        catch (AbandonedMutexException) { /* The terminated owner left us holding the mutex. */ }
         try { return ReadRecordedCalls(); }
         finally { recording.ReleaseMutex(); }
     }

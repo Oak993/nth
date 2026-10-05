@@ -1,0 +1,391 @@
+{
+  "status": "NOT READY",
+  "iterationsPerCase": 50,
+  "cases": {
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_hydra_head_neither_chimes_nor_notifies_nor_marks_itself_unread": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_thread_that_is_not_in_view_gets_a_banner_and_goes_unread(active: False, selected: True)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_thread_that_is_not_in_view_gets_a_banner_and_goes_unread(active: True, selected: False)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_turn_stopped_by_a_spent_usage_limit_that_waits_for_the_reset_makes_no_sound_and_no_banner": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_turn_that_continues_with_a_queued_message_neither_chimes_nor_notifies(status: Completed)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_turn_that_continues_with_a_queued_message_neither_chimes_nor_notifies(status: Failed)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_turn_that_continues_with_a_queued_message_neither_chimes_nor_notifies(status: Interrupted)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.A_visible_thread_in_the_active_app_chimes_but_shows_no_banner_and_is_left_read": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_chime_plays_unless_the_turn_was_stopped_and_a_chime_that_played_leaves_the_banner_silent(status: Completed, chimeOn: False, plays: 0, bannerSound: True)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_chime_plays_unless_the_turn_was_stopped_and_a_chime_that_played_leaves_the_banner_silent(status: Completed, chimeOn: True, plays: 1, bannerSound: False)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_chime_plays_unless_the_turn_was_stopped_and_a_chime_that_played_leaves_the_banner_silent(status: Failed, chimeOn: True, plays: 1, bannerSound: False)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_chime_plays_unless_the_turn_was_stopped_and_a_chime_that_played_leaves_the_banner_silent(status: Interrupted, chimeOn: False, plays: 0, bannerSound: True)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_chime_plays_unless_the_turn_was_stopped_and_a_chime_that_played_leaves_the_banner_silent(status: Interrupted, chimeOn: True, plays: 0, bannerSound: True)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_notification_body_names_how_the_turn_ended_and_its_title_is_the_threads_title(status: Completed, body: \"Finished.\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_notification_body_names_how_the_turn_ended_and_its_title_is_the_threads_title(status: Failed, body: \"Stopped with an error.\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_notification_body_names_how_the_turn_ended_and_its_title_is_the_threads_title(status: Interrupted, body: \"Stopped.\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.The_notification_body_names_how_the_turn_ended_and_its_title_is_the_threads_title(status: Running, body: \"\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.AppModelTurnFinishedTests.With_notify_when_finished_off_there_is_no_banner_but_the_chime_still_plays": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_message_beginning_with_a_slash_command_loads_that_providers_command_list": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_message_with_no_slash_command_loads_no_command_list": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_pair_whose_heads_run_on_another_provider_loads_that_providers_catalog_when_the_session_is_ensured": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_pair_whose_heads_run_on_the_leads_own_provider_loads_no_other_catalog": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.With_hydra_off_for_the_chat_the_heads_catalog_is_not_loaded": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.A_change_of_the_windows_accent_reaches_the_dots": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.A_field_attached_after_a_pick_shows_the_pick_at_once": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.A_later_pick_eases_the_dots_on_the_render_server_over_point_32_seconds_with_no_ui_frame": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.A_pick_during_the_blend_eases_on_from_what_the_dots_show": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.Each_resend_leaves_no_brush_binding_subscribed_behind(animated: False)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.Each_resend_leaves_no_brush_binding_subscribed_behind(animated: True)": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.Outside_a_window_that_turns_over_the_dots_cut_with_every_other_accent_use_on_a_change_of_appearance": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Composer.ComposerWorkingDotsEaseTests.The_render_server_is_asked_for_frames_only_while_the_blend_runs": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Views.Settings.WallpaperCardTests.An_indeterminate_progress_indicator_shows_only_while_installing_and_disables_the_buttons": {
+      "before": {
+        "Passed": 11,
+        "Failed": 39
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.A_child_that_ignores_the_stop_request_is_killed_exactly_one_second_later_and_a_failed_result_returns": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.At_the_default_120_second_timeout_the_child_is_asked_to_stop_and_a_cooperating_one_exits": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.Cancelling_a_child_that_ignores_the_stop_request_kills_it_one_second_later_and_throws": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.Cancelling_after_the_launch_stops_the_child_and_throws_CancellationError_instead_of_a_result": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.RunTool_forwards_its_timeout_to_the_deadline": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Git.GitTests.A_cancelled_retry_sleep_is_swallowed_and_the_next_attempt_ends_the_call_with_cancellation": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Git.GitTests.A_gitlab_merge_that_is_not_allowed_yet_returns_once_a_retry_succeeds": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Git.GitTests.A_gitlab_merge_that_keeps_answering_checking_is_tried_six_times_sleeping_3_5_7_9_11_and_a_wasted_13": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Git.GitTests.The_retry_test_reads_stdout_and_stderr_joined_with_no_separator_so_405_can_span_them": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Providers.PiCLITests.A_probe_that_never_answers_is_terminated_after_thirty_seconds_and_lists_no_models": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Providers.PiCLITests.The_probe_launches_eight_tokens_in_home_asks_state_and_models_and_stops_once_both_arrive": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Providers.ProviderRegistrySignInTests.a_successful_login_runs_the_login_arguments_then_rechecks_the_provider_and_reloads_its_catalog": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.UI.Tests.Port.Voice.OrbRendererTests.The_runtimes_frame_allocates_nothing_in_every_state(state: \"blocked\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.UI.Tests.Port.Voice.OrbRendererTests.The_runtimes_frame_allocates_nothing_in_every_state(state: \"hover\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.UI.Tests.Port.Voice.OrbRendererTests.The_runtimes_frame_allocates_nothing_in_every_state(state: \"processing\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.UI.Tests.Port.Voice.OrbRendererTests.The_runtimes_frame_allocates_nothing_in_every_state(state: \"rest-1.3\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    }
+  }
+}

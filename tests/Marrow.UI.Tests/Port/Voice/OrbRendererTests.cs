@@ -142,10 +142,11 @@ public sealed class OrbRendererTests
     {
         var job = new OrbJob("siri-wave", state, 32, "dark");
         var runtime = OrbRig.Runtime(job);
-        for (var i = 0; i < 20; i++) runtime.Frame(i / 60.0, job.FrameState);
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 20; i < 220; i++) runtime.Frame(i / 60.0, job.FrameState);
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        var frameState = job.FrameState;
+        var bytes = Marrow.Testing.AllocationProbe.Measure(
+            () => { for (var i = 0; i < 20; i++) runtime.Frame(i / 60.0, frameState); },
+            () => { for (var i = 20; i < 220; i++) runtime.Frame(i / 60.0, frameState); });
+        Assert.Equal(0, bytes);
     }
 
     [Fact]

@@ -53,7 +53,7 @@ public sealed class ProviderRegistrySignInTests
         // Codex: its login command is "codex login", its status check reads "login status", and both a plan-limits
         // read and a model listing launch its app-server, so each follow-up step leaves its own launch.
         var (registry, script) = Arrange(new FakeProviderSettings(), ProviderKind.Codex);
-        script.SetStdout("Logged in using ChatGPT\n").SetExitCode(0);
+        script.SetStdout("Logged in using ChatGPT\n").SetExitCode(0).UseCodexRPC();
         // Both follow-ups are FORCED: with the catalog attempt closed and the limits just read, an unforced ask of
         // either would do nothing, so only a forced one leaves a launch.
         ProviderRegistryState.MarkCatalogAttempted(registry, ProviderKind.Codex);
@@ -65,16 +65,17 @@ public sealed class ProviderRegistrySignInTests
         var login = shell.Calls[0]; // the very first process run is the login command
         Assert.Equal(["login"], login.Arguments);
         Assert.Equal(300, login.Timeout); // bounded at exactly five minutes
-        // The forced limits read runs on a task of its own: let it reach the stand-in before counting launches.
-        await Task.Run(() => runtime.Loop.RunUntil(() => script.RecordedCalls().Count(call => call.SequenceEqual(["app-server"])) >= 2, TimeSpan.FromSeconds(30)));
-        await Task.Delay(300);
-        runtime.RunUntilIdle();
+        // Join the forced read's completion on the injected loop; elapsed real time says nothing
+        // about whether its app-server launch and cleanup have happened.
+        await Task.Run(() => runtime.Loop.RunUntil(() => !registry.LoadingLimits.Contains(ProviderKind.Codex) &&
+            script.RecordedCalls().Count(call => call.SequenceEqual(["app-server"])) >= 2, TimeSpan.FromSeconds(30)));
         var calls = script.RecordedCalls();
         Assert.Equal(["login"], calls[0]); // the login command minus its own first word
         Assert.Contains(calls, call => call.SequenceEqual(["--version"])); // refresh(provider) ran after the login
         Assert.Contains(calls, call => call.SequenceEqual(["login", "status"]));
         Assert.Equal(new ProviderStatus.Auth.SignedIn(null), registry.Status(ProviderKind.Codex).ProviderStatusAuth); // the new login is seen
         Assert.Equal(2, calls.Count(call => call.SequenceEqual(["app-server"]))); // one forced limits read, one forced catalog load
+        Assert.Contains(registry.Models(ProviderKind.Codex), model => model.Id == "offline-model");
         Assert.Null(registry.SigningIn);
     }
 
