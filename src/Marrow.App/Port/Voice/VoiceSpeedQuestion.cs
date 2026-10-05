@@ -39,7 +39,7 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation, IVoicePrepa
         get { lock (gate) return error; }
     }
 
-    /// <summary>Raised after every change of state.</summary>
+    /// <summary>Raised after every change of state, on the thread that made it (a run's end is on a pool thread: a view posts to its own).</summary>
     public event Action? Changed;
 
     /// <summary>
@@ -53,7 +53,7 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation, IVoicePrepa
         VoicePreparationResult result;
         try
         {
-            result = await preparation.PrepareAsync(progress, cancellationToken);
+            result = await preparation.PrepareAsync(progress, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -71,7 +71,7 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation, IVoicePrepa
     public async Task AnswerAsync(LiveWordsChoice choice, CancellationToken cancellationToken)
     {
         if (State != VoiceQuestionState.Slow) return;
-        var record = await preparation.AnswerSlowQuestionAsync(choice, cancellationToken);
+        var record = await preparation.AnswerSlowQuestionAsync(choice, cancellationToken).ConfigureAwait(false);
         if (record is null)
         {
             lock (gate) error = "The answer could not be applied.";

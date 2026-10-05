@@ -909,9 +909,13 @@ public sealed class WelcomeView : Decorator
     // plain string computed once, not a reactive binding.
     private StackPanel? column;
     private ActivityThreadStyle? builtStyle;
+    private readonly Marrow.App.Port.Voice.VoiceSpeedQuestion? voice;
+    private int activityIndex = 2;
 
-    public WelcomeView()
+    /// <param name="voice">WV-1 (OD-0098): the voice question; with it a "Voice typing" section stands above Activity (variant A), without it the page is the source's.</param>
+    public WelcomeView(Marrow.App.Port.Voice.VoiceSpeedQuestion? voice = null)
     {
+        this.voice = voice;
         this.Track(() => AppEnvironment.GetAppModel(this), Build);
         // :331 ChromeRow(detail: settings.activityThreadStyle.detail): only that section is evaluated again; the ScrollView
         // (its offset, its focus) keeps its identity as SwiftUI keeps it.
@@ -919,7 +923,7 @@ public sealed class WelcomeView : Decorator
         {
             if (column is null || builtStyle == style) return;
             builtStyle = style;
-            column.Children[2] = MakeActivitySection(AppEnvironment.GetAppModel(this));
+            column.Children[activityIndex] = MakeActivitySection(AppEnvironment.GetAppModel(this));
         });
     }
 
@@ -995,6 +999,14 @@ public sealed class WelcomeView : Decorator
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 30, HorizontalAlignment = HorizontalAlignment.Stretch };
         column.Children.Add(identity);
         column.Children.Add(addProjectStack);
+        // WV-1 (OD-0098 "Place A"): the Voice typing section above Activity, in Welcome's own section pattern, capped at 480 as its siblings are.
+        activityIndex = 2;
+        if (voice is not null)
+        {
+            var voiceSection = new Marrow.App.Port.FirstRun.WelcomeVoiceSection(voice) { HorizontalAlignment = HorizontalAlignment.Stretch };
+            column.Children.Add(voiceSection);
+            activityIndex = 3;
+        }
         column.Children.Add(activitySection);
         column.Children.Add(providersSection);
         this.column = column;
