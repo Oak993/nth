@@ -12,7 +12,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_plan_sums_the_sizes_of_the_items_it_would_fetch_and_names_the_hosts()
     {
@@ -30,7 +29,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void Items_that_are_here_already_are_listed_but_not_fetched_or_counted()
     {
@@ -48,7 +46,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void A_failed_item_is_fetched_again_and_one_that_is_being_fetched_is_not_part_of_the_plan()
     {
@@ -59,7 +56,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void An_item_under_terms_not_yet_accepted_and_an_item_with_no_size_are_left_out_and_say_why()
     {
@@ -72,7 +68,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void Terms_that_are_accepted_let_the_item_into_the_plan()
     {
@@ -84,7 +79,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void Up_to_one_hundred_megabytes_the_size_is_stated_plainly_and_above_it_the_large_download_warning_opens_the_box()
     {
@@ -102,7 +96,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_free_space_is_shown_and_too_little_of_it_stops_Continue_with_the_amount_it_needs()
     {
@@ -123,7 +116,6 @@ public sealed class DownloadAllPlanTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_hosts_read_as_a_list_and_more_than_three_are_folded()
     {

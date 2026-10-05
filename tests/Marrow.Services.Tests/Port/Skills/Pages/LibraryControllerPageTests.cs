@@ -9,7 +9,6 @@ namespace Marrow.Services.Tests.Port.Skills.Pages;
 // Unit SK-15 (DL-17, OD-0099 Sections C): one library page over its backend: rows, selection, the per-skill switches, the terms step, a single item's download, the two-step removal and reset,
 // update and repair, "Already available through your providers".
 [Trait("Feature", "SK-15")]
-[Trait("Spec", "DL-17")]
 public sealed class LibraryControllerPageTests
 {
     [Fact]

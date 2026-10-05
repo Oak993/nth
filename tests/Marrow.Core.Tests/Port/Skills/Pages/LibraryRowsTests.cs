@@ -9,7 +9,6 @@ public sealed class LibraryRowsTests
 {
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void Plugins_lists_only_plugins_and_Skills_only_skill_sets_and_never_a_tool_or_a_package_set()
     {
@@ -26,7 +25,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void A_row_carries_marrow_s_title_and_one_liner_the_size_and_the_source_and_licence_as_text()
     {
@@ -43,7 +41,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void A_plugin_row_counts_its_folders_and_their_skills()
     {
@@ -55,7 +52,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void An_item_under_a_vendor_s_terms_says_so_on_its_row_until_and_after_the_terms_are_accepted()
     {
@@ -71,7 +67,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_needs_are_named_and_a_tool_found_on_this_PC_says_so_with_its_path()
     {
@@ -86,7 +81,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void Each_state_of_the_pipeline_reaches_the_row()
     {
@@ -104,7 +98,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void A_set_that_is_not_downloaded_lists_its_skills_with_dead_switches_and_says_nothing_is_listed()
     {
@@ -118,7 +111,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_switches_of_an_installed_set_follow_enabled_json_and_count_what_is_listed()
     {
@@ -135,7 +127,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void A_plugin_row_counts_the_skills_of_its_switched_on_folders()
     {
@@ -149,7 +140,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void A_skill_with_no_path_in_the_catalogue_has_no_switch_because_nothing_could_key_it()
     {
@@ -161,7 +151,6 @@ public sealed class LibraryRowsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void Progress_reaches_the_row_from_the_run()
     {

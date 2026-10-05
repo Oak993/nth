@@ -17,13 +17,11 @@ public sealed class SizeTextTests
     [InlineData(1040.2, "1.04 GB")]
     [InlineData(1077.1, "1.08 GB")]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void A_size_is_printed_in_the_design_s_units_and_digits(double mb, string expected) => Assert.Equal(expected, SizeText.Short(mb));
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_exact_figure_gives_megabytes_and_for_a_gigabyte_both()
     {
@@ -34,7 +32,6 @@ public sealed class SizeTextTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_disk_figure_says_about_and_free_space_is_in_whole_units()
     {
@@ -47,7 +44,6 @@ public sealed class SizeTextTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_large_download_warning_starts_strictly_above_one_hundred_megabytes()
     {
@@ -59,7 +55,6 @@ public sealed class SizeTextTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void Figures_do_not_follow_the_machine_s_culture()
     {

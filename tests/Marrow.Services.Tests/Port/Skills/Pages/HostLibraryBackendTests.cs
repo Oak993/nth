@@ -10,7 +10,6 @@ namespace Marrow.Services.Tests.Port.Skills.Pages;
 // Unit SK-15 (DL-17): the pages' backend over the composed SkillsHost of one fresh data root: the terms step, enabled.json (the switches), the unbound install seam and the drive. Fresh roots under
 // MARROW_PORT_DATA_DIR; no network, no CLI, no real user folder.
 [Trait("Feature", "SK-15")]
-[Trait("Spec", "DL-17")]
 [Trait("Rule", "R-TEST-9")]
 [Collection("Dev data root env")]
 public sealed class HostLibraryBackendTests

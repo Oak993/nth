@@ -7,7 +7,6 @@ public sealed class LibraryWordsTests
 {
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_Download_all_button_and_its_dialog_use_the_design_s_words()
     {
@@ -26,7 +25,6 @@ public sealed class LibraryWordsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_progress_line_reads_percent_megabytes_of_the_total_and_items_done()
     {
@@ -37,7 +35,6 @@ public sealed class LibraryWordsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void The_row_and_box_words_are_the_design_s()
     {
@@ -57,7 +54,6 @@ public sealed class LibraryWordsTests
 
     [Fact]
     [Trait("Feature", "SK-15")]
-    [Trait("Spec", "DL-17")]
     [Trait("Rule", "R-TEST-4")]
     public void No_word_of_the_pages_names_an_image_and_a_vendor_is_only_ever_plain_text()
     {

@@ -8,7 +8,6 @@ namespace Marrow.Services.Tests.Port.Skills.Pages;
 // Unit SK-15 (DL-17, OD-0099 "Download all A"): the Download all confirmation sums the sizes and starts nothing on cancel; Continue downloads one item at a time; Pause and Resume;
 // Cancel keeps what finished; Retry fetches only the failed ones. No network: the install seam is scripted.
 [Trait("Feature", "SK-15")]
-[Trait("Spec", "DL-17")]
 public sealed class LibraryControllerDownloadAllTests
 {
     [Fact]
