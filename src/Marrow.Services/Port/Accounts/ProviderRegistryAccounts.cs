@@ -10,6 +10,7 @@ namespace Marrow.Services.Providers;
 public sealed partial class ProviderRegistry
 {
     private readonly AccountStore? accountStore;
+    private readonly AccountStore? recoveredAccounts;
     private readonly AccountEnvironment? accountEnvironment;
     private readonly Dictionary<Guid, Task<string?>> accountSignIns = [];
     private readonly object accountSignInGate = new();
@@ -23,18 +24,19 @@ public sealed partial class ProviderRegistry
     private string SelectedApiKey(ProviderKind service) => accountStore is null ? settings.ApiKey(service)
         : accountStore.Choose(service) is { } account ? ApiKey(account.Id) : "";
 
-    private Account RequireAccount(ProviderKind service, Guid? id = null) => accountStore?.Choose(service, id)
+    private Account RequireAccount(ProviderKind service, Guid? id = null) => (accountStore ?? recoveredAccounts)?.Choose(service, id)
         ?? throw new InvalidOperationException("No enabled account is available for this service.");
 
     private Account RequireAccount(Guid id)
     {
-        var account = accountStore?.Get(id) ?? throw new InvalidOperationException("Accounts are not configured.");
+        var account = (accountStore ?? recoveredAccounts)?.Get(id) ?? throw new InvalidOperationException("Accounts are not configured.");
         return RequireAccount(account.Service, id);
     }
 
     public ValueMap<string, string> Environment(Guid accountId)
     {
         var account = RequireAccount(accountId);
+        if (accountEnvironment is null && account.UsesLegacyCredentials) return LegacyEnvironment(account.Service);
         var env = accountEnvironment!.Build(account, LegacyEnvironment(account.Service));
         if (account.Service == ProviderKind.Commandcode && !account.UsesLegacyCredentials && APIKeychain.Key(account, "") is { Length: > 0 } key)
             env = env.Mutating(d => d["COMMAND_CODE_API_KEY"] = key);
@@ -51,12 +53,12 @@ public sealed partial class ProviderRegistry
     public SessionConfiguration PrepareSession(SessionConfiguration configuration, Guid accountId, bool useAccountDefaults = true)
     {
         var account = RequireAccount(configuration.Provider, accountId);
-        accountEnvironment!.EnsureFolder(account);
+        accountEnvironment?.EnsureFolder(account);
         var ownsResume = OwnsResume(account, configuration);
         return configuration with
         {
             AccountId = account.Id,
-            AccountHandshakePoint = accountStore!.EffectiveHandshakePoint(account.Id),
+            AccountHandshakePoint = (accountStore ?? recoveredAccounts)!.EffectiveHandshakePoint(account.Id),
             Environment = Environment(account.Id),
             ApiKey = account.Service.IsAPIKeyBased ? ApiKey(account.Id) : configuration.ApiKey,
             Model = useAccountDefaults ? account.Defaults.Model : configuration.Model,

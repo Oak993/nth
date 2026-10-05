@@ -575,3 +575,10 @@ All seven foundations, staging bffb63a39 and independent review 2780ba681 are me
 The real ThreadRuntime host, final-tail acknowledgement/revalidation, full Git context/facts, new-thread and launch-reuse pill routing, Local identity projection, briefing payload and cost-window/recovery adapters are implemented with narrow Windows Services 29/29 and App 11/11 tests; see ED-NEW-ma-ui.
 
 **Incomplete:** live account factory/controller/scheduler and Local discovery joins; API key metadata/rotation/caps/spend/pins; independently identified consent bypasses; CLI pre-tool restriction/restoration; all steps 2-5 and native checks. A new uncommitted API metadata test batch is in progress. Prior full-foundation counts are not relabelled as this checkpoint. T11 remains NOT READY, no push or DONE.
+
+
+## T11 live factory and consent checkpoint, 2026-10-05, Codex
+
+Normal launches share the account factory; Local discovery projects persistent account rows; operation-scoped once answers, changed service/package policy, unknown-report waiting, effective pill targets and API metadata/spend boundaries have narrow Windows validation: Core 227/227, Services 22/22, App 72/72; zero skips/build warnings/errors. See ED-NEW-ma-ui.
+
+**Incomplete:** production controller/scheduler ownership; actual API pools/credits/caps/spend/pins; remaining provider restriction/restoration and step-1 joins. Step 2 is owned by cloud/ma-settings; merge its READY delivery after completing/pushing step 1. Composer/cards/opinions/usage, capsule styles, neural GPU motion, Fast/actual-window labels and native checks remain. No push/DONE/release claim; T11 NOT READY.

@@ -47,7 +47,7 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
         {
             var at = CurrentStep(currentAccountId, pill, stepIndex);
             for (var i = 0; i < at; i++)
-                if (Find(pill.Steps[i].AccountId) is { } account && IsAvailable(account)) return new SwitchTarget(account, i, pill.Steps[i]);
+                if (Find(pill.Steps[i].AccountId) is { } account && IsAvailable(account)) return new SwitchTarget(account, i, pill.Effective(i));
             return null;
         }
 
@@ -68,7 +68,7 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
         // After the current step first; otherwise the loop: the highest-ranked step that is available again.
         var pick = ready.FirstOrDefault(x => x.Index > at);
         if (pick.Account is null) pick = ready.FirstOrDefault();
-        if (pick.Account is not null) return new ChooserResult.Move(new SwitchTarget(pick.Account, pick.Index, pick.Step));
+        if (pick.Account is not null) return new ChooserResult.Move(new SwitchTarget(pick.Account, pick.Index, pill.Effective(pick.Index)));
         return steps.Count == 0 ? new ChooserResult.NoAccounts() : new ChooserResult.WaitFor(EarliestReset(steps.Select(x => x.Account!)));
     }
 

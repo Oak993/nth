@@ -73,6 +73,8 @@ public sealed class HandshakeMachine(
     private readonly SemaphoreSlim gate = new(1, 1);
     private readonly HashSet<string> declined = [];
     private readonly Dictionary<DecisionKind, string> answers = [];
+    private readonly Dictionary<DecisionKind, Resolution> answerPolicies = [];
+    private readonly Dictionary<DecisionKind, Resolution> policyAtPreparation = [];
 
     private int phaseValue;
     private HandshakePhase phase => (HandshakePhase)Volatile.Read(ref phaseValue);
@@ -129,13 +131,31 @@ public sealed class HandshakeMachine(
         {
             if (pending is null || phase != HandshakePhase.Asking) throw new InvalidOperationException("No card is waiting for an answer.");
             var card = pending;
+            if (!Enum.IsDefined(scope)) throw new ArgumentOutOfRangeException(nameof(scope));
+            if (choices.Select(choice => choice.Kind).Distinct().Count() != choices.Count)
+                throw new ArgumentException("A card needs one value per choice.", nameof(choices));
             foreach (var choice in choices)
             {
                 if (!card.Kinds.Contains(choice.Kind)) throw new ArgumentException($"The card did not ask {choice.Kind}.", nameof(choices));
                 if (choice.Value == DecisionValues.Ask) throw new ArgumentException("A card cannot be answered with Ask me.", nameof(choices));
             }
+            var preset = choices.Any(choice => choice.Kind == DecisionKind.OnLimit && choice.Value == DecisionValues.Switch);
+            var stays = choices.Any(choice => choice.Kind is DecisionKind.OnLimit or DecisionKind.OtherService && choice.Value == DecisionValues.Wait
+                || choice.Kind == DecisionKind.EarlierAccount && choice.Value == DecisionValues.Stay);
+            foreach (var kind in card.Kinds)
+                if (!choices.Any(choice => choice.Kind == kind) && !stays
+                    && (kind is DecisionKind.OnLimit or DecisionKind.OtherService or DecisionKind.EarlierAccount || !preset))
+                    throw new ArgumentException("The card's permission to switch has not been answered.", nameof(choices));
             decisions.Record(threadId, choices, scope);
-            foreach (var choice in choices) answers[choice.Kind] = choice.Value;
+            foreach (var choice in choices)
+            {
+                answers[choice.Kind] = choice.Value;
+                answerPolicies[choice.Kind] = StoredPolicy(choice.Kind);
+            }
+            // The existing Switch preset supplies its payload defaults for this operation, not later limits.
+            if (preset)
+                foreach (var kind in card.Kinds.Where(kind => kind is DecisionKind.Bring or DecisionKind.MidReply))
+                    if (answers.TryAdd(kind, DecisionValues.Fallback(kind))) answerPolicies[kind] = StoredPolicy(kind);
             pending = null;
             SetPhase(HandshakePhase.Idle);
             try
@@ -143,7 +163,7 @@ public sealed class HandshakeMachine(
                 if (card.Earlier) await EarlierAsync(card.Back!, allowAsk: false, ct);
                 else await HardLimitAsync(card.AccountId, card.ResetsAt, allowAsk: false, ct);
             }
-            finally { answers.Clear(); }
+            finally { if (phase == HandshakePhase.Idle && standby is null) ClearAnswers(); }
         }
         finally { gate.Release(); }
     }
@@ -218,12 +238,19 @@ public sealed class HandshakeMachine(
 
     // ---- The limit has hit ----
 
-    private async Task HardLimitAsync(string accountId, DateTimeOffset? resetsAt, bool allowAsk, CancellationToken ct)
+    private async Task HardLimitAsync(string accountId, DateTimeOffset? resetsAt, bool allowAsk, CancellationToken ct,
+        HandshakeReason why = HandshakeReason.HardLimit)
     {
         if (phase is HandshakePhase.Asking or HandshakePhase.Waiting) return;
         outgoing = accountId;
-        reason = HandshakeReason.HardLimit;
+        reason = why;
         resetsAt ??= limits.Usage(accountId)?.ResetsAt;
+
+        // A repeated native limit signal is still the same operation, but cannot renew a revoked grant.
+        if (standby is not null && (!PolicyStillCurrent() || target is null
+            || Find(target.Account.Id) is not { Enabled: true }
+            || (limits.Usage(target.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false)))
+            await ResetPipelineAsync(preserveAnswers: true);
 
         var onLimit = Get(DecisionKind.OnLimit);
         if (onLimit.Value == DecisionValues.Wait)
@@ -241,27 +268,29 @@ public sealed class HandshakeMachine(
             firstTime |= r.FirstTime;
         }
 
-        // A standby already prepared keeps its target: its choices were all made before it started.
+        // A prepared target cannot answer a newly relevant mid-reply choice or a revoked preference.
+        Need(onLimit);
+        Need(Get(DecisionKind.Bring));
+        if (host.ReplyInFlight) Need(Get(DecisionKind.MidReply));
         var chosen = standby is not null ? target : null;
+        DateTimeOffset? alternateReset = null;
         if (chosen is null)
         {
-            Need(onLimit);
             switch (chooser.Next(accountId, host.Pill, host.StepIndex))
             {
                 case ChooserResult.Move move:
                     chosen = move.Target;
                     break;
                 case ChooserResult.OtherService other:
-                    var service = Get(DecisionKind.OtherService);
-                    if (service.Value == DecisionValues.Wait)
-                    {
-                        await EnterWaitAsync(other.EarliestReset, forAny: true);
-                        return;
-                    }
-                    Need(service);
+                    alternateReset = other.EarliestReset;
                     chosen = other.Target;
                     break;
                 case ChooserResult.WaitFor wait:
+                    if (needs.Count > 0)
+                    {
+                        Ask(new Pending(false, accountId, resetsAt, null, needs), firstTime, null);
+                        return;
+                    }
                     await EnterWaitAsync(wait.EarliestReset, forAny: true);
                     return;
                 default:
@@ -270,11 +299,20 @@ public sealed class HandshakeMachine(
                     if (phase != HandshakePhase.Idle) SetPhase(HandshakePhase.Idle);
                     return;
             }
-            Need(Get(DecisionKind.Bring));
-            if (host.ReplyInFlight) Need(Get(DecisionKind.MidReply));
         }
 
-        if (needs.Count > 0 && allowAsk)
+        // Retained candidates and a destination that changed after a card still need service permission.
+        if (host.Pill is null && Find(accountId)?.Service != chosen.Account.Service)
+        {
+            var service = Get(DecisionKind.OtherService);
+            if (service.Value == DecisionValues.Wait)
+            {
+                await EnterWaitAsync(alternateReset, forAny: true);
+                return;
+            }
+            Need(service);
+        }
+        if (needs.Count > 0)
         {
             Ask(new Pending(false, accountId, resetsAt, null, needs), firstTime, chosen.Account.Id);
             return;
@@ -282,12 +320,12 @@ public sealed class HandshakeMachine(
 
         var bringValue = Get(DecisionKind.Bring).Value ?? DecisionValues.Fallback(DecisionKind.Bring);
         var finish = host.ReplyInFlight && (Get(DecisionKind.MidReply).Value ?? DecisionValues.Fallback(DecisionKind.MidReply)) == DecisionValues.Finish;
-        await RunPipelineAsync(accountId, chosen, HandshakeReason.HardLimit, DecisionValues.ToBring(bringValue), hardStop: true, resumeReply: finish, ct);
+        await RunPipelineAsync(accountId, chosen, why, DecisionValues.ToBring(bringValue), hardStop: true, resumeReply: finish, ct);
     }
 
     private async Task EnterWaitAsync(DateTimeOffset? until, bool forAny)
     {
-        await ResetPipelineAsync();
+        await ResetPipelineAsync(preserveAnswers: true);
         waitUntil = until;
         waitForAny = forAny;
         SetPhase(HandshakePhase.Waiting);
@@ -297,16 +335,20 @@ public sealed class HandshakeMachine(
     {
         var active = host.ActiveAccountId;
         var now = clock.GetUtcNow();
-        if (limits.Usage(active) is not { } usage || !usage.IsExhaustedAt(now))
+        var usage = limits.Usage(active);
+        if (usage is not null && !usage.IsExhaustedAt(now))
         {
             reason = HandshakeReason.ResetReached;
+            ClearAnswers();
             SetPhase(HandshakePhase.Idle);
             return;
         }
-        if (!waitForAny || chooser.Next(active, host.Pill, host.StepIndex) is not ChooserResult.Move move) return;
-
-        var bringValue = Get(DecisionKind.Bring).Value ?? DecisionValues.Fallback(DecisionKind.Bring);
-        await RunPipelineAsync(active, move.Target, HandshakeReason.ResetReached, DecisionValues.ToBring(bringValue), hardStop: true, resumeReply: false, ct);
+        if (usage is null || !waitForAny) return;
+        var available = chooser.Next(active, host.Pill, host.StepIndex);
+        if (available is not (ChooserResult.Move or ChooserResult.OtherService)
+            || available is ChooserResult.OtherService && Get(DecisionKind.OtherService).Value == DecisionValues.Wait) return;
+        SetPhase(HandshakePhase.Idle);
+        await HardLimitAsync(active, usage.ResetsAt, allowAsk: true, ct, HandshakeReason.ResetReached);
     }
 
     // ---- The pipeline: Standby, Linking, In sync, Switch ----
@@ -320,6 +362,7 @@ public sealed class HandshakeMachine(
         bring = what;
         resume = resumeReply;
         waitUntil = null;
+        CapturePolicy(why, to);
 
         linking = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var token = linking.Token;
@@ -395,7 +438,8 @@ public sealed class HandshakeMachine(
         // PORT-ONLY: ED-NEW-ma-ui. Preparation cannot retain permission to use a row turned Off meanwhile.
         if (target is null || Find(target.Account.Id) is not { Enabled: true }
             || (limits.Usage(target.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false)
-            || host.ActiveAccountId != outgoing)
+            || host.ActiveAccountId != outgoing || !PolicyStillCurrent()
+            || reason == HandshakeReason.EarlierAccountBack && host.Pinned)
         {
             Emit(HandshakeEventKind.Degraded, phase, phase, null, detail: "The prepared account is no longer available.");
             failedFor = outgoing;
@@ -435,10 +479,14 @@ public sealed class HandshakeMachine(
         Emit(HandshakeEventKind.DecisionRequested, phase, phase, request, incomingOverride: incoming);
     }
 
-    private Resolution Get(DecisionKind kind, string? pillValue = null) =>
-        answers.TryGetValue(kind, out var value)
-            ? new Resolution(kind, value, ResolutionSource.Thread, FirstTime: false)
-            : decisions.Resolve(threadId, kind, pillValue);
+    private Resolution Get(DecisionKind kind, string? pillValue = null)
+    {
+        if (answers.TryGetValue(kind, out var value) && answerPolicies.GetValueOrDefault(kind) == StoredPolicy(kind))
+            return new Resolution(kind, value, ResolutionSource.Thread, FirstTime: false);
+        answers.Remove(kind);
+        answerPolicies.Remove(kind);
+        return decisions.Resolve(threadId, kind, pillValue);
+    }
 
     private AccountInfo? Find(string id) => store.Accounts.FirstOrDefault(a => a.Id == id);
 
@@ -451,11 +499,18 @@ public sealed class HandshakeMachine(
         catch (ObjectDisposedException) { }
     }
 
-    private async Task ResetPipelineAsync()
+    private async Task ResetPipelineAsync(bool preserveAnswers = false)
     {
+        var savedAnswers = preserveAnswers ? new Dictionary<DecisionKind, string>(answers) : null;
+        var savedPolicies = preserveAnswers ? new Dictionary<DecisionKind, Resolution>(answerPolicies) : null;
         var abandoned = standby;
         standby = null;
         ClearPipeline();
+        if (savedAnswers is not null)
+        {
+            foreach (var pair in savedAnswers) answers[pair.Key] = pair.Value;
+            foreach (var pair in savedPolicies!) answerPolicies[pair.Key] = pair.Value;
+        }
         if (abandoned is not null) await abandoned.DisposeAsync();
     }
 
@@ -468,7 +523,29 @@ public sealed class HandshakeMachine(
         synced = false;
         resume = false;
         waitUntil = null;
+        ClearAnswers();
+        policyAtPreparation.Clear();
     }
+
+    private Resolution StoredPolicy(DecisionKind kind) => decisions.Resolve(threadId, kind,
+        kind == DecisionKind.EarlierAccount ? host.Pill?.EarlierAccount : null);
+
+    private void CapturePolicy(HandshakeReason why, SwitchTarget to)
+    {
+        void Capture(DecisionKind kind) => policyAtPreparation.TryAdd(kind, StoredPolicy(kind));
+        Capture(DecisionKind.Bring);
+        if (why == HandshakeReason.EarlierAccountBack) Capture(DecisionKind.EarlierAccount);
+        else
+        {
+            Capture(DecisionKind.OnLimit);
+            if (host.ReplyInFlight) Capture(DecisionKind.MidReply);
+            if (host.Pill is null && Find(host.ActiveAccountId)?.Service != to.Account.Service) Capture(DecisionKind.OtherService);
+        }
+    }
+
+    private bool PolicyStillCurrent() => policyAtPreparation.All(pair => pair.Value == StoredPolicy(pair.Key));
+
+    private void ClearAnswers() { answers.Clear(); answerPolicies.Clear(); }
 
     private void SetPhase(HandshakePhase to)
     {

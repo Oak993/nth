@@ -270,6 +270,10 @@ public sealed class ApiKeyPool
             if (pool.pins.TryGetValue(threadId, out var pin)) return PickPinned(pin, now, raised);
 
             var candidates = pool.Candidates(now, tried);
+            // Ranking a different key is also an automatic move for this existing thread.
+            if (anchor is { } healthy && candidates.FirstOrDefault(candidate => candidate.Entry.Id == healthy.Id) is { Entry: not null } heldCandidate
+                && (pool.moves?.Setting(threadId) ?? KeyMoveSetting.Unset) != KeyMoveSetting.Allow)
+                return Choose(new(heldCandidate.Entry.Id, heldCandidate.Entry.Nickname, heldCandidate.Secret));
             if (anchor is { } held && pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == held.Id) is { } entry
                 && entry.Allowed && pool.HasSecret(entry) && (pool.IsOut(held.Id, now) || pool.OverCap(entry, now)))
             {

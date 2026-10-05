@@ -1965,17 +1965,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     AntiSlopEnabled = signature.AntiSlopEnabled,
                 };
 
-                configuration = app.Providers.PrepareSession(configuration, account.Id, useAccountDefaults: false);
-
-                ProviderSession created = thread.Provider switch
-                {
-                    ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1490
-                    ProviderKind.Meta => new MetaSession(configuration),
-                    ProviderKind.Zai => new ZaiSession(configuration),
-                    ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
-                    ProviderKind.Local => new Marrow.Services.Port.Local.LocalSession(configuration, localTarget!), // ED-NEW-ma-3
-                    _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
-                };
+                var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
                 Observe(created);
                 return created;
             }
@@ -2044,23 +2034,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 AntiSlopEnabled = signature.AntiSlopEnabled,
             };
 
-            configuration = app.Providers.PrepareSession(configuration, account.Id, useAccountDefaults: false);
-
-            ProviderSession created = thread.Provider switch
-            {
-                ProviderKind.Codex => new CodexSession(configuration),
-                ProviderKind.Claude => new ClaudeSession(configuration),
-                ProviderKind.Antigravity => new AntigravitySession(configuration),
-                ProviderKind.Copilot => new CopilotSession(configuration),
-                ProviderKind.Commandcode => new CommandCodeSession(configuration), // :1554
-                ProviderKind.Pi => new PiSession(configuration), // :1555
-                ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Devin => new ACPSession(configuration),
-                ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1557
-                ProviderKind.Meta => new MetaSession(configuration),
-                ProviderKind.Zai => new ZaiSession(configuration),
-                ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
-                _ => throw new InvalidOperationException($"Unsupported provider session: {thread.Provider}."),
-            };
+            var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
             Observe(created);
             return created;
         }

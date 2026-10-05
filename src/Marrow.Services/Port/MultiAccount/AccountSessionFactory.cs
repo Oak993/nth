@@ -8,7 +8,12 @@ namespace Marrow.Services.Port.MultiAccount;
 
 public static class AccountSessionFactory
 {
+    // Scoped offline construction seam; all production launches use the same account boundary.
+    public static Ambient<Func<ProviderRegistry, SessionConfiguration, Guid, bool, AccountSessionLaunch>> Launcher { get; } = new(Build);
     public static AccountSessionLaunch Create(ProviderRegistry registry, SessionConfiguration configuration, Guid accountId, bool freshContext = false)
+        => Launcher.Current(registry, configuration, accountId, freshContext);
+
+    private static AccountSessionLaunch Build(ProviderRegistry registry, SessionConfiguration configuration, Guid accountId, bool freshContext)
     {
         var source = freshContext ? configuration with
         {

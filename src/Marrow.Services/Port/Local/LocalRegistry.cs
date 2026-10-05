@@ -49,6 +49,7 @@ public sealed partial class ProviderRegistry
         try
         {
             var entries = await Local.Discover(SwiftTask.CancellationToken);
+            if (accountStore is not null) Marrow.Services.Port.MultiAccount.LocalAccountCatalog.Synchronize(accountStore, entries);
             Catalogs = catalogs.Mutating(items => items[ProviderKind.Local] = new ValueList<ModelOption>(entries.SelectMany(entry => entry.Models).Select(model => model.Option)));
             Statuses = statuses.Mutating(items => items[ProviderKind.Local] = new ProviderStatus
             {

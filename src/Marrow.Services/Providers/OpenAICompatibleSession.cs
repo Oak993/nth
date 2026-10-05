@@ -70,6 +70,8 @@ public class OpenAICompatibleSession : ProviderSession
         public long? Input { get; init; }
         public long? Output { get; init; }
         public long? CachedInput { get; init; }
+        // PORT-ONLY: ED-NEW-ma-ui. OpenRouter's charged USD from the streamed usage report.
+        public double? ReportedCostUsd { get; init; }
 
         // :122
         public bool HasSpend => Total > 0 || (Input ?? 0) > 0 || (Output ?? 0) > 0;
@@ -496,7 +498,11 @@ public class OpenAICompatibleSession : ProviderSession
     protected virtual void ReportUsage(StreamRound round)
     {
         // PORT-ONLY (MA-6): the request's cost goes against the key it used.
-        if (KeyRotation is { } rotation && KeySpendEstimator is { } estimate && round.TokenUsage is { HasSpend: true } spent && estimate(spent) is { } usd) rotation.RecordSpend(usd);
+        if (KeyRotation is { } rotation && round.TokenUsage is { } spent)
+        {
+            var charged = spent.ReportedCostUsd ?? (spent.HasSpend ? KeySpendEstimator?.Invoke(spent) : null);
+            if (charged is { } usd && double.IsFinite(usd) && usd >= 0) rotation.RecordSpend(usd);
+        }
         if (round.Usage is { } usage) // :489
         {
             OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :490
@@ -933,7 +939,7 @@ public class OpenAICompatibleSession : ProviderSession
         var coalescer = new StreamCoalescer(continuation); // :651
         var drain = TaskHandle.Detached(async () => // :652-661
         {
-            try { await DrainSSE(bytes, coalescer, contextWindow); }
+            try { await DrainSSE(bytes, coalescer, contextWindow, OpenAICompatibleSessionConfig.Kind == ProviderKind.OpenRouter); }
             catch (CancellationError) { await coalescer.Finish(); }
         });
         sseDrain = TaskHandle.Detached(async () => // :663-666
@@ -1034,7 +1040,7 @@ public class OpenAICompatibleSession : ProviderSession
     // :740-790. Runs off the main actor: trims, parses and picks apart each SSE line, then feeds
     // chunks to the coalescer. A transport failure is delivered as a chunk; CancellationError is
     // rethrown for the stop path.
-    private static async Task DrainSSE(URLSession.AsyncBytes bytes, StreamCoalescer coalescer, int contextWindow)
+    private static async Task DrainSSE(URLSession.AsyncBytes bytes, StreamCoalescer coalescer, int contextWindow, bool costInUsd)
     {
         try
         {
@@ -1060,7 +1066,9 @@ public class OpenAICompatibleSession : ProviderSession
                         ?? u["prompt_cache_hit_tokens"]?.JSONValueInt;
                     long total = u["total_tokens"]?.JSONValueInt ?? ((input ?? 0) + (output ?? 0)); // :761
                     if (total > 0) await coalescer.EmitUsage(new ContextUsage { UsedTokens = total, WindowTokens = contextWindow }); // :762-763
-                    await coalescer.EmitTokenUsage(new ReportedTokenUsage { Total = total, Input = input, Output = output, CachedInput = cached }); // :765
+                    var cost = costInUsd && u["cost"]?.JSONValueDouble is { } charged
+                        && double.IsFinite(charged) && charged >= 0 ? charged : (double?)null;
+                    await coalescer.EmitTokenUsage(new ReportedTokenUsage { Total = total, Input = input, Output = output, CachedInput = cached, ReportedCostUsd = cost }); // :765
                 }
                 if (json["choices"]?.JSONValueArray is not { Count: > 0 } choices) continue; // :767
                 var delta = choices[0]["delta"] ?? new JSONValue.Null(); // :768
