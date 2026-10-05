@@ -45,7 +45,7 @@ internal static class UpdateEverythingProduction
         var items = ProviderCliUpdateItem.For(ProviderRegistry.UpdatableProviders, model.Providers, new FetchedVersionListing(HttpVersionFetch.Get)).Concat(ExtraItems()).Append(marrow).ToList();
         try
         {
-            items.AddRange(await DevToolUpdateCatalog.Discover(new WindowsDevToolProcess().Run, WindowsOfficeInstallation.Read, inventoryFailure: (tool, error) => Log.Error("Developer-tool inventory is incomplete for " + tool + ": " + error.GetType().Name)));
+            items.AddRange(await DevToolUpdateCatalog.Discover(new WindowsDevToolProcess(WindowsGitInstallerLog.Read).Run, WindowsOfficeInstallation.Read, inventoryFailure: (tool, error) => Log.Error("Developer-tool inventory is incomplete for " + tool + ": " + error.GetType().Name)));
         }
         catch (Exception error) when (error is InvalidOperationException or IOException or UnauthorizedAccessException)
         {

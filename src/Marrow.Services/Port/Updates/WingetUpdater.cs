@@ -89,19 +89,24 @@ public sealed class WingetUpdater : IUpdateItem
         if (!HasTrial(packageId)) return new(false, before.Version, false, false, "This installed tool's upgrade has not been supervised and recorded.");
         progress.Report(null);
         var result = await run(UpgradeCommand(packageId), cancellation);
+        var inUse = packageId == "Git.Git" && result.ExitCode is not (null or 0)
+            && result.InstallerLog is { } log && log.Contains("The following process(es) use Git for Windows", StringComparison.Ordinal)
+            && log.Contains("Defaulting to Cancel", StringComparison.Ordinal) && log.Contains("aborting", StringComparison.Ordinal);
+        var inUseMessage = "Git is in use by another app. Close it and try again.";
         WingetPackage? after;
         try { after = await Installed(cancellation); }
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException)
         {
-            return new(false, null, false, false, Failure(result) + "\nInstalled version could not be verified: " + error.Message);
+            return new(false, null, false, false, inUse ? inUseMessage : Failure(result) + "\nInstalled version could not be verified: " + error.Message);
         }
-        if (after is null) return new(false, null, false, false, Failure(result) + "\nInstalled version could not be verified.");
+        if (after is null) return new(false, null, false, false, inUse ? inUseMessage : Failure(result) + "\nInstalled version could not be verified.");
         var changed = before.Version != after.Version;
         var accepted = result.ExitCode is 0 or NoApplicableUpdate;
         var stillDue = after.Available is not null && !VersionText.Same(after.Version, after.Available);
         var reachedExpected = before.Available is not null ? VersionText.Same(after.Version, before.Available) : result.ExitCode == NoApplicableUpdate;
         var success = accepted && after.Source == "winget" && !stillDue && reachedExpected;
         return new(success, after.Version, success && changed, false,
+            inUse ? inUseMessage :
             success ? result.Stdout.Trim() : Failure(result) + (stillDue ? "\nThe installed version is still out of date." : "")
                 + (!reachedExpected ? "\nThe expected installed version was not verified." : ""));
     }

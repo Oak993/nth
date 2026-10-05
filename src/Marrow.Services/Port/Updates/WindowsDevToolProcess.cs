@@ -7,6 +7,8 @@ namespace Marrow.Services.Port.Updates;
 
 public sealed class WindowsDevToolProcess
 {
+    private readonly Func<string, CancellationToken, Task<string?>> readInstallerLog;
+    public WindowsDevToolProcess(Func<string, CancellationToken, Task<string?>>? readInstallerLog = null) => this.readInstallerLog = readInstallerLog ?? ((_, _) => Task.FromResult<string?>(null));
     public static string Validate(DevToolCommand command)
     {
         var args = command.Arguments;
@@ -39,27 +41,36 @@ public sealed class WindowsDevToolProcess
         var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 };
         foreach (var argument in command.Arguments) start.ArgumentList.Add(argument);
-        using var process = new Process { StartInfo = start };
+        var process = new Process { StartInfo = start };
         try { process.Start(); }
-        catch (Win32Exception error) { return new(null, "", error.Message); }
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
-        // Once an updater starts, cancellation must not strand its installer halfway through.
-        // Read-only probes can be cancelled by terminating only their own process tree.
+        catch (Win32Exception error) { process.Dispose(); return new(null, "", error.Message); }
+        var completion = Collect(process);
+        // A timeout/cancel stops awaiting a read-only probe. Its completion is still observed/drained;
+        // no process is terminated. A launched updater is always awaited through its natural exit.
         var mutating = command.Executable == "winget" && command.Arguments[0] == "upgrade"
             || command.Executable.Equals(WindowsOfficeInstallation.ClientPath, StringComparison.OrdinalIgnoreCase);
         // ENGINEERING DECISION: bound each read-only source/probe to 30 seconds, independently of installer waits.
         using var probeDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         if (!mutating) probeDeadline.CancelAfter(TimeSpan.FromSeconds(30));
-        try { await process.WaitForExitAsync(mutating ? CancellationToken.None : probeDeadline.Token); }
+        DevToolCommandResult result;
+        try { result = mutating ? await completion : await completion.WaitAsync(probeDeadline.Token); }
         catch (OperationCanceledException)
         {
-            if (!process.HasExited) process.Kill(entireProcessTree: true);
-            await process.WaitForExitAsync(CancellationToken.None);
-            await Task.WhenAll(stdout, stderr);
-            if (!cancellation.IsCancellationRequested) return new(null, await stdout, (await stderr) + "\nThe developer-tool inventory probe timed out.");
+            if (!cancellation.IsCancellationRequested) return new(null, "", "The developer-tool inventory probe timed out; its process was left running.");
             throw;
         }
-        return new(process.ExitCode, await stdout, await stderr);
+        return await GitInstallerLog.Attach(command, result, readInstallerLog, cancellation);
+    }
+
+    private static async Task<DevToolCommandResult> Collect(Process process)
+    {
+        try
+        {
+            var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
+            return new(process.ExitCode, await stdout.ConfigureAwait(false), await stderr.ConfigureAwait(false));
+        }
+        catch (Exception error) when (error is IOException or InvalidOperationException or Win32Exception) { return new(null, "", error.Message); }
+        finally { process.Dispose(); }
     }
 }

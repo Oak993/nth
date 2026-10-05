@@ -36,8 +36,9 @@ public sealed class OfficeC2RUpdaterTests
         var orchestrator = new UpdateOrchestrator([item]);
         await orchestrator.UpdateEverything();
         var row = Assert.Single(orchestrator.Rows);
-        Assert.Equal(UpdateRowState.Failed, row.State); Assert.Equal("16.0.20430.20092", row.Installed);
-        Assert.Contains("not confirmed", row.Message, StringComparison.Ordinal);
+        // Lead follow-up supersedes timeout-as-failure: accepted asynchronous requests stay pending.
+        Assert.Equal(UpdateRowState.UpdatingInBackground, row.State); Assert.Equal("16.0.20430.20092", row.Installed);
+        Assert.Equal("Updating in the background", row.Message);
         Assert.False(row.RestartRequired); replay.Complete();
     }
 
@@ -86,7 +87,7 @@ public sealed class OfficeC2RUpdaterTests
     public async Task Default_registry_seam_is_closed() => await Assert.ThrowsAsync<InvalidOperationException>(() => new OfficeC2RUpdater().InstalledVersion(default));
 
     [Fact]
-    public async Task Unchanged_Office_is_polled_for_at_most_two_minutes_with_one_updater_launch()
+    public async Task Unchanged_Office_returns_background_pending_immediately_without_a_blocking_poll_loop()
     {
         // ENGINEERING DECISION: 12 ten-second verification waits, injected time; never sleep in a test.
         var replay = new TrialHReplay(); replay.Add("37-office-upgrade");
@@ -94,8 +95,8 @@ public sealed class OfficeC2RUpdaterTests
         var item = new OfficeC2RUpdater(_ => { reads++; return Task.FromResult<OfficeInstallation?>(before); }, replay.Run,
             (span, _) => { waits.Add(span); return Task.CompletedTask; });
         var outcome = await item.Update(new DevToolProgress(), default);
-        Assert.False(outcome.Succeeded); Assert.Equal(14, reads);
-        Assert.Equal(12, waits.Count); Assert.All(waits, span => Assert.Equal(TimeSpan.FromSeconds(10), span));
+        Assert.True(outcome.Succeeded); Assert.True(outcome.UpdatingInBackground); Assert.False(outcome.Changed); Assert.Equal(2, reads);
+        Assert.Empty(waits);
         replay.Complete();
     }
 
@@ -104,22 +105,29 @@ public sealed class OfficeC2RUpdaterTests
     {
         var replay = new TrialHReplay(); replay.Add("37-office-upgrade");
         var before = TrialHFixtures.Office("34-office-before"); var reads = 0; var waits = 0;
-        var item = new OfficeC2RUpdater(_ => Task.FromResult<OfficeInstallation?>(++reads < 4 ? before : before with { Version = "16.0.20430.20100" }), replay.Run,
+        var item = new OfficeC2RUpdater(_ => Task.FromResult<OfficeInstallation?>(++reads < 5 ? before : before with { Version = "16.0.20430.20100" }), replay.Run,
             (_, _) => { waits++; return Task.CompletedTask; });
-        Assert.True((await item.Update(new DevToolProgress(), default)).Succeeded);
-        Assert.Equal(4, reads); Assert.Equal(2, waits); replay.Complete();
+        var runner = new UpdateOrchestrator([item]);
+        await runner.UpdateEverything();
+        Assert.Equal(UpdateRowState.UpdatingInBackground, Assert.Single(runner.Rows).State);
+        await runner.RecheckBackground();
+        Assert.Equal(UpdateRowState.Updated, Assert.Single(runner.Rows).State);
+        Assert.Equal(5, reads); Assert.Equal(0, waits); replay.Complete();
     }
 
     [Fact]
-    public async Task Cancellation_during_Office_verification_stops_polling_without_relaunch_or_success()
+    public async Task Cancellation_after_Office_acceptance_retains_the_background_request_without_verified_completion()
     {
         var replay = new TrialHReplay(); replay.Add("37-office-upgrade");
         var before = TrialHFixtures.Office("34-office-before"); var reads = 0;
         using var cancel = new CancellationTokenSource(); var token = cancel.Token;
-        var item = new OfficeC2RUpdater(c => { Assert.Equal(token, c); reads++; return Task.FromResult<OfficeInstallation?>(before); },
+        var item = new OfficeC2RUpdater(c => { Assert.Equal(token, c); reads++; if (reads == 2) { cancel.Cancel(); c.ThrowIfCancellationRequested(); } return Task.FromResult<OfficeInstallation?>(before); },
             (command, c) => { Assert.Equal(token, c); return replay.Run(command, c); },
             (_, c) => { Assert.Equal(token, c); cancel.Cancel(); c.ThrowIfCancellationRequested(); return Task.CompletedTask; });
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => item.Update(new DevToolProgress(), token));
+        // Lead ruling: cancellation of verification cannot undo an accepted asynchronous update.
+        var outcome = await item.Update(new DevToolProgress(), token);
+        Assert.True(outcome.Succeeded); Assert.True(outcome.UpdatingInBackground); Assert.False(outcome.Changed);
+        Assert.Equal(before.Version, outcome.NewVersion); Assert.Equal("Updating in the background", outcome.Message);
         Assert.Equal(2, reads); replay.Complete();
     }
 

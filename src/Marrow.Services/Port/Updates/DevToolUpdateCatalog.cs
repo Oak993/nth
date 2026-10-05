@@ -47,7 +47,7 @@ public static class DevToolUpdateCatalog
         {
             inventoryFailure("Office", error); installedOffice = null;
         }
-        if (installedOffice is not null) items.Add(new OfficeC2RUpdater(office, run, (span, token) => Task.Delay(span, token)));
+        if (installedOffice is not null) items.Add(new OfficeC2RUpdater(office, run));
         return items;
 
         async Task Tool(string? exactId, string title, string executable, IReadOnlyList<string> query)

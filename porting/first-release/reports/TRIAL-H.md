@@ -1,3 +1,32 @@
+# Trial H / UE-3 — READY for the merge train
+
+## Lead-accepted follow-up, 2026-10-05
+
+**READY**, branch `codex/trial-h`. The lead accepted trial H, including the recorded Office/Python inspection overlap, and owns `mark.mjs`. This section supersedes the initial NOT READY verdict below. The final head SHA and remote equality proof are in `E:\Droppy\work\scratch\handoff\codex-T13-trial-h.md`; this commit contains the final implementation, acceptance tests and report. Packet readiness is not a claim that the global port/native/package gates are complete.
+
+Git's recorded installer log now gives the exact page/pill message **"Git is in use by another app. Close it and try again."** with **Retry**, including when the post-update inventory is unreadable or missing. Only a failed Git upgrade with the recorded process-use/cancel/abort markers is classified this way. Generic errors stay generic; reported-log reads are restricted to the witnessed diagnostic directory/name. Developer-tool bindings contain no process-termination commands or APIs: timed-out/cancelled probes remain observed until natural exit. No live retry was run.
+
+Office's accepted asynchronous request shows **"Updating in the background"**, never Done/current solely because the updater returned zero. The shared service rechecks only pending versions every ten seconds, including both page and pill entrypoints; it defers during foreground runs and stops on completion/reconfiguration. Unchanged/null/unreadable versions retain pending, and only a later verified change becomes Updated. Accepted requests also survive verification cancellation, so Retry/Update everything cannot relaunch them. Later-change test versions are synthetic; the actual live Office version remains 16.0.20430.20092.
+
+Absent GitHub CLI already had no row, proven by `Recorded_inventory_yields_only_Git_Node_two_Pythons_and_Office_rows`; this behavior remains covered. The 44 captured JSON fixtures and all live before/after facts are unchanged.
+
+| Test-first / final evidence | Result | Logs under E:/Droppy/work/scratch/codex-ue-3 |
+|---|---|---|
+| Lead policy acceptance red | Services 17 failed, 2 passed /19; App 6 failed, 1 passed /7 | lead-red-services-tests.log; lead-red-app-tests.log |
+| Independent-review edge-case red | 5 failed /5: two Git post-inventory cases, two UE-2 cancellation timings, direct Office cancellation | lead-edge-red-tests.log |
+| Final Services (95 UE-3 +45 provider regressions +6 metadata) | **146/146, twice; 0 failed/skipped** | lead-final-Services-{2,3}-tests.log |
+| Final App (page/pill/composition/lifecycle and metadata) | **117/117, twice; 0 failed/skipped** | lead-final-App-{2,3}-tests.log |
+| Final Core (UE-2/model/listing and metadata) | **56/56, twice; 0 failed/skipped** | lead-final-Core-{2,3}-tests.log |
+| All six final builds | **0 warnings, 0 errors** | lead-final-{Services,App,Core}-{2,3}-build.log |
+
+Every build/test held the unmodified heavy.sh slot; tests ran through one*.sh with Native excluded, fresh data roots and no real process/network/Office fallback. The earlier fixture nullable compilation repair is not counted as acceptance red. Independent read-only static review identified the Git-post-inventory and accepted-Office cancellation regressions; both have red witnesses and fixes, and final static review has no remaining blocker. No mutation acceptance is claimed. Tested source/test hashes are frozen in `lead-final-source-hashes.txt` and checked after commit/push.
+
+ED-NEW-ue-3 items 8-13 record the lead ruling, diagnostic scope, pending state, ten-second monitor, no-termination policy and cancellation preservation. The initial wider coverage notes below remain recorded: untrialled installed recipes, Store/portable variants, unmatched snapshots, inventory banner, installer provenance, and native/full/mutation acceptance. They are not remaining failed scoped tests or reasons to reclassify the lead-accepted packet. No live updater, Marrow launch, native test, packaging, process killing or mark.mjs call was made during this follow-up.
+
+## Archived initial report — superseded by the lead ruling above
+
+The original report follows byte-for-byte as historical evidence; its initial bounded-poll Office behavior and NOT READY interpretation were replaced by this follow-up.
+
 # Trial H / UE-3 — supervised Windows run, 2026-10-05
 
 Branch: `codex/trial-h`, created from `origin/claude/verify-terminal-20261001` at
