@@ -109,7 +109,7 @@ internal static class GlassMaterial
             // ED-NEW-glass-g1 (the first frame): until a piece has synchronised once, its window's renderer step (WindowHook) synchronises it right
             // after the renderer's own update, in the composition update that draws the window's first frame: the Loaded post below lands a frame
             // or more later (the knob-cache unit measured the glass 34 to 53 ms after a window was shown: pop-in).
-            if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top).Pending.Add(this);
+            if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top, queued: true).Pending.Add(this);
             if (queued) return;
             queued = true;
             Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
@@ -442,12 +442,14 @@ internal static class GlassMaterial
     private static readonly ConditionalWeakTable<TopLevel, WindowHook> windows = new();
     private static readonly ConditionalWeakTable<Attachment, TopLevel> hooked = new();
 
-    private static WindowHook HookOf(TopLevel top)
+    // `queued`: installed from a piece's first Queue (a UI turn, before the window's first update); no extra composition update is asked for then
+    // (one asked for in a UI turn makes the next dispatcher pass run a composition update and draw the window: WallpaperCardTests' pump).
+    private static WindowHook HookOf(TopLevel top, bool queued = false)
     {
         if (windows.TryGetValue(top, out var hook)) return hook;
         hook = new WindowHook();
         windows.Add(top, hook);
-        Install(top, hook);
+        Install(top, hook, extraStep: !queued);
         return hook;
     }
 
@@ -465,7 +467,7 @@ internal static class GlassMaterial
         if (windows.TryGetValue(top, out var hook)) hook.Materials.Remove(attachment);
     }
 
-    private static void Install(TopLevel top, WindowHook hook)
+    private static void Install(TopLevel top, WindowHook hook, bool extraStep)
     {
         try
         {
@@ -474,7 +476,7 @@ internal static class GlassMaterial
             if (renderer is null || update?.GetValue(renderer) is not Action original) return;
             update.SetValue(renderer, new Action(() => { TraceForTests?.Invoke("renderer update"); original(); hook.Repair(); }));
             // An update already queued holds the old delegate: one more step, after it, in the next composition update.
-            if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
+            if (extraStep && ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
             TraceForTests?.Invoke("hook installed");
         }
         catch (Exception e) when (e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException) { }

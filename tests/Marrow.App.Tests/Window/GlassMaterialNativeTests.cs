@@ -28,22 +28,6 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
     private static void Themeless(AvaloniaWindow window) =>
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
 
-    // Colour bars 6 pt wide, moved 2 pt every frame: what lies under the glass changes each frame, so it is drawn each frame.
-    private sealed class Bars : Control
-    {
-        private static readonly IBrush[] Colours =
-        [
-            new SolidColorBrush(Color.FromRgb(230, 60, 60)), new SolidColorBrush(Color.FromRgb(250, 210, 70)), new SolidColorBrush(Color.FromRgb(60, 190, 90)),
-            new SolidColorBrush(Color.FromRgb(50, 120, 230)), new SolidColorBrush(Color.FromRgb(240, 240, 240)), new SolidColorBrush(Color.FromRgb(20, 20, 24)),
-        ];
-        public double Phase { get; set; }
-        public override void Render(DrawingContext context)
-        {
-            for (var i = -1; i * 6 < Bounds.Width + 6; i++)
-                context.FillRectangle(Colours[((i % Colours.Length) + Colours.Length) % Colours.Length], new Rect(i * 6 + Phase % 6 - 6, 0, 6, Bounds.Height));
-        }
-    }
-
     private static Border Pill()
     {
         var pill = new Border { Width = 818, Height = 46, Background = Brushes.Transparent, CornerRadius = new CornerRadius(22), HorizontalAlignment = HorizontalAlignment.Left };
@@ -52,7 +36,6 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // Chrome.swift:179-182; ComposerView.swift:1304; OD-0107, OD-0005
     public void The_composer_pill_glass_on_a_real_window_is_translucent_over_the_Acrylic_lit_over_busy_content_and_costs_under_two_ms_a_frame() => native.Run(subject =>
     {
@@ -78,7 +61,7 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
             Themeless(stripes);
             native.Register(stripes);
             stripes.Show();
-            var bars = new Bars { Height = 160, VerticalAlignment = VerticalAlignment.Bottom };
+            var bars = new GlassBars { Height = 160, VerticalAlignment = VerticalAlignment.Bottom };
             var acrylicPill = Pill();
             acrylicPill.Margin = new Thickness(91, 60, 0, 0);
             acrylicPill.VerticalAlignment = VerticalAlignment.Top;
@@ -152,7 +135,6 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
     // there as fast as it can (a few hundred grabs a second, every presented frame seen). The first grab that shows the window (its red) must already
     // show the glass over the stripes (blurred: no stripe steps), never the sharp stripes with the glass still to come.
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // Chrome.swift:179-182; the owner's bar: no pop-in
     public void A_freshly_shown_window_has_its_glass_in_the_first_frame_it_presents() => native.Run(subject =>
     {

@@ -22,19 +22,6 @@ namespace Marrow.UI.Tests.Port;
 [Collection("Headless")]
 public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
 {
-    // A ramp of greys, level = x - Offset (clamped), or its reverse: an affine backdrop the blur keeps, so a pixel's level says where it was read.
-    private sealed class Ramp(bool reversed, int offset) : Control
-    {
-        public override void Render(DrawingContext context)
-        {
-            for (var x = 0; x < (int)Bounds.Width; x++)
-            {
-                var level = (byte)Math.Clamp(reversed ? 255 - (x - offset) : x - offset, 0, 255);
-                context.DrawRectangle(new SolidColorBrush(Color.FromRgb(level, level, level)), null, new Rect(x, 0, 1, Bounds.Height));
-            }
-        }
-    }
-
     private static Border Piece(GlassShape shape, double width, double height, double left = double.NaN)
     {
         var piece = new Border
@@ -85,7 +72,6 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     private static GlassShape Panel => GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous);
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0107: over the Acrylic window's transparent pixels the glass is a light translucent film, not an opaque veil
     public void Over_a_transparent_backdrop_the_glass_is_a_light_translucent_film_and_never_black() => headless.OnUiThread(() =>
     {
@@ -110,7 +96,6 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0107: the scrim and the Acrylic under it show through; the sharp content under the glass does not leak through it
     public void Over_a_translucent_scrim_the_glass_keeps_its_translucency_and_the_sharp_content_under_it_does_not_leak() => headless.OnUiThread(() =>
     {
@@ -128,7 +113,6 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0107: a known backdrop shows through: the glass passes at least 75 % of a change under it
     public void A_known_backdrop_shows_through_the_glass_by_at_least_three_quarters() => headless.OnUiThread(() =>
     {
@@ -139,7 +123,6 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0107: the Mac glass lifts what is under it: brighter and more saturated, never darker or flat grey
     public void The_glass_lifts_the_brightness_and_the_saturation_of_what_is_under_it() => headless.OnUiThread(() =>
     {
@@ -155,7 +138,6 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0107: the specular rim on every side, brightest at the top (the Mac composer pill and title capsules)
     public void A_flat_backdrop_shows_a_specular_rim_on_every_side_the_top_brightest_and_a_contact_line_at_the_sides() => headless.OnUiThread(() =>
     {
@@ -204,15 +186,14 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     // The composer pill (300 x 46, the bar is 818 wide): 9.0 at the edge, ring 3.7, 8.0 + 1.1 at 1.5 pt in; red to blue 1.0 (the reading is good
     // to about 0.7 per channel).
     [InlineData(300, 46, 23, 1, 6.5, 11, 0.3, 2.0, 40)]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0107: rizzytoday's bend and chromatic aberration, dashersw's rim ring, sized by the piece
     public void The_edge_bends_and_fringes_by_the_size_of_the_piece(double width, double height, double radius, int inset, double bendLow, double bendHigh, double fringeLow, double fringeHigh, int span) =>
         headless.OnUiThread(() =>
         {
             const int left = 100, offset = 40; // the ramp starts 40 px in, so every read lies on it, clear of its clamped ends
             var shape = GlassShape.RoundedRectangle(radius, RoundedCornerStyle.Continuous);
-            var a = Render(new Ramp(false, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160);
-            var b = Render(new Ramp(true, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160);
+            var a = Render(new GlassRamp(false, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160);
+            var b = Render(new GlassRamp(true, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160);
             var x = left + inset; // the pixel `inset` + 0.5 in from the left edge, on the middle row
             var middle = (int)(left + width / 2);
             // k from two points `span` either side of the middle, where nothing bends sideways (on the ramp, short of its clamped end at 295).
@@ -227,7 +208,6 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
         });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-glass-g1")]
     [Trait("Req", "PR-WIN-180")] // OD-0108: the warm-up builds every program the material draws with, by the material's own builder
     public void The_warm_up_programs_cover_every_shape_count_with_both_stages_and_the_inside() => headless.OnUiThread(() =>
     {
