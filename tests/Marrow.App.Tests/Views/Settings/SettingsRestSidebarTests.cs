@@ -31,8 +31,8 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
     {
         With(() => new SettingsView(), (view, _, h, w) =>
         {
-            var titles = new[] { "General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About" };
-            var symbols = new[] { "gear", "", "paintpalette", "cpu", "puzzlepiece.extension", "slider.horizontal.3", "arrow.triangle.branch", "command", "archivebox", "info.circle" };
+            var titles = new[] { "General", "Hydra", "Appearance", "Customization", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About" };
+            var symbols = new[] { "gear", "", "paintpalette", "sparkles", "cpu", "puzzlepiece.extension", "slider.horizontal.3", "arrow.triangle.branch", "command", "archivebox", "info.circle" };
             Assert.Equal(titles, Nodes<SidebarRow>(view).Select(r => Text(r).Single()));
             var list = Field<StackPanel>(view, "rows"); Assert.Equal(1, list.Spacing); Assert.Equal(new Thickness(10, 12, 10, 8), list.Margin);
             Check(Nodes<SidebarRow>(view)[0], 0, true);

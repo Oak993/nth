@@ -75,8 +75,9 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
         using var rig = new CustomizationPageRig(reduceMotion: true);
         var beam = rig.Page.Beam!;
         var pill = rig.Page.Stage!.Preview.Pill.Bounds;
-        Assert.Equal(472, pill.Width);
-        var auto = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, pill.Height, 22);
+        Assert.Equal((472.0, 46.0), (pill.Width, pill.Height)); // the preview pill is the real composer's 46 high; the Auto values are asked for at h = 46 (SPEC CZ-6)
+        var auto = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, 46, 22);
+        Assert.NotEqual(BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, 52, 22).Duration, auto.Duration); // not the playground's mock 52
         Assert.True(beam.Speed.Slider.IsAuto);
         Assert.Equal(auto.Duration, beam.Speed.Slider.ShownValue);
         Assert.Equal(auto.Brightness, beam.Brightness.Slider.ShownValue);
@@ -98,13 +99,13 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
         Assert.False(beam.Speed.Slider.IsAuto);
         // Auto follows the settings: a Line beam sweeps at its own pace
         rig.SetLight(ComposerLightSettings.Default with { Beam = BorderBeamOptions.Default.WithType(BeamType.Line) });
-        var line = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, pill.Height, 22);
+        var line = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, 46, 22);
         Assert.Equal(line.Duration, beam.Speed.Slider.ShownValue);
         Assert.NotEqual(auto.Duration, line.Duration);
         // Pulse outside: the glow sliders' Auto values come from the same resolver
         rig.SetLight(ComposerLightSettings.Default with { Beam = BorderBeamOptions.Default.WithType(BeamType.PulseOutside) });
         rig.Do(() => rig.Page.Advanced.Open = true);
-        var outside = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, pill.Height, 22);
+        var outside = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, 46, 22);
         Assert.Equal((outside.CoreBlur, outside.BloomBlur, outside.GlowX, outside.GlowY),
             (beam.CoreSoftness.Slider.ShownValue, beam.BloomSoftness.Slider.ShownValue, beam.GlowWidth.Slider.ShownValue, beam.GlowHeight.Slider.ShownValue));
     });
@@ -115,10 +116,10 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
     {
         using var rig = new CustomizationPageRig(light: true, reduceMotion: true);
         var pill = rig.Page.Stage!.Preview.Pill.Bounds;
-        var auto = BorderBeamResolved.AutoValues(rig.Light.Beam, false, 472, pill.Height, 22);
+        var auto = BorderBeamResolved.AutoValues(rig.Light.Beam, false, 472, 46, 22);
         Assert.Equal(auto.Brightness, rig.Page.Beam!.Brightness.Slider.ShownValue);
         Assert.Equal(auto.Saturation, rig.Page.Beam.Saturation.Slider.ShownValue);
-        var dark = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, pill.Height, 22);
+        var dark = BorderBeamResolved.AutoValues(rig.Light.Beam, true, 472, 46, 22);
         Assert.NotEqual((dark.Brightness, dark.Saturation), (auto.Brightness, auto.Saturation));
     });
 

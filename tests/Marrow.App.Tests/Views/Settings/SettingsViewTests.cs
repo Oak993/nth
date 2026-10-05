@@ -267,7 +267,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Sidebar_search_and_no_results_keep_source_insets_fonts_and_empty_archive_replaces_all_chrome() => WithSettings((view, _, _) =>
     {
         var search = Assert.Single(Nodes<SidebarSearchField>(view)); Assert.Equal(new Thickness(10, 14, 10, 0), search.Margin); var field = Assert.Single(Nodes<TextBox>(search)); Assert.Equal("Search", field.PlaceholderText); Assert.Equal(13, field.FontSize);
-        var rows = Field<StackPanel>(view, "rows"); Assert.Equal(new Thickness(10, 12, 10, 8), rows.Margin); Assert.Equal(1, rows.Spacing); Assert.Equal(10, Nodes<SidebarRow>(view).Length);
+        var rows = Field<StackPanel>(view, "rows"); Assert.Equal(new Thickness(10, 12, 10, 8), rows.Margin); Assert.Equal(1, rows.Spacing); Assert.Equal(11, Nodes<SidebarRow>(view).Length); // CZ-4: Customization is listed
         var empty = Field<Control>(view, "detail"); Assert.Empty(Nodes<ScrollViewer>(empty)); Assert.Empty(Nodes<ChromeCompactTitle>(empty)); Assert.Empty(Nodes<ArchiveDeleteAllButton>(empty)); Assert.Equal(SwiftFont.System(44, SwiftFont.Weight.Light), SwiftImage.GetFont(Nodes<SwiftImage>(empty).Single()));
         field.Text = "no-such-settings-page"; Sync(); Assert.Empty(Nodes<SidebarRow>(view)); var heading = Nodes<TextBlock>(rows).Single(text => text.Text == "No results"); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight); var note = Nodes<TextBlock>(rows).Single(text => text.Text == "Try a setting or a provider name."); Assert.Equal(11, note.FontSize);
         var block = Assert.Single(Nodes<StackPanel>(rows), panel => panel.Spacing == 6); Assert.Equal(new Thickness(8, 14, 8, 0), block.Margin);
@@ -962,7 +962,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Whitespace_search_keeps_all_pages_and_matching_is_case_insensitive() => WithSettings((view, _, _) =>
     {
         var field = Nodes<TextBox>(Field<Control>(view, "sidebar")).Single(); field.Text = " \n\t "; Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        Assert.Equal(10, Nodes<SidebarRow>(view).Length);
+        Assert.Equal(11, Nodes<SidebarRow>(view).Length);
         field.Text = "  RESTORE  "; Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Assert.Single(Nodes<SidebarRow>(view));
     });
 

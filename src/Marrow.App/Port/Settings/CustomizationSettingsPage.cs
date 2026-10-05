@@ -120,12 +120,8 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Off.Open = light.Style == ComposerLightStyle.Off;
     }
 
-    // CZ-6: the Auto values are the preview composer's (472 wide; the real pill's height, CZ-3's decision)
-    private (double Width, double Height) ComposerSize()
-    {
-        var pill = Stage?.Preview.Pill;
-        return (ComposerPreview.ComposerWidth, pill is { Bounds.Height: > 0 } ? pill.Bounds.Height : ComposerPreview.PillHeight);
-    }
+    // CZ-6: the Auto values are the preview composer's: 472 wide and 46 high, the real pill's height (SPEC CZ-6 and ED-NEW-f-cz-3 item 2; the playground's 52 is a web mock)
+    private static (double Width, double Height) ComposerSize() => (ComposerPreview.ComposerWidth, ComposerPreview.PillHeight);
 
     private static string AccentName(AppSettings settings)
     {
