@@ -280,7 +280,11 @@ public sealed class ImportedSkillsLibraryTests
         var folder = home.Skill(".claude/skills", "notes", "notes", "Notes.");
         var secret = Path.Combine(home.Root, "secret.txt");
         File.WriteAllText(secret, "SECRET");
-        File.CreateSymbolicLink(Path.Combine(folder, "leak.txt"), secret);
+        var link = Path.Combine(folder, "leak.txt");
+        File.CreateSymbolicLink(link, secret);
+        Assert.True(File.Exists(link));
+        Assert.True((File.GetAttributes(link) & FileAttributes.ReparsePoint) != 0);
+        Assert.Equal("SECRET", File.ReadAllText(link));
         var library = Open(home);
         library.Import([Find(home, "notes")], ImportMode.Copy, NeverAsked);
         Assert.Equal(["SKILL.md"], library.Snapshot().Single().Files.Keys);

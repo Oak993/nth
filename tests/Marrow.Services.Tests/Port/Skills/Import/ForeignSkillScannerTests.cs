@@ -177,7 +177,11 @@ public sealed class ForeignSkillScannerTests
         Directory.CreateDirectory(outside);
         File.WriteAllText(Path.Combine(outside, "SKILL.md"), ForeignHome.SkillText("outside", "Out there."));
         Directory.CreateDirectory(Path.Combine(home.Home, ".claude/skills"));
-        Directory.CreateSymbolicLink(Path.Combine(home.Home, ".claude/skills/linked"), outside);
+        var link = Path.Combine(home.Home, ".claude/skills/linked");
+        Directory.CreateSymbolicLink(link, outside);
+        Assert.True(Directory.Exists(link));
+        Assert.True((File.GetAttributes(link) & FileAttributes.ReparsePoint) != 0);
+        Assert.Equal(ForeignHome.SkillText("outside", "Out there."), File.ReadAllText(Path.Combine(link, "SKILL.md")));
         var scan = new ForeignSkillScanner(home.Home).Scan();
         Assert.Empty(scan.Skills);
         Assert.Contains(scan.Problems, p => p.Path.EndsWith("linked", StringComparison.Ordinal));
