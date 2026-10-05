@@ -29,7 +29,7 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
         LogicalQuery.SelfAndDescendants<Button>(root).Count(button => AutomationProperties.GetName(button) == "Attach files");
 
     [Fact] // V-T70
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Inside_the_button_is_34_by_28_at_left_8_on_the_controls_row_and_the_text_starts_at_48()
     {
         headless.OnUiThread(() =>
@@ -55,7 +55,7 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
     }
 
     [Fact] // V-T70
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Outside_it_is_a_36_circle_in_the_margin_the_composer_gives_it_44_and_the_text_starts_at_14()
     {
         headless.OnUiThread(() =>
@@ -80,7 +80,7 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
     }
 
     [Fact] // V-T70, OD-0076: nothing cuts
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-VIEW-4")]
     public void Switching_the_place_eases_the_composers_width_the_text_inset_and_the_two_buttons()
     {
         headless.OnUiThread(() =>
@@ -125,8 +125,38 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
         });
     }
 
+    [Fact] // V-T70, OD-0076: the two buttons' fade (0.28 s ease) and scale (0.6 to 1 over 0.34 s ez), every frame against the curve
+    [Trait("Rule", "R-VIEW-4")]
+    public void The_two_buttons_cross_over_on_the_fade_and_scale_curves_frame_by_frame()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = new VoiceComposerRig();
+            var (view, window) = rig.Open(600);
+            var start = rig.Main.OnMain(() => SwiftClock.Now);
+            rig.Main.OnMain(() => rig.App.Settings.VoiceOrb = rig.App.Settings.VoiceOrb with { Attachment = VoiceAttachment.Outside });
+            rig.PumpWindow(window);
+            for (var frame = 0; frame < 20; frame++)
+            {
+                rig.Elapse(window, 1.0 / 60);
+                var t = rig.Main.OnMain(() => (SwiftClock.Now - start).TotalSeconds); // the clock's own time: a frame is a whole number of 100 ns ticks
+                var buttons = rig.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ComposerAttachButton>(view).Select(b => (b.Place, b.Opacity, ((ScaleTransform)b.RenderTransform!).ScaleX)).ToList());
+                if (buttons.Count != 2) break; // the one that left is gone
+                var fade = CssCurves.At(CssCurves.Ease, t, 0.28);
+                var grow = CssCurves.At(CssCurves.Ez, t, 0.34);
+                var outside = buttons.Single(b => b.Place == ComposerAttachPlace.Outside);
+                var inside = buttons.Single(b => b.Place == ComposerAttachPlace.Inside);
+                Assert.True(Math.Abs(outside.Opacity - fade) < 1e-4, $"the arriving button's opacity at {t:F3} s is {outside.Opacity}, the curve says {fade}");
+                Assert.True(Math.Abs(inside.Opacity - (1 - fade)) < 1e-4, $"the leaving button's opacity at {t:F3} s is {inside.Opacity}, the curve says {1 - fade}");
+                Assert.True(Math.Abs(outside.ScaleX - (0.6 + 0.4 * grow)) < 1e-4, $"the arriving button's scale at {t:F3} s is {outside.ScaleX}, the curve says {0.6 + 0.4 * grow}");
+                Assert.True(Math.Abs(inside.ScaleX - (0.6 + 0.4 * (1 - grow))) < 1e-4, $"the leaving button's scale at {t:F3} s is {inside.ScaleX}, the curve says {0.6 + 0.4 * (1 - grow)}");
+            }
+            rig.Close(window);
+        });
+    }
+
     [Fact] // V-T70: the popover and chip state move with it
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_recent_downloads_popover_and_the_active_chip_follow_the_visible_button()
     {
         headless.OnUiThread(() =>
@@ -166,7 +196,7 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
     }
 
     [Fact] // V-T70 / V-T87: the owner-ruled move is not behind the feature flag
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_the_feature_off_the_attachment_still_sits_at_the_left_and_the_controls_do_not_hold_it()
     {
         headless.OnUiThread(() =>

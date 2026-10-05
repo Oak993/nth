@@ -11,13 +11,13 @@ using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
 
 namespace Marrow.App.Tests.Views.Composer;
 
-// REVIEW (VT-10, e2e29a02f): V-8.5 "focus is not stolen": a real pointer press on the orb takes the keyboard from the composer's editor (the orb's hit target is focusable,
+// VT-10 fix round (review of e2e29a02f): V-8.5 "focus is not stolen": a real pointer press on the orb takes the keyboard from the composer's editor (the orb's hit target is focusable,
 // V-14.2), and nothing gives it back, so after the words land, Return starts a new voice session instead of sending them.
 [Collection("Headless")]
-public sealed class REVIEW_ComposerVoiceFocusTests(HeadlessSession headless)
+public sealed class ComposerVoiceFocusTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void A_pointer_click_on_the_orb_does_not_leave_the_keyboard_on_the_orb_when_the_editor_had_it()
     {
         headless.OnUiThread(() =>

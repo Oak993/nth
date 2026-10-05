@@ -37,7 +37,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-T82, V-14.4
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Esc_while_listening_cancels_and_is_consumed_so_it_does_not_take_back_a_running_turn()
     {
         headless.OnUiThread(() =>
@@ -57,7 +57,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-T82, V-14.4: Esc also cancels while the text is being finished
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Esc_while_the_text_is_being_finished_cancels_it_too_and_nothing_lands_in_the_draft()
     {
         headless.OnUiThread(() =>
@@ -78,8 +78,98 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
         });
     }
 
+    [Fact] // V-14.4: a sheet opened after the session went live takes Esc first (an NSWindow's sheet is the key window); once it is gone Esc cancels the session again
+    [Trait("Rule", "R-TEST-10")]
+    public void A_sheet_opened_after_the_session_went_live_takes_Esc_first_and_the_session_goes_on()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window) = rig.Open();
+            Listen(rig, view, window);
+            var dismissed = 0;
+            var release = rig.Main.OnMain(() => Marrow.App.Port.SheetKeyboard.Take(window, new Border(), _ => false, () => dismissed++, blockUnder: false));
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape))); // the sheet took it
+            Assert.Equal(1, dismissed);
+            Assert.Equal(VoiceSessionState.Listening, view.Voice!.Session.State);
+            rig.Main.OnMain(release); // the sheet has closed
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
+            rig.Elapse(window, 0.2);
+            Assert.Equal(1, dismissed);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice.Session.State);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-14.4: the other order: a sheet that was shown and closed before the session leaves Esc to the session
+    [Trait("Rule", "R-TEST-10")]
+    public void A_sheet_closed_before_the_session_starts_leaves_Esc_to_the_session()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window) = rig.Open();
+            var release = rig.Main.OnMain(() => Marrow.App.Port.SheetKeyboard.Take(window, new Border(), _ => false, () => { }, blockUnder: false));
+            rig.Main.OnMain(release);
+            Listen(rig, view, window);
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
+            rig.Elapse(window, 0.2);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice!.Session.State);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-14.4: a popover or menu open over the window is the keyboard's first as well
+    [Trait("Rule", "R-TEST-10")]
+    public void A_popover_open_over_the_window_takes_Esc_first_and_the_session_goes_on_until_it_closes()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window) = rig.Open();
+            Listen(rig, view, window);
+            var key = new object();
+            var dismissed = 0;
+            rig.Main.OnMain(() => Marrow.UI.Port.WindowTransients.Show(key, view, () => dismissed++));
+            Assert.False(rig.Main.OnMain(() => Press(view, Key.Escape))); // this session leaves it to the popover's own handler
+            Assert.Equal(VoiceSessionState.Listening, view.Voice!.Session.State);
+            rig.Main.OnMain(() => Marrow.UI.Port.WindowTransients.Hide(key));
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
+            rig.Elapse(window, 0.2);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice.Session.State);
+            Assert.Equal(0, dismissed);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-14.4: Esc with a modifier held is not the cancel
+    [Trait("Rule", "R-TEST-10")]
+    public void Esc_with_a_modifier_held_does_not_cancel_the_session()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window) = rig.Open();
+            Listen(rig, view, window);
+            foreach (var modifiers in new[] { KeyModifiers.Shift, KeyModifiers.Control, KeyModifiers.Alt })
+            {
+                rig.Main.OnMain(() => Press(view, Key.Escape, modifiers));
+                rig.Elapse(window, 0.05);
+                Assert.Equal(VoiceSessionState.Listening, view.Voice!.Session.State);
+            }
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
+            rig.Elapse(window, 0.2);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice!.Session.State);
+            rig.Close(window);
+        });
+    }
+
     [Fact] // V-14.4: otherwise Esc keeps its existing meaning
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_no_session_running_Esc_keeps_its_ordinary_meaning()
     {
         headless.OnUiThread(() =>
@@ -94,7 +184,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-T82, V-8.5
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_editor_is_read_only_during_a_session_and_free_again_after_it()
     {
         headless.OnUiThread(() =>
@@ -128,7 +218,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-8.1 (interim: the text lands when the session does; VT-11 writes it live)
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_text_lands_in_the_draft_after_the_caret_with_a_space_and_the_caret_ends_after_it()
     {
         headless.OnUiThread(() =>
@@ -152,7 +242,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-8.1: a selection is replaced
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void A_selection_is_replaced_by_the_words()
     {
         headless.OnUiThread(() =>
@@ -177,7 +267,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-14.7
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_composer_leaving_stops_the_session_as_a_second_click_does_and_the_text_lands_and_is_never_sent()
     {
         headless.OnUiThread(() =>
@@ -202,7 +292,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-14.7: the window closing is the composer leaving too
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Closing_the_window_stops_the_capture()
     {
         headless.OnUiThread(() =>
@@ -219,7 +309,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
     }
 
     [Fact] // V-7.11: one session at a time
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void A_second_orb_clicked_finishes_the_first_session_and_then_starts()
     {
         headless.OnUiThread(() =>

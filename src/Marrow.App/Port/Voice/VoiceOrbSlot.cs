@@ -3,6 +3,8 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Session;
@@ -27,6 +29,8 @@ internal sealed class VoiceOrbSlot : Decorator
     private readonly Canvas canvas = new() { ClipToBounds = false };
     private readonly AnimatedScalar side;
     private int shownSize;
+    private IInputElement? keyboardBefore;
+    private VoiceSessionState lastState;
 
     public VoiceOrbSlot(ComposerVoiceController voice)
     {
@@ -47,6 +51,13 @@ internal sealed class VoiceOrbSlot : Decorator
             voice.PointerLeave();
             Orb.Pressed = false;
         };
+        // V-8.5 "focus is not stolen": a pointer press takes the keyboard to the orb's button (V-14.2: it is focusable). Where it was (the editor) is remembered at the press and given
+        // back when the session ends, so the words that land can be sent with Return.
+        HitTarget.AddHandler(InputElement.PointerPressedEvent, (_, _) =>
+        {
+            var held = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+            if (held is not null && !ReferenceEquals(held, HitTarget)) keyboardBefore = held; // a second press, with the keyboard already on the orb, keeps what the first took it from
+        }, RoutingStrategies.Tunnel);
         HitTarget.PointerPressed += (_, e) => Orb.Pressed = e.GetCurrentPoint(HitTarget).Properties.IsLeftButtonPressed;
         HitTarget.PointerReleased += (_, _) => Orb.Pressed = false;
         HitTarget.PointerCaptureLost += (_, _) => Orb.Pressed = false;
@@ -62,6 +73,9 @@ internal sealed class VoiceOrbSlot : Decorator
 
     private void Show(VoiceSessionState state, bool hovered, VoiceOrbSettings orb)
     {
+        var ended = lastState is VoiceSessionState.Listening or VoiceSessionState.Processing && state is VoiceSessionState.Landing or VoiceSessionState.Rest;
+        lastState = state;
+        if (ended) GiveKeyboardBack();
         Orb.Kind = orb.Orb;
         Orb.Mode = voice.Mode;
         Orb.Hovered = hovered;
@@ -71,6 +85,15 @@ internal sealed class VoiceOrbSlot : Decorator
         if (orb.OrbSize == shownSize) return;
         shownSize = orb.OrbSize;
         side.Set(orb.OrbSize, SizeSpring);
+    }
+
+    // The session ended: the keyboard goes back to where the press took it from, if the orb's button still has it (the user has not moved on).
+    private void GiveKeyboardBack()
+    {
+        var back = keyboardBefore;
+        keyboardBefore = null;
+        if (back is null || !HitTarget.IsFocused) return;
+        back.Focus();
     }
 
     // The slot's side now: the canvas, the orb centred on it, the hit target round it, and the margins that keep the row 28 high.

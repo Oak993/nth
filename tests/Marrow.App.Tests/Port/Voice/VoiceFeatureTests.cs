@@ -6,14 +6,14 @@ namespace Marrow.App.Tests.Port.Voice;
 public sealed class VoiceFeatureTests
 {
     [Fact] // V-T87
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_feature_is_off_by_default()
     {
         Assert.False(VoiceFeature.Enabled);
     }
 
     [Fact] // V-T87
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void An_override_turns_it_on_for_its_own_flow_only()
     {
         using (VoiceFeature.Switch.Override(new VoiceFeatureSwitch(true)))

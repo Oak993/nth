@@ -9,7 +9,7 @@ namespace Marrow.App.Tests.Port.Voice;
 public sealed class VoiceNotesTests
 {
     [Fact] // V-T83
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Cancelled_says_Voice_input_cancelled_for_1_6_s_with_no_link()
     {
         var note = VoiceNotes.For(VoiceNoteKind.Cancelled)!;
@@ -21,7 +21,7 @@ public sealed class VoiceNotesTests
     }
 
     [Fact] // V-T83
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void No_speech_says_No_speech_was_heard_for_1_6_s_with_no_link()
     {
         var note = VoiceNotes.For(VoiceNoteKind.NoSpeech)!;
@@ -32,7 +32,7 @@ public sealed class VoiceNotesTests
     }
 
     [Fact] // V-T83, OD-0106 (the locked "Microphone blocked" note's shape: the text, then one underlined link)
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Blocked_names_Privacy_and_security_Microphone_as_its_one_link_to_the_Windows_page_for_5_2_s_with_the_warning_mark()
     {
         var note = VoiceNotes.For(VoiceNoteKind.Blocked)!;
@@ -45,7 +45,7 @@ public sealed class VoiceNotesTests
     }
 
     [Fact] // VT-17 builds the other kinds' notes: until then they raise none
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_error_kinds_VT_17_words_have_no_note_yet()
     {
         foreach (var kind in new[] { VoiceNoteKind.NoMicrophone, VoiceNoteKind.CaptureFailed, VoiceNoteKind.ModelLoadFailed, VoiceNoteKind.EngineFailed })
@@ -53,7 +53,7 @@ public sealed class VoiceNotesTests
     }
 
     [Fact] // Q-V-8 A, V-16.3.5
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_privacy_note_of_each_engine_is_the_pages_privacy_line_for_5_s()
     {
         var local = VoiceNotes.Privacy(VoiceEngine.Local);
@@ -70,7 +70,7 @@ public sealed class VoiceNotesTests
     }
 
     [Fact] // V-T84, V-14.5
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_announcements_are_the_designs_exact_strings()
     {
         Assert.Equal("Listening. Your words are written into the composer as you speak. Click the orb again to finish, or press Escape to cancel.", VoiceAnnouncements.Listening);
