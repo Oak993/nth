@@ -22,6 +22,7 @@ public sealed class OrbScene
     private double dpr = 1;
     private double ball;
     private bool dark;
+    private double viewSize = ViewPx;
     private bool laidOut;
 
     public OrbScene(VoiceOrbKind kind, double slotDiameter, bool dark)
@@ -56,7 +57,8 @@ public sealed class OrbScene
         if (fade.Step(input.Kind, dt, input.ReduceMotion)) SwapIn(previous, input.Kind);
         EnsureRuntime(input.Kind);
 
-        var layoutChanged = !laidOut || devicePixelRatio != dpr || motion.Diameter != ball;
+        var layoutChanged = !laidOut || devicePixelRatio != dpr || motion.Diameter != ball || viewSize != input.ViewSize;
+        viewSize = input.ViewSize;
         dpr = devicePixelRatio;
         ball = motion.Diameter;
         laidOut = true;
@@ -72,9 +74,11 @@ public sealed class OrbScene
                 opacities[i] = 0;
                 continue;
             }
-            if (layoutChanged) runtime.Resize(ViewPx, ball, dpr);
+            if (layoutChanged) runtime.Resize(viewSize, ball, dpr);
             if (darkChanged) runtime.SetDark(dark);
-            runtime.Frame(now, motion.FrameState(input.Mode, input.Bands, input.ReduceMotion));
+            runtime.Frame(now, input.TileGlow is { } glow
+                ? new OrbFrameState(Act: 0, Speed: 1, Scale: 1, Glow: glow, ReduceMotion: input.ReduceMotion)
+                : motion.FrameState(input.Mode, input.Bands, input.ReduceMotion));
             opacities[i] = fade.Mix(kind);
         }
     }
@@ -92,5 +96,5 @@ public sealed class OrbScene
     }
 
     private VoiceOrbRuntime Make(VoiceOrbKind kind, double phase) =>
-        new(kind, new VoiceOrbRuntimeOptions(ViewPx, ball, dpr, dark, Phase: phase));
+        new(kind, new VoiceOrbRuntimeOptions(viewSize, ball, dpr, dark, Phase: phase));
 }

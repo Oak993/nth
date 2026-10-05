@@ -2,7 +2,7 @@
 // Typing, Running a turn: session state, bound to PreviewSession). Under it, in the page's column: the pinned block (CZ-3's CustomizationStage: the heading, the preview composer on its stage and the model switch), the Style cards, and
 // the sections of the picked style (Border beam, Uiverse light or Off), each folding open and shut as the style changes. Every setting is the app's composer light (AppSettings.ComposerLight): a change reaches every composer at once.
 // The pinned block is sticky (CZ-6, StickyStageController): it stays at the top of the Settings scroll viewer while the sections of `Sticky` scroll under it, folds its stage as the page scrolls, and lets go when `Sticky` ends.
-// NOT HERE (other units, hooks marked below): the Voice orb section (CZ-7), which belongs before the Working dots section (CZ-5, built here) at the end of `Sticky`, and the Speech section, which belongs in `Rest`, after the point where the pinned block lets go.
+// NOT HERE (other units, hooks marked below): the live voice preview (CZ-7b) and the Speech section, which belongs in `Rest`, after the point where the pinned block lets go.
 using Avalonia;
 using Avalonia.Controls;
 using Marrow.Core.Models.ComposerLights;
@@ -39,6 +39,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
     internal BeamSections? Beam { get; private set; }
     internal AuraSections? Aura { get; private set; }
     internal CzSection? Off { get; private set; }
+    internal VoiceOrbSections? Voice { get; private set; }
     internal WorkingDotsSections? Dots { get; private set; }
     internal CzAdvancedState Advanced { get; } = new();
     internal PreviewSession? Session => session;
@@ -53,7 +54,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Margin = new Thickness(0, -CustomizationStage.TopInset, 0, 0);
         // on attach, in this order: the page is built from the app's model, then it follows the app's settings
         this.Track(() => AppEnvironment.GetAppModel(this), Build);
-        this.Track(() => { var settings = AppEnvironment.GetAppModel(this).Settings; return (Light: settings.ComposerLight, settings.Accent, settings.WorkingDots); }, shown => Apply(shown.Light));
+        this.Track(() => { var settings = AppEnvironment.GetAppModel(this).Settings; return (Light: settings.ComposerLight, settings.Accent, settings.WorkingDots, settings.VoiceOrb, settings.VoiceTyping); }, shown => Apply(shown.Light));
     }
 
     /// <inheritdoc />
@@ -92,6 +93,10 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         foreach (var section in Aura.Sections) Sticky.Children.Add(section);
         Sticky.Children.Add(Off);
 
+        // CZ-7a: the voice rows precede Working dots. CZ-7b subscribes to the session's preview seam.
+        Voice = new VoiceOrbSections(settings, session.VoicePreviewTouched);
+        Sticky.Children.Add(Voice.Section);
+
         // Working dots (CZ-10): after the style's sections; the Voice orb section (CZ-7a) goes before it
         Dots = new WorkingDotsSections(() => settings.WorkingDots, value => settings.WorkingDots = value, () => PreviewMakers.For(session.Maker).Name, session.WorkingDotsTouched);
         Sticky.Children.Add(Dots.Section);
@@ -128,6 +133,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Beam.Apply();
         Aura.Apply();
         Dots?.Apply();
+        Voice?.Apply();
         foreach (var section in Beam.Sections) section.Open = light.Style == ComposerLightStyle.Beam;
         foreach (var section in Aura.Sections) section.Open = light.Style == ComposerLightStyle.Aura;
         Off.Open = light.Style == ComposerLightStyle.Off;

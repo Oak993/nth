@@ -23,7 +23,7 @@ internal sealed class CzRow : Decorator
     internal Control Control { get; }
 
     /// <param name="dimControl">How the control becomes inert and unfocusable (and fades itself); null for a control that has no such state.</param>
-    internal CzRow(string title, string detail, Control control, Action<bool>? dimControl = null)
+    internal CzRow(string title, string detail, Control control, Action<bool>? dimControl = null, bool stacked = false, bool topAligned = false)
     {
         Control = control;
         this.dimControl = dimControl;
@@ -35,13 +35,20 @@ internal sealed class CzRow : Decorator
         Detail.SetValue(SwiftFont.LineBoxProperty, 16.0);
         texts = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Stretch, Children = { Title, Detail } };
         control.HorizontalAlignment = HorizontalAlignment.Right;
-        control.VerticalAlignment = VerticalAlignment.Center;
+        control.VerticalAlignment = topAligned ? VerticalAlignment.Top : VerticalAlignment.Center;
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,16,12,16,Auto"), VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(texts, 0);
         Grid.SetColumn(control, 4);
         grid.Children.Add(texts);
         grid.Children.Add(control);
-        Child = new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = grid };
+        Control body = grid;
+        if (stacked)
+        {
+            grid.Children.Clear();
+            control.HorizontalAlignment = HorizontalAlignment.Left;
+            body = new StackPanel { Spacing = 8, Children = { texts, control } };
+        }
+        Child = new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = body };
         textOpacity = new CzNumber(new CzMotion(this), 1, v => texts.Opacity = v);
         Avalonia.Automation.AutomationProperties.SetName(this, title);
     }

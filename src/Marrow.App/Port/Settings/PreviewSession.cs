@@ -51,6 +51,13 @@ internal sealed class PreviewSession
     /// </summary>
     internal event Action? VoiceDemoCancelRequested;
 
+    /// <summary>CZ-7a → CZ-7b seam. The key changed in voiceOrb; null delay means update the preview without replay,
+    /// zero means replay from Rest at once, 200 ms means relabel an open pill then replay (labels). The stage reads the
+    /// current settings; it owns demo scheduling, cancellation and rendering, including replacement of a pending replay.</summary>
+    internal event Action<string, TimeSpan?>? VoicePreviewChangeRequested;
+
+    internal void VoicePreviewTouched(string key, TimeSpan? replayAfter) => VoicePreviewChangeRequested?.Invoke(key, replayAfter);
+
     /// <summary>CZ-4.6, CZ-10.2: touching any Working dots control cancels the voice demo and switches the pick to Running a turn.</summary>
     internal void WorkingDotsTouched()
     {

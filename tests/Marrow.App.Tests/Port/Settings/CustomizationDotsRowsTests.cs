@@ -174,7 +174,9 @@ public sealed class CustomizationDotsRowsTests(HeadlessSession headless)
         using var rig = new CustomizationPageRig(reduceMotion: true);
         var page = rig.Page;
         var sections = page.Sticky.Children.OfType<CzSection>().ToList();
-        Assert.Same(page.Off, sections[^2]);
+        Assert.Same(page.Off, sections[^3]);
+        Assert.Same(page.Voice!.Section, sections[^2]);
+        Assert.Equal("Voice orb", sections[^2].Title);
         Assert.Same(page.Dots!.Section, sections[^1]);
         Assert.Equal("Working dots", sections[^1].Title);
         Assert.Equal(1, sections[^1].Fraction);
