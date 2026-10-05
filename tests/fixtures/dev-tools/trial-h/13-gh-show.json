@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "13-gh-show",
+  "commandLine": "winget show --id GitHub.cli -e --source winget --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "show",
+    "--id",
+    "GitHub.cli",
+    "-e",
+    "--source",
+    "winget",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Found GitHub CLI [GitHub.cli]\r\nVersion: 2.102.0\r\nPublisher: GitHub, Inc.\r\nPublisher Url: https://github.com/home/\r\nPublisher Support Url: https://support.github.com/\r\nMoniker: gh\r\nDescription: GitHub CLI (gh) is a command-line tool that brings pull requests, issues, GitHub Actions, and other GitHub features to your terminal, so you can do all your work in one place.\r\nHomepage: https://cli.github.com/\r\nLicense: MIT\r\nLicense Url: https://github.com/cli/cli/blob/HEAD/LICENSE\r\nPrivacy Url: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement\r\nCopyright: Copyright (c) 2019 GitHub Inc.\r\nCopyright Url: https://github.com/cli/cli/blob/HEAD/LICENSE\r\nRelease Notes:\r\n  Security\r\n  Four security vulnerabilities have been identified, and fixed, in this release. Users are advised to update gh to version v2.102.0 as soon as possible.\r\n  gh release download, gh run download, gh repo read-file --output, and gh attestation download could write remote content to an unintended local file when the destination contained symbolic links.\r\n  See https://github.com/cli/cli/security/advisories/GHSA-39wj-f2f4-978v for more information.\r\n  gh attestation verify compared the --source-ref value case-insensitively, so an attestation built from a branch whose name differs only in case could satisfy a policy that named a different branch.\r\n  See https://github.com/cli/cli/security/advisories/GHSA-4mq3-hpgx-9cx8 for more information.\r\n  Interactive gh skill search passed repository paths from search results to gh skill install without an option separator, so a search result could inject installer options and change where skill files were written.\r\n  See https://github.com/cli/cli/security/advisories/GHSA-qcwj-mr2r-2cx7 for more information.\r\n  gh attestation verify matched the --signer-workflow value against only the start of the signing certificate's identity, so an attestation signed by a different workflow in the pinned repository could pass verification when its path began with the pinned value.\r\n  See https://github.com/cli/cli/security/advisories/GHSA-wjmr-j3rp-mh2g for more information.\r\n  \r\n  What's Changed\r\n  \r\n  🐛 Fixes\r\n  - Allow ghu_ tokens for supported actors to attach files by @BagToad in #14516\r\n  - Allow repo set-default --unset without an argument by @williammartin in #14540\r\n  \r\n  📚 Docs & Chores\r\n  - Prioritize HackerOne for vulnerability reports by @BagToad in #14497\r\n  - Clarify reviewer-facing PR guidance by @williammartin in #14509\r\n  - Add a skill for chaptered CLI recordings by @BagToad in #14475\r\n  - Improve CLI recording rendering by @williammartin in #14507\r\n  - Mention gh CLI in the README intro by @BagToad in #14517\r\n  - Document search operator support in gh search help by @waldyrious in #14519\r\n  - Remove host versions from gh project item-list help by @BagToad in #14553\r\n  \r\n  Dependencies\r\n  - chore(deps): bump the codeql-actions group with 3 updates by @dependabot in #14486\r\n  - chore(deps): bump nodeselector/setup-apple-codesign from 0.0.2 to 0.0.3 by @dependabot in #14487\r\n  - chore(deps): bump charm.land/bubbletea/v2 from 2.0.9 to 2.0.10 by @dependabot in #14541\r\n  - chore(deps): bump github.com/klauspost/compress from 1.20.0 to 1.20.1 by @dependabot in #14542\r\n  - chore(deps): bump the codeql-actions group with 3 updates by @dependabot in #14543\r\nRelease Notes Url: https://github.com/cli/cli/releases/tag/v2.102.0\r\nDocumentation:\r\n  GitHub Docs: https://docs.github.com/github-cli/github-cli/\r\n  Manual: https://cli.github.com/manual/\r\n  Repository: https://github.com/cli/cli\r\nTags:\r\n  cli\r\n  command-line\r\n  enterprise\r\n  foss\r\n  git\r\n  github\r\n  open-source\r\n  terminal\r\n  tool\r\n  utility\r\n  workflow\r\nInstaller:\r\n  Installer Type: wix\r\n  Installer Url: https://github.com/cli/cli/releases/download/v2.102.0/gh_2.102.0_windows_amd64.msi\r\n  Installer SHA256: 7944b579d76359e5b859a263bf63583e271ae3fbd427ae46e133c1f348b46371\r\n  Release Date: 2026-09-30\r\n  Offline Distribution Supported: true\r\n",
+  "stderr": "",
+  "durationMs": 354.5392,
+  "versionsBefore": null,
+  "versionsAfter": null,
+  "timestamp": "2026-10-05T15:26:12.1869947+00:00",
+  "finishedAt": "2026-10-05T15:26:12.5431213+00:00"
+}

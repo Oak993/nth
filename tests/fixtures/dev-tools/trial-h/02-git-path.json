@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "02-git-path",
+  "commandLine": "where.exe git",
+  "executable": "where.exe",
+  "arguments": [
+    "git"
+  ],
+  "exitCode": 0,
+  "stdout": "C:\\Program Files\\Git\\cmd\\git.exe\r\n%USERPROFILE%\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\git\\cmd\\git.exe\r\n",
+  "stderr": "",
+  "durationMs": 69.8783,
+  "versionsBefore": "2.54.0.windows.1",
+  "versionsAfter": "2.54.0.windows.1",
+  "timestamp": "2026-10-05T15:24:58.9703581+00:00",
+  "finishedAt": "2026-10-05T15:24:59.0511258+00:00"
+}

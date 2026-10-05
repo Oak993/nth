@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "name": "12-gh-list",
+  "commandLine": "winget list --id GitHub.cli -e --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "list",
+    "--id",
+    "GitHub.cli",
+    "-e",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": -1978335212,
+  "stdout": "No installed package found matching input criteria.\r\n",
+  "stderr": "",
+  "durationMs": 1002.0097,
+  "versionsBefore": null,
+  "versionsAfter": null,
+  "timestamp": "2026-10-05T15:26:11.1786128+00:00",
+  "finishedAt": "2026-10-05T15:26:12.1816576+00:00"
+}

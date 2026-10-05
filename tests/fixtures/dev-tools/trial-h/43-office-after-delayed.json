@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "43-office-after-delayed",
+  "commandLine": "powershell.exe -NoProfile -Command \"$keys = @(\\\"HKLM:\\SOFTWARE\\Microsoft\\Office\\ClickToRun\\Configuration\\\", \\\"HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Office\\ClickToRun\\Configuration\\\"); foreach($k in $keys){ if(Test-Path $k){ $c=Get-ItemProperty $k; $exe=Join-Path ${env:CommonProgramFiles} \\\"Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe\\\"; [pscustomobject]@{RegistryPath=$k;VersionToReport=$c.VersionToReport;ClientVersionToReport=$c.ClientVersionToReport;UpdateChannel=$c.UpdateChannel;CDNBaseUrl=$c.CDNBaseUrl;AudienceId=$c.AudienceId;UpdatesEnabled=$c.UpdatesEnabled;Platform=$c.Platform;ProductReleaseIds=$c.ProductReleaseIds;ClientPath=$exe;ClientExists=(Test-Path $exe)} | ConvertTo-Json -Compress }}\"",
+  "executable": "powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-Command",
+    "$keys = @(\"HKLM:\\SOFTWARE\\Microsoft\\Office\\ClickToRun\\Configuration\", \"HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Office\\ClickToRun\\Configuration\"); foreach($k in $keys){ if(Test-Path $k){ $c=Get-ItemProperty $k; $exe=Join-Path ${env:CommonProgramFiles} \"Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe\"; [pscustomobject]@{RegistryPath=$k;VersionToReport=$c.VersionToReport;ClientVersionToReport=$c.ClientVersionToReport;UpdateChannel=$c.UpdateChannel;CDNBaseUrl=$c.CDNBaseUrl;AudienceId=$c.AudienceId;UpdatesEnabled=$c.UpdatesEnabled;Platform=$c.Platform;ProductReleaseIds=$c.ProductReleaseIds;ClientPath=$exe;ClientExists=(Test-Path $exe)} | ConvertTo-Json -Compress }}"
+  ],
+  "exitCode": 0,
+  "stdout": "{\"RegistryPath\":\"HKLM:\\\\SOFTWARE\\\\Microsoft\\\\Office\\\\ClickToRun\\\\Configuration\",\"VersionToReport\":\"16.0.20430.20092\",\"ClientVersionToReport\":\"16.0.20430.20092\",\"UpdateChannel\":\"http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60\",\"CDNBaseUrl\":\"http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60\",\"AudienceId\":\"492350f6-3a01-4f97-b9c0-c7c6ddf67d60\",\"UpdatesEnabled\":null,\"Platform\":\"x64\",\"ProductReleaseIds\":\"ProPlus2024Retail\",\"ClientPath\":\"C:\\\\Program Files\\\\Common Files\\\\Microsoft Shared\\\\ClickToRun\\\\OfficeC2RClient.exe\",\"ClientExists\":true}\r\n",
+  "stderr": "",
+  "durationMs": 423.2978,
+  "versionsBefore": "16.0.20430.20092",
+  "versionsAfter": "16.0.20430.20092",
+  "timestamp": "2026-10-05T15:33:00.9759488+00:00",
+  "finishedAt": "2026-10-05T15:33:01.4213370+00:00"
+}
