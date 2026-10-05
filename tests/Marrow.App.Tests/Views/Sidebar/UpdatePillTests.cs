@@ -243,7 +243,12 @@ public sealed class UpdatePillTests(HeadlessSession headless)
             gate.SetResult();
             harness.Main.RunUntilIdle();
             Tick(harness, frames, 1500);
-            harness.Main.OnMain(() => Assert.False(PillOf(view).IsShown)); // everything current, nothing to restart: the pill goes
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(PillOf(view).IsShown); // nothing to restart: the design's done phase stays until it has been seen
+                Assert.Equal("2 updated", PillOf(view).LabelText);
+                Assert.Equal(1, PillOf(view).LeadOpacity(UpdatePillPhase.Done), 3);
+            });
         }
         finally { harness.Main.OnMain(() => Close(view)); }
     });
@@ -316,7 +321,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
             var shown = Assert.Single(recorder.Calls, c => c.Presented);
             Assert.Same(PillOf(view).Popover, shown.Popup);
             Assert.Same(PillOf(view).Button, shown.Popup.PlacementTarget);
-            Assert.Equal(PlacementMode.Top, shown.Popup.Placement);
+            Assert.Equal(PlacementMode.TopEdgeAlignedLeft, shown.Popup.Placement); // the card's left edge on the pill's, as the page draws it (.dpop left 14 px)
             Assert.True(shown.Popup.IsLightDismissEnabled);
             harness.Main.OnMain(() => PillOf(view).Button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)));
             harness.Main.RunUntilIdle();
@@ -378,9 +383,10 @@ public sealed class UpdatePillTests(HeadlessSession headless)
                 Assert.Contains("3 updates available", texts);
                 Assert.Contains("Claude Code 2.1.290, Codex 0.160.0 and Marrow 1.1.0.", texts);
                 var rows = content.RowViews.ToArray();
-                Assert.Equal(["Claude Code", "Codex", "OpenCode", "Gone", "Marrow"], rows.Select(r => r.NameText));
-                Assert.Equal(["2.1.283 → 2.1.290", "0.157.1 → 0.160.0", "1.4.2", "1.0", "1.0.0 → 1.1.0"], rows.Select(r => r.VersionsText));
-                Assert.Equal(["Update available", "Update available", "Up to date", "Up to date", "Update available"], rows.Select(r => r.StatusText));
+                Assert.Equal(["Marrow", "Claude Code", "Codex", "OpenCode", "Gone"], rows.Select(r => r.NameText)); // Marrow first, as the page lists it
+                Assert.Equal(["1.0.0 → 1.1.0", "2.1.283 → 2.1.290", "0.157.1 → 0.160.0", "1.4.2", "1.0"], rows.Select(r => r.VersionsText));
+                Assert.Equal(["Update available", "Update available", "Update available", "Up to date", "Up to date"], rows.Select(r => r.StatusText));
+                Assert.Equal(["The app", "", "", "", ""], rows.Select(r => r.SubText)); // ids that are not a provider CLI's have no command to show
                 var button = LogicalQuery.SelfAndDescendants<Button>(content.ActionControl!).Single();
                 Assert.Equal("Update everything", AutomationProperties.GetName(button));
                 Assert.Null(content.Banner);
@@ -437,7 +443,11 @@ public sealed class UpdatePillTests(HeadlessSession headless)
             Tick(harness, frames, 1500);
             harness.Main.OnMain(() =>
             {
-                Assert.False(PillOf(view).IsShown); // everything current and nothing to restart: the pill goes, and the card with it
+                Assert.True(PillOf(view).IsShown); // the done phase stays: "N updated" in the pill and in the card
+                Assert.Equal("2 updated", PillOf(view).LabelText);
+                Assert.Contains("2 updated", LogicalQuery.SelfAndDescendants<TextBlock>(content).Where(t => t.Opacity > 0.5).Select(t => t.Text));
+                Assert.Contains("Updated Claude Code and Codex.", LogicalQuery.SelfAndDescendants<TextBlock>(content).Where(t => t.Opacity > 0.5).Select(t => t.Text));
+                Assert.Equal("Updated", content.RowViews.Single(r => r.Id == "x").StatusText);
                 Close(content);
             });
         }
@@ -487,7 +497,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 Assert.Equal(2, codex.Updates);
-                Assert.False(PillOf(view).IsShown);
+                Assert.Equal("2 updated", PillOf(view).LabelText);
                 Close(content);
             });
         }

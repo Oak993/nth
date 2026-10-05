@@ -94,7 +94,17 @@ public sealed class UpdateEverythingService : MainActorModel
             case UpdatePillAction.RestartMarrow:
                 restart();
                 break;
+            case UpdatePillAction.CheckNow:
+                MainActor.Spawn(async () => await CheckNow());
+                break;
         }
+    }
+
+    /// <summary>The user has seen the done phase (its popover was closed): the pill leaves until the next run.</summary>
+    public void AcknowledgeDone()
+    {
+        projector.Acknowledge();
+        Refresh();
     }
 
     private void Start(Func<UpdateOrchestrator, Task> run)

@@ -16,7 +16,7 @@ namespace Marrow.App.Port.Updates;
 /// <summary>
 /// The popover that opens from the pill: a header with the run's summary line, its detail line and the one button ("Update everything", "Updating…", "Restart Marrow" or "Retry"), the failure
 /// banner while an item failed, and a row for each installed item with its versions, its status and, while it updates, its bar. It reads <see cref="UpdateEverythingService.State"/> and
-/// follows it: every change is transitioned (OD-0076), the words crossfade, rows and the banner arrive and leave, bars ease, and the card eases to its new size. ENGINEERING DECISIONS
+/// follows it: every change is transitioned (OD-0076), the words crossfade, rows and the banner arrive and leave, bars ease, and the card follows the folds frame by frame. ENGINEERING DECISIONS
 /// (ED-NEW-f-ue-5): the card is 440 pt wide as the design page draws it; a state with no pill (Hidden) leaves the card as it was, since the pill closes it.
 /// </summary>
 internal sealed class UpdatePopoverContent : Decorator
@@ -24,16 +24,16 @@ internal sealed class UpdatePopoverContent : Decorator
     public const double CardWidth = 440;
 
     private readonly UpdateEverythingService service;
-    private readonly SizeSlot slot;
     private readonly OpacityCrossfade title = new();
     private readonly OpacityCrossfade detail = new();
     private readonly OpacityCrossfade action = new();
-    private readonly Panel bannerHost = new();
+    private readonly UpdateFold bannerHost = new();
     private readonly StackPanel rowsPanel = new() { Orientation = Orientation.Vertical };
     private readonly ForEach<UpdatePillRow, string> rows;
     private UpdatePillState? shown;
     private string? actionKey;
     private Control? banner;
+    private bool bannerWanted;
     private OpacityCrossfade? bannerTitle;
     private OpacityCrossfade? bannerText;
 
@@ -60,8 +60,7 @@ internal sealed class UpdatePopoverContent : Decorator
             Padding = new Thickness(0, 12, 0, 6),
             Child = new StackPanel { Orientation = Orientation.Vertical, Children = { header, bannerHost, rowsPanel } },
         };
-        slot = new SizeSlot(body);
-        Child = slot;
+        Child = body;
         AutomationProperties.SetName(this, "Updates");
 
         var primed = false;
@@ -82,18 +81,20 @@ internal sealed class UpdatePopoverContent : Decorator
     /// <summary>The button on show (null while the card has not been given a state).</summary>
     internal Control? ActionControl => action.Current;
 
-    internal Control? Banner => banner;
+    internal Control? Banner => bannerWanted ? banner : null;
+
+    /// <summary>How far the banner's fold is open now (0 shut, 1 whole).</summary>
+    internal double BannerFold => bannerHost.Amount;
 
     private void Apply(UpdatePillState state, Animation? animation)
     {
         shown = state;
-        if (animation is not null) slot.Note(Chrome.PanelSlide);
         Transaction.WithAnimation(animation, () =>
         {
             Show(title, state.Title, 13, SwiftFont.Weight.Semibold, Chrome.PrimaryText);
             Show(detail, state.Detail, 11, SwiftFont.Weight.Regular, Chrome.SecondaryText, wraps: true);
             ShowAction(state);
-            ShowBanner(state);
+            ShowBanner(state, animation);
             rows.Apply(state.Rows);
         });
     }
@@ -116,16 +117,14 @@ internal sealed class UpdatePopoverContent : Decorator
         action.Show(SmallAccentGlassButton.Create(state.ButtonText, () => service.Perform(act), state.ButtonEnabled));
     }
 
-    private void ShowBanner(UpdatePillState state)
+    private void ShowBanner(UpdatePillState state, Animation? animation)
     {
         if (state.BannerTitle is null)
         {
-            if (banner is { } leaving)
+            if (bannerWanted)
             {
-                SwiftTransition.Remove(bannerHost, leaving);
-                banner = null;
-                bannerTitle = null;
-                bannerText = null;
+                bannerWanted = false;
+                bannerHost.Set(false, animation); // the card keeps the words while it folds shut
             }
             return;
         }
@@ -142,7 +141,12 @@ internal sealed class UpdatePopoverContent : Decorator
             card.Background = Chrome.Orange.Opacity(0.16).Brush(card);
             AutomationProperties.SetName(card, state.BannerTitle);
             banner = card;
-            SwiftTransition.Insert(bannerHost, 0, card);
+            bannerHost.Child = card;
+        }
+        if (!bannerWanted)
+        {
+            bannerWanted = true;
+            bannerHost.Set(true, animation);
         }
         Show(bannerTitle!, state.BannerTitle, 12, SwiftFont.Weight.Semibold, Chrome.PrimaryText);
         Show(bannerText!, state.BannerText ?? "", 11.5, SwiftFont.Weight.Regular, Chrome.PrimaryText, wraps: true);
@@ -158,6 +162,7 @@ internal sealed class UpdateRowView : Decorator
     private const double BarSlot = 9; // the 3 pt bar and the 6 pt gap above it
 
     private readonly OpacityCrossfade name = new();
+    private readonly OpacityCrossfade sub = new();
     private readonly OpacityCrossfade versions = new();
     private readonly OpacityCrossfade status = new();
     private readonly OpacityCrossfade glyph = new();
@@ -183,17 +188,17 @@ internal sealed class UpdateRowView : Decorator
         var statusLine = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Children = { glyph, status } };
         versions.Margin = new Thickness(10, 0, 14, 0);
         versions.VerticalAlignment = VerticalAlignment.Center;
+        var words = new StackPanel { Orientation = Orientation.Vertical, Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { name, sub } };
         var line = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("22,*,Auto,Auto"),
             ColumnSpacing = 8,
-            Children = { chip, name, versions, statusLine },
+            Children = { chip, words, versions, statusLine },
         };
         Grid.SetColumn(chip, 0);
-        Grid.SetColumn(name, 1);
+        Grid.SetColumn(words, 1);
         Grid.SetColumn(versions, 2);
         Grid.SetColumn(statusLine, 3);
-        name.VerticalAlignment = VerticalAlignment.Center;
 
         barHost.Child = new Border { Margin = new Thickness(30, 6, 0, 0), Child = bar };
         fold = new AnimatedScalar(this, 0, value => barHost.Height = BarSlot * value);
@@ -212,6 +217,8 @@ internal sealed class UpdateRowView : Decorator
 
     internal string? VersionsText => (versions.Current as TextBlock)?.Text;
 
+    internal string? SubText => (sub.Current as TextBlock)?.Text;
+
     internal string? NameText => (name.Current as TextBlock)?.Text;
 
     /// <summary>Whether the bar's slot is open (or opening).</summary>
@@ -225,6 +232,7 @@ internal sealed class UpdateRowView : Decorator
         Transaction.WithAnimation(animation, () =>
         {
             Text(name, row.Title, 13, SwiftFont.Weight.Medium, Chrome.PrimaryText);
+            Text(sub, row.Subtitle ?? "", 11, SwiftFont.Weight.Regular, Chrome.SecondaryText);
             Text(versions, VersionLine(row), 11, SwiftFont.Weight.Regular, Chrome.SecondaryText);
             var color = StatusColor(row);
             Text(status, row.Status, 11.5, row.State is UpdateRowState.UpdateAvailable or UpdateRowState.Failed || row.Status == "Restart to finish" ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular, color);
@@ -232,6 +240,7 @@ internal sealed class UpdateRowView : Decorator
         });
         var open = row.State == UpdateRowState.Updating;
         BarOpen = open;
+        bar.Active = open;
         bar.Set(open ? row.Progress : null, animation);
         fold.Set(open ? 1 : 0, animation);
         AutomationProperties.SetName(this, $"{row.Title}, {row.Status}");
@@ -299,5 +308,45 @@ internal sealed class UpdateRowView : Decorator
         if (words.Length == 0) return "";
         if (words.Length >= 2) return string.Concat(char.ToUpperInvariant(words[0][0]), char.ToUpperInvariant(words[1][0]));
         return words[0].Length == 1 ? words[0].ToUpperInvariant() : string.Concat(char.ToUpperInvariant(words[0][0]), words[0][1]);
+    }
+}
+
+/// <summary>
+/// A block whose height folds open and shut (the design page's `fold`): its content is laid out at its own height and the block is as tall as the fold has got to, clipped, with the
+/// content's opacity following. The failure banner arrives and leaves through one, so the card around it grows frame by frame instead of jumping (OD-0076).
+/// </summary>
+internal sealed class UpdateFold : Decorator
+{
+    private readonly AnimatedScalar open;
+    private double amount;
+
+    public UpdateFold()
+    {
+        ClipToBounds = true;
+        open = new AnimatedScalar(this, 0, value =>
+        {
+            amount = Math.Clamp(value, 0, 1);
+            if (Child is { } child) child.Opacity = amount;
+            InvalidateMeasure();
+        });
+    }
+
+    /// <summary>How far open the fold is now, 0 to 1.</summary>
+    public double Amount => amount;
+
+    public void Set(bool shown, Animation? animation) => open.Set(shown ? 1 : 0, animation);
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (Child is not { } child) return default;
+        child.Opacity = amount;
+        child.Measure(new Size(availableSize.Width, double.PositiveInfinity));
+        return new Size(child.DesiredSize.Width, child.DesiredSize.Height * amount);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        Child?.Arrange(new Rect(0, 0, finalSize.Width, Child.DesiredSize.Height));
+        return finalSize;
     }
 }

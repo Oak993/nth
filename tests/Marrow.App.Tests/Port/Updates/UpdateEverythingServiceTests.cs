@@ -130,7 +130,26 @@ public sealed class UpdateEverythingServiceTests
         Settle(runtime);
         Assert.Equal(2, codex.Updates);
         Assert.Equal(1, claude.Updates); // the retry ran the failed one only
-        Assert.Equal(UpdatePillPhase.Hidden, runtime.OnMain(() => service.State.Phase)); // everything is current and none needs a restart
+        var done = runtime.OnMain(() => service.State);
+        Assert.Equal(UpdatePillPhase.Done, done.Phase); // everything is current and none needs a restart: the design's done phase
+        Assert.Equal("2 updated", done.PillText);
+        runtime.OnMain(service.AcknowledgeDone);
+        Assert.Equal(UpdatePillPhase.Hidden, runtime.OnMain(() => service.State.Phase)); // seen
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-308")]
+    public void The_done_phases_button_checks_again_and_a_check_that_finds_everything_current_ends_it()
+    {
+        using var runtime = new TestRuntime();
+        var service = runtime.OnMain(() => new UpdateEverythingService([Cli("c", "Claude Code")], () => { }));
+        runtime.OnMain(() => service.CheckNow());
+        runtime.OnMain(() => service.Perform(UpdatePillAction.UpdateEverything));
+        Settle(runtime);
+        Assert.Equal(UpdatePillAction.CheckNow, runtime.OnMain(() => service.State.Action));
+        runtime.OnMain(() => service.Perform(UpdatePillAction.CheckNow));
+        Settle(runtime);
+        Assert.Equal(UpdatePillPhase.Hidden, runtime.OnMain(() => service.State.Phase));
     }
 
     [Fact]

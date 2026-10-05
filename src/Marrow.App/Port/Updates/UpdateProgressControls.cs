@@ -73,7 +73,7 @@ internal sealed class UpdateRing : Control
 
 /// <summary>
 /// A row's bar in the popover: a 3 pt capsule track under an accent fill. With a value the fill eases to it; with none (a CLI's own updater reports no progress and the design page says
-/// no percentage is invented) a short fill sweeps across the track on the frame clock until it has a value or leaves the screen.
+/// no percentage is invented) a short fill sweeps across the track on the frame clock while the bar is <see cref="Active"/>; under reduce motion it stands still at a third of the track.
 /// </summary>
 internal sealed class UpdateProgressBar : Control
 {
@@ -108,10 +108,37 @@ internal sealed class UpdateProgressBar : Control
     /// <summary>The value the bar is going to; null while the amount is not known.</summary>
     public double? Target { get; private set; }
 
+    /// <summary>The bar is on show (its row is updating): only then does an unknown amount sweep. A row that is not updating takes no frames.</summary>
+    public bool Active
+    {
+        get => active;
+        set
+        {
+            active = value;
+            if (!value) CancelWait();
+            Request();
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>The share of the track an unknown amount shows under reduce motion: a still fill, not a sweep.</summary>
+    public const double StillShare = 0.33;
+
+    private bool active;
+
+    private bool Still => EnvironmentValues.GetAccessibilityReduceMotion(this) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+
+    /// <summary>Whether the bar is asking for frames.</summary>
+    internal bool IsSweeping => waiting;
+
     public void Set(double? target, Animation? animation)
     {
         Target = target is { } t ? Math.Clamp(t, 0, 1) : null;
-        if (Target is { } known) value.Set(known, animation);
+        if (Target is { } known)
+        {
+            CancelWait(); // a known amount needs no sweep
+            value.Set(known, animation);
+        }
         else Request();
         InvalidateVisual();
     }
@@ -126,14 +153,19 @@ internal sealed class UpdateProgressBar : Control
 
     private void Stop()
     {
+        CancelWait();
+        source = null;
+    }
+
+    private void CancelWait()
+    {
         if (waiting) source?.CancelFrame(frame);
         waiting = false;
-        source = null;
     }
 
     private void Request()
     {
-        if (source is null || waiting || Target is not null) return;
+        if (source is null || waiting || Target is not null || !active || Still) return;
         try
         {
             source.RequestFrame(frame);
@@ -162,6 +194,12 @@ internal sealed class UpdateProgressBar : Control
         if (Target is { } known)
         {
             if (known > 0) context.DrawRectangle(fill, null, new RoundedRect(new Rect(0, 0, Math.Max(TrackHeight, width * value.Value), TrackHeight), TrackHeight / 2));
+            return;
+        }
+        if (!active) return;
+        if (Still)
+        {
+            context.DrawRectangle(fill, null, new RoundedRect(new Rect(0, 0, width * StillShare, TrackHeight), TrackHeight / 2));
             return;
         }
         // The sweep: a fill SweepShare of the track long, entering from the left edge and leaving by the right.

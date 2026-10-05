@@ -16,7 +16,7 @@ namespace Marrow.App.Port.Updates;
 
 /// <summary>
 /// The update pill (OD-0100 pick: place D). A glass capsule above the Settings rows, present only while something is out of date, running, failed or waiting for a restart
-/// (<see cref="UpdatePillPhase"/>); its lead mark is a dot (updates waiting), the run's progress ring, the restart mark or the warning mark; its words are the U1 set. A press opens
+/// (<see cref="UpdatePillPhase"/>); its lead mark is a dot (updates waiting), the run's progress ring, the restart mark, the done check or the warning mark; its words are the U1 set. A press opens
 /// <see cref="UpdatePopoverContent"/> on a popover above it. SOURCE FACT (design page, D): 34 pt high, 17 pt corner, 12.5 pt medium words, an 18 pt lead 8 pt from the words, 10 pt
 /// before the lead and 14 pt after the words. It arrives and leaves by easing its height (the sidebar's list moves with it), opacity, 8 pt of rise and a 0.94 scale (OD-0076); a
 /// change of words crossfades and the capsule's width eases (the design page's `width .32s`). ENGINEERING DECISIONS (ED-NEW-f-ue-5): 6 pt between the pill and the row below it;
@@ -97,8 +97,9 @@ public sealed class UpdatePill : Decorator
         dot.Fill = Chrome.Accent.Brush(dot);
         var restart = SwiftImage.SystemName("arrow.clockwise").Font(SwiftFont.System(12, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent);
         var warning = SwiftImage.SystemName("exclamationmark.triangle.fill").Font(SwiftFont.System(13, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.Orange);
+        var done = SwiftImage.SystemName("checkmark.circle.fill").Font(SwiftFont.System(13, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759));
         var lead = new Grid { Width = UpdateRing.Size, Height = UpdateRing.Size, VerticalAlignment = VerticalAlignment.Center };
-        foreach (var (phase, view) in new (UpdatePillPhase, Control)[] { (UpdatePillPhase.Available, dot), (UpdatePillPhase.Running, ring), (UpdatePillPhase.Restart, restart), (UpdatePillPhase.Failed, warning) })
+        foreach (var (phase, view) in new (UpdatePillPhase, Control)[] { (UpdatePillPhase.Available, dot), (UpdatePillPhase.Running, ring), (UpdatePillPhase.Restart, restart), (UpdatePillPhase.Failed, warning), (UpdatePillPhase.Done, done) })
         {
             var captured = view;
             view.HorizontalAlignment = HorizontalAlignment.Center;
@@ -124,7 +125,7 @@ public sealed class UpdatePill : Decorator
         face.RenderTransformOrigin = new RelativePoint(0, 0.5, RelativeUnit.Relative);
 
         var binding = new Binding<bool>(() => state.Presented, value => state.Presented = value);
-        popup = PlainControls.Popover(button, binding, () => new UpdatePopoverContent(this.service), PlacementMode.Top, buildBeforeOpen: !nested);
+        popup = PlainControls.Popover(button, binding, () => new UpdatePopoverContent(this.service), PlacementMode.TopEdgeAlignedLeft, buildBeforeOpen: !nested);
 
         slot.Child = new Panel { Children = { face, popup } };
         Child = slot;
@@ -136,6 +137,13 @@ public sealed class UpdatePill : Decorator
         });
 
         this.Track(() => this.service.State, Apply);
+        // The done phase stays until it has been seen: closing the popover after it is the user's acknowledgement (the page's "later").
+        var wasPresented = false;
+        this.Track(() => state.Presented, presented =>
+        {
+            if (wasPresented && !presented && last is { Phase: UpdatePillPhase.Done }) this.service.AcknowledgeDone();
+            wasPresented = presented;
+        });
     }
 
     /// <summary>The button the pill is, for a press.</summary>
