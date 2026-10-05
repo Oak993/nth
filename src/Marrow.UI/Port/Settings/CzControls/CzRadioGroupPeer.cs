@@ -7,6 +7,6 @@ public sealed class CzRadioGroupPeer(CzRadioGroup owner) : ControlAutomationPeer
 {
     protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Group;
     public bool CanSelectMultiple => false;
-    public bool IsSelectionRequired => true;
+    public bool IsSelectionRequired => owner.SelectedId.Length > 0;
     public IReadOnlyList<AutomationPeer> GetSelection() => owner.Buttons.Where(b => b.Picked).Select(b => ControlAutomationPeer.CreatePeerForElement(b)!).ToArray();
 }

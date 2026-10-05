@@ -1,0 +1,258 @@
+{
+  "source": "porting/first-release/design-src/customization/cz.js",
+  "constants": {
+    "maxCompaction": 92,
+    "exactRange": 72,
+    "tau": 0.06,
+    "colkDivisor": 92,
+    "chatFade": 1.8,
+    "chatLift": 14,
+    "stageRest": 212,
+    "hairlineOffset": 4,
+    "hairlineSeconds": 0.25,
+    "scrollPaddingTop": 290,
+    "gapBelow": 2
+  },
+  "traces": [
+    {
+      "name": "wheel down then up",
+      "reduce": false,
+      "dt": 0.016666666666666666,
+      "frames": [
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 30,
+          "col": 30,
+          "colk": 0.3261,
+          "room": 30
+        },
+        {
+          "top": 60,
+          "col": 60,
+          "colk": 0.6522,
+          "room": 60
+        },
+        {
+          "top": 92,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 150,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 400,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 92,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 60,
+          "col": 60,
+          "colk": 0.6522,
+          "room": 60
+        },
+        {
+          "top": 30,
+          "col": 30,
+          "colk": 0.3261,
+          "room": 30
+        },
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        }
+      ]
+    },
+    {
+      "name": "step of 72",
+      "reduce": false,
+      "dt": 0.016666666666666666,
+      "frames": [
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 72,
+          "col": 72,
+          "colk": 0.7826,
+          "room": 72
+        },
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        }
+      ]
+    },
+    {
+      "name": "jump from rest at 60 Hz",
+      "reduce": false,
+      "dt": 0.016666666666666666,
+      "frames": [
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 300,
+          "col": 22.313208187479088,
+          "colk": 0.2425,
+          "room": 22.31
+        },
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        }
+      ]
+    },
+    {
+      "name": "jump from rest at 120 Hz",
+      "reduce": false,
+      "dt": 0.008333333333333333,
+      "frames": [
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 300,
+          "col": 11.930125223328066,
+          "colk": 0.1297,
+          "room": 11.93
+        },
+        {
+          "top": 300,
+          "col": 22.313208187479084,
+          "colk": 0.2425,
+          "room": 22.31
+        },
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        }
+      ]
+    },
+    {
+      "name": "jump back at 60 Hz",
+      "reduce": false,
+      "dt": 0.016666666666666666,
+      "frames": [
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 0,
+          "col": 69.68679181252091,
+          "colk": 0.7575,
+          "room": 69.69
+        },
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        }
+      ]
+    },
+    {
+      "name": "reduce motion",
+      "reduce": true,
+      "dt": 0.016666666666666666,
+      "frames": [
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        },
+        {
+          "top": 10,
+          "col": 10,
+          "colk": 0.1087,
+          "room": 10
+        },
+        {
+          "top": 0,
+          "col": 0,
+          "colk": 0,
+          "room": 0
+        },
+        {
+          "top": 300,
+          "col": 92,
+          "colk": 1,
+          "room": 92
+        }
+      ]
+    }
+  ]
+}

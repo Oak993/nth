@@ -30,11 +30,16 @@ public sealed class CustomizationPageRig : IDisposable
     internal CustomizationSettingsPage Page { get; }
     public HostWindow Window { get; }
     public Border Host { get; }
+
+    /// <summary>With `scroll`, the page's scroll viewer, as the Settings window holds it: the page's column in a viewer whose content has the window's 60 above the page (the page takes it back, CZ-4) and 24 below.</summary>
+    internal ScrollViewer? Scroll { get; }
     public TestRuntime Main => harness.Main;
     public InMemorySettingsStore Defaults => harness.Defaults;
 
     /// <param name="seed">Runs on the main loop before the page is built, to put settings in place.</param>
-    public CustomizationPageRig(bool light = false, bool reduceMotion = false, Action<AppSettings>? seed = null, bool quiet = false)
+    /// <param name="scroll">The page in a scroll viewer (CZ-6) of the window's height <paramref name="height"/>, as the Settings window holds it.</param>
+    /// <param name="height">The window's height.</param>
+    public CustomizationPageRig(bool light = false, bool reduceMotion = false, Action<AppSettings>? seed = null, bool quiet = false, bool scroll = false, double height = 900)
     {
         if (quiet) Quiet = new QuietFrameSource();
         scopes.Add(FrameClock.Source.Override(quiet ? Quiet! : Frames));
@@ -42,16 +47,18 @@ public sealed class CustomizationPageRig : IDisposable
         scopes.Add(Presentation.Presenter.Override(Overlay));
         App = harness.MakeModel();
         if (seed is not null) Main.OnMain(() => seed(App.Settings));
-        (Page, Host, Window) = Main.OnMain(() =>
+        (Page, Host, Window, Scroll) = Main.OnMain(() =>
         {
             var page = new CustomizationSettingsPage();
             var host = new Border { Width = 520, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Child = page };
+            var viewer = scroll ? new ScrollViewer { Content = host, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled } : null;
+            if (viewer is not null) host.Margin = new Avalonia.Thickness(0, Marrow.UI.Chrome.Chrome.ChromeTopPadding + Marrow.UI.Chrome.Chrome.CapsuleHeight + 16, 0, 24);
             AppEnvironment.SetAppModel(host, App);
             if (reduceMotion) EnvironmentValues.SetAccessibilityReduceMotion(host, true);
-            var window = new HostWindow { Width = 700, Height = 900, Content = host, RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark };
+            var window = new HostWindow { Width = 700, Height = height, Content = (Control?)viewer ?? host, RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark };
             SettingsProviderPopupLayers.Install(window);
             window.Show();
-            return (page, host, window);
+            return (page, host, window, viewer);
         });
         Settle();
     }
@@ -88,6 +95,16 @@ public sealed class CustomizationPageRig : IDisposable
         }
         if (settle) Settle();
     }
+
+    /// <summary>Scrolls the page to <paramref name="y"/> as a wheel would (the viewer's offset), then settles layout.</summary>
+    internal void ScrollTo(double y)
+    {
+        Main.OnMain(() => Scroll!.Offset = new Avalonia.Vector(0, y));
+        Settle();
+    }
+
+    /// <summary>The viewer's offset now.</summary>
+    internal double Offset => Main.OnMain(() => Scroll!.Offset.Y);
 
     /// <summary>The app's settings now.</summary>
     public ComposerLightSettings Light => Main.OnMain(() => App.Settings.ComposerLight);
