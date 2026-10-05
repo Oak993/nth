@@ -3382,7 +3382,8 @@ public sealed class TodoListRow : Decorator
         static SwiftColor IconColourFor(TodoStep.Status status) => status == TodoStep.Status.Pending ? SwiftColor.Tertiary : Chrome.Accent; // :2355
         static SwiftColor TextColourFor(TodoStep.Status status) => status == TodoStep.Status.Done ? SwiftColor.Secondary : SwiftColor.Primary; // :2357
         // :2357 `.strikethrough(step.status == .done, color: .secondary)` changes under the same animation: the strike's colour moves between clear and
-        // .secondary along it, so the line comes in (or goes out) with the step's other changes instead of cutting (OD-0076). The decoration is on the text
+        // .secondary along it, so the line fades in (or out) at its full length with the step's other changes instead of cutting (OD-0076; OD-0105 (2), the owner's
+        // pick: "Fade in", not a line drawn across). The decoration is on the text
         // while the strike is drawn or on its way out, and off once it is gone, so a step that is not done has none.
         static Action<bool, Animation?> StrikeOf(TimelineBaselineRow row, TextBlock text)
         {

@@ -3833,9 +3833,9 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // Kind: historical dependency blocker, resolved (RequestCards is real). PR-COMPOSER-002 is proven (container spacing 8, the 12 point
 // gaps, runtime order through a removal). PR-COMPOSER-003: the curve (spring response 0.32, damping 0.9; 0.18 s ease-out under
 // reduce motion), the id-list key and the arrival and resolution fades are proven (A_card_arriving_and_a_card_resolved_...,
-// Changing_a_request_without_changing_the_id_list_...). STILL OPEN: the stack's own re-layout is a cut, not an animation: the
-// cards that stay and the area's height do not move under the spring (the foundation's ForEach glide is parent-relative and a
-// leaving row lingers in layout; the area is bottom-pinned, so SwiftUI moves the cards above the new one in window coordinates).
+// Changing_a_request_without_changing_the_id_list_...). RESOLVED (unit rec-composer): the stack's own re-layout glides (WindowGlide, in window
+// coordinates: the area is bottom-pinned, so the cards above a new one rise and the pill stays) and a resolved card leaves the layout at once,
+// fading where it stood (ComposerAreaApprovalGlideTests).
 //
 // STOP App.Views.Composer.ComposerView #3
 // Kind: historical (untestable), resolved: DiffPopoverCoordinator presents through Presentation.Presenter (R-VIEW-9), so the
@@ -3857,9 +3857,10 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // This uses the R-VIEW-9 recording presenter; native popup hit-testing and scrolling remain separately in STOP #5.
 //
 // STOP App.Views.Composer.ComposerView #5
-// Kind: native-only for (a), resolved for (b) and (c).
-// (a) PR-COMPOSER-053: a focus loss whose click lands inside the open panel (isClickInsideSuggestions, Popup.IsPointerOverPopup)
-// needs a real popup window; headless proves the other half (a refresh still searching is cancelled by the blur).
+// Kind: resolved for (a), (b) and (c).
+// (a) PR-COMPOSER-053: RESOLVED (unit rec-composer) on a real window: ComposerSuggestionsNativeTests.A_press_inside_the_open_panel_keeps_the_list_and_
+// a_press_on_the_transcript_clears_it (a focus loss with the real pointer over the panel's HWND keeps the list, a real press on a row keeps it and
+// picks, a real press on the transcript's text clears it and cancels its refresh); headless proves a refresh still searching is cancelled by the blur.
 // (b) PR-COMPOSER-055: resolved, Selecting_a_row_far_down_a_long_list_scrolls_it_into_view hosts each show's frame in a window.
 // (c) PR-COMPOSER-050: resolved, a retry that fails again replaces the note (A_retry_that_fails_again_...).
 //
@@ -3869,27 +3870,24 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
 // where it stands while its place (ChipSlot) closes under panelSlide and the chips after it follow, on the layout, under reduce motion
 // too (ED-282-12; Removing_the_middle_quote_fades_it_where_it_stands_...).
 //
-// STOP App.Views.Composer.ComposerView #11
-// Kind: native-only. UI-COMPOSER-029 (the attach dialog, ComposerView.swift:526-533, PromptEditor.swift:117-124). The options reach the
-// runner (multiple true, directories false, "Attach") and cancel and accept are seam-tested (B3_file_chooser_..., B3_attach_default_
-// dialog_..., B3_accepting_the_chooser_...); the real Windows common dialog is never shown headless: whether OK reads "Attach", whether
-// two files multi-select, whether a folder cannot be chosen, and what caption an empty SetTitle("") gives (OpenPanel.cs:74) need a
-// real window on a quiet PC (OD-0007).
+// STOP App.Views.Composer.ComposerView #11: RESOLVED (unit rec-composer). UI-COMPOSER-029 (the attach dialog, ComposerView.swift:526-533,
+// PromptEditor.swift:117-124). The options reach the runner (multiple true, directories false, "Attach") and cancel and accept are seam-tested
+// (B3_file_chooser_..., B3_attach_default_dialog_..., B3_accepting_the_chooser_...); on a real window the real common dialog is driven from both
+// sites by OpenPanelNativeTests: OK reads "Attach", two files multi-select and both reach the draft, a folder's name and OK open it and nothing
+// is chosen, Cancel leaves the draft. The caption an empty SetTitle("") gives (OpenPanel.cs:74) is the system's "Open" (recorded, ED-333).
 //
 // STOP App.Views.Composer.ComposerView #12: RESOLVED 2026-10-04 (unit rec-tlr, UI-CHAT-052). The foundation's SoftAppear modifier had no animatable data, so
 // SwiftTransition applied the identity state at once (SwiftAnimation.cs Gather: `to.Update(body)`): every SoftAppear site arrived at full opacity at its first frame
 // where SwiftUI animates the opacity and the 4 point offset inside the modifier's body over smooth(0.32). SoftAppearModifier now carries a progress that the transition
 // interpolates (Chrome.cs), so the shared SoftAppear and SettleGlide arrive on that curve. The attachment notice still plays its arrival itself (NoticeSlot.Arrive).
 //
-// STOP App.Views.Composer.ComposerView #13
-// Kind: source contradiction, UI-COMPOSER-002. The record says an empty pill is 44 points high (ComposerView.swift:157-158); the
-// source's own arithmetic (text view ceil(max(18, content) + 4) = 22, column 22 + 8, pill 30 + 16) and the reference video (rim to rim,
-// C 0.5 and C 84.5) both give 46, which is what the port draws (An_empty_pill_is_46_points_high_...). The number in the record is the
-// column before its first measure.
+// STOP App.Views.Composer.ComposerView #13: RESOLVED (unit rec-composer). UI-COMPOSER-002's record was amended to 46 (0f85fb3a1, ED-282-11), the source's
+// arithmetic and the reference video's measure (An_empty_pill_is_46_points_high_...); the pill's glass is drawn (ED-320; ComposerAreaGlassFrostTests,
+// GlassMaterialNativeTests). Its r 22 corner on the 46 pt pill is the circular arc the video measures (ED-275 (2); OD-0102 keeps the composer as measured).
 //
 // STOP App.Views.Composer.ComposerView #10
 // Kind: resolved for the container (SwiftGlass.SetContainerSpacing is implemented and asserted: PR-COMPOSER-002, UI-COMPOSER-001);
-// the surviving approval rows' movement is open, see #2. Continuous-corner rendering is ED-181, closed 2026-10-04.
+// the surviving approval rows' movement glides, see #2. Continuous-corner rendering is ED-181, closed 2026-10-04.
 
 // B3 resolution of historical STOP #5(c): forced retry is now proven by observing the in-flight registry load after
-// clicking the actual retry row while a fetched command list is still fresh. #5(a)/(b) popup hit/scroll limits remain.
+// clicking the actual retry row while a fetched command list is still fresh. #5(a) and (b) are resolved too (see #5).
