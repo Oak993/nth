@@ -41,7 +41,7 @@ public sealed class ModelsSettingsPage : Decorator
     private readonly ViewState state = new();
     private readonly Dictionary<ProviderKind, ProviderModelsSection> sections = new(); // a section keeps its identity (and focus) across body updates
     private AppModel? sectionsModel;
-    private readonly Control accounts = new MultiAccountHost<ModelsAccountsView>(context => new ModelsAccountsView(context.Accounts, context.OpenUsage)); // PORT-ONLY T11 step 2
+    private readonly Control accounts = new MultiAccountHost<ModelsAccountsView>(context => new ModelsAccountsView(context.Accounts, context.OpenUsage, context.OpenKeys)); // PORT-ONLY T11 step 2
     private ModelPin? pressedPin; // the grip currently held down, tracked on the page so a rebuilt row never loses the drag
     private Point? dragOrigin;
     private TopLevel? dragRoot;

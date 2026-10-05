@@ -18,7 +18,7 @@ namespace Marrow.App.Tests.Views.Settings.MultiAccount;
 public sealed class ModelsAccountsViewTests(HeadlessSession headless)
 {
     private void Run(AccountsRig rig, Action<MultiAccountHarness, ModelsAccountsView> check, bool motion = false, bool reduceMotion = false) =>
-        MultiAccountHarness.Run(headless, rig, () => new ModelsAccountsView(rig.Model, _ => { }), h => check(h, (ModelsAccountsView)h.Page), motion, reduceMotion);
+        MultiAccountHarness.Run(headless, rig, () => new ModelsAccountsView(rig.Model, _ => { }, _ => { }), h => check(h, (ModelsAccountsView)h.Page), motion, reduceMotion);
 
     private static AccountsRig One()
     {

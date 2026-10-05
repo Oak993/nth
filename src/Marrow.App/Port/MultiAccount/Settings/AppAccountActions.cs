@@ -23,6 +23,22 @@ internal sealed class AppAccountActions(AppModel model) : IAccountActions
         return problem;
     }
 
+    /// <summary>Remembers the server's address, looks for it and makes a local entry of each model it offers (LocalAccountCatalog). Nothing is downloaded; a server that does not answer leaves nothing behind but the address.</summary>
+    public async Task<LocalConnectResult> ConnectLocalAsync(string address)
+    {
+        Marrow.Core.Port.Local.LocalServer server;
+        try { server = model.Providers.AddLocalAddress(address); }
+        catch (ArgumentException) { return new LocalConnectResult(LocalConnectOutcome.BadAddress, 0, ""); }
+        var where = server.BaseURL.IsLoopback ? "this PC" : server.BaseURL.Host;
+        IReadOnlyList<Marrow.Core.Port.Local.LocalEntry> entries;
+        try { entries = await model.Providers.Local.Discover(); }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or OperationCanceledException or IOException) { return new LocalConnectResult(LocalConnectOutcome.NotFound, 0, where); }
+        var found = entries.FirstOrDefault(entry => entry.Server.Id == server.Id);
+        if (found is null || found.Models.Count == 0) return new LocalConnectResult(LocalConnectOutcome.NotFound, 0, where);
+        Services.Port.MultiAccount.LocalAccountCatalog.Synchronize(model.Settings.Accounts, entries);
+        return new LocalConnectResult(LocalConnectOutcome.Found, found.Models.Count, where);
+    }
+
     public Task SignOutAsync(Guid accountId)
     {
         var accounts = model.Settings.Accounts;

@@ -3,6 +3,7 @@
 // The view only draws AccountsSettingsModel and sends it the user's choices.
 using Avalonia;
 using Avalonia.Controls;
+using Marrow.App.Port;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.Core.Models;
 using Marrow.Core.Port.MultiAccount.Settings;
@@ -25,18 +26,22 @@ internal sealed class ModelsAccountsView : Decorator
     private readonly RowGroup runGroup;
     private readonly RowGroup handshakeGroup;
     private readonly Action<ProviderKind> usageDetails;
-    private readonly Action<string>? handed;
+    private readonly Action<ProviderKind> openKeys;
+    private readonly ServiceBlockControl localBlock;
 
-    internal ModelsAccountsView(AccountsSettingsModel model, Action<ProviderKind> usageDetails, Action<string>? handed = null)
+    internal ModelsAccountsView(AccountsSettingsModel model, Action<ProviderKind> usageDetails, Action<ProviderKind> openKeys)
     {
         this.model = model;
         this.usageDetails = usageDetails;
-        this.handed = handed;
+        this.openKeys = openKeys;
         pulse = new ModelPulse(h => model.Changed += h);
 
-        accountsFold = new CzFoldRow(Section(MultiAccountWords.AccountsHeading, new ChromeCard(() => blocks), MultiAccountWords.AccountsFoot), model.Blocks.Count > 0);
+        // Local is the last block and is always there (its box adds the first server); the others are the connected services
+        localBlock = new ServiceBlockControl(model, model.LocalBlock, pulse, usageDetails, openKeys);
+        blocks.Children.Add(localBlock);
+        accountsFold = new CzFoldRow(Section(MultiAccountWords.AccountsHeading, new ChromeCard(() => blocks), MultiAccountWords.AccountsFoot), true);
 
-        runGroup = new RowGroup(model.RunRows, model.Row, pulse, model.Choose, model.SetSwitch, key => handed?.Invoke(key));
+        runGroup = new RowGroup(model.RunRows, model.Row, pulse, model.Choose, model.SetSwitch, key => { if (key == "handed") ShowExample(); });
         runFold = new CzFoldRow(Section(MultiAccountWords.RunHeading, runGroup, MultiAccountWords.RunFoot), model.ShowRunOut);
 
         handshakeGroup = new RowGroup(model.HandshakeRows, model.Row, pulse, model.Choose, model.SetSwitch, _ => { });
@@ -61,6 +66,10 @@ internal sealed class ModelsAccountsView : Decorator
 
     internal IReadOnlyDictionary<ProviderKind, ServiceBlockControl> Blocks => blockViews;
 
+    internal ServiceBlockControl LocalBlockView => localBlock;
+
+    internal LocalServerBox LocalBox => localBlock.ServerBox!;
+
     internal bool AccountsOpen => accountsFold.Open;
 
     internal bool RunOpen => runFold.Open;
@@ -71,10 +80,18 @@ internal sealed class ModelsAccountsView : Decorator
 
     internal RowGroup HandshakeRows => handshakeGroup;
 
+    // "Show an example": the sheet in the window, like the other sheets of the pages (Escape and the cross close it).
+    private void ShowExample()
+    {
+        if (TopLevel.GetTopLevel(this) is null) return;
+        ChatSheetPresentation.Show(this, dismiss => new HandedSheetLayer(new HandedSheetView(model.Example(), dismiss)), inWindow: true, still: LibraryUi.Still(this));
+    }
+
     internal void Apply()
     {
         var next = model.Blocks;
-        accountsFold.Open = next.Count > 0;
+        accountsFold.Open = true;
+        localBlock.Apply(model.LocalBlock);
         foreach (var gone in blockViews.Keys.Where(k => next.All(b => b.Service != k)).ToArray())
         {
             blocks.Children.Remove(blockViews[gone]);
@@ -84,14 +101,14 @@ internal sealed class ModelsAccountsView : Decorator
         {
             if (!blockViews.TryGetValue(block.Service, out var control))
             {
-                blockViews[block.Service] = control = new ServiceBlockControl(model, block, pulse, usageDetails);
-                blocks.Children.Add(control);
+                blockViews[block.Service] = control = new ServiceBlockControl(model, block, pulse, usageDetails, openKeys);
+                blocks.Children.Insert(blocks.Children.Count - 1, control); // before the Local block
             }
             else control.Apply(block);
         }
         var show = model.ShowRunOut;
-        runFold.Open = show && next.Count > 0;
-        handshakeFold.Open = show && next.Count > 0;
+        runFold.Open = show;
+        handshakeFold.Open = show;
         runGroup.Apply(model.RunRows);
         handshakeGroup.Apply(model.HandshakeRows);
     }

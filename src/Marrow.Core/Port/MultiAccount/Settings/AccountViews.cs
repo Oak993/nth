@@ -25,4 +25,6 @@ public sealed record ServiceBlockView(
     bool CanAdd,
     IReadOnlyList<AccountRowView> Rows,
     double? MiniFraction,
-    string MiniText);
+    string MiniText,
+    bool ServerBox = false,
+    string? ActionLabel = null);

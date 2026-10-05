@@ -21,7 +21,7 @@ public sealed class AccountsRig
         Clock = new ManualTimeProvider();
         PillsExist = pills;
         Pills = new PillStore();
-        Model = new AccountsSettingsModel(Accounts, Decisions, Handshake, a => connected.Contains(a.Id), () => PillsExist || Pills.Pills.Count > 0, Actions, id => Usage.GetValueOrDefault(id), Clock, TimeZoneInfo.Utc);
+        Model = new AccountsSettingsModel(Accounts, Decisions, Handshake, a => connected.Contains(a.Id), () => PillsExist || Pills.Pills.Count > 0, Actions, id => Usage.GetValueOrDefault(id), Clock, TimeZoneInfo.Utc, id => Credits.TryGetValue(id, out var left) ? left : null);
         PillsModel = new PillsSettingsModel(Pills, Accounts, a => connected.Contains(a.Id));
     }
 
@@ -33,6 +33,7 @@ public sealed class AccountsRig
     public ManualTimeProvider Clock { get; }
     public bool PillsExist { get; set; }
     public Dictionary<Guid, AccountUsageLine> Usage { get; } = [];
+    public Dictionary<Guid, double> Credits { get; } = [];
     public AccountsSettingsModel Model { get; }
     public PillStore Pills { get; }
     public PillsSettingsModel PillsModel { get; }

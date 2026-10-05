@@ -14,7 +14,8 @@ internal sealed class MultiAccountContext(
     Func<Guid, PillEditorModel> editor,
     Func<ProviderKind, IReadOnlyList<ModelOption>> models,
     Action openModels,
-    Action<ProviderKind> openUsage)
+    Action<ProviderKind> openUsage,
+    Action<ProviderKind> openKeys)
 {
     public AccountsSettingsModel Accounts { get; } = accounts;
     public PillsSettingsModel Pills { get; } = pills;
@@ -28,6 +29,9 @@ internal sealed class MultiAccountContext(
 
     /// <summary>"Usage details": the usage panel of the service.</summary>
     public Action<ProviderKind> OpenUsage { get; } = openUsage;
+
+    /// <summary>"Keys and order": where the service's keys are kept (Settings > Providers, that service's section).</summary>
+    public Action<ProviderKind> OpenKeys { get; } = openKeys;
 }
 
 /// <summary>Resolves the context for a control in the tree; a holder so a test can say "none".</summary>

@@ -204,7 +204,7 @@ public sealed class AccountsListModelTests
         var rig = new AccountsRig();
         rig.Connect(ProviderKind.Local);
         rig.ConnectAnother(ProviderKind.Local);
-        var block = Assert.Single(rig.Model.Blocks);
+        var block = rig.Model.LocalBlock;
         Assert.False(block.CanAdd);
         Assert.All(block.Rows, r => Assert.Equal(MultiAccountWords.NoLimit, r.UsageText));
         Assert.DoesNotContain(rig.Model.BlockMenu(ProviderKind.Local), e => e.Key == "add");

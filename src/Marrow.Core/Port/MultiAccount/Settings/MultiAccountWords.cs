@@ -31,6 +31,31 @@ public static class MultiAccountWords
     public static string OutUntil(string reset) => "out until " + reset;
     public static string WeekText(int percent, string reset) => "Week " + percent + "% · resets " + reset;
 
+    // ---- Models: OpenRouter keys and the Local block (page strings where the page has them; the rest lead-proposed, ED-NEW-cloud-ma-settings)
+    public const string KeysAndOrder = "Keys and order";
+    public static string Keys(int count, double? credits) => count + (count == 1 ? " key" : " keys") + (credits is { } left ? " \u00b7 $" + left.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " of credits left" : "");
+    public const string LocalTitle = "Local";
+    public const string LocalNone = "No local server found yet";
+    public static string LocalCount(int count) => count + (count == 1 ? " local model" : " local models");
+    public const string AddLocal = "Add a local server";
+    public const string LocalAddress = "Local server address";
+    public const string LocalPlaceholder = "http://localhost:1234 \u00b7 or another PC, like http://192.168.1.20:11434";
+    public const string LocalConnect = "Connect";
+    public const string LocalLooking = "Looking for a server\u2026";
+    public const string LocalNote = "Local models run on your PC: nothing leaves it, and there are no limits. They are slower than the big cloud models, and less able at long tasks.";
+    public static string LocalFoundOn(string where, int models) => "Found a server on " + where + " \u00b7 " + models + (models == 1 ? " model" : " models") + " added";
+    public static string LocalNotFound(string where) => "No server found at " + where + ". Check the address and that the server is running.";
+    public const string LocalBadAddress = "Use an address like http://localhost:1234";
+
+    // ---- Models: "Show an example" (the page's sheet, in its words)
+    public const string HandedFullIntro = "The full conversation, word for word.";
+    public static string HandedSummaryIntro(string to) => "Marrow\u2019s summary, made without AI. Nothing is deleted: the full conversation is saved as a handoff file, and the summary tells " + to + " where it is.";
+    public const string HandedAiNote = "AI summary \u00b7 written by the outgoing account during the Handshake: the goal, why things were decided, what is next. Marrow\u2019s summary and the full conversation file come with it.";
+    public const string HandedFileLine = "the full conversation, for any detail";
+    public static string HandedHandshakeLine(string to) => "Handshake \u00b7 a briefing from the last account, read back by " + to + " and checked by Marrow";
+    public const string HandedClose = "Close";
+    public const string HandedNext = "your next account";
+
     // ---- Models: When an account runs out
     public const string RunHeading = "When an account runs out";
     public const string RunFoot = "Your conversation goes with you: when Marrow moves you to another account, that account’s service can see it. Marrow never moves you to another service unless you say so, or a pill does.";

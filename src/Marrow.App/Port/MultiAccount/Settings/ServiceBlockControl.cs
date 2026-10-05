@@ -19,6 +19,9 @@ internal sealed class ServiceBlockControl : Decorator
     private readonly AccountsSettingsModel model;
     private readonly ModelPulse pulse;
     private readonly Action<ProviderKind> usageDetails;
+    private readonly Action<ProviderKind> openKeys;
+    private readonly Button? keysButton;
+    private readonly LocalServerBox? serverBox;
     private readonly ProviderKind service;
     private readonly CzCrossfadeText title;
     private readonly CzCrossfadeText summary = new("") { FontSize = 12, Secondary = true };
@@ -32,11 +35,12 @@ internal sealed class ServiceBlockControl : Decorator
     private readonly Control addHost;
     private ServiceBlockView view;
 
-    internal ServiceBlockControl(AccountsSettingsModel model, ServiceBlockView first, ModelPulse pulse, Action<ProviderKind> usageDetails)
+    internal ServiceBlockControl(AccountsSettingsModel model, ServiceBlockView first, ModelPulse pulse, Action<ProviderKind> usageDetails, Action<ProviderKind> openKeys)
     {
         this.model = model;
         this.pulse = pulse;
         this.usageDetails = usageDetails;
+        this.openKeys = openKeys;
         service = first.Service;
         view = first;
         title = new CzCrossfadeText(first.Title) { FontSize = 14, FontWeight = Avalonia.Media.FontWeight.Medium };
@@ -45,17 +49,33 @@ internal sealed class ServiceBlockControl : Decorator
         var more = MenuPopover.More("More for " + first.Title, "service-more-" + service.Id, () => model.BlockMenu(service), Pick);
         more.VerticalAlignment = VerticalAlignment.Center;
         var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, summary } };
-        var head = new Grid { ColumnDefinitions = new ColumnDefinitions("36,*,Auto,22"), ColumnSpacing = 10, MinHeight = 56, Margin = new Thickness(0, 0) };
+        if (first.ActionLabel is { } label)
+        {
+            keysButton = LibraryButtons.Make(label, () => openKeys(service), ButtonLook.Plain, "service-keys-" + service.Id);
+            keysButton.VerticalAlignment = VerticalAlignment.Center;
+        }
+        var head = new Grid { ColumnDefinitions = new ColumnDefinitions("36,*,Auto,Auto,22"), ColumnSpacing = 10, MinHeight = 56, Margin = new Thickness(0, 0) };
         Grid.SetColumn(words, 1);
         Grid.SetColumn(miniBox, 2);
-        Grid.SetColumn(more, 3);
+        Grid.SetColumn(more, 4);
         foreach (var part in new Control[] { mark, words, miniBox, more }) head.Children.Add(part);
+        if (keysButton is not null)
+        {
+            Grid.SetColumn(keysButton, 3);
+            head.Children.Add(keysButton);
+        }
         var header = new Border { Padding = new Thickness(16, 6, 12, 6), Child = head };
 
         addRow = AddRow();
         addHost = new Border { Child = addRow };
         listFold = new CzFoldRow(new StackPanel { Children = { list, addHost } }, first.Several);
-        Child = new StackPanel { Children = { header, listFold } };
+        var body = new StackPanel { Children = { header, listFold } };
+        if (first.ServerBox)
+        {
+            serverBox = new LocalServerBox(model);
+            body.Children.Add(serverBox);
+        }
+        Child = body;
         Apply(first, animate: false);
     }
 
@@ -70,6 +90,10 @@ internal sealed class ServiceBlockControl : Decorator
     internal IReadOnlyDictionary<Guid, AccountRowControl> Rows => rows;
 
     internal string SummaryShown => summary.Text;
+
+    internal LocalServerBox? ServerBox => serverBox;
+
+    internal Button? KeysButton => keysButton;
 
     internal string TitleShown => title.Text;
 
@@ -117,7 +141,7 @@ internal sealed class ServiceBlockControl : Decorator
         }
     }
 
-    private void Pick(string key)
+    internal void Pick(string key)
     {
         switch (key)
         {

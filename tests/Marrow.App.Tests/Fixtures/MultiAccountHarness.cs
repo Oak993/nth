@@ -31,7 +31,7 @@ internal sealed class MultiAccountHarness : IDisposable
         runOut = !motion;
         Frames = new ManualFrameSource();
         scopes.Add(FrameClock.Source.Override(Frames));
-        var context = new MultiAccountContext(rig.Model, rig.PillsModel, rig.Editor, models ?? (_ => []), () => OpenedModels++, service => UsageOpened.Add(service));
+        var context = new MultiAccountContext(rig.Model, rig.PillsModel, rig.Editor, models ?? (_ => []), () => OpenedModels++, service => UsageOpened.Add(service), service => KeysOpened.Add(service));
         scopes.Add(MultiAccountSettingsSeams.Context.Override(new MultiAccountOffer(_ => context)));
         Page = make();
         var margin = new Border { Padding = new Thickness(24), Child = Page };
@@ -51,6 +51,7 @@ internal sealed class MultiAccountHarness : IDisposable
     public Avalonia.Controls.Window Window { get; }
     public int OpenedModels { get; private set; }
     public List<ProviderKind> UsageOpened { get; } = [];
+    public List<ProviderKind> KeysOpened { get; } = [];
 
     public static void Run(HeadlessSession headless, AccountsRig rig, Func<Control> make, Action<MultiAccountHarness> check, bool motion = false, bool reduceMotion = false, Func<ProviderKind, IReadOnlyList<ModelOption>>? models = null)
     {
@@ -75,6 +76,19 @@ internal sealed class MultiAccountHarness : IDisposable
             Time.Advance(second);
             Frames.Advance(second);
         }
+    }
+
+    /// <summary>Waits until <paramref name="condition"/> holds, pumping the dispatcher.</summary>
+    public void Until(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (!condition())
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException("The condition never held.");
+            Thread.Sleep(5);
+            Settle();
+        }
+        Settle();
     }
 
     public void Step(double milliseconds)

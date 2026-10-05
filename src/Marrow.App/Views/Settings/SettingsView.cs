@@ -151,6 +151,15 @@ public sealed class SettingsNavigation : MainActorModel
         get => Read(requestedPage);
         set => Set(ref requestedPage, value);
     }
+
+    // PORT-ONLY (T11 step 2): a provider's section of the Providers page asked for from outside ("Usage details", "Keys and order"); set before RequestedPage, read and used up when the Providers page is built.
+    private ProviderKind? requestedProvider;
+
+    public ProviderKind? RequestedProvider
+    {
+        get => Read(requestedProvider);
+        set => Set(ref requestedProvider, value);
+    }
 }
 
 /// <summary>:91-294 <c>struct SettingsView: View</c>: the Settings window's content.</summary>
@@ -734,11 +743,26 @@ internal sealed class ProvidersSettingsPage : Decorator
         private ValueMap<ProviderKind, bool> expansion = ValueMap<ProviderKind, bool>.Empty;
         public ValueMap<ProviderKind, bool> Expansion { get => Read(expansion); set => Set(ref expansion, value); }
     }
+    private ViewState? shown;
+
+    /// <summary>The service the page was asked to bring into view, once it has (PORT-ONLY, T11 step 2).</summary>
+    internal ProviderKind? Revealed { get; private set; }
+
+    internal bool IsOpen(ProviderKind provider) => shown is { } view && view.Expansion.TryGetValue(provider, out var open) && open;
+
     // :592-614 body
     public ProvidersSettingsPage()
     {
         var state = new ViewState();
+        shown = state;
         var stack = new StackPanel { Spacing = Chrome.SectionSpacing }; Child = stack; // :598-600
+        // PORT-ONLY (T11 step 2): a service asked for by "Usage details" or "Keys and order" is opened and brought into view; the request is used up here
+        var wanted = SettingsNavigation.Shared.RequestedProvider;
+        if (wanted is { } asked)
+        {
+            SettingsNavigation.Shared.RequestedProvider = null;
+            state.Expansion = state.Expansion.Mutating(map => map[asked] = true);
+        }
         var sections = new ForEach<ProviderKind, ProviderKind>(stack, provider => provider, provider => new ProviderSettingsSection(provider,
             new Binding<bool>(() => { if (state.Expansion.TryGetValue(provider, out var value)) return value; var registry = AppEnvironment.GetAppModel(this).Providers; _ = registry.Statuses; return registry.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; },
                 value => state.Expansion = state.Expansion.Mutating(map => map[provider] = value))), (_, _) => { }); // :605-610
@@ -746,6 +770,12 @@ internal sealed class ProvidersSettingsPage : Decorator
         {
             bool Configured(ProviderKind provider) => AppEnvironment.GetAppModel(this).Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; // :593-597
             sections.Apply(SwiftEnum<ProviderKind>.AllCases.Where(Configured).Concat(SwiftEnum<ProviderKind>.AllCases.Where(provider => !Configured(provider))).ToArray()); // :604
+            if (wanted is { } reveal && stack.Children.OfType<ProviderSettingsSection>().FirstOrDefault(section => section.Provider == reveal) is { } target)
+            {
+                wanted = null;
+                Revealed = reveal;
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => target.BringIntoView());
+            }
         });
     }
 }
@@ -754,6 +784,7 @@ internal sealed class ProvidersSettingsPage : Decorator
 internal sealed class ProviderSettingsSection : Decorator
 {
     private readonly ProviderKind provider;
+    internal ProviderKind Provider => provider; // PORT-ONLY (T11 step 2)
     private TaskHandle? keyCheck; // :627
     // :624-626
     private sealed class ViewState : MainActorModel

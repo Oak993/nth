@@ -12,6 +12,13 @@ namespace Marrow.App.Port.MultiAccount.Settings;
 
 internal static class MultiAccountContexts
 {
+    // the service's own section of Settings > Providers: its status, its usage and its key are there (the request is read when that page is built, so it is set first)
+    private static void ShowProvider(ProviderKind service)
+    {
+        SettingsNavigation.Shared.RequestedProvider = service;
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.Providers;
+    }
+
     internal static MultiAccountContext For(AppModel model)
     {
         var settings = model.Settings;
@@ -24,6 +31,6 @@ internal static class MultiAccountContexts
             id => new PillEditorModel(settings.Pills, settings.Accounts, model.IsAccountConnected, Name, id),
             service => model.Providers.Models(service),
             () => SettingsNavigation.Shared.RequestedPage = SettingsPage.Models,
-            service => SettingsNavigation.Shared.RequestedPage = SettingsPage.General);
+            ShowProvider, ShowProvider);
     }
 }

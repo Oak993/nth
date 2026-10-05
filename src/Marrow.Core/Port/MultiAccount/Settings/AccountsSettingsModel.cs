@@ -20,11 +20,12 @@ public sealed class AccountsSettingsModel
     private readonly Func<bool> pillsExist;
     private readonly IAccountActions actions;
     private readonly Func<Guid, AccountUsageLine?> usage;
+    private readonly Func<Guid, double?> credits;
     private readonly TimeProvider clock;
     private readonly TimeZoneInfo zone;
 
     public AccountsSettingsModel(AccountStore accounts, AccountDecisionStore decisions, HandshakeSwitch handshake, Func<Account, bool> connected, Func<bool> pillsExist,
-        IAccountActions actions, Func<Guid, AccountUsageLine?>? usage = null, TimeProvider? clock = null, TimeZoneInfo? zone = null)
+        IAccountActions actions, Func<Guid, AccountUsageLine?>? usage = null, TimeProvider? clock = null, TimeZoneInfo? zone = null, Func<Guid, double?>? credits = null)
     {
         this.accounts = accounts;
         this.decisions = decisions;
@@ -33,6 +34,7 @@ public sealed class AccountsSettingsModel
         this.pillsExist = pillsExist;
         this.actions = actions;
         this.usage = usage ?? (_ => null);
+        this.credits = credits ?? (_ => null);
         this.clock = clock ?? TimeProvider.System;
         this.zone = zone ?? TimeZoneInfo.Local;
         decisions.Changed += () => Changed?.Invoke();
@@ -44,19 +46,33 @@ public sealed class AccountsSettingsModel
     public void Refresh() => Changed?.Invoke();
 
     // ---------------------------------------------------------------- Accounts
-    public IReadOnlyList<ServiceBlockView> Blocks => [.. SwiftEnum<ProviderKind>.AllCases.Select(Block).Where(b => b is not null).Select(b => b!)];
+    public IReadOnlyList<ServiceBlockView> Blocks => [.. SwiftEnum<ProviderKind>.AllCases.Where(s => s != ProviderKind.Local).Select(Block).Where(b => b is not null).Select(b => b!)];
+
+    /// <summary>The Local block: always there, so the first local server can be added; its rows are the local models found (each with no limit).</summary>
+    public ServiceBlockView LocalBlock => Block(ProviderKind.Local)!;
 
     private IReadOnlyList<Account> Connected(ProviderKind service) => [.. accounts.ForService(service).Where(connected)];
 
     private ServiceBlockView? Block(ProviderKind service)
     {
         var list = Connected(service);
-        if (list.Count == 0) return null;
-        var several = list.Count > 1;
+        var local = service == ProviderKind.Local;
+        if (list.Count == 0 && !local) return null;
+        var keys = service.IsAPIKeyBased;
+        var several = local ? list.Count > 0 : list.Count > 1;
         var rows = several ? list.Select((a, i) => Row(a, i + 1)).ToArray() : [];
-        var first = Row(list[0], 1);
-        return new ServiceBlockView(service, ServiceNames.Title(service), several ? MultiAccountWords.Several(list.Count) : MultiAccountWords.One(list[0].Plan),
-            several, AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local, rows, several ? null : first.WeekFraction, several ? "" : first.UsageText);
+        var first = list.Count > 0 ? Row(list[0], 1) : null;
+        string summary;
+        if (local) summary = list.Count == 0 ? MultiAccountWords.LocalNone : MultiAccountWords.LocalCount(list.Count);
+        else if (keys)
+        {
+            var left = list.Select(a => credits(a.Id)).ToList();
+            summary = MultiAccountWords.Keys(list.Count, left.All(c => c is not null) ? left.Sum(c => c!.Value) : null);
+        }
+        else summary = several ? MultiAccountWords.Several(list.Count) : MultiAccountWords.One(list[0].Plan);
+        return new ServiceBlockView(service, local ? MultiAccountWords.LocalTitle : ServiceNames.Title(service), summary, several,
+            AccountCapabilities.SupportsMultipleAccounts(service) && !local && !keys, rows, several || first is null ? null : first.WeekFraction, several || first is null ? "" : first.UsageText,
+            ServerBox: local, ActionLabel: keys ? MultiAccountWords.KeysAndOrder : null);
     }
 
     private AccountRowView Row(Account account, int number)
@@ -140,7 +156,7 @@ public sealed class AccountsSettingsModel
             new("rename", MultiAccountWords.Rename), MenuEntry.Line,
             new("up", MultiAccountWords.MoveUp, "Alt+↑", Disabled: index <= 0), new("top", MultiAccountWords.MoveToTop, Disabled: index <= 0),
             new("down", MultiAccountWords.MoveDown, "Alt+↓", Disabled: index < 0 || index >= list.Count - 1), MenuEntry.Line,
-            new("handshake", MultiAccountWords.HandshakeAt, point is null ? MultiAccountWords.LikeAll : PointLabel(point).Replace("At ", "", StringComparison.Ordinal)), MenuEntry.Line,
+            .. account.Service == ProviderKind.Local ? Array.Empty<MenuEntry>() : [new("handshake", MultiAccountWords.HandshakeAt, point is null ? MultiAccountWords.LikeAll : PointLabel(point).Replace("At ", "", StringComparison.Ordinal)), MenuEntry.Line],
             new("signout", MultiAccountWords.SignOutOfThis, Disabled: list.Count < 2, Quiet: true),
         ];
     }
@@ -162,7 +178,7 @@ public sealed class AccountsSettingsModel
     public IReadOnlyList<MenuEntry> BlockMenu(ProviderKind service)
     {
         var list = Connected(service);
-        var canAdd = AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local;
+        var canAdd = AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local && !service.IsAPIKeyBased;
         if (list.Count < 2)
         {
             var one = new List<MenuEntry> { new("usage", MultiAccountWords.UsageDetails), new("signout", MultiAccountWords.SignOut, Disabled: true), MenuEntry.Line };
@@ -189,11 +205,33 @@ public sealed class AccountsSettingsModel
         return menu;
     }
 
+    /// <summary>The example sheet behind "Show an example": the next account in the order (the second account of the first service that has two), the way the next account is brought, the Handshake switch.</summary>
+    public HandedOverExample Example()
+    {
+        var next = SwiftEnum<ProviderKind>.AllCases.Select(Connected).FirstOrDefault(list => list.Count > 1) is { } pair
+            ? pair[1].CustomName ?? accounts.DefaultName(pair[1].Id) : MultiAccountWords.HandedNext;
+        return HandedOverExample.For(decisions.GetSetting(DecisionKind.Bring), next, handshake.Enabled);
+    }
+
     public async Task<string?> AddAsync(ProviderKind service)
     {
         var message = await actions.AddAccountAsync(service);
         Changed?.Invoke();
         return message;
+    }
+
+    /// <summary>Looks for a local server at <paramref name="address"/> and says what it found, in the words of the page.</summary>
+    public async Task<string> ConnectLocalAsync(string address)
+    {
+        if (string.IsNullOrWhiteSpace(address)) return MultiAccountWords.LocalBadAddress;
+        var result = await actions.ConnectLocalAsync(address.Trim());
+        Changed?.Invoke();
+        return result.Outcome switch
+        {
+            LocalConnectOutcome.Found => MultiAccountWords.LocalFoundOn(result.Where, result.Models),
+            LocalConnectOutcome.NotFound => MultiAccountWords.LocalNotFound(result.Where),
+            _ => MultiAccountWords.LocalBadAddress,
+        };
     }
 
     public async Task SignOutAsync(Guid id)
