@@ -23,6 +23,7 @@ internal sealed class VoicePillSlot : Panel
     private bool transcribingSeen;
     private bool wasOpen;
     private double lastInset = double.NaN;
+    private Point? placedFor;
 
     public VoicePillSlot(ComposerVoiceController voice)
     {
@@ -66,7 +67,13 @@ internal sealed class VoicePillSlot : Panel
     {
         if (orb is null) return;
         if (Math.Abs(Pill.OrbDiameter - orb.Diameter) > 0.001) Pill.OrbDiameter = orb.Diameter;
-        InvalidateArrange();
+        // a layout pass that moved nothing asks for no more layout (this runs after every pass)
+        var centre = OrbCentre();
+        if (centre != placedFor)
+        {
+            placedFor = centre;
+            InvalidateArrange();
+        }
         ReportInset();
     }
 
