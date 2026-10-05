@@ -22,6 +22,22 @@ namespace Marrow.App.Views.Composer;
 /// </summary>
 public sealed class ComposerWorkingDots : Border
 {
+    // PORT-ONLY CZ-5 (customization-SPEC CZ-10.4; OWNER OD-0089 amendment): the colour the dots wear. The source draws them in Chrome.accentNSColor (:13-19), which stays the default; the
+    // workingDots setting (WorkingDotsColor) can hand another. A new colour reaches the running field through Retarget(ease: true), the field's own 0.32 s ease; the still dots take it at once.
+    public SwiftColor Tint
+    {
+        get => tint;
+        set
+        {
+            // an instance the field already wears starts nothing, a new one eases (animated) or lands at once (still)
+            tint = value;
+            dotField.UpdateColor(value, ease: true);
+        }
+    }
+
+    private readonly DotFieldControl dotField;
+    private SwiftColor tint = Chrome.AccentNSColor;
+
     // :13-19 Uses DotFieldLayerView with Chrome.accentNSColor and animated: !reduceMotion
     public ComposerWorkingDots()
     {
@@ -30,7 +46,7 @@ public sealed class ComposerWorkingDots : Border
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
 
         // Create the underlying dot field
-        var dotField = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
+        dotField = new DotFieldControl(tint, animated: true, sweeps: false);
 
         Child = dotField;
 
@@ -306,13 +322,13 @@ public sealed class DotFieldControl : Canvas
         compositionVisual = null;
         compositionHandler = null;
     }
-    public void UpdateColor(SwiftColor newColor)
+    public void UpdateColor(SwiftColor newColor, bool ease = false)
     {
         // :104-111 Configure: only update color if changed
         if (newColor != color)
         {
             color = newColor;
-            UpdateBrushes(ease: false);
+            UpdateBrushes(ease);
         }
     }
 
