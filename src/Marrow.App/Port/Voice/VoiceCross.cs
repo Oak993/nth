@@ -27,6 +27,7 @@ internal sealed class VoiceCross : Button
 
     private readonly LookMotion motion;
     private readonly LookNumber hover;
+    private readonly LookNumber pressValue;
     private readonly ScaleTransform press = new(1, 1);
     private bool live;
     private bool pressed;
@@ -36,6 +37,7 @@ internal sealed class VoiceCross : Button
         Look = look;
         motion = new LookMotion(this);
         hover = new LookNumber(motion, 0);
+        pressValue = new LookNumber(motion, 1);
         Template = PlainTemplate;
         Background = Brushes.Transparent;
         BorderThickness = default;
@@ -48,16 +50,13 @@ internal sealed class VoiceCross : Button
         RenderTransformOrigin = RelativePoint.Center;
         AutomationProperties.SetName(this, "Cancel voice input");
         ToolTip.SetTip(this, "Cancel (Esc)");
-        motion.Frame += InvalidateVisual;
+        motion.Frame += DrawMotion;
         PointerEntered += (_, _) => hover.To(1, Animation.EaseOut(0.12));
         PointerExited += (_, _) =>
         {
             hover.To(0, Animation.EaseOut(0.12));
             SetPressed(false);
         };
-        PointerPressed += (_, e) => SetPressed(e.GetCurrentPoint(this).Properties.IsLeftButtonPressed);
-        PointerReleased += (_, _) => SetPressed(false);
-        PointerCaptureLost += (_, _) => SetPressed(false);
         ActualThemeVariantChanged += (_, _) => InvalidateVisual();
     }
 
@@ -81,11 +80,26 @@ internal sealed class VoiceCross : Button
     /// <summary>The press scale (1, or 0.92 while the button is down: <c>.px:active</c>).</summary>
     internal double PressScale => press.ScaleX;
 
+    internal ScaleTransform PressTransform => press;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        // Button consumes its pointer events. Its pressed property also covers keyboard activation and capture loss.
+        if (change.Property == IsPressedProperty) SetPressed(IsPressed);
+    }
+
     private void SetPressed(bool down)
     {
         if (pressed == down) return;
         pressed = down;
-        if (Look == VoiceCrossLook.Disc) press.ScaleX = press.ScaleY = down ? 0.92 : 1;
+        if (Look == VoiceCrossLook.Disc) pressValue.To(down ? 0.92 : 1, LookCurve.Ez(0.38)); // `.vpill.open .px{transition:transform .38s var(--ez)}`
+        DrawMotion();
+    }
+
+    private void DrawMotion()
+    {
+        press.ScaleX = press.ScaleY = pressValue.Value;
         InvalidateVisual();
     }
 

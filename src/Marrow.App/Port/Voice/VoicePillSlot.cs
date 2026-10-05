@@ -28,7 +28,8 @@ internal sealed class VoicePillSlot : Panel
     public VoicePillSlot(ComposerVoiceController voice)
     {
         this.voice = voice;
-        IsHitTestVisible = false; // only the pill's cross takes the pointer
+        // A panel with no background takes no pointer itself. Keep its subtree enabled so the pill's cross can be hit.
+        IsHitTestVisible = true;
         ClipToBounds = false;
         Pill = new VoicePill();
         Children.Add(Pill);

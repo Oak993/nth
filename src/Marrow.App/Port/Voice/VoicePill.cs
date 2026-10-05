@@ -69,7 +69,8 @@ internal sealed class VoicePill : Panel
         IsHitTestVisible = false;
         ClipToBounds = false;
         body = new Border { IsHitTestVisible = false }.Capsule(RoundedCornerStyle.Circular);
-        Cross = new VoiceCross(VoiceCrossLook.Disc) { RenderTransform = crossTransform, RenderTransformOrigin = RelativePoint.Center };
+        Cross = new VoiceCross(VoiceCrossLook.Disc) { RenderTransformOrigin = RelativePoint.Center };
+        Cross.RenderTransform = new TransformGroup { Children = { Cross.PressTransform, crossTransform } };
         Children.Add(body);
         Children.Add(rim);
         for (var k = 0; k < 3; k++)
@@ -259,6 +260,7 @@ internal sealed class VoicePill : Panel
             else labelShift[k].To(-4, LookCurve.Ez(0.32));
         }
         Cross.IsHitTestVisible = open; // `.vpill.open{pointer-events:auto}`
+        IsHitTestVisible = open; // disabling the panel would also disable its cancel control
         Cross.Live = open;
         InvalidateMeasure();
         Draw();
