@@ -50,6 +50,14 @@ public sealed class AccountsRig
         return Accounts.Get(account.Id);
     }
 
+    /// <summary>Connects an account that is already in the store.</summary>
+    public Account Connect(Account account, string? plan = null)
+    {
+        if (plan is not null) Accounts.SetPlan(account.Id, plan);
+        connected.Add(account.Id);
+        return Accounts.Get(account.Id);
+    }
+
     /// <summary>Adds and connects another account of the service.</summary>
     public Account ConnectAnother(ProviderKind service, string? plan = null)
     {

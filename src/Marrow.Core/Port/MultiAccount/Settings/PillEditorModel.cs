@@ -16,6 +16,7 @@ public sealed class PillEditorModel
     private readonly Func<ProviderKind, string?, string> modelName;
     private readonly Guid id;
     private HandshakePoint lastSame;
+    private Pill? last;
 
     /// <param name="modelName">The words for a model id of a service (the registry's chip name); the page passes the app's.</param>
     public PillEditorModel(PillStore pills, AccountStore accounts, Func<Account, bool> connected, Func<ProviderKind, string?, string> modelName, Guid id)
@@ -33,7 +34,15 @@ public sealed class PillEditorModel
 
     public Guid PillId => id;
 
-    public Pill Pill => pills.Find(id) ?? throw new KeyNotFoundException("That pill was deleted.");
+    /// <summary>The pill; once it is deleted, the last state it had (the editor is closing).</summary>
+    public Pill Pill
+    {
+        get
+        {
+            if (pills.Find(id) is { } found) return last = found;
+            return last ?? throw new KeyNotFoundException("That pill was deleted.");
+        }
+    }
 
     public bool Exists => pills.Find(id) is not null;
 
@@ -62,7 +71,7 @@ public sealed class PillEditorModel
                 var model = step.Model ?? defaults?.Model;
                 var point = locked ? pill.SameHandshake ?? HandshakePoint.Smart : step.HandshakeAt ?? HandshakePoint.Smart;
                 return new StepView(i, i + 1, step.AccountId, marks[i].AccountName, service, service is { } s ? ServiceNames.Title(s) : "", marks[i].Skipped, marks[i].NewService,
-                    step.Model is null && step.Effort is null && step.Fast is null, service is { } sv ? modelName(sv, model) : "", step.Effort ?? defaults?.Effort, step.Fast ?? defaults?.FastMode ?? false,
+                    step.Model is null && step.Effort is null && step.Fast is null, service is { } sv ? modelName(sv, model) : "", model, step.Effort ?? defaults?.Effort, step.Fast ?? defaults?.FastMode ?? false,
                     point, locked, service == ProviderKind.Local);
             })];
         }

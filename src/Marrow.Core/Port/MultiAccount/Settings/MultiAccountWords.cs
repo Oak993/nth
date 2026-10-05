@@ -127,6 +127,9 @@ public static class MultiAccountWords
     public const string NewService = "New service";
     public const string SkippedOff = "Skipped · off";
     public const string SameAsAccount = "Same as the account · ";
+    public static string StepTitle(string account) => "Step: " + account;
+    public const string StepSub = "Saved with the pill";
+    public const string PillNoLimit = "No limit";
     public const string NeverRunsOut = "Never runs out";
     public const string LoopLine = "When the last step runs out, the pill starts again from the first step that is available.";
     public const string EarlierTitle = "When an earlier account is back";

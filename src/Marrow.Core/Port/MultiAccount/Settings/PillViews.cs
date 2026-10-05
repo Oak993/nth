@@ -28,6 +28,7 @@ public sealed record StepView(
     bool NewService,
     bool SameAsAccount,
     string Model,
+    string? ModelId,
     string? Effort,
     bool Fast,
     Marrow.Core.Accounts.HandshakePoint HandshakeAt,
