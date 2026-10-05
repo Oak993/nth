@@ -66,7 +66,7 @@ public sealed class AccountReaderTests
         var configuration = new SessionConfiguration
         {
             Provider = ProviderKind.Deepseek, AccountId = account.Id, Environment = env,
-            WorkingDirectory = SwiftURL.FileURLWithPath(folder.Path), RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build,
+            WorkingDirectory = SwiftURL.Create("marrow-native-path:" + folder.Path.Replace('\\', '/'))!, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build,
         };
         var session = new DeepSeekSession(configuration);
         ShellInvocation? seen = null;
