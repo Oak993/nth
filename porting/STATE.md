@@ -3,6 +3,17 @@
 Continuation record. Reread `porting/PORT_CONTRACT.md` before acting on this file.
 This file is a navigation aid; the contract and the source are the authority.
 
+## MA-3 scoped checkpoint: 2026-10-05, Codex
+
+Commissioned Local provider foundation on `codex/ma-3`, based on staging `claude/verify-terminal-20261001` at
+`7a4cfad3ef57459faf2f593368412fd44d54de06`. READY within the requested scope: SDK 10.0.401 Linux solution build,
+warnings as errors with EnableWindowsTargeting=true; 29 fake-loopback Local tests passed five consecutive runs;
+12 Traceability checks passed. Broader touched slices have 102 failures that reproduce by name on the exact base;
+no added failures. See `first-release/ma-3-REPORT.md`, `first-release/ma-3-EVIDENCE.json` and `ED-NEW-ma-3`.
+No new UI controls, live model inference, Windows/native gate, source parity progress or task-ledger advancement.
+This checkpoint only records the commissioned Local unit; the global checkpoint below remains historical context.
+B3 remains `52bc7926097cd622d08d6294e0d8b08a48c7516e`.
+
 ## Current checkpoint: 2026-10-04 03:17 AST, orchestrator Claude (written by the ledger-text agent from `E:\Droppy\work\NEXT_SESSION_CLAUDE.md`, top block and log up to 2026-10-04 02:59, and from git on this date)
 
 This section supersedes every checkpoint below it. The checkpoints below are history: the baseline is B3, not B2, and

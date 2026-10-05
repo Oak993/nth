@@ -148,7 +148,7 @@ public sealed class SettingsViewCoreRound2Tests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-049")] // App/Views/Settings/SettingsView.swift:648-675: mark/text/spacer/switch, clipped collapsed card, actual switch input.
     public void Provider_status_rendered_columns_collapse_and_real_pointer_toggle() => WithView(() => new ScrollViewer { Content = new ProvidersSettingsPage() }, (view, model, h, _) =>
     {
-        Assert.Equal(15, Nodes<ProviderSettingsSection>(view).Length);
+        Assert.Equal(16, Nodes<ProviderSettingsSection>(view).Length);
         foreach (var candidate in Nodes<ProviderSettingsSection>(view)) Assert.Contains(Field<ProviderKind>(candidate, "provider").DisplayName, Text(Nodes<CollapsibleProviderHeader>(candidate).Single()));
         var section = Nodes<ProviderSettingsSection>(view).First(); var provider = Field<ProviderKind>(section, "provider");
         var header = Nodes<CollapsibleProviderHeader>(section).Single(); Assert.Contains(provider.DisplayName, Text(header)); Press(Nodes<Button>(header).Single()); Frame(h, view, Chrome.PanelSlide.Duration * 1000 + 1);

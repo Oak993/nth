@@ -44,9 +44,12 @@ public sealed record ProviderStatus
     public Auth ProviderStatusAuth { get; init; } = new Auth.Unknown(); // :12 Swift: auth (R-NAME-3)
     public bool IsChecking { get; init; }                              // :13
     public bool ApiKeyConfigured { get; init; }                        // :15
+    // PORT-ONLY (ED-NEW-ma-3): availability without a credential or executable.
+    public bool LocalServerAvailable { get; init; }
+    public string? LocalSummary { get; init; }
 
     // :17
-    public bool IsInstalled => Executable is not null || ApiKeyConfigured;
+    public bool IsInstalled => Executable is not null || ApiKeyConfigured || LocalServerAvailable;
 
     // U+00B7 MIDDLE DOT, used by Summary's :24 and ClaudeSeed's Fable detail (R-STR-9).
     private const string MiddleDot = "\U000000B7";
@@ -57,6 +60,7 @@ public sealed record ProviderStatus
         get
         {
             if (!IsInstalled) return "Not installed"; // :20
+            if (LocalServerAvailable && LocalSummary is { } localSummary) return localSummary; // ED-NEW-ma-3
             return ProviderStatusAuth switch
             {
                 Auth.SignedIn signedIn => signedIn.Account is { } account ? $"Signed in as {account}" : "Signed in", // :22
@@ -205,9 +209,10 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :162-196. ED-001: CaptureRun is not ported (dead in a shipped launch); the non-capture branch is the
     // only one implemented. :164 (recentCommands), :165-178 (cached catalogs), :179-185 (cached dates) and
     // :186-195 (seeding) each read `!CaptureRun.isEnabled` in the source and are ported without that guard.
-    public ProviderRegistry(ProviderSettings settings)
+    public ProviderRegistry(ProviderSettings settings, Marrow.Services.Port.Local.LocalDiscovery? local = null)
     {
         this.settings = settings; // :163
+        InitializeLocal(local); // PORT-ONLY (ED-NEW-ma-3)
 
         // :164
         if (UserDefaults.Standard.Current.Dictionary("recentSlashCommands") is { } storedRecent)
@@ -230,7 +235,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         {
             foreach (var (key, list) in cachedCatalogs)
             {
-                if (SwiftEnum<ProviderKind>.FromRawValue(key) is not { } provider) continue; // :169
+                if (SwiftEnum<ProviderKind>.FromRawValue(key) is not { } provider || provider == ProviderKind.Local) continue; // :169; Local needs a fresh endpoint binding
                 // :170-176. A list cached before the scales were ordered may still run high to low (Grok's
                 // did); the slider reads them low to high, so they are put right here.
                 var split = OpenCodeModels(list, provider);
@@ -315,7 +320,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
 
     // :202-208. ED-001: the CaptureRun-only comment context does not change this member; ported as written.
     public bool CountsAsInstalled(ProviderKind provider) =>
-        statuses.TryGetValue(provider, out var status) ? status.IsInstalled : true; // :207
+        statuses.TryGetValue(provider, out var status) ? status.IsInstalled : provider != ProviderKind.Local; // :207; ED-NEW-ma-3: only show Local when found
 
     // :210-217. ED-001: the CaptureRun branch (:213-215) is dead in a shipped launch and not ported.
     public ProviderStatus Status(ProviderKind provider) =>
@@ -340,7 +345,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // URL round trip to find the executable's directory.
     private string? ResolveExecutable(ProviderKind provider)
     {
-        if (provider.IsAPIKeyBased) return null; // :220
+        if (provider.IsAPIKeyBased || provider == ProviderKind.Local) return null; // :220; ED-NEW-ma-3
         var custom = settings.BinaryPath(provider); // :221
         if (custom.Length == 0 && provider.ExecutableName.Length == 0) return null; // :222
         var primary = custom.Length == 0 ? provider.ExecutableName : custom;
@@ -590,6 +595,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :358-378
     public async Task Refresh(ProviderKind provider)
     {
+        if (provider == ProviderKind.Local) { await RefreshLocal(); return; } // ED-NEW-ma-3
         var status = statuses.TryGetValue(provider, out var existing) ? existing : new ProviderStatus(); // :359
         status = status with { IsChecking = true }; // :360
         Statuses = statuses.Mutating(d => d[provider] = status); // :369
@@ -1113,6 +1119,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // gate, the seeded/stale test, the nine-arm dispatch table, and the OpenCode sibling delivery.
     public async Task LoadCatalog(ProviderKind provider, bool force = false)
     {
+        if (provider == ProviderKind.Local) { await RefreshLocal(); return; } // ED-NEW-ma-3
         if (loadingCatalogs.Contains(provider)) return; // :460
         if (!force && attemptedCatalogs.Contains(provider)) return; // :461
         if (provider.IsAPIKeyBased) // :462-464

@@ -249,6 +249,8 @@ public sealed class ThreadRuntime : MainActorModel
         public InteractionMode? LaunchInteraction { get; init; }      // :519
         public HydraLaunch? Hydra { get; init; }                      // :522
         public required bool AntiSlopEnabled { get; init; }           // :525
+        public string? LocalServerId { get; init; } // PORT-ONLY (ED-NEW-ma-3): changing server restarts the session
+        public long? LocalCatalogRevision { get; init; } // ED-NEW-ma-3: refreshed capabilities/models replace the bound snapshot
     }
 
     // :528-533
@@ -1864,7 +1866,7 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1388-1390; PR-HYDRA-060. Native Hydra providers plus API-key providers.
     private static bool KeepsHydraPolicyInSystemPrompt(ProviderKind provider) =>
         provider is ProviderKind.Claude or ProviderKind.Codex or ProviderKind.Copilot
-        || provider.IsAPIKeyBased;
+        || provider.IsAPIKeyBased || provider == ProviderKind.Local; // ED-NEW-ma-3
 
     private static SessionSignature MakeSessionSignature(
         ChatThread thread, string directory, bool antiSlopEnabled, HydraLaunch? hydra)
@@ -1904,7 +1906,15 @@ public sealed class ThreadRuntime : MainActorModel
         }
 
         var hydra = KeepsHydraPolicyInSystemPrompt(thread.Provider) ? app.HydraLaunch(thread) : null;
-        var signature = MakeSessionSignature(thread, directory, app.Settings.AntiSlopEnabled, hydra);
+        var localTarget = thread.Provider == ProviderKind.Local ? app.Providers.Local.Resolve(thread.Model) : null;
+        if (thread.Provider == ProviderKind.Local && localTarget is null)
+        {
+            await app.Providers.LoadCatalog(ProviderKind.Local);
+            localTarget = app.Providers.Local.Resolve(thread.Model)
+                ?? throw new ProviderError(new ProviderError.Case.Failed("That local server or model is unavailable. Refresh the model list and select it again."));
+        }
+        var signature = MakeSessionSignature(thread, directory, app.Settings.AntiSlopEnabled, hydra)
+            with { LocalServerId = localTarget?.Server.Id, LocalCatalogRevision = localTarget is null ? null : app.Providers.Local.Revision };
         if (session is { IsRunning: true } && sessionSignature == signature) return session;
 
         // Resolve the login environment before tearing down the current session.
@@ -1912,10 +1922,10 @@ public sealed class ThreadRuntime : MainActorModel
         ReleaseSession(stop: true);
         StopNativeHeads();
 
-        if (thread.Provider.IsAPIKeyBased)
+        if (thread.Provider.IsAPIKeyBased || thread.Provider == ProviderKind.Local)
         {
-            var apiKey = app.Settings.ApiKey(thread.Provider);
-            if (apiKey.Length == 0)
+            var apiKey = thread.Provider == ProviderKind.Local ? null : app.Settings.ApiKey(thread.Provider);
+            if (thread.Provider.IsAPIKeyBased && string.IsNullOrEmpty(apiKey))
                 throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
 
             ProviderSession MakeApiSession(string? resumeID)
@@ -1946,6 +1956,7 @@ public sealed class ThreadRuntime : MainActorModel
                     ProviderKind.Meta => new MetaSession(configuration),
                     ProviderKind.Zai => new ZaiSession(configuration),
                     ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
+                    ProviderKind.Local => new Marrow.Services.Port.Local.LocalSession(configuration, localTarget!), // ED-NEW-ma-3
                     _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
                 };
                 Observe(created);

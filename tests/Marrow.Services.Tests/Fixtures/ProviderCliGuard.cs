@@ -14,5 +14,8 @@ public static class ProviderCliGuard
 #pragma warning disable CA2255 // A module initializer in a test library is the point: it must run before any test resolves a CLI.
     internal static void Install()
 #pragma warning restore CA2255
-        => ProviderRegistry.ExecutableRootsForTesting = Marrow.Testing.ProviderCliRoots.Compute();
+    {
+        ProviderRegistry.ExecutableRootsForTesting = Marrow.Testing.ProviderCliRoots.Compute();
+        Marrow.Services.Port.Local.LocalDiscovery.Factory.SetProcessDefault(() => new Marrow.Services.Port.Local.LocalDiscovery([])); // MA-3: never probe installed local models
+    }
 }
