@@ -282,7 +282,7 @@ public sealed class ProviderSessionTests
         Assert.NotNull(interrupt);
         Assert.Equal(typeof(Task), interrupt!.ReturnType);
 
-        var resolveApproval = type.GetMethod("ResolveApproval", [typeof(string), typeof(string)]) // SK-12 adds a three-argument default overload; the Mac surface is the two-argument one;
+        var resolveApproval = type.GetMethod("ResolveApproval", [typeof(string), typeof(string)]); // SK-12 adds a three-argument default overload; the Mac surface is the two-argument one
         Assert.NotNull(resolveApproval);
         Assert.Equal(typeof(void), resolveApproval!.ReturnType);
         Assert.Equal([typeof(string), typeof(string)], resolveApproval.GetParameters().Select(p => p.ParameterType));
