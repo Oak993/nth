@@ -11,6 +11,7 @@ using Marrow.App.Port.Settings;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Models.ComposerLights;
+using Marrow.Core.Port.Voice.Light;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Port.ComposerLights;
@@ -35,6 +36,9 @@ internal sealed class ComposerLightSlot : Decorator
         this.Track(() => runtime.IsRunning ? ComposerLightPhase.Running : runtime.DraftIsEmpty ? ComposerLightPhase.Rest : ComposerLightPhase.Typing,
             phase => light.Phase = phase);
         this.Track(() => AppEnvironment.GetAppModel(this).Thread(runtime.ThreadID)?.Provider, p => { provider = p; UpdatePalette(); });
+        // PORT-ONLY (voice-SPEC V-13.4, OD-0097 B1 to B3; VT-12): the light's level while the voice is on (the setting's: steps aside, dims to 35 %, stays on) and 1 otherwise; the light eases to it itself
+        if ((composer as ComposerView)?.Voice is { } voice)
+            this.Track(() => VoiceLightTarget.For(voice.OrbSettings.LightVoice, voice.State), level => light.VoiceLight = level);
         ActualThemeVariantChanged += (_, _) => UpdatePalette();
         LayoutUpdated += (_, _) => Place();
         composer.LayoutUpdated += (_, _) => Place();
