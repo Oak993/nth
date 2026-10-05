@@ -39,6 +39,8 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
     private static Point Centre(Control control, Visual to) => control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), to)!.Value;
 
     /// <summary>The Border that holds the row's 10/9/10/9 padding: the surface the lift is drawn on.</summary>
+    // ED-NEW-glass-g3: a lift's shadow is its SwiftShadow.Caster (the fill's own coverage at the fill's alpha, under it); one casts while its fill is drawn.
+    private static SwiftShadow.Caster[] Casting(Control row) => Of<SwiftShadow.Caster>(row).Where(caster => caster.DrawnColor.A > 0).ToArray();
     private static Border Surface(PinnedModelRow row) => Of<Border>(row).First(border => border.Padding.Top == 9);
 
     private static double OffsetY(PinnedModelRow row) => (SlotOf(row).RenderTransform as TranslateTransform)?.Y ?? 0;
@@ -120,6 +122,7 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-187")] // ModelsSettingsPage.swift:253-262 RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Chrome.overlay(0.12)).shadow(color: .black.opacity(0.28), radius: 10, y: 4); .scaleEffect(1.02)
+    [Trait("Decision", "ED-NEW-glass-g3")]
     public void The_lifted_row_has_a_radius_10_fill_of_12_percent_a_black_shadow_and_a_scale_of_1_02() => headless.OnUiThread(() =>
     {
         using var rig = new ModelsSettingsSectionRig([], Pins("alpha", "bravo", "charlie"));
@@ -127,19 +130,18 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
         rig.Advance(2); // the lift has settled
 
         var lifted = Rows(rig)[0];
-        var layer = Of<Border>(lifted).Single(border => border.BoxShadow.Count == 1);
+        var shadow = Assert.Single(Casting(lifted));
+        var layer = shadow.Source;
         Assert.Equal(new CornerRadius(10), layer.CornerRadius);
         Assert.Equal(Chrome.Overlay(0.12).Resolve(layer.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(layer.Background).Color);
-        var shadow = layer.BoxShadow[0];
-        Assert.Equal((10 - 0.5) / 0.288675, shadow.Blur, 6); // radius 10 drawn as sigma 10 (ED-327; measured by SwiftShadowHeadlessTests)
-        Assert.Equal(4, shadow.OffsetY);
-        Assert.Equal(0, shadow.OffsetX);
-        Assert.Equal(0, shadow.Spread);
-        Assert.False(shadow.IsInset);
-        Assert.Equal(0, shadow.Color.R);
-        Assert.Equal(0, shadow.Color.G);
-        Assert.Equal(0, shadow.Color.B);
+        Assert.DoesNotContain(Of<Border>(lifted), border => border.BoxShadow.Count > 0);
+        // ED-NEW-glass-g3 (was a BoxShadow of Blur (10 - 0.5) / 0.288675 at the colour's full 0.28, outside the box only): radius 10 (sigma 10,
+        // ED-327), y 4, black 0.28 as the Swift states it, drawn at 0.28 times the fill's alpha (the label colour's 0.85 at 0.12: 26 of 255), so 7.
+        Assert.Equal((10d, 0d, 4d), (shadow.Radius, shadow.X, shadow.Y));
+        Assert.Equal((0, 0, 0), (shadow.Color.R, shadow.Color.G, shadow.Color.B));
         Assert.InRange(shadow.Color.A, 70, 72); // 28% of 255
+        Assert.Equal(26, Assert.IsAssignableFrom<ISolidColorBrush>(layer.Background).Color.A);
+        Assert.Equal(7, shadow.DrawnColor.A);
         Assert.Equal(1, layer.Opacity, 0.001);
 
         var scale = Of<Control>(lifted).Concat([lifted]).Select(control => control.RenderTransform).OfType<ScaleTransform>().First();
@@ -160,6 +162,7 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
             foreach (var row in rows)
             {
                 Assert.All(Of<Border>(row), border => Assert.Equal(0, border.BoxShadow.Count));
+                Assert.Empty(Casting(row)); // ED-NEW-glass-g3: no fill, so its caster draws nothing
                 Assert.All(Of<Border>(row).Where(border => border.CornerRadius.TopLeft == 10), border => Assert.Null(border.Background));
                 Assert.DoesNotContain(Of<Control>(row).Concat([row]), control => control.RenderTransform is ScaleTransform { ScaleX: > 1.0001 });
             }
@@ -182,7 +185,7 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
         using var rig = new ModelsSettingsSectionRig([], Pins("alpha", "bravo", "charlie"));
         var spring = Animation.Spring(response: 0.25, dampingFraction: 0.8);
         double Scale() => Of<Control>(Rows(rig)[0]).Concat([Rows(rig)[0]]).Select(control => control.RenderTransform).OfType<ScaleTransform>().Select(transform => transform.ScaleX).DefaultIfEmpty(1).Max();
-        double Fill() => Of<Border>(Rows(rig)[0]).Where(border => border.BoxShadow.Count == 1).Select(border => border.Opacity).DefaultIfEmpty(0).Max();
+        double Fill() => Casting(Rows(rig)[0]).Select(caster => caster.Source.Opacity).DefaultIfEmpty(0).Max(); // the lift's fill and its shadow (ED-NEW-glass-g3)
 
         var at = Drag(rig, 0, 5);
         Assert.Equal(1, Scale(), 0.002); // the first frame of the lift has not moved the row yet
@@ -220,9 +223,9 @@ public sealed class ModelsSettingsPagePinnedRowTests(HeadlessSession headless)
         using var rig = new ModelsSettingsSectionRig([], Pins("alpha"));
         var rest = new PinnedModelRow(rig.Model, Pin("alpha"), isDragged: false, _ => { }, () => { });
         var held = new PinnedModelRow(rig.Model, Pin("alpha"), isDragged: true, _ => { }, () => { });
-        Assert.Equal(0, Of<Border>(rest).Count(border => border.BoxShadow.Count > 0));
+        Assert.Empty(Casting(rest)); // ED-NEW-glass-g3: the lift's caster draws nothing without the fill
         Assert.DoesNotContain(Of<Control>(rest).Concat([rest]), control => control.RenderTransform is ScaleTransform);
-        Assert.Equal(1, Of<Border>(held).Count(border => border.BoxShadow.Count > 0));
+        Assert.Single(Casting(held));
         Assert.Contains(Of<Control>(held).Concat([held]), control => control.RenderTransform is ScaleTransform { ScaleX: > 1.019 and < 1.021 });
     });
 

@@ -504,6 +504,67 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
         });
     }
 
+    // WindowManager.swift:65 window.contentMinSize = NSSize(width: 860, height: 560): "Resized below the minimum: prevented by
+    // contentMinSize". The fixture's main window is 880 x 570, so a real drag of its right edge 300 px left and of its bottom edge
+    // 300 px up asks for 580 x 270 points; the HWND must stop at the minimum, measured as the client size in points at its DPI.
+    [Fact]
+    [Trait("Req", "UI-LAUNCH-001")] // AppDelegate.swift:22; WindowManager.swift:62-69 (contentMinSize :65)
+    [Trait("Req", "PR-LAUNCH-028")] // the same minimum
+    public void The_main_window_refuses_an_actual_border_resize_below_860_by_560_points()
+    {
+        native.Run(subject =>
+        {
+            const int HTBOTTOM = 15;
+            subject.Focus(subject.Main, subject.MainProbe);
+            using var pointer = new WindowManagerNativePointer(subject);
+            var scale = native.OnUi(() => subject.Main.DesktopScaling);
+            var before = native.OnUi(() => subject.Main.ClientSize);
+            // WM_GETMINMAXINFO read back from the HWND's own procedure: the minimum track size less the HWND's non-client frame
+            // (outer less client, both measured) is the smallest client the window allows, in pixels.
+            var track = N.MinTrackSize(subject.MainProbe.Handle);
+            var outer = N.Rect(subject.MainProbe.Handle);
+            var frameWidth = outer.Width - before.Width * scale;
+            var frameHeight = outer.Height - before.Height * scale;
+            Assert.Equal(860 * scale, track.X - frameWidth, 1.5);
+            Assert.Equal(560 * scale, track.Y - frameHeight, 1.5);
+            Assert.True(before.Width > 860 && before.Height > 560, $"the fixture's main window starts above the minimum: {before}");
+
+            var edge = WindowManagerNativePointer.RightEdge(subject.MainProbe, resizable: true);
+            pointer.Down(subject.MainProbe, edge, N.HTRIGHT);
+            N.Until(() => N.Gui(native.ThreadId).Capture == subject.MainProbe.Handle, "Native edge drag did not capture.");
+            var moved = new NativeWindowPoint(edge.X - (int)(300 * scale), edge.Y);
+            pointer.Move(subject.MainProbe, moved);
+            N.Until(() => subject.MainProbe.Count(N.WM_SIZING) > 0, "The actual drag produced no WM_SIZING.");
+            pointer.Up(subject.MainProbe, moved);
+            N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > 0 && !subject.MainProbe.IsResizing, "Live resize did not end after the release.");
+            var narrowed = native.OnUi(() => subject.Main.ClientSize);
+            Assert.True(narrowed.Width < before.Width, $"the drag did not narrow the window: {before.Width} to {narrowed.Width}");
+            Assert.InRange(narrowed.Width, 860 - 1.0 / scale, 860 + 1.0 / scale); // stopped at the minimum, 300 points short of the request
+            Assert.Equal(before.Height, narrowed.Height, 1);
+
+            subject.Focus(subject.Main, subject.MainProbe);
+            var rectangle = N.Rect(subject.MainProbe.Handle);
+            var bottom = default(NativeWindowPoint?);
+            for (var inset = 1; inset <= 20 && bottom is null; inset++)
+            {
+                var point = new NativeWindowPoint(rectangle.Left + rectangle.Width / 2, rectangle.Bottom - inset);
+                if (N.RootAt(point) == subject.MainProbe.Handle && N.Hit(subject.MainProbe.Handle, point) == HTBOTTOM) bottom = point;
+            }
+            Assert.NotNull(bottom);
+            var exitsBefore = subject.MainProbe.Count(N.WM_EXITSIZEMOVE);
+            pointer.Down(subject.MainProbe, bottom.Value, HTBOTTOM);
+            N.Until(() => N.Gui(native.ThreadId).Capture == subject.MainProbe.Handle, "Native bottom edge drag did not capture.");
+            var up = new NativeWindowPoint(bottom.Value.X, bottom.Value.Y - (int)(300 * scale));
+            pointer.Move(subject.MainProbe, up);
+            pointer.Up(subject.MainProbe, up);
+            N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > exitsBefore && !subject.MainProbe.IsResizing, "Live resize did not end after the second release.");
+            var shortened = native.OnUi(() => subject.Main.ClientSize);
+            Assert.True(shortened.Height < before.Height, $"the drag did not shorten the window: {before.Height} to {shortened.Height}");
+            Assert.InRange(shortened.Height, 560 - 1.0 / scale, 560 + 1.0 / scale);
+            Assert.InRange(shortened.Width, 860 - 1.0 / scale, 860 + 1.0 / scale);
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-WIN-017")]
     public void A_real_caption_move_does_not_publish_a_resize_on_either_factory_window()
@@ -642,6 +703,51 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
                 if (N.MenuOn(native.ThreadId) != 0) N.Post(handle, N.WM_CANCELMODE);
                 N.Check(N.SetCursorPos(originalCursor.X, originalCursor.Y), "Restore test cursor position");
             }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-001")] // SidebarView.swift:74-80 the Color.clear clearance spacer, :146 `.background { if !inPopover { WindowDragArea() } }`: "pressing it drags the window"
+    public void The_actual_main_sidebar_clearance_spacer_reaches_native_caption_hit_testing_and_drags_the_window()
+    {
+        native.Run(subject =>
+        {
+            subject.Focus(subject.Main, subject.MainProbe);
+            // The real SidebarView (the column, not the popover form) over the factory's main window, below the fixture's own caption zone,
+            // so that the only caption under the points is the one the sidebar's own WindowDragArea gives.
+            var (view, area, spacer, field) = native.OnUi(() =>
+            {
+                FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Main));
+                var host = new Border { Width = 280, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, Margin = new Thickness(0, 60, 0, 0) };
+                AppEnvironment.SetAppModel(host, subject.Manager.Model);
+                var column = new Marrow.App.Views.Sidebar.SidebarView(false, null);
+                host.Child = column;
+                subject.MainContent.Children.Add(host);
+                subject.Main.UpdateLayout();
+                var drag = Assert.Single(column.GetVisualDescendants().OfType<WindowDragArea>());
+                var search = Assert.Single(column.GetVisualDescendants().OfType<SidebarSearchField>());
+                return (column, drag, new Point(140, 23), search.TranslatePoint(new Point(20, 14), column) ?? throw new InvalidOperationException("the search field is not under the column"));
+            });
+            // :74-80 the spacer sits 16..30 pt down, in the gutter beside the search row's top padding.
+            N.Until(() => native.OnUi(() => view.InputHitTest(spacer) is Visual hit && (ReferenceEquals(hit, area) || hit.GetVisualAncestors().Contains(area))),
+                "The sidebar's drag area did not become the managed hit target at the clearance spacer after native layout.");
+            Assert.Equal(Win32Properties.Win32HitTestValue.Caption, native.OnUi(() => Win32Properties.GetNonClientHitTestResult(area)));
+            NativeWindowPoint Screen(Point at) => native.OnUi(() => { var point = view.PointToScreen(at); return new NativeWindowPoint(point.X, point.Y); });
+            var spacerPoint = Screen(spacer);
+            var fieldPoint = Screen(field);
+            Assert.Equal(N.HTCAPTION, N.Hit(subject.MainProbe.Handle, spacerPoint)); // the spacer is the window's caption to Windows
+            Assert.Equal(N.HTCLIENT, N.Hit(subject.MainProbe.Handle, fieldPoint)); // the search field is the field's own
+            using var pointer = new WindowManagerNativePointer(subject);
+            var before = N.Rect(subject.MainProbe.Handle);
+            pointer.Down(subject.MainProbe, spacerPoint, N.HTCAPTION);
+            N.Until(() => N.Gui(native.ThreadId).Capture == subject.MainProbe.Handle, "Pressing the clearance spacer did not start the system move loop.");
+            var moved = new NativeWindowPoint(spacerPoint.X + 56, spacerPoint.Y + 30);
+            pointer.Move(subject.MainProbe, moved);
+            N.Until(() => N.Rect(subject.MainProbe.Handle).Left != before.Left, "Dragging from the clearance spacer did not move the native frame.");
+            pointer.Up(subject.MainProbe, moved);
+            N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > 0, "The move from the clearance spacer did not end.");
+            Assert.InRange(N.Rect(subject.MainProbe.Handle).Left, before.Left + 56 - 8, before.Left + 56 + 8); // it followed the pointer (the system may clamp to the work area by a few pixels)
+            Assert.Empty(subject.MainProbe.ResizeTransitions); // a move, not a resize
         });
     }
 }

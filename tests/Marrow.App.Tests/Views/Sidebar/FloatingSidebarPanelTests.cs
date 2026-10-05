@@ -509,11 +509,11 @@ public sealed class FloatingSidebarPanelTests(HeadlessSession headless)
         // :100 .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)
         var shadow = rig.Shadow;
         Assert.Equal(SwiftColor.Black.Opacity(dark ? 1 : 0.65).Resolve(theme), shadow.Color);
-        Assert.Equal((28 - 0.5) / 0.288675, shadow.Blur, 6); // radius 28 drawn as sigma 28 (ED-327; measured by SwiftShadowHeadlessTests)
-        Assert.Equal(10, shadow.OffsetY);
-        Assert.Equal(0, shadow.OffsetX);
-        Assert.Equal(0, shadow.Spread);
-        Assert.False(shadow.IsInset);
+        // ED-NEW-glass-g3 (was a BoxShadow of Blur (28 - 0.5) / 0.288675, no spread, outer, at the colour's full alpha outside the box only): radius
+        // 28 (sigma 28, ED-327), y 10, drawn at the colour's alpha times the plate fill's (1.0 x 0.3 = 77; 0.65 x 0.34 = 57), under the plate.
+        Assert.Equal((28d, 0d, 10d), (shadow.Radius, shadow.X, shadow.Y));
+        Assert.Equal(dark ? Color.FromArgb(77, 0, 0, 0) : Color.FromArgb(57, 0, 0, 0), shadow.DrawnColor);
+        Assert.Equal(siblings.IndexOf(plate) - 1, siblings.IndexOf(shadow));
     });
 
     [Fact]

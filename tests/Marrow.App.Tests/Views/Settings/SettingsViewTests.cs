@@ -571,9 +571,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
     // RESOLVED for the build (defects-priority): Marrow.App.csproj now ships LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside the executable
     // (Legal\ content, copied to the build output and the publish folder); LicensesShippingTests proves them byte for byte.
-    // OPEN (reopened in review round 2) for the installer clause of PR-SETTINGS-249's windows_path ("Ship all three documents with the installer"):
-    // no pack was built and nothing installed, so no test claims PR-SETTINGS-249. Needed: a vpk pack or an installed %LOCALAPPDATA%\Marrow Code
-    // checked for the three files beside Marrow.App.exe, after an install and after an update.
+    // PACKED (rec-settings-win): scripts/package-windows.ps1 was run (publish, vpk pack 1.2.161) and the full nupkg holds LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md at lib/app, beside
+    // Marrow.App.exe, byte for byte the hashes LicensesShippingTests uses; the script now stops a pack that lacks them, and LicensesPackTests reads the package. NOT run: an installed
+    // %LOCALAPPDATA%\Marrow Code\current, after an install and after an update, because the house rule is that no agent opens the installer.
+    // The record's lead decides whether the packed folder is enough for "Ship all three documents with the installer".
     // (It said: the App project bundles only Assets/icon.png, not the three legal documents.)
     // The independent reader, caching, missing-file path and popover are covered below.
 
@@ -741,9 +742,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); Assert.Equal("droppy-logo", mark.AssetName); MarrowLogoCheck.AssertIsTheMarrowIcon(mark); /* OD-0015: the Swift key, the Marrow artwork */ Assert.Equal(40, mark.Width); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
     });
 
-    // Not PR-SETTINGS-249 (withdrawn, defects-priority review round 2): its windows_path ships the three documents with the installer, which no test
-    // checks (STOP #5 above, reopened for that clause).
+    // PR-SETTINGS-249: the read-once clause (SettingsView.swift:1046-1056); the package that ships the documents is LicensesPackTests (STOP #5 above).
     [Fact]
+    [Trait("Req", "PR-SETTINGS-249")]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     public void Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
@@ -761,9 +762,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) { var text = Assert.IsType<string>(reader.Invoke(null, [resource])); Assert.NotEmpty(text); Assert.DoesNotContain("file is missing from this copy of the app", text, StringComparison.Ordinal); }
     });
 
-    // Not PR-SETTINGS-249 (withdrawn, defects-priority review round 2; kept so at the ED-280 merge): its windows_path ships the three documents with
-    // the installer, which no test checks (STOP #5 above). This proves the build output the app reads.
+    // PR-SETTINGS-249: the build output the app reads; the package built from it is LicensesPackTests (STOP #5 above).
     [Fact]
+    [Trait("Req", "PR-SETTINGS-249")]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1012-1016,1046-1056; Marrow.App.csproj (OD-0002: upstream's three documents ship unchanged)
     public void The_three_licence_documents_ship_beside_the_executable_upstream_first_and_the_popover_shows_them() => WithView(() => new LicensesRow(), (view, _, _) =>
     {
@@ -948,11 +949,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-004")] // App/Views/Settings/SettingsView.swift:110-122
-    public void Window_content_is_780_by_580_with_a_212_sidebar_and_26_corner() => WithSettings((view, _, _) =>
+    public void Window_content_is_780_by_580_with_a_212_sidebar_and_a_frame_that_is_the_windows_rectangle() => WithSettings((view, _, _) =>
     {
         Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
         Assert.Equal(212, Field<Control>(view, "sidebar").Width);
-        Assert.Equal(26, Field<SwiftShapeBorder>(view, "frame").CornerRadius.TopLeft);
+        Assert.Equal(0, Field<SwiftShapeBorder>(view, "frame").CornerRadius.TopLeft); // SettingsView.swift:119-120 is a 26 pt shape; the port's frame is the window's rectangle, which DWM rounds (OD-0075, ED-NEW-corner-seam)
         Assert.Equal(new Thickness(0), Field<Control>(view, "detail").Margin);
         Assert.Single(Nodes<WindowBackdrop>(view));
     });

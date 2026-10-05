@@ -202,7 +202,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-017/-018/-019/-021/-022/-023/-024: per-clause gaps the parity audit listed (the face's paddings and
 //   minimum heights, the Settled accessibility value, the pin's 0.9 scale, MiniSpinner cellSize 2.4, the dot's offset,
 //   the project line's fonts and spacing, monospaced digits on the time label, the failed dot in ActivityStatus, the
-//   fold chevron's symbols, the title-width glide on hover).
+//   fold chevron's symbols, the title-width glide on hover). UI-SIDEBAR-020: the settle pop (:1909 spring 0.3/0.45) is
+//   proven by the Swift source under OD-0105 (SidebarSettleBounceTests, SidebarLeftoversTests) and the hover colour eases (SettleCheckHoverColourTests).
 // - UI-SIDEBAR-026/-027: dismissal by click-away/Escape and the Closed -> carryOutConfirmedDeletion hookup cannot run
 //   headless (STOP #12); UI-SIDEBAR-028/-029/-030/PR-SIDEBAR-091: STOP #6 (the controls' chrome);
 //   UI-SIDEBAR-031/-032: `.controlSize(.small)`'s metrics are unverified.
@@ -229,8 +230,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-038: the head card's glyphs past twelve join and leave on SwiftUI's default .opacity transition under the
 //   chevron's snappy toggle (2-chat-use.mov 5.33-5.40 s); the port refilled the rows whole. REVIEW_The_head_cards_chevron_
 //   fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle and the proofs beside it. A leaving glyph fades on a layer
-//   over the card (it takes no room, so the chevron does not wait for it); the Mac's glide of the surviving glyphs to their
-//   new places is not done (above, UI-SIDEBAR-036).
+//   over the card (it takes no room, so the chevron does not wait for it); the surviving glyphs glide to their new places
+//   (UI-SIDEBAR-036, HeadCardGlideTests).
 // - PR-SIDEBAR-005: Return_with_no_result_changes_nothing started with nothing selected, so a Return that cleared the
 //   selection passed it (mutant PR005-noresult-clears); Return_with_no_result_leaves_the_current_selection_as_it_was.
 // - PR-SIDEBAR-130, UI-SIDEBAR-014 (OD-0008 A9, OD-0012 E2): the Remove project question's popup lifecycle was never run
@@ -340,19 +341,19 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-026, -027: the delete question through its popup (dismissal keeps the thread; the delete waits for Closed).
 // - UI-SIDEBAR-031, -032: the small glass buttons take the measured small metrics (20 high, 11 pt, 10.5 pt either side).
 // - UI-SIDEBAR-036: the two heights on snappy 0.18, the connector on panelSlide when the head set changes (the surviving
-//   glyphs' glide is NOT done: see below). UI-SIDEBAR-037: the hover scale eases back; each glyph row trails the 3 pt overhang
+//   glyphs, rows and the chevron glide to their new places: HeadCardGlideTests, ED-329 3). UI-SIDEBAR-037: the hover scale eases back; each glyph row trails the 3 pt overhang
 //   (the badge's own offset is UI-HYDRA-033's).
 // - UI-SIDEBAR-001: a press on the spacer lands on the column's WindowDragArea (a Caption to the Windows hit test); the system
-//   move loop itself is NATIVE-ONLY.
+//   move loop is proven natively (WindowManagerNativeTests.The_actual_main_sidebar_clearance_spacer_...).
 // STILL OPEN, with the reason:
 // - UI-SIDEBAR-015, -016: the entries reach the system menu in the source's order and the current choice carries a check mark
 //   (The_pair_submenu_reaches_the_system_menu_...); a Win32 menu reserves a check gutter for every row, so "no reserved check
 //   column" cannot hold, and opening the native submenu is the system's: NATIVE-ONLY / platform limit.
-// - UI-SIDEBAR-036 (part): the surviving glyphs of a card whose heads change glide to their new places on the Mac (OD-0076 asks
-//   for it); ForEach.ApplyLayout glides rows inside one panel, and the card's glyphs move between row panels: needs a cross-panel
-//   layout glide in the shared ForEach foundation (UI/Port/ViewLifetime.cs), another unit's file.
-// - UI-SIDEBAR-044: the sidebar asks for exactly the source's folder dialog (proven); the Windows dialog's drawing of the title, OK label and
-//   flags (OpenPanel.cs, IFileOpenDialog) is NATIVE-ONLY.
+// - UI-SIDEBAR-036 (part), CLOSED by the unit rec-sidebar: the surviving glyphs of a card whose heads change glide to their new
+//   places (a card-level shift in HeadCardsRow, not the shared ForEach; a glyph that changes row has another identity and fades
+//   instead, SidebarView.swift:1466-1467), HeadCardGlideTests.
+// - UI-SIDEBAR-044, CLOSED natively: the sidebar asks for exactly the source's folder dialog (proven), and the Windows dialog's title, OK
+//   label, flags and results are proven on the real dialog (OpenPanelNativeTests).
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -361,6 +362,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     internal static readonly DateTimeOffset Base = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
 
     // ---- reflection over the file's private declarations ----
+
+    // ED-NEW-glass-g3: the lift host holds the lift's shadow caster (drawn first, under the lift), the lift and the row's content.
+    internal static SwiftShadow.Caster LiftShadowOf(Control host) => Assert.Single(((Panel)host).Children.OfType<SwiftShadow.Caster>());
+    internal static Border LiftOf(Control host) => LiftShadowOf(host).Source;
 
     internal static Type Private(string name) => AppAssembly.GetType("Marrow.App.Views.Sidebar." + name, throwOnError: true)!;
 
@@ -3129,14 +3134,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 window.Show();
             });
             static double ScaleOf(Control control) => control.RenderTransform is ScaleTransform scale ? scale.ScaleX : 1;
-            static double LiftOpacity(Control host) => ((Panel)host).Children[0].Opacity;
+            static double LiftOpacity(Control host) => LiftOf(host).Opacity;
             // :1838-1846 .background { lift }.scaleEffect(isDragged ? 1.02 : 1): the scale applies to the row WITH its
             // lifted fill and shadow, so it sits on the host that holds both, and neither carries a scale of its own.
             static void OneScale(Control host, Control content, double expected)
             {
                 Assert.Equal(expected, ScaleOf(host), 3);
                 Assert.Equal(1d, ScaleOf(content));
-                Assert.Equal(1d, ScaleOf(((Panel)host).Children[0]));
+                Assert.Equal(1d, ScaleOf(LiftOf(host)));
+                Assert.Equal(1d, ScaleOf(LiftShadowOf(host)));
             }
             harness.Main.OnMain(() =>
             {
@@ -3155,10 +3161,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(1d, LiftOpacity(host)); // :1842-1843 fully faded in
                 // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4): the shadow that springs in with the lift is
                 // SwiftUI's radius 10 as a Gaussian of sigma 10 (ED-327; drawn so, SidebarLiftShadowTests).
-                var shadows = ((Border)((Panel)host).Children[0]).BoxShadow;
-                Assert.Equal(1, shadows.Count);
-                Assert.Equal((Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), 0d, 4d), (shadows[0].Color, shadows[0].OffsetX, shadows[0].OffsetY));
-                Assert.Equal((10 - 0.5) / 0.288675, shadows[0].Blur, 6);
+                // ED-NEW-glass-g3 (was the lift's BoxShadow of Blur (10 - 0.5) / 0.288675 at the colour's full 0.28): its caster, radius 10,
+                // y 4, black 0.28 cast at the fill's alpha (26 of 255), so drawn at 7, fading in with the fill.
+                var shadow = LiftShadowOf(host);
+                Assert.Equal((Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), 10d, 0d, 4d), (shadow.Color, shadow.Radius, shadow.X, shadow.Y));
+                Assert.Equal(Color.FromArgb(7, 0, 0, 0), shadow.DrawnColor);
+                Assert.Equal(default, LiftOf(host).BoxShadow);
                 Call(view, "DragEnded");
             });
             for (var i = 0; i < 100; i++)
@@ -3190,7 +3198,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 var view = Detached(model);
                 var content = new Border { Height = 20 };
                 var host = (Control)CallStatic(Private("SidebarThreadRow"), "ApplyDraggedLift", content, (Func<bool>)(() => false))!;
-                var lift = (Border)((Panel)host).Children[0];
+                var lift = LiftOf(host);
                 // :1735 let shape = RoundedRectangle(cornerRadius: Chrome.rowCornerRadius, style: .continuous), the
                 // same shape the row's own background/contentShape use (SidebarThreadRow.body, not yet ported) and
                 // the lift's fill and shadow follow at :1838-1843. Chrome.RowCornerRadius is 7 (Chrome.cs:104).
@@ -3199,13 +3207,15 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 // :1842 .fill(Chrome.overlay(0.12)): an opaque backing fill, so a row sliding underneath the lifted
                 // one during a swap never shows through it.
                 Assert.Equal(Chrome.Overlay(0.12).Resolve(lift.ActualThemeVariant), ((ISolidColorBrush)lift.Background!).Color);
-                // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4).
-                Assert.Equal(1, lift.BoxShadow.Count);
-                var shadow = lift.BoxShadow[0];
+                // :1843 .shadow(color: .black.opacity(0.28), radius: 10, y: 4): ED-NEW-glass-g3 (was the lift's own BoxShadow): the lift's caster,
+                // the fill's own shape (the lift's corners) casting black 0.28 at the fill's alpha, under it; radius 10 (sigma 10, ED-327).
+                var shadow = LiftShadowOf(host);
+                Assert.Same(lift, shadow.Source);
                 Assert.Equal(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), shadow.Color);
-                Assert.Equal((10 - 0.5) / 0.288675, shadow.Blur, 6); // radius 10 drawn as sigma 10 (ED-327; measured by SwiftShadowHeadlessTests)
-                Assert.Equal(0d, shadow.OffsetX);
-                Assert.Equal(4d, shadow.OffsetY);
+                Assert.Equal((10d, 0d, 4d), (shadow.Radius, shadow.X, shadow.Y));
+                Assert.Equal(0, ((Panel)host).Children.IndexOf(shadow));
+                Assert.Equal(1, ((Panel)host).Children.IndexOf(lift));
+                Assert.Equal(default, lift.BoxShadow);
             });
         });
     }
@@ -5662,13 +5672,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     // ---- helpers for ProjectRow (part 6) ----
 
-    internal static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true)
+    internal static Control ShownProjectRow(AppModel model, Project project, long count, bool togglesExpansion = true, double width = 320)
     {
         var row = (Control)Activator.CreateInstance(Private("ProjectRow"), project, count, togglesExpansion)!;
         row.VerticalAlignment = VerticalAlignment.Top; // the row's own 28pt height, not the host's full stretch
         var host = new Border { Child = row };
         AppEnvironment.SetAppModel(host, model);
-        var window = new AvaloniaWindow { Content = host, Width = 320, Height = 100 };
+        var window = new AvaloniaWindow { Content = host, Width = width, Height = 100 };
         window.Show();
         window.UpdateLayout();
         return row;
@@ -7857,7 +7867,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 var overlays = ((Decorator)row).Child!; // the lift host: :1846 scales the row together with its lift (:1838-1843)
                 Assert.Equal(1.02, ((ScaleTransform)overlays.RenderTransform!).ScaleX, 3); // :1846
-                var lift = Assert.IsType<Border>(Assert.IsType<Panel>(row is Decorator d ? d.Child : null).Children[0]);
+                var lift = LiftOf(Assert.IsType<Panel>(row is Decorator d ? d.Child : null));
                 Assert.Equal(1, lift.Opacity);
                 model.UpdateThread(parent.Id, t => t.WithFoldsHelpers(true));
             });
@@ -7877,7 +7887,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 AssertRider(row, 0);
                 AssertRider(LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("HelperStubRow")), 0);
                 Assert.Equal(1, ((ScaleTransform)((Decorator)row).Child!.RenderTransform!).ScaleX, 3);
-                Assert.Equal(0, Assert.IsType<Border>(Assert.IsType<Panel>(((Decorator)row).Child).Children[0]).Opacity);
+                Assert.Equal(0, LiftOf(Assert.IsType<Panel>(((Decorator)row).Child)).Opacity);
                 window.MouseMove(new Point(-20, -20));
                 window.MouseMove(row.TranslatePoint(new Point(12, 12), window)!.Value); // re-enter the newly released row's live instance
             });
@@ -8695,9 +8705,21 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         var model = Model(harness, [project], []);
         Control row = null!;
         AvaloniaWindow window = null!;
+        // Chrome.swift:711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) }: SwiftUI puts the stack's spacing between
+        // every adjacent pair of subviews, the Spacer included, so the title's room is the row less the 8 + 40 trailing, the 8
+        // + 20 + 8 before it and the 8 + 4 after it (ED-329). The title is cut at its tail at a whole character. The
+        // row is made 17 glyphs + 92 wide: the exact room is then 17 glyphs less 4, so 16 characters fit, where the room
+        // of a spacer without its spacing (8 more) would let the 17th in.
+        double glyphWidth = 0;
         harness.Main.OnMain(() =>
         {
-            row = ShownProjectRow(model, project, 0);
+            var probe = ShownProjectRow(model, project, 0);
+            var probeTitle = LogicalQuery.SelfAndDescendants<TextBlock>(probe).Single(t => t.Text == project.Name);
+            var glyph = new TextBlock { Text = "W", FontFamily = probeTitle.FontFamily, FontSize = probeTitle.FontSize, FontWeight = probeTitle.FontWeight };
+            glyph.Measure(Size.Infinity);
+            glyphWidth = glyph.DesiredSize.Width;
+            Close(probe);
+            row = ShownProjectRow(model, project, 0, width: 17 * glyphWidth + 92);
             window = WindowOf(row);
         });
         Border shape = null!;
@@ -8719,9 +8741,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
             Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A); // clear while not hovered
             idleRight = Frame(title, row).Right;
-            // The title never runs under the reserved 40 pt, the trailing padding or the spacer's minimum 4 pt.
-            Assert.True(idleRight <= row.Bounds.Width - 8 - 40 - 4 + 0.01, $"title ends at {idleRight}");
-            Assert.True(idleRight > 150, $"title ends at {idleRight}"); // and it is truncated there, not collapsed
+            // The title never runs under the reserved 40 pt, the trailing padding or the spacer's 8 + 4 pt; its right edge is the
+            // largest whole-character one that fits, less than one glyph short of the exact edge.
+            var exactEdge = row.Bounds.Width - 8 - 40 - 8 - 4;
+            Assert.True(idleRight <= exactEdge + 0.01, $"title ends at {idleRight}, past {exactEdge}");
+            Assert.True(idleRight > exactEdge - glyphWidth, $"title ends at {idleRight}, more than a glyph ({glyphWidth}) short of {exactEdge}");
+            Assert.InRange(idleRight, 8 + 20 + 8 + 16 * glyphWidth - 1, 8 + 20 + 8 + 16 * glyphWidth + 1); // 16 characters (layout rounds the text run to a whole pixel), not the 17 the old room let in
         });
         harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(120, 14), window)!.Value)); // hover
         harness.Main.AdvanceMilliseconds(300);

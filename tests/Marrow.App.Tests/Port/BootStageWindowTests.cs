@@ -176,6 +176,38 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
         }
     });
 
+    // ED-284 (1): the main HWND's origin lies one invisible strip (8 px at 100 %, stood in here as 12 px) left of the visible window
+    // and none above it; the outline the boot hands over to is the VISIBLE window. Expected from the screen pixels alone: the stage
+    // window's origin plus the outline's DIP frame at the screen's scale is the visible rect, and the visible rect is the main HWND's
+    // position moved right by the strip, 900 x 600 DIP.
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-028")] // App/AppDelegate.swift:22 (its OD-0018 deviation); App/Window/WindowManager.swift:43-54 with ED-284 (1)
+    public void The_boot_outline_is_the_visible_main_window_not_its_HWND_with_the_invisible_strip() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        using var strip = WindowInvisibleBorder.Pixels.Override((_, scale) => (int)Math.Round(12 * scale));
+        var main = MainWindow(new Border());
+        var boot = BootStageWindow.Start(main, reduceMotion: false, () => main.Show());
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            var scale = (main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary)?.Scaling ?? 1;
+            var frame = boot.OutlineLayout.Frame;
+            Assert.Equal(main.Position.X + Math.Round(12 * scale), boot.Window.Position.X + frame.X * scale, 1);
+            Assert.Equal(main.Position.Y, boot.Window.Position.Y + frame.Y * scale, 1);
+            Assert.Equal(900, frame.Width);
+            Assert.Equal(600, frame.Height);
+        }
+        finally
+        {
+            boot.Window.Close();
+            main.Close();
+        }
+    });
+
     [Fact]
     [Trait("Decision", "ED-103")]
     public void The_window_particles_land_on_the_title_bar_sidebar_conversation_and_composer_of_the_main_frame()

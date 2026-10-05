@@ -28,7 +28,9 @@ public sealed class HydraPanelSurfaceTests(HeadlessSession headless)
     private static Border Glass(HydraPanelContext c) =>
         Assert.Single(c.Find<Border>(), b => SwiftGlass.GetEffect(b) is { } effect && effect.Shape == GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous) && b.Bounds.Size == new Size(420, 280));
 
-    private static Border Scrim(HydraPanelContext c) => Assert.Single(c.Find<Border>(), b => b.BoxShadow.Count > 0);
+    // ED-NEW-glass-g3: the scrim's shadow is drawn by its SwiftShadow.Caster (the fill's own coverage at the fill's alpha, under it), not a BoxShadow.
+    private static SwiftShadow.Caster Caster(HydraPanelContext c) => Assert.Single(c.Panel.GetLogicalDescendants().OfType<SwiftShadow.Caster>());
+    private static Border Scrim(HydraPanelContext c) => Caster(c).Source;
 
     public static TheoryData<bool, bool> Cases => new() { { false, false }, { true, false }, { false, true }, { true, true } };
 
@@ -72,26 +74,29 @@ public sealed class HydraPanelSurfaceTests(HeadlessSession headless)
     [Theory]
     [MemberData(nameof(Cases))]
     [Trait("Req", "PR-HYDRA-229")] // HydraPanel.swift:116-120 shape.fill((isDark ? Color.black : Color.white).opacity(isDark ? 0.3 : 0.34)).shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10)
+    [Trait("Decision", "ED-NEW-glass-g3")]
     public void A_separate_scrim_under_the_glass_carries_the_one_shadow(bool dark, bool poppedOut)
     {
         var theme = dark ? ThemeVariant.Dark : ThemeVariant.Light;
         Run(theme, poppedOut, c =>
         {
+            var caster = Caster(c);
             var scrim = Scrim(c);
             Assert.Equal(new CornerRadius(22), scrim.CornerRadius);
             Assert.Equal(new Size(420, 280), scrim.Bounds.Size);
             var fill = Assert.IsAssignableFrom<ISolidColorBrush>(scrim.Background).Color;
             Assert.Equal(dark ? Color.FromArgb(77, 0, 0, 0) : Color.FromArgb(87, 255, 255, 255), fill); // 0.3 and 0.34 of 255
-            Assert.Equal(1, scrim.BoxShadow.Count);
-            var shadow = scrim.BoxShadow[0];
-            Assert.Equal((28 - 0.5) / 0.288675, shadow.Blur, 6); // radius 28 drawn as sigma 28 (ED-327; measured by SwiftShadowHeadlessTests)
-            Assert.Equal(10, shadow.OffsetY);
-            Assert.Equal(0, shadow.OffsetX);
-            Assert.Equal(dark ? Color.FromArgb(255, 0, 0, 0) : Color.FromArgb(166, 0, 0, 0), shadow.Color); // 1.0 and 0.65 of 255
-            // Under the glass, not over it, and the glass and its clip carry no shadow of their own.
+            // ED-NEW-glass-g3 (was the scrim's BoxShadow of Blur (28 - 0.5) / 0.288675 at the colour's full alpha, outside the box only): radius 28
+            // (sigma 28, ED-327), y 10, the Swift's colour, drawn at the colour's alpha times the fill's (1.0 x 0.3 = 77; 0.65 x 0.34 = 57), under it.
+            Assert.Equal((28d, 0d, 10d), (caster.Radius, caster.X, caster.Y));
+            Assert.Equal(dark ? Color.FromArgb(255, 0, 0, 0) : Color.FromArgb(166, 0, 0, 0), caster.Color); // 1.0 and 0.65 of 255
+            Assert.Equal(dark ? Color.FromArgb(77, 0, 0, 0) : Color.FromArgb(57, 0, 0, 0), caster.DrawnColor);
+            // Under the glass, not over it, its shadow under it, and nothing carries a box shadow.
             var host = Assert.IsType<Grid>(scrim.Parent);
-            Assert.True(host.Children.IndexOf(scrim) < host.Children.IndexOf(Assert.IsType<Border>(host.Children.Single(x => x != scrim))));
-            Assert.DoesNotContain(c.Find<Border>(), b => b != scrim && b.BoxShadow.Count > 0);
+            Assert.Same(host, caster.Parent);
+            Assert.Equal(host.Children.IndexOf(scrim) - 1, host.Children.IndexOf(caster));
+            Assert.True(host.Children.IndexOf(scrim) < host.Children.IndexOf(Assert.IsType<Border>(host.Children.Single(x => x != scrim && x != caster))));
+            Assert.DoesNotContain(c.Find<Border>(), b => b.BoxShadow.Count > 0);
         });
     }
 
@@ -104,7 +109,8 @@ public sealed class HydraPanelSurfaceTests(HeadlessSession headless)
         c.Drain();
         Assert.Equal(ThemeVariant.Dark, c.Panel.ActualThemeVariant);
         Assert.Equal(Color.FromArgb(77, 0, 0, 0), Assert.IsAssignableFrom<ISolidColorBrush>(Scrim(c).Background).Color);
-        Assert.Equal(Color.FromArgb(255, 0, 0, 0), Scrim(c).BoxShadow[0].Color);
+        Assert.Equal(Color.FromArgb(255, 0, 0, 0), Caster(c).Color);
+        Assert.Equal(Color.FromArgb(77, 0, 0, 0), Caster(c).DrawnColor);
         Assert.Equal(Chrome.GlassTint.Opacity(0.22).Resolve(ThemeVariant.Dark), Assert.IsAssignableFrom<ISolidColorBrush>(Glass(c).Background).Color);
     });
 }

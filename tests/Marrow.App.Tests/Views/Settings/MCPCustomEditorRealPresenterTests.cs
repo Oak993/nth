@@ -30,8 +30,8 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class MCPCustomEditorRealPresenterTests(HeadlessSession headless)
 {
-    // FINDING (not asserted): pressing Escape with the editor open does NOT close the popover through the real presenter in the overlay host
-    // (nothing in PopoverHost, Presentation or PlainControls handles Escape; NSPopover's transient behaviour closes on it).
+    // Escape (NSPopover's transient behaviour closes the popover on it, Escape from the focused Name field included; ED-332 (4)):
+    // A_press_outside_..._ and Escape_in_the_focused_name_field_... below; the real Settings window's Escape is SettingsEscapeTests.
 
     private void Run(Action<MCPCustomEditorRig> test) => headless.OnUiThread(() => { using var rig = new MCPCustomEditorRig(); test(rig); });
 
@@ -78,7 +78,23 @@ public sealed class MCPCustomEditorRealPresenterTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // MCPSettingsPage.swift:624-677 interaction: a press outside, through Avalonia's overlay popup; Escape is NOT closed by the port's popovers in this host (see the report), and the native popup window is NATIVE-ONLY
+    [Trait("Req", "UI-MCP-047")] // MCPSettingsPage.swift:570-572 popover over :624-677, NSPopover's transient Escape: closes it from the focused Name field and discards the draft
+    public void Escape_in_the_focused_name_field_closes_the_real_popover_and_discards_the_draft()
+    {
+        Run(rig =>
+        {
+            rig.OpenAdd(); var popup = Assert.Single(rig.Presenter.Popups);
+            var name = Field(rig.Editor!, "My server"); Assert.True(name.IsFocused, "add mode focuses the Name field");
+            rig.Do(() => name.Text = "Draft");
+            rig.Key(Key.Escape);
+            Assert.False(popup.IsOpen, "Escape in the Name field did not close the editor popover"); Assert.Null(rig.Editor); Assert.Empty(rig.Model.Mcp.Customs);
+            // The draft is discarded: the editor opens empty again.
+            rig.OpenAdd(); Assert.Equal("", Field(rig.Editor!, "My server").Text);
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // MCPSettingsPage.swift:624-677 interaction: a press outside, through Avalonia's overlay popup; the native popup window is NATIVE-ONLY
     public void A_press_outside_closes_the_real_popover_and_discards_the_draft()
     {
         Run(rig =>

@@ -431,7 +431,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
 
         var layer = Assert.Single(BackdropGlass(backdrop));
         var effect = SwiftGlass.GetEffect(layer)!;
-        Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(26, RoundedCornerStyle.Continuous)), effect);
+        Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(0, RoundedCornerStyle.Continuous)), effect); // the window's rectangle (ED-NEW-corner-seam)
         Assert.Null(effect.TintColor); // `.glassEffect(in:)`: no tint, no .interactive()
         Assert.False(effect.IsInteractive);
         Assert.Null(layer.Background); // drawn as data only, over the window's Acrylic (OD-0005, OD-0014)
@@ -464,7 +464,7 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
         var window = Show(backdrop, ThemeVariant.Dark, 400, 300);
 
         var layer = Assert.Single(BackdropGlass(backdrop));
-        Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(26, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(layer));
+        Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(0, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(layer)); // the window's rectangle (ED-NEW-corner-seam)
         Assert.Equal(new Rect(backdrop.Bounds.Size), BoundsIn(layer, backdrop));
         var image = Assert.Single(VisualQuery.Descendants<Image>(backdrop));
         var all = VisualQuery.Descendants<Visual>(backdrop).ToList();
@@ -488,17 +488,19 @@ public sealed class ChromeFourthTests(HeadlessSession headless)
     [InlineData(0.5, false)]
     [InlineData(1.0, false)]
     [InlineData(0.6, true)]
-    public void Every_backdrop_layer_is_the_continuous_26_point_rounded_rectangle(double setting, bool withWallpaper) => headless.OnUiThread(() =>
+    public void Every_backdrop_layer_is_the_windows_rectangle_so_the_glass_reaches_the_os_edge(double setting, bool withWallpaper) => headless.OnUiThread(() =>
     {
         var backdrop = new WindowBackdrop(opacity: setting, wallpaper: withWallpaper ? Picture() : null);
         var window = Show(backdrop, ThemeVariant.Light, 400, 300);
 
+        // :218 is the window's 26 point continuous shape on the Mac; the port's window is a rectangle that the OS rounds by less, so (OD-0075, the owner's intent of 2026-10-05,
+        // ED-NEW-corner-seam) every layer, the hairline included, is that rectangle and the corner is the same glass as the body.
         var layers = VisualQuery.Descendants<SwiftShapeBorder>(backdrop).ToList();
         Assert.NotEmpty(layers);
         foreach (var layer in layers)
         {
-            Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(layer));
-            Assert.Equal(new CornerRadius(26), layer.CornerRadius);
+            Assert.Equal(default, layer.CornerRadius);
+            Assert.Equal(new Rect(backdrop.Bounds.Size), BoundsIn(layer, backdrop));
         }
         window.Close();
     });

@@ -41,8 +41,9 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // the guide panels carry it too), proved on real screen pixels by GlassWindowNativeTests (the stripes behind the main
 // window read 42.9 bare and 0.0 through it, active and inactive), and the boot hand-over (Port/BootStageWindow.cs,
 // WindowCloak) keeps the ~230 ms between the Acrylic's tint and its blur (probes P13, P14; OD-0041) out of sight at launch.
-// What ED-236 leaves open is its UNRESOLVED list: the wedge between the 26 pt shape and the rectangular window (built since: OD-0075
-// fills it with the window's scrim, UI.Chrome.WindowCornerWedge in RootView and SettingsView and FloatingGuidePanelView in the two guide panels; its native capture is owed), and the same
+// What ED-236 leaves open is its UNRESOLVED list: the wedge between the 26 pt shape and the rectangular window (closed since: OD-0075 and the owner's intent of
+// 2026-10-05 extend the glass to the window's rectangle, UI.Chrome.WindowBackdrop's layers in RootView, SettingsView, the two guide panels and the tour card, so the corner is the body
+// beside it; ED-NEW-corner-seam, proved on real screen pixels by MainWindowCornerWedgeNativeTests and GlassWindowNativeTests), and the same
 // gap on a user-opened Settings window, which ED-249 (OD-0074) closes: every open of Settings is shown cloaked and revealed at
 // glass-ready with Rise (Port/SettingsRise.cs). The three
 // window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
@@ -286,7 +287,12 @@ public sealed class WindowManager
         };
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
-        window.MinHeight = Size.MainMinimum.Height;
+        // ENGINEERING DECISION (ED-332 (1)): the minimum HEIGHT of the CLIENT is 560, but Avalonia adds the standard
+        // frame's caption to the minimum tracking height of a window whose client area is extended under it (WindowInvisibleBorder.
+        // CaptionAboveClient); that caption is taken off, per DPI, so the HWND stops at the source's 560 and not at 591.
+        void ApplyMinimumHeight() => window.MinHeight = Size.MainMinimum.Height - WindowInvisibleBorder.CaptionAboveClient.Current(window, window.RenderScaling) / window.RenderScaling;
+        ApplyMinimumHeight();
+        window.ScalingChanged += (_, _) => ApplyMinimumHeight();
         // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }
         if (!SetFrameUsingName(window, MainFrameName)) WindowCentering.Center(window, FrameSizeOf(window)); // :68, ED-225
         SetFrameAutosaveName(window, MainFrameName); // :70

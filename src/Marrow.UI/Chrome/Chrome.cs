@@ -321,7 +321,19 @@ namespace Marrow.UI.Chrome
         }
     }
 
-    /// <summary>:201-273. One shaped surface for the whole window: glass or a solid fill, a legibility tint and a hairline.</summary>
+    /// <summary>
+    /// :201-273. One shaped surface for the whole window: glass or a solid fill, a legibility tint and a hairline.
+    /// <para>
+    /// PORT-ONLY (OD-0075, owner 2026-10-02: "Window corner: the wedge is filled with the window's scrim"; the owner's intent of 2026-10-05: Windows rounds a
+    /// window's corner less than the app's glass shape, so the glass is EXTENDED to the window's edge and reads as one glass surface out to the OS edge;
+    /// ED-NEW-corner-seam). The source draws every layer in the window's own shape (:218 <c>RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style:
+    /// .continuous)</c>), and a Windows window is the system's Acrylic in a rectangle that DWM rounds by 8 px at most. So the layers that FILL (the scrim, the solid
+    /// fill, the tint, the wallpaper and its glass) fill the rectangle of the backdrop, and the window (RootView, SettingsView, the guide panels) clips them with
+    /// its own rectangle, which DWM then rounds: the corner outside the 26 pt curve is the same stack of layers as the body inside it, not a second paint that
+    /// has to match. The HAIRLINE (:266-271) is the glass's edge, and the glass now ends at the window's edge: it is the rectangle's inner stroke, which DWM's
+    /// rounding cuts at the corner. (At 26 pt it ran as an arc through the extended glass, reading as a second edge a few pixels inside the window's.)
+    /// </para>
+    /// </summary>
     public sealed class WindowBackdrop : Decorator
     {
         private enum Base { Wallpaper, Solid, Glass }
@@ -343,11 +355,11 @@ namespace Marrow.UI.Chrome
         {
             this.opacity = opacity;
             this.wallpaper = wallpaper;
-            var tint = Shape();
+            var tint = Fill();
             tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-254)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
             // which is how an Avalonia Border draws its border.
-            var hairline = Shape();
+            var hairline = Fill();
             hairline.BorderThickness = new Thickness(1);
             hairline.BorderBrush = Chrome.Overlay(0.14).Brush(hairline);
             Child = new Panel { Children = { group, tint, hairline } };
@@ -406,15 +418,16 @@ namespace Marrow.UI.Chrome
             return t <= 0.5 ? stock * (t / 0.5) : stock + (1 - stock) * ((t - 0.5) / 0.5); // :214
         }
 
-        // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous), the size of the backdrop.
-        private static SwiftShapeBorder Shape() => new SwiftShapeBorder().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+        // PORT-ONLY (OD-0075, ED-NEW-corner-seam): every layer of the backdrop is the window's rectangle, out to the window's edge; see the class summary.
+        // :218 `RoundedRectangle(cornerRadius: Chrome.windowCornerRadius, style: .continuous)` is the rectangle the OS then rounds.
+        private static SwiftShapeBorder Fill() => new();
 
         // `shape.fill(.clear).glassEffect(in: shape)` (:243-245, :252-254): the default glass, no tint, no .interactive()
         // and no container, drawn over the app-owned backdrop (OD-0005, ADR-0002 Glass (b)).
         private static SwiftShapeBorder GlassLayer()
         {
-            var layer = Shape();
-            SwiftGlass.SetEffect(layer, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous)));
+            var layer = Fill();
+            SwiftGlass.SetEffect(layer, GlassEffect.Regular(GlassShape.RoundedRectangle(0, RoundedCornerStyle.Continuous))); // the rectangle: see Fill
             return layer;
         }
 
@@ -458,7 +471,7 @@ namespace Marrow.UI.Chrome
             picture = new Image { Stretch = Stretch.UniformToFill }; // :235, :237 .resizable().aspectRatio(contentMode: .fill)
             RenderOptions.SetBitmapInterpolationMode(picture, BitmapInterpolationMode.HighQuality); // :236 .interpolation(.high)
             scrim = null;
-            var clip = Shape(); // :232 shape.fill(.clear)
+            var clip = Fill(); // :232 shape.fill(.clear)
             clip.ClipToBounds = true; // :240 .clipShape(shape)
             clip.Child = picture; // :233 .overlay
             // :241-247 `.overlay { if !isSolid { shape.fill(.clear).glassEffect(in: shape) } }`: over the picture the app
@@ -474,7 +487,7 @@ namespace Marrow.UI.Chrome
             picture = null;
             scrim = null;
             wallpaperOverlay = null;
-            var solid = Shape();
+            var solid = Fill();
             solid.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(solid);
             return solid;
         }
@@ -487,11 +500,123 @@ namespace Marrow.UI.Chrome
             // :252-254 `shape.fill(.clear).glassEffect(in: shape)`: with no wallpaper the window shows the desktop, and
             // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app paints
             // the source scrim over native Acrylic, with no desktop sampling or app frost on the window base.
-            scrim = Shape();
+            scrim = Fill();
             scrim.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(scrim); // :256-257
             var desktopGlass = GlassLayer();
             SwiftGlass.SetUsesDesktopBackdrop(desktopGlass, true); // OD-0014 keeps upstream's clear default.
+            // ED-NEW-glass-g3 (OD-0107: rim effects that need no screen capture): the glass's own edge, which the Acrylic does not draw, is the glass
+            // layer's own content, so it lies under the scrim (:255 `.overlay`), as the Mac's glassEffect edge does.
+            desktopGlass.Child = new WindowRim();
             return new Panel { Children = { desktopGlass, scrim } }; // :255 .overlay
+        }
+    }
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-glass-g3, OD-0107 and its amendment): the edge the Mac's window glass draws (<c>shape.fill(.clear).glassEffect(in: shape)</c>,
+    /// Chrome.swift:252-254) where the port's window glass is the system's Acrylic, which draws none (OD-0005: no screen capture). Only the
+    /// app's own light, no sampling: a specular rim on the window's first point and a light inner edge falling over the next three, brightest
+    /// along the top. Measured on Mac frame 01 (the main window at rest, the transparency at its least, so no scrim; 1 px = 1 pt), the step over
+    /// the window's body: the first point +44 at the top, +41 at the bottom, +40 and +32 at the sides, of which the hairline over it
+    /// (Chrome.overlay(0.14), :266-271) draws about +22; the next points +8, +3, +2 at the top, +4 at the bottom, +2 at the sides.
+    /// <para>
+    /// The edge is the window's real one (ED-NEW-corner-seam): the glass fills the window's rectangle and DWM rounds it, so the rim is the rectangle's
+    /// inner rings, as the hairline is, and DWM's rounding cuts them at the corner, where it draws its own border on its curve. The light inner edge
+    /// (the rings past the first) runs along the straight edges and fades out over <see cref="Fade"/> before the 26 pt corners (ENGINEERING DECISION):
+    /// within a corner the window shows the body out to its edge (OD-0075, CornerSeam's proof); the Mac draws it round its 26 pt corner.
+    /// </para>
+    /// </summary>
+    public sealed class WindowRim : Control
+    {
+        /// <summary>
+        /// White over the glass, per point inside the edge (0 the first, the specular rim; 1 to 3 the light inner edge), along the top, the sides
+        /// and the bottom: the frame-01 steps as alpha (a step s over a body b is s / (255 - b): first points 0.235, 0.21, 0.21; then 0.042, 0.016,
+        /// 0.009 at the top, 0.023 at the bottom, 0.008 at the sides), less the hairline's 0.119 over them, through the tint's 0.88 over them.
+        /// </summary>
+        internal static readonly (double Top, double Side, double Bottom)[] Rings =
+        [
+            (0.150, 0.110, 0.117),
+            (0.048, 0.010, 0.026),
+            (0.018, 0.004, 0.009),
+            (0.010, 0.0, 0.0045),
+        ];
+
+        /// <summary>The hairline's white (Chrome.overlay(0.14): the label colour's 0.85 at 0.14) and the tint's share left over the rim (1 - 0.12).</summary>
+        internal const double Hairline = 0.85 * 0.14, UnderTint = 0.88;
+
+        /// <summary>
+        /// The first point along the top where the system covers the window's first row (<see cref="TopCover"/>): the rim there also carries the hairline's
+        /// light the system hides, so the first row it leaves reads as the Mac's first point (0.235).
+        /// </summary>
+        internal static double CoveredTop => (1 - (1 - UnderTint * Rings[0].Top) * (1 - Hairline)) / UnderTint;
+
+        /// <summary>How far the light inner edge fades out before the 26 pt corner, in points.</summary>
+        internal const double Fade = 12;
+
+        public WindowRim() => IsHitTestVisible = false;
+
+        /// <summary>
+        /// How much of the window's top the system covers: on Windows a window that extends its client area into the frame (WindowChrome,
+        /// ExtendClientAreaToDecorationsHint) keeps the system's 1 px frame line over the client's first row while it is not maximised; at the
+        /// sides and the bottom that line lies outside the client. Measured on the real main window (GlassPanelAndRimNativeTests): the first row
+        /// reads 0 with and without this edge, and the hairline under it does not show. The Mac's own dark outline lies outside its rim on every
+        /// side, so along the top the rim starts on the first row the system leaves (ENGINEERING DECISION).
+        /// </summary>
+        internal double TopCover() =>
+            OperatingSystem.IsWindows() && TopLevel.GetTopLevel(this) is Window { ExtendClientAreaToDecorationsHint: true, WindowState: WindowState.Normal } window &&
+            window.TryGetPlatformHandle() is { HandleDescriptor: "HWND" } // a real Win32 window, which has the frame line (a headless one has none)
+                ? 1 / window.RenderScaling
+                : 0;
+
+        private static Color White(double a) => Color.FromArgb((byte)Math.Round(255 * Math.Clamp(a, 0, 1)), 255, 255, 255);
+
+        // A 1 pt line from `from` to `to`, `alpha` along it; with `fade` it fades in over Fade from each end (the light inner edge).
+        private static void Line(DrawingContext context, Point from, Point to, double alpha, bool fade)
+        {
+            if (alpha <= 0) return;
+            var length = Math.Sqrt((to.X - from.X) * (to.X - from.X) + (to.Y - from.Y) * (to.Y - from.Y));
+            if (length <= 0) return;
+            IBrush brush = new SolidColorBrush(White(alpha));
+            if (fade)
+            {
+                var f = Math.Clamp(Fade / length, 0, 0.5);
+                brush = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(from, RelativeUnit.Absolute),
+                    EndPoint = new RelativePoint(to, RelativeUnit.Absolute),
+                    GradientStops =
+                    {
+                        new GradientStop(White(0), 0), new GradientStop(White(alpha), f), new GradientStop(White(alpha), 1 - f), new GradientStop(White(0), 1),
+                    },
+                };
+            }
+            context.DrawLine(new Pen(brush, 1, lineCap: PenLineCap.Flat), from, to);
+        }
+
+        public override void Render(DrawingContext context)
+        {
+            var (w, h) = (Bounds.Width, Bounds.Height);
+            if (w <= 8 || h <= 8) return;
+            var cover = TopCover();
+            var corner = Chrome.WindowCornerRadius;
+            for (var i = 0; i < Rings.Length; i++)
+            {
+                var (top, side, bottom) = Rings[i];
+                var d = i + 0.5; // a 1 pt line centred on the point
+                if (i == 0)
+                {
+                    // The specular rim: the rectangle's first ring, out to the corners (DWM's rounding cuts it there).
+                    Line(context, new Point(0, cover + d), new Point(w, cover + d), cover > 0 ? CoveredTop : top, fade: false);
+                    Line(context, new Point(0, h - d), new Point(w, h - d), bottom, fade: false);
+                    Line(context, new Point(d, cover + 1), new Point(d, h - 1), side, fade: false);
+                    Line(context, new Point(w - d, cover + 1), new Point(w - d, h - 1), side, fade: false);
+                    continue;
+                }
+                // The light inner edge, along the straight edges between the 26 pt corners.
+                Line(context, new Point(corner, cover + d), new Point(w - corner, cover + d), top, fade: true);
+                Line(context, new Point(corner, h - d), new Point(w - corner, h - d), bottom, fade: true);
+                Line(context, new Point(d, corner), new Point(d, h - corner), side, fade: true);
+                Line(context, new Point(w - d, corner), new Point(w - d, h - corner), side, fade: true);
+            }
         }
     }
 
@@ -1321,8 +1446,10 @@ namespace Marrow.UI.Chrome
         // :711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) } under a width the row's padding fixes. A plain
         // horizontal StackPanel measures every child at infinite width, so the title would never be cut at its tail
         // (:718-719 `.lineLimit(1).truncationMode(.tail)`) and would run under the reserved accessory space; this one
-        // measures the icon at its own size and gives the title the rest of the width, less the Spacer's minimum 4 pt,
-        // so the title truncates at the same place whether or not the accessory shows (UI-SIDEBAR-008).
+        // measures the icon at its own size and gives the title the rest of the width, less the Spacer's minimum 4 pt and
+        // the stack's spacing before the Spacer (SwiftUI puts the HStack's spacing between every adjacent pair of subviews,
+        // the Spacer included: 8 + 4 = 12 pt after the title, ED-329), so the title truncates at the same place
+        // whether or not the accessory shows (UI-SIDEBAR-008).
         private sealed class TitleLine : StackPanel
         {
             private const double SpacerMinLength = 4; // :720
@@ -1333,7 +1460,7 @@ namespace Marrow.UI.Chrome
                 var icon = Children[0];
                 var title = Children[1];
                 icon.Measure(new Size(double.PositiveInfinity, availableSize.Height));
-                title.Measure(new Size(Math.Max(0, availableSize.Width - icon.DesiredSize.Width - Spacing - SpacerMinLength), availableSize.Height));
+                title.Measure(new Size(Math.Max(0, availableSize.Width - icon.DesiredSize.Width - Spacing - Spacing - SpacerMinLength), availableSize.Height));
                 return new Size(
                     icon.DesiredSize.Width + Spacing + title.DesiredSize.Width,
                     Math.Max(icon.DesiredSize.Height, title.DesiredSize.Height));

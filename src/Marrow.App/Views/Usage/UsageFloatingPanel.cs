@@ -92,7 +92,10 @@ public sealed class UsageFloatingPanel : Decorator
             CornerRadius = cornerRadius,
         };
 
+        // :72 the scrim's shadow is its own coverage, cast at its fill's alpha and drawn under it, through it (ED-NEW-glass-g3).
+        var shadow = new SwiftShadow.Caster(scrim, Colors.Black, radius: 28, y: 10);
         var floatingPanel = new Grid();
+        floatingPanel.Children.Add(shadow);
         floatingPanel.Children.Add(scrim);
         floatingPanel.Children.Add(panel);
 
@@ -107,7 +110,8 @@ public sealed class UsageFloatingPanel : Decorator
             var isDark = ActualThemeVariant == ThemeVariant.Dark;
             glassLayer.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this);
             scrim.Background = new SolidColorBrush(ScrimColor(isDark));
-            scrim.BoxShadow = new BoxShadows(ScrimShadow(isDark));
+            var cast = ScrimShadow(isDark);
+            shadow.Set(cast.Color, cast.Radius, y: cast.Y);
         }
 
         UpdateTheme();
@@ -229,9 +233,10 @@ public sealed class UsageFloatingPanel : Decorator
         isDark ? (byte)0 : (byte)255,
         isDark ? (byte)0 : (byte)255);
 
-    // :72 .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10) (sigma 28, ED-327)
-    internal static BoxShadow ScrimShadow(bool isDark) =>
-        SwiftShadow.BoxShadow(Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), radius: 28, y: 10);
+    // :72 .shadow(color: .black.opacity(isDark ? 1 : 0.65), radius: 28, y: 10) (sigma 28, ED-327), as the Swift states it; the scrim's
+    // SwiftShadow.Caster casts it at the fill's alpha (ED-NEW-glass-g3).
+    internal static (Color Color, double Radius, double Y) ScrimShadow(bool isDark) =>
+        (Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), 28, 10);
 
     private Control BuildStrip(ProviderKind provider, ProviderKind? headsProvider, Action<Size> onDrag, Action onDragEnd, Action dismiss)
     {
