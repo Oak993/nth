@@ -21,7 +21,7 @@ internal sealed class GlowGpuProbeHandler(IReadOnlyList<string> names, string re
     private bool done;
 
     /// <summary>Completes with one bitmap per name (null for every name when the window has no GPU context), the GPU backend's name and the lines of timing.</summary>
-    public TaskCompletionSource<(SKBitmap?[] Frames, string Gpu, IReadOnlyList<string> Timing)> Result { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public TaskCompletionSource<(SKBitmap?[] Frames, string Gpu, IReadOnlyList<string> Timing, long FrameBytes)> Result { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public override void OnMessage(object message) => Invalidate();
 
@@ -36,11 +36,12 @@ internal sealed class GlowGpuProbeHandler(IReadOnlyList<string> names, string re
             using var lease = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()?.Lease();
             var gpu = lease?.GrContext;
             var frames = new SKBitmap?[names.Count];
-            if (gpu is null) { Result.TrySetResult((frames, "none", [])); return; }
+            if (gpu is null) { Result.TrySetResult((frames, "none", [], 0)); return; }
             using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(referenceFolder, "manifest.json")));
             var jobs = manifest.RootElement.GetProperty("jobs").EnumerateArray().ToDictionary(j => j.GetProperty("name").GetString()!);
             using var painter = new VoiceGlowPainter();
             var timing = new List<string>();
+            long frameBytes = 0;
             for (var i = 0; i < names.Count; i++)
             {
                 var job = jobs[names[i]];
@@ -63,7 +64,7 @@ internal sealed class GlowGpuProbeHandler(IReadOnlyList<string> names, string re
                 }
 
                 // ms a frame (draw, flush, and the GPU's finish after 120 of them), of which the CPU's recording of the draw, and the managed bytes a frame
-                string Time(VoiceGlowLayers layers, VoiceGlowBandMode mode)
+                string Time(VoiceGlowLayers layers, VoiceGlowBandMode mode, bool keepBytes = false)
                 {
                     painter.Layers = layers;
                     painter.BandMode = mode;
@@ -82,6 +83,7 @@ internal sealed class GlowGpuProbeHandler(IReadOnlyList<string> names, string re
                     gpu.Flush(true, true);
                     var ms = watch.Elapsed.TotalMilliseconds / 120;
                     var bytes = (GC.GetAllocatedBytesForCurrentThread() - before) / 120;
+                    if (keepBytes) frameBytes = bytes;
                     painter.Layers = VoiceGlowLayers.All;
                     painter.BandMode = VoiceGlowBandMode.Auto;
                     return string.Create(CultureInfo.InvariantCulture, $"{ms:F2} ms (recording {recordTicks * 1000.0 / Stopwatch.Frequency / 120:F2}), {bytes} B");
@@ -94,7 +96,7 @@ internal sealed class GlowGpuProbeHandler(IReadOnlyList<string> names, string re
                 frames[i] = bitmap;
                 if (names[i].Contains("level-1.0_720x96_dark", StringComparison.Ordinal))
                 {
-                    timing.Add("720 x 96, level 1.0, dark, all layers, band analytic (what Auto draws on a GPU): " + Time(VoiceGlowLayers.All, VoiceGlowBandMode.Analytic));
+                    timing.Add("720 x 96, level 1.0, dark, all layers, band analytic (what Auto draws on a GPU): " + Time(VoiceGlowLayers.All, VoiceGlowBandMode.Analytic, keepBytes: true));
                     timing.Add("720 x 96, level 1.0, dark, all layers, band as the canvas strokes it: " + Time(VoiceGlowLayers.All, VoiceGlowBandMode.Strokes));
                     timing.Add("  inner light alone: " + Time(VoiceGlowLayers.Inner, VoiceGlowBandMode.Auto));
                     timing.Add("  stroke ring alone: " + Time(VoiceGlowLayers.Stroke, VoiceGlowBandMode.Auto));
@@ -103,7 +105,7 @@ internal sealed class GlowGpuProbeHandler(IReadOnlyList<string> names, string re
                     timing.Add("  band alone, strokes: " + Time(VoiceGlowLayers.Band, VoiceGlowBandMode.Strokes));
                 }
             }
-            Result.TrySetResult((frames, gpu.Backend.ToString(), timing));
+            Result.TrySetResult((frames, gpu.Backend.ToString(), timing, frameBytes));
         }
         catch (Exception error) { Result.TrySetException(error); }
     }

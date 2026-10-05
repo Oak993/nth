@@ -65,6 +65,27 @@ internal static class VoiceGlowRig
         return (w8 / n, w16 / n, sum / n, max);
     }
 
+    /// <summary>
+    /// Over the pixels the reference lights (differing from the card by more than 4): the share within 4/255 and the mean of the largest channel difference. A picture that is
+    /// mostly card can pass the whole-frame measures with a changed band; these see the band.
+    /// </summary>
+    public static (double Within4, double Mean, int Lit) CompareLit(SKBitmap reference, SKBitmap port, SKColor card)
+    {
+        int lit = 0, within = 0;
+        long sum = 0;
+        for (var y = 0; y < reference.Height; y++)
+            for (var x = 0; x < reference.Width; x++)
+            {
+                SKColor r = reference.GetPixel(x, y), q = port.GetPixel(x, y);
+                if (Math.Max(Math.Abs(r.Red - card.Red), Math.Max(Math.Abs(r.Green - card.Green), Math.Abs(r.Blue - card.Blue))) <= 4) continue;
+                var d = Math.Max(Math.Abs(r.Red - q.Red), Math.Max(Math.Abs(r.Green - q.Green), Math.Abs(r.Blue - q.Blue)));
+                lit++;
+                sum += d;
+                if (d <= 4) within++;
+            }
+        return lit == 0 ? (1, 0, 0) : (within / (double)lit, sum / (double)lit, lit);
+    }
+
     /// <summary>Folder of the reference PNGs: MARROW_REF_GLOW_DIR, else tests/fixtures/voice/ref-glow found from the build folder up.</summary>
     public static string ReferenceFolder()
     {

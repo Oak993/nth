@@ -177,24 +177,28 @@ public sealed class VoiceGlowPainterTests
         Assert.True(a.Red + a.Green + a.Blue > b.Red + b.Green + b.Blue + 15, $"{a} with the epicentre, {b} without");
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(VoiceGlowBandMode.Strokes, 9 * 1024)]
+    [InlineData(VoiceGlowBandMode.Analytic, 5 * 1024)]
     [Trait("Feature", "VT-9")]
     [Trait("Decision", "ED-NEW-f-vt-9")]
     [Trait("Spec", "V-T62")]
-    public void What_a_frame_allocates_is_skiasharps_wrappers_and_nothing_the_size_of_a_surface()
+    public void What_a_frame_allocates_is_skiasharps_shader_wrappers_and_nothing_the_size_of_a_surface(VoiceGlowBandMode mode, int bound)
     {
-        // V-19 asks for 0 B a frame. Everything the port owns is reused (the surface, the paints, the paths, the blur filters, the noise, the uniform blocks); what remains is
-        // SkiaSharp's own wrapper objects (a shader, a colour filter, an image and a uniform copy each time one is made). Measured 8.5 KB a frame on the CPU raster; the bound is 2x.
+        // V-19 asks for 0 B a frame. Everything the port owns is reused (the surface, the paints, the paths, the blur filters, the rounded rectangles, the mask filter, the colour
+        // filter's brightness-saturate half, the noise, the uniform blocks) and its arithmetic allocates nothing (VoiceGlowCss.Fixed: 0 B); what remains is SkiaSharp's own wrapper
+        // objects: a shader, an image, a colour filter pair and a uniform copy each time one is made. Measured on the CPU raster, 720 x 96, level 1.0, dark: 5.9 to 7.4 KB a frame with the
+        // band stroked (it varies with the JIT's tiering in a long run), 3.7 KB with the analytic band; the bound is the largest measure plus a fifth, and a third.
         var (look, frame) = VoiceGlowRig.Replay(Job("level-1.0"));
         var info = new SKImageInfo(720, 96, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
-        using var painter = new VoiceGlowPainter();
+        using var painter = new VoiceGlowPainter { BandMode = mode };
         for (var i = 0; i < 5; i++) painter.Draw(surface.Canvas, null, look, frame, 720, 96, 1, 1);
         var creations = painter.SurfaceCreations;
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < 20; i++) painter.Draw(surface.Canvas, null, look, frame, 720, 96, 1, 1);
         var perFrame = (GC.GetAllocatedBytesForCurrentThread() - before) / 20;
         Assert.Equal(creations, painter.SurfaceCreations);
-        Assert.True(perFrame < 17 * 1024, $"{perFrame} B a frame");
+        Assert.True(perFrame < bound, $"{mode}: {perFrame} B a frame (the bound is {bound})");
     }
 }

@@ -23,11 +23,30 @@ internal static class VoiceGlowCss
     /// <summary><c>lt(n, e)</c>: <c>max(0.5, round(n * e * 100) / 100)</c>.</summary>
     public static double Lt(double n, double e = 1) => Math.Max(0.5, Round(n * e * 100) / 100);
 
+    private static readonly double[] Powers = [1, 10, 100, 1000, 10000, 100000, 1000000];
+
     /// <summary>
-    /// <c>x.toFixed(digits)</c> read back as a number (the stylesheet carries the rounded text). JavaScript rounds the exact value of the double, halves away from zero (.NET's
-    /// own "F" format rounds an exact half to even: 0.0625 gives 0.062 where JavaScript gives 0.063), so this rounds the exact decimal expansion itself.
+    /// <c>x.toFixed(digits)</c> read back as a number (the stylesheet carries the rounded text). JavaScript rounds the EXACT value of the double, halves away from zero (.NET's own
+    /// "F" format rounds an exact half to even: 0.0625 gives 0.062 where JavaScript gives 0.063). Here n = x * 10^digits is rounded as a product, a fused multiply-add gives the
+    /// exact error of that product, and the fraction is compared with one half, a fraction of exactly one half deciding by the sign of that error, so a value just under a half (1.005 is 1.00499999999999989...) rounds down and an
+    /// exact half rounds up; the result is n / 10^digits, the double nearest the text (a correctly rounded division of two exact integers). Allocation-free.
     /// </summary>
     public static double Fixed(double x, int digits)
+    {
+        if (double.IsNaN(x) || double.IsInfinity(x)) return x;
+        var power = Powers[digits];
+        var magnitude = Math.Abs(x);
+        var product = magnitude * power;
+        var error = Math.FusedMultiplyAdd(magnitude, power, -product);
+        var floor = Math.Floor(product);
+        var fraction = product - floor;                                      // exact: the product's own digits
+        var n = fraction > 0.5 || (fraction == 0.5 && error >= 0) ? floor + 1 : floor;
+        var number = n / power;
+        return x < 0 ? -number : number;
+    }
+
+    /// <summary>The exact, string-based <c>toFixed</c> that <see cref="Fixed"/> replaced: the oracle its test holds it to (it allocates; not for frames).</summary>
+    internal static double FixedByText(double x, int digits)
     {
         if (double.IsNaN(x) || double.IsInfinity(x)) return x;
         var negative = x < 0;

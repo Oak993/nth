@@ -6,9 +6,10 @@ internal sealed record VoiceGlowSegment(int Frames, double Level, bool Processin
 /// <summary>
 /// VT-9, V-T60: one frame of the fidelity matrix: a state (a script of segments the driver is stepped through), the composer's size and the theme. The names are ref-glow.js's.
 /// </summary>
-internal sealed record VoiceGlowJob(string State, int Width, int Height, string Theme, IReadOnlyList<VoiceGlowSegment> Script)
+internal sealed record VoiceGlowJob(string State, int Width, int Height, string Theme, IReadOnlyList<VoiceGlowSegment> Script, string Layers = "")
 {
-    public string Name => $"ref_glow_{State}_{Width}x{Height}_{Theme}";
+    /// <summary>ref-glow.js's name: <c>ref_glow_...</c>, or <c>ref_band_...</c> for the band canvas alone.</summary>
+    public string Name => $"{(Layers == "band" ? "ref_band" : "ref_glow")}_{State}_{Width}x{Height}_{Theme}";
 
     public bool Dark => Theme == "dark";
 

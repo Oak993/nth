@@ -198,7 +198,7 @@ public sealed class ComposerLightVoiceLightTests(HeadlessSession headless)
             Assert.Equal(stopped, handler.Light!.Clock.Time);
             view.VoiceLight = 1;
             Tick();
-            Assert.InRange(handler.Light!.Clock.Time - stopped, 0, 0.1);          // it starts again from where it stopped, not five seconds on
+            Assert.InRange(handler.Light!.Clock.Time - stopped, 0, 0.06);         // it starts again from where it stopped (at most the clock's 50 ms step), not five seconds on
             Run(clock, 0.5);
             Assert.InRange(handler.Light!.Clock.Time - stopped, 0.4, 0.7);
             Assert.True(handler.IsAnimating);

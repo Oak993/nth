@@ -467,6 +467,266 @@
      "processing": true
     }
    ]
+  },
+  {
+   "name": "ref_band_level-0.2_720x96_dark",
+   "state": "level-0.2",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.2_720x96_light",
+   "state": "level-0.2",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.2_480x150_dark",
+   "state": "level-0.2",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.2_480x150_light",
+   "state": "level-0.2",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_720x96_dark",
+   "state": "level-0.6",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_720x96_light",
+   "state": "level-0.6",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_480x150_dark",
+   "state": "level-0.6",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_480x150_light",
+   "state": "level-0.6",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_720x96_dark",
+   "state": "level-1.0",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_720x96_light",
+   "state": "level-1.0",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_480x150_dark",
+   "state": "level-1.0",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_480x150_light",
+   "state": "level-1.0",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_720x96_dark",
+   "state": "proc-0.8",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_720x96_light",
+   "state": "proc-0.8",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_480x150_dark",
+   "state": "proc-0.8",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_480x150_light",
+   "state": "proc-0.8",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
   }
  ]
 }

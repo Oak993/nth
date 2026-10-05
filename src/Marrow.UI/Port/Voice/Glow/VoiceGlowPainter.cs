@@ -71,13 +71,12 @@ internal sealed class VoiceGlowPainter : IDisposable
         var recipe = look.Recipe;
         var strength = look.Strength;
         var layerSet = frame.HasBand;
-        using var css = VoiceGlowFilters.Chain(recipe.HueBase + frame.Hue, recipe.Brightness, recipe.Saturation);
+        using var css = ColorChain(recipe, frame);
         var split = recipe.Distortion && !frame.WarpOff;
         if (layerSet && (split || recipe.Core is not null)) BuildPolygons(frame, width, height, z);
 
         canvas.Save();
-        using (var shape = new SKRoundRect(new SKRect(0, 0, (float)width, (float)height), (float)recipe.Radius))
-            canvas.ClipRoundRect(shape, SKClipOperation.Intersect, true);
+        canvas.ClipRoundRect(RoundRect(0, 0, (float)width, (float)height, (float)recipe.Radius), SKClipOperation.Intersect, true);
 
         var glow = frame.Glow;
         // 1. the inner light (::before) and its mirror
@@ -118,6 +117,44 @@ internal sealed class VoiceGlowPainter : IDisposable
         for (var i = 0; i < n; i++) belowZ.LineTo((float)(f.BandX[i] * z), (float)(f.BandY[i] * z));
         belowZ.LineTo((float)(width * z), (float)(height * z));
         belowZ.Close();
+    }
+
+    // the rounded rectangles the layers clip and shadow with, made once per geometry (a resize adds a few; past sixteen the set is rebuilt)
+    private readonly Dictionary<(float, float, float, float, float), SKRoundRect> roundRects = new();
+    private readonly Dictionary<float, SKMaskFilter> maskBlurs = new();
+
+    private SKRoundRect RoundRect(float left, float top, float right, float bottom, float radius)
+    {
+        var key = (left, top, right, bottom, radius);
+        if (roundRects.TryGetValue(key, out var made)) return made;
+        if (roundRects.Count >= 16)
+        {
+            foreach (var old in roundRects.Values) old.Dispose();
+            roundRects.Clear();
+        }
+        return roundRects[key] = new SKRoundRect(new SKRect(left, top, right, bottom), radius);
+    }
+
+    private SKMaskFilter MaskBlur(float sigma)
+    {
+        if (!maskBlurs.TryGetValue(sigma, out var filter)) maskBlurs[sigma] = filter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, sigma);
+        return filter;
+    }
+
+    // hue-rotate(h) brightness(b) saturate(s): the brightness and saturate part is made once per recipe, only the hue changes from frame to frame
+    private SKColorFilter? colorRest;
+    private double colorBrightness = double.NaN, colorSaturation;
+
+    private SKColorFilter ColorChain(VoiceGlowRecipe recipe, VoiceGlowFrame frame)
+    {
+        if (colorRest is null || colorBrightness != recipe.Brightness || colorSaturation != recipe.Saturation)
+        {
+            colorRest?.Dispose();
+            colorRest = VoiceGlowFilters.BrightnessSaturate(recipe.Brightness, recipe.Saturation);
+            colorBrightness = recipe.Brightness;
+            colorSaturation = recipe.Saturation;
+        }
+        return VoiceGlowFilters.Chain(recipe.HueBase + frame.Hue, colorRest);
     }
 
     // a Gaussian blur of sigma `sigma` (CSS blur(r): sigma r), decal edges; made once per radius
@@ -188,8 +225,7 @@ internal sealed class VoiceGlowPainter : IDisposable
         content.Save();
         content.SetMatrix(SKMatrix.CreateScale((float)dpr, (float)dpr));
         var box = new SKRect(0, 0, (float)wl, (float)hl);
-        if (which == Layer.Inner)
-            using (var rounded = new SKRoundRect(box, (float)(r.Radius * z))) content.ClipRoundRect(rounded, SKClipOperation.Intersect, true);
+        if (which == Layer.Inner) content.ClipRoundRect(RoundRect(0, 0, (float)wl, (float)hl, (float)(r.Radius * z)), SKClipOperation.Intersect, true);
         var set = which == Layer.Inner ? r.Inner : r.Bloom;
         SetLobes(set, f, wl, hl, z);
         using (var lobes = VoiceGlowShaders.Lobes.ToShader(lobeUniforms))
@@ -204,7 +240,7 @@ internal sealed class VoiceGlowPainter : IDisposable
                 content.SaveLayer(paint);
                 paint.ImageFilter = null;
                 paint.Shader = lobes;
-                using (var own = new SKRoundRect(box, (float)(r.RingRadius * z))) content.ClipRoundRect(own, SKClipOperation.Intersect, true);
+                content.ClipRoundRect(RoundRect(0, 0, (float)wl, (float)hl, (float)(r.RingRadius * z)), SKClipOperation.Intersect, true);
                 content.DrawRect(box, paint);
                 content.Restore();
             }
@@ -244,9 +280,9 @@ internal sealed class VoiceGlowPainter : IDisposable
         const float reach = 64;
         var sigma = (float)(r.ShadowBlur * z / 2);
         var radius = (float)(r.Radius * z);
-        using var outer = new SKRoundRect(new SKRect(-reach, -reach, (float)wl + reach, (float)hl + reach), 0);
-        using var inner = new SKRoundRect(new SKRect(1, 1, (float)wl - 1, (float)hl - 1), Math.Max(0, radius - 1));
-        using var blur = sigma > 0 ? SKMaskFilter.CreateBlur(SKBlurStyle.Normal, sigma) : null;
+        var outer = RoundRect(-reach, -reach, (float)wl + reach, (float)hl + reach, 0);
+        var inner = RoundRect(1, 1, (float)wl - 1, (float)hl - 1, Math.Max(0, radius - 1));
+        var blur = sigma > 0 ? MaskBlur(sigma) : null;
         paint.Color = r.InnerShadow;
         paint.MaskFilter = blur;
         c.DrawRoundRectDifference(outer, inner, paint);
@@ -427,7 +463,7 @@ internal sealed class VoiceGlowPainter : IDisposable
         paint.ImageFilter = Blur(core.Blur * z);
         content.SaveLayer(paint);
         paint.ImageFilter = null;
-        using (var rounded = new SKRoundRect(new SKRect(0, 0, (float)wl, (float)hl), (float)(r.RingRadius * z))) content.ClipRoundRect(rounded, SKClipOperation.Intersect, true);
+        content.ClipRoundRect(RoundRect(0, 0, (float)wl, (float)hl, (float)(r.RingRadius * z)), SKClipOperation.Intersect, true);
         content.ClipPath(belowZ, SKClipOperation.Intersect, true);
         v4a[0] = (float)(0.5 * wl + f.Cx * f.W * z);
         v4a[1] = (float)(hl + f.Cy * z);
@@ -631,6 +667,12 @@ internal sealed class VoiceGlowPainter : IDisposable
         noise = null;
         foreach (var filter in blurs.Values) filter.Dispose();
         blurs.Clear();
+        foreach (var made in roundRects.Values) made.Dispose();
+        roundRects.Clear();
+        foreach (var made in maskBlurs.Values) made.Dispose();
+        maskBlurs.Clear();
+        colorRest?.Dispose();
+        colorRest = null;
         ring?.Dispose();
         ring = null;
         lobeUniforms.Dispose();

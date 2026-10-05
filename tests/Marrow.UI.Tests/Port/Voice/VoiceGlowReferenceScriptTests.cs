@@ -25,10 +25,13 @@ public sealed class VoiceGlowReferenceScriptTests
         var jobs = doc.RootElement.GetProperty("jobs").EnumerateArray().ToList();
         Assert.Equal(28, VoiceGlowJobs.All.Count);
         Assert.Equal(28, VoiceGlowJobs.All.Select(j => j.Name).Distinct().Count());
-        Assert.Equal(VoiceGlowJobs.All.Select(j => j.Name), jobs.Select(j => j.GetProperty("name").GetString()));
+        var all = VoiceGlowJobs.All.Concat(VoiceGlowJobs.BandOnly).ToList();
+        Assert.Equal(44, all.Count);
+        Assert.Equal(all.Select(j => j.Name), jobs.Select(j => j.GetProperty("name").GetString()));
         for (var i = 0; i < jobs.Count; i++)
         {
-            var expected = VoiceGlowJobs.All[i];
+            var expected = all[i];
+            Assert.Equal(expected.Layers == "band" ? "band" : null, jobs[i].TryGetProperty("layers", out var layers) ? layers.GetString() : null);
             var job = jobs[i];
             Assert.Equal((expected.Width, expected.Height, expected.Theme, expected.State), (job.GetProperty("width").GetInt32(), job.GetProperty("height").GetInt32(), job.GetProperty("theme").GetString(), job.GetProperty("state").GetString()));
             var script = job.GetProperty("script").EnumerateArray().Select(s => new VoiceGlowSegment(s.GetProperty("frames").GetInt32(), s.GetProperty("level").GetDouble(), s.GetProperty("processing").GetBoolean())).ToList();

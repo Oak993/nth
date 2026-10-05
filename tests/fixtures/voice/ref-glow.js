@@ -9,7 +9,7 @@
 // (porting/first-release/design-src/customization/voice-glow.js, read-only); it is loaded as it is, with ONE line appended (a global that exposes
 // mountVoiceGlow); no line of the package is touched.
 //
-// THE JOBS: 7 states x 2 themes x 2 composer sizes = 28 frames. The element is the composer's glow host (voiceopts.js:194: position absolute, inset 0, radius 22,
+// THE JOBS: 7 states x 2 themes x 2 composer sizes = 28 frames, then the band canvas alone (the other layers hidden) in 4 of the states x 2 sizes x 2 themes = 16 more (`ref_band_...`). The element is the composer's glow host (voiceopts.js:194: position absolute, inset 0, radius 22,
 // the configuration of V-13.3) at 720 x 96 or 480 x 150 CSS px, device scale 1, on the composer card's colour (#1c1c1c dark, #f4f4f4 light). The page's rAF is
 // replaced by a manual clock, so every frame is the driver stepping at exactly 1000/60 ms (the deterministic input of VoiceGlowDriver); the CSS fade-in is
 // finished at once (its opacity is 1). A state is a SCRIPT of segments, each a number of frames at a constant raw level, with the processing flag; the frame
@@ -32,6 +32,9 @@ const STATES = {
   'proc-1.35': [[180, 0.6, false], [81, 0, true]],
   'proc-1.9': [[180, 0.6, false], [114, 0, true]],
 };
+// the band canvas alone (every other layer hidden by the page's own CSS selectors), for the states where it is drawn big enough to judge a change of its blur or its colours
+const BAND_STATES = ['level-0.2', 'level-0.6', 'level-1.0', 'proc-0.8'];
+const HIDE_OTHER_LAYERS = '[data-voice-beam]::before,[data-voice-beam-warp],[data-voice-beam]::after,[data-voice-beam-bloom],[data-voice-beam-core]{display:none !important}';
 const CARD = { dark: '#1c1c1c', light: '#f4f4f4' };
 // V-13.3 (voiceopts.js:194)
 const PROPS = { type: 'default', scale: 0.7, glowWidth: 1.6, lobeSpacing: 2.1, rangeWidth: 1.9, processingTravel: 2.05, borderRadius: 22, reducedMotion: false };
@@ -40,6 +43,8 @@ function jobs() {
   const list = [];
   for (const state of Object.keys(STATES)) for (const [w, h] of SIZES) for (const theme of THEMES)
     list.push({ name: `ref_glow_${state}_${w}x${h}_${theme}`, state, width: w, height: h, theme, script: STATES[state].map(([frames, level, processing]) => ({ frames, level, processing })) });
+  for (const state of BAND_STATES) for (const [w, h] of SIZES) for (const theme of THEMES)
+    list.push({ name: `ref_band_${state}_${w}x${h}_${theme}`, state, width: w, height: h, theme, layers: 'band', script: STATES[state].map(([frames, level, processing]) => ({ frames, level, processing })) });
   return list;
 }
 
@@ -66,6 +71,7 @@ const only = flag('--only', '');
     page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });
     page.on('pageerror', (e) => errors.push(String(e)));
     await page.setContent(`<!doctype html><html><body style="margin:0;background:${CARD[job.theme]}"><div id="host" style="position:absolute;left:0;top:0;width:${job.width}px;height:${job.height}px;border-radius:22px"></div></body></html>`);
+    if (job.layers === 'band') await page.addStyleTag({ content: HIDE_OTHER_LAYERS });
     // the manual frame clock, before the package loads
     await page.addScriptTag({ content: `(() => { let seq = 0; const q = new Map();
       window.requestAnimationFrame = (cb) => { q.set(++seq, cb); return seq; };

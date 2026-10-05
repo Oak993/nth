@@ -42,7 +42,6 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     private bool software;
     private readonly VoiceLightFollower voice = new();
     private double? lastVoiceNow;
-    private bool standingStill;
 
     /// <summary>
     /// ENGINEERING DECISION (ED-251): with no GPU (Skia's software rasterizer), the light is drawn as one still, as under
@@ -120,17 +119,11 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
         voice.Step(snapshot.VoiceLight, voiceDt, snapshot.ReduceMotion || software);   // with no GPU the light is a still (ED-251): its level jumps as well
         if (voice.Value <= 0)
         {
-            // at 0 the light draws nothing, asks for no frames (unless the level is on its way back) and its motion clock stands still
-            standingStill = true;
+            // at 0 the light draws nothing, asks for no frames (unless the level is on its way back) and its motion clock stands still (nothing is advanced; the clock caps a step at 50 ms, so it goes on from where it stopped)
             wantsFrames = voice.Moving;
             Invalidate();
             if (wantsFrames && drawnSinceRequest) Request();
             return;
-        }
-        if (standingStill)
-        {
-            light.ResumeAt(now);                                          // the clock goes on from where it stopped, not from the time that passed
-            standingStill = false;
         }
         wantsFrames = light.Advance(now) || renderer.Settling || voice.Moving;
         reach = Reach(light);

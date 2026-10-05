@@ -24,6 +24,23 @@ internal static class VoiceGlowJobs
         .. from state in States from size in Sizes from theme in Themes select new VoiceGlowJob(state.State, size.Width, size.Height, theme, state.Script),
     ];
 
+    /// <summary>The states ref-glow.js also renders with only the band canvas visible.</summary>
+    public static IReadOnlyList<string> BandStates { get; } = ["level-0.2", "level-0.6", "level-1.0", "proc-0.8"];
+
+    /// <summary>The band canvas alone: 4 states x 2 composer sizes x 2 themes = 16 frames, after the 28 of <see cref="All"/> in the script's order.</summary>
+    public static IReadOnlyList<VoiceGlowJob> BandOnly { get; } =
+    [
+        .. from state in BandStates from size in Sizes from theme in Themes
+           select new VoiceGlowJob(state, size.Width, size.Height, theme, States.Single(s => s.State == state).Script, "band"),
+    ];
+
+    public static TheoryData<string> BandNames()
+    {
+        var data = new TheoryData<string>();
+        foreach (var job in BandOnly) data.Add(job.Name);
+        return data;
+    }
+
     public static TheoryData<string> Names()
     {
         var data = new TheoryData<string>();

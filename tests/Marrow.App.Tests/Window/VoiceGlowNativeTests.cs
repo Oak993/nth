@@ -19,6 +19,8 @@ namespace Marrow.App.Tests.Window.Native;
 [Collection("WindowManagerNative")]
 public sealed class VoiceGlowNativeTests(WindowManagerNativeSession native)
 {
+    private const long GpuFrameByteBound = 9 * 1024;
+
     private static readonly string[] Names =
     [
         "ref_glow_idle_720x96_dark",
@@ -62,7 +64,7 @@ public sealed class VoiceGlowNativeTests(WindowManagerNativeSession native)
                 var deadline = DateTime.UtcNow.AddSeconds(30);
                 while (GpuWarmup.StepsDone < GpuWarmup.Steps && DateTime.UtcNow < deadline) Thread.Sleep(20);
                 var steps = string.Join(", ", GpuWarmup.Done.Select(d => $"{d.Program} {d.Milliseconds:F1} ms{(d.Forced ? " (forced)" : "")}"));
-                var (frames, gpu, timing) = probe.Result.Task.WaitAsync(TimeSpan.FromSeconds(120)).GetAwaiter().GetResult();
+                var (frames, gpu, timing, frameBytes) = probe.Result.Task.WaitAsync(TimeSpan.FromSeconds(120)).GetAwaiter().GetResult();
                 var lines = new List<string> { $"GPU backend {gpu}; warm-up steps {steps}" };
                 lines.AddRange(timing);
                 var failures = new List<string>();
@@ -82,6 +84,8 @@ public sealed class VoiceGlowNativeTests(WindowManagerNativeSession native)
                 Assert.True(GpuWarmup.StepsDone >= GpuWarmup.Steps, $"the warm-up did not finish: {GpuWarmup.StepsDone} of {GpuWarmup.Steps} steps ({steps})");
                 Assert.Contains(GpuWarmup.Done, d => d.Program == "voice-glow");
                 Assert.NotEqual("none", gpu);
+                // V-19, the managed bytes a frame of the whole glow on the GPU path (what the port owns allocates nothing; the rest is SkiaSharp's wrappers): measured 6.6 KB (RTX 4080, 720 x 96, level 1.0, dark), the bound the measure plus about a third
+                Assert.True(frameBytes > 0 && frameBytes < GpuFrameByteBound, $"{frameBytes} B managed a frame on the GPU path (the bound is {GpuFrameByteBound})");
                 Assert.True(failures.Count == 0, string.Join("; ", failures));
             }
             finally { VoiceGlowWarmup.Unregister(); }

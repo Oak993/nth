@@ -38,6 +38,26 @@ internal static class VoiceGlowFilters
         m[18] = 1;
     }
 
+    /// <summary><c>brightness(b) saturate(s)</c> as one colour filter: the part of the chain that does not change from frame to frame (the caller disposes it).</summary>
+    public static SKColorFilter BrightnessSaturate(double brightness, double saturation)
+    {
+        Span<float> m = stackalloc float[20];
+        Brightness(m, brightness);
+        using var bright = SKColorFilter.CreateColorMatrix(m);
+        Saturate(m, saturation);
+        using var sat = SKColorFilter.CreateColorMatrix(m);
+        return SKColorFilter.CreateCompose(sat, bright);
+    }
+
+    /// <summary><c>hue-rotate(h)</c> followed by <paramref name="brightnessSaturate"/> (the caller disposes the result, not the argument).</summary>
+    public static SKColorFilter Chain(double hueDegrees, SKColorFilter brightnessSaturate)
+    {
+        Span<float> m = stackalloc float[20];
+        HueRotate(m, hueDegrees);
+        using var hue = SKColorFilter.CreateColorMatrix(m);
+        return SKColorFilter.CreateCompose(brightnessSaturate, hue);
+    }
+
     /// <summary><c>hue-rotate(h) brightness(b) saturate(s)</c> as one colour filter (the caller disposes it).</summary>
     public static SKColorFilter Chain(double hueDegrees, double brightness, double saturation)
     {

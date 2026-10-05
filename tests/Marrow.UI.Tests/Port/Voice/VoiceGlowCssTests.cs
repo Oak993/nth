@@ -64,4 +64,70 @@ public sealed class VoiceGlowCssTests
         Assert.Null(VoiceGlowCss.Parse(null));
         Assert.Null(VoiceGlowCss.Parse("hsl(0, 100%, 50%)"));
     }
+
+    // the values the recipe and the band round: opacities, band alphas (d x a x w), the lengths, exact binary fractions (the ties) and a few ulps either side of every half
+    private static IEnumerable<(double Value, int Digits)> Sweep()
+    {
+        var random = new Random(9);
+        foreach (var digits in new[] { 2, 3, 4 })
+        {
+            var power = Math.Pow(10, digits);
+            for (var n = 0; n <= 3000; n++)
+            {
+                var half = (n + 0.5) / power;
+                yield return (half, digits);
+                yield return (Math.BitDecrement(half), digits);
+                yield return (Math.BitIncrement(half), digits);
+                yield return (Math.BitDecrement(Math.BitDecrement(half)), digits);
+                yield return (n / power, digits);
+            }
+            for (var k = 0; k < 4000; k++) yield return (k / 1024.0 / 4, digits);                       // exact binary fractions: ties for 2, 3 and 4 digits
+            for (var k = 0; k < 20000; k++) yield return (random.NextDouble() * 3, digits);
+        }
+        // the band's own alphas: (0.42 or 0.4) x h x (1, 0.55, 0.9, 0.3) x (0.16, 0.2, 0.26, 0.34) over the strengths the driver reaches
+        foreach (var dark in new[] { 0.42, 0.4 })
+            for (var h = 0.005; h <= 1; h += 0.0007)
+                foreach (var colour in new[] { 1, 0.55, 0.9, 0.3 })
+                    foreach (var width in new[] { 0.16, 0.2, 0.26, 0.34 })
+                        yield return (dark * h * colour * width, 3);
+        yield return (1.005, 2);
+        yield return (0.0625, 3);
+        yield return (2.675, 2);
+        yield return (-0.0625, 3);
+        yield return (-1.125, 2);
+        yield return (0, 3);
+        yield return (1e-9, 3);
+        yield return (123456.789, 2);
+    }
+
+    [Fact]
+    [Trait("Feature", "VT-9")]
+    [Trait("Decision", "ED-NEW-f-vt-9")]
+    [Trait("Spec", "V-T60")]
+    public void Fixed_equals_the_exact_toFixed_on_a_sweep_of_every_kind_of_value()
+    {
+        // Fixed is the fused-multiply-add form; FixedByText is the exact decimal expansion it replaced (the oracle)
+        var count = 0;
+        foreach (var (value, digits) in Sweep())
+        {
+            var expected = VoiceGlowCss.FixedByText(value, digits);
+            var actual = VoiceGlowCss.Fixed(value, digits);
+            if (expected != actual) Assert.Fail($"Fixed({value:R}, {digits}) = {actual:R}, the exact rounding is {expected:R}");
+            count++;
+        }
+        Assert.True(count > 100000, count + " values swept");
+    }
+
+    [Fact]
+    [Trait("Feature", "VT-9")]
+    [Trait("Decision", "ED-NEW-f-vt-9")]
+    [Trait("Spec", "V-T62")]
+    public void Fixed_allocates_nothing()
+    {
+        var sink = VoiceGlowCss.Fixed(0.1234, 3);
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 10000; i++) sink += VoiceGlowCss.Fixed(i / 7919.0, 3);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        Assert.True(sink > 0);
+    }
 }
