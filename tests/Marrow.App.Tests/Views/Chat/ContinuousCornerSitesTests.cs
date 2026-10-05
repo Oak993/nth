@@ -128,6 +128,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Port/Settings/CzControls/CzStyleCards.cs", "12", 2, Circular), // CZ-1 (ED-312): the style card button and its shell, design-page layout (CSS border-radius 12)
         ("Marrow.UI/Port/Settings/CzControls/CzSwatchRow.cs", "12", 1, Circle), // CZ-1 (ED-312): the 24 pt swatch, a circle by construction
         ("Marrow.UI/Port/Settings/CzControls/CzSlider.cs", "10", 1, Capsule), // CZ-1 (ED-312): the 40 x 20 Auto capsule
+        ("Marrow.UI/Port/Settings/Voice/VoiceGlyphButton.cs", "10", 1, Circle), // VT-14 (ED-342 (13)): the 20 pt round cancel and trash buttons of a model row, a circle by construction
         ("Marrow.UI/Port/Settings/GlassColorPicker.cs", "HexRadius", 1, Capsule), // CZ-2 (ED-313): the 28 pt hex pill, r 14 = h / 2 (lp-page.css .mg-hex)
         ("Marrow.UI/Port/Settings/GlassColorPicker.cs", "DotSize / 2", 1, Circle), // CZ-2 (ED-313): the 22 pt preview dot beside the hex field, a circle by construction
         ("Marrow.UI/Port/SystemButtons.cs", "radius", 2, Fit), // H3 (ED-291): a capsule (height / 2) under presentedChrome, else the kit's Radius 6 on a 22-24 pt button: never 2r < h < 3.057r

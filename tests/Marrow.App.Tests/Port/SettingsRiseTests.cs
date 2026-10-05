@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Port;
+using Marrow.App.Port.Settings;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Tests.Window;
 using Marrow.App.Views.Settings;

@@ -6,6 +6,7 @@
 // Separator or ContextMenu draws nothing and a ToggleSwitch throws (PROGRESS.md, 2026-10-01). The process-wide appearance
 // (Application.RequestedThemeVariant) is set by WindowManager's HostedRoot (WindowManager.swift:152-159).
 using Avalonia;
+using Marrow.App.Port.Voice;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Port;
@@ -26,5 +27,6 @@ public sealed class MarrowApplication : Application
         {
             SystemReduceMotion.Install(); // ED-084: every window follows Windows' "Animation effects" setting
             WindowsTaskbarOverlay.Install(); // ED-219: the Dock unread badge is the taskbar overlay icon
+            VoiceComposition.Install(); // VT-14 (voice-SPEC V-2.4): the voice seams' production parts; the storage roots are bound before the app is built (Program.cs)
         });
 }
