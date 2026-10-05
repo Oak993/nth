@@ -110,6 +110,10 @@ internal sealed class VoiceLanguageQuestion : Panel
 
     internal PopoverCard Card => card;
 
+    internal Border Glass => glass;
+
+    internal Grid Shell => shell;
+
     internal TextBlock QuestionText => question;
 
     internal TextBlock FooterText => footer;

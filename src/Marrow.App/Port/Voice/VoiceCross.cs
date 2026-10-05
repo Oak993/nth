@@ -112,8 +112,10 @@ internal sealed class VoiceCross : Button
         }
         var inner = new BoxShadows(
             new BoxShadow { IsInset = true, Spread = 0.5, Color = tokens.PgXRim },
-            new BoxShadow { IsInset = true, OffsetX = 0.5, Blur = 0.6, Spread = -0.1, Color = Color.FromArgb(0x4D, 255, 96, 150) },
-            new BoxShadow { IsInset = true, OffsetX = -0.5, Blur = 0.6, Spread = -0.1, Color = Color.FromArgb(0x52, 96, 176, 255) });
+            [
+                new BoxShadow { IsInset = true, OffsetX = 0.5, Blur = 0.6, Spread = -0.1, Color = Color.FromArgb(0x4D, 255, 96, 150) },
+                new BoxShadow { IsInset = true, OffsetX = -0.5, Blur = 0.6, Spread = -0.1, Color = Color.FromArgb(0x52, 96, 176, 255) },
+            ]);
         context.DrawRectangle(null, null, round, inner);
         DrawIcon(context, bounds, Mix(tokens.PgX, tokens.PgXHover, amount), 11, 1.5);
     }

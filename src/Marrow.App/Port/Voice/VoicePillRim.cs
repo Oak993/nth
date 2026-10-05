@@ -48,7 +48,7 @@ internal sealed class VoicePillRim : Control
     {
         var brush = new ImmutableRadialGradientBrush(
             [new ImmutableGradientStop(0, colour), new ImmutableGradientStop(stop, Color.FromArgb(0, colour.R, colour.G, colour.B))],
-            centre: new RelativePoint(0, 0, RelativeUnit.Absolute),
+            center: new RelativePoint(0, 0, RelativeUnit.Absolute),
             gradientOrigin: new RelativePoint(0, 0, RelativeUnit.Absolute),
             radiusX: new RelativeScalar(1, RelativeUnit.Absolute),
             radiusY: new RelativeScalar(1, RelativeUnit.Absolute));
@@ -69,7 +69,7 @@ internal sealed class VoicePillRim : Control
         var inner = Math.Clamp((orbDiameter / 2 - 1) / outer, 0, 1);
         return new ImmutableRadialGradientBrush(
             [new ImmutableGradientStop(0, Color.FromArgb(0, 0, 0, 0)), new ImmutableGradientStop(inner, Color.FromArgb(0, 0, 0, 0)), new ImmutableGradientStop(1, Colors.Black)],
-            centre: new RelativePoint(centre, RelativeUnit.Absolute),
+            center: new RelativePoint(centre, RelativeUnit.Absolute),
             gradientOrigin: new RelativePoint(centre, RelativeUnit.Absolute),
             radiusX: new RelativeScalar(outer, RelativeUnit.Absolute),
             radiusY: new RelativeScalar(outer, RelativeUnit.Absolute));

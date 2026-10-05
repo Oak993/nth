@@ -24,6 +24,7 @@ using Marrow.App.Views.Usage;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
+using Marrow.Core.Port.Voice.Session;
 using Marrow.Core.Port.Voice.Transcript;
 using Marrow.Core.Support;
 using Marrow.Services.Git;
