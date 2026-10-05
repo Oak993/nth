@@ -18,6 +18,15 @@ public static class UsageLight
         return (dark ? Dark : Light)[percent];
     }
 
+    /// <summary>Mixes two colours in OKLab, <paramref name="share"/> of <paramref name="from"/> (CSS <c>color-mix(in oklab, from share, to)</c>): the aurora's and the glow's second colours.</summary>
+    public static (byte R, byte G, byte B) Mix((byte R, byte G, byte B) from, (byte R, byte G, byte B) to, double share)
+    {
+        var a = ToLab(from.R, from.G, from.B);
+        var b = ToLab(to.R, to.G, to.B);
+        var s = Math.Clamp(share, 0, 1);
+        return FromLab(a[0] * s + b[0] * (1 - s), a[1] * s + b[1] * (1 - s), a[2] * s + b[2] * (1 - s));
+    }
+
     private static (byte, byte, byte)[] Ramp(string[] anchors, double lift)
     {
         var p = anchors.Select(ToLab).ToArray();
@@ -47,7 +56,12 @@ public static class UsageLight
     private static double[] ToLab(string hex)
     {
         var n = Convert.ToInt32(hex, 16);
-        double r = Lin((n >> 16) & 255), g = Lin((n >> 8) & 255), b = Lin(n & 255);
+        return ToLab((byte)((n >> 16) & 255), (byte)((n >> 8) & 255), (byte)(n & 255));
+    }
+
+    private static double[] ToLab(byte red, byte green, byte blue)
+    {
+        double r = Lin(red), g = Lin(green), b = Lin(blue);
         var l = Math.Cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
         var m = Math.Cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
         var q = Math.Cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);

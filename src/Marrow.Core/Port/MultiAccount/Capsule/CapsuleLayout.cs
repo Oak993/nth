@@ -103,4 +103,52 @@ public static class CapsuleLayout
             ? [(inset, r), (r, inset), (width - r, inset), (width - r, height - inset), (r, height - inset), (inset, r)]
             : [(width / 2, inset), (width - r, inset), (width - r, height - inset), (r, height - inset), (r, inset), (width / 2, inset)];
     }
+
+    /// <summary>The length of the capsule outline inset by <paramref name="inset"/>: two straights and a circle of radius (height / 2 - inset).</summary>
+    public static double Perimeter(double width, double height, double inset) => 2 * (width - height) + 2 * Math.PI * (height / 2 - inset);
+
+    /// <summary>The point <paramref name="fraction"/> of the way round the capsule outline (any fraction: the lap wraps). <paramref name="fromLeft"/>: from the left middle (the rim); else from the top middle (the arc, the orbit). Clockwise.</summary>
+    public static (double X, double Y) Along(double width, double height, double inset, bool fromLeft, double fraction)
+    {
+        var r = height / 2;
+        var q = r - inset;
+        var straight = width - height;
+        var half = Math.PI * q;
+        var lap = Perimeter(width, height, inset);
+        var s = fraction - Math.Floor(fraction);
+        var d = s * lap;
+        if (fromLeft)
+        {
+            // left middle up to the top of the left end, along the top, the right end, back along the bottom, the left end's lower quarter
+            if (d <= half / 2) return Round(r, r, q, Math.PI + d / q);
+            d -= half / 2;
+            if (d <= straight) return (r + d, inset);
+            d -= straight;
+            if (d <= half) return Round(width - r, r, q, -Math.PI / 2 + d / q);
+            d -= half;
+            if (d <= straight) return (width - r - d, height - inset);
+            d -= straight;
+            return Round(r, r, q, Math.PI / 2 + d / q);
+        }
+        // top middle to the right, the right end, back along the bottom, the left end, along the top to the middle
+        var first = straight / 2;
+        if (d <= first) return (width / 2 + d, inset);
+        d -= first;
+        if (d <= half) return Round(width - r, r, q, -Math.PI / 2 + d / q);
+        d -= half;
+        if (d <= straight) return (width - r - d, height - inset);
+        d -= straight;
+        if (d <= half) return Round(r, r, q, Math.PI / 2 + d / q);
+        d -= half;
+        return (r + d, inset);
+    }
+
+    /// <summary>The point <paramref name="fraction"/> round a circle from its top, clockwise (the dial).</summary>
+    public static (double X, double Y) CircleAlong(double cx, double cy, double radius, double fraction)
+    {
+        var angle = -Math.PI / 2 + 2 * Math.PI * (fraction - Math.Floor(fraction));
+        return Round(cx, cy, radius, angle);
+    }
+
+    private static (double X, double Y) Round(double cx, double cy, double radius, double angle) => (cx + radius * Math.Cos(angle), cy + radius * Math.Sin(angle));
 }
