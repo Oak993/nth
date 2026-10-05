@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Marrow.App.Port.Voice;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Orb;
 using Marrow.Core.Port.Voice.Session;
@@ -24,7 +25,7 @@ public sealed class ComposerVoiceSlotTests(HeadlessSession headless)
     private static VoiceOrbSlot SlotOf(ComposerView view) => Assert.IsType<VoiceOrbSlot>(Assert.IsType<StackPanel>(One<ComposerControls>(view).Child).Children[0]);
 
     [Fact] // V-T87
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_the_feature_off_no_composer_shows_the_orb()
     {
         headless.OnUiThread(() =>
@@ -44,7 +45,7 @@ public sealed class ComposerVoiceSlotTests(HeadlessSession headless)
     }
 
     [Fact] // V-T87, V-14.3
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_the_feature_on_every_composer_shows_its_own_orb_first_in_the_controls_even_the_compact_one()
     {
         headless.OnUiThread(() =>
@@ -76,7 +77,7 @@ public sealed class ComposerVoiceSlotTests(HeadlessSession headless)
     [Theory] // V-T71
     [InlineData(32, VoiceOrbKind.Siri, "Siri Wave")]
     [InlineData(26, VoiceOrbKind.Membrane, "Voice Membrane")]
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_slot_is_D_square_with_a_72_view_centred_on_it_a_hit_target_4_larger_all_round_focusable_and_named(int size, VoiceOrbKind kind, string orbName)
     {
         headless.OnUiThread(() =>
@@ -114,7 +115,7 @@ public sealed class ComposerVoiceSlotTests(HeadlessSession headless)
     }
 
     [Fact] // V-T71: names per state, the pressed state while Listening
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_name_follows_the_session_and_the_toggle_is_pressed_while_listening()
     {
         headless.OnUiThread(() =>
@@ -158,7 +159,7 @@ public sealed class ComposerVoiceSlotTests(HeadlessSession headless)
     [Theory] // V-T71: Enter and Space toggle
     [InlineData(Key.Enter, PhysicalKey.Enter)]
     [InlineData(Key.Space, PhysicalKey.Space)]
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Enter_and_Space_on_the_focused_orb_start_and_stop_listening(Key key, PhysicalKey physical)
     {
         headless.OnUiThread(() =>
@@ -188,7 +189,7 @@ public sealed class ComposerVoiceSlotTests(HeadlessSession headless)
     }
 
     [Fact] // V-T71, V-11.5: the setting is followed, and a size change is a spring, not a cut
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-VIEW-4")]
     public void A_size_or_orb_change_in_Settings_reaches_the_slot_and_the_size_springs()
     {
         headless.OnUiThread(() =>
@@ -198,21 +199,33 @@ public sealed class ComposerVoiceSlotTests(HeadlessSession headless)
             var slot = rig.Main.OnMain(() => SlotOf(view));
             double Side() => rig.Main.OnMain(() => slot.Bounds.Width);
             Assert.Equal(32, Side(), 0.5);
+            var start = rig.Main.OnMain(() => SwiftClock.Now);
             rig.Main.OnMain(() => rig.App.Settings.VoiceOrb = rig.App.Settings.VoiceOrb with { OrbSize = 26, Orb = VoiceOrbKind.Membrane });
             rig.PumpWindow(window);
             Assert.Equal(VoiceOrbKind.Membrane, rig.Main.OnMain(() => slot.Orb.Kind));
             Assert.Equal(26, rig.Main.OnMain(() => slot.Orb.SlotDiameter));
             var sides = new List<double> { Side() };
+            var times = new List<double> { 0 };
             for (var frame = 0; frame < 60; frame++)
             {
                 rig.Elapse(window, 1.0 / 60);
                 sides.Add(Side());
+                times.Add(rig.Main.OnMain(() => (SwiftClock.Now - start).TotalSeconds)); // the clock's own time
             }
             Assert.Equal(26, sides[^1], 0.5);
             Assert.Contains(sides, side => side is > 26.5 and < 31.5); // it moved through the sizes in between
+            // the size is the spring (response 0.34 s, damping 0.86; V-14.2) from 32 to 26, every frame against the spring's own closed form (the underdamped solution, written out here); +1 px:
+            // layout rounds the slot's side to whole pixels
+            const double response = 0.34, damping = 0.86;
+            var omega = 2 * Math.PI / response;
+            var damped = omega * Math.Sqrt(1 - damping * damping);
             for (var i = 1; i < sides.Count; i++)
-                Assert.True(Math.Abs(sides[i] - sides[i - 1]) <= 0.15 * 6 + 1.01, // +1: layout rounds the slot's side to whole pixels
-                     $"no frame moves it over 15 % of its travel: {sides[i - 1]} then {sides[i]}");
+            {
+                var t = times[i];
+                var progress = 1 - Math.Exp(-damping * omega * t) * (Math.Cos(damped * t) + damping * omega / damped * Math.Sin(damped * t));
+                var expected = 32 + (26 - 32) * progress;
+                Assert.True(Math.Abs(sides[i] - expected) <= 1.01, $"the slot's side at {t:F3} s is {sides[i]}, the spring says {expected:F2}");
+            }
             Assert.Equal("Start voice input (Voice Membrane)", rig.Main.OnMain(() => AutomationProperties.GetName(slot.HitTarget)!));
             rig.Close(window);
         });

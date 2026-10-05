@@ -25,7 +25,7 @@ public sealed class ComposerVoiceAnnouncementTests(HeadlessSession headless)
     }
 
     [Fact] // V-T84: one polite live region in the composer
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_composer_has_one_polite_live_region_that_starts_empty()
     {
         headless.OnUiThread(() =>
@@ -44,7 +44,7 @@ public sealed class ComposerVoiceAnnouncementTests(HeadlessSession headless)
     }
 
     [Fact] // V-T84: start, stop, done (leave)
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Start_stop_and_done_are_announced_with_the_designs_words_and_the_text_stays_for_the_user()
     {
         headless.OnUiThread(() =>
@@ -68,7 +68,7 @@ public sealed class ComposerVoiceAnnouncementTests(HeadlessSession headless)
     }
 
     [Fact] // V-T84: done with "Send it as the prompt"
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Done_with_send_on_says_Sending()
     {
         headless.OnUiThread(() =>
@@ -87,7 +87,7 @@ public sealed class ComposerVoiceAnnouncementTests(HeadlessSession headless)
     }
 
     [Fact] // V-T84: cancel
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Cancelling_is_announced()
     {
         headless.OnUiThread(() =>
@@ -105,7 +105,7 @@ public sealed class ComposerVoiceAnnouncementTests(HeadlessSession headless)
     }
 
     [Fact] // V-T84: blocked
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void A_blocked_microphone_is_announced()
     {
         headless.OnUiThread(() =>

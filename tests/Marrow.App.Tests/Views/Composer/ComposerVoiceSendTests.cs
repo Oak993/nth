@@ -53,7 +53,7 @@ public sealed class ComposerVoiceSendTests(HeadlessSession headless)
     private static double Since(ContinuousInstant landed, VoiceComposerRig rig) => rig.Main.OnMain(() => (SwiftClock.Now - landed).TotalSeconds);
 
     [Fact] // V-T80: nothing running -> Return's send
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_send_on_and_nothing_running_the_text_is_sent_0_35_s_after_landing()
     {
         headless.OnUiThread(() =>
@@ -74,7 +74,7 @@ public sealed class ComposerVoiceSendTests(HeadlessSession headless)
     }
 
     [Fact] // V-T80: leave -> never
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_leave_the_text_stays_in_the_composer_and_nothing_is_ever_sent()
     {
         headless.OnUiThread(() =>
@@ -91,7 +91,7 @@ public sealed class ComposerVoiceSendTests(HeadlessSession headless)
     }
 
     [Fact] // Q-V-11 C: a running turn is interrupted and the text sent, as Return does
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_send_on_and_a_turn_running_the_turn_is_interrupted_and_the_text_sent_as_Return_does()
     {
         headless.OnUiThread(() =>
@@ -112,7 +112,7 @@ public sealed class ComposerVoiceSendTests(HeadlessSession headless)
     }
 
     [Fact] // Q-V-11 C: heads at work -> queued, the lead is not stopped
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_send_on_and_heads_at_work_the_text_is_queued_and_the_running_lead_is_left_alone()
     {
         headless.OnUiThread(() =>
@@ -131,8 +131,31 @@ public sealed class ComposerVoiceSendTests(HeadlessSession headless)
         });
     }
 
+    [Fact] // V-8.8: a cancelled session sends nothing, whatever "After voice input" says
+    [Trait("Rule", "R-TEST-10")]
+    public void A_cancel_with_send_on_sends_nothing_and_leaves_no_text()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Rig(Sending);
+            var (view, window) = rig.Open();
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+            rig.Elapse(window, 3.0);
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget)); // the second click: the text is being finished
+            rig.Elapse(window, 0.01);
+            Assert.Equal(VoiceSessionState.Processing, view.Voice!.Session.State);
+            Assert.True(rig.Main.OnMain(() => Press(view, Avalonia.Input.Key.Escape)));
+            rig.Elapse(window, 10);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice.Session.State);
+            Assert.Empty(rig.Runtime.SentPrompts);
+            Assert.Empty(rig.Runtime.Turns);
+            Assert.True(rig.Runtime.Draft.IsEmpty);
+            rig.Close(window);
+        });
+    }
+
     [Fact] // V-8.8: a session cancelled, or left with the composer, sends nothing; a new dictation before the send drops it
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void A_new_dictation_started_before_the_send_fires_drops_it()
     {
         headless.OnUiThread(() =>

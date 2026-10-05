@@ -38,7 +38,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
         rig.Main.OnMain(() => rig.App.Settings.VoiceNotes = new VoiceNotesSettings(Local: true, Cloud: true));
 
     [Fact] // V-T83: cancelled, nothing written
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Cancelling_with_nothing_written_shows_Voice_input_cancelled_in_the_field_for_1_6_s_over_the_placeholder()
     {
         headless.OnUiThread(() =>
@@ -77,7 +77,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // V-T83: it holds for 1.6 s, not less
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_cancelled_note_is_still_there_just_before_1_6_s()
     {
         headless.OnUiThread(() =>
@@ -96,7 +96,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // V-T83: words were written, so they leaving is the answer
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Cancelling_after_words_were_written_shows_no_note()
     {
         headless.OnUiThread(() =>
@@ -117,7 +117,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // V-T83: no speech
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Stopping_with_no_speech_heard_shows_No_speech_was_heard_for_1_6_s()
     {
         headless.OnUiThread(() =>
@@ -139,7 +139,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // V-T83: blocked, one underlined link that opens the Windows page
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void A_blocked_microphone_shows_the_note_with_its_one_link_for_5_2_s_and_the_link_opens_the_Windows_privacy_page()
     {
         headless.OnUiThread(() =>
@@ -170,7 +170,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // V-T83: with text in the draft, the note shows in the notice line instead
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void With_text_in_the_draft_the_blocked_note_shows_in_the_notice_line_and_the_field_keeps_the_users_text()
     {
         headless.OnUiThread(() =>
@@ -203,7 +203,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // V-T83: a note in the field gives way when the user types
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void Typing_while_a_field_note_shows_takes_it_away()
     {
         headless.OnUiThread(() =>
@@ -224,7 +224,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // Q-V-8 A: the first use of each engine shows its privacy line for about 5 s, once
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_first_use_of_the_local_engine_shows_its_privacy_line_for_5_s_and_never_again()
     {
         headless.OnUiThread(() =>
@@ -257,7 +257,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // Q-V-8 A: once per engine, not once
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void The_cloud_engine_has_its_own_privacy_line_shown_once_and_the_local_one_is_not_used_up_by_it()
     {
         headless.OnUiThread(() =>
@@ -283,7 +283,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
     }
 
     [Fact] // V-T83 + Q-V-8 A: a later note replaces the one showing
-    [Trait("Decision", "ED-292")]
+    [Trait("Rule", "R-TEST-10")]
     public void A_later_note_takes_the_place_of_the_privacy_line()
     {
         headless.OnUiThread(() =>
