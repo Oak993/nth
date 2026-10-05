@@ -112,4 +112,19 @@ public sealed class SkillsOfferInstallsTests
         Assert.Equal(folder, paths["S1"]);
         Assert.Equal(["S1"], rig.Downloaded);
     }
+
+    [Fact]
+    public async Task The_host_gives_the_offers_the_same_shared_downloads_as_the_pages()
+    {
+        using var rig = new FetchRig();
+        rig.Hold["S1"] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = new SkillsFirstInstall(rig.Host.Downloads).InstallAsync(rig.Item("S1"), new PipelineProgress([]), CancellationToken.None);
+        await rig.Entered("S1");
+        var joined = rig.Host.OfferDownloads.Install([rig.Item("S1")], _ => { }, CancellationToken.None);
+        rig.Hold["S1"].SetResult();
+        var paths = await joined.WaitAsync(Guard);
+        await started.WaitAsync(Guard);
+        Assert.Equal(["S1"], rig.Downloaded);
+        Assert.Equal(rig.Host.Pipeline.InstalledFolder("S1"), paths["S1"]);
+    }
 }

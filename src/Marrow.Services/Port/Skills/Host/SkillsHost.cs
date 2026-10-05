@@ -5,6 +5,7 @@ using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Port.Skills.Install;
+using Marrow.Services.Port.Skills.Offers;
 using Marrow.Services.Port.Skills.Pipelines;
 using Marrow.Services.Port.Skills.Store;
 using Marrow.Services.Port.Skills.Terms;
@@ -54,6 +55,9 @@ public sealed class SkillsHost : IDisposable
     /// reverse). Fetching is available only when the options bound the download and binding seams (<see cref="SkillsDownloads.Available"/>).
     /// </summary>
     public SkillsDownloads Downloads { get; }
+
+    /// <summary>SK-16: the in-chat offers' download seam over the same <see cref="Downloads"/>: an offer joins a download Settings has running, and the reverse.</summary>
+    public ISkillsOfferDownload OfferDownloads => new SkillsOfferInstalls(Downloads);
 
     /// <summary>
     /// The download seam with the terms checked first (<see cref="TermsGate"/>): the one entry a first install goes through so no byte of a non-open item is requested before its terms are
