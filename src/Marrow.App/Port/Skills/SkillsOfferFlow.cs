@@ -37,6 +37,8 @@ public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferC
         this.runtime = runtime; this.catalogue = catalogue; this.read = read; this.write = write; this.download = download; this.terms = terms;
         runtime.AttachSkillsOffers(this);
     }
+    internal SkillsCatalogue Catalogue => catalogue;
+    internal Func<AddonsState> State => read;
     public OfferStage Stage { get => Read(stage); private set => Set(ref stage, value); }
     public OfferCard? Card { get => Read(card); private set => Set(ref card, value); }
     public OfferProgress? Progress { get => Read(progress); private set => Set(ref progress, value); }
