@@ -721,8 +721,14 @@ public sealed class ComposerView : Decorator
         this.Track(() => voiceController.IsLive, live =>
         {
             WatchEscape(live);
-            if (controller.TextViewInstance is { } box) box.Dictating = live;
+            ApplyDictating();
         });
+        // PORT-ONLY (voice-SPEC V-8.3, VT-11): the dictation layer follows the session; the editor is read-only while the session is live and while the layer still draws
+        var layer = textColumn.Dictation;
+        layer.ActiveChanged += ApplyDictating;
+        voiceController.DictationBegan += layer.Begin;
+        voiceController.Transcript += layer.Apply;
+        voiceController.DictationAbandoned += layer.Abandon;
         this.Track(() => (voiceController.Note, runtime.Draft.Text.Length == 0), now =>
         {
             if (!ReferenceEquals(now.Note, shownNote))
@@ -732,6 +738,11 @@ public sealed class ComposerView : Decorator
             }
             textColumn.SetVoiceNote(now.Note, noteInField, fieldVisible: now.Item2);
         });
+    }
+
+    private void ApplyDictating()
+    {
+        if (controller.TextViewInstance is { } box) box.Dictating = voice is { IsLive: true } || textColumn.Dictation.IsActive;
     }
 
     private void WatchEscape(bool live)
@@ -758,6 +769,12 @@ public sealed class ComposerView : Decorator
     // The draft as the voice controller needs it: the text and the editor's selection (a caret at the end when the editor is not on screen).
     private DraftSelection DraftSelection()
     {
+        if (controller.TextViewInstance is { LiveText: not null } drawing)
+        {
+            // a dictation is drawing the words: the draft the session began with is the editor's own text and selection
+            var first = Math.Min(drawing.SelectionStart, drawing.SelectionEnd);
+            return new DraftSelection(drawing.Text ?? "", first, Math.Abs(drawing.SelectionEnd - drawing.SelectionStart));
+        }
         var text = runtime.Draft.Text;
         if (controller.TextViewInstance is not { } box || (box.Text ?? "") != text) return new DraftSelection(text, text.Length, 0);
         var start = Math.Min(box.SelectionStart, box.SelectionEnd);
@@ -768,10 +785,10 @@ public sealed class ComposerView : Decorator
     private void ReplaceDraft(int start, int length, string replacement)
     {
         var text = runtime.Draft.Text;
-        if (controller.TextViewInstance is { } box && (box.Text ?? "") == text)
+        if (controller.TextViewInstance is { } box && (box.LiveText is not null || (box.Text ?? "") == text))
         {
-            box.Dictating = false; // the words land as the session ends: the editor is the user's again
-            controller.ReplaceCharacters(start, length, replacement);
+            // the words land as one edit of the editor's own text (V-8.7: one undo step); the editor stays read-only until the layer hands the picture back
+            box.RunUnlocked(() => controller.ReplaceCharacters(start, length, replacement));
             return;
         }
         runtime.Draft = runtime.Draft with { Text = text[..start] + replacement + text[(start + length)..] };
@@ -1266,6 +1283,7 @@ internal sealed class ComposerTextColumn : Decorator
     // PORT-ONLY (voice-SPEC V-14.6): a voice note shows over the placeholder in the field, or in a notice row of its own when the draft holds text.
     private readonly Panel noteHost = new() { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Top, ClipToBounds = false };
     private FieldFade? placeholderFade;
+    private bool dictationWords;
     private VoiceNoteLine? fieldLine;
     private FieldFade? fieldFade;
     private NoticeSlot? voiceSlot;
@@ -1357,6 +1375,13 @@ internal sealed class ComposerTextColumn : Decorator
         // The note layer lies over the field; only its link takes the pointer, the rest of it lets the text view have it.
         stack.Children.Add(new Grid { Children = { clip, noteHost } });
         placeholderFade = new FieldFade(this, true, textView.SetPlaceholderFade);
+        // PORT-ONLY (voice-SPEC V-8.2, VT-11): the draft follows the dictated words as they change, and the placeholder gives way to them
+        textView.Dictation.TextChanged += value => runtime.Draft = runtime.Draft with { Text = value };
+        textView.Dictation.HasWordsChanged += has =>
+        {
+            dictationWords = has;
+            placeholderFade!.Set(!has && fieldLine is null);
+        };
         Child = stack;
         ApplyHeight();
         this.Track(() => ComposerHeight, _ => ApplyHeight());
@@ -1364,6 +1389,9 @@ internal sealed class ComposerTextColumn : Decorator
         // elsewhere (recall, a send, a take-back) reaches the text view.
         this.Track(() => runtime.Draft.Text, _ => textView.Update(this.placeholder, this.onKey, this.onAttach));
     }
+
+    /// <summary>PORT-ONLY (voice-SPEC V-8.3, VT-11): the layer that draws live dictation over the editor.</summary>
+    internal DictationLayer Dictation => textView.Dictation;
 
     // The parent's body run again with new values for :544 placeholder and :546 attachmentNotice (R-VIEW-1).
     internal void Update(string placeholder, string? attachmentNotice)
@@ -1418,7 +1446,7 @@ internal sealed class ComposerTextColumn : Decorator
         }
         if (wanted is null)
         {
-            placeholderFade!.Set(true);
+            placeholderFade!.Set(!dictationWords);
             return;
         }
         var line = new VoiceNoteLine(wanted, VoiceNotePlace.Field) { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };

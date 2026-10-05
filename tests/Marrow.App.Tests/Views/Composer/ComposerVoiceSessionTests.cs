@@ -127,7 +127,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
         });
     }
 
-    [Fact] // V-8.1 (interim: the text lands when the session does; VT-11 writes it live)
+    [Fact] // V-8.1; since VT-11 the words are written live (V-8.2) and the editor lands them by one edit when the session does
     [Trait("Decision", "ED-292")]
     public void The_text_lands_in_the_draft_after_the_caret_with_a_space_and_the_caret_ends_after_it()
     {
@@ -141,7 +141,8 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
             rig.Main.OnMain(() => box.SelectionStart = box.SelectionEnd = 5);
             Listen(rig, view, window);
             rig.Elapse(window, 3.0);
-            Assert.Equal("Hello", rig.Runtime.Draft.Text); // nothing before it lands
+            Assert.StartsWith("Hello switch", rig.Runtime.Draft.Text, StringComparison.Ordinal); // the words are in the draft as they are heard (VT-11, V-8.2)
+            Assert.Equal("Hello", rig.Main.OnMain(() => box.Text)); // the editor holds its own text until the session lands it
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
             rig.Elapse(window, 10);
             Assert.Equal("Hello switch the theme please.", rig.Runtime.Draft.Text);
@@ -239,7 +240,7 @@ public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
             rig.Elapse(firstWindow, 10);
             Assert.Equal(VoiceSessionState.Listening, second.Voice.Session.State);
             Assert.Same(second.Voice.Session, rig.Hub.Active);
-            Assert.Equal(VoiceComposerRig.SwitchThemeText, rig.Runtime.Draft.Text); // the first one's text landed
+            Assert.StartsWith(VoiceComposerRig.SwitchThemeText, rig.Runtime.Draft.Text, StringComparison.Ordinal); // the first one's text landed (the second session's own live words follow it in the shared draft)
             rig.Close(secondWindow);
             rig.Close(firstWindow);
         });

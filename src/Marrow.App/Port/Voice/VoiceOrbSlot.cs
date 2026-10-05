@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Session;
 using Marrow.UI.Port;
@@ -27,6 +28,8 @@ internal sealed class VoiceOrbSlot : Decorator
     private readonly Canvas canvas = new() { ClipToBounds = false };
     private readonly AnimatedScalar side;
     private int shownSize;
+    private DisplayLink? levelLink;
+    private ContinuousInstant lastLevel;
 
     public VoiceOrbSlot(ComposerVoiceController voice)
     {
@@ -51,6 +54,8 @@ internal sealed class VoiceOrbSlot : Decorator
         HitTarget.PointerReleased += (_, _) => Orb.Pressed = false;
         HitTarget.PointerCaptureLost += (_, _) => Orb.Pressed = false;
         Show(voice.State, voice.PointerOver, voice.OrbSettings);
+        AttachedToVisualTree += (_, _) => FollowTheVoice();
+        DetachedFromVisualTree += (_, _) => StopFollowing();
         this.Track(() => (voice.State, voice.PointerOver, voice.OrbSettings), shown => Show(shown.State, shown.PointerOver, shown.OrbSettings));
     }
 
@@ -68,9 +73,39 @@ internal sealed class VoiceOrbSlot : Decorator
         Orb.SlotDiameter = orb.OrbSize;
         AutomationProperties.SetName(HitTarget, voice.OrbName);
         HitTarget.On = state == VoiceSessionState.Listening;
+        FollowTheVoice();
         if (orb.OrbSize == shownSize) return;
         shownSize = orb.OrbSize;
         side.Set(orb.OrbSize, SizeSpring);
+    }
+
+    // V-5.5, V-2.2 item 4: once per frame while the voice is heard or the bands are still falling, the composer's smoothed bands go to the orb. The link stops itself when they reach 0.
+    private void FollowTheVoice()
+    {
+        if (levelLink is not null || !FrameClock.IsBound || VisualRoot is null || voice.State != VoiceSessionState.Listening) return;
+        lastLevel = SwiftClock.Now;
+        levelLink = FrameClock.DisplayLink(StepLevel);
+        levelLink.Add();
+    }
+
+    private void StepLevel()
+    {
+        var now = SwiftClock.Now;
+        var dt = (now - lastLevel).TotalSeconds;
+        lastLevel = now;
+        var more = voice.StepLevel(dt);
+        Orb.Bands = voice.OrbBands;
+        if (more) return;
+        levelLink?.Invalidate();
+        levelLink = null;
+    }
+
+    private void StopFollowing()
+    {
+        levelLink?.Invalidate();
+        levelLink = null;
+        voice.ResetLevel();
+        Orb.Bands = default;
     }
 
     // The slot's side now: the canvas, the orb centred on it, the hit target round it, and the margins that keep the row 28 high.

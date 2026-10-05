@@ -3,6 +3,7 @@
 using System.Globalization;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
+using Marrow.Core.Port.Voice.Dsp;
 using Marrow.Core.Port.Voice.Orb;
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Port.Voice.Session;
@@ -26,18 +27,31 @@ public sealed class ComposerVoiceController : MainActorModel
     private DraftSelection? original;
     private WorkItem? noteTimer;
     private int noteSerial;
+    private readonly LevelFollowers followers = new();
+    private OrbBands orbBands;
+    private bool dictationOpen;
 
     public ComposerVoiceController(ComposerVoiceHost host)
     {
         this.host = host;
         Session = VoiceSessionFactory.Current.Current.Create(SessionSettings, StoreTyping);
         Session.StateChanged += OnState;
+        Session.TranscriptChanged += OnTranscript;
         Session.NoteRaised += OnNote;
         Session.SendRequested += _ => this.host.Send();
     }
 
     /// <summary>The composer's session (V-15's table).</summary>
     public VoiceSession Session { get; }
+
+    /// <summary>Listening has begun (VT-11): the draft and selection as they are, where the dictated words will go (V-8.1).</summary>
+    public event Action<DraftSelection>? DictationBegan;
+
+    /// <summary>The session's operations on the dictated words, as it reports them (V-7.5): live, final, landing's ink, the withdraw of a cancel.</summary>
+    public event Action<TranscriptUpdate>? Transcript;
+
+    /// <summary>The session ended with no landing and no withdraw (an error, or nothing heard): whatever the dictation had shown goes.</summary>
+    public event Action? DictationAbandoned;
 
     /// <summary>The session's state, tracked.</summary>
     public VoiceSessionState State
@@ -72,6 +86,31 @@ public sealed class ComposerVoiceController : MainActorModel
 
     /// <summary><c>voiceOrb</c>, tracked: the orb, its size, the attachment's place, what follows voice input.</summary>
     public VoiceOrbSettings OrbSettings => host.Settings().VoiceOrb;
+
+    /// <summary>
+    /// The smoothed bands the orb takes (V-5.5): the session's published level, followed per band with attack 0.07 s and release 0.24 s, read once per frame by <see cref="StepLevel"/>.
+    /// Not tracked: the orb's slot reads it on the frame that stepped it.
+    /// </summary>
+    public OrbBands OrbBands => orbBands;
+
+    /// <summary>
+    /// One frame of the level: <paramref name="dt"/> seconds since the last. The bands follow the session's level while Listening and its zero after, so they fall on the release when
+    /// listening ends (the design's bands follow the audio all the time, voice-composer.js:718-722). Returns whether another frame is needed: Listening, or bands still above zero.
+    /// </summary>
+    public bool StepLevel(double dt)
+    {
+        followers.Step(State == VoiceSessionState.Listening ? Session.AudioLevel : LevelBands.Zero, dt);
+        var bands = followers.Bands;
+        orbBands = new OrbBands(bands.Low, bands.Mid, bands.High, bands.All);
+        return State == VoiceSessionState.Listening || bands != LevelBands.Zero;
+    }
+
+    /// <summary>The bands forget the voice (the orb left the screen; no frame is coming to let them fall).</summary>
+    public void ResetLevel()
+    {
+        followers.Reset();
+        orbBands = default;
+    }
 
     /// <summary>The orb's mode in the motion's terms (V-11.4's table).</summary>
     public OrbMotionMode Mode => State switch
@@ -135,7 +174,10 @@ public sealed class ComposerVoiceController : MainActorModel
         switch (to)
         {
             case VoiceSessionState.Listening:
-                original = host.Selection();
+                var began = host.Selection();
+                original = began;
+                dictationOpen = true;
+                DictationBegan?.Invoke(began);
                 Say(VoiceAnnouncements.Listening);
                 ShowPrivacyNoteOnFirstUse();
                 break;
@@ -145,7 +187,17 @@ public sealed class ComposerVoiceController : MainActorModel
             case VoiceSessionState.Landing:
                 Land();
                 break;
+            case VoiceSessionState.Rest when dictationOpen:
+                dictationOpen = false;
+                DictationAbandoned?.Invoke();
+                break;
         }
+    }
+
+    private void OnTranscript(TranscriptUpdate update)
+    {
+        if (update.Kind is TranscriptUpdateKind.Landing or TranscriptUpdateKind.Withdraw) dictationOpen = false; // the layer takes it from here
+        Transcript?.Invoke(update);
     }
 
     private void OnNote(VoiceNoteKind kind)
