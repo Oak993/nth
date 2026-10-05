@@ -58,6 +58,9 @@ public static class APIKeychain
         return Set(key, account);
     }
 
+    /// <summary>PORT-ONLY (MA-6): the account a provider's one key is stored under, for the extra keys' account names. Null for a provider with no account.</summary>
+    internal static string? PrimaryAccount(ProviderKind provider) => Account(provider);
+
     /// <summary>The accounts older builds stored keys under; changing one loses that key.</summary>
     // :25-34
     private static string? Account(ProviderKind provider) => provider switch

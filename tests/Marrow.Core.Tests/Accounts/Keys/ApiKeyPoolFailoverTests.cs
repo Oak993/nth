@@ -178,4 +178,18 @@ public sealed class ApiKeyPoolFailoverTests
         Assert.Null(rig.Rotation().OnFailure(429, null));
         Assert.Empty(rig.Events);
     }
+
+    [Fact]
+    [Trait("Feature", "MA-6")]
+    [Trait("Spec", "MA-T138")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_retry_after_of_zero_still_never_sends_one_request_twice_on_the_same_key()
+    {
+        var rig = new ApiKeyRig(2);
+        var rotation = rig.Rotation();
+        rotation.Current();
+        Assert.Equal("b", rotation.OnFailure(429, TimeSpan.Zero)!.Id);
+        Assert.Null(rotation.OnFailure(429, TimeSpan.Zero));
+        Assert.Equal(ApiKeyEventKind.AllKeysOut, rig.Events.Last().Kind);
+    }
 }

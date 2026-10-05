@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Marrow.Core.Accounts.Keys;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -54,6 +55,8 @@ public class OpenAICompatibleSession : ProviderSession
         public ReportedTokenUsage? TokenUsage { get; init; }               // :106
         public string? RawError { get; init; }                             // :107
         public int StatusCode { get; init; } = 200;                        // :108
+        /// <summary>PORT-ONLY (MA-6): the Retry-After of a non-200 answer, in seconds; the key pool honours it on a 429.</summary>
+        public TimeSpan? RetryAfter { get; init; }
     }
 
     // :114-122
@@ -179,14 +182,23 @@ public class OpenAICompatibleSession : ProviderSession
     internal string TerminalTransportMessageForTests(Exception error) => TerminalTransportMessage(error);
 
     private string WorkingDirectory => Configuration.WorkingDirectory.Path; // :242
-    private string ApiKey => (Configuration.ApiKey ?? "").Trimmed();       // :243
+    private string ApiKey => (rotatedKey ?? Configuration.ApiKey ?? "").Trimmed(); // :243
+
+    // PORT-ONLY (OD-0114, MA-6): several keys per service. The host gives the session its thread's rotation (null keeps today's one key);
+    // each request goes out on the rotation's current key, and a 402 or 429 sends the same request again on the next allowed key.
+    public IApiKeyRotation? KeyRotation { get; set; }
+
+    // PORT-ONLY (MA-6): the money one finished request cost, for the key's monthly cap. Null (the default) records no spend: no price table is in the source.
+    public Func<ReportedTokenUsage, double?>? KeySpendEstimator { get; set; }
+
+    private string? rotatedKey;
 
     // MARK: - Lifecycle
 
     // :247-265. PR-PROVAPI-089, PR-PROVAPI-090, PR-PROVAPI-091, PR-PROVAPI-092.
     public Task<string> Start()
     {
-        if (ApiKey.Length == 0) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :248
+        if (ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :248
         var id = Configuration.ResumeID ?? SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())); // :249
         sessionID = id;       // :250
         interrupted = false;  // :251
@@ -231,7 +243,7 @@ public class OpenAICompatibleSession : ProviderSession
             return;
         }
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
-        if (ApiKey.Length == 0) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287
+        if (ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287
         runtimeMode = input.RuntimeMode;             // :288
         interactionMode = input.InteractionMode;     // :289
         if (input.Model is { Length: > 0 } model) currentModel = model; // :290
@@ -479,6 +491,8 @@ public class OpenAICompatibleSession : ProviderSession
     // shapes are reported as the Swift does.
     protected virtual void ReportUsage(StreamRound round)
     {
+        // PORT-ONLY (MA-6): the request's cost goes against the key it used.
+        if (KeyRotation is { } rotation && KeySpendEstimator is { } estimate && round.TokenUsage is { HasSpend: true } spent && estimate(spent) is { } usd) rotation.RecordSpend(usd);
         if (round.Usage is { } usage) // :489
         {
             OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :490
@@ -631,6 +645,7 @@ public class OpenAICompatibleSession : ProviderSession
             didLoadMCPTools = true;
         }
         var payload = RequestPayload(model, effort, withTools); // :511
+        UseRotationKey(); // PORT-ONLY (MA-6)
         var attempt = 0; // :516
         while (true) // :517
         {
@@ -646,6 +661,7 @@ public class OpenAICompatibleSession : ProviderSession
                 roundTask = null; // :528
                 SwiftTask.CheckCancellation(); // :529
                 if (interrupted || isStopping) throw new CancellationError(); // :530
+                if (ContinueOnNextKey(round)) continue; // PORT-ONLY (MA-6): the same request, on the next allowed key
                 return round; // :531
             }
             catch (StreamAttemptFailure failure) // :532
@@ -678,6 +694,35 @@ public class OpenAICompatibleSession : ProviderSession
                 throw; // :555
             }
         }
+    }
+
+    // PORT-ONLY (OD-0114, MA-6). A new request takes the rotation's current key; with none left the turn ends with the pool's all-keys-out message.
+    private void UseRotationKey()
+    {
+        if (KeyRotation is not { } rotation) return;
+        if (rotation.Current() is { } choice)
+        {
+            rotatedKey = choice.Secret;
+            return;
+        }
+        var message = $"All {OpenAICompatibleSessionConfig.Title} API keys are out.";
+        OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = message }));
+        throw new ProviderError(new ProviderError.Case.Failed(message));
+    }
+
+    // PORT-ONLY (OD-0114, MA-6). A 402 (out of credits) or 429 (rate limited) with another allowed key left: nothing was shown yet (the answer was a refusal, not a stream),
+    // so the same payload goes out again on that key and the reply carries on in the same turn. Returns false to hand the round back as before.
+    private bool ContinueOnNextKey(StreamRound round)
+    {
+        if (KeyRotation is not { } rotation || round.StatusCode is not (402 or 429)) return false;
+        if (rotation.OnFailure(round.StatusCode, round.RetryAfter) is not { } next)
+        {
+            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = $"All {OpenAICompatibleSessionConfig.Title} API keys are out." }));
+            return false;
+        }
+        rotatedKey = next.Secret;
+        OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {next.Nickname}" }));
+        return true;
     }
 
     // :560-567. What is left when the connection keeps dropping: how many times the same request
@@ -817,6 +862,12 @@ public class OpenAICompatibleSession : ProviderSession
     private static Task<byte[]> Encode(Dictionary<string, JSONValue> payload) =>
         Task.Run(() => new JSONValue.Object(new ValueMap<string, JSONValue>(payload, SwiftStringComparer.Instance)).Data());
 
+    // PORT-ONLY (MA-6): Retry-After in whole seconds; an HTTP date or anything else is not read.
+    private static TimeSpan? RetryAfterOf(HTTPURLResponse http) =>
+        http.Value("Retry-After") is { } text && double.TryParse(text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var seconds) && seconds >= 0
+            ? TimeSpan.FromSeconds(seconds)
+            : null;
+
     // :600-735. Issues the POST, reads a non-200 body directly, and otherwise drains the SSE
     // stream through the coalescer, accumulating text, reasoning, tool calls, usage and any
     // in-stream error into one StreamRound.
@@ -863,7 +914,7 @@ public class OpenAICompatibleSession : ProviderSession
                 body += line + "\n"; // :637
                 if (body.Length > 8_000) break; // :638
             }
-            return new StreamRound { StatusCode = http.StatusCode, RawError = ErrorMessage(body, http.StatusCode) }; // :640-643
+            return new StreamRound { StatusCode = http.StatusCode, RawError = ErrorMessage(body, http.StatusCode), RetryAfter = RetryAfterOf(http) }; // :640-643
         }
 
         sseDrain?.Cancel(); // :648
