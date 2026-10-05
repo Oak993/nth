@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Views;
+using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -65,7 +66,7 @@ internal sealed class UpdatesSettingsPage : Decorator, ISettingsPageChrome
         BannerFold = new CzFoldRow(banner, view.Banner.Visible);
 
         Build(view);
-        Child = new StackPanel { Orientation = Orientation.Vertical, Children = { header, BannerFold, sections } };
+        Child = new StackPanel { Orientation = Orientation.Vertical, Children = { new UpdateWhatsNew(), header, BannerFold, sections } };
         built = true;
 
         AttachedToVisualTree += (_, _) =>

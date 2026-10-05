@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Views.Chat;
+using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Updates;
 using Marrow.UI.Chrome;
@@ -58,7 +59,7 @@ internal sealed class UpdatePopoverContent : Decorator
         {
             Width = CardWidth,
             Padding = new Thickness(0, 12, 0, 6),
-            Child = new StackPanel { Orientation = Orientation.Vertical, Children = { header, bannerHost, rowsPanel } },
+            Child = new StackPanel { Orientation = Orientation.Vertical, Children = { new Border { Margin = new Thickness(14, 0, 12, 0), Child = new UpdateWhatsNew() }, header, bannerHost, rowsPanel } },
         };
         Child = body;
         AutomationProperties.SetName(this, "Updates");

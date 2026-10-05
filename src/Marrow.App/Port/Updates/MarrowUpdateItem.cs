@@ -44,6 +44,7 @@ public sealed class MarrowUpdateItem(UpdateChecker checker, ISelfUpdateEngine en
         {
             throw new InvalidOperationException($"The update could not be downloaded. {error.Message}", error); // AppUpdater.swift:523-527's sentence, as DownloadPackage words it
         }
+        UpdateChecker.RememberDownloadedRelease(update); // UE-6: a later check can replace the offer before Restart Marrow
         version = update.Version;
         return new UpdateOutcome(true, update.Version, true, true, null);
     }

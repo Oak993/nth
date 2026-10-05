@@ -1346,7 +1346,11 @@ public sealed class AboutSoftwareUpdateSection : Decorator
         };
     }
 
-    private Snapshot ReadSnapshot() => new(checker.UpdateAvailable, checker.Update);
+    private Snapshot ReadSnapshot()
+    {
+        var offered = checker.UpdateAvailable;
+        return new Snapshot(offered, offered ? checker.Update : checker.InstalledRelease);
+    }
 
     private void ApplySnapshot(Snapshot snapshot)
     {
@@ -1369,12 +1373,12 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             Spacing = Chrome.SectionSpacing,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        if (snapshot.UpdateAvailable && snapshot.Update is { } update)
-            stack.Children.Add(ReleaseBody(update));
+        if (snapshot.Update is { } update)
+            stack.Children.Add(ReleaseBody(update, snapshot.UpdateAvailable));
         return stack;
     }
 
-    private Control ReleaseBody(AvailableUpdate update)
+    private Control ReleaseBody(AvailableUpdate update, bool offered)
     {
         var content = new StackPanel
         {
@@ -1382,6 +1386,9 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             Spacing = 10,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
+
+        if (!offered)
+            content.Children.Add(new TextBlock { Text = $"What's new in Marrow {update.Version}", TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout));
 
         if (!digest.IsEmpty)
         {
@@ -1404,10 +1411,14 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             content.Children.Add(new ChromeCard(() => scroll));
         }
 
-        var releaseLink = BuildReleaseLink(update);
-        var detail = ReleaseDetail(update);
-        content.Children.Add(new ChromeCard(() =>
-            new ChromeRow("Unsigned Windows installer", () => releaseLink, detail)));
+        // Installed notes remain readable without offering to install the running version again.
+        if (offered)
+        {
+            var releaseLink = BuildReleaseLink(update);
+            var detail = ReleaseDetail(update);
+            content.Children.Add(new ChromeCard(() =>
+                new ChromeRow("Unsigned Windows installer", () => releaseLink, detail)));
+        }
         return content;
     }
 
