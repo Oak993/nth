@@ -79,7 +79,7 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         // :830-831 .buttonStyle(.glass).controlSize(.small) under the window's accent tint (WindowManager.swift:162,191): the reference
         // video shows an accent capsule (interactive while enabled), grey and translucent while disabled; the looks are measured in
         // AboutUpdateViewsCheckNowLookTests, so this row test only pins which material goes with which state.
-        Assert.Equal(GlassShapeKind.Capsule, surface.Shape.Kind); Assert.Equal(!checking, surface.IsInteractive); Assert.Equal(checking ? 0.11 : 1.0, surface.TintOpacity);
+        Assert.Equal(GlassShapeKind.Capsule, surface.Shape.Kind); Assert.Equal(!checking, surface.IsInteractive); Assert.Equal(checking ? 0.0 : 1.0, surface.TintOpacity); // ED-NEW-glass-g1: the disabled wash is the material's film now (it was 0.11 over the dark veil)
         window.Close();
     });
 
