@@ -53,6 +53,9 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
+        if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
+            return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.

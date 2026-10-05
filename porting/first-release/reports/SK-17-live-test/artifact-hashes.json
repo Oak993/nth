@@ -1,0 +1,157 @@
+[
+  {
+    "file": "agy-implicit.json",
+    "sha256": "41177C58B2F57FF06FAF63BBC2BCF2E777B54C530E81FA9D388B70F9BF353DF3",
+    "bytes": 4572
+  },
+  {
+    "file": "agy-named.json",
+    "sha256": "630E8C4816D2F2EDEF44AA318BB5714E56DB11FE3D62043BF2841837FE512133",
+    "bytes": 4559
+  },
+  {
+    "file": "agy-version.txt",
+    "sha256": "AC0F6F1D0842874DB4B4DE09E9D16F33E58927BA05F5A9EE2BF9DAE5A6643115",
+    "bytes": 8
+  },
+  {
+    "file": "cleanup-final.json",
+    "sha256": "6D6D85A2DC20115CBB7C440BBBE485CA99E3EB9849B529B32FFC516B689430B2",
+    "bytes": 722
+  },
+  {
+    "file": "cleanup-first.json",
+    "sha256": "940F9181EDECF9E64D0DE9C5A83B1E79D4AA83E8F61E0840B05536653DDBA4A0",
+    "bytes": 748
+  },
+  {
+    "file": "cleanup.json",
+    "sha256": "3D25BD6A657B37CC99A43A95111F7FB7C56BBF89D9CDD02344B2697828BF5671",
+    "bytes": 651
+  },
+  {
+    "file": "config-before.json",
+    "sha256": "BDD2363C068DA0EE9FDC5EF9554E8899A8BEC7AD4D862F4066317E08D0B4140C",
+    "bytes": 324
+  },
+  {
+    "file": "config-later.json",
+    "sha256": "BB3B61C3D639ECFB23AA2070625C8F5142FCCDCB8E57CE021CC2F64B3BF58BB9",
+    "bytes": 242
+  },
+  {
+    "file": "config-restored.json",
+    "sha256": "BA1F91535B2DD120D29A6A207E4C33380FE7553AFD78A0955C33428E43DEED69",
+    "bytes": 679
+  },
+  {
+    "file": "cursor-acp-local-implicit.json",
+    "sha256": "B29959BCDFE112884A431E40878B958FC5BE88A379C85FD69AB360BC8C190213",
+    "bytes": 2810
+  },
+  {
+    "file": "cursor-acp-local-named.json",
+    "sha256": "085BAE79BC5936FD3965B6D6ACE99165B66B489CA30CBD074DF4FEE3CD00F5CC",
+    "bytes": 2271
+  },
+  {
+    "file": "cursor-acp.json",
+    "sha256": "2D37B92186EB8A85FBD75677194BB9CC2EFE76FDDFEBB3ED11FB485DE3222624",
+    "bytes": 2214
+  },
+  {
+    "file": "cursor-implicit.json",
+    "sha256": "D0A2FEC466E4F0D82EBAAAEE61A276AF1CDF92BB07C572891350EAFB950283C4",
+    "bytes": 6099
+  },
+  {
+    "file": "cursor-named.json",
+    "sha256": "431214AEEBD97C956E64283BD9B0E53D6C2C20406AC51BA53EA7B3C64DA82641",
+    "bytes": 6490
+  },
+  {
+    "file": "cursor-trust-preflight.json",
+    "sha256": "6D67D56BF6B810C2BD2A077FB4FD22D6251CD2B99E99D13F4F8C7E3ED5797708",
+    "bytes": 1204
+  },
+  {
+    "file": "cursor-version.txt",
+    "sha256": "22EB70B4DD089C62B7ECE7AA62D39E5628553B12374B7C6A472352A035142BF2",
+    "bytes": 20
+  },
+  {
+    "file": "final-build.log",
+    "sha256": "EAD01494520F381EAFCCB0EF76C210899B953B869831A67CB9A8EF0B0E81C1A0",
+    "bytes": 82
+  },
+  {
+    "file": "final-tests.log",
+    "sha256": "7CE5ABD78E606CA50CF5B70E680C4EF7DC8ABA40A2DC51BB466AE04780A072A6",
+    "bytes": 123
+  },
+  {
+    "file": "green-build.log",
+    "sha256": "AB4DC7201FA5081621E6D267793F98ADF52BE4507390A1A8DE0D2A0FE9788858",
+    "bytes": 82
+  },
+  {
+    "file": "green-tests.log",
+    "sha256": "521EAE8C4441F68A66E3E25675CCFA28F9EA81D232338E30F418A6ECE398FD03",
+    "bytes": 722
+  },
+  {
+    "file": "isolated-Cursor_failed_ACP_live_check_keeps_automatic_loading_off_and_argv_unchanged-1.log",
+    "sha256": "A2C2F8DEA3ACE3CBA52EB18AD9F2925967B8C6BBA339DD5ECE5C3A8E19782D5B",
+    "bytes": 481
+  },
+  {
+    "file": "isolated-Cursor_failed_ACP_live_check_keeps_automatic_loading_off_and_argv_unchanged-2.log",
+    "sha256": "4A9DC43F477ECE6B1E8769D27C795C834156AAB580526DFB7F1DCC73E4CC5EC6",
+    "bytes": 484
+  },
+  {
+    "file": "isolated-Cursor_without_a_generation_does_not_probe_or_change_its_arguments-1.log",
+    "sha256": "A32E10127D4F4A291220E76836BDBD57EA77BD4B26B273A14CE39919D7EAAD46",
+    "bytes": 484
+  },
+  {
+    "file": "isolated-Cursor_without_a_generation_does_not_probe_or_change_its_arguments-2.log",
+    "sha256": "A32E10127D4F4A291220E76836BDBD57EA77BD4B26B273A14CE39919D7EAAD46",
+    "bytes": 484
+  },
+  {
+    "file": "mark.txt",
+    "sha256": "E24BD8E2C6E1BACA65FA4CFE84831E73F1FCFFE0F9CF4A7C2638D2CABBF05EA6",
+    "bytes": 28
+  },
+  {
+    "file": "plugin-layout.json",
+    "sha256": "866FB82AC359D809099CF50A0F4FCB02639C315832BA56332CFDBA3F804A1FAE",
+    "bytes": 1270
+  },
+  {
+    "file": "red-build.log",
+    "sha256": "A806E7D3188B4104750C352373A231F7D1D5C46AB7080A063FB6B14F9D01FD73",
+    "bytes": 82
+  },
+  {
+    "file": "red-tests.log",
+    "sha256": "CF0914290A265CCA3652E5270FB106B3C8430C81AF2C033A266E2ADF18453CC6",
+    "bytes": 2810
+  },
+  {
+    "file": "regression-tests.log",
+    "sha256": "D3041976A0EDA535C249A05535F3224C4C9DF6998DAAB90C4865F8A76C1F21B3",
+    "bytes": 124
+  },
+  {
+    "file": "verify-A.json",
+    "sha256": "7D6AD64DF3E7331FDC8F09E5A4B3C81A0017A7B61D7362DC458133CED6E44390",
+    "bytes": 2218
+  },
+  {
+    "file": "verify-B.json",
+    "sha256": "DB9CBA886E98128EFCDE1512F763448F893BCD7041A809D2998471A5266D7787",
+    "bytes": 1709
+  }
+]

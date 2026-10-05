@@ -1,0 +1,28 @@
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_MCP_contract_exposes_read_only_discovery_and_pinned_skill_reads [97 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Unknown_names_and_paths_outside_the_pinned_tree_are_refused(name: "pdf", path: "../SKILL.md") [40 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Unknown_names_and_paths_outside_the_pinned_tree_are_refused(name: "../other", path: "SKILL.md") [36 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Unknown_names_and_paths_outside_the_pinned_tree_are_refused(name: "pdf", path: "C:/owner/private.txt") [36 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop [50 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Damage_blocks_both_discovery_and_read_and_disposal_stops_new_reads [32 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts [998 ms]
+  Error Message:
+   Assert.Throws() Failure: No exception was thrown
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: "session/new") [57 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: "saved", method: "session/load") [46 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+Failed!  - Failed:     9, Passed:     2, Skipped:     0, Total:    11, Duration: 1 s - Marrow.Services.Tests.dll (net10.0)

@@ -1,0 +1,20 @@
+{
+  "pluginAbsent": true,
+  "removedTrustMarkers": [
+    "C:\\Users\\omera\\.cursor\\projects\\E-Droppy-work-scratch-codex-sk17-workspace\\.workspace-trusted"
+  ],
+  "configs": [
+    {
+      "path": "C:\\Users\\omera\\.cursor\\cli-config.json",
+      "before": "49B64B4A6B8E48D50F21E8FA4B3B55AF02F19FCEA963645E00363B9774753CBF",
+      "after": "A6CF8849030F74E236D27DDBE721148572DC91FC7D99001A2B8528682488F92B",
+      "unchanged": false
+    },
+    {
+      "path": "C:\\Users\\omera\\.gemini\\antigravity-cli\\settings.json",
+      "before": "61366B0A4528865384D530C4CA014EC35F73DB4D192CA68CC58D8F60563CD4AE",
+      "after": "61366B0A4528865384D530C4CA014EC35F73DB4D192CA68CC58D8F60563CD4AE",
+      "unchanged": true
+    }
+  ]
+}

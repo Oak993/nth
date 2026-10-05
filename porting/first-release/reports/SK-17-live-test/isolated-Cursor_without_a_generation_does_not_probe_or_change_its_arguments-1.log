@@ -1,0 +1,4 @@
+  Error Message:
+   Marrow.Core.Port.SwiftTrapException : Storage.Locations is not bound: Marrow.App sets it at start-up; tests override it.
+     at Marrow.Services.Store.<Storage>FCB72A9974011A387F761CA9C3B449099194740B56C6F71025A4BA7A38F0869AB__UnboundStorageLocations.get_Root() in E:\Droppy\wt\cx\sk-17-live\src\Marrow.Services\Store\Storage.cs:line 144
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 691 ms - Marrow.Services.Tests.dll (net10.0)

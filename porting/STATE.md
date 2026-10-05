@@ -597,3 +597,35 @@ NOT READY: raw full App8365/2 and UI3419/2 are non-green; their failing methods 
 **UE-3 final scoped follow-up evidence.** Services 146/146, App 117/117, Core 56/56 each passed twice; zero failures/skips and clean builds. Accepted Office state also survives verification cancellation and cannot be relaunched, and Git in-use wording survives unavailable post-inventory. Independent read-only static review has no remaining blocker in the lead-accepted scope. READY for the merge train; lead owns mark.mjs. ED-377 item 13; updated TRIAL-H report and codex-T13-trial-h handoff.
 
 **W2(a) trial-H recovery-filter fix (2026-10-06, codex/fledge-trial-h-fix).** Review finding 1 is covered: malformed developer inventories follow the existing IOException recovery path while provider/self-update rows remain, strict no-handler behavior and cancellation propagate, and failed Configure preserves previous rows. The three inherited dirty files were reviewed and retained with minimal compilation/fixture repairs; full disposition and red/green evidence are in E:\Droppy\work\scratch\handoff\codex-W2-trialh-fix.md. Scoped non-native Services 157/157 and App 122/122, both twice, include Traceability/Layering and clean builds. READY for the orchestrator's independent section-3 check; local commits only, push/integration held. No full-port/native/package acceptance or mark.mjs closure is claimed. ED-378.
+
+
+## SK-17 T12 local live-check addendum (2026-10-05)
+
+Antigravity 1.2.17 discovers the Marrow-owned .agents/skills tree under a second --add-dir root. The generation layout and verified provider launch endpoint are implemented. Cursor 2026.10.01-e373342 passed print-mode discovery, but its production ACP routes did not; it remains explicit-only. Evidence: porting/first-release/reports/SK-17-live-test.md; ED-379.
+
+**Incomplete / UNRESOLVED:** the required staging ref lacks shared SK-11/SK-16 generation preparation and lease ownership at ThreadRuntime.EnsureSession; no caller currently supplies SessionConfiguration.SkillGeneration. SK-17 has no queue entry, so mark.mjs SK-17 DONE is rejected. The endpoint and live decision do not close the full integration gate. No Marrow app, native test, installer or packaging was run.
+
+
+## SK-17 T12 shared launch completion (2026-10-05)
+
+The lead accepted Antigravity automatic discovery and Cursor explicit-only, then authorized the missing shared launch integration. ThreadRuntime.EnsureSession now supplies a verified owned generation for every Antigravity launch, including resumes/restarts/runtime-created heads. Trusted installed pins, current switches, reviewed defaults and read-only user/project clashes feed SK-9 admission. Per-turn verification and actual-child-exit lease ownership are wired. Cursor's ACP path remains explicit-only.
+
+The lead-approved conservative admission cap is 8,192 characters; WU-11 retains actual CLI-limit measurement. The earlier missing shared caller/lease integration is CLOSED by this follow-up. Queue entries and mark.mjs remain the lead's job and do not block the worker verdict. No T13 trial-h work is present; the accidental commit remains on its preserved branch.
+
+Validation: final focused Services 2/2 and App 14/14; Skills/Providers/Traceability Core 691, Services 2912, UI 9, App including ThreadRuntime 934; zero failures/skips and clean builds through lead wrappers in unchanged heavy slots. No owner app, real CLI in tests, native, installer or packaging run. READY for lead integration. Full evidence, test-first failures and limits: porting/first-release/reports/SK-17-launch-integration.md; ED-379. This supersedes the historical SK-17 Incomplete/UNRESOLVED paragraph above.
+
+
+## SK-17 T12 Cursor automatic-skills completion (2026-10-05)
+
+The owner requested Cursor automatic skills too. Its per-session ACP mcpServers route (A) passed one supervised unnamed live prompt: owned list_skills, actual read_skill SKILL.md read, then the unique body-only answer marker. B/C are NOT RUN under the first-passing-route instruction. This supersedes the earlier Cursor explicit-only ruling; historical plugin-directory failures remain recorded. Config bytes were restored and all disposable probe processes/folders removed without user project writes.
+
+ThreadRuntime supplies verified Cursor generations and ACPSession appends the owned read-only MCP server for new/load sessions. The private app stdio relay avoids desktop/Velopack/data startup; its parent reads from the trusted retained generation through a current-user-only pipe. Every list/read verifies the pinned generation, explicit-only entries stay out of automatic discovery, and stop/damage after the launch gate prevents a late child. Existing user servers/argv and Antigravity's second --add-dir are retained. The approved 8,192-character cap remains interim; actual CLI measurement stays WU-11.
+
+Validation: focused Services 16/16, App 20/20; Core Skills/Providers/Traceability 691, Services 2926, App including ThreadRuntime 940, all zero failed/skipped. Initial combined Pi fixture failures passed alone twice and the final Services rerun passed; raw results retained. Startup guard results are in the report. No owner app, real CLI in tests, native, installer or packaging. READY for lead integration. Evidence: porting/first-release/reports/SK-17-cursor-automatic.md; ED-379. Preserved accidental changes remain on their own branch and no T13 work is imported. Lead owns marking/queue work.
+
+
+## SK-17 W2(b) catch-filter repair (2026-10-06)
+
+Review finding 7 is repaired: real composer InvalidDataException now becomes ProviderError.Case.Failed in both AntigravitySkills and CursorSkills, with original localized text. SwiftTry.IsThrownError and all existing exception cases are retained. Offline production-boundary tests use a real rooted SkillsHost and corrupt pinned disclosure; both providers failed twice alone before the two-line fix. No fake replaces Prepare.
+
+Scoped green validation through unchanged heavy.sh/lead wrappers, Native excluded: App preparation/affected launches/Traceability 25/25; Services composer/Traceability 5/5. Zero failed/skipped; clean red/green builds. READY for orchestrator independent check; local commits only, push held. Evidence: porting/first-release/reports/W2-sk17-catch-filter.md; ED-380; final head in E:\Droppy\work\scratch\handoff\codex-W2-sk17-fix.md. No new live/CLI/network/account run, owner app, native, installer or packaging. This entry only covers W2(b); orchestration owns integration.

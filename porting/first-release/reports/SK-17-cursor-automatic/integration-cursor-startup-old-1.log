@@ -1,0 +1,5 @@
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: typeof(System.AppContext)
+Actual:   typeof(System.Linq.Enumerable)
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 17 ms - Marrow.App.Tests.dll (net10.0)

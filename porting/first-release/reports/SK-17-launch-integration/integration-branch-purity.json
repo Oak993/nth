@@ -1,0 +1,17 @@
+{
+  "base": "18bb508c7fe0f17a3682f8a52380d5db54846188",
+  "sk17Head": "a9df4a9ad5a45c2685bbaf1450a846cb963a9434",
+  "includesStagedChanges": true,
+  "trialHead": "ed6164c5a89368755ec0664e6077907b1c17572f",
+  "trialCommitIsAncestor": false,
+  "accidentalCommitIsAncestor": false,
+  "sharedPreservedHead": "777b2996e4e77b9120109dac4076955d2b53b5cb",
+  "trialUniqueFileCount": 70,
+  "sk17UniqueFileCount": 99,
+  "trialFileOverlap": [],
+  "sharedLedgerPaths": [
+    "porting/STATE.md",
+    "porting/engineering_decisions.md"
+  ],
+  "ledgerAudit": "The staging ledger prefixes are preserved byte-exact. Only SK-17 append sections were added here; no T13 sections or UE-3 changes imported."
+}

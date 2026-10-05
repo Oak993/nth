@@ -62,6 +62,17 @@ public sealed class SkillsPipeline : IGenerationStore
     }
 
     public AddonsState State { get { lock (gate) return state; } }
+    public string CatalogueVersion => catalogue.ReadOn;
+
+    // PORT-ONLY: SK-17. Frozen descriptors of the currently selected installed pins, never disk manifests or orphan trees.
+    // The launch composer still acquires/fully verifies each pin before reading its disclosure metadata.
+    public IReadOnlyList<StoreItem> InstalledSkillItems()
+    {
+        lock (gate)
+            return state.Items.Where(r => r.InstalledPin is not null && r.State is not (ItemState.Removing or ItemState.Damaged))
+                .Select(r => versions[(r.Id, r.InstalledPin!)])
+                .Where(i => i.Catalogue.Kind is ItemKind.Skillset or ItemKind.Plugin).ToArray();
+    }
 
     /// <summary>SK-16: raised after a first install, update, repair, remove or reset has finished (never inside the pipeline's locks), so a surface that lists the installed items can read them again.</summary>
     public event Action? Changed;

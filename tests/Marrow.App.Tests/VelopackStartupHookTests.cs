@@ -4,7 +4,7 @@ using Velopack.Locators;
 
 namespace Marrow.App.Tests;
 
-// PORT-ONLY (no Swift twin): OD-0062 / ED-235. The Velopack hook is the first thing Program.Main does, and a run that
+// PORT-ONLY (no Swift twin): OD-0062 / ED-235. The Velopack hook is the first desktop work Program.Main does, and a run that
 // Velopack did not install (a dev run, this test host) never calls Velopack at all: its Run() writes a log file under
 // %LOCALAPPDATA% on every call. Program.Main cannot run in a test host (STAThread, the single-instance lock, the full
 // Avalonia lifetime, the real %LOCALAPPDATA%\Marrow Code folder), so the order is proved from Main's own IL. The
@@ -14,12 +14,12 @@ public sealed class VelopackStartupHookTests
 {
     [Fact]
     [Trait("Decision", "ED-235")]
-    public void Main_runs_the_Velopack_hook_before_anything_else()
+    public void Main_runs_the_Velopack_hook_before_any_desktop_work_after_the_private_MCP_dispatch()
     {
         var main = typeof(Program).GetMethod(nameof(Program.Main), BindingFlags.Public | BindingFlags.Static)!;
         var il = main.GetMethodBody()!.GetILAsByteArray()!;
         var calls = new List<MethodBase>();
-        for (var at = 0; at < il.Length && calls.Count < 2;)
+        for (var at = 0; at < il.Length && calls.Count < 9;)
         {
             var code = il[at] == 0xFE ? Codes[(short)(0xFE00 | il[at + 1])] : Codes[il[at]];
             var operandAt = at + (il[at] == 0xFE ? 2 : 1);
@@ -28,12 +28,18 @@ public sealed class VelopackStartupHookTests
             at = operandAt + OperandSize(code, il, operandAt);
         }
 
-        // AppContext.BaseDirectory's getter, then the hook with it
-        Assert.Equal(2, calls.Count);
-        Assert.Equal(typeof(AppContext), calls[0].DeclaringType);
-        Assert.Equal("get_BaseDirectory", calls[0].Name);
-        Assert.Equal(typeof(Program), calls[1].DeclaringType);
-        Assert.Equal(nameof(Program.RunVelopackHook), calls[1].Name);
+        // SK-17 owner-authorized headless exception: this exact private dispatch may precede the desktop hook.
+        // No settings, lock, toast, app lifetime or other calls can be inserted before the hook.
+        Assert.Equal(new[] { "FirstOrDefault", "op_Equality", "OpenStandardInput", "OpenStandardOutput",
+            "RunClient", "GetAwaiter", "GetResult", "get_BaseDirectory", nameof(Program.RunVelopackHook) },
+            calls.Select(call => call.Name));
+        Assert.Equal(typeof(Enumerable), calls[0].DeclaringType);
+        Assert.Equal(typeof(string), calls[1].DeclaringType);
+        Assert.Equal(typeof(Console), calls[2].DeclaringType);
+        Assert.Equal(typeof(Console), calls[3].DeclaringType);
+        Assert.Equal(typeof(Marrow.Services.Port.Skills.Providers.SkillsMcpBridge), calls[4].DeclaringType);
+        Assert.Equal(typeof(AppContext), calls[7].DeclaringType);
+        Assert.Equal(typeof(Program), calls[8].DeclaringType);
     }
 
     [Fact]
