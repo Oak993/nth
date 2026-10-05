@@ -204,4 +204,36 @@ public sealed class WingetUpdaterTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new WingetUpdater("Git.Git", "Git", replay.Run).Update(new DevToolProgress(), new(true)));
         Assert.Empty(replay.Calls);
     }
+
+    [Fact]
+    public async Task Node_without_an_available_version_is_checked_when_updated_and_replays_the_no_update_result()
+    {
+        var replay = new TrialHReplay(); replay.Add("16-node-list"); replay.Add("16-node-list");
+        var orchestrator = new UpdateOrchestrator([new WingetUpdater("OpenJS.NodeJS.22", "Node.js", replay.Run, ["--name", "Node.js"])]);
+        await orchestrator.CheckNow();
+        Assert.Equal(UpdateRowState.ChecksWhenUpdated, Assert.Single(orchestrator.Rows).State);
+        Assert.False(orchestrator.IsEverythingCurrent);
+        replay.Add("16-node-list"); replay.Add("19-node-upgrade"); replay.Add("16-node-list"); replay.Add("16-node-list");
+        await orchestrator.UpdateEverything();
+        Assert.Equal(UpdateRowState.UpToDate, Assert.Single(orchestrator.Rows).State); replay.Complete();
+    }
+
+    [Theory]
+    [InlineData("Git Git.Git Unknown winget")]
+    [InlineData("Git Git.Git 2.54.0")]
+    public void A_table_with_a_malformed_known_package_row_is_not_an_empty_inventory(string row)
+    {
+        var output = "Name Id Version Available Source\r\n---------------------------------\r\n" + row + "\r\n";
+        Assert.Throws<InvalidDataException>(() => WingetUpdater.ParseList(new(0, output, "")));
+    }
+
+    [Fact]
+    public async Task Losing_the_available_column_after_a_zero_exit_does_not_erase_the_known_target_version()
+    {
+        var replay = new TrialHReplay(); replay.Add("04-git-list");
+        replay.Add(WingetUpdater.UpgradeCommand("Git.Git"), new(0, "Successfully installed\r\n", ""));
+        replay.Add(TrialHFixtures.Command("04-git-list"), new(0, "Name Id Version Source\r\n------------------------\r\nGit Git.Git 2.54.0 winget\r\n", ""));
+        var result = await new WingetUpdater("Git.Git", "Git", replay.Run).Update(new DevToolProgress(), default);
+        Assert.False(result.Succeeded); Assert.False(result.Changed); Assert.Equal("2.54.0", result.NewVersion); replay.Complete();
+    }
 }

@@ -132,4 +132,37 @@ public sealed class DevToolUpdateCatalogTests
             Assert.DoesNotMatch(@"(?i)C:\\+Users\\+(?!Public\\+)", r.GetRawText());
         }
     }
+
+    [Fact]
+    public async Task Explicit_inventory_recovery_retains_directly_detected_tools_and_Office_when_winget_is_unavailable()
+    {
+        var replay = new TrialHReplay(); var unavailable = new DevToolCommandResult(null, "", "winget cannot start");
+        replay.Add(TrialHFixtures.Command("04-git-list"), unavailable); replay.Add("03-git-before");
+        replay.Add(TrialHFixtures.Command("12-gh-list"), unavailable); replay.Add("11-gh-before");
+        replay.Add(TrialHFixtures.Command("16-node-list"), unavailable); replay.Add("15-node-before");
+        replay.Add(TrialHFixtures.Command("24-python-list"), unavailable); replay.Add("23-python-launcher");
+        replay.Add("26-python314-direct-before", new DevToolCommand("C:\\Python314\\python.exe", ["--version"]));
+        replay.Add("30-python313-before", new DevToolCommand("%USERPROFILE%\\AppData\\Local\\Programs\\Python\\Python313\\python.exe", ["--version"]));
+        List<string> failures = [];
+        var items = await DevToolUpdateCatalog.Discover(replay.Run, _ => Task.FromResult<OfficeInstallation?>(TrialHFixtures.Office("34-office-before")), inventoryFailure: (tool, _) => failures.Add(tool));
+        Assert.Equal(["Git", "GitHub CLI", "Node.js", "Python"], failures);
+        Assert.Equal(["Git", "Node.js", "Python 3.14", "Python 3.13", "Office"], items.Select(i => i.Title));
+        foreach (var item in items) Assert.Null(await item.LatestVersion(default));
+        Assert.DoesNotContain(replay.Calls, c => c.Arguments.Contains("upgrade", StringComparer.Ordinal)); replay.Complete();
+    }
+
+    [Fact]
+    public async Task A_rejected_registered_Python_probe_does_not_drop_already_detected_Git_or_independent_Office()
+    {
+        var replay = new TrialHReplay(); replay.Add("04-git-list"); replay.Add("12-gh-list"); replay.Add("11-gh-before"); replay.Add("16-node-list");
+        replay.Add("12-gh-list", TrialHFixtures.Command("24-python-list"));
+        var unsupported = "C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.14\\python.exe";
+        replay.Add(new DevToolCommand("py", ["-0p"]), new(0, " -V:3.14 " + unsupported + "\r\n", ""));
+        List<string> failures = [];
+        Task<DevToolCommandResult> Run(DevToolCommand command, CancellationToken cancellation) => command.Executable == unsupported
+            ? Task.FromException<DevToolCommandResult>(new InvalidOperationException("unsupported Python probe")) : replay.Run(command, cancellation);
+        var items = await DevToolUpdateCatalog.Discover(Run, _ => Task.FromResult<OfficeInstallation?>(TrialHFixtures.Office("34-office-before")), inventoryFailure: (tool, _) => failures.Add(tool));
+        Assert.Equal(["Git", "Node.js", "Office"], items.Select(i => i.Title));
+        Assert.Equal(["Python"], failures); Assert.DoesNotContain(replay.Calls, c => c.Arguments.Contains("upgrade", StringComparer.Ordinal)); replay.Complete();
+    }
 }

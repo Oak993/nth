@@ -54,7 +54,7 @@ public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
         this.restart = restart;
         projector = new UpdatePillProjector();
         orchestrator = Attach(new UpdateOrchestrator(items));
-        Refresh();
+        OnChanged();
     }
 
     private UpdateOrchestrator Attach(UpdateOrchestrator created)
