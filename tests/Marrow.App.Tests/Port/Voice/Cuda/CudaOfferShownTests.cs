@@ -117,7 +117,7 @@ public sealed class CudaOfferShownTests
         await rig.Offer.EvaluateAsync(CancellationToken.None);
 
         Assert.False(rig.Offer.Row.Shown); // an offer that could only fail is never shown
-        Assert.Equal(0, rig.Server.Requests.Count);
+        Assert.Empty(rig.Server.Requests);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class CudaOfferShownTests
         await rig.Offer.EvaluateAsync(CancellationToken.None);
 
         Assert.Equal(CudaOfferState.Installed, rig.Offer.Row.State);
-        Assert.Equal(0, rig.Server.Requests.Count);
+        Assert.Empty(rig.Server.Requests);
     }
 
     [Fact]
