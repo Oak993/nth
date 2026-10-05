@@ -59,32 +59,16 @@ internal sealed class VoicePillRim : Control
         }
     }
 
-    /// <summary>
-    /// The radial mask that fades the pill's material out round the orb (V-12.12): transparent inside <c>D/2 - 1</c>, opaque from <c>H/2 + 1.5</c>, centred on the orb (the pill's right cap inline, its left
-    /// cap in the float pill).
-    /// </summary>
-    public static IBrush OrbMask(Point centre, double orbDiameter, double pillHeight, double width, VoiceListeningStyle style)
+    /// <summary>The clean-cap fade, zero on the exposed side and complete one cap radius toward the body.</summary>
+    public static IBrush OrbMask(Point centre, double pillHeight, double width, VoiceListeningStyle style)
     {
-        var outer = pillHeight / 2 + 1.5;
-        var inner = Math.Clamp((orbDiameter / 2 - 1) / outer, 0, 1);
-        var radial = new ImmutableRadialGradientBrush(
-            [new ImmutableGradientStop(0, Color.FromArgb(0, 0, 0, 0)), new ImmutableGradientStop(inner, Color.FromArgb(0, 0, 0, 0)), new ImmutableGradientStop(1, Colors.Black)],
-            center: new RelativePoint(centre, RelativeUnit.Absolute),
-            gradientOrigin: new RelativePoint(centre, RelativeUnit.Absolute),
-            radiusX: new RelativeScalar(outer, RelativeUnit.Absolute),
-            radiusY: new RelativeScalar(outer, RelativeUnit.Absolute));
-        // OD-0097's clean-cap amendment takes precedence over the page's radial recipe: the recipe alone still paints a crescent
-        // outside the ball (V-T132). Retain it toward the body, and fade the material to zero by the orb's centre on its exposed side.
-        // The fade stays under the ball; the label and cancel control keep their own drawing and the shared glass stays the body.
         var direction = style == VoiceListeningStyle.Float ? 1 : -1;
         var inward = new ImmutableLinearGradientBrush(
             [new ImmutableGradientStop(0, Colors.Transparent), new ImmutableGradientStop(1, Colors.Black)],
             startPoint: new RelativePoint(centre, RelativeUnit.Absolute),
-            endPoint: new RelativePoint(centre.X + direction * (orbDiameter / 2 - 1), centre.Y, RelativeUnit.Absolute));
-        var box = new Rect(0, 0, width, pillHeight);
+            endPoint: new RelativePoint(centre.X + direction * pillHeight / 2, centre.Y, RelativeUnit.Absolute));
         var drawing = new DrawingGroup();
-        using (var context = drawing.Open())
-        using (context.PushOpacityMask(radial, box)) context.DrawRectangle(inward, null, box);
+        using (var context = drawing.Open()) context.DrawRectangle(inward, null, new Rect(0, 0, width, pillHeight));
         return new DrawingBrush(drawing) { Stretch = Stretch.Fill };
     }
 }

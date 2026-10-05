@@ -16,7 +16,7 @@ internal static class VoicePillInk
         using var bitmap = new RenderTargetBitmap(size, new Vector(96 * scale, 96 * scale));
         using (var context = bitmap.CreateDrawingContext())
         using (context.PushTransform(pill.TransformToVisual(scene.Window)!.Value))
-        using (context.PushGeometryClip(pill.Clip!))
+        using (context.PushGeometryClip(pill.ContentClip))
         using (context.PushOpacity(pill.Opacity))
         {
             foreach (var label in pill.Labels)

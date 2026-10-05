@@ -41,6 +41,9 @@ internal sealed class VoicePill : Panel
     private readonly TranslateTransform[] shifts = [new(-4, 0), new(-4, 0), new(-4, 0)];
     private readonly Border body;
     private readonly VoicePillRim rim = new();
+    private readonly Panel material = new() { IsHitTestVisible = false, Background = Brushes.Transparent };
+    private readonly Border filtered = new() { IsHitTestVisible = false, Effect = new BlurEffect { Radius = (1.6 - 0.5) / 0.288675 } };
+    private readonly Panel contents = new() { Background = Brushes.Transparent };
     private readonly ScaleTransform crossTransform = new(0.6, 0.6);
     private VoiceListeningStyle style = VoiceListeningStyle.Pill;
     private bool open;
@@ -71,8 +74,11 @@ internal sealed class VoicePill : Panel
         body = new Border { IsHitTestVisible = false }.Capsule(RoundedCornerStyle.Circular);
         Cross = new VoiceCross(VoiceCrossLook.Disc) { RenderTransformOrigin = RelativePoint.Center };
         Cross.RenderTransform = new TransformGroup { Children = { Cross.PressTransform, crossTransform } };
-        Children.Add(body);
-        Children.Add(rim);
+        material.Children.Add(body);
+        material.Children.Add(rim);
+        filtered.Child = material;
+        Children.Add(filtered);
+        Children.Add(contents);
         for (var k = 0; k < 3; k++)
         {
             labels[k] = new VoicePillLabel
@@ -84,9 +90,9 @@ internal sealed class VoicePill : Panel
             };
             labelOpacity[k] = new LookNumber(motion, 0);
             labelShift[k] = new LookNumber(motion, -4);
-            Children.Add(labels[k]);
+            contents.Children.Add(labels[k]);
         }
-        Children.Add(Cross);
+        contents.Children.Add(Cross);
         Cross.Opacity = 0;
         Cross.IsHitTestVisible = false;
         AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Polite); // V-12.9: the label is the pill's polite live region
@@ -372,10 +378,13 @@ internal sealed class VoicePill : Panel
         var h = PillHeight;
         var width = Math.Max(widthValue.Value, h);
         var centre = style == VoiceListeningStyle.Float ? new Point(h / 2, h / 2) : new Point(width - h / 2, h / 2);
-        var mask = VoicePillRim.OrbMask(centre, orbDiameter, h, width, style);
-        // The design masks `.vpill`, not each paint separately. Clip and mask the finished group in the pill's own coordinates;
-        // the shared material's custom visual has larger sampling bounds than the border it paints.
-        OpacityMask = mask;
+        var mask = VoicePillRim.OrbMask(centre, h, width, style);
+        // Mask the shared glass and its rim together in the capsule's coordinates before the bounded edge filter.
+        // The material's custom visual has larger sampling bounds than its border; masking that visual separately shifts the cap.
+        // The label and cross retain the same capsule mask, without filtering their glyphs.
+        material.OpacityMask = mask;
+        contents.OpacityMask = mask;
+        OpacityMask = null;
         body.OpacityMask = null;
         rim.OpacityMask = null;
     }
@@ -408,11 +417,21 @@ internal sealed class VoicePill : Panel
     }
 
     // `.vpill{overflow:hidden}`: the label and the cross stay inside the capsule while it opens and folds
-    private void UpdateClip(double width) => Clip = new RectangleGeometry(new Rect(0, 0, Math.Max(width, 0), PillHeight), PillHeight / 2, PillHeight / 2);
+    internal Geometry ContentClip { get; private set; } = new RectangleGeometry();
+
+    private void UpdateClip(double width)
+    {
+        ContentClip = new RectangleGeometry(new Rect(0, 0, Math.Max(width, 0), PillHeight), PillHeight / 2, PillHeight / 2);
+        material.Clip = ContentClip;
+        contents.Clip = ContentClip;
+        Clip = null;
+    }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        foreach (var child in Children) child.Measure(child is Border or VoicePillRim ? new Size(widthValue.Value, PillHeight) : Size.Infinity);
+        filtered.Measure(new Size(widthValue.Value, PillHeight));
+        foreach (var child in contents.Children) child.Measure(Size.Infinity);
+        contents.Measure(new Size(widthValue.Value, PillHeight));
         return new Size(widthValue.Value, PillHeight);
     }
 
@@ -420,8 +439,8 @@ internal sealed class VoicePill : Panel
     {
         var h = PillHeight;
         var width = finalSize.Width;
-        body.Arrange(new Rect(0, 0, width, h));
-        rim.Arrange(new Rect(0, 0, width, h));
+        filtered.Arrange(new Rect(0, 0, width, h));
+        contents.Arrange(new Rect(0, 0, width, h));
         var left = VoicePillGeometry.LabelLeft(style);
         for (var k = 0; k < 3; k++)
         {

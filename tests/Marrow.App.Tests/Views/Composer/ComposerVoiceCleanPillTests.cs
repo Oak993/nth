@@ -299,7 +299,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
             }
 #pragma warning disable CS0618
             if (specks.Count > 0 && Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump)
-                scene.Rig.Main.OnMain(() => { using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"specks-{style}-{diameter}-{dark}-{state}-{scale}.png")); });
+                scene.Rig.Main.OnMain(() => { using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"specks-{style}-{diameter}-{dark}-{state}-{scale}.png")); VoicePillDiagnostics.Capture(scene, $"{style}-{diameter}-{dark}-{state}-{scale}"); });
 #pragma warning restore CS0618
             Assert.True(specks.Count == 0, "specks: " + string.Join("; ", specks.Take(8)));
         });
@@ -355,4 +355,59 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
     [Fact]
     [Trait("Decision", "ED-292")]
     public void Canonical_float_small_dark_pill_has_no_specks() => The_pill_and_a_margin_round_it_have_no_specks(VoiceListeningStyle.Float, 26, true, "quiet", 1.5);
+
+    [Theory]
+    [InlineData(VoiceListeningStyle.Pill, 26, false, "quiet", 2.0)]
+    [InlineData(VoiceListeningStyle.Float, 32, false, "pop", 2.0)]
+    [InlineData(VoiceListeningStyle.Pill, 26, false, "pop", 1.5)]
+    [InlineData(VoiceListeningStyle.Float, 26, false, "pop", 1.0)]
+    [InlineData(VoiceListeningStyle.Float, 32, false, "quiet", 1.25)]
+    [InlineData(VoiceListeningStyle.Float, 32, true, "quiet", 1.5)]
+    [InlineData(VoiceListeningStyle.Pill, 32, true, "level1", 1.0)]
+    [InlineData(VoiceListeningStyle.Pill, 26, true, "quiet", 1.5)]
+    [Trait("Decision", "ED-292")]
+    public void Representative_remaining_specks(VoiceListeningStyle style, int diameter, bool dark, string state, double scale)
+        => The_pill_and_a_margin_round_it_have_no_specks(style, diameter, dark, state, scale);
+
+    [Theory]
+    [InlineData(VoiceListeningStyle.Pill)]
+    [InlineData(VoiceListeningStyle.Float)]
+    [Trait("Decision", "ED-292")]
+    public void Coverage_keeps_the_visible_glass_and_orb(VoiceListeningStyle style)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var motion = new VoicePillMotion();
+            using var scene = Open(style, 32, true, "quiet", 1.5);
+            var with = Shot(scene);
+            var (orb, _, _) = Marks(scene);
+            var glass = scene.Rig.Main.OnMain(() =>
+            {
+                var pill = Pill(scene.View);
+                return pill.TranslatePoint(new Point(pill.Bounds.Width / 2, pill.PillHeight * 0.8), scene.Window)!.Value;
+            });
+            var uniforms = OrbUniforms(scene);
+            int Difference((int Stride, byte[] Bytes, PixelSize Size) other, Point point)
+            {
+                var worst = 0;
+                var x = (int)(point.X * scene.Window.RenderScaling);
+                var y = (int)(point.Y * scene.Window.RenderScaling);
+                for (var dy = -2; dy <= 2; dy++)
+                for (var dx = -2; dx <= 2; dx++)
+                for (var c = 0; c < 3; c++)
+                {
+                    var at = (y + dy) * with.Stride + (x + dx) * 4 + c;
+                    worst = Math.Max(worst, Math.Abs(with.Bytes[at] - other.Bytes[at]));
+                }
+                return worst;
+            }
+            scene.Rig.Main.OnMain(() => Pill(scene.View).IsVisible = false);
+            scene.Rig.PumpWindow(scene.Window);
+            Assert.True(Difference(Shot(scene), glass) > 8, "the shared glass body is still painted");
+            scene.Rig.Main.OnMain(() => { Pill(scene.View).IsVisible = true; Slot(scene.View).Orb.IsVisible = false; });
+            scene.Rig.PumpWindow(scene.Window);
+            Assert.True(Difference(Shot(scene), orb) > 8, "the orb's ball is still painted");
+            Assert.Equal(uniforms, OrbUniforms(scene));
+        });
+    }
 }

@@ -20,6 +20,7 @@ internal sealed class VoiceGlowLayer : Decorator
     {
         this.voice = voice;
         IsHitTestVisible = false;
+        Effect = new Avalonia.Media.BlurEffect { Radius = 1.2 };
         Glow = new VoiceGlowView();
         Child = Glow;
         this.Track(() => voice.State, state =>

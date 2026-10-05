@@ -23,6 +23,7 @@ internal enum VoiceCrossLook { Disc, Beside }
 internal sealed class VoiceCross : Button
 {
     private static readonly FuncControlTemplate<Button> PlainTemplate = new((owner, scope) => new Border { Background = Brushes.Transparent });
+    private static readonly BlurEffect DiscEdgeFilter = new() { Radius = (1.6 - 0.5) / 0.288675 };
     private static readonly Geometry Strokes = StreamGeometry.Parse("M3.2,3.2 L8.8,8.8 M8.8,3.2 L3.2,8.8"); // viewBox 12
 
     private readonly LookMotion motion;
@@ -40,6 +41,7 @@ internal sealed class VoiceCross : Button
         pressValue = new LookNumber(motion, 1);
         Template = PlainTemplate;
         Background = Brushes.Transparent;
+        ClipToBounds = false;
         BorderThickness = default;
         Padding = default;
         Width = VoicePillGeometry.CrossSize;
@@ -109,7 +111,11 @@ internal sealed class VoiceCross : Button
         var bounds = new Rect(Bounds.Size);
         var round = new RoundedRect(bounds, VoicePillGeometry.CrossSize / 2);
         var amount = hover.Value;
-        if (Look == VoiceCrossLook.Disc) DrawDisc(context, tokens, bounds, round, amount);
+        if (Look == VoiceCrossLook.Disc)
+        {
+            using (context.PushEffect(DiscEdgeFilter, bounds.Inflate(5))) DrawDisc(context, tokens, bounds, round, amount);
+            DrawIcon(context, bounds, Mix(tokens.PgX, tokens.PgXHover, amount), 11, 1.5);
+        }
         else DrawBeside(context, tokens, bounds, round, amount);
     }
 
@@ -131,7 +137,6 @@ internal sealed class VoiceCross : Button
                 new BoxShadow { IsInset = true, OffsetX = -0.5, Blur = 0.6, Spread = -0.1, Color = Color.FromArgb(0x52, 96, 176, 255) },
             ]);
         context.DrawRectangle(null, null, round, inner);
-        DrawIcon(context, bounds, Mix(tokens.PgX, tokens.PgXHover, amount), 11, 1.5);
     }
 
     // `.xbtn`: hoverfill, inset 0 0 0 1px winedge, icon wink3, hover pressfill and wink

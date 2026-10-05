@@ -16,9 +16,8 @@ internal readonly record struct VoicePillRun(string Text, int Weight);
 /// <summary>
 /// The pill's label for one state (voice-composer.html <c>.pl</c>): the shown words at weight 600 in <c>pgLab</c> and, once the language has been heard (V-12.10), an en space and its name at weight 400, in
 /// the same layout, so one text sweep runs through all of it. The sweep (V-12.3) is the design's <c>background-clip: text</c> gradient: a 105 degree gradient 260 % as wide as the text
-/// (<c>pgLab</c> to 38 %, <c>pgLabHi</c> at 49 %, <c>pgLab</c> from 60 %) moving as <see cref="Sweep"/>, the position in the design's terms (1.35 to -0.55); it is drawn as the text in <c>pgLab</c> with
-/// the same text in <c>pgLabHi</c> over it through that gradient as an opacity mask, so only glyph pixels are ever painted and a glyph's foot is never cut (V-12.12: the box is the font's
-/// own ascent to descent). Text that is not shown is not in the layout at all (the page's hidden chip was painted through the sweep and showed its dot).
+/// (<c>pgLab</c> to 38 %, <c>pgLabHi</c> at 49 %, <c>pgLab</c> from 60 %) moving as <see cref="Sweep"/>, the position in the design's terms (1.35 to -0.55). The gradient is the glyph's
+/// foreground, so each glyph is rasterized once: the sweep changes its colour without painting its antialiased edges twice. The box is the font's own ascent to descent (V-12.12). Text that is not shown is not in the layout at all (the page's hidden chip was painted through the sweep and showed its dot).
 /// </summary>
 internal sealed class VoicePillLabel : Control
 {
@@ -31,9 +30,10 @@ internal sealed class VoicePillLabel : Control
     private string? outgoingName;
     private double outgoingOpacity;
     private double sweep = 1.35;
-    private TextLayout? baseLayout, highLayout, outgoingLayout;
-    private (string, string?, double, Color, double, string?, bool) baseKey, highKey, outgoingKey;
-    private double measuredWords = double.NaN;
+    private TextLayout? baseLayout, outgoingLayout;
+    private readonly LinearGradientBrush wordsGradient = new(), nameGradient = new(), outgoingGradient = new();
+    private (string, string?, double, Color, double, string?, bool) baseKey, outgoingKey;
+    private double measuredWords = double.NaN, measuredPrefix = double.NaN;
 
     public VoicePillLabel()
     {
@@ -51,7 +51,7 @@ internal sealed class VoicePillLabel : Control
         {
             if (fontSize == value) return;
             fontSize = value;
-            measuredWords = double.NaN;
+            measuredWords = measuredPrefix = double.NaN;
             InvalidateMeasure();
             InvalidateVisual();
         }
@@ -65,7 +65,7 @@ internal sealed class VoicePillLabel : Control
         {
             if (words == value) return;
             words = value;
-            measuredWords = double.NaN;
+            measuredWords = measuredPrefix = double.NaN;
             InvalidateMeasure();
             InvalidateVisual();
         }
@@ -173,46 +173,52 @@ internal sealed class VoicePillLabel : Control
         var tokens = VoicePillTokens.For(ActualThemeVariant);
         var w = WordsWidth + NameWidth;
         var h = LineHeight;
-        baseLayout = Ensure(baseLayout, ref baseKey, tokens.PgLab, nameOpacity, languageName, wordsShown: true);
+        // This owned text draw uses the same source-ruled coverage in windows and offscreen layers.
+        using var coverage = context.PushTextOptions(new TextOptions
+        {
+            TextRenderingMode = GreyscaleText.RenderingMode,
+            TextHintingMode = GreyscaleText.HintingMode,
+            BaselinePixelAlignment = BaselinePixelAlignment.Unaligned,
+        });
+        Configure(wordsGradient, w, h, tokens, 0, 1);
+        if (languageName is not null) Configure(nameGradient, w, h, tokens, PrefixWidth, nameOpacity);
+        baseLayout = Ensure(baseLayout, ref baseKey, tokens.PgLab, nameOpacity, languageName, wordsShown: true, nameGradient);
         baseLayout.Draw(context, default);
         if (outgoingName is not null && outgoingOpacity > 0)
         {
-            outgoingLayout = Ensure(outgoingLayout, ref outgoingKey, tokens.PgLab, outgoingOpacity, outgoingName, wordsShown: false);
+            Configure(outgoingGradient, w, h, tokens, PrefixWidth, outgoingOpacity);
+            outgoingLayout = Ensure(outgoingLayout, ref outgoingKey, tokens.PgLab, outgoingOpacity, outgoingName, wordsShown: false, outgoingGradient);
             outgoingLayout.Draw(context, default);
-        }
-        // the sweep: the highlight colour through the gradient's lit band, tiled every 2.6 widths as the repeating background is
-        highLayout = Ensure(highLayout, ref highKey, tokens.PgLabHi, nameOpacity, languageName, wordsShown: true);
-        var tileWidth = 2.6 * w;
-        var offset = -1.6 * w * sweep;
-        var slant = h * Math.Tan(Math.PI / 12);
-        for (var tile = -1; tile <= 1; tile++)
-        {
-            var centre = offset + 1.274 * w + tile * tileWidth;
-            if (centre + 0.31 * tileWidth + slant < 0 || centre - 0.31 * tileWidth - slant > w) continue;
-            using (context.PushOpacityMask(Mask(offset + tile * tileWidth, w, h), new Rect(0, 0, w, h)))
-                highLayout.Draw(context, default);
         }
     }
 
-    // linear-gradient(105deg, lab 0, lab 38 %, hi 49 %, lab 60 %, lab 100 %) over an image 260 % as wide as the text, as an alpha mask (0 where it is pgLab, 1 at pgLabHi)
-    private static ImmutableLinearGradientBrush Mask(double left, double w, double h)
+    private double PrefixWidth
+    {
+        get
+        {
+            if (!double.IsNaN(measuredPrefix)) return measuredPrefix;
+            using var layout = new TextLayout(words, Face(600, fontSize), fontSize, null);
+            return measuredPrefix = layout.WidthIncludingTrailingWhitespace;
+        }
+    }
+
+    // CSS background-clip:text: one opaque colour field, rasterized through each glyph only once.
+    // Only the central tile's lit band reaches the label over the design's 1.35 to -0.55 sweep.
+    private void Configure(LinearGradientBrush brush, double w, double h, VoicePillTokens tokens, double prefix, double alpha)
     {
         var imageWidth = 2.6 * w;
         var angle = 105 * Math.PI / 180;
         var direction = new Vector(Math.Sin(angle), -Math.Cos(angle));
         var length = Math.Abs(imageWidth * Math.Sin(angle)) + Math.Abs(h * Math.Cos(angle));
-        var centre = new Point(left + imageWidth / 2, h / 2);
-        var from = centre - direction * (length / 2);
-        var to = centre + direction * (length / 2);
-        var clear = Color.FromArgb(0, 0, 0, 0);
-        return new ImmutableLinearGradientBrush(
-            [new ImmutableGradientStop(0, clear), new ImmutableGradientStop(0.38, clear), new ImmutableGradientStop(0.49, Colors.Black), new ImmutableGradientStop(0.60, clear), new ImmutableGradientStop(1, clear)],
-            spreadMethod: GradientSpreadMethod.Pad,
-            startPoint: new RelativePoint(from, RelativeUnit.Absolute),
-            endPoint: new RelativePoint(to, RelativeUnit.Absolute));
+        var centre = new Point(-1.6 * w * sweep + imageWidth / 2 - prefix, h / 2);
+        brush.StartPoint = new RelativePoint(centre - direction * (length / 2), RelativeUnit.Absolute);
+        brush.EndPoint = new RelativePoint(centre + direction * (length / 2), RelativeUnit.Absolute);
+        brush.SpreadMethod = GradientSpreadMethod.Pad;
+        brush.Opacity = Math.Clamp(alpha, 0, 1);
+        brush.GradientStops = [new GradientStop(tokens.PgLab, 0), new GradientStop(tokens.PgLab, 0.38), new GradientStop(tokens.PgLabHi, 0.49), new GradientStop(tokens.PgLab, 0.60), new GradientStop(tokens.PgLab, 1)];
     }
 
-    private TextLayout Ensure(TextLayout? layout, ref (string, string?, double, Color, double, string?, bool) key, Color color, double alpha, string? shownName, bool wordsShown)
+    private TextLayout Ensure(TextLayout? layout, ref (string, string?, double, Color, double, string?, bool) key, Color color, double alpha, string? shownName, bool wordsShown, IBrush nameBrush)
     {
         var wanted = (words, shownName, Math.Round(alpha * 255), color, fontSize, (string?)null, wordsShown);
         if (layout is not null && key == wanted) return layout;
@@ -222,14 +228,13 @@ internal sealed class VoicePillLabel : Control
         var light = Face(400, fontSize);
         var text = shownName is null ? words : words + EnSpace + shownName;
         var spans = new List<ValueSpan<TextRunProperties>>();
-        IBrush wordsBrush = wordsShown ? new ImmutableSolidColorBrush(color) : Brushes.Transparent;
+        IBrush wordsBrush = wordsShown ? wordsGradient : Brushes.Transparent;
         spans.Add(new ValueSpan<TextRunProperties>(0, words.Length, new GenericTextRunProperties(heavy, fontSize, null, wordsBrush)));
         if (shownName is not null)
         {
-            var faded = Color.FromArgb((byte)Math.Round(color.A * Math.Clamp(alpha, 0, 1)), color.R, color.G, color.B);
-            spans.Add(new ValueSpan<TextRunProperties>(words.Length, text.Length - words.Length, new GenericTextRunProperties(light, fontSize, null, new ImmutableSolidColorBrush(faded))));
+            spans.Add(new ValueSpan<TextRunProperties>(words.Length, text.Length - words.Length, new GenericTextRunProperties(light, fontSize, null, nameBrush)));
         }
-        return new TextLayout(text, heavy, fontSize, new ImmutableSolidColorBrush(color), TextAlignment.Left, TextWrapping.NoWrap, null, null, FlowDirection.LeftToRight,
+        return new TextLayout(text, heavy, fontSize, wordsBrush, TextAlignment.Left, TextWrapping.NoWrap, null, null, FlowDirection.LeftToRight,
             double.PositiveInfinity, double.PositiveInfinity, double.NaN, 0, 0, null, spans);
     }
 }
