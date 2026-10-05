@@ -1,0 +1,723 @@
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.40]   Discovering: Marrow.Core.Tests
+[xUnit.net 00:00:00.01] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.41]   Discovering: Marrow.UI.Tests
+[xUnit.net 00:00:00.67]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:01.23]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:02.59]   Discovered:  Marrow.Core.Tests
+[xUnit.net 00:00:02.80]   Starting:    Marrow.Core.Tests
+[xUnit.net 00:00:02.36]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:02.50]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:03.32]   Finished:    Marrow.Core.Tests
+[xUnit.net 00:00:02.60]   Discovered:  Marrow.UI.Tests
+[xUnit.net 00:00:02.71]   Starting:    Marrow.UI.Tests
+  Passed Marrow.Core.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed [219 ms]
+  Passed Marrow.Core.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [102 ms]
+  Passed Marrow.Core.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [91 ms]
+[xUnit.net 00:00:03.07]   Finished:    Marrow.Services.Tests
+
+Test Run Successful.
+Total tests: 3
+     Passed: 3
+ Total time: 4.7267 Seconds
+  Passed Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [204 ms]
+  Passed Marrow.Services.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed [87 ms]
+  Passed Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [172 ms]
+
+Test Run Successful.
+Total tests: 3
+     Passed: 3
+ Total time: 4.4695 Seconds
+[xUnit.net 00:00:04.49]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:04.69]   Starting:    Marrow.App.Tests
+  Passed Marrow.UI.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [334 ms]
+  Passed Marrow.UI.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [154 ms]
+  Passed Marrow.UI.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed [56 ms]
+[xUnit.net 00:00:05.99]   Finished:    Marrow.App.Tests
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Warmup_lists_and_draws_each_real_shader_and_blend_path(size: 512, scale: 1.5) [2 s]
+  Passed Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed [371 ms]
+  Passed Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [376 ms]
+  Passed Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [450 ms]
+
+Test Run Successful.
+Total tests: 3
+     Passed: 3
+ Total time: 7.2500 Seconds
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Warmup_lists_and_draws_each_real_shader_and_blend_path(size: 512, scale: 2) [2 s]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Warmup_lists_and_draws_each_real_shader_and_blend_path(size: 96, scale: 1) [73 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Warmup_lists_and_draws_each_real_shader_and_blend_path(size: 256, scale: 1.25) [319 ms]
+Aurora 16px: 0 B for 120 draws
+Aurora 64px: 0 B for 120 draws
+Aurora 32px: 0 B for 120 draws
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.References_bind_the_locked_sources_and_cover_every_size_theme_and_motion [31 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Changing_animation_frames_allocate_zero_managed_bytes_after_warmup(size: 16) [22 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Changing_animation_frames_allocate_zero_managed_bytes_after_warmup(size: 64) [1 s]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Changing_animation_frames_allocate_zero_managed_bytes_after_warmup(size: 32) [15 ms]
+Aurora 256px: 0 B for 120 draws
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Changing_animation_frames_allocate_zero_managed_bytes_after_warmup(size: 256) [4 s]
+Aurora 48px: 0 B for 120 draws
+Aurora 24px: 0 B for 120 draws
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Changing_animation_frames_allocate_zero_managed_bytes_after_warmup(size: 48) [829 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Changing_animation_frames_allocate_zero_managed_bytes_after_warmup(size: 24) [10 ms]
+Aurora 512px: 0 B for 120 draws
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Changing_animation_frames_allocate_zero_managed_bytes_after_warmup(size: 512) [12 s]
+png/16-dark-still-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-launch-0.png: max 0/255 at (0,0) , expected #00ffffff, actual #00ffffff; 0 pixels exceed 2
+png/16-dark-launch-120.png: max 12/255 at (1,2) A, expected #40040c1c, actual #340a0f22; 37 pixels exceed 2
+png/16-dark-launch-300.png: max 19/255 at (1,2) A, expected #62050a1d, actual #4f060d20; 25 pixels exceed 2
+png/16-dark-launch-540.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 53 pixels exceed 2
+png/16-dark-launch-780.png: max 23/255 at (5,6) G, expected #ff70d9b3, actual #ff60c2a4; 62 pixels exceed 2
+png/16-dark-launch-1020.png: max 25/255 at (5,6) G, expected #ff82f6c9, actual #ff71ddb6; 60 pixels exceed 2
+png/16-dark-launch-1200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-idle-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-idle-900.png: max 29/255 at (5,8) G, expected #ff274e54, actual #ff173140; 60 pixels exceed 2
+png/16-dark-idle-1800.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 63 pixels exceed 2
+png/16-dark-idle-3600.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-idle-5400.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 63 pixels exceed 2
+png/16-dark-idle-6300.png: max 25/255 at (4,8) G, expected #ff2d595b, actual #ff1f4049; 62 pixels exceed 2
+png/16-dark-idle-7200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-light-still-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-launch-0.png: max 0/255 at (0,0) , expected #00ffffff, actual #00ffffff; 0 pixels exceed 2
+png/16-light-launch-120.png: max 13/255 at (1,2) A, expected #41000c1b, actual #34050f22; 42 pixels exceed 2
+png/16-light-launch-300.png: max 20/255 at (1,2) A, expected #63030a1c, actual #4f030d20; 26 pixels exceed 2
+png/16-light-launch-540.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 47 pixels exceed 2
+png/16-light-launch-780.png: max 23/255 at (5,6) G, expected #ff70d9b3, actual #ff60c2a4; 59 pixels exceed 2
+png/16-light-launch-1020.png: max 25/255 at (5,6) G, expected #ff82f6c9, actual #ff71ddb6; 60 pixels exceed 2
+png/16-light-launch-1200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-idle-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-idle-900.png: max 29/255 at (5,8) G, expected #ff274e54, actual #ff173140; 54 pixels exceed 2
+png/16-light-idle-1800.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 61 pixels exceed 2
+png/16-light-idle-3600.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-idle-5400.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 61 pixels exceed 2
+png/16-light-idle-6300.png: max 25/255 at (4,8) G, expected #ff2d595b, actual #ff1f4049; 58 pixels exceed 2
+png/16-light-idle-7200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/24-dark-still-0.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-launch-0.png: max 0/255 at (0,0) , expected #00ffffff, actual #00ffffff; 0 pixels exceed 2
+png/24-dark-launch-120.png: max 19/255 at (5,1) A, expected #992b2f3e, actual #86333746; 68 pixels exceed 2
+png/24-dark-launch-300.png: max 29/255 at (5,22) A, expected #e32f454e, actual #c6374c55; 52 pixels exceed 2
+png/24-dark-launch-540.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 91 pixels exceed 2
+png/24-dark-launch-780.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 90 pixels exceed 2
+png/24-dark-launch-1020.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 91 pixels exceed 2
+png/24-dark-launch-1200.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-idle-0.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-idle-900.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 101 pixels exceed 2
+png/24-dark-idle-1800.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 106 pixels exceed 2
+png/24-dark-idle-3600.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-idle-5400.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 106 pixels exceed 2
+png/24-dark-idle-6300.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 105 pixels exceed 2
+png/24-dark-idle-7200.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-light-still-0.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-launch-0.png: max 0/255 at (0,0) , expected #00ffffff, actual #00ffffff; 0 pixels exceed 2
+png/24-light-launch-120.png: max 17/255 at (5,1) A, expected #a7000b1d, actual #96030e22; 72 pixels exceed 2
+png/24-light-launch-300.png: max 24/255 at (5,22) A, expected #e9041b2b, actual #d1051f2c; 52 pixels exceed 2
+png/24-light-launch-540.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 95 pixels exceed 2
+png/24-light-launch-780.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 92 pixels exceed 2
+png/24-light-launch-1020.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 93 pixels exceed 2
+png/24-light-launch-1200.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-idle-0.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-idle-900.png: max 29/255 at (7,11) G, expected #ff8affd0, actual #ff7ae2bb; 105 pixels exceed 2
+png/24-light-idle-1800.png: max 28/255 at (16,15) G, expected #ff73e3ba, actual #ff8affd0; 111 pixels exceed 2
+png/24-light-idle-3600.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-idle-5400.png: max 28/255 at (16,15) G, expected #ff73e3ba, actual #ff8affd0; 111 pixels exceed 2
+png/24-light-idle-6300.png: max 29/255 at (14,17) G, expected #ff07192c, actual #ff183641; 110 pixels exceed 2
+png/24-light-idle-7200.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/32-dark-still-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-launch-0.png: max 0/255 at (0,0) , expected #00ffffff, actual #00ffffff; 0 pixels exceed 2
+png/32-dark-launch-120.png: max 85/255 at (1,27) B, expected #03000055, actual #00000000; 94 pixels exceed 2
+png/32-dark-launch-300.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 66 pixels exceed 2
+png/32-dark-launch-540.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 130 pixels exceed 2
+png/32-dark-launch-780.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-dark-launch-1020.png: max 57/255 at (25,22) G, expected #ff488b7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-launch-1200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-idle-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-idle-900.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 141 pixels exceed 2
+png/32-dark-idle-1800.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-dark-idle-3600.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-idle-5400.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-dark-idle-6300.png: max 59/255 at (9,15) G, expected #ff274d52, actual #ff061229; 148 pixels exceed 2
+png/32-dark-idle-7200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-light-still-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-launch-0.png: max 0/255 at (0,0) , expected #00ffffff, actual #00ffffff; 0 pixels exceed 2
+png/32-light-launch-120.png: max 85/255 at (1,27) B, expected #03000055, actual #00000000; 93 pixels exceed 2
+png/32-light-launch-300.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 70 pixels exceed 2
+png/32-light-launch-540.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 126 pixels exceed 2
+png/32-light-launch-780.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 148 pixels exceed 2
+png/32-light-launch-1020.png: max 57/255 at (25,22) G, expected #ff488b7e, actual #ff285255; 144 pixels exceed 2
+png/32-light-launch-1200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-idle-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-idle-900.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 141 pixels exceed 2
+png/32-light-idle-1800.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-light-idle-3600.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-idle-5400.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-light-idle-6300.png: max 59/255 at (9,15) G, expected #ff274d52, actual #ff061229; 148 pixels exceed 2
+png/32-light-idle-7200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/48-dark-still-0.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-dark-launch-0.png: max 40/255 at (5,40) A, expected #97030e14, actual #bf030d14; 61 pixels exceed 2
+png/48-dark-launch-120.png: max 102/255 at (12,2) R, expected #01000000, actual #05666666; 297 pixels exceed 2
+png/48-dark-launch-300.png: max 67/255 at (8,3) B, expected #02000000, actual #172c3743; 238 pixels exceed 2
+png/48-dark-launch-540.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 201 pixels exceed 2
+png/48-dark-launch-780.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 252 pixels exceed 2
+png/48-dark-launch-1020.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 260 pixels exceed 2
+png/48-dark-launch-1200.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-dark-idle-0.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-dark-idle-900.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 260 pixels exceed 2
+png/48-dark-idle-1800.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 262 pixels exceed 2
+png/48-dark-idle-3600.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 262 pixels exceed 2
+png/48-dark-idle-5400.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 265 pixels exceed 2
+png/48-dark-idle-6300.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 263 pixels exceed 2
+png/48-dark-idle-7200.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-light-still-0.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/48-light-launch-0.png: max 40/255 at (5,40) A, expected #97030e14, actual #bf030d14; 61 pixels exceed 2
+png/48-light-launch-120.png: max 128/255 at (45,39) B, expected #02000000, actual #02000080; 414 pixels exceed 2
+png/48-light-launch-300.png: max 128/255 at (10,47) B, expected #02000000, actual #02000080; 334 pixels exceed 2
+png/48-light-launch-540.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 279 pixels exceed 2
+png/48-light-launch-780.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 341 pixels exceed 2
+png/48-light-launch-1020.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 343 pixels exceed 2
+png/48-light-launch-1200.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/48-light-idle-0.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/48-light-idle-900.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 345 pixels exceed 2
+png/48-light-idle-1800.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 345 pixels exceed 2
+png/48-light-idle-3600.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 351 pixels exceed 2
+png/48-light-idle-5400.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 351 pixels exceed 2
+png/48-light-idle-6300.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 350 pixels exceed 2
+png/48-light-idle-7200.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/64-dark-still-0.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-launch-0.png: max 53/255 at (18,49) A, expected #6a051118, actual #9f031018; 55 pixels exceed 2
+png/64-dark-launch-120.png: max 85/255 at (16,3) R, expected #03000000, actual #06555555; 437 pixels exceed 2
+png/64-dark-launch-300.png: max 64/255 at (16,3) R, expected #05000000, actual #08404040; 315 pixels exceed 2
+png/64-dark-launch-540.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 237 pixels exceed 2
+png/64-dark-launch-780.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 301 pixels exceed 2
+png/64-dark-launch-1020.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 301 pixels exceed 2
+png/64-dark-launch-1200.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-idle-0.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-idle-900.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 306 pixels exceed 2
+png/64-dark-idle-1800.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 307 pixels exceed 2
+png/64-dark-idle-3600.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 300 pixels exceed 2
+png/64-dark-idle-5400.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-idle-6300.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 305 pixels exceed 2
+png/64-dark-idle-7200.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-light-still-0.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/64-light-launch-0.png: max 53/255 at (18,49) A, expected #6a051118, actual #9f031018; 55 pixels exceed 2
+png/64-light-launch-120.png: max 153/255 at (16,3) B, expected #02000000, actual #05006699; 700 pixels exceed 2
+png/64-light-launch-300.png: max 128/255 at (2,15) B, expected #01000000, actual #02000080; 585 pixels exceed 2
+png/64-light-launch-540.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 311 pixels exceed 2
+png/64-light-launch-780.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 370 pixels exceed 2
+png/64-light-launch-1020.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 369 pixels exceed 2
+png/64-light-launch-1200.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/64-light-idle-0.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/64-light-idle-900.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 372 pixels exceed 2
+png/64-light-idle-1800.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 371 pixels exceed 2
+png/64-light-idle-3600.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 367 pixels exceed 2
+png/64-light-idle-5400.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 364 pixels exceed 2
+png/64-light-idle-6300.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 368 pixels exceed 2
+png/64-light-idle-7200.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/256-dark-still-0.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-launch-0.png: max 1/255 at (169,179) G, expected #cc04111a, actual #cc04121a; 0 pixels exceed 2
+png/256-dark-launch-120.png: max 64/255 at (218,23) R, expected #04404040, actual #04000000; 2691 pixels exceed 2
+png/256-dark-launch-300.png: max 51/255 at (218,23) R, expected #05333333, actual #05000000; 852 pixels exceed 2
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Launch_ends_on_the_still_and_idle_wraps_exactly_in_both_themes(size: 256) [192 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Launch_ends_on_the_still_and_idle_wraps_exactly_in_both_themes(size: 16) [1 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Launch_ends_on_the_still_and_idle_wraps_exactly_in_both_themes(size: 32) [1 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Launch_ends_on_the_still_and_idle_wraps_exactly_in_both_themes(size: 512) [585 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Launch_ends_on_the_still_and_idle_wraps_exactly_in_both_themes(size: 64) [48 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Launch_ends_on_the_still_and_idle_wraps_exactly_in_both_themes(size: 48) [37 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Launch_ends_on_the_still_and_idle_wraps_exactly_in_both_themes(size: 24) [< 1 ms]
+png/256-dark-launch-540.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 717 pixels exceed 2
+png/256-dark-launch-780.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 661 pixels exceed 2
+png/256-dark-launch-1020.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 576 pixels exceed 2
+png/256-dark-launch-1200.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-idle-0.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-idle-900.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 610 pixels exceed 2
+png/256-dark-idle-1800.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-idle-3600.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 604 pixels exceed 2
+png/256-dark-idle-5400.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 582 pixels exceed 2
+png/256-dark-idle-6300.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 609 pixels exceed 2
+png/256-dark-idle-7200.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-light-still-0.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/256-light-launch-0.png: max 1/255 at (169,179) G, expected #cc04111a, actual #cc04121a; 0 pixels exceed 2
+png/256-light-launch-120.png: max 255/255 at (229,31) B, expected #01000000, actual #010000ff; 8289 pixels exceed 2
+png/256-light-launch-300.png: max 255/255 at (229,31) B, expected #01000000, actual #010000ff; 6754 pixels exceed 2
+png/256-light-launch-540.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2788 pixels exceed 2
+png/256-light-launch-780.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2739 pixels exceed 2
+png/256-light-launch-1020.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2681 pixels exceed 2
+png/256-light-launch-1200.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/256-light-idle-0.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/256-light-idle-900.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2688 pixels exceed 2
+png/256-light-idle-1800.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2658 pixels exceed 2
+png/256-light-idle-3600.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2699 pixels exceed 2
+png/256-light-idle-5400.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2656 pixels exceed 2
+png/256-light-idle-6300.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2697 pixels exceed 2
+png/256-light-idle-7200.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/512-dark-still-0.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-dark-launch-0.png: max 4/255 at (453,412) A, expected #2e061116, actual #2a061218; 2 pixels exceed 2
+png/512-dark-launch-120.png: max 32/255 at (460,70) B, expected #07000000, actual #08000020; 11616 pixels exceed 2
+png/512-dark-launch-300.png: max 21/255 at (460,70) B, expected #0b000000, actual #0c000015; 3587 pixels exceed 2
+png/512-dark-launch-540.png: max 18/255 at (400,147) B, expected #ff1c2439, actual #ff0b1327; 2507 pixels exceed 2
+png/512-dark-launch-780.png: max 18/255 at (400,147) B, expected #ff1f253f, actual #ff0e142d; 1755 pixels exceed 2
+png/512-dark-launch-1020.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1571 pixels exceed 2
+png/512-dark-launch-1200.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-dark-idle-0.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-dark-idle-900.png: max 17/255 at (221,224) B, expected #ff5effe1, actual #ff4ef2d0; 1653 pixels exceed 2
+png/512-dark-idle-1800.png: max 19/255 at (221,224) R, expected #ff62ffe1, actual #ff4ff2cf; 1697 pixels exceed 2
+png/512-dark-idle-3600.png: max 23/255 at (417,235) R, expected #ff899abb, actual #ff7284a4; 1709 pixels exceed 2
+png/512-dark-idle-5400.png: max 21/255 at (400,147) G, expected #ff333257, actual #ff1f1d43; 1678 pixels exceed 2
+png/512-dark-idle-6300.png: max 22/255 at (400,147) B, expected #ff313256, actual #ff1e1d40; 1627 pixels exceed 2
+png/512-dark-idle-7200.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-light-still-0.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+png/512-light-launch-0.png: max 4/255 at (453,412) A, expected #2e061116, actual #2a061218; 2 pixels exceed 2
+png/512-light-launch-120.png: max 255/255 at (457,61) B, expected #01000000, actual #010000ff; 34486 pixels exceed 2
+png/512-light-launch-300.png: max 255/255 at (457,61) B, expected #01000000, actual #010000ff; 26165 pixels exceed 2
+png/512-light-launch-540.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9808 pixels exceed 2
+png/512-light-launch-780.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9057 pixels exceed 2
+png/512-light-launch-1020.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9045 pixels exceed 2
+png/512-light-launch-1200.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+png/512-light-idle-0.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+png/512-light-idle-900.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9047 pixels exceed 2
+png/512-light-idle-1800.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9048 pixels exceed 2
+png/512-light-idle-3600.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9066 pixels exceed 2
+png/512-light-idle-5400.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9011 pixels exceed 2
+png/512-light-idle-6300.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9015 pixels exceed 2
+png/512-light-idle-7200.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+Aurora 16px measured maximum: 29/255
+Aurora 24px measured maximum: 31/255
+Aurora 32px measured maximum: 85/255
+Aurora 48px measured maximum: 128/255
+Aurora 64px measured maximum: 153/255
+Aurora 256px measured maximum: 255/255
+Aurora 512px measured maximum: 255/255
+Aurora measured maximum: 255/255 over 210 frames
+[xUnit.net 00:00:31.27]     Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels [FAIL]
+[xUnit.net 00:00:31.27]       png/16-dark-still-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-launch-120.png: max 12/255 at (1,2) A, expected #40040c1c, actual #340a0f22; 37 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-launch-300.png: max 19/255 at (1,2) A, expected #62050a1d, actual #4f060d20; 25 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-launch-540.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 53 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-launch-780.png: max 23/255 at (5,6) G, expected #ff70d9b3, actual #ff60c2a4; 62 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-launch-1020.png: max 25/255 at (5,6) G, expected #ff82f6c9, actual #ff71ddb6; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-launch-1200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-idle-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-idle-900.png: max 29/255 at (5,8) G, expected #ff274e54, actual #ff173140; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-idle-1800.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 63 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-idle-3600.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-idle-5400.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 63 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-idle-6300.png: max 25/255 at (4,8) G, expected #ff2d595b, actual #ff1f4049; 62 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-dark-idle-7200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-still-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-launch-120.png: max 13/255 at (1,2) A, expected #41000c1b, actual #34050f22; 42 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-launch-300.png: max 20/255 at (1,2) A, expected #63030a1c, actual #4f030d20; 26 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-launch-540.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 47 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-launch-780.png: max 23/255 at (5,6) G, expected #ff70d9b3, actual #ff60c2a4; 59 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-launch-1020.png: max 25/255 at (5,6) G, expected #ff82f6c9, actual #ff71ddb6; 60 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-launch-1200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-idle-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-idle-900.png: max 29/255 at (5,8) G, expected #ff274e54, actual #ff173140; 54 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-idle-1800.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 61 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-idle-3600.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-idle-5400.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 61 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-idle-6300.png: max 25/255 at (4,8) G, expected #ff2d595b, actual #ff1f4049; 58 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/16-light-idle-7200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-still-0.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-launch-120.png: max 19/255 at (5,1) A, expected #992b2f3e, actual #86333746; 68 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-launch-300.png: max 29/255 at (5,22) A, expected #e32f454e, actual #c6374c55; 52 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-launch-540.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 91 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-launch-780.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 90 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-launch-1020.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 91 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-launch-1200.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-idle-0.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-idle-900.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 101 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-idle-1800.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 106 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-idle-3600.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-idle-5400.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 106 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-idle-6300.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 105 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-dark-idle-7200.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-still-0.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-launch-120.png: max 17/255 at (5,1) A, expected #a7000b1d, actual #96030e22; 72 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-launch-300.png: max 24/255 at (5,22) A, expected #e9041b2b, actual #d1051f2c; 52 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-launch-540.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 95 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-launch-780.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 92 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-launch-1020.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 93 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-launch-1200.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-idle-0.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-idle-900.png: max 29/255 at (7,11) G, expected #ff8affd0, actual #ff7ae2bb; 105 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-idle-1800.png: max 28/255 at (16,15) G, expected #ff73e3ba, actual #ff8affd0; 111 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-idle-3600.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-idle-5400.png: max 28/255 at (16,15) G, expected #ff73e3ba, actual #ff8affd0; 111 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-idle-6300.png: max 29/255 at (14,17) G, expected #ff07192c, actual #ff183641; 110 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/24-light-idle-7200.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-still-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-launch-120.png: max 85/255 at (1,27) B, expected #03000055, actual #00000000; 94 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-launch-300.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 66 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-launch-540.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 130 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-launch-780.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-launch-1020.png: max 57/255 at (25,22) G, expected #ff488b7e, actual #ff285255; 145 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-launch-1200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-idle-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-idle-900.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 141 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-idle-1800.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-idle-3600.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-idle-5400.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-idle-6300.png: max 59/255 at (9,15) G, expected #ff274d52, actual #ff061229; 148 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-dark-idle-7200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-still-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-launch-120.png: max 85/255 at (1,27) B, expected #03000055, actual #00000000; 93 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-launch-300.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 70 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-launch-540.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 126 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-launch-780.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 148 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-launch-1020.png: max 57/255 at (25,22) G, expected #ff488b7e, actual #ff285255; 144 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-launch-1200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-idle-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-idle-900.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 141 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-idle-1800.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-idle-3600.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-idle-5400.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-idle-6300.png: max 59/255 at (9,15) G, expected #ff274d52, actual #ff061229; 148 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/32-light-idle-7200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-still-0.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-launch-0.png: max 40/255 at (5,40) A, expected #97030e14, actual #bf030d14; 61 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-launch-120.png: max 102/255 at (12,2) R, expected #01000000, actual #05666666; 297 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-launch-300.png: max 67/255 at (8,3) B, expected #02000000, actual #172c3743; 238 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-launch-540.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 201 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-launch-780.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 252 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-launch-1020.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 260 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-launch-1200.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-idle-0.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-idle-900.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 260 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-idle-1800.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 262 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-idle-3600.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 262 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-idle-5400.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 265 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-idle-6300.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 263 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-dark-idle-7200.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-still-0.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-launch-0.png: max 40/255 at (5,40) A, expected #97030e14, actual #bf030d14; 61 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-launch-120.png: max 128/255 at (45,39) B, expected #02000000, actual #02000080; 414 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-launch-300.png: max 128/255 at (10,47) B, expected #02000000, actual #02000080; 334 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-launch-540.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 279 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-launch-780.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 341 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-launch-1020.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 343 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-launch-1200.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-idle-0.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-idle-900.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 345 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-idle-1800.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 345 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-idle-3600.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 351 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-idle-5400.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 351 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-idle-6300.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 350 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/48-light-idle-7200.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-still-0.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-launch-0.png: max 53/255 at (18,49) A, expected #6a051118, actual #9f031018; 55 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-launch-120.png: max 85/255 at (16,3) R, expected #03000000, actual #06555555; 437 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-launch-300.png: max 64/255 at (16,3) R, expected #05000000, actual #08404040; 315 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-launch-540.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 237 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-launch-780.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 301 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-launch-1020.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 301 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-launch-1200.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-idle-0.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-idle-900.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 306 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-idle-1800.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 307 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-idle-3600.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 300 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-idle-5400.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-idle-6300.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 305 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-dark-idle-7200.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-still-0.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-launch-0.png: max 53/255 at (18,49) A, expected #6a051118, actual #9f031018; 55 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-launch-120.png: max 153/255 at (16,3) B, expected #02000000, actual #05006699; 700 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-launch-300.png: max 128/255 at (2,15) B, expected #01000000, actual #02000080; 585 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-launch-540.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 311 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-launch-780.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 370 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-launch-1020.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 369 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-launch-1200.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-idle-0.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-idle-900.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 372 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-idle-1800.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 371 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-idle-3600.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 367 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-idle-5400.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 364 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-idle-6300.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 368 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/64-light-idle-7200.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-still-0.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-launch-120.png: max 64/255 at (218,23) R, expected #04404040, actual #04000000; 2691 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-launch-300.png: max 51/255 at (218,23) R, expected #05333333, actual #05000000; 852 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-launch-540.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 717 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-launch-780.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 661 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-launch-1020.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 576 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-launch-1200.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-idle-0.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-idle-900.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 610 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-idle-1800.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-idle-3600.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 604 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-idle-5400.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 582 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-idle-6300.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 609 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-dark-idle-7200.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-still-0.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-launch-120.png: max 255/255 at (229,31) B, expected #01000000, actual #010000ff; 8289 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-launch-300.png: max 255/255 at (229,31) B, expected #01000000, actual #010000ff; 6754 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-launch-540.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2788 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-launch-780.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2739 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-launch-1020.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2681 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-launch-1200.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-idle-0.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-idle-900.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2688 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-idle-1800.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2658 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-idle-3600.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2699 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-idle-5400.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2656 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-idle-6300.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2697 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/256-light-idle-7200.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-still-0.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-launch-0.png: max 4/255 at (453,412) A, expected #2e061116, actual #2a061218; 2 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-launch-120.png: max 32/255 at (460,70) B, expected #07000000, actual #08000020; 11616 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-launch-300.png: max 21/255 at (460,70) B, expected #0b000000, actual #0c000015; 3587 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-launch-540.png: max 18/255 at (400,147) B, expected #ff1c2439, actual #ff0b1327; 2507 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-launch-780.png: max 18/255 at (400,147) B, expected #ff1f253f, actual #ff0e142d; 1755 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-launch-1020.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1571 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-launch-1200.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-idle-0.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-idle-900.png: max 17/255 at (221,224) B, expected #ff5effe1, actual #ff4ef2d0; 1653 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-idle-1800.png: max 19/255 at (221,224) R, expected #ff62ffe1, actual #ff4ff2cf; 1697 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-idle-3600.png: max 23/255 at (417,235) R, expected #ff899abb, actual #ff7284a4; 1709 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-idle-5400.png: max 21/255 at (400,147) G, expected #ff333257, actual #ff1f1d43; 1678 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-idle-6300.png: max 22/255 at (400,147) B, expected #ff313256, actual #ff1e1d40; 1627 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-dark-idle-7200.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-still-0.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-launch-0.png: max 4/255 at (453,412) A, expected #2e061116, actual #2a061218; 2 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-launch-120.png: max 255/255 at (457,61) B, expected #01000000, actual #010000ff; 34486 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-launch-300.png: max 255/255 at (457,61) B, expected #01000000, actual #010000ff; 26165 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-launch-540.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9808 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-launch-780.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9057 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-launch-1020.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9045 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-launch-1200.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-idle-0.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-idle-900.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9047 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-idle-1800.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9048 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-idle-3600.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9066 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-idle-5400.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9011 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-idle-6300.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9015 pixels exceed 2
+[xUnit.net 00:00:31.28]       png/512-light-idle-7200.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+[xUnit.net 00:00:31.28]       Stack Trace:
+[xUnit.net 00:00:31.28]         /workspace/marrow-port/tests/Marrow.UI.Tests/Port/AuroraMarkTests.cs(94,0): at Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels()
+[xUnit.net 00:00:31.28]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:31.28]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels [3 s]
+  Error Message:
+   png/16-dark-still-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-launch-120.png: max 12/255 at (1,2) A, expected #40040c1c, actual #340a0f22; 37 pixels exceed 2
+png/16-dark-launch-300.png: max 19/255 at (1,2) A, expected #62050a1d, actual #4f060d20; 25 pixels exceed 2
+png/16-dark-launch-540.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 53 pixels exceed 2
+png/16-dark-launch-780.png: max 23/255 at (5,6) G, expected #ff70d9b3, actual #ff60c2a4; 62 pixels exceed 2
+png/16-dark-launch-1020.png: max 25/255 at (5,6) G, expected #ff82f6c9, actual #ff71ddb6; 60 pixels exceed 2
+png/16-dark-launch-1200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-idle-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-idle-900.png: max 29/255 at (5,8) G, expected #ff274e54, actual #ff173140; 60 pixels exceed 2
+png/16-dark-idle-1800.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 63 pixels exceed 2
+png/16-dark-idle-3600.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-dark-idle-5400.png: max 19/255 at (1,2) A, expected #64050a1c, actual #51090d1f; 63 pixels exceed 2
+png/16-dark-idle-6300.png: max 25/255 at (4,8) G, expected #ff2d595b, actual #ff1f4049; 62 pixels exceed 2
+png/16-dark-idle-7200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 60 pixels exceed 2
+png/16-light-still-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-launch-120.png: max 13/255 at (1,2) A, expected #41000c1b, actual #34050f22; 42 pixels exceed 2
+png/16-light-launch-300.png: max 20/255 at (1,2) A, expected #63030a1c, actual #4f030d20; 26 pixels exceed 2
+png/16-light-launch-540.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 47 pixels exceed 2
+png/16-light-launch-780.png: max 23/255 at (5,6) G, expected #ff70d9b3, actual #ff60c2a4; 59 pixels exceed 2
+png/16-light-launch-1020.png: max 25/255 at (5,6) G, expected #ff82f6c9, actual #ff71ddb6; 60 pixels exceed 2
+png/16-light-launch-1200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-idle-0.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-idle-900.png: max 29/255 at (5,8) G, expected #ff274e54, actual #ff173140; 54 pixels exceed 2
+png/16-light-idle-1800.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 61 pixels exceed 2
+png/16-light-idle-3600.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/16-light-idle-5400.png: max 20/255 at (1,2) A, expected #65030a1c, actual #51060d1f; 61 pixels exceed 2
+png/16-light-idle-6300.png: max 25/255 at (4,8) G, expected #ff2d595b, actual #ff1f4049; 58 pixels exceed 2
+png/16-light-idle-7200.png: max 25/255 at (5,6) G, expected #ff83f7ca, actual #ff71deb7; 59 pixels exceed 2
+png/24-dark-still-0.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-launch-120.png: max 19/255 at (5,1) A, expected #992b2f3e, actual #86333746; 68 pixels exceed 2
+png/24-dark-launch-300.png: max 29/255 at (5,22) A, expected #e32f454e, actual #c6374c55; 52 pixels exceed 2
+png/24-dark-launch-540.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 91 pixels exceed 2
+png/24-dark-launch-780.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 90 pixels exceed 2
+png/24-dark-launch-1020.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 91 pixels exceed 2
+png/24-dark-launch-1200.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-idle-0.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-idle-900.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 101 pixels exceed 2
+png/24-dark-idle-1800.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 106 pixels exceed 2
+png/24-dark-idle-3600.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-dark-idle-5400.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 106 pixels exceed 2
+png/24-dark-idle-6300.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 105 pixels exceed 2
+png/24-dark-idle-7200.png: max 31/255 at (5,22) A, expected #e82e454e, actual #c9374b54; 93 pixels exceed 2
+png/24-light-still-0.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-launch-120.png: max 17/255 at (5,1) A, expected #a7000b1d, actual #96030e22; 72 pixels exceed 2
+png/24-light-launch-300.png: max 24/255 at (5,22) A, expected #e9041b2b, actual #d1051f2c; 52 pixels exceed 2
+png/24-light-launch-540.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 95 pixels exceed 2
+png/24-light-launch-780.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 92 pixels exceed 2
+png/24-light-launch-1020.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 93 pixels exceed 2
+png/24-light-launch-1200.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-idle-0.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-idle-900.png: max 29/255 at (7,11) G, expected #ff8affd0, actual #ff7ae2bb; 105 pixels exceed 2
+png/24-light-idle-1800.png: max 28/255 at (16,15) G, expected #ff73e3ba, actual #ff8affd0; 111 pixels exceed 2
+png/24-light-idle-3600.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/24-light-idle-5400.png: max 28/255 at (16,15) G, expected #ff73e3ba, actual #ff8affd0; 111 pixels exceed 2
+png/24-light-idle-6300.png: max 29/255 at (14,17) G, expected #ff07192c, actual #ff183641; 110 pixels exceed 2
+png/24-light-idle-7200.png: max 24/255 at (5,1) A, expected #ec010c1d, actual #d4020e1f; 96 pixels exceed 2
+png/32-dark-still-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-launch-120.png: max 85/255 at (1,27) B, expected #03000055, actual #00000000; 94 pixels exceed 2
+png/32-dark-launch-300.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 66 pixels exceed 2
+png/32-dark-launch-540.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 130 pixels exceed 2
+png/32-dark-launch-780.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-dark-launch-1020.png: max 57/255 at (25,22) G, expected #ff488b7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-launch-1200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-idle-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-idle-900.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 141 pixels exceed 2
+png/32-dark-idle-1800.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-dark-idle-3600.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-dark-idle-5400.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-dark-idle-6300.png: max 59/255 at (9,15) G, expected #ff274d52, actual #ff061229; 148 pixels exceed 2
+png/32-dark-idle-7200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 145 pixels exceed 2
+png/32-light-still-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-launch-120.png: max 85/255 at (1,27) B, expected #03000055, actual #00000000; 93 pixels exceed 2
+png/32-light-launch-300.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 70 pixels exceed 2
+png/32-light-launch-540.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 126 pixels exceed 2
+png/32-light-launch-780.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 148 pixels exceed 2
+png/32-light-launch-1020.png: max 57/255 at (25,22) G, expected #ff488b7e, actual #ff285255; 144 pixels exceed 2
+png/32-light-launch-1200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-idle-0.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-idle-900.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 141 pixels exceed 2
+png/32-light-idle-1800.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-light-idle-3600.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/32-light-idle-5400.png: max 51/255 at (1,27) G, expected #05003333, actual #00000000; 149 pixels exceed 2
+png/32-light-idle-6300.png: max 59/255 at (9,15) G, expected #ff274d52, actual #ff061229; 148 pixels exceed 2
+png/32-light-idle-7200.png: max 58/255 at (25,22) G, expected #ff488c7e, actual #ff285255; 143 pixels exceed 2
+png/48-dark-still-0.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-dark-launch-0.png: max 40/255 at (5,40) A, expected #97030e14, actual #bf030d14; 61 pixels exceed 2
+png/48-dark-launch-120.png: max 102/255 at (12,2) R, expected #01000000, actual #05666666; 297 pixels exceed 2
+png/48-dark-launch-300.png: max 67/255 at (8,3) B, expected #02000000, actual #172c3743; 238 pixels exceed 2
+png/48-dark-launch-540.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 201 pixels exceed 2
+png/48-dark-launch-780.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 252 pixels exceed 2
+png/48-dark-launch-1020.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 260 pixels exceed 2
+png/48-dark-launch-1200.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-dark-idle-0.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-dark-idle-900.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 260 pixels exceed 2
+png/48-dark-idle-1800.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 262 pixels exceed 2
+png/48-dark-idle-3600.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 262 pixels exceed 2
+png/48-dark-idle-5400.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 265 pixels exceed 2
+png/48-dark-idle-6300.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 263 pixels exceed 2
+png/48-dark-idle-7200.png: max 67/255 at (8,3) B, expected #03000000, actual #172c3743; 257 pixels exceed 2
+png/48-light-still-0.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/48-light-launch-0.png: max 40/255 at (5,40) A, expected #97030e14, actual #bf030d14; 61 pixels exceed 2
+png/48-light-launch-120.png: max 128/255 at (45,39) B, expected #02000000, actual #02000080; 414 pixels exceed 2
+png/48-light-launch-300.png: max 128/255 at (10,47) B, expected #02000000, actual #02000080; 334 pixels exceed 2
+png/48-light-launch-540.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 279 pixels exceed 2
+png/48-light-launch-780.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 341 pixels exceed 2
+png/48-light-launch-1020.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 343 pixels exceed 2
+png/48-light-launch-1200.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/48-light-idle-0.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/48-light-idle-900.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 345 pixels exceed 2
+png/48-light-idle-1800.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 345 pixels exceed 2
+png/48-light-idle-3600.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 351 pixels exceed 2
+png/48-light-idle-5400.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 351 pixels exceed 2
+png/48-light-idle-6300.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 350 pixels exceed 2
+png/48-light-idle-7200.png: max 85/255 at (1,17) B, expected #03000055, actual #02000000; 342 pixels exceed 2
+png/64-dark-still-0.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-launch-0.png: max 53/255 at (18,49) A, expected #6a051118, actual #9f031018; 55 pixels exceed 2
+png/64-dark-launch-120.png: max 85/255 at (16,3) R, expected #03000000, actual #06555555; 437 pixels exceed 2
+png/64-dark-launch-300.png: max 64/255 at (16,3) R, expected #05000000, actual #08404040; 315 pixels exceed 2
+png/64-dark-launch-540.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 237 pixels exceed 2
+png/64-dark-launch-780.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 301 pixels exceed 2
+png/64-dark-launch-1020.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 301 pixels exceed 2
+png/64-dark-launch-1200.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-idle-0.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-idle-900.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 306 pixels exceed 2
+png/64-dark-idle-1800.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 307 pixels exceed 2
+png/64-dark-idle-3600.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 300 pixels exceed 2
+png/64-dark-idle-5400.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-dark-idle-6300.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 305 pixels exceed 2
+png/64-dark-idle-7200.png: max 64/255 at (16,3) R, expected #06000000, actual #08404040; 304 pixels exceed 2
+png/64-light-still-0.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/64-light-launch-0.png: max 53/255 at (18,49) A, expected #6a051118, actual #9f031018; 55 pixels exceed 2
+png/64-light-launch-120.png: max 153/255 at (16,3) B, expected #02000000, actual #05006699; 700 pixels exceed 2
+png/64-light-launch-300.png: max 128/255 at (2,15) B, expected #01000000, actual #02000080; 585 pixels exceed 2
+png/64-light-launch-540.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 311 pixels exceed 2
+png/64-light-launch-780.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 370 pixels exceed 2
+png/64-light-launch-1020.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 369 pixels exceed 2
+png/64-light-launch-1200.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/64-light-idle-0.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/64-light-idle-900.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 372 pixels exceed 2
+png/64-light-idle-1800.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 371 pixels exceed 2
+png/64-light-idle-3600.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 367 pixels exceed 2
+png/64-light-idle-5400.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 364 pixels exceed 2
+png/64-light-idle-6300.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 368 pixels exceed 2
+png/64-light-idle-7200.png: max 128/255 at (2,15) B, expected #02000000, actual #02000080; 373 pixels exceed 2
+png/256-dark-still-0.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-launch-120.png: max 64/255 at (218,23) R, expected #04404040, actual #04000000; 2691 pixels exceed 2
+png/256-dark-launch-300.png: max 51/255 at (218,23) R, expected #05333333, actual #05000000; 852 pixels exceed 2
+png/256-dark-launch-540.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 717 pixels exceed 2
+png/256-dark-launch-780.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 661 pixels exceed 2
+png/256-dark-launch-1020.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 576 pixels exceed 2
+png/256-dark-launch-1200.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-idle-0.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-idle-900.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 610 pixels exceed 2
+png/256-dark-idle-1800.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-dark-idle-3600.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 604 pixels exceed 2
+png/256-dark-idle-5400.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 582 pixels exceed 2
+png/256-dark-idle-6300.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 609 pixels exceed 2
+png/256-dark-idle-7200.png: max 42/255 at (218,23) R, expected #062a2a2a, actual #05000000; 591 pixels exceed 2
+png/256-light-still-0.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/256-light-launch-120.png: max 255/255 at (229,31) B, expected #01000000, actual #010000ff; 8289 pixels exceed 2
+png/256-light-launch-300.png: max 255/255 at (229,31) B, expected #01000000, actual #010000ff; 6754 pixels exceed 2
+png/256-light-launch-540.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2788 pixels exceed 2
+png/256-light-launch-780.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2739 pixels exceed 2
+png/256-light-launch-1020.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2681 pixels exceed 2
+png/256-light-launch-1200.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/256-light-idle-0.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/256-light-idle-900.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2688 pixels exceed 2
+png/256-light-idle-1800.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2658 pixels exceed 2
+png/256-light-idle-3600.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2699 pixels exceed 2
+png/256-light-idle-5400.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2656 pixels exceed 2
+png/256-light-idle-6300.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2697 pixels exceed 2
+png/256-light-idle-7200.png: max 255/255 at (229,31) B, expected #02000000, actual #010000ff; 2685 pixels exceed 2
+png/512-dark-still-0.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-dark-launch-0.png: max 4/255 at (453,412) A, expected #2e061116, actual #2a061218; 2 pixels exceed 2
+png/512-dark-launch-120.png: max 32/255 at (460,70) B, expected #07000000, actual #08000020; 11616 pixels exceed 2
+png/512-dark-launch-300.png: max 21/255 at (460,70) B, expected #0b000000, actual #0c000015; 3587 pixels exceed 2
+png/512-dark-launch-540.png: max 18/255 at (400,147) B, expected #ff1c2439, actual #ff0b1327; 2507 pixels exceed 2
+png/512-dark-launch-780.png: max 18/255 at (400,147) B, expected #ff1f253f, actual #ff0e142d; 1755 pixels exceed 2
+png/512-dark-launch-1020.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1571 pixels exceed 2
+png/512-dark-launch-1200.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-dark-idle-0.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-dark-idle-900.png: max 17/255 at (221,224) B, expected #ff5effe1, actual #ff4ef2d0; 1653 pixels exceed 2
+png/512-dark-idle-1800.png: max 19/255 at (221,224) R, expected #ff62ffe1, actual #ff4ff2cf; 1697 pixels exceed 2
+png/512-dark-idle-3600.png: max 23/255 at (417,235) R, expected #ff899abb, actual #ff7284a4; 1709 pixels exceed 2
+png/512-dark-idle-5400.png: max 21/255 at (400,147) G, expected #ff333257, actual #ff1f1d43; 1678 pixels exceed 2
+png/512-dark-idle-6300.png: max 22/255 at (400,147) B, expected #ff313256, actual #ff1e1d40; 1627 pixels exceed 2
+png/512-dark-idle-7200.png: max 18/255 at (400,147) B, expected #ff2a2b4c, actual #ff191a3a; 1646 pixels exceed 2
+png/512-light-still-0.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+png/512-light-launch-0.png: max 4/255 at (453,412) A, expected #2e061116, actual #2a061218; 2 pixels exceed 2
+png/512-light-launch-120.png: max 255/255 at (457,61) B, expected #01000000, actual #010000ff; 34486 pixels exceed 2
+png/512-light-launch-300.png: max 255/255 at (457,61) B, expected #01000000, actual #010000ff; 26165 pixels exceed 2
+png/512-light-launch-540.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9808 pixels exceed 2
+png/512-light-launch-780.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9057 pixels exceed 2
+png/512-light-launch-1020.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9045 pixels exceed 2
+png/512-light-launch-1200.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+png/512-light-idle-0.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+png/512-light-idle-900.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9047 pixels exceed 2
+png/512-light-idle-1800.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9048 pixels exceed 2
+png/512-light-idle-3600.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9066 pixels exceed 2
+png/512-light-idle-5400.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9011 pixels exceed 2
+png/512-light-idle-6300.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9015 pixels exceed 2
+png/512-light-idle-7200.png: max 255/255 at (457,61) B, expected #02000000, actual #010000ff; 9046 pixels exceed 2
+  Stack Trace:
+     at Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/AuroraMarkTests.cs:line 94
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:32.01]   Finished:    Marrow.UI.Tests
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Drawing_is_deterministic_and_restores_the_callers_canvas_state [109 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.The_full_device_canvas_retains_blur_when_the_mark_is_offset [18 ms]
+  Passed Marrow.UI.Tests.Port.AuroraMarkTests.Continuously_changing_canvas_scale_allocates_zero_managed_bytes [595 ms]
+
+Test Run Failed.
+Total tests: 26
+     Passed: 25
+     Failed: 1
+ Total time: 33.3185 Seconds

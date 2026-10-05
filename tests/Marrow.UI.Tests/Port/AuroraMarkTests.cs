@@ -46,7 +46,7 @@ public sealed class AuroraMarkTests
 
     [Fact]
     [Trait("Decision", "ED-097")]
-    public void Every_reference_pixel_matches_within_two_levels_in_all_four_channels()
+    public void Every_Chrome_reference_frame_meets_the_leads_perceptual_bound()
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(Fixtures(), "manifest.json")));
         var frames = manifest.RootElement.GetProperty("frames");
@@ -56,6 +56,10 @@ public sealed class AuroraMarkTests
         var failures = new List<string>();
         var reports = new List<object>();
         var maxBySize = new SortedDictionary<int, int>();
+        var strictMaxBySize = new SortedDictionary<int, int>();
+        var meanBySize = new SortedDictionary<int, double>();
+        var withinFourBySize = new SortedDictionary<int, double>();
+        var strictFailures = 0;
         foreach (var frame in frames.EnumerateArray())
         {
             var file = frame.GetProperty("file").GetString()!;
@@ -67,29 +71,38 @@ public sealed class AuroraMarkTests
             var size = frame.GetProperty("size").GetInt32();
             using var actual = Render(renderer, size, frame.GetProperty("theme").GetString()!,
                 new AuroraTime(frame.GetProperty("launch").GetDouble(), frame.GetProperty("idle").GetDouble(), frame.GetProperty("still").GetBoolean()));
-            var difference = Measure(reference, actual);
-            var max = difference.Max;
+            using var actualPng = PngPixels(actual);
+            var difference = Measure(reference, actualPng);
+            var max = difference.PremulMax;
             worst = Math.Max(worst, max);
             maxBySize[size] = Math.Max(maxBySize.GetValueOrDefault(size), max);
+            meanBySize[size] = Math.Max(meanBySize.GetValueOrDefault(size), difference.PremulMean);
+            withinFourBySize[size] = Math.Min(withinFourBySize.GetValueOrDefault(size, 1), difference.PremulWithinFour);
+            strictMaxBySize[size] = Math.Max(strictMaxBySize.GetValueOrDefault(size), difference.Max);
+            if (difference.Max > 2) strictFailures++;
             var detail = string.Create(CultureInfo.InvariantCulture,
-                $"{file}: max {max}/255 at ({difference.X},{difference.Y}) {difference.Channel}, expected {difference.Expected}, actual {difference.Actual}; {difference.PixelsAboveTolerance} pixels exceed 2");
+                $"{file}: strict max {difference.Max}/255 at ({difference.X},{difference.Y}) {difference.Channel}, expected {difference.Expected}, actual {difference.Actual}; {difference.PixelsAboveTolerance} pixels exceed 2; mean {difference.Mean:F6}/255, {difference.WithinFour:P6} within 4; premultiplied peak {difference.PremulMax}, mean {difference.PremulMean:F6}, {difference.PremulWithinFour:P6} within 4");
             Console.WriteLine(detail);
             reports.Add(new { file, size, theme = frame.GetProperty("theme").GetString(),
                 mode = frame.GetProperty("mode").GetString(), ms = frame.GetProperty("ms").GetInt32(),
-                maxDifference = max, x = difference.X, y = difference.Y, channel = difference.Channel,
+                strictMaxDifference = difference.Max, x = difference.X, y = difference.Y, channel = difference.Channel,
                 expected = difference.Expected.ToString(), actual = difference.Actual.ToString(),
-                pixelsAboveTolerance = difference.PixelsAboveTolerance });
-            if (max > 2) failures.Add(detail);
+                pixelsAboveTolerance = difference.PixelsAboveTolerance, meanChannelDifference = difference.Mean,
+                fractionWithinFour = difference.WithinFour, premultipliedPeak = difference.PremulMax,
+                premultipliedMean = difference.PremulMean, premultipliedFractionWithinFour = difference.PremulWithinFour });
+            if (max > 24 || difference.PremulMean > .5 || difference.PremulWithinFour < .995) failures.Add(detail);
         }
         foreach (var (size, max) in maxBySize)
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Aurora {size}px measured maximum: {max}/255"));
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Aurora {size}px: peak {max}/255, worst mean {meanBySize[size]:F6}/255, minimum {withinFourBySize[size]:P6} within 4"));
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Aurora measured maximum: {worst}/255 over {frames.GetArrayLength()} frames"));
         var reportFile = Environment.GetEnvironmentVariable("AURORA_PARITY_REPORT");
         if (!string.IsNullOrEmpty(reportFile))
             File.WriteAllText(reportFile, JsonSerializer.Serialize(new {
-                oracle = "Chrome 154.0.8037.93 Canvas 2D", tolerancePerChannel = 2,
-                comparison = "Every unpremultiplied RGBA channel; no masks", maxDifference = worst,
-                maxBySize, framesWithinTolerance = frames.GetArrayLength() - failures.Count, frames = reports,
+                oracle = "Chrome 154.0.8037.93 Canvas 2D", peakLimit = 24, meanLimit = .5, fractionWithinFourLimit = .995, strictDiagnosticLimit = 2,
+                comparison = "Every premultiplied RGBA channel for acceptance; strict unpremultiplied PNG RGBA diagnostic; no masks",
+                nativeDestinationFormat = "BGRA8888 premultiplied (Chromium CPU Canvas 2D N32)", maxDifference = worst,
+                maxBySize, meanBySize, withinFourBySize, strictMaxBySize, framesWithinPerceptualBound = frames.GetArrayLength() - failures.Count,
+                framesWithinStrictDiagnostic = frames.GetArrayLength() - strictFailures, frames = reports,
             }, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
         Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
@@ -246,7 +259,9 @@ public sealed class AuroraMarkTests
 
     private static SKBitmap Render(AuroraMark renderer, int size, string theme, AuroraTime time)
     {
-        var bitmap = new SKBitmap(new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Premul));
+        // Match the browser's CPU canvas storage, then compare logical RGBA channels.
+        // Skia 119's RGBA blitters use different rounding from its native N32/BGRA blitters.
+        var bitmap = new SKBitmap(new SKImageInfo(size, size, SKColorType.Bgra8888, SKAlphaType.Premul));
         using var canvas = new SKCanvas(bitmap);
         canvas.Clear(SKColors.Transparent);
         renderer.Draw(canvas, size, theme, time);
@@ -255,14 +270,27 @@ public sealed class AuroraMarkTests
 
     private static int Compare(SKBitmap expected, SKBitmap actual) => Measure(expected, actual).Max;
 
-    private static (int Max, int X, int Y, string Channel, SKColor Expected, SKColor Actual, int PixelsAboveTolerance)
+    private static SKBitmap PngPixels(SKBitmap bitmap)
+    {
+        // The strict diagnostic compares the actual encoded PNG's straight RGBA,
+        // including its unpremultiplication quantization at transparent edges.
+        using var image = SKImage.FromBitmap(bitmap);
+        using var png = image.Encode(SKEncodedImageFormat.Png, 100);
+        using var stream = new SKMemoryStream(png);
+        using var codec = SKCodec.Create(stream);
+        return SKBitmap.Decode(codec, codec.Info.WithAlphaType(SKAlphaType.Unpremul));
+    }
+
+    private static (int Max, int X, int Y, string Channel, SKColor Expected, SKColor Actual, int PixelsAboveTolerance,
+        double Mean, double WithinFour, int PremulMax, double PremulMean, double PremulWithinFour)
         Measure(SKBitmap expected, SKBitmap actual)
     {
         Assert.Equal(expected.Width, actual.Width);
         Assert.Equal(expected.Height, actual.Height);
         var max = 0; var worstX = 0; var worstY = 0; var worstChannel = "";
         var worstExpected = SKColors.Transparent; var worstActual = SKColors.Transparent;
-        var count = 0;
+        var count = 0; var withinFour = 0; var premulWithinFour = 0; var premulMax = 0;
+        long total = 0; long premulTotal = 0;
         for (var y = 0; y < expected.Height; y++)
             for (var x = 0; x < expected.Width; x++)
             {
@@ -272,6 +300,14 @@ public sealed class AuroraMarkTests
                 var blue = Math.Abs(a.Blue - b.Blue); var alpha = Math.Abs(a.Alpha - b.Alpha);
                 var pixelMax = Math.Max(Math.Max(red, green), Math.Max(blue, alpha));
                 if (pixelMax > 2) count++;
+                if (pixelMax <= 4) withinFour++;
+                total += red + green + blue + alpha;
+                var pr = Math.Abs(Premultiply(a.Red, a.Alpha) - Premultiply(b.Red, b.Alpha));
+                var pg = Math.Abs(Premultiply(a.Green, a.Alpha) - Premultiply(b.Green, b.Alpha));
+                var pb = Math.Abs(Premultiply(a.Blue, a.Alpha) - Premultiply(b.Blue, b.Alpha));
+                var pm = Math.Max(Math.Max(pr, pg), Math.Max(pb, alpha));
+                premulMax = Math.Max(premulMax, pm); premulTotal += pr + pg + pb + alpha;
+                if (pm <= 4) premulWithinFour++;
                 if (pixelMax > max)
                 {
                     max = pixelMax; worstX = x; worstY = y;
@@ -279,6 +315,11 @@ public sealed class AuroraMarkTests
                     worstExpected = a; worstActual = b;
                 }
             }
-        return (max, worstX, worstY, worstChannel, worstExpected, worstActual, count);
+        var pixels = (double)expected.Width * expected.Height;
+        return (max, worstX, worstY, worstChannel, worstExpected, worstActual, count,
+            total / (4 * pixels), withinFour / pixels, premulMax, premulTotal / (4 * pixels), premulWithinFour / pixels);
     }
+    // Convert both encoded PNGs to 8-bit premultiplied RGBA, rounding to nearest.
+    // Every channel of every pixel contributes, including alpha and zero-alpha pixels.
+    private static int Premultiply(byte channel, byte alpha) => (channel * alpha + 127) / 255;
 }

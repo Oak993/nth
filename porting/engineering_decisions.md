@@ -3041,3 +3041,76 @@ review found no additional material native ABI/ownership defect and confirmed
 the unresolved coverage discrepancy. Windows GPU warm-up/runtime remains
 unverified. LoadingMark.cs, BootStageWindow.cs, app icon assets and all locked
 design sources are untouched. This remains NOT READY for integration/release.
+
+### Lead perceptual-bound decision (2026-10-05)
+
+ENGINEERING DECISION (explicit port lead instruction): the Chrome/SkiaSharp
+acceptance bound is now, independently for every size, theme and timestamp,
+peak channel difference <= 24/255 AND mean channel difference <= 0.5/255 AND
+at least 99.5 percent of pixels within 4/255 in every channel. All three clauses
+are mandatory. Retain the strict 2/255 measurements as diagnostics. No pixel
+masks, skipped frames, modified references or aggregation across frames may
+hide a failure. Any frame failing this perceptual bound is a defect that must
+be fixed. This replaces the previous strict acceptance rule, with the lead's
+authorization; it does not declare the current renderer accepted. T10 is
+integrating d42ac5433d81c94db28adfdac76b492982dd3049 for native boot testing
+while AURORA-RENDER repairs remaining parity defects.
+
+ENGINEERING DECISION / lead clarification: use PREMULTIPLIED RGBA for all three
+perceptual acceptance clauses, measuring every pixel's visible contribution
+and retaining the alpha channel. Mean is the mean absolute difference over all
+four channels and all pixels within each frame. A pixel is within 4/255 only
+if every premultiplied channel differs by at most 4. The strict 2/255 diagnostic
+continues to use unpremultiplied PNG RGBA. This is also the loader metric choice
+for T10; the lead is communicating the clarification to T10's owner.
+
+### Chrome perceptual parity repaired: READY (2026-10-05)
+
+ENGINEERING DECISION: use Chromium-equivalent native N32/BGRA8888 premultiplied
+CPU surfaces for the night cache, blur scratch and parity destination. Logical
+RGBA remains the comparison representation. Skia 119's RGBA raster blitters
+select different gradient/image-alpha rounding; matching Chrome's storage is
+part of reproducing its raster/compositing pipeline, not changing its PNGs.
+Acceptance premultiplication is nearest-rounded 8-bit (channel * alpha + 127)
+/ 255, retaining alpha. Strict diagnostics compare both exported PNGs decoded
+to unpremultiplied RGBA. Every pixel/channel is measured with no comparison mask.
+
+ENGINEERING DECISION: bypass Skia 119's legacy small/point-dense 4x4 AA heuristic
+with a zero-edge move for fills/clips and an offscreen closed zero-length
+contour for the small curtain strokes. Preserve the original transformed path
+control bounds, rounded outward, which Chrome's small mask blitter supplies
+without the extra contour. These are source-derived rendering bounds, not
+excluded comparison pixels or fixture corrections. Filled scratch stroke
+outlines use SkPaint.GetFillPath with the real transform before analytic AA;
+SkDraw's two-axis fast-length hairline rule is preserved. Native save/finally
+restore protects caller state. Reused device/outline paths are disposed.
+
+RESULT: 210/210 Chrome frames pass all three premultiplied clauses independently.
+Per-size worst peak /255, worst frame mean /255, minimum pixels within 4/255:
+16: 7, 0.25390625, 99.609375%; 24: 5, 0.2569444444, 99.652777778%;
+32: 6, 0.16943359375, 99.609375%; 48: 4, 0.1737196181, 100%;
+64: 3, 0.1555786133, 100%; 256: 4, 0.1212806702, 100%;
+512: 5, 0.1189594269, 99.999618530%. Strict unpremultiplied maxima remain
+16=7, 24=5, 32=85, 48=64, 64=64, 256=128, 512=128 /255; 31/210 meet strict 2.
+The primary report is tests/fixtures/aurora/parity-summary.json; prior strict
+measurements and pre-fix red output are preserved separately. No frame is skipped.
+
+VALIDATION: final full Debug solution build -warnaserror
+-p:EnableWindowsTargeting=true -m:1 -nodeReuse:false: zero warnings/errors.
+New Aurora plus all Traceability tests, with &FullyQualifiedName!~Native:
+35/35 pass, including all 12 Traceability checks. Seven allocation cases each
+measure 0 managed bytes for 120 changing theme/launch/idle draws after warm-up;
+continuous scaling also passes. The independent review's transformed-bounds,
+hairline and opacity-warm-up findings are fixed. WarmupPrograms still lists
+nine actual program families; Warmup now draws both Still and Launch(.3 seconds),
+whose tile/image opacity is 249/255, covering opaque and modulated variants.
+No custom SkSL or new package/project dependency is needed.
+
+HANDOFF: READY for AURORA-RENDER under the lead's bound on Chrome-equivalent
+N32 CPU targets. The public renderer API is unchanged from T10's integrated
+d42ac543 head. Windows GPU readback, shader compilation and native boot behavior
+remain T10's runtime verification; this CPU result does not assert those passed.
+The lead will tell T10's branch owner to use the same premultiplied acceptance
+choice, with strict unpremultiplied PNG diagnostics. LoadingMark.cs,
+BootStageWindow.cs, app icon assets, the locked design sources and the imported
+Chrome fixture tree are byte-unchanged. Existing ledger bytes are preserved.

@@ -36,6 +36,8 @@ public sealed class AuroraMark : IDisposable
     private readonly SKPaint paint = new() { IsAntialias = true, StrokeMiter = 10 };
     private readonly SKPaint layerPaint = new() { IsAntialias = true };
     private readonly SKPath path = new();
+    private readonly SKPath strokePath = new();
+    private readonly SKPath deviceBoundsPath = new();
     private readonly SKPoint[] points = new SKPoint[2];
     private readonly SKColorF[] colors = new SKColorF[13];
     private readonly float[] stops = new float[13];
@@ -47,6 +49,7 @@ public sealed class AuroraMark : IDisposable
     private int nightPixels;
     private string? nightTheme;
     private SKMatrix blurOrigin;
+    private SKMatrix blurScratchMatrix;
     private SKRect blurBounds;
     private SKMatrix blurTransform;
     private SKBlendMode blurBlend;
@@ -91,12 +94,15 @@ public sealed class AuroraMark : IDisposable
     /// Draws the real program families into the supplied offscreen GPU canvas. The caller supplies the
     /// actual design size and sets its device transform: run this for every size/scale used by the loading
     /// and boot controls, since Skia selects blur kernels by device sigma. No custom SkSL is needed.
-    /// A complete frame exercises all families; multiple named entries are intentionally safe to repeat.
+    /// A still and a frame during the tile fade exercise both opaque and opacity-modulated
+    /// versions of the families; multiple named entries are intentionally safe to repeat.
     /// </summary>
     public void Warmup(SKCanvas canvas, string program, double size, SKSizeI? deviceCanvasSize = null)
     {
         if (!WarmupPrograms.Contains(program, StringComparer.Ordinal)) throw new ArgumentException("Unknown Aurora program.", nameof(program));
-        Draw(canvas, string.Equals(program, WarmupPrograms[0], StringComparison.Ordinal) ? Math.Min(size, 32) : size, "dark", AuroraTime.Still, deviceCanvasSize);
+        var designSize = string.Equals(program, WarmupPrograms[0], StringComparison.Ordinal) ? Math.Min(size, 32) : size;
+        Draw(canvas, designSize, "dark", AuroraTime.Still, deviceCanvasSize);
+        Draw(canvas, designSize, "dark", AuroraTime.Launch(.3), deviceCanvasSize);
     }
 
     private void Night(SKCanvas c, double size, string theme, Box p, double alpha)
@@ -105,7 +111,7 @@ public sealed class AuroraMark : IDisposable
         {
             Squircle(p.X, p.Y, p.W, p.H, p.R);
             NightGradient(p, alpha);
-            c.DrawPath(path, paint);
+            DrawAnalyticPath(c.Handle, c.TotalMatrix);
             return;
         }
         var matrix = c.TotalMatrix;
@@ -127,11 +133,11 @@ public sealed class AuroraMark : IDisposable
                 var shadow = BeginBlur(nightMatrix, size * .03, SKBlendMode.SrcOver);
                 Solid(string.Equals(theme, "light", StringComparison.Ordinal) ? Color(10, 30, 50, .32) : Color(0, 0, 0, .6));
                 Squircle(p.X + p.W * .03, p.Y + p.H * .05, p.W * .94, p.H * .96, p.R);
-                Native.sk_canvas_draw_path(shadow, path.Handle, paint.Handle);
+                DrawAnalyticPath(shadow, blurScratchMatrix);
                 EndBlur(nightRaster.Canvas);
                 Squircle(p.X, p.Y, p.W, p.H, p.R);
                 NightGradient(p, 1);
-                Native.sk_canvas_draw_path(nightRaster.Canvas, path.Handle, paint.Handle);
+                DrawAnalyticPath(nightRaster.Canvas, nightMatrix);
             }
             finally { deviceSize = originalSize; }
             var nextImage = Snapshot(nightRaster.Surface);
@@ -165,7 +171,7 @@ public sealed class AuroraMark : IDisposable
             var fx = (float)x; var fy = (float)y; var fr = (float)r;
             var oval = new SKRect(fx - fr, fy - fr, fx + fr, fy + fr);
             path.ArcTo(oval, 0, 180, false); path.ArcTo(oval, 180, 180, false); path.Close();
-            c.DrawPath(path, paint);
+            DrawAnalyticPath(c.Handle, c.TotalMatrix);
         }
     }
 
@@ -173,16 +179,16 @@ public sealed class AuroraMark : IDisposable
     {
         c.Save();
         Squircle(p.X, p.Y, p.W, p.H, p.R);
-        c.ClipPath(path, SKClipOperation.Intersect, true);
+        ClipAnalyticPath(c);
         if (size <= 32)
         {
             var tiny = size <= 20;
             Solid(Color(80, 255, 190, .45), reveal, stroke: tiny ? 4 : 6, round: true);
             FootPath(p, phase, sway, tiny ? -2 : -3, 16, 0, 1, 1);
-            c.DrawPath(path, paint);
+            DrawAnalyticPath(c.Handle, c.TotalMatrix, p);
             Solid(Opaque(0xff8affd0), reveal, stroke: tiny ? 2 : 2.5, round: true);
             FootPath(p, phase, sway, 0, 16, 0, 1, 1);
-            c.DrawPath(path, paint);
+            DrawAnalyticPath(c.Handle, c.TotalMatrix, p);
             c.Restore();
             return;
         }
@@ -198,7 +204,7 @@ public sealed class AuroraMark : IDisposable
         }
         Gradient(p.X, 0, p.X + p.W, 0, 13, 1, SKBlendMode.Plus, size * .01, true);
         FootPath(p, phase, sway, 0, 40, .02, .96, Math.Clamp(reveal * 1.15, 0, 1));
-        Native.sk_canvas_draw_path(foot, path.Handle, paint.Handle);
+        DrawAnalyticStroke(foot, blurScratchMatrix);
         EndBlur(c);
 
         colors[0] = Opaque(0xff04121a); colors[1] = Opaque(0xff02080d); stops[0] = 0; stops[1] = 1;
@@ -210,7 +216,7 @@ public sealed class AuroraMark : IDisposable
             path.LineTo((float)(p.X + p.W * u), (float)(p.Y + p.H * (.8 + .06 * Math.Sin(u * 6.1 + 1) + .025 * Math.Sin(u * 15.3) + .012 * Math.Sin(u * 37))));
         }
         path.LineTo((float)(p.X + p.W), (float)(p.Y + p.H)); path.Close();
-        c.DrawPath(path, paint);
+        DrawAnalyticPath(c.Handle, c.TotalMatrix);
         Solid(Color(90, 255, 190, Fixed3(.25 * bright * reveal)), stroke: size * .003);
         c.DrawPath(path, paint);
         c.Restore();
@@ -256,7 +262,7 @@ public sealed class AuroraMark : IDisposable
             c.DrawPath(path, paint);
             return;
         }
-        c.Save(); Squircle(p.X, p.Y, p.W, p.H, p.R); c.ClipPath(path, SKClipOperation.Intersect, true);
+        c.Save(); Squircle(p.X, p.Y, p.W, p.H, p.R); ClipAnalyticPath(c);
         var lw = size * .018;
         var rim = BeginBlur(c, size * .006, SKBlendMode.SrcOver, alpha);
         colors[0] = Color(255, 255, 255, .55); colors[1] = Color(255, 255, 255, .08);
@@ -264,7 +270,7 @@ public sealed class AuroraMark : IDisposable
         stops[0] = 0; stops[1] = .4f; stops[2] = .8f; stops[3] = 1;
         Gradient(p.X, p.Y, p.X + p.W * .6, p.Y + p.H, 4, 1, stroke: lw);
         Squircle(p.X + lw * .3, p.Y + lw * .3, p.W - lw * .6, p.H - lw * .6, p.R);
-        Native.sk_canvas_draw_path(rim, path.Handle, paint.Handle);
+        DrawAnalyticStroke(rim, blurScratchMatrix);
         EndBlur(c);
         colors[0] = Color(255, 255, 255, .16); colors[1] = Color(255, 255, 255, .04); colors[2] = Color(255, 255, 255, 0);
         stops[0] = 0; stops[1] = .6f; stops[2] = 1;
@@ -309,6 +315,88 @@ public sealed class AuroraMark : IDisposable
         paint.StrokeJoin = SKStrokeJoin.Miter;
     }
 
+    // Skia 119's CPU scan converter selects its old 4x4 AA for point-dense small
+    // paths. Chromium's newer Skia always uses analytic AA. A move with no edge
+    // preserves the filled geometry while bypassing 119's bounds/point heuristic.
+    // Its analytic RLE blitter also needs the original round-out device bounds:
+    // the small-path mask blitter normally supplies that confinement itself.
+    private void DrawAnalyticPath(nint canvas, SKMatrix matrix, Box? smallCurtainBounds = null, SKPath? filledStroke = null)
+    {
+        var drawingPath = filledStroke ?? path;
+        // Transform the controls themselves, as SkDraw does. Mapping only their
+        // enclosing rectangle overestimates the heuristic's bounds under rotation/skew.
+        drawingPath.Transform(matrix, deviceBoundsPath);
+        var bounds = deviceBoundsPath.Bounds;
+        if (smallCurtainBounds is null && deviceBoundsPath.PointCount < Math.Max(bounds.Width, bounds.Height) / 2 - 10)
+        {
+            Native.sk_canvas_draw_path(canvas, drawingPath.Handle, paint.Handle);
+            return;
+        }
+        if (smallCurtainBounds is { } p)
+            bounds = matrix.MapRect(SKRect.Create((float)p.X, (float)p.Y, (float)p.W, (float)p.H));
+        var saved = Native.sk_canvas_save(canvas);
+        try
+        {
+            ConfineToDeviceBounds(canvas, matrix, bounds);
+            AddAnalyticContour(drawingPath, matrix, bounds, paint.Style == SKPaintStyle.Stroke);
+            Native.sk_canvas_draw_path(canvas, drawingPath.Handle, paint.Handle);
+        }
+        finally { Native.sk_canvas_restore_to_count(canvas, saved); }
+    }
+
+    private void DrawAnalyticStroke(nint canvas, SKMatrix matrix)
+    {
+        // Preserve Skia's dedicated hairline rasterizer. Wider strokes become
+        // the same filled outline SkDraw builds, with its real transform/precision.
+        var width = paint.StrokeWidth;
+        var xLength = FastLength(width * matrix.ScaleX, width * matrix.SkewY);
+        var yLength = FastLength(width * matrix.SkewX, width * matrix.ScaleY);
+        var affine = matrix.Persp0 == 0 && matrix.Persp1 == 0 && matrix.Persp2 == 1;
+        var hairline = affine && xLength <= 1 && yLength <= 1;
+        if (hairline || !paint.GetFillPath(path, strokePath, matrix))
+        {
+            Native.sk_canvas_draw_path(canvas, path.Handle, paint.Handle);
+            return;
+        }
+        paint.Style = SKPaintStyle.Fill;
+        try { DrawAnalyticPath(canvas, matrix, filledStroke: strokePath); }
+        finally { paint.Style = SKPaintStyle.Stroke; }
+    }
+
+    // SkDrawTreatAAStrokeAsHairline's conservative length estimate, on both axes.
+    private static float FastLength(float x, float y) => Math.Max(Math.Abs(x), Math.Abs(y)) + .5f * Math.Min(Math.Abs(x), Math.Abs(y));
+
+    private void ClipAnalyticPath(SKCanvas canvas)
+    {
+        var matrix = canvas.TotalMatrix;
+        path.Transform(matrix, deviceBoundsPath);
+        var bounds = deviceBoundsPath.Bounds;
+        if (deviceBoundsPath.PointCount >= Math.Max(bounds.Width, bounds.Height) / 2 - 10)
+        {
+            ConfineToDeviceBounds(canvas.Handle, matrix, bounds);
+            AddAnalyticContour(path, matrix, bounds, false);
+        }
+        canvas.ClipPath(path, SKClipOperation.Intersect, true);
+    }
+
+    private static void ConfineToDeviceBounds(nint canvas, SKMatrix matrix, SKRect bounds)
+    {
+        var rounded = new SKRect(MathF.Floor(bounds.Left), MathF.Floor(bounds.Top), MathF.Ceiling(bounds.Right), MathF.Ceiling(bounds.Bottom));
+        SetMatrix(canvas, SKMatrix.Identity);
+        Native.sk_canvas_clip_rect_with_operation(canvas, in rounded, SKClipOperation.Intersect, false);
+        SetMatrix(canvas, matrix);
+    }
+
+    private static void AddAnalyticContour(SKPath drawingPath, SKMatrix matrix, SKRect bounds, bool stroke)
+    {
+        if (!matrix.TryInvert(out var inverse)) return;
+        var outside = inverse.MapPoint(bounds.Right + 1024, bounds.Bottom + 1024);
+        drawingPath.MoveTo(outside);
+        // The stroker discards an isolated move. This closed zero-length contour
+        // is outside the original device bounds, so its cap cannot draw a pixel.
+        if (stroke) { drawingPath.LineTo(outside); drawingPath.Close(); }
+    }
+
     // IconKit.blur rasterizes into two pooled HTML canvases (initially 300 by 150),
     // filters at scratch resolution, then samples the requested padded source rectangle.
     private nint BeginBlur(SKCanvas c, double radius, SKBlendMode blend, double alpha = 1) =>
@@ -331,6 +419,7 @@ public sealed class AuroraMark : IDisposable
         scratch.Clear(); filteredScratch.Clear();
         var scratchMatrix = new SKMatrix((float)(matrix.ScaleX / k), (float)(matrix.SkewX / k), (float)(matrix.TransX / k + 2),
             (float)(matrix.SkewY / k), (float)(matrix.ScaleY / k), (float)(matrix.TransY / k + 2), 0, 0, 1);
+        blurScratchMatrix = scratchMatrix;
         SetMatrix(scratch.Canvas, scratchMatrix);
         return scratch.Canvas;
     }
@@ -395,7 +484,9 @@ public sealed class AuroraMark : IDisposable
         {
             if (pool) { w = Math.Max(Math.Max(width, 300), w); h = Math.Max(Math.Max(height, 150), h); }
             if (Surface != 0 && width == w && height == h) return;
-            var info = new ImageInfo(0, w, h, 4, SKAlphaType.Premul);
+            // Chromium's CPU Canvas 2D uses native N32 (BGRA on Windows/Linux).
+            // The RGBA raster blitters in Skia 119 round gradients and image alpha differently.
+            var info = new ImageInfo(0, w, h, 6, SKAlphaType.Premul);
             var surface = Native.sk_surface_new_raster(in info, 0, 0);
             if (surface == 0) throw new InvalidOperationException("Aurora scratch allocation failed.");
             Dispose(); Surface = surface; Canvas = Native.sk_surface_get_canvas(surface); width = w; height = h;
@@ -477,7 +568,7 @@ public sealed class AuroraMark : IDisposable
         disposed = true;
         scratch.Dispose(); filteredScratch.Dispose(); nightRaster.Dispose();
         if (nightImage != 0) Native.sk_image_unref(nightImage);
-        path.Dispose(); paint.Dispose(); layerPaint.Dispose();
+        path.Dispose(); strokePath.Dispose(); deviceBoundsPath.Dispose(); paint.Dispose(); layerPaint.Dispose();
     }
 
     private static class Native
@@ -500,6 +591,12 @@ public sealed class AuroraMark : IDisposable
         internal static extern void sk_canvas_draw_image_rect(nint canvas, nint image, in SKRect source, in SKRect dest, in SKSamplingOptions sampling, nint paint);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void sk_canvas_set_matrix(nint canvas, in SKMatrix44 matrix);
+        [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int sk_canvas_save(nint canvas);
+        [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void sk_canvas_restore_to_count(nint canvas, int count);
+        [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void sk_canvas_clip_rect_with_operation(nint canvas, in SKRect rect, SKClipOperation operation, [MarshalAs(UnmanagedType.I1)] bool antialias);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void sk_canvas_draw_path(nint canvas, nint path, nint paint);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]

@@ -1,7 +1,8 @@
 {
-  "path": "porting/engineering_decisions.md",
-  "prefixCommit": "20e15c8ffdd838665ed120f66ea2bc49928a8361",
-  "prefixBytes": 1444953,
-  "prefixSha256": "1d5b71172f29f2007a000b02d0eeac1d7e6d7373af4cf58fa9b99bc03f05a9a1",
-  "appendedBytes": 3553
+  "preservedCommit": "d42ac5433d81c94db28adfdac76b492982dd3049",
+  "preservedPrefixBytes": 1448506,
+  "preservedPrefixSha256": "33e20e22ce572dd0e043a5a8950895f5c712893d47187d3a65676cef4c87a428",
+  "appendedBytes": 4804,
+  "prefixByteExact": true,
+  "finalLedgerSha256": "82d42ac1134cdb6fa35a49867a3eac13ae27ad459d18266136f8295ba55160f5"
 }
