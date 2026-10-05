@@ -20,17 +20,17 @@ public sealed class SkillsOfferInstalls(SkillsDownloads downloads) : ISkillsOffe
     public Task<IReadOnlyDictionary<string, string>> Attach(IReadOnlyList<CatalogueItem> items, Action<OfferProgress> progress, CancellationToken cancellation)
     {
         cancellation.ThrowIfCancellationRequested();
-        // Fails closed without an existing download, as SK-12's own bridge does.
-        if (items.Any(item => !downloads.IsRunning(item.Id))) throw new InvalidOperationException("No existing download is bound.");
-        return Run(items, progress, cancellation);
+        return Run(items, progress, cancellation, attaching: true);
     }
 
-    private async Task<IReadOnlyDictionary<string, string>> Run(IReadOnlyList<CatalogueItem> items, Action<OfferProgress> progress, CancellationToken cancellation)
+    private async Task<IReadOnlyDictionary<string, string>> Run(IReadOnlyList<CatalogueItem> items, Action<OfferProgress> progress, CancellationToken cancellation, bool attaching = false)
     {
         cancellation.ThrowIfCancellationRequested();
         var card = new Card(downloads, items, progress);
         using var detach = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
-        var tasks = items.Select(item => downloads.Install(item, Ignore.Instance, detach.Token, card.Part)).ToList();
+        var tasks = items.Select(item => attaching
+            ? downloads.Attach(item, Ignore.Instance, detach.Token, card.Part)
+            : downloads.Install(item, Ignore.Instance, detach.Token, card.Part)).ToList();
         try
         {
             var pending = new List<Task<string>>(tasks);

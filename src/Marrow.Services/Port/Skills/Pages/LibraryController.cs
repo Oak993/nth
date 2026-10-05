@@ -165,7 +165,9 @@ public sealed class LibraryController : IDisposable
     /// Downloads one item (its Download button, or Retry). Ignored while the item is here, being fetched, under terms still to accept, or on a page whose Download all is running. The returned task ends when
     /// the item is installed, failed or cancelled.
     /// </summary>
-    public Task Download(string id)
+    public Task Download(string id) => Download(id, CancellationToken.None);
+
+    private Task Download(string id, CancellationToken cancellation)
     {
         lock (gate)
         {
@@ -178,7 +180,7 @@ public sealed class LibraryController : IDisposable
             progress[id] = 0;
             Notify();
         }
-        return Task.Run(() => InstallAsync(null, id, CancellationToken.None));
+        return Task.Run(() => InstallAsync(null, id, cancellation));
     }
 
     /// <summary>The cancel of one running or waiting item: its transfer stops (what was fetched stays for a resume) and the row goes back to what it was.</summary>
@@ -440,14 +442,56 @@ public sealed class LibraryController : IDisposable
     public Task CheckAgain(string id)
     {
         CatalogueItem item;
+        ItemRecord? before;
+        CancellationTokenSource placement;
         lock (gate)
         {
             if (!backend.CanFetch) return Task.CompletedTask; // unbound: nothing is placed and nothing is asked of the install
             if (backend.State.Get(id).State != ItemState.Failed && !(overlay.TryGetValue(id, out var mine) && mine.State == ItemState.Failed)) return Task.CompletedTask;
+            if (Rows.FirstOrDefault(row => row.Id == id) is not { Busy: false }) return Task.CompletedTask;
             item = backend.Catalogue.Items.First(i => i.Id == id);
+            overlay.TryGetValue(id, out before);
+            transfers[id] = placement = new CancellationTokenSource();
+            Set(id, ItemState.Checking);
+            progress.Remove(id);
+            Notify();
         }
-        _ = backend.PlaceManualFiles(item);
-        return Download(id);
+        void Restore()
+        {
+            if (before is null) Clear(id);
+            else overlay[id] = before;
+        }
+        return Task.Run(async () =>
+        {
+            try
+            {
+                _ = backend.PlaceManualFiles(item);
+                Task download;
+                lock (gate)
+                {
+                    placement.Token.ThrowIfCancellationRequested();
+                    Restore();
+                    // Keep the original guards and update/repair routing. Cancellation also covers the queued handoff.
+                    download = Download(id, placement.Token);
+                    Notify();
+                }
+                await download.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                lock (gate) { Restore(); Notify(); }
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                lock (gate) { Set(id, ItemState.Failed, error.Message); progress.Remove(id); Notify(); }
+            }
+            finally
+            {
+                lock (gate)
+                    if (transfers.TryGetValue(id, out var current) && current == placement) transfers.Remove(id);
+                placement.Dispose();
+            }
+        });
     }
 
     public void OpenManualPage(string id)
