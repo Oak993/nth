@@ -109,6 +109,10 @@ public static class LibraryWords
     public const string Pause = "Pause";
     public const string Resume = "Resume";
     public const string Close = "Close";
+    public const string Hide = "Hide";
+
+    /// <summary>ENGINEERING DECISION: what a page says when the skills host could not be opened (SkillsStartup logged why).</summary>
+    public const string Unavailable = "Skills and tools are unavailable in this run.";
     public static string RetryCount(int failed) => "Retry " + failed;
 
     /// <summary>The right side of a waiting line in the included list: "Waiting · 18 MB" (the design).</summary>
