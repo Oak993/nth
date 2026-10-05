@@ -47,6 +47,7 @@ internal sealed class DownloadAllDialog : Decorator
         this.model = model;
         this.hide = hide;
         this.plugins = plugins;
+        var first = model.Controller.Dialog; // the folds start where the dialog opens: the sheet grows in, nothing folds on arrival
         var icon = LibraryUi.Tile("arrow.down.circle.fill", 36, 10);
         var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, sub } };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("36,*"), ColumnSpacing = 12 };
@@ -63,21 +64,21 @@ internal sealed class DownloadAllDialog : Decorator
         warn.Children.Add(warning);
         var warnPanel = LibraryUi.Panel(warn, 10, 0, new Thickness(12, 10));
         warnPanel.Background = ChromeTokens.Warning.Opacity(0.14).Brush(warnPanel);
-        largeBox = new CzFoldRow(warnPanel, false);
-        plainBox = new CzFoldRow(LibraryUi.Panel(plain, 10, 0.06, new Thickness(12, 10)), true);
-        roomFold = new CzFoldRow(room, false);
+        largeBox = new CzFoldRow(warnPanel, first.Phase == RunPhase.Confirm && first.Large);
+        plainBox = new CzFoldRow(LibraryUi.Panel(plain, 10, 0.06, new Thickness(12, 10)), first.Phase == RunPhase.Confirm && !first.Large);
+        roomFold = new CzFoldRow(room, first.RoomNote is not null);
 
         var facts = new Grid { ColumnDefinitions = new ColumnDefinitions("84,*,70,*"), RowDefinitions = new RowDefinitions("Auto,Auto"), ColumnSpacing = 8, RowSpacing = 5 };
         Fact(facts, 0, 0, LibraryUi.Text(LibraryWords.FactDownload, 12, secondary: true), download);
         Fact(facts, 0, 2, LibraryUi.Text(LibraryWords.FactOnDisk, 12, secondary: true), onDisk);
         Fact(facts, 1, 0, freeLabel, free);
         Fact(facts, 1, 2, LibraryUi.Text(LibraryWords.FactFrom, 12, secondary: true), from);
-        freeRow = new CzFoldRow(facts, true);
+        freeRow = new CzFoldRow(facts, first.FreeFact is not null);
 
-        confirmSection = new CzFoldRow(new StackPanel { Spacing = 10, Children = { largeBox, plainBox, roomFold, freeRow } }, false);
+        confirmSection = new CzFoldRow(new StackPanel { Spacing = 10, Children = { largeBox, plainBox, roomFold, freeRow } }, first.Phase == RunPhase.Confirm);
 
         progress.Margin = new Thickness(0, 7, 0, 0);
-        runSection = new CzFoldRow(new StackPanel { Spacing = 0, Children = { bar, progress } }, false);
+        runSection = new CzFoldRow(new StackPanel { Spacing = 0, Children = { bar, progress } }, first.IsRunning);
 
         var listBox = new StackPanel { Spacing = 6, Children = { heading, LibraryUi.Panel(LibraryUi.Scroller(lines, 170), 10, 0.06, new Thickness(10, 4)) } };
 
