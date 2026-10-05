@@ -5,7 +5,7 @@ using Avalonia.Styling;
 using Marrow.UI.Chrome;
 namespace Marrow.UI.Port.Settings;
 
-internal static class CzTheme
+public static class CzTheme
 {
     public static bool Dark(Control owner) => owner.ActualThemeVariant != ThemeVariant.Light;
     public static Color Token(Control owner, string name)

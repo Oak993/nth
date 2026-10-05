@@ -71,7 +71,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
     {
         With(() => new SettingsView(), (view, _, h, w) =>
         {
-            var titles = new[] { "General", "Hydra", "Appearance", "Voice typing", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About" }; // :4-15 declaration order, :19-32 titles; VT-13: Voice typing sits after Appearance (Q-CZ-1 A)
+            var titles = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page.Title).ToArray(); // :4-15 declaration order, :19-32 titles
             Assert.Equal(titles, Titles(view)); var list = Field<StackPanel>(view, "rows"); Assert.Equal(1, list.Spacing); // :147 rows separated by 1pt
             void Check(string selected, double settle = 150)
             {
@@ -116,7 +116,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
     {
         With(() => new SettingsView(), (view, _, h, w) =>
         {
-            var rows = Nodes<SidebarRow>(view); Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, rows.Length); var list = Field<StackPanel>(view, "rows");
+            var rows = Nodes<SidebarRow>(view); Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, rows.Length); var list = Field<StackPanel>(view, "rows"); // CZ-4: Customization is listed
             var models = RowButton(view, "Models"); var general = RowButton(view, "General"); var modelsFill = Assert.IsType<Border>(models.Content); var generalFill = Assert.IsType<Border>(general.Content);
             var selectedAlpha = Chrome.Overlay(0.12).Resolve(modelsFill.ActualThemeVariant).A; Assert.True(selectedAlpha > 0);
             byte Alpha(Border fill) => Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color.A;

@@ -38,12 +38,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
 {
     private const double Frame = 1.0 / 60;
 
-    // The pages the sidebar lists, in its order: the ten upstream pages (SettingsView.swift :4-15) and each first-release page whose unit has set its IsReady. The rise gives every row its own start
-    // up to ED-249's index 10, so the count follows the list.
-    private static readonly string[] PageTitles = SettingsSidebar.Pages("").Select(page => page.Title).ToArray();
-
-    // The items of the wave that are not sidebar rows: the search field, the page title, the look card's parts, the second card and the like (18 with the ten upstream rows).
-    private const int ItemsBesidesRows = 8;
+    private static readonly string[] PageTitles = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page.Title).ToArray(); // the ready pages, in sidebar order
     // OD-0088 (ED-250): the Appearance page starts with the Look card; its rows are Theme and Accent.
     private static readonly string[] CardRowTitles = ["Theme", "Accent"];
 
@@ -65,7 +60,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         for (var i = 0; i < rows.Length; i++)
         {
             Assert.Contains(Nodes<TextBlock>(rows[i]), text => text.Text == PageTitles[i]);
-            items.Add((Math.Min(i + 1, 10), PageTitles[i], [rows[i]]));
+            items.Add((Math.Min(i + 1, Marrow.App.Port.SettingsRiseTiming.LastIndex), PageTitles[i], [rows[i]])); // CZ-4: an 11th row (Customization) starts with index 10, as every block past it does (ED-249)
         }
         var section = Nodes<ChromeSection>(view).First();
         var heading = Assert.IsAssignableFrom<StackPanel>(section.Child).Children[0];
@@ -214,7 +209,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         var (_, view) = Open(manager, rig);
         ToGlassReady(rig);
         var parts = Parts(view);
-        Assert.Equal(ItemsBesidesRows + PageTitles.Length, parts.Items.Count);
+        Assert.Equal(1 + PageTitles.Length + 7, parts.Items.Count); // Search, the listed pages, the Appearance page's seven blocks
         for (var k = 0; k <= 15; k++)
         {
             if (k > 0) rig.At(k * Frame);

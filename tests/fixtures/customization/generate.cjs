@@ -46,7 +46,7 @@ const border = JSON.parse(fs.readFileSync(path.join(root,'src/Marrow.Core/Models
 const swatches = Object.entries(constants.palettes).map(([id,name]) => ({id,name,colors:[0,4,6,8].map(i=>border.G[id].border[i].color)}));
 // Execute the real row-building methods for every textual branch, while capturing their view models.
 // Rendering helpers are seams only: titles, details and branches still come from cz.js.
-context.CW = 472; context.CH = 52; context.CR = 22;
+context.CW = 472; context.CH = 46; context.CR = 22;
 context.BBT = border; context.PAL_NAMES = Object.keys(constants.palettes);
 const designTexts = vm.runInContext(`(() => {
   const found = new Set();

@@ -40,6 +40,13 @@ public sealed class CzColorWell : CzButton
         return Color.FromArgb((byte)Math.Round(UiverseAuraOptions.AlphaOf(hex) * 255), rgb.R, rgb.G, rgb.B);
     }
 
+    /// <summary>PORT-ONLY CZ-4: shows <paramref name="hex"/> because the setting it mirrors changed (not a user's pick): eases the dot to it, also while the well is folded shut; raises nothing.</summary>
+    public void Display(string hex)
+    {
+        Hex = UiverseAuraOptions.NormalizedHex(hex) ?? throw new ArgumentException("Expected #RRGGBB or #RRGGBBAA colour.", nameof(hex));
+        fill.To(Read(Hex), CzMotion.Ease(.3));
+    }
+
     public void SetColor(string hex)
     {
         if (!IsEffectivelyEnabled) return;

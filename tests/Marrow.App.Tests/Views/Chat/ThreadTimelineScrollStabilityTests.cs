@@ -129,8 +129,9 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     }
 
     // Wheel notches over the first row on screen, as a person scrolls (a programmatic offset is not a reader's scroll).
-    // Returns how far the timeline moved.
-    private static double Wheel(ThreadTimeline view, Avalonia.Controls.Window window, int notches)
+    // ED-246: the notches glide on the frame clock; the glide is played out at 240 Hz (the clock with it) and the
+    // distance is measured once it has come to rest. Returns how far the timeline moved.
+    private static double Wheel(ThreadTimeline view, Avalonia.Controls.Window window, int notches, ManualFrameSource frames)
     {
         // Let the freeze from opening the thread lift (150 ms after the last movement, ThreadTimeline.swift:727-747), so
         // the first notch lands on a row; the freeze each notch starts is the case under test.
@@ -150,6 +151,15 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
             window.MouseWheel(point, new Vector(0, 1));
             Dispatcher.UIThread.RunJobs();
         }
+        var glide = SoftScroll.For(Scroller(view));
+        for (var frame = 0; frame < 480 && glide.IsMoving; frame++)
+        {
+            clock?.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 240));
+            frames.Advance(TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 240));
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+        }
+        Assert.False(glide.IsMoving, "the glide never came to rest");
         return start - Scroller(view).Offset.Y;
     }
 
@@ -192,7 +202,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:686-709 "a reader who scrolled up to read is left there"; :440 top anchor for size changes while not pinned
     public void A_new_turn_arriving_leaves_a_reader_scrolled_up_mid_thread_where_they_were() => WithLongThread(30, (view, runtime, window, frames) =>
     {
-        Assert.True(Wheel(view, window, 30) > 1000, "the wheel did not move the reader up: " + Where(Scroller(view)));
+        Assert.True(Wheel(view, window, 30, frames) > 1000, "the wheel did not move the reader up: " + Where(Scroller(view)));
         Settle(window, frames);
         var anchor = TextsOnScreen(view, Scroller(view)).First();
         var offset = Scroller(view).Offset.Y;
@@ -207,7 +217,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:742-748, :770-835: a reflow while reading mid-thread never leaves the pane blank
     public void Resizing_while_scrolled_up_mid_thread_never_leaves_the_pane_blank() => WithLongThread(30, (view, _, window, frames) =>
     {
-        Assert.True(Wheel(view, window, 30) > 1000, "the wheel did not move the reader up: " + Where(Scroller(view)));
+        Assert.True(Wheel(view, window, 30, frames) > 1000, "the wheel did not move the reader up: " + Where(Scroller(view)));
         Settle(window, frames);
         foreach (var width in new[] { 560.0, 1200.0, 760.0 })
         {
@@ -237,7 +247,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
         var oldest = OldestQuestion(view);
         for (var round = 0; round < 30 && OldestQuestion(view) == oldest; round++)
         {
-            Wheel(view, window, 5);
+            Wheel(view, window, 5, frames);
             Settle(window, frames);
         }
         Assert.True(OldestQuestion(view) < oldest, "no earlier page loaded while scrolling up (oldest " + oldest + ")");
@@ -289,7 +299,7 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
         SetPhase(runtime, RuntimePhase.Running);
         SetEntries(runtime, runtime.Entries.Concat(RunningTurn(turn)).ToList());
         Settle(window, frames);
-        Assert.True(Wheel(view, window, 40) > 1500, "the wheel did not move the reader up: " + Where(Scroller(view)));
+        Assert.True(Wheel(view, window, 40, frames) > 1500, "the wheel did not move the reader up: " + Where(Scroller(view)));
         Settle(window, frames);
         var anchor = TextsOnScreen(view, Scroller(view)).First();
         var offset = Scroller(view).Offset.Y;
@@ -324,11 +334,161 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof of what the lazy stack's repairs protect (F-1, ED-255; not PR-CHAT-170, which is a static scan): ThreadTimeline.swift:2320-2325 ScrollFreeze turns off hit-testing on the rows only; the NSScrollView still takes every wheel event
-    public void Every_wheel_notch_scrolls_even_while_the_rows_are_frozen() => WithLongThread(30, (view, _, window, _) =>
+    public void Every_wheel_notch_scrolls_even_while_the_rows_are_frozen() => WithLongThread(30, (view, _, window, frames) =>
     {
         // One notch is 50 points; the first freezes the rows for 150 ms, and the other nine come inside that window.
-        var moved = Wheel(view, window, 10);
+        var moved = Wheel(view, window, 10, frames);
         Assert.True(IsReaderScrolling(view), "the rows should be frozen while the wheel turns");
         Assert.Equal(500, moved, 0);
+    });
+
+    private static bool Tracked(ThreadTimeline view, string property)
+    {
+        var tracking = typeof(ThreadTimeline).GetField("tracking", Hidden)!.GetValue(view)!;
+        return (bool)tracking.GetType().GetProperty(property)!.GetValue(tracking)!;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:463-485 .onScrollPhaseChange, :747-752 liftScrollFreeze
+    [Trait("Decision", "ED-246")] // (12) the shared soft scrolling reports a touchpad stroke's and a touch flick's phases to the timeline
+    public void A_touchpad_stroke_freezes_the_rows_and_a_touch_coast_lets_a_click_through() => WithLongThread(30, (view, _, window, frames) =>
+    {
+        var lift = System.Diagnostics.Stopwatch.StartNew();
+        while (IsReaderScrolling(view) && lift.ElapsedMilliseconds < 3000)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(20);
+        }
+        Assert.False(IsReaderScrolling(view), "the scroll freeze never lifted");
+        var target = TextsOnScreen(view, Scroller(view)).First();
+        var point = target.TranslatePoint(new Point(4, target.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(point);
+        void Frame()
+        {
+            clock?.Advance(TimeSpan.FromMilliseconds(4));
+            frames.Advance(TimeSpan.FromMilliseconds(4));
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+        }
+        // Fingers on the pad: a touchpad's stream every 8 ms (23 units: a fraction of WHEEL_DELTA no wheel sends).
+        // :468-469 the rows freeze (.interacting).
+        clock?.Advance(TimeSpan.FromSeconds(1)); // a new stream
+        for (var i = 0; i < 12; i++)
+        {
+            window.MouseWheel(point, new Vector(0, 23 / 120.0));
+            Dispatcher.UIThread.RunJobs();
+            Frame();
+            Frame();
+        }
+        Assert.True(Tracked(view, "IsUserScrolling"), "the stroke was not reported as interacting");
+        Assert.True(IsReaderScrolling(view), "the rows should be frozen while the fingers move");
+        // The stream stops (fingers resting, or Windows' own tail run out): the view stops with it, no coast of its own.
+        for (var i = 0; i < 25; i++) Frame();
+        Assert.False(SoftScroll.For(Scroller(view)).IsMoving, "the view ran on after the stream");
+        Assert.False(Tracked(view, "IsUserScrolling"));
+        // A touch flick: its release coasts (.decelerating), and :470-471 the freeze lifts at once, so a click that
+        // stops the flick reaches its target.
+        var presenter = Scroller(view).GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ScrollContentPresenter>().First();
+        for (var i = 0; i < 6; i++)
+        {
+            presenter.RaiseEvent(new Avalonia.Input.ScrollGestureEventArgs(11, new Vector(0, -12)));
+            Frame();
+            Frame();
+        }
+        presenter.RaiseEvent(new Avalonia.Input.ScrollGestureEndedEventArgs(11));
+        Dispatcher.UIThread.RunJobs();
+        for (var i = 0; i < 25; i++) Frame();
+        Assert.True(SoftScroll.For(Scroller(view)).IsMoving, "no coast after the flick");
+        Assert.True(Tracked(view, "IsCoasting"), "the coast was not reported as decelerating");
+        Assert.False(IsReaderScrolling(view), "the rows stayed frozen through the coast");
+        // At rest (.idle) nothing is reported as scrolling.
+        for (var i = 0; i < 2000 && SoftScroll.For(Scroller(view)).IsMoving; i++) Frame();
+        Assert.False(SoftScroll.For(Scroller(view)).IsMoving, "the coast never came to rest");
+        Assert.False(Tracked(view, "IsUserScrolling"));
+        Assert.False(Tracked(view, "IsCoasting"));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-001")] // ThreadTimeline.swift:359-440 the scroll column; OD-0071: eased wheel steps, momentum and a soft settle at the ends
+    [Trait("Decision", "ED-246")]
+    public void The_timeline_scrolls_softly_its_notches_glide_a_burst_runs_on_and_the_end_is_reached_from_speed_without_overshoot() => WithLongThread(30, (view, _, window, frames) =>
+    {
+        var scroller = Scroller(view);
+        Assert.True(SoftScroll.GetIsEnabled(scroller), "the timeline's scroll view does not scroll softly");
+        var lift = System.Diagnostics.Stopwatch.StartNew();
+        while (IsReaderScrolling(view) && lift.ElapsedMilliseconds < 3000) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+        var target = TextsOnScreen(view, scroller).First();
+        var point = target.TranslatePoint(new Point(4, target.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(point);
+        var most = scroller.Extent.Height - scroller.Viewport.Height;
+        Assert.True(AtEnd(scroller), "the thread did not open at its end: " + Where(scroller));
+        var frame = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 240);
+        List<double> Frames(int count)
+        {
+            var offsets = new List<double>();
+            for (var k = 0; k < count; k++)
+            {
+                clock?.Advance(frame);
+                frames.Advance(frame);
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                offsets.Add(scroller.Offset.Y);
+            }
+            return offsets;
+        }
+        clock?.Advance(TimeSpan.FromSeconds(1)); // a new stream
+
+        // 1. One notch up glides: nothing in the report's own frame, part of the way in the first frame, every frame a step
+        // no longer than the one before it once the glide decays, and it rests exactly 50 points up with no settle jump.
+        var start = scroller.Offset.Y;
+        window.MouseWheel(point, new Vector(0, 1));
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(start, scroller.Offset.Y, 3);
+        var glide = Frames(240);
+        var moved = glide.Select(y => start - y).ToArray();
+        Assert.InRange(moved[0], 0.01, 25);
+        Assert.True(Math.Abs(moved[^1] - 50) < 1e-3, "the notch came to rest " + moved[^1].ToString("F3", System.Globalization.CultureInfo.InvariantCulture) + " up; frames: " + string.Join(" ", moved.Take(40).Select(m => m.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))) + " " + Where(scroller));
+        var steps = moved.Zip(moved.Skip(1), (a, b) => b - a).ToArray();
+        Assert.All(steps, step => Assert.True(step >= -1e-6, $"the glide turned back by {-step:F3}"));
+        var settled = Array.FindIndex(moved, m => Math.Abs(m - 50) < 1e-6);
+        Assert.True(settled > 6, $"the notch landed in {settled + 1} frames, not a glide");
+        Assert.True(steps.Take(settled).Skip(3).All(step => step < 50 * 0.25), "a frame jumped a quarter of the notch at once");
+
+        // 2. A burst of notches runs on after its last report (the measured flick: the view is still moving after the notches end,
+        // its speed decaying) and comes to rest on the sum.
+        clock?.Advance(TimeSpan.FromSeconds(1));
+        start = scroller.Offset.Y;
+        for (var notch = 0; notch < 6; notch++)
+        {
+            window.MouseWheel(point, new Vector(0, 1));
+            Dispatcher.UIThread.RunJobs();
+            Frames(2); // 120 Hz reports, 8 ms apart
+        }
+        var atLast = start - scroller.Offset.Y;
+        Assert.True(atLast < 300 * 0.8, $"the burst was {atLast:F1} of 300 points in by its last notch: no glide");
+        var tail = Frames(480).Select(y => start - y).ToArray();
+        Assert.True(tail[10] > atLast + 5, "the view stopped with the notches: no momentum");
+        var tailSteps = tail.Zip(tail.Skip(1), (a, b) => b - a).ToArray();
+        Assert.True(tailSteps.Skip(20).Take(40).Zip(tailSteps.Skip(21).Take(40), (a, b) => b <= a + 1e-6).All(decays => decays), "the run-on does not decay");
+        Assert.Equal(300, tail[^1], 3);
+
+        // 3. A flick down towards the end arrives from speed and stops on it: never past it, the last frames still moving, and at rest exactly there.
+        clock?.Advance(TimeSpan.FromSeconds(1));
+        scroller.Offset = new Vector(0, most - 120);
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        for (var notch = 0; notch < 8; notch++)
+        {
+            window.MouseWheel(point, new Vector(0, -1));
+            Dispatcher.UIThread.RunJobs();
+            Frames(3);
+        }
+        var landing = Frames(480);
+        most = scroller.Extent.Height - scroller.Viewport.Height;
+        Assert.All(landing, y => Assert.True(y <= most + 1e-6, $"the view went {y - most:F3} past the end"));
+        Assert.Equal(most, landing[^1], 3);
+        var arrived = landing.FindIndex(y => Math.Abs(y - most) < 1e-6);
+        Assert.True(arrived > 0, "the end was reached in the notches' own frames");
+        var last = landing.Take(arrived + 1).ToList();
+        if (last.Count >= 2) Assert.True(last[^1] - last[^2] > 0, "the view crept onto the end instead of arriving from speed");
     });
 }
