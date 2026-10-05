@@ -45,6 +45,16 @@ internal sealed class PreviewSession
     /// <summary>The next (+1) or previous (-1) maker, wrapping around (CZ-4.5.1).</summary>
     internal void Step(int delta) => Pick(PreviewMakers.Step(Maker, delta));
 
-    /// <summary>CZ-4.6: touching any Working dots control switches the pick to Running a turn.</summary>
-    internal void WorkingDotsTouched() => Pick(PreviewState.Running);
+    /// <summary>
+    /// CZ-5 (CZ-10.2): raised when a Working dots control is touched, so the voice demo in the preview stops. The demo is CZ-7b's: nothing listens until it exists, and its stage
+    /// subscribes here (ED-NEW-cloud-cz-5).
+    /// </summary>
+    internal event Action? VoiceDemoCancelRequested;
+
+    /// <summary>CZ-4.6, CZ-10.2: touching any Working dots control cancels the voice demo and switches the pick to Running a turn.</summary>
+    internal void WorkingDotsTouched()
+    {
+        VoiceDemoCancelRequested?.Invoke();
+        Pick(PreviewState.Running);
+    }
 }

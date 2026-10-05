@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Marrow.App.Views.Composer;
+using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
@@ -13,12 +14,25 @@ internal sealed class PreviewWorkingDots : Decorator
 {
     private readonly Panel panel = new();
     private Control? current;
+    private ComposerWorkingDots? shownDots;
+    private SwiftColor tint = Chrome.Accent;
 
     /// <summary>Whether the dots are in (or arriving).</summary>
     internal bool Shown => current is not null;
 
     /// <summary>How opaque the arriving dots are now (0.4 s ease-in-out); 0 when they are not in.</summary>
     internal double Opacity01 => current?.Opacity ?? 0;
+
+    /// <summary>CZ-5 (CZ-10.4): the colour the dots wear, the workingDots setting's for the preview maker; a running field blends to it over 0.32 s, dots that arrive later wear it from the start.</summary>
+    internal SwiftColor Tint
+    {
+        get => tint;
+        set
+        {
+            tint = value;
+            if (shownDots is not null) shownDots.Tint = value;
+        }
+    }
 
     internal PreviewWorkingDots()
     {
@@ -30,7 +44,7 @@ internal sealed class PreviewWorkingDots : Decorator
     {
         if (running && current is null)
         {
-            var dots = new ComposerWorkingDots { VerticalAlignment = VerticalAlignment.Bottom }; // :667-669
+            var dots = shownDots = new ComposerWorkingDots { VerticalAlignment = VerticalAlignment.Bottom, Tint = tint }; // :667-669
             var geometry = new Grid { Children = { dots } };
             geometry.SizeChanged += (_, e) => dots.Height = e.NewSize.Height * 0.4; // :668
             current = geometry.Transition(SwiftTransition.Opacity.Animation(Animation.EaseInOut(0.4))); // :672
@@ -40,6 +54,7 @@ internal sealed class PreviewWorkingDots : Decorator
         {
             SwiftTransition.Remove(panel, leaving);
             current = null;
+            shownDots = null;
         }
     }
 }

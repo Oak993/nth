@@ -94,10 +94,10 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
         Assert.Equal(["Style"], Texts(kids[1]).Where(t => t == "Style"));
         var sections = kids.OfType<CzSection>().ToList();
         Assert.Equal(
-            ["Look", "Pace and strength", null, null, "Look", "Motion", "Brightness by moment", null, null, null],
+            ["Look", "Pace and strength", null, null, "Look", "Motion", "Brightness by moment", null, null, null, "Working dots"],
             sections.Select(s => s.Title));
-        Assert.Equal(sections, page.Beam!.Sections.Concat(page.Aura!.Sections).Append(page.Off!));
-        // the points left to the units that come after (CZ-5, CZ-6, CZ-7, the Speech section): the sticky container and the rest after it exist and are empty of anything but the page's own parts
+        Assert.Equal(sections, page.Beam!.Sections.Concat(page.Aura!.Sections).Append(page.Off!).Append(page.Dots!.Section)); // CZ-5 adds the Working dots section at the end of the sticky container
+        // the points left to the units that come after (CZ-6, CZ-7, the Speech section): the sticky container and the rest after it exist and are empty of anything but the page's own parts
         Assert.NotNull(page.Rest);
         Assert.Empty(page.Rest.Children);
         // the stage sits 2 above the Style heading (CZ-3.4)
