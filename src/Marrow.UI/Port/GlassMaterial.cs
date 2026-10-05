@@ -698,6 +698,10 @@ internal static class GlassMaterial
             float disp = (optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR)) * lit;
             // The reads stay inside the window's surface (`window`, half a device pixel in): past it the backdrop holds nothing, so a piece that fills its
             // window read transparent at its edge and its outer ring came out translucent over an opaque backdrop (REVIEW_GlassWindowEdgeTests).
+            // An unlit (dark, large) piece reads its band from as deep as its blur reaches past the edge (2.5 of its sigma, Draw's BlurSigma), so the
+            // brighter backdrop outside it does not bleed in: the Mac card's body is flat to its edge (44 to 47 over its first 10 pt; ED-NEW-glass-g3 (4)).
+            float reach = 2.5 * clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
+            disp -= (1.0 - lit) * max(reach - dd, 0.0);
             half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
             half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
             half4 b = backdrop.eval(clamp(xy - n * (disp * LG_BLUE), window.xy, window.zw));
