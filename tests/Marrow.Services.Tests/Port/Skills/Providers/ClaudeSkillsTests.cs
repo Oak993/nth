@@ -55,11 +55,11 @@ public sealed class ClaudeSkillsTests
         });
         var legacy = new LegacyClaudeSession(config);
         runtime.Loop.Run(() => legacy.Start(), TimeSpan.FromSeconds(5));
-        runtime.Loop.Run(() => legacy.Send(new TurnInput { Images = [], Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
+        runtime.Loop.Run(() => legacy.Send(new TurnInput { Images = ValueList<Attachment>.Empty, Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
         legacy.Stop();
         var current = new ClaudeSession(config, () => null);
         runtime.Loop.Run(() => current.Start(), TimeSpan.FromSeconds(5));
-        runtime.Loop.Run(() => current.Send(new TurnInput { Images = [], Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
+        runtime.Loop.Run(() => current.Send(new TurnInput { Images = ValueList<Attachment>.Empty, Text = "fixture", Model = config.Model, RuntimeMode = config.RuntimeMode, InteractionMode = config.InteractionMode }), TimeSpan.FromSeconds(5));
         current.Stop();
         Assert.Equal(2, recordings.Count);
         Assert.Equal(2, helpEnvironments.Count);
@@ -271,7 +271,7 @@ public sealed class ClaudeSkillsTests
         runtime.Loop.Enqueue(() => task = ClaudeSession.Handshake(c.Executable!, c.WorkingDirectory, c.Environment, () => probe));
         runtime.Loop.RunUntil(() => call?.TerminateRequested == true, TimeSpan.FromSeconds(5));
         Assert.False(task!.IsCompleted); Assert.Equal(path, probe.Folder); service.Collect(); Assert.True(Directory.Exists(path));
-        call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); task.GetAwaiter().GetResult();
+        call!.CompleteExit(); runtime.Loop.RunUntil(() => task.IsCompleted, TimeSpan.FromSeconds(5)); Assert.True(task.IsCompletedSuccessfully);
         Assert.Throws<ObjectDisposedException>(() => { _ = probe.Folder; });
     }
 
@@ -297,7 +297,7 @@ public sealed class ClaudeSkillsTests
         using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => new RecordingClaudeProcess(args, env));
         var s = new ClaudeSession(Config(), () => gen) { OnEvent = events.Add }; runtime.Loop.Run(() => s.Start(), TimeSpan.FromSeconds(5));
         f.Trees.Unlock(gen.Folder); File.WriteAllText(Path.Combine(gen.Folder, "extra.py"), "fixture"); f.Trees.Lock(gen.Folder);
-        var input = new TurnInput { Text = "fixture", Images = [], RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
+        var input = new TurnInput { Text = "fixture", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
         runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5));
         var notices = events.OfType<ProviderEvent.Notice>().ToArray();
         Assert.Single(notices); Assert.Equal("A Marrow skill file changed during this chat; new chats are not affected", notices[0].Value.Message);
