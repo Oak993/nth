@@ -10,7 +10,7 @@ public sealed class DiskUserSkillFiles : IUserSkillFiles
 
     public IReadOnlyList<string> SkillFolders(string root)
     {
-        if (!Directory.Exists(root)) return [];
+        if (!Directory.Exists(root) || IsLink(root)) return [];
         var folders = new List<string>();
         foreach (var folder in Directory.EnumerateDirectories(root).Order(StringComparer.Ordinal))
         {
@@ -24,6 +24,7 @@ public sealed class DiskUserSkillFiles : IUserSkillFiles
     public string? ReadText(string root, string file)
     {
         var rootPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+        if (IsLink(rootPath)) return null;
         var path = Path.GetFullPath(file);
         if (!path.StartsWith(rootPath + Path.DirectorySeparatorChar, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) return null;
         for (var part = path; part != rootPath; part = Path.GetDirectoryName(part)!)
