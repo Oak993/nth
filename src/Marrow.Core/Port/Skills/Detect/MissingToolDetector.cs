@@ -150,7 +150,8 @@ public static class MissingToolDetector
         return (FindingVerdict.Offer, null);
     }
 
-    private static OfferCard BuildCard(DetectionContext context, IReadOnlyList<string> requested)
+    // SK-12 also uses this dependency order when attaching to an already confirmed download.
+    public static OfferCard BuildCard(DetectionContext context, IReadOnlyList<string> requested)
     {
         var byId = context.Catalogue.Items.ToDictionary(i => i.Id, StringComparer.Ordinal);
         var items = new List<string>();

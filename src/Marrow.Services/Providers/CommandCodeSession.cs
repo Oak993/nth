@@ -112,7 +112,7 @@ public sealed class CommandCodeSession : ProviderSession
     // argv is exactly BuildArguments' and the environment exactly today's.
     public Marrow.Services.Port.Skills.Providers.ProviderSkillLaunch? SkillLaunch { get; init; }
     public Marrow.Services.Port.Skills.Providers.CommandCodeSkillFlagProbe? SkillFlagProbe { get; init; }
-    public Action<Marrow.Core.Port.Skills.Detect.ToolEvent>? ToolEvents { get; init; }
+    public Action<Marrow.Core.Port.Skills.Detect.ToolEvent>? ToolEvents { get; set; }
     private Marrow.Services.Port.Skills.Providers.CommandCodeToolEventTap? toolTap;
     private Marrow.Services.Port.Skills.Providers.CommandCodeToolEventTap Tap => toolTap ??= new(ToolEvents);
 

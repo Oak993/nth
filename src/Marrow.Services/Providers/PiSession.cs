@@ -24,7 +24,7 @@ public sealed class PiSession : ProviderSession
 
     // PORT-ONLY: SK-11e / WU-10 and DL-12. Null for both means today's argv, environment and behaviour exactly.
     public ProviderSkillLaunch? SkillLaunch { get; init; }
-    public Action<ToolEvent>? ToolEvents { get; init; }
+    public Action<ToolEvent>? ToolEvents { get; set; }
     private PiToolEventTap? toolTap;
     private PiToolEventTap Tap => toolTap ??= new PiToolEventTap(ToolEvents);
 

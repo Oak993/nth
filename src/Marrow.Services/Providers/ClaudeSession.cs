@@ -988,7 +988,10 @@ public sealed class ClaudeSession : ProviderSession
         return Task.CompletedTask;
     }
 
-    public void ResolveApproval(string requestID, string optionID) // :254-275
+    public void ResolveApproval(string requestID, string optionID) => ResolveApproval(requestID, optionID, null);
+
+    // PORT-ONLY: SK-12 / DL-13 R1; the caller supplies the S1 denial reason, legacy declines keep their words.
+    public void ResolveApproval(string requestID, string optionID, string? reason) // :254-275
     {
         if (!pendingTools.Remove(requestID, out var pending)) return; // :255
         if (SwiftString.Equal(optionID, "allow") || SwiftString.Equal(optionID, "always")) // :256
@@ -1007,9 +1010,9 @@ public sealed class ClaudeSession : ProviderSession
         }
         else // :268-273
         {
-            var message = SwiftString.Equal(pending.Name, "ExitPlanMode")
+            var message = reason ?? (SwiftString.Equal(pending.Name, "ExitPlanMode")
                 ? "The user wants to keep planning. Wait for their feedback before changing anything."
-                : "The user declined this action.";
+                : "The user declined this action.");
             SendToolResponse(requestID, JSONValue.FromDictionaryLiteral(("behavior", "deny"), ("message", message)));
         }
         OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :274
