@@ -28,15 +28,27 @@ public sealed record MicrophoneRowState(IReadOnlyList<MicrophoneItem> Items, str
     /// <summary>Lists the endpoints and resolves <paramref name="mic"/> against them (no device is opened).</summary>
     public static MicrophoneRowState Of(ICaptureHost host, string? mic)
     {
+        TryOf(host, mic, out var state);
+        return state;
+    }
+
+    /// <summary>
+    /// <see cref="Of"/> that says whether the listing worked. When it did not (the seam is not composed, or the audio service errs) <paramref name="state"/> is the first item only and the result
+    /// false, so a page that already shows a list can keep it (review of VT-13).
+    /// </summary>
+    public static bool TryOf(ICaptureHost host, string? mic, out MicrophoneRowState state)
+    {
         try
         {
             var items = MicrophoneChoices.Items(host);
             var resolved = MicrophoneChoices.Resolve(host, mic);
-            return new MicrophoneRowState(items, resolved.EndpointId, resolved.FellBack);
+            state = new MicrophoneRowState(items, resolved.EndpointId, resolved.FellBack);
+            return true;
         }
         catch (Exception)
         {
-            return new MicrophoneRowState([new MicrophoneItem(null, VoiceTypingSettings.WindowsDefaultMicrophone)], null, false);
+            state = new MicrophoneRowState([new MicrophoneItem(null, VoiceTypingSettings.WindowsDefaultMicrophone)], null, false);
+            return false;
         }
     }
 }

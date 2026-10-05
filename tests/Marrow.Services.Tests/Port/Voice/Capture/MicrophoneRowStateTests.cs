@@ -1,5 +1,6 @@
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Services.Port.Voice.Capture;
+using Marrow.Services.Tests.Fixtures;
 
 namespace Marrow.Services.Tests.Port.Voice.Capture;
 
@@ -119,5 +120,28 @@ public sealed class MicrophoneRowStateTests
         var state = MicrophoneRowState.Of(host, "{b}");
         Assert.Equal(3, state.MenuOptions.Count);
         Assert.Equal("{b}", state.SelectedValue);
+    }
+
+    [Fact]
+    [Trait("Feature", "VT-13")]
+    [Trait("Spec", "V-T42")]
+    [Trait("Decision", "ED-267")] // review of VT-13: the menu's options have unique ids whatever the enumerator lists
+    public void The_menu_options_never_repeat_an_id()
+    {
+        var state = MicrophoneRowState.Of(new ScriptedCaptureHost(("{a}", "One"), ("{a}", "One"), ("", "Nameless")), "{a}");
+        Assert.Equal(["", "{a}"], state.MenuOptions.Select(o => o.Id));
+        Assert.Equal("{a}", state.SelectedId);
+    }
+
+    [Fact]
+    [Trait("Feature", "VT-13")]
+    [Trait("Spec", "V-T42")]
+    [Trait("Decision", "ED-267")] // review of VT-13: a refresh that cannot list says so, so the page can keep the list it has
+    public void A_listing_that_throws_is_told_apart_from_a_list_of_Windows_default_only()
+    {
+        Assert.False(MicrophoneRowState.TryOf(new ThrowingHostStandIn(), null, out var failed));
+        Assert.Equal(["Windows default"], failed.Items.Select(i => i.Label));
+        Assert.True(MicrophoneRowState.TryOf(new ScriptedCaptureHost(), null, out var empty));
+        Assert.Equal(["Windows default"], empty.Items.Select(i => i.Label));
     }
 }

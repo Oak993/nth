@@ -31,8 +31,10 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
     {
         With(() => new SettingsView(), (view, _, h, w) =>
         {
-            var titles = new[] { "General", "Hydra", "Appearance", "Voice typing", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About" }; // VT-13: Voice typing sits after Appearance (Q-CZ-1 A)
-            var symbols = new[] { "gear", "", "paintpalette", "waveform", "cpu", "puzzlepiece.extension", "slider.horizontal.3", "arrow.triangle.branch", "command", "archivebox", "info.circle" };
+            var titles = Marrow.App.Port.Settings.SettingsSidebar.Pages("").Select(page => page.Title).ToArray();
+            // The upstream pages' symbols (SettingsView.swift :19-32 and :34-45), by title, and Voice typing's waveform (VT-13, Q-CZ-1 A); a first-release page listed by a later unit brings its own, which SettingsNewPagesTests pins.
+            var known = new Dictionary<string, string> { ["General"] = "gear", ["Hydra"] = "", ["Appearance"] = "paintpalette", ["Voice typing"] = "waveform", ["Providers"] = "cpu", ["MCP"] = "puzzlepiece.extension", ["Models"] = "slider.horizontal.3", ["Source control"] = "arrow.triangle.branch", ["Shortcuts"] = "command", ["Archive"] = "archivebox", ["About"] = "info.circle" };
+            var symbols = titles.Select(title => known.TryGetValue(title, out var symbol) ? symbol : SwiftEnum<SettingsPage>.AllCases.Single(page => page.Title == title).Symbol).ToArray();
             Assert.Equal(titles, Nodes<SidebarRow>(view).Select(r => Text(r).Single()));
             var list = Field<StackPanel>(view, "rows"); Assert.Equal(1, list.Spacing); Assert.Equal(new Thickness(10, 12, 10, 8), list.Margin);
             Check(Nodes<SidebarRow>(view)[0], 0, true);

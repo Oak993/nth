@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App.Port;
+using Marrow.App.Port.Settings;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Tests.Window;
 using Marrow.App.Views.Settings;
@@ -37,9 +38,12 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
 {
     private const double Frame = 1.0 / 60;
 
-    // VT-13: Voice typing is listed after Appearance (Q-CZ-1 A). The canvas draws ten pages; the eleventh row takes the next start index and, as ED-249 rules for anything past
-    // index 10, the last two rows (Archive, About) start with index 10, so the wave still ends at G + 260 ms.
-    private static readonly string[] PageTitles = ["General", "Hydra", "Appearance", "Voice typing", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
+    // The pages the sidebar lists, in its order: the ten upstream pages (SettingsView.swift :4-15) and each first-release page whose unit has set its IsReady. The rise gives every row its own start
+    // up to ED-249's index 10, so the count follows the list.
+    private static readonly string[] PageTitles = SettingsSidebar.Pages("").Select(page => page.Title).ToArray();
+
+    // The items of the wave that are not sidebar rows: the search field, the page title, the look card's parts, the second card and the like (18 with the ten upstream rows).
+    private const int ItemsBesidesRows = 8;
     // OD-0088 (ED-250): the Appearance page starts with the Look card; its rows are Theme and Accent.
     private static readonly string[] CardRowTitles = ["Theme", "Accent"];
 
@@ -210,7 +214,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         var (_, view) = Open(manager, rig);
         ToGlassReady(rig);
         var parts = Parts(view);
-        Assert.Equal(19, parts.Items.Count);
+        Assert.Equal(ItemsBesidesRows + PageTitles.Length, parts.Items.Count);
         for (var k = 0; k <= 15; k++)
         {
             if (k > 0) rig.At(k * Frame);

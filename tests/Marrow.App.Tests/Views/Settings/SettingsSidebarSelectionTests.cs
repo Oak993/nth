@@ -42,7 +42,7 @@ public sealed class SettingsSidebarSelectionTests(HeadlessSession headless) : Se
             Assert.Equal(selected, Alpha("Appearance"));
 
             Press(w, Key.Escape); // Chrome.swift:814 the field empties: every page is listed again
-            Assert.Equal(11, Titles(view).Length); // VT-13: ten upstream pages and Voice typing
+            Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, Titles(view).Length);
             Assert.Same(appearance, RowOf("Appearance")); // still the row it had, still selected
             Assert.NotSame(general, RowOf("General")); // General left the list: it comes back as a new view
             Assert.False(RowOf("General").IsSelected);
