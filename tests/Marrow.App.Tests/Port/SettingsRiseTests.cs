@@ -200,6 +200,57 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         Assert.Equal(0.245, 0.269 * 0.912, 3);
     });
 
+    // OD-0075, the owner's intent of 2026-10-05 and ED-NEW-corner-seam: the window's corners are the backdrop's own glass (and the detail sheet's), extended to the window's
+    // rectangle, so they fade in with it. The old corner wedge was a layer of its own that Rise had to be told about; this proves the corner pixel on rendered frames: the bare
+    // backdrop at G (no hard square corner of scrim before the glass), the fraction of the glass's end colour that the spec's curve gives mid-fade (0.698 at G+1/60), the body's own
+    // colour at every step, and the end.
+    [Fact]
+    [Trait("Decision", "ED-249")]
+    [Trait("Decision", "OD-0075")]
+    public void The_windows_corners_fade_in_with_the_glass_not_as_a_hard_square_corner() => WithManager((_, manager) =>
+    {
+        using var rig = new SettingsRiseRig();
+        var (window, _) = Open(manager, rig);
+        var grey = Color.FromRgb(128, 128, 128);
+        window.Background = new SolidColorBrush(grey); // the system's Acrylic stood in for by a known grey
+        void Render() { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); }
+        var pairs = CornerSeam.Pairs(780, 580, Chrome.WindowCornerRadius, [2, 3, 4, 5], edgeInset: 1);
+        Assert.NotEmpty(pairs);
+        (int R, int G, int B)[] Wedge() { Render(); return CornerSeam.Rgb(window, pairs.Select(pair => pair.Wedge).ToArray()); }
+        (int R, int G, int B)[] Body() => CornerSeam.Rgb(window, pairs.Select(pair => pair.Body).ToArray());
+
+        ToGlassReady(rig); // G: the glass is at 0
+        var atStart = Wedge();
+        foreach (var colour in atStart) Assert.True(CornerSeam.Near(colour, (grey.R, grey.G, grey.B), 2), $"at G a corner pixel shows {colour}, not the bare backdrop {grey}: a hard square corner");
+        foreach (var colour in Body()) Assert.True(CornerSeam.Near(colour, (grey.R, grey.G, grey.B), 2), $"at G the body shows {colour}, not the bare backdrop");
+
+        var steps = new List<(int Step, (int R, int G, int B)[] Wedge, (int R, int G, int B)[] Body)>();
+        foreach (var step in new[] { 1, 2 }) // the clock only runs forward
+        {
+            rig.At(step * Frame);
+            steps.Add((step, Wedge(), Body()));
+        }
+        rig.At(5 * Frame); // the glass is whole (G + 83 ms)
+        var end = Wedge();
+        var endBody = Body();
+        for (var index = 0; index < pairs.Length; index++)
+        {
+            Assert.True(CornerSeam.Near(end[index], endBody[index]), $"{pairs[index].Corner} at the end: wedge {end[index]}, body {endBody[index]}");
+            Assert.False(CornerSeam.Near(end[index], (grey.R, grey.G, grey.B), 20), $"{pairs[index].Corner} at the end shows the bare backdrop {end[index]}");
+        }
+        foreach (var (step, mid, midBody) in steps)
+        {
+            var fade = SpecRise.Glass(step * Frame); // 0.698, 0.912
+            for (var index = 0; index < pairs.Length; index++)
+            {
+                // the corner has come the glass's fraction of the way from the bare backdrop to its end colour, as the body beside it has
+                var fraction = (mid[index].R - grey.R) / (double)(end[index].R - grey.R);
+                Assert.InRange(fraction, fade - 0.06, fade + 0.06);
+                Assert.True(CornerSeam.Near(mid[index], midBody[index]), $"{pairs[index].Corner} at G+{step}/60: wedge {mid[index]}, body {midBody[index]}");
+            }
+        }
+    });
+
     [Fact]
     [Trait("Decision", "ED-249")]
     public void Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart() => WithManager((_, manager) =>
