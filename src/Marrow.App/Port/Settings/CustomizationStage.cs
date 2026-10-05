@@ -45,6 +45,10 @@ internal sealed class CustomizationStage : Decorator
     internal PreviewModelSwitch Switch { get; }
     internal CzCrossfadeText Caption { get; }
 
+    // CZ-6 STUB (test-first red step): the compaction and the hairline, not yet driven
+    internal double Compaction => 0;
+    internal Border Hairline { get; } = new();
+
     /// <param name="settings">The composer light's settings as the app holds them; read inside a tracked read.</param>
     /// <param name="backdropOpacity">The app's backdrop opacity, the stage's own backdrop wearing it; read inside a tracked read.</param>
     /// <param name="session">The preview's maker and state (CZ-4.5.3, CZ-4.6).</param>
