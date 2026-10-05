@@ -65,7 +65,8 @@ public sealed class HandshakeMachine(
     DecisionPolicy decisions,
     IThreadAccountHost host,
     TimeProvider clock,
-    HandshakeOptions options) : IAsyncDisposable
+    HandshakeOptions options,
+    Func<HandshakeOptions>? optionsSource = null) : IAsyncDisposable
 {
     private sealed record Pending(bool Earlier, string AccountId, DateTimeOffset? ResetsAt, SwitchTarget? Back, IReadOnlyList<DecisionKind> Kinds);
 
@@ -95,6 +96,7 @@ public sealed class HandshakeMachine(
     private bool waitForAny;
 
     public HandshakePhase Phase => phase;
+    private HandshakeOptions CurrentOptions => optionsSource?.Invoke() ?? options;
 
     public event EventHandler<HandshakeEvent>? Changed;
 
@@ -119,12 +121,12 @@ public sealed class HandshakeMachine(
     {
         CancelLinking();
         await gate.WaitAsync(ct);
-        try { await HardLimitAsync(accountId, resetsAt, allowAsk: true, ct); }
+        try { await HardLimitAsync(accountId, resetsAt, ct); }
         finally { gate.Release(); }
     }
 
     /// <summary>The user's answer to a <see cref="HandshakeEventKind.DecisionRequested"/> card: the choices, and the one Remember line for all of them.</summary>
-    public async Task AnswerAsync(IReadOnlyList<Choice> choices, RememberScope scope, CancellationToken ct)
+    public async Task AnswerAsync(IReadOnlyList<Choice> choices, RememberScope scope, CancellationToken ct, Action? onAccepted = null)
     {
         await gate.WaitAsync(ct);
         try
@@ -158,10 +160,11 @@ public sealed class HandshakeMachine(
                     if (answers.TryAdd(kind, DecisionValues.Fallback(kind))) answerPolicies[kind] = StoredPolicy(kind);
             pending = null;
             SetPhase(HandshakePhase.Idle);
+            onAccepted?.Invoke();
             try
             {
-                if (card.Earlier) await EarlierAsync(card.Back!, allowAsk: false, ct);
-                else await HardLimitAsync(card.AccountId, card.ResetsAt, allowAsk: false, ct);
+                if (card.Earlier) await EarlierAsync(card.Back!, ct);
+                else await HardLimitAsync(card.AccountId, card.ResetsAt, ct);
             }
             finally { if (phase == HandshakePhase.Idle && standby is null) ClearAnswers(); }
         }
@@ -186,14 +189,14 @@ public sealed class HandshakeMachine(
 
         var now = clock.GetUtcNow();
         var exhausted = usage.IsExhaustedAt(now);
-        var threshold = HandshakeTiming.StartPercent(account, CurrentStep()?.Step, options, limits, threadId);
+        var threshold = HandshakeTiming.StartPercent(account, CurrentStep()?.Step, CurrentOptions, limits, threadId);
         if (!exhausted && usage.PercentUsed < threshold) failedFor = null;
         if (failedFor == active) return;
 
-        if (exhausted) await HardLimitAsync(active, usage.ResetsAt, allowAsk: true, ct);
-        else if (options.Enabled && usage.PercentUsed >= threshold) await NearLimitAsync(active, ct);
+        if (exhausted) await HardLimitAsync(active, usage.ResetsAt, ct);
+        else if (CurrentOptions.Enabled && usage.PercentUsed >= threshold) await NearLimitAsync(active, ct);
         else if (!host.Pinned && chooser.EarlierBack(active, host.Pill, host.StepIndex) is { } back && !declined.Contains(back.Account.Id))
-            await EarlierAsync(back, allowAsk: true, ct);
+            await EarlierAsync(back, ct);
     }
 
     private async Task NearLimitAsync(string active, CancellationToken ct)
@@ -205,7 +208,7 @@ public sealed class HandshakeMachine(
         await RunPipelineAsync(active, move.Target, HandshakeReason.NearLimit, DecisionValues.ToBring(chosen), hardStop: false, resumeReply: false, ct);
     }
 
-    private async Task EarlierAsync(SwitchTarget back, bool allowAsk, CancellationToken ct)
+    private async Task EarlierAsync(SwitchTarget back, CancellationToken ct)
     {
         var active = host.ActiveAccountId;
         outgoing = active;
@@ -221,7 +224,7 @@ public sealed class HandshakeMachine(
         var needs = new List<DecisionKind>();
         if (earlier.MustAsk) needs.Add(DecisionKind.EarlierAccount);
         if (bringChoice.MustAsk) needs.Add(DecisionKind.Bring);
-        if (needs.Count > 0 && allowAsk)
+        if (needs.Count > 0)
         {
             Ask(new Pending(true, active, null, back, needs), earlier.MustAsk && earlier.FirstTime || bringChoice.MustAsk && bringChoice.FirstTime, back.Account.Id);
             return;
@@ -238,7 +241,7 @@ public sealed class HandshakeMachine(
 
     // ---- The limit has hit ----
 
-    private async Task HardLimitAsync(string accountId, DateTimeOffset? resetsAt, bool allowAsk, CancellationToken ct,
+    private async Task HardLimitAsync(string accountId, DateTimeOffset? resetsAt, CancellationToken ct,
         HandshakeReason why = HandshakeReason.HardLimit)
     {
         if (phase is HandshakePhase.Asking or HandshakePhase.Waiting) return;
@@ -336,7 +339,8 @@ public sealed class HandshakeMachine(
         var active = host.ActiveAccountId;
         var now = clock.GetUtcNow();
         var usage = limits.Usage(active);
-        if (usage is not null && !usage.IsExhaustedAt(now))
+        if (usage is not null && !usage.IsExhaustedAt(now)
+            || usage is null && !waitForAny && waitUntil is { } reportedReset && now >= reportedReset)
         {
             reason = HandshakeReason.ResetReached;
             ClearAnswers();
@@ -348,7 +352,7 @@ public sealed class HandshakeMachine(
         if (available is not (ChooserResult.Move or ChooserResult.OtherService)
             || available is ChooserResult.OtherService && Get(DecisionKind.OtherService).Value == DecisionValues.Wait) return;
         SetPhase(HandshakePhase.Idle);
-        await HardLimitAsync(active, usage.ResetsAt, allowAsk: true, ct, HandshakeReason.ResetReached);
+        await HardLimitAsync(active, usage.ResetsAt, ct, HandshakeReason.ResetReached);
     }
 
     // ---- The pipeline: Standby, Linking, In sync, Switch ----
@@ -379,7 +383,7 @@ public sealed class HandshakeMachine(
 
             // The outgoing account writes the briefing only while it still has usage.
             var outHasUsage = !(limits.Usage(from)?.IsExhaustedAt(clock.GetUtcNow()) ?? false);
-            if (!hardStop && options.Enabled && briefing is null && outHasUsage)
+            if (!hardStop && CurrentOptions.Enabled && briefing is null && outHasUsage)
             {
                 try { briefing = await host.RequestBriefingAsync(summary, token); }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -391,11 +395,11 @@ public sealed class HandshakeMachine(
             string? readBack = null;
             if (!received)
             {
-                readBack = await standby.ReceiveAsync(new HandoffPackage(bring, summary, briefing), options.Enabled, token);
+                readBack = await standby.ReceiveAsync(new HandoffPackage(bring, summary, briefing), CurrentOptions.Enabled, token);
                 received = true;
             }
 
-            if (options.Enabled)
+            if (CurrentOptions.Enabled)
             {
                 SetPhase(HandshakePhase.InSync);
                 if (!synced)
@@ -409,6 +413,7 @@ public sealed class HandshakeMachine(
             else
             {
                 synced = true;
+                SetPhase(HandshakePhase.InSync);
             }
         }
         catch (OperationCanceledException) when (linking.IsCancellationRequested && !ct.IsCancellationRequested)
@@ -439,6 +444,7 @@ public sealed class HandshakeMachine(
         if (target is null || Find(target.Account.Id) is not { Enabled: true }
             || (limits.Usage(target.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false)
             || host.ActiveAccountId != outgoing || !PolicyStillCurrent()
+            || reason == HandshakeReason.NearLimit && !CurrentOptions.Enabled
             || reason == HandshakeReason.EarlierAccountBack && host.Pinned)
         {
             Emit(HandshakeEventKind.Degraded, phase, phase, null, detail: "The prepared account is no longer available.");
@@ -450,6 +456,9 @@ public sealed class HandshakeMachine(
         SetPhase(HandshakePhase.Switch);
         try
         {
+            if (host is IAccountSwitchCommitGuard guarded)
+                guarded.CanCommit = () => PolicyStillCurrent() && host.ActiveAccountId == outgoing
+                    && (reason != HandshakeReason.NearLimit || CurrentOptions.Enabled);
             await host.SwitchAsync(standby!, target!, resume, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

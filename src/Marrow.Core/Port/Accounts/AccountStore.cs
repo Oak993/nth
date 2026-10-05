@@ -8,6 +8,7 @@ namespace Marrow.Core.Port.Accounts;
 public sealed class AccountStore
 {
     public const string SettingsKey = "multiAccounts";
+    public event Action? Changed;
     private readonly ISettingsStore settings;
     private volatile AccountDocument document;
     private readonly object gate = new();
@@ -72,23 +73,29 @@ public sealed class AccountStore
     public HandshakePoint GeneralHandshakePoint
     {
         get => document.GeneralHandshakePoint;
-        set { lock (gate) Save(document with { GeneralHandshakePoint = value ?? throw new ArgumentNullException(nameof(value)) }); }
+        set
+        {
+            lock (gate) Save(document with { GeneralHandshakePoint = value ?? throw new ArgumentNullException(nameof(value)) });
+            Changed?.Invoke();
+        }
     }
 
     public HandshakePoint EffectiveHandshakePoint(Guid id) => Get(id).Defaults.HandshakePoint ?? GeneralHandshakePoint;
 
     public Account Add(ProviderKind service, string? plan = null)
     {
+        Account account;
         lock (gate)
         {
             if (!SwiftEnum<ProviderKind>.AllCases.Contains(service)) throw new ArgumentOutOfRangeException(nameof(service));
             var existing = ForService(service);
             if (existing.Count != 0 && !AccountCapabilities.SupportsMultipleAccounts(service))
                 throw new InvalidOperationException("This service supports one account.");
-            var account = new Account { Id = Guid.NewGuid(), Service = service, Plan = NormalizePlan(plan), Priority = existing.Count };
+            account = new Account { Id = Guid.NewGuid(), Service = service, Plan = NormalizePlan(plan), Priority = existing.Count };
             Save(document with { Accounts = [.. document.Accounts, account] });
-            return account;
         }
+        Changed?.Invoke();
+        return account;
     }
 
     public void Rename(Guid id, string? name)
@@ -113,6 +120,7 @@ public sealed class AccountStore
             var order = remaining.Where(a => a.Service == account.Service).OrderBy(a => a.Priority).Select(a => a.Id).ToArray();
             Save(document with { Accounts = remaining.Select(a => a.Service == account.Service ? a with { Priority = Array.IndexOf(order, a.Id) } : a).ToArray() });
         }
+        Changed?.Invoke();
     }
 
     public void Reorder(ProviderKind service, IReadOnlyList<Guid> ids)
@@ -125,6 +133,7 @@ public sealed class AccountStore
             var ranks = ids.Select((id, index) => (id, index)).ToDictionary(x => x.id, x => x.index);
             Save(document with { Accounts = document.Accounts.Select(a => a.Service == service ? a with { Priority = ranks[a.Id] } : a).ToArray() });
         }
+        Changed?.Invoke();
     }
 
     /// <summary>A disabled pin is refused, never silently substituted. Automatic order skips disabled rows.</summary>
@@ -157,6 +166,7 @@ public sealed class AccountStore
             _ = Get(id);
             Save(document with { Accounts = document.Accounts.Select(a => a.Id == id ? update(a) : a).ToArray() });
         }
+        Changed?.Invoke();
     }
 
     private void Save(AccountDocument next)

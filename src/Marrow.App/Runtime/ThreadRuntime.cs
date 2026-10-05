@@ -1897,8 +1897,20 @@ public sealed partial class ThreadRuntime : MainActorModel
     }
 
     // :1430-1604. Build the session signature after resolving any routed worker catalogue.
-    private async Task<ProviderSession> EnsureSession(string directory, bool allowNewSession = true)
+    private Task<ProviderSession> EnsureSession(string directory, bool allowNewSession = true) =>
+        EnsureSessionOwned(directory, allowNewSession, CancellationToken.None, null);
+
+    // A reset-driven restart keeps its original resume identity and may commit only while its route owns it.
+    private ProviderSession? guardedStartingSession;
+    private async Task<ProviderSession> EnsureSessionOwned(string directory, bool allowNewSession,
+        CancellationToken startCancellation, Func<bool>? canCommit)
     {
+        void CheckStart()
+        {
+            startCancellation.ThrowIfCancellationRequested();
+            if (canCommit?.Invoke() == false) throw new CancellationError();
+        }
+        CheckStart();
         if (App is not { } app || app.Thread(ThreadID) is not { } thread)
             throw new ProviderError(new ProviderError.Case.NotRunning());
 
@@ -1919,6 +1931,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 ?? throw new InvalidOperationException("The original account for this conversation is unavailable.");
         var account = accounts.Choose(thread.Provider, boundID)
             ?? throw new InvalidOperationException("No enabled account is available for this conversation.");
+        app.AccountRouting.Attach(this);
         var launchThread = account.UsesLegacyCredentials ? thread : thread with { ProviderAccountID = account.Id };
         var localTarget = thread.Provider == ProviderKind.Local ? app.Providers.Local.Resolve(thread.Model) : null;
         if (thread.Provider == ProviderKind.Local && localTarget is null)
@@ -1933,6 +1946,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         // Resolve the login environment before tearing down the current session.
         await LoginEnvironment.Load();
+        CheckStart();
         ReleaseSession(stop: true);
         StopNativeHeads();
 
@@ -1966,34 +1980,38 @@ public sealed partial class ThreadRuntime : MainActorModel
                 };
 
                 var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
-                Observe(created);
+                Observe(created, account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, account.Id.ToString("D")));
                 return created;
             }
 
             ProviderSession candidate = MakeApiSession(thread.ProviderSessionID);
             session = candidate;
             sessionSignature = signature;
+            if (canCommit is not null) guardedStartingSession = candidate;
             var started = false;
             try
             {
                 string sessionID;
                 try
                 {
-                    sessionID = await candidate.Start();
+                    sessionID = await StartOwnedSessionAsync(candidate, startCancellation);
                 }
                 catch (Exception) when (thread.ProviderSessionID is not null
                     && thread.ProviderResumeAt is null
                     && allowNewSession
                     && ReferenceEquals(session, candidate)
+                    && !startCancellation.IsCancellationRequested
+                    && canCommit?.Invoke() != false
                     && !SwiftTask.IsCancelled)
                 {
                     ReleaseSession(stop: true);
                     candidate = MakeApiSession(resumeID: null);
                     session = candidate;
                     sessionSignature = signature;
-                    sessionID = await candidate.Start();
+                    sessionID = await StartOwnedSessionAsync(candidate, startCancellation);
                 }
 
+                CheckStart();
                 if (!ReferenceEquals(session, candidate) || SwiftTask.IsCancelled)
                     throw new CancellationError();
                 started = true;
@@ -2002,6 +2020,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             }
             finally
             {
+                if (ReferenceEquals(guardedStartingSession, candidate)) guardedStartingSession = null;
                 if (!started)
                 {
                     candidate.OnEvent = null;
@@ -2035,13 +2054,14 @@ public sealed partial class ThreadRuntime : MainActorModel
             };
 
             var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
-            Observe(created);
+            Observe(created, account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, account.Id.ToString("D")));
             return created;
         }
 
         var cliCandidate = MakeSession(thread.ProviderSessionID);
         session = cliCandidate;
         sessionSignature = signature;
+        if (canCommit is not null) guardedStartingSession = cliCandidate;
         var cliStarted = false;
         isStartingSession = true;
         try
@@ -2049,10 +2069,12 @@ public sealed partial class ThreadRuntime : MainActorModel
             string sessionID;
             try
             {
-                sessionID = await cliCandidate.Start();
+                sessionID = await StartOwnedSessionAsync(cliCandidate, startCancellation);
             }
             catch (Exception error) when (allowNewSession
                 && ReferenceEquals(session, cliCandidate)
+                && !startCancellation.IsCancellationRequested
+                && canCommit?.Invoke() != false
                 && !SwiftTask.IsCancelled
                 && StartsOver(error, thread))
             {
@@ -2067,12 +2089,17 @@ public sealed partial class ThreadRuntime : MainActorModel
                 cliCandidate = MakeSession(resumeID: null);
                 session = cliCandidate;
                 sessionSignature = signature;
-                sessionID = await cliCandidate.Start();
+                sessionID = await StartOwnedSessionAsync(cliCandidate, startCancellation);
             }
 
+            CheckStart();
             if (!ReferenceEquals(session, cliCandidate) || SwiftTask.IsCancelled)
                 throw new CancellationError();
+            if (canCommit is not null && thread.ProviderSessionID is { } resumed
+                && !SameResumeIdentity(thread.Provider, resumed, sessionID))
+                throw new ProviderError(new ProviderError.Case.NotRunning());
             cliStarted = true;
+            if (ReferenceEquals(guardedStartingSession, cliCandidate)) guardedStartingSession = null;
             if (launchThread.ProviderAccountID is not null)
                 app.UpdateThread(ThreadID, current => current with { ProviderAccountID = launchThread.ProviderAccountID });
             RecordSessionID(sessionID);
@@ -2080,6 +2107,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
         finally
         {
+            if (ReferenceEquals(guardedStartingSession, cliCandidate)) guardedStartingSession = null;
             isStartingSession = false;
             if (!cliStarted)
             {
@@ -2361,6 +2389,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         finally
         {
             finishingTurnID = null;
+            App?.TickAccountRouting(ThreadID);
         }
     }
 
@@ -2900,6 +2929,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1610-1617.
     private void RecordSessionID(string sessionID)
     {
+        if (guardedStartingSession is not null && ReferenceEquals(session, guardedStartingSession)) return;
         if (App is not { } app) return;
         if (app.Thread(ThreadID)?.ProviderSessionID is null)
         {
@@ -2925,6 +2955,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
     // ThreadRuntime.swift:2070-2077.
     public UsageAccountKey? UsageAccount { get; private set; }
+    private Action<ProviderEvent>? observedSessionEvent;
 
     public void Observe(ProviderSession provider) => Observe(provider, CurrentUsageAccount());
 
@@ -2941,7 +2972,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         sessionEpoch++;
         var epoch = sessionEpoch;
         var weakSelf = new WeakReference<ThreadRuntime>(this);
-        provider.OnEvent = @event =>
+        provider.OnEvent = observedSessionEvent = @event =>
         {
             if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
                 runtime.Handle(@event is ProviderEvent.UsageLimit limit ? limit with { Account = account } : @event);
@@ -2969,6 +3000,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:2098-2115.
     public void StopSession()
     {
+        App?.DetachAccountRouting(ThreadID);
         ReleaseSession(stop: true);
         StopNativeHeads();
         if (Phase == RuntimePhase.Idle) return;
@@ -3756,6 +3788,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :3642-3648
     public void CancelPersistence()
     {
+        App?.DetachAccountRouting(ThreadID);
         FlushHandoffJournal();
         persistenceEnabled = false;
         saveTask?.Cancel();
@@ -3911,6 +3944,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 break;
             case ProviderEvent.UsageLimit value:
                 limitedReplyTurnID = currentTurnID;
+                if (App?.AccountRouting.NoteLimit(this, value.Account, value.ResetsAt) == true) break;
                 if (value.Account is { } limitedAccount) App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt, limitedAccount);
                 else App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt);
                 break;

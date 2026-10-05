@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 namespace Marrow.App.Runtime;
 
 public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillStore pills, IHandoffSummary summaries,
-    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null) : IThreadAccountHost
+    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null) : IThreadAccountHost, IAccountSwitchCommitGuard
 {
     private readonly Func<SessionConfiguration, Guid, AccountSessionLaunch> create = launch ?? ((configuration, id) => AccountSessionFactory.Create(app.Providers, configuration, id, freshContext: true));
     private HandshakeStandbySession? prepared;
@@ -22,6 +22,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     public Pill? Pill => Relay?.Pill;
     public int? StepIndex => Relay?.StepIndex;
     public bool Pinned => false;
+    public Func<bool>? CanCommit { get; set; }
     public bool AtSafePoint => runtime.IsAccountSwitchSafe;
     public bool ReplyInFlight => runtime.HandshakeReplyInterrupted;
     public async Task<IStandbySession> StartStandbyAsync(SwitchTarget target, CancellationToken ct)
@@ -114,7 +115,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
 
     private void CheckSource(SwitchTarget target)
     {
-        if (!AtSafePoint || ActiveAccountId != preparedFrom || runtime.HandshakeStamp.Epoch != preparedEpoch
+        if (!AtSafePoint || CanCommit?.Invoke() == false || ActiveAccountId != preparedFrom || runtime.HandshakeStamp.Epoch != preparedEpoch
             || app.Settings.Accounts.Choose(incomingProvider(target), Guid.Parse(target.Account.Id)) is null)
             throw new InvalidOperationException("The prepared switch is no longer safe or available.");
     }

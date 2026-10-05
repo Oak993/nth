@@ -11,18 +11,28 @@ public sealed partial class ThreadRuntime
 {
     internal HandshakeSourceStamp HandshakeStamp => new(saveRevision, sessionEpoch, Thread);
 
+    internal bool TryHandshakeAccountId(out Guid id)
+    {
+        id = default;
+        if (Thread is not { } thread || App is not { } app) return false;
+        var rows = app.Settings.Accounts.ForService(thread.Provider);
+        var account = thread.ProviderAccountID is { } bound ? rows.FirstOrDefault(row => row.Id == bound)
+            : UsageAccount is { } used && used.Provider == thread.Provider
+                ? used.IsDefault ? rows.FirstOrDefault(row => row.UsesLegacyCredentials)
+                    : Guid.TryParse(used.AccountId, out var observed) ? rows.FirstOrDefault(row => row.Id == observed) : null
+            : thread.ProviderSessionID is not null ? rows.FirstOrDefault(row => row.UsesLegacyCredentials)
+            : app.Settings.Accounts.Choose(thread.Provider);
+        if (account is null) return false;
+        id = account.Id;
+        return true;
+    }
+
     internal Guid HandshakeAccountId
     {
         get
         {
-            var thread = Thread ?? throw new InvalidOperationException("The conversation is unavailable.");
-            var accounts = App?.Settings.Accounts ?? throw new InvalidOperationException("The conversation is unavailable.");
-            if (thread.ProviderAccountID is { } bound) return accounts.Get(bound).Id;
-            if (thread.ProviderSessionID is not null)
-                return accounts.ForService(thread.Provider).FirstOrDefault(account => account.UsesLegacyCredentials)?.Id
-                    ?? throw new InvalidOperationException("The original account for this conversation is unavailable.");
-            return accounts.Choose(thread.Provider)?.Id
-                ?? throw new InvalidOperationException("No enabled account is available for this conversation.");
+            return TryHandshakeAccountId(out var id) ? id
+                : throw new InvalidOperationException("The original account for this conversation is unavailable.");
         }
     }
 

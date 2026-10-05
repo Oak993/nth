@@ -13,6 +13,46 @@ public sealed partial class ThreadRuntime
     public long HandshakeRevision => saveRevision;
     public bool HandshakeReplyInterrupted => limitedReplyTurnID is not null;
 
+    internal async Task<bool> TryResumeAfterAccountWaitAsync(Guid account, long epoch, Guid interrupted, string? originalSessionId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsAccountSwitchSafe || !TryHandshakeAccountId(out var active) || active != account
+            || limitedReplyTurnID != interrupted || Turns.LastOrDefault()?.Id != interrupted
+            || session is { IsRunning: true } && sessionEpoch != epoch
+            || session is not { IsRunning: true } && Thread?.ProviderSessionID != originalSessionId)
+            return false;
+        var source = Thread!;
+        var row = App!.Settings.Accounts.Get(account);
+        if (!row.Enabled || !App.IsAccountConnected(row)) return false;
+        var configuration = CreateHandshakeConfiguration(new(new(account.ToString("D"), row.Service.Id, row.CustomName ?? App.Settings.Accounts.DefaultName(account))))
+            with { Model = source.Model, Effort = source.Effort, FastMode = source.FastMode };
+        bool StillOwnsRestart() => IsAccountWorkSettled && (!isStartingSession
+            || guardedStartingSession is not null && ReferenceEquals(session, guardedStartingSession)) && limitedReplyTurnID == interrupted
+            && Turns.LastOrDefault()?.Id == interrupted && Thread is { } current
+            && current.ProviderSessionID == originalSessionId && current.ProviderAccountID == source.ProviderAccountID
+            && current.Provider == source.Provider && current.Model == source.Model && current.Effort == source.Effort
+            && current.FastMode == source.FastMode && current.RuntimeMode == source.RuntimeMode
+            && current.InteractionMode == source.InteractionMode && current.WorktreePath == source.WorktreePath
+            && current.ProjectID == source.ProjectID && TryHandshakeAccountId(out var currentAccount) && currentAccount == account;
+        ProviderSession candidate;
+        try
+        {
+            candidate = session is { IsRunning: true } existing ? existing
+                : await EnsureSessionOwned(configuration.WorkingDirectory.Path, allowNewSession: false, ct, StillOwnsRestart);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception error)
+        {
+            if (!ct.IsCancellationRequested && StillOwnsRestart()) AppendNotice(Notice.Level.Error, error.Message);
+            return false;
+        }
+        ct.ThrowIfCancellationRequested();
+        if (!IsAccountSwitchSafe || limitedReplyTurnID != interrupted || Turns.LastOrDefault()?.Id != interrupted
+            || !TryHandshakeAccountId(out active) || active != account || !ReferenceEquals(session, candidate)) return false;
+        ResumeHandshakeReply(candidate, configuration, Turns.First(turn => turn.Id == interrupted));
+        return true;
+    }
+
     public void AdoptHandshakeSession(ProviderSession candidate, string sessionId, SessionConfiguration configuration,
         PillThreadState? relay = null, bool resumeReply = false)
     {
@@ -98,7 +138,7 @@ public sealed partial class ThreadRuntime
 
     private void InstallHandshakeBridge(ProviderSession candidate, HandshakeReplyBridge bridge)
     {
-        var observe = candidate.OnEvent!;
+        var observe = observedSessionEvent ?? throw new InvalidOperationException("The live account observer is unavailable.");
         var epoch = sessionEpoch;
         candidate.OnEvent = value =>
         {

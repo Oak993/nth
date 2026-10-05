@@ -47,7 +47,7 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
         {
             var at = CurrentStep(currentAccountId, pill, stepIndex);
             for (var i = 0; i < at; i++)
-                if (Find(pill.Steps[i].AccountId) is { } account && IsAvailable(account)) return new SwitchTarget(account, i, pill.Effective(i));
+                if (PillStepAccountResolver.Resolve(store, pill.Steps[i]) is { } account && IsAvailable(account)) return new SwitchTarget(account, i, pill.Effective(i));
             return null;
         }
 
@@ -62,7 +62,7 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
     private ChooserResult NextInPill(string currentAccountId, Pill pill, int? stepIndex)
     {
         var at = CurrentStep(currentAccountId, pill, stepIndex);
-        var steps = pill.Steps.Select((step, i) => (Step: step, Index: i, Account: Find(step.AccountId)))
+        var steps = pill.Steps.Select((step, i) => (Step: step, Index: i, Account: PillStepAccountResolver.Resolve(store, step)))
             .Where(x => x.Account is { Enabled: true }).ToList();
         var ready = steps.Where(x => x.Index != at && IsAvailable(x.Account!)).ToList();
         // After the current step first; otherwise the loop: the highest-ranked step that is available again.
@@ -75,11 +75,9 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
     private static int CurrentStep(string currentAccountId, Pill pill, int? stepIndex)
     {
         if (stepIndex is { } index && index >= 0 && index < pill.Steps.Count) return index;
-        var found = pill.Steps.ToList().FindIndex(s => s.AccountId == currentAccountId);
+        var found = pill.Steps.ToList().FindIndex(s => string.Equals(s.AccountIdentity, currentAccountId, StringComparison.OrdinalIgnoreCase));
         return found;
     }
-
-    private AccountInfo? Find(string id) => store.Accounts.FirstOrDefault(a => a.Id == id);
 
     private bool IsAvailable(AccountInfo account) =>
         account.Enabled && !(limits.Usage(account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false);

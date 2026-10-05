@@ -64,6 +64,7 @@ public sealed record PillStep(
     string? KeyId = null)
 {
     public StepSettings Settings => new(Model, Effort, Fast);
+    public string AccountIdentity => KeyId ?? AccountId;
 }
 
 /// <summary>A named sequence across accounts and services. <see cref="EarlierAccount"/> is the pill's own "when an earlier account is back" value (a <see cref="DecisionValues"/> value), or null to follow Settings.</summary>

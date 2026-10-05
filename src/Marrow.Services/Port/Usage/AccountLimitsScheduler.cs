@@ -75,6 +75,7 @@ public sealed class AccountLimitsScheduler : IDisposable
         lock (gate)
         {
             var state = State(account);
+            if (state.InUse == inUse) return;
             state.InUse = inUse;
             if (inUse) state.Next = Allowed(state, clock.GetUtcNow());
             else if (!state.Requested) state.Next = null;
@@ -89,6 +90,7 @@ public sealed class AccountLimitsScheduler : IDisposable
         lock (gate)
         {
             var state = State(account);
+            if (state.HandshakePercent == percent) return;
             state.HandshakePercent = percent;
             if (state.InUse) state.Next = Allowed(state, clock.GetUtcNow() + Interval(state));
             Arm(state);

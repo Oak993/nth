@@ -582,3 +582,10 @@ The real ThreadRuntime host, final-tail acknowledgement/revalidation, full Git c
 Normal launches share the account factory; Local discovery projects persistent account rows; operation-scoped once answers, changed service/package policy, unknown-report waiting, effective pill targets and API metadata/spend boundaries have narrow Windows validation: Core 227/227, Services 22/22, App 72/72; zero skips/build warnings/errors. See ED-NEW-ma-ui.
 
 **Incomplete:** production controller/scheduler ownership; actual API pools/credits/caps/spend/pins; remaining provider restriction/restoration and step-1 joins. Step 2 is owned by cloud/ma-settings; merge its READY delivery after completing/pushing step 1. Composer/cards/opinions/usage, capsule styles, neural GPU motion, Fast/actual-window labels and native checks remain. No push/DONE/release claim; T11 NOT READY.
+
+
+## T11 live routing and pill-key checkpoint, 2026-10-05, Codex
+
+Per-thread routing/scheduler ownership, first-time OFF/acceptance behavior, final consent guards, chosen-wait same-turn recovery, canceled startup, immutable source identity and pill-key selection/availability/persistence now have scoped Windows evidence: Core 245/245, Services 34/34, App 137/137, zero skipped/build warnings/errors. Read-only review and exact-method alone-twice regressions are recorded in ED-NEW-ma-ui. The aborted Drain run is excluded.
+
+**Incomplete:** actual API key pools/caps/spend/credits/pins; provider restricted priming/restoration (including unsupported or unknown resume identities); step-1 joins. Settings cloud/ma-settings 317722f27 is NOT READY and belongs to the separate helper/Fledge worktree; no step-2 implementation here. Later composer/cards/opinions/usage/styles/motion and native checks remain. T11 NOT READY; no passing-step push, DONE or release claim.

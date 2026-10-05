@@ -11,6 +11,14 @@ public sealed class AccountDecisionStore : IDecisionStore
     private AccountDecisionDocument document = new();
     private readonly object gate = new();
     public event Action? Changed;
+    public bool SaveBlocked { get; private init; }
+    public static AccountDecisionStore ReadOnly(ISettingsStore settings) => new(settings, true);
+
+    private AccountDecisionStore(ISettingsStore settings, bool readOnly)
+    {
+        this.settings = settings;
+        SaveBlocked = readOnly;
+    }
 
     public AccountDecisionStore(ISettingsStore settings)
     {
@@ -85,6 +93,7 @@ public sealed class AccountDecisionStore : IDecisionStore
 
     private void Save(AccountDecisionDocument next)
     {
+        if (SaveBlocked) throw new InvalidOperationException("Account preferences could not be read; the original value was preserved.");
         settings.Set(SettingsKey, JsonSerializer.SerializeToUtf8Bytes(next));
         document = next;
     }

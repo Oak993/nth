@@ -171,7 +171,7 @@ public sealed class PillStore
     {
         if (useForNewThreads is not { } id || Find(id) is not { } pill) return null;
         for (var i = 0; i < pill.Steps.Count; i++)
-            if (usable(pill.Steps[i])) return new PillThreadState(pill.Id, i, pill.Steps[i].AccountId);
+            if (usable(pill.Steps[i])) return new PillThreadState(pill.Id, i, pill.Steps[i].AccountIdentity);
         return null;
     }
 

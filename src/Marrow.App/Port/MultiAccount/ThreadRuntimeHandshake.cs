@@ -8,8 +8,9 @@ namespace Marrow.App.Runtime;
 
 public sealed partial class ThreadRuntime
 {
-    public bool IsAccountSwitchSafe => Phase == RuntimePhase.Idle && !IsLoadingHistory && !IsReverting && pendingSend is null
-        && closingTurnID is null && finishingTurnID is null && !isStartingSession
+    public bool IsAccountSwitchSafe => !isStartingSession && IsAccountWorkSettled;
+    private bool IsAccountWorkSettled => Phase == RuntimePhase.Idle && !IsLoadingHistory && !IsReverting && pendingSend is null
+        && closingTurnID is null && finishingTurnID is null
         && Approvals.Count == 0 && Questions.Count == 0 && !HasWorkingHeads
         && hydraPendingReports.Count == 0 && hydraBatches.Count == 0 && hydraWaiting.Count == 0
         && !hydraFlushScheduled && HydraLanding is null && !IsHydraMerging
