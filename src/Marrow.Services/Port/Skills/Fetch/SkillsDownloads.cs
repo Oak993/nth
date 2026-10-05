@@ -18,6 +18,13 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
     private readonly Dictionary<string, FetchFlight> flights = new(StringComparer.Ordinal);
     private readonly List<Action> watchers = [];
 
+    /// <summary>
+    /// ENGINEERING DECISION (review): downloads begin in the order they were asked for. The pipeline runs one operation at a time and its wait is first come first served, so the order in which flights reach it is the
+    /// order they are served in; starting each on the pool left that to chance (an item asked second could be served first, and a failing first item then waited behind a long one). This scheduler runs only the
+    /// short part of a flight that ends at its first real wait, one flight at a time in the order queued; the transfer itself runs wherever it runs.
+    /// </summary>
+    private readonly TaskScheduler starts = new ConcurrentExclusiveSchedulerPair().ExclusiveScheduler;
+
     /// <summary>True when the download and binding seams are bound, so a download can be tried at all (see <see cref="CanFetch"/> for one item).</summary>
     public bool Available => pipeline.FetchingBound;
 
@@ -136,7 +143,7 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
         if (start)
         {
             Notify();
-            _ = Task.Run(() => Run(flight, item));
+            _ = Task.Factory.StartNew(() => Run(flight, item), CancellationToken.None, TaskCreationOptions.DenyChildAttach, starts).Unwrap(); // in the order asked, see starts
         }
         try { return await flight.Result.Task.WaitAsync(cancellation).ConfigureAwait(false); }
         finally { Leave(); }
