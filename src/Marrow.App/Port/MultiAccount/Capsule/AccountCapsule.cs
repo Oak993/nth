@@ -105,7 +105,7 @@ internal sealed class AccountCapsule : Panel
     private bool Dark => PlainControls.IsDark(ActualThemeVariant);
 
     /// <summary>Whether movement is stilled: the system's or the window's Reduce Motion (OD-0076). A capsule never cuts: with it, changes crossfade and nothing loops.</summary>
-    private bool ReduceMotion => EnvironmentValues.GetAccessibilityReduceMotion(this) || ChromeTokens.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+    private bool ReduceMotion => CapsuleMotion.Reduce(this);
 
     // ---- what a test can read
 
@@ -175,7 +175,7 @@ internal sealed class AccountCapsule : Panel
         Repaint();
     }
 
-    private Animation? Ease(Animation curve) => ReduceMotion || !FrameClock.IsBound ? null : curve;
+    private Animation? Ease(Animation curve) => FrameClock.IsBound ? curve : null; // AnimatedScalar lands at once under Reduce Motion itself
 
     // ---- the usage light: one colour per percent, eased over 0.6 s
 

@@ -95,7 +95,7 @@ internal sealed class PillCapsuleSection : Decorator
 
     // ---- the slow run
 
-    private bool Still => EnvironmentValues.GetAccessibilityReduceMotion(this) || ChromeTokens.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+    private bool Still => CapsuleMotion.Reduce(this);
 
     private static double Area(Rect rect) => rect.Width * rect.Height;
 

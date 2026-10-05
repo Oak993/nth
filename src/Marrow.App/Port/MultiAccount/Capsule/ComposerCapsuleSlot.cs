@@ -93,7 +93,7 @@ internal sealed class ComposerCapsuleSlot : Decorator
     {
         made.Opacity = 0;
         fade = new AnimatedScalar(made, 0, v => made.Opacity = v);
-        var still = EnvironmentValues.GetAccessibilityReduceMotion(this) || ChromeTokens.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+        var still = CapsuleMotion.Reduce(this);
         fade.Set(1, !FrameClock.IsBound ? null : Marrow.UI.Port.Animation.EaseOut(duration: still ? .22 : .3));
     }
 }
