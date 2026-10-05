@@ -74,7 +74,7 @@ public sealed class CudaOfferRowTests
         using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(PinsJson()));
         var c = json.RootElement.GetProperty("cuda").GetProperty("nvidiaCompanions");
 
-        Assert.Equal(c.GetProperty("libcublas").GetProperty("bytes").GetInt64() + c.GetProperty("cuda_cudart").GetProperty("bytes").GetInt64(), CudaCompanionPins.Bytes);
+        Assert.Equal(CudaCompanionPins.Bytes, c.GetProperty("libcublas").GetProperty("bytes").GetInt64() + c.GetProperty("cuda_cudart").GetProperty("bytes").GetInt64());
     }
 
     private static string PinsJson([System.Runtime.CompilerServices.CallerFilePath] string here = "") =>

@@ -166,12 +166,12 @@ public sealed class CudaOfferDownloadTests
         await rig.Offer.StartAsync().WaitAsync(FakeDownloadServer.Guard);
 
         Assert.Equal(CudaOfferState.Failed, rig.Offer.Row.State);
-        Assert.Equal(1, rig.Server.Requests.Count);
+        Assert.Single(rig.Server.Requests);
         companions.Outcome = CudaCompanionOutcome.Installed;
         await rig.Offer.StartAsync().WaitAsync(FakeDownloadServer.Guard);
 
         Assert.Equal(CudaOfferState.Installed, rig.Offer.Row.State);
-        Assert.Equal(1, rig.Server.Requests.Count); // the pack was already there
+        Assert.Single(rig.Server.Requests); // the pack was already there
     }
 
     [Fact]
@@ -212,6 +212,6 @@ public sealed class CudaOfferDownloadTests
         await rig.Offer.StartAsync();
 
         Assert.False(rig.Offer.Row.Shown);
-        Assert.Equal(0, rig.Server.Requests.Count);
+        Assert.Empty(rig.Server.Requests);
     }
 }
