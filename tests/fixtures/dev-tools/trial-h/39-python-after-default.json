@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "name": "39-python-after-default",
+  "commandLine": "python --version",
+  "executable": "python",
+  "arguments": [
+    "--version"
+  ],
+  "exitCode": 0,
+  "stdout": "Python 3.14.7\r\n",
+  "stderr": "",
+  "durationMs": 106.7595,
+  "versionsBefore": {
+    "Python.Python.3.13": "3.13.14",
+    "Python.Python.3.14": "3.14.4"
+  },
+  "versionsAfter": {
+    "Python.Python.3.13": "3.13.15",
+    "Python.Python.3.14": "3.14.7"
+  },
+  "timestamp": "2026-10-05T15:31:47.5371534+00:00",
+  "finishedAt": "2026-10-05T15:31:47.6456701+00:00"
+}

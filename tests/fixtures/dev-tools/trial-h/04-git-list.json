@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "name": "04-git-list",
+  "commandLine": "winget list --id Git.Git -e --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "list",
+    "--id",
+    "Git.Git",
+    "-e",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Name Id      Version Available Source\r\n-------------------------------------\r\nGit  Git.Git 2.54.0  2.55.0.5  winget\r\n",
+  "stderr": "",
+  "durationMs": 3234.3444,
+  "versionsBefore": "2.54.0.windows.1",
+  "versionsAfter": "2.54.0.windows.1",
+  "timestamp": "2026-10-05T15:24:59.1050813+00:00",
+  "finishedAt": "2026-10-05T15:25:02.3406701+00:00"
+}

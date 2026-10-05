@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "17-node-show",
+  "commandLine": "winget show --id OpenJS.NodeJS.22 -e --source winget --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "show",
+    "--id",
+    "OpenJS.NodeJS.22",
+    "-e",
+    "--source",
+    "winget",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Found Node.js 22 [OpenJS.NodeJS.22]\r\nVersion: 22.23.2\r\nPublisher: Node.js Foundation\r\nPublisher Url: https://openjsf.org/\r\nPublisher Support Url: https://github.com/nodejs/node/blob/v22.23.2/.github/SUPPORT.md\r\nAuthor: OpenJS Foundation\r\nMoniker: nodejs-22\r\nDescription: Node.js® is a free, open-source, cross-platform JavaScript runtime environment that lets developers create servers, web apps, command line tools and scripts.\r\nHomepage: https://nodejs.org/\r\nLicense: MIT\r\nLicense Url: https://github.com/nodejs/node/blob/v22.23.2/LICENSE\r\nPrivacy Url: https://privacy-policy.openjsf.org/\r\nCopyright: Copyright Node.js contributors. All rights reserved.\r\nCopyright Url: https://trademark-policy.openjsf.org/\r\nRelease Notes:\r\n  This is a security release.\r\n  Notable Changes\r\n  - (CVE-2026-56846) http2: retain header memory in session accounting (Matteo Collina) – High\r\n  - (CVE-2026-56848) http2: defer rst stream while in scope (Matteo Collina) – High\r\n  - (CVE-2026-58043) permission: avoid granting radix split nodes (RafaelGSS) – High\r\n  - (CVE-2026-56850) https: distinguish PFX object-array agent keys (RafaelGSS) – Medium\r\n  - (CVE-2026-58040) https: bind identity checks to session reuse (Matteo Collina) – Medium\r\n  - (CVE-2026-58042) dns: handle large resolveAny address replies (RafaelGSS) – Medium\r\n  - (CVE-2026-58045) zlib: throw on out-of-bounds write buffers (RafaelGSS) – Medium\r\n  - (CVE-2026-56847) permission: enforce fs write permission for trace events (RafaelGSS) – Low\r\n  - (CVE-2026-58039) permission: check final report output path (RafaelGSS) – Low\r\n  - (CVE-2026-58044) http: reject requests exceeding max header count (Matteo Collina) – Low\r\n  - deps: update llhttp to 9.4.3 (Paolo Insogna)\r\n  - deps: update undici to 6.28.0 (Node.js GitHub Bot)\r\n  Commits\r\n  - [4b12ac38a1] - deps: update llhttp to 9.4.3 (Paolo Insogna) nodejs-private/node-private#935\r\n  - [3fd0aa51d0] - deps: update undici to 6.28.0 (Node.js GitHub Bot) #64714\r\n  - [22efc051a3] - (CVE-2026-58042) dns: handle large resolveAny address replies (RafaelGSS) nodejs-private/node-private#929\r\n  - [c8525ac3a6] - (CVE-2026-58044) http: reject requests exceeding max header count (Matteo Collina) nodejs-private/node-private#932\r\n  - [daa6d25e3d] - (CVE-2026-56848) http2: defer rst stream while in scope (Matteo Collina) nodejs-private/node-private#921\r\n  - [f14d78b9e0] - (CVE-2026-56846) http2: retain header memory in session accounting (Matteo Collina) #63752\r\n  - [51123159fe] - (CVE-2026-58040) https: bind identity checks to session reuse (Matteo Collina) nodejs-private/node-private#934\r\n  - [acaf4266b2] - (CVE-2026-56850) https: distinguish PFX object-array agent keys (RafaelGSS) nodejs-private/node-private#930\r\n  - [440329f624] - (CVE-2026-58043) permission: avoid granting radix split nodes (RafaelGSS) nodejs-private/node-private#911\r\n  - [ed18b9cc07] - (CVE-2026-58039) permission: check final report output path (RafaelGSS) nodejs-private/node-private#926\r\n  - [0566c3cccd] - (CVE-2026-56847) permission: enforce fs write permission for trace events (RafaelGSS) nodejs-private/node-private#927\r\n  - [0d072480c3] - (CVE-2026-58045) zlib: throw on out-of-bounds write buffers (RafaelGSS) nodejs-private/node-private#931\r\nRelease Notes Url: https://github.com/nodejs/node/releases/tag/v22.23.2\r\nDocumentation:\r\n  Learn: https://nodejs.org/learn/\r\n  Documentation: https://nodejs.org/docs/v22.23.2/api/\r\n  About: https://nodejs.org/about/\r\nTags:\r\n  coding\r\n  cross-platform\r\n  develop\r\n  development\r\n  environment\r\n  javascript\r\n  js\r\n  lts\r\n  node\r\n  npm\r\n  programming\r\n  runtime\r\n  v8\r\nInstaller:\r\n  Installer Type: wix\r\n  Installer Locale: en-US\r\n  Installer Url: https://nodejs.org/dist/v22.23.2/node-v22.23.2-x64.msi\r\n  Installer SHA256: ce9572ae220c345fbae2340bbb4d084e8ca5e0fe093ee7067d43094ae23be989\r\n  Release Date: 2026-07-28\r\n  Offline Distribution Supported: true\r\n",
+  "stderr": "",
+  "durationMs": 421.6109,
+  "versionsBefore": "24.14.1",
+  "versionsAfter": "24.14.1",
+  "timestamp": "2026-10-05T15:27:03.9755158+00:00",
+  "finishedAt": "2026-10-05T15:27:04.4124856+00:00"
+}

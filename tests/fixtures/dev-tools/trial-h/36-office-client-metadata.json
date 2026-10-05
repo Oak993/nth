@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "36-office-client-metadata",
+  "commandLine": "powershell.exe -NoProfile -Command \"$p=Join-Path ${env:CommonProgramFiles} \\\"Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe\\\"; Get-Item $p | Select-Object FullName,@{N=\\\"FileVersion\\\";E={$_.VersionInfo.FileVersion}} | ConvertTo-Json -Compress; Get-Process WINWORD,EXCEL,POWERPNT,OUTLOOK,MSACCESS,ONENOTE -ErrorAction SilentlyContinue | Select-Object ProcessName | ConvertTo-Json -Compress\"",
+  "executable": "powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-Command",
+    "$p=Join-Path ${env:CommonProgramFiles} \"Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe\"; Get-Item $p | Select-Object FullName,@{N=\"FileVersion\";E={$_.VersionInfo.FileVersion}} | ConvertTo-Json -Compress; Get-Process WINWORD,EXCEL,POWERPNT,OUTLOOK,MSACCESS,ONENOTE -ErrorAction SilentlyContinue | Select-Object ProcessName | ConvertTo-Json -Compress"
+  ],
+  "exitCode": 1,
+  "stdout": "{\"FullName\":\"C:\\\\Program Files\\\\Common Files\\\\Microsoft Shared\\\\ClickToRun\\\\OfficeC2RClient.exe\",\"FileVersion\":\"16.0.20430.20092\"}\r\n",
+  "stderr": "",
+  "durationMs": 381.6756,
+  "versionsBefore": "16.0.20430.20092",
+  "versionsAfter": "16.0.20430.20092",
+  "timestamp": "2026-10-05T15:30:35.8181994+00:00",
+  "finishedAt": "2026-10-05T15:30:36.2016784+00:00"
+}
