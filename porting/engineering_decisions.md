@@ -3163,3 +3163,10 @@ T7 Windows review corrections (2026-10-05). These supersede only the correspondi
 7. UNRESOLVED (supersedes old item 2a): approxSizeMb is NOT an exact download measurement or an unpacked-size measurement. SK-2 must supply unpacked sizes. The existing prototype figures are provisional estimates, explicitly labelled "Sizes are estimates. Unpacked size is not known yet." No exact-size claim is made. The provisional room check is not certified to predict true installed size.
 8. Windows mutations: exact-fit >= to >, undownloaded plugin gate removal, plugin default-on, Escape-starts, Hide-stops and Reset-no-op were all caught by focused tests and each restored byte-exact. An initial redundant Hide-hidden-flag mutation survived because OnSheetClosed independently assigns that flag; the semantic Hide-stops mutant was caught. Mutation/build logs are under E:/Droppy/work/scratch/codex-sk-15/.
 9. Original open work remains: Minimize/pill, manual-file fallback, Add, Tools, provider reports, catalogue pins/description metadata and real first-install wiring. No app, native gate, packaging, installer, provider CLI or real transfer was run.
+
+## ED-NEW-ma-ui
+
+T11 multi-account integration preparation (2026-10-05), codex/ma-ui from 6904c1845. No production implementation or verification is claimed by this entry.
+
+1. ENGINEERING DECISION: use the existing public SettingsSwitch wrapper for account enable/disable and Use the Handshake. SettingsView.cs:377-381 constructs the existing SmallSwitch; its dimensions, pointer/keyboard behavior, animation and accessibility stay owned by that implementation. This fulfills OD-0115 without a second toggle implementation. UI construction and its acceptance tests remain pending step 1.
+2. UNRESOLVED: the required MA-1/2/3/4 READY deliveries are not available; cloud/ma-5 at 22bff240c is pushed but has no READY report available locally. The task orders foundation integration first and permits a merge only when its report says READY. No foundation is merged, no fake service is substituted and no T11 step is marked passing. The continuation record is E:/Droppy/work/scratch/handoff/codex-T11-ma-ui.md.
