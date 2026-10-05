@@ -45,6 +45,7 @@ public sealed class REVIEW_ScriptsSheetInWindowTests(HeadlessSession headless)
     private static bool SheetShown(AvaloniaWindow window) => window.GetVisualDescendants().OfType<Marrow.App.Port.WindowSheetLayer>().Any();
 
     [Theory]
+    [Trait("Req", "PR-TERM-074")] // ChatView.swift:1456-1463 the scripts sheet, an attached sheet of its window
     [InlineData(true)]
     [InlineData(false)]
     public void REVIEW_Escape_closes_the_in_window_scripts_sheet_whatever_holds_the_keyboard(bool focusBox)
@@ -66,6 +67,7 @@ public sealed class REVIEW_ScriptsSheetInWindowTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-TERM-074")] // ChatView.swift:1456-1463 the scripts sheet, an attached sheet of its window
     public void REVIEW_Typing_while_the_sheet_is_open_does_not_reach_a_field_under_it()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -83,6 +85,7 @@ public sealed class REVIEW_ScriptsSheetInWindowTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-TERM-074")] // ChatView.swift:1456-1463 the scripts sheet, an attached sheet of its window
     public void REVIEW_Hit_test_beside_and_above_the_sheet_reaches_the_layer_only()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -108,6 +111,7 @@ public sealed class REVIEW_ScriptsSheetInWindowTests(HeadlessSession headless)
     // The composer takes Escape for itself (ComposerView.cs: a running turn is taken back, a panel closes) and marks it handled. A popover or sheet over the window
     // closes first (PopoverHost.Listen: a tunnelling handler on the owner window); the in-window sheet has no such hook, so the field under it eats the key.
     [Theory]
+    [Trait("Req", "PR-TERM-074")] // ChatView.swift:1456-1463 the scripts sheet, an attached sheet of its window
     [InlineData(true)]
     [InlineData(false)]
     public void REVIEW_Escape_closes_the_sheet_before_the_field_under_it_acts_on_it(bool inWindow)
