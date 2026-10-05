@@ -55,7 +55,7 @@ public sealed class AuroraBootStage : Control
     public event EventHandler? FrameChanged;
     public event EventHandler? MainWindowShown;
     public event EventHandler? Closed;
-    public void Ready() => readyAt ??= clock?.GetElapsedTime(started).TotalSeconds ?? 0;
+    public void Ready() { readyAt ??= clock?.GetElapsedTime(started).TotalSeconds ?? 0; Send(); }
     public void SetWindowFrame(Rect window)
     {
         WindowFrame = window; sequence = new AuroraBootSequence(window, reduceMotion);
@@ -70,7 +70,7 @@ public sealed class AuroraBootStage : Control
     {
         if (visual is null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         visual.Size = new Vector(Bounds.Width, Bounds.Height);
-        visual.SendHandlerMessage(new AuroraBootSnapshot(Bounds.Size, WindowFrame, Frame, Elapsed, PlainControls.IsDark(ActualThemeVariant), reduceMotion, Telemetry));
+        visual.SendHandlerMessage(new AuroraBootSnapshot(Bounds.Size, WindowFrame, Frame, Elapsed, PlainControls.IsDark(ActualThemeVariant), reduceMotion, Telemetry, clock ?? TimeProvider.System, started, readyAt));
     }
     private void Request()
     {
@@ -79,6 +79,7 @@ public sealed class AuroraBootStage : Control
     }
     private void OnFrame(TimeSpan _)
     {
+        using var work = AuroraBootTrace.Begin("Boot: UI frame");
         waiting = false;
         if (closed || clock is null || source is null) return;
         Elapsed = clock.GetElapsedTime(started).TotalSeconds;

@@ -92,6 +92,8 @@ public sealed class BootStageWindow
     /// window; it returns whether the window took it. The app passes none, which is DWM cloaking (<see cref="WindowCloak"/>).</summary>
     public static BootStageWindow Start(AvaloniaWindow main, bool reduceMotion, Action showMain, Func<AvaloniaWindow, bool, bool>? cloak = null)
     {
+        AuroraStartupPreparation.Prepare();
+        AuroraBootPreparation.Prepare();
         var boot = new BootStageWindow(main, reduceMotion, showMain, cloak ?? WindowCloak.Set);
         boot.stageWindow.Show();
         return boot;
@@ -115,6 +117,7 @@ public sealed class BootStageWindow
     // activates it at the hand-over, as before), so it is never displayed and never takes the foreground under the stage.
     private void WarmMain()
     {
+        using var work = AuroraBootTrace.Begin("Boot: UI cloaked show");
         warmTried = true;
         if (main.IsVisible) return;
         var activated = main.ShowActivated;

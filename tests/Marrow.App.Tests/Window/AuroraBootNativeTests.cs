@@ -26,10 +26,13 @@ public sealed class AuroraBootNativeTests(WindowManagerNativeSession native)
         {
             native.Run(subject =>
             {
+                var cacheRoot = Path.Combine(Environment.GetEnvironmentVariable(WindowManagerNativeChildProtocol.DirectoryVariable)!, "aurora-boot-cache");
+                GpuProgramCache.FolderOverride = cacheRoot;
                 var frameTimeFailures = new List<string>();
                 foreach (var reduce in new[] { false, true })
                 {
                     var capture = new AuroraLoaderTelemetry();
+                    var work = new AuroraBootTrace(); AuroraBootTrace.Current = work;
                     var reveals = 0;
                     Task? warm = null;
                     var (window, boot) = native.OnUi(() =>
@@ -82,11 +85,19 @@ public sealed class AuroraBootNativeTests(WindowManagerNativeSession native)
                         N.Until(() => !native.OnUi(() => boot.Window.IsVisible), "B did not close after the glow", 10000);
                         var directory = Path.Combine(Environment.GetEnvironmentVariable(WindowManagerNativeChildProtocol.DirectoryVariable)!, "aurora-boot-capture");
                         Directory.CreateDirectory(directory);
-                        var lines = new List<string> { "frame,interval_ms,handler_ms,painter_bytes,handler_bytes" };
-                        for (var i = 0; i < capture.Count; i++) lines.Add(string.Create(CultureInfo.InvariantCulture, $"{i},{capture.IntervalMilliseconds(i):F6},{capture.DrawingMilliseconds(i):F6},{capture.AllocatedBytes(i)},{capture.HandlerAllocatedBytes(i)}"));
+                        var lines = new List<string> { "frame,interval_ms,handler_ms,painter_bytes,handler_bytes,start_ticks,end_ticks" };
+                        for (var i = 0; i < capture.Count; i++) lines.Add(string.Create(CultureInfo.InvariantCulture, $"{i},{capture.IntervalMilliseconds(i):F6},{capture.DrawingMilliseconds(i):F6},{capture.AllocatedBytes(i)},{capture.HandlerAllocatedBytes(i)},{capture.StartTimestamp(i)},{capture.EndTimestamp(i)}"));
                         File.WriteAllLines(Path.Combine(directory, reduce ? "boot-reduce-motion.csv" : "boot-B.csv"), lines);
                         File.WriteAllText(Path.Combine(directory, reduce ? "boot-reduce-motion-info.json" : "boot-B-info.json"),
-                            System.Text.Json.JsonSerializer.Serialize(new { readyAt, frames = capture.Count, warmSteps = GpuWarmup.Done.ToArray() }));
+                            System.Text.Json.JsonSerializer.Serialize(new { readyAt, frames = capture.Count, frequency = AuroraBootTrace.Frequency, work = work.Snapshot(), warmSteps = GpuWarmup.Done.ToArray(), cacheState = GpuProgramCache.State, cacheFolder = GpuProgramCache.Folder, cacheHits = GpuProgramCache.Hits, cacheWrites = GpuProgramCache.Writes, cacheMisses = GpuProgramCache.Misses }));
+                        if (!reduce)
+                        {
+                            var spans = work.Snapshot();
+                            var drawThread = spans.First(e => e.Name == "Boot: compositor draw").ThreadId;
+                            Assert.Contains(spans, e => e.Name == "worker: light-rotate");
+                            Assert.Contains(spans, e => e.Name == "cache: hit" && e.ThreadId == drawThread);
+                            Assert.DoesNotContain(spans, e => e.Name.StartsWith("worker: ", StringComparison.Ordinal) && e.ThreadId == drawThread);
+                        }
                         // Keep both raw captures even if the cold first run misses the unchanged frame-time bounds.
                         try
                         {
@@ -100,9 +111,11 @@ public sealed class AuroraBootNativeTests(WindowManagerNativeSession native)
                     }
                     finally
                     {
+                        AuroraBootTrace.Current = null;
                         native.OnUi(() => { boot.Window.Close(); window.Close(); AuroraBootWarmup.Unregister(); AuroraLoaderWarmup.Unregister(); });
                     }
                 }
+                GpuProgramCache.FolderOverride = null;
                 Assert.True(frameTimeFailures.Count == 0, string.Join(Environment.NewLine, frameTimeFailures));
             }, factType: typeof(AuroraBootNativeTests));
         }

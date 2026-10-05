@@ -10,6 +10,12 @@ internal sealed class AuroraBootPresentation(AvaloniaWindow main)
 {
     private long? originalStyle;
     private PixelRect? regionFrame;
+    private Rect? lastClip;
+    private double lastCorner;
+    private byte? lastAlpha;
+    private bool regionApplied;
+    private PixelRect? lastOuter;
+    private double lastScale;
     private nint Handle => OperatingSystem.IsWindows() && main.TryGetPlatformHandle() is { HandleDescriptor: "HWND", Handle: not 0 } h ? h.Handle : 0;
     internal bool OpacitySupported { get; private set; }
     internal PixelRect? VisibleFrame()
@@ -20,26 +26,34 @@ internal sealed class AuroraBootPresentation(AvaloniaWindow main)
     }
     internal void Apply(Rect? clip, double corner, double opacity)
     {
+        using var work = Marrow.UI.Port.AuroraBootTrace.Begin("Boot: UI HWND region/alpha");
         var handle = Handle;
         if (handle == 0) return;
-        if (clip is { } rect && (regionFrame ??= VisibleFrame()) is { } visible && GetWindowRect(handle, out var outer))
+        var scale = main.RenderScaling;
+        PixelRect? outerFrame = GetWindowRect(handle, out var outer) ? new PixelRect(outer.Left, outer.Top, outer.Right - outer.Left, outer.Bottom - outer.Top) : null;
+        var frameChanged = lastOuter != outerFrame || lastScale != scale;
+        if (frameChanged) regionFrame = null;
+        if ((!regionApplied || clip != lastClip || corner != lastCorner || frameChanged) && clip is { } rect && (regionFrame ??= VisibleFrame()) is { } visible && outerFrame is not null)
         {
-            var scale = main.RenderScaling;
             var x = visible.X - outer.Left; var y = visible.Y - outer.Top;
             var region = CreateRoundRectRgn(x + (int)Math.Round(rect.X * scale), y + (int)Math.Round(rect.Y * scale),
                 x + (int)Math.Round(rect.Right * scale) + 1, y + (int)Math.Round(rect.Bottom * scale) + 1, (int)Math.Round(corner * scale * 2), (int)Math.Round(corner * scale * 2));
-            if (region != 0 && SetWindowRgn(handle, region, true) == 0) DeleteObject(region); // Windows owns a successfully applied region.
+            if (region != 0 && SetWindowRgn(handle, region, true) == 0) DeleteObject(region);
+            else if (region != 0) { lastClip = clip; lastCorner = corner; regionApplied = true; lastOuter = outerFrame; lastScale = scale; } // Windows owns a successfully applied region.
         }
-        else if (clip is null) SetWindowRgn(handle, 0, true);
+        else if (clip is null && (!regionApplied || lastClip is not null))
+        { SetWindowRgn(handle, 0, true); lastClip = null; regionApplied = true; }
         if (opacity >= 1)
         {
             RestoreOpacity(handle); // Layered windows omit DWM's invisible border; restore it at the exact final frame.
             return;
         }
         // Fade the whole HWND (Acrylic and pixels), rather than fading only the app-drawn glass.
-        originalStyle ??= GetWindowLongPtr(handle, -20);
-        SetWindowLongPtr(handle, -20, originalStyle.Value | 0x80000); // WS_EX_LAYERED
-        OpacitySupported = SetLayeredWindowAttributes(handle, 0, (byte)Math.Clamp((int)Math.Round(opacity * 255), 0, 255), 2);
+        if (originalStyle is null)
+        { originalStyle = GetWindowLongPtr(handle, -20); SetWindowLongPtr(handle, -20, originalStyle.Value | 0x80000); } // WS_EX_LAYERED
+        var alpha = (byte)Math.Clamp((int)Math.Round(opacity * 255), 0, 255);
+        if (lastAlpha != alpha)
+        { OpacitySupported = SetLayeredWindowAttributes(handle, 0, alpha, 2); if (OpacitySupported) lastAlpha = alpha; }
     }
     internal void Behind(AvaloniaWindow stage)
     {
@@ -53,7 +67,7 @@ internal sealed class AuroraBootPresentation(AvaloniaWindow main)
         if (handle == 0) return;
         SetWindowRgn(handle, 0, true);
         RestoreOpacity(handle);
-        regionFrame = null;
+        regionFrame = null; regionApplied = false; lastAlpha = null;
     }
     private void RestoreOpacity(nint handle)
     {
@@ -61,7 +75,7 @@ internal sealed class AuroraBootPresentation(AvaloniaWindow main)
         {
             SetLayeredWindowAttributes(handle, 0, 255, 2);
             SetWindowLongPtr(handle, -20, (GetWindowLongPtr(handle, -20) & ~0x80000L) | (style & 0x80000L));
-            originalStyle = null;
+            originalStyle = null; lastAlpha = null;
         }
     }
     [StructLayout(LayoutKind.Sequential)]

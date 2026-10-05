@@ -4,6 +4,10 @@ namespace Marrow.UI.Port;
 public sealed class AuroraLoaderTelemetry
 {
     private readonly double[] intervals = new double[1024];
+    private readonly long[] started = new long[1024];
+    private readonly long[] finished = new long[1024];
+    public long StartTimestamp(int index) => started[index];
+    public long EndTimestamp(int index) => finished[index];
     private readonly double[] drawing = new double[1024];
     private readonly long[] allocations = new long[1024];
     private readonly long[] handlerAllocations = new long[1024];
@@ -19,6 +23,7 @@ public sealed class AuroraLoaderTelemetry
         var at = count;
         if (at >= intervals.Length) return;
         intervals[at] = previous == 0 ? 0 : (begin - previous) * 1000.0 / TimeProvider.System.TimestampFrequency;
+        started[at] = begin; finished[at] = end;
         drawing[at] = (end - begin) * 1000.0 / TimeProvider.System.TimestampFrequency;
         allocations[at] = bytes;
         handlerAllocations[at] = handlerBytes;

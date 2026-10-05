@@ -2,4 +2,4 @@ using Avalonia;
 
 namespace Marrow.UI.Port;
 
-internal sealed record AuroraBootSnapshot(Size Size, Rect Window, AuroraBootFrame Frame, double Seconds, bool Dark, bool ReduceMotion, AuroraLoaderTelemetry? Telemetry);
+internal sealed record AuroraBootSnapshot(Size Size, Rect Window, AuroraBootFrame Frame, double Seconds, bool Dark, bool ReduceMotion, AuroraLoaderTelemetry? Telemetry, TimeProvider Clock, long Started, double? ReadyAt);
