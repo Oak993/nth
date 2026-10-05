@@ -512,3 +512,14 @@ against the leaders. No stack chosen yet. No Windows code written yet.
 Machine constraint found: .NET 10 RUNTIME only (no SDK), no MSVC, no cmake, no Rust. Node 24,
 Python 3.14 and winget are present. Toolchain will be installed only for the chosen stack, after
 the decision record, rather than speculatively.
+
+
+## A11Y-FIX-1 — 2026-10-05
+
+Isolated delivery branch `codex/a11y-fix-1`, based on staging `889c9ebd523cbfedb39d9bf06e22ba7b9988ea46`; pinned source B3 `52bc7926097cd622d08d6294e0d8b08a48c7516e`. Production fix commit `12687d0ed122d17dde18372bb949e207f3d3d9ec`. A11Y-1 review source: `8c6d331e969bf06b53bd52f61e356e88cfdd724f`.
+
+Fixed staging findings 1, 2, 5, 6, 7, 13, 14 and 15. Pending-only findings 3, 4, 8-12 and 16-17 are excluded, with every test listed in `porting/reports/a11y-fix-1.md`. The resting look and upstream workflows remain intact; focus uses the existing app styles.
+
+Latest validation: Linux strict analyzer-enabled solution build with `-p:EnableWindowsTargeting=true -warnaserror`, zero warnings/errors; focused Accessibility/App Traceability 24/24; UI controls/Traceability 39/39; Core and Services Traceability 3/3 each, zero skips. Broad affected App slice 328 pass / 141 fail / 469; all 141 failures reproduce in the untouched-production staging comparison (306 pass / 142 fail / 448), with no newly failing existing test. Commands, source evidence, independent semantic review, corrected capture precondition and local log/TRX paths are in the report.
+
+Status: NOT READY for complete touched-slice acceptance. Next: resolve or execute on Windows the reproduced DLL/image/font/globalization/time-out limits, verify Narrator/UIA and native picture-picker behavior, and apply the excluded regressions when their pending surfaces land. This is not full product-parity acceptance; no unrelated numbered queue packet was marked DONE.
