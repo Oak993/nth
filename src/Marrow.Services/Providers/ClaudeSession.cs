@@ -159,7 +159,7 @@ public sealed class ClaudeSession : ProviderSession
         var found = new[] { "--system-prompt-snapshot", "--forward-subagent-text" }
             .Where(option => help.Contains(option, StringComparison.Ordinal));
         var options = new HashSet<string>(found, SwiftStringComparer.Instance);
-        if (result.Succeeded && help.Contains("--plugin-dir", StringComparison.Ordinal)) options.Add("--plugin-dir");
+        if (result.Succeeded && System.Text.RegularExpressions.Regex.IsMatch(help, @"(?<![\w-])--plugin-dir(?![\w-])", System.Text.RegularExpressions.RegexOptions.CultureInvariant)) options.Add("--plugin-dir");
         knownOptions[executable.Path] = options;
         return options;
     }
