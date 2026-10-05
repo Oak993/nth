@@ -2,10 +2,12 @@ using Avalonia.Controls;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.MultiAccount;
 using Marrow.Core.Support;
 using Marrow.Services.Git;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
+using Marrow.Services.Port.MultiAccount;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -2441,6 +2443,8 @@ public sealed class ThreadRuntime : MainActorModel
     // :1721-1731. Swift: resolve(_:option:).
     public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
     {
+        // DEVIATION OD-0114 / ED-NEW-ma-4: retain the request, chosen answer and scope after it leaves Approvals.
+        HandoffJournal.Resolution(HandoffFolder, request.Id, new { Request = request, Option = option });
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         if (request.RequestKind == ApprovalRequest.Kind.Plan
             && request.ToolItemID is { } itemID
@@ -2463,6 +2467,7 @@ public sealed class ThreadRuntime : MainActorModel
     // :1733-1736. Swift: answer(_:answers:); the map is ProviderSession.AnswerQuestion's.
     public void Answer(QuestionRequest request, ValueMap<string, ValueList<string>> answers)
     {
+        HandoffJournal.Resolution(HandoffFolder, request.Id, new { Request = request, Answers = answers });
         Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         session?.AnswerQuestion(request.Id, answers);
     }
@@ -3780,10 +3785,30 @@ public sealed class ThreadRuntime : MainActorModel
         };
     }
 
+    // DEVIATION OD-0114 / ED-NEW-ma-4: no UI, no ApiTranscript clipping, no AI call.
+    private string HandoffFolder => System.IO.Path.Combine(Storage.ThreadsDirectory, SwiftUUID.UuidString(ThreadID));
+
+    public HandoffSummary SaveHandoff(string currentDiff)
+    {
+        if (Phase != RuntimePhase.Idle || IsLoadingHistory || IsReverting || pendingSend is not null
+            || Approvals.Count != 0 || Questions.Count != 0 || HasWorkingHeads
+            || hydraPendingReports.Count != 0 || hydraBatches.Count != 0 || hydraWaiting.Count != 0
+            || Entries.Any(entry => entry.Item.TimelineItemContent is TimelineItem.Content.Tool tool && tool.Value.ToolCallStatus == ToolCall.Status.Running))
+            throw new InvalidOperationException("A handoff requires a quiescent thread with no pending tools, approvals or head results.");
+        var journal = HandoffJournal.Read(HandoffFolder);
+        var context = new HandoffContext(HandoffJournal.Restore(SnapshotForPersistence(), journal), Thread?.Title ?? "", currentDiff)
+        {
+            EventJournal = journal,
+            IsQuiescent = true,
+        };
+        return HandoffStore.Save(context, HandoffFolder);
+    }
+
     // :2119-2251. The provider event union is handled with explicit cases and no fallback arm.
     // Swift's pinned implementation contains two .tokenSpend arms; the first is selected for every such event.
     private void Handle(ProviderEvent @event)
     {
+        HandoffJournal.Record(HandoffFolder, @event);
         switch (@event)
         {
             case ProviderEvent.SessionReady value:
