@@ -1,5 +1,6 @@
 using Marrow.Core.Port.Voice.Dsp;
 using Marrow.Core.Port.Voice.Seams;
+using Marrow.Core.Tests.Fixtures;
 
 namespace Marrow.Core.Tests.Port.Voice;
 
@@ -8,27 +9,6 @@ namespace Marrow.Core.Tests.Port.Voice;
 // The expected values come from an analyser of the test's own fed frame by frame, not from the meter.
 public sealed class AudioLevelMeterTests
 {
-    // The reads of a reference analyser fed one frame at a time: read k happens when k x rate / 60 frames (integer division) have been fed.
-    private sealed class Reference(int rate)
-    {
-        private readonly LevelAnalyser analyser = new(rate);
-        private long fed;
-        private long reads;
-
-        public LevelBands Last { get; private set; }
-
-        public void Feed(float mono)
-        {
-            analyser.Push([mono]);
-            fed++;
-            while ((reads + 1) * rate / 60 <= fed)
-            {
-                reads++;
-                Last = analyser.Read();
-            }
-        }
-    }
-
     private static float[] Tone(int rate, int channels, long firstFrame, int frames, double amplitude, double hz = 220)
     {
         var samples = new float[frames * channels];
@@ -49,7 +29,7 @@ public sealed class AudioLevelMeterTests
     public void The_published_values_are_the_analysers_reads_at_60_hz_of_the_signal(int rate, int channels, int block)
     {
         var meter = new AudioLevelMeter();
-        var reference = new Reference(rate);
+        var reference = new LevelReference(rate);
         long frame = 0;
         var loudest = 0.0;
         // 0.3 s of near silence (the noise floor learns it), 0.6 s of a tone, then a quiet tone: 1.5 s in blocks of the given size
