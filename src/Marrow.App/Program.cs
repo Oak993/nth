@@ -100,6 +100,8 @@ public static class Program
         // (SwiftTrapException, "StoragePaths.Locations is not bound...") on first access if this is missed.
         Storage.Locations.SetProcessDefault(StorageLocations.CreateProduction());
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
+        // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
+        SkillsStartup.Bind(SkillsDataRoot.Resolve());
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
