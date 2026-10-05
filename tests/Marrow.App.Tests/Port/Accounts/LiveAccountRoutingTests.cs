@@ -11,6 +11,35 @@ namespace Marrow.App.Tests.Port.Accounts;
 public sealed class LiveAccountRoutingTests
 {
     [Fact]
+    public void An_ordinary_single_accounts_unknown_limit_reads_its_own_shared_report_before_waiting()
+    {
+        var reads = new List<UsageAccountKey>();
+        using var reader = MultiAccountRouting.LimitsReader.Override((app, key, ct) =>
+        {
+            reads.Add(key);
+            return Task.FromResult<PlanLimits?>(new()
+            {
+                Windows = new([new() { Id = "five", Title = "5-hour limit", Percent = 100, ResetsAt = Marrow.Core.Port.SwiftDate.Now.AddSeconds(30), DurationMinutes = 300 }]),
+            });
+        });
+        using var rig = new ThreadRuntimeTurnRig();
+        rig.H.Main.OnMain(() =>
+        {
+            rig.App.Settings.Accounts.MarkSignedIn(rig.App.Settings.Accounts.ForService(ProviderKind.Claude)[0].Id);
+            rig.App.Settings.AutoContinueAfterLimit = true;
+        });
+        rig.Send("Keep the ordinary single-account wait.");
+        rig.H.Main.OnMain(() => rig.Session.Emit(new ProviderEvent.UsageLimit(null)));
+        rig.Complete(TurnStatus.Failed);
+        rig.H.Main.Loop.Run(() => rig.App.AccountRouting.DrainAsync(), AppModelHarness.Bound);
+        rig.H.Main.Loop.RunUntilIdle();
+        Assert.Equal(UsageAccountKey.Default(ProviderKind.Claude), Assert.Single(reads));
+        Assert.True(rig.App.AutoContinue.ResumesAt.ContainsKey(rig.InitialThread.Id));
+        Assert.Null(rig.App.AccountRouting.State(rig.InitialThread.Id));
+        rig.H.Main.OnMain(() => rig.App.AutoContinue.Cancel(rig.InitialThread.Id));
+    }
+
+    [Fact]
     public void A_real_multi_account_limit_signal_has_one_owner_and_requests_the_first_time_card_before_any_switch()
     {
         using var reader = MultiAccountRouting.LimitsReader.Override((app, key, ct) => Task.FromResult<PlanLimits?>(null));

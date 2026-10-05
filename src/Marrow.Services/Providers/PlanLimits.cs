@@ -34,6 +34,8 @@ public sealed record PlanLimits
     public required ValueList<Window> Windows { get; init; } // :14
     public ResetCredits? PlanLimitsResetCredits { get; init; } // :15 Swift: resetCredits (R-NAME-3)
     public string? Problem { get; init; }                    // :17
+    // PORT-ONLY OD-0114: actual account-owned API balance/allowance, without inventing plan windows.
+    public ProviderCredits? AccountCredits { get; init; }
 
     // :20-25
     public sealed record ResetCredit
@@ -169,8 +171,12 @@ public static partial class PlanLimitsReader
         };
     }
 
-    public static Task<PlanLimits?> Read(UsageAccountKey account, string apiKey) => account.Provider == ProviderKind.Zai
-        ? ZaiAPI.PlanLimits(apiKey, reportedWindowsOnly: true) : Read(account.Provider, apiKey);
+    public static Task<PlanLimits?> Read(UsageAccountKey account, string apiKey) => account.Provider switch
+    {
+        ProviderKind.Zai => ZaiAPI.PlanLimits(apiKey, reportedWindowsOnly: true),
+        ProviderKind.Deepseek or ProviderKind.OpenRouter => AccountCreditLimitsReader.Read(account, apiKey),
+        _ => Read(account.Provider, apiKey),
+    };
 
     // :92-102. PR-PROVREG-173, PR-USAGE-078 (USAGE.json duplicates PROVREG.json's record for these lines).
     public static string WindowTitle(long? minutes)

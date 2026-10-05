@@ -7,7 +7,7 @@ using Marrow.Services.Providers;
 namespace Marrow.App.Runtime;
 
 // PORT-ONLY: OD-0114/0116. Shared service pools keep request identities independent.
-public sealed class AppApiKeyRouting(AppModel app) : IKeyMovePolicy, IApiKeyCredits
+public sealed class AppApiKeyRouting(AppModel app) : IKeyMovePolicy, IApiKeyCreditObservations
 {
     private readonly Dictionary<ProviderKind, ApiKeyPool> pools = [];
     private readonly Dictionary<Guid, AppApiKeyRotation> live = [];
@@ -20,8 +20,17 @@ public sealed class AppApiKeyRouting(AppModel app) : IKeyMovePolicy, IApiKeyCred
         DecisionValues.Wait => KeyMoveSetting.Deny,
         _ => KeyMoveSetting.Unset,
     };
-    // Unreported balances are unknown; the account-owned reporting join is still incomplete.
-    public double? CreditsLeft(string keyId) => null;
+    private Marrow.Services.Port.Usage.AccountPlanLimitsSnapshot? Report(string keyId) => Guid.TryParse(keyId, out var id)
+        && app.Settings.Accounts.Accounts.Any(account => account.Id == id) ? app.AccountSnapshot(id) : null;
+    public double? CreditsLeft(string keyId) => Report(keyId)?.Limits?.AccountCredits is { Currency: "USD", Total: var total }
+        && double.IsFinite(total) && total >= 0 ? total : null;
+    public DateTimeOffset? ObservedAt(string keyId) => Report(keyId) is { Limits.AccountCredits: not null } report ? report.ReadStartedAt : null;
+    public bool? IsUsable(string keyId) => Report(keyId)?.Limits?.AccountCredits is { } credits ? credits.IsUsable && credits.Total > 0 : null;
+    public bool CanUseAccount(Guid id)
+    {
+        var account = app.Settings.Accounts.Accounts.FirstOrDefault(account => account.Id == id);
+        return account is not null && (!account.Service.IsAPIKeyBased || Pool(account.Service).IsAvailable(id.ToString("D")));
+    }
     private ApiKeyPool Pool(ProviderKind service)
     {
         MainActor.AssumeIsolated();

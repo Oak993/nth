@@ -24,6 +24,7 @@ public sealed class MultiAccountRouting
     private Task tail = Task.CompletedTask;
     private readonly Dictionary<Task, Task> polls = [];
     private readonly Dictionary<Task, Task> operations = [];
+    private long pollingEpoch;
 
     public MultiAccountRouting(AppModel app)
     {
@@ -32,16 +33,25 @@ public sealed class MultiAccountRouting
         clock = SwiftClock.Provider.Current;
         var read = LimitsReader.Current;
         scheduler = new(clock, (key, ct) => read(app, key, ct));
-        limits = new(app.Settings.Accounts, scheduler, rates, clock);
+        app.AutoContinue.UsageLimits = scheduler;
+        limits = new(app.Settings.Accounts, scheduler, rates, clock, app.ApiKeys.CanUseAccount);
         app.Settings.Accounts.Changed += SettingsChanged;
         app.Settings.AccountDecisions.Changed += SettingsChanged;
+        app.Settings.Pills.Changed += (_, _) => SettingsChanged();
+        app.Settings.AccountKeys.Changed += SettingsChanged;
+        app.Settings.PropertyChanged += (_, value) =>
+        {
+            if (value.PropertyName is nameof(AppSettings.DeepseekAPIKeyInput) or nameof(AppSettings.MetaAPIKeyInput)
+                or nameof(AppSettings.ZaiAPIKeyInput) or nameof(AppSettings.OpenRouterAPIKeyInput)) SettingsChanged();
+        };
+        app.Providers.PropertyChanged += (_, value) => { if (value.PropertyName == nameof(ProviderRegistry.Statuses)) SettingsChanged(); };
         app.ApiKeys.Changed += (_, value) => Changed?.Invoke(this, value);
     }
 
     public event EventHandler<HandshakeEvent>? Changed;
     public HandshakeEvent? State(Guid thread) => app.ApiKeys.State(thread) ?? routes.GetValueOrDefault(thread)?.State;
     public AccountPlanLimitsSnapshot? Snapshot(Guid account) => limits.Snapshot(account);
-    internal bool CanUseAccount(Guid account) => limits.Usage(account.ToString("D"))?.IsExhaustedAt(clock.GetUtcNow()) != true;
+    internal bool CanUseAccount(Guid account) => limits.Usage(account.ToString("D"))?.IsExhaustedAt(clock.GetUtcNow()) != true && app.ApiKeys.CanUseAccount(account);
 
     private bool Eligible(ThreadRuntime runtime) => !app.Settings.Accounts.SaveBlocked && app.Thread(runtime.ThreadID) is { } thread
         && (thread.PillRelay is not null || app.Settings.Accounts.Accounts.Count(app.IsAccountConnected) >= 2);
@@ -53,14 +63,29 @@ public sealed class MultiAccountRouting
         if (!Eligible(runtime) || !runtime.TryHandshakeAccountId(out _)) return;
         EnsureRoute(runtime);
         Queue(async () => { await RefreshAsync(); StartTick(runtime.ThreadID); });
-        timer ??= clock.CreateTimer(_ => MainActor.Post(() => Queue(BeatAsync)), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        StartBeatTimer();
     }
 
     // Ownership transfers synchronously, before a TurnCompleted can run the old reset-send path.
     public bool NoteLimit(ThreadRuntime runtime, UsageAccountKey? observed, DateTimeOffset? reset)
     {
         MainActor.AssumeIsolated();
-        if (!Eligible(runtime) || !runtime.TryHandshakeAccountId(out _)) return false;
+        if (!runtime.TryHandshakeAccountId(out _)) return false;
+        if (!Eligible(runtime))
+        {
+            // The ordinary single-account continuation still owns the wait, using this same report reader.
+            var single = ResolveAccount(observed, runtime);
+            if (!app.Settings.Accounts.SaveBlocked && single is { } id && app.IsAccountConnected(app.Settings.Accounts.Get(id)))
+            {
+                runtimes[runtime.ThreadID] = runtime;
+                var row = app.Settings.Accounts.Get(id);
+                var key = limits.Key(id);
+                connected[id] = (key, row.Plan);
+                TrackPoll(scheduler.SignedInAsync(key));
+                scheduler.SetInUse(key, true);
+            }
+            return false;
+        }
         Attach(runtime);
         var account = ResolveAccount(observed, runtime);
         if (account is null) return false;
@@ -114,7 +139,7 @@ public sealed class MultiAccountRouting
             Changed?.Invoke(this, value);
         };
         routes.Add(runtime.ThreadID, route);
-        timer ??= clock.CreateTimer(_ => MainActor.Post(() => Queue(BeatAsync)), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        StartBeatTimer();
         return route;
     }
 
@@ -149,14 +174,24 @@ public sealed class MultiAccountRouting
         }
         if (runtimes.Count == 0)
         {
+            pollingEpoch++;
             timer?.Dispose();
             timer = null;
-            foreach (var row in connected.Values) scheduler.SignedOut(row.Key);
+            foreach (var row in connected.Values) scheduler.Pause(row.Key);
             connected.Clear();
         }
     }
 
-    private void SettingsChanged() => MainActor.Post(() => Queue(BeatAsync));
+    private void StartBeatTimer()
+    {
+        if (timer is not null) return;
+        var epoch = Interlocked.Read(ref pollingEpoch);
+        timer = clock.CreateTimer(_ => QueueBeat(epoch), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+    }
+
+    private void SettingsChanged() => QueueBeat(Interlocked.Read(ref pollingEpoch));
+
+    private void QueueBeat(long epoch) => MainActor.Post(() => Queue(() => epoch == pollingEpoch ? BeatAsync() : Task.CompletedTask));
 
     private async Task BeatAsync()
     {
@@ -171,7 +206,6 @@ public sealed class MultiAccountRouting
 
     private async Task RefreshAsync()
     {
-        if (routes.Count == 0) return;
         var available = app.Settings.Accounts.Accounts.Where(app.IsAccountConnected).ToArray();
         var active = routes.Values.Select(route => ResolveAccount(route.Runtime.UsageAccount, route.Runtime)).Where(id => id is not null).ToHashSet();
         foreach (var id in connected.Keys.Except(available.Select(row => row.Id)).ToArray())

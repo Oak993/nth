@@ -85,6 +85,11 @@ public sealed class ApiKeyPool
         }
     }
 
+    public bool IsAvailable(string keyId)
+    {
+        lock (gate) return store.Keys(service).FirstOrDefault(key => key.Id == keyId) is { } entry && Usable(entry, clock.GetUtcNow());
+    }
+
     // ---- under the gate ----
 
     private List<(ApiKeyEntry Entry, string Secret)> Candidates(DateTimeOffset now, HashSet<string> exclude)

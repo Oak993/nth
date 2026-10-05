@@ -14,6 +14,8 @@ public sealed partial class AppModel
     public MultiAccountRouting AccountRouting => accountRouting ??= new(this);
     internal void DetachAccountRouting(Guid thread) => accountRouting?.Detach(thread);
     internal void TickAccountRouting(Guid thread) => accountRouting?.AtSafePoint(thread);
+    internal Marrow.Services.Port.Usage.AccountPlanLimitsSnapshot? AccountSnapshot(Guid id) => accountRouting?.Snapshot(id);
+    internal bool CanUseAccount(Guid id) => accountRouting?.CanUseAccount(id) != false && ApiKeys.CanUseAccount(id);
     public bool IsAccountConnected(Account account) => account.Service == ProviderKind.Local
         ? Providers.Local.Resolve(account.Defaults.Model) is not null
         : account.Service.IsAPIKeyBased
@@ -26,7 +28,7 @@ public sealed partial class AppModel
         var metadata = new Marrow.Core.Port.MultiAccount.HandshakeAccountStore(Settings.Accounts, IsAccountConnected);
         var relay = Settings.Pills.NewThreadRelay(step => PillStepAccountResolver.Resolve(metadata, step) is { } selected && Guid.TryParse(selected.Id, out var id)
             && Settings.Accounts.Accounts.FirstOrDefault(account => account.Id == id) is { Enabled: true } row && IsAccountConnected(row)
-            && accountRouting?.CanUseAccount(id) != false
+            && CanUseAccount(id)
             && (row.Service != ProviderKind.Local || Providers.Local.Resolve(step.Model ?? row.Defaults.Model) is not null));
         if (relay is null || Settings.Pills.Find(relay.PillId) is not { } pill) return thread;
         var account = Settings.Accounts.Get(Guid.Parse(relay.AccountId));

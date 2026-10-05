@@ -7,7 +7,8 @@ using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.MultiAccount;
 
-public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsScheduler scheduler, UsageRateEstimator rates, TimeProvider clock) : IAccountLimits
+public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsScheduler scheduler, UsageRateEstimator rates, TimeProvider clock,
+    Func<Guid, bool>? canUseAccount = null) : IAccountLimits
 {
     private readonly Dictionary<Guid, (string Window, DateTimeOffset? Reset, long? Duration, string? Plan, double Percent)> costs = [];
     private readonly Dictionary<Guid, (DateTimeOffset? Reset, DateTimeOffset ObservedAt)> hardLimits = [];
@@ -23,6 +24,8 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     public AccountUsage? Usage(string accountId)
     {
         if (!Guid.TryParse(accountId, out var id)) return null;
+        // A known key cap/out state is an availability guard, never a measured quota window.
+        if (canUseAccount?.Invoke(id) == false) return new(100, null, IsOut: true);
         var snapshot = Snapshot(id);
         ReconcileHardLimit(id, snapshot);
         if (hardLimits.TryGetValue(id, out var hard))

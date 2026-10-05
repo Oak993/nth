@@ -131,6 +131,23 @@ public sealed class AccountLimitsScheduler : IDisposable
         }
     }
 
+    public void Pause(UsageAccountKey account)
+    {
+        lock (gate)
+        {
+            if (!accounts.TryGetValue(account, out var state)) return;
+            state.SignedIn = false;
+            state.InUse = false;
+            state.Requested = false;
+            state.Next = null;
+            state.Generation++;
+            state.Cancellation.Cancel();
+            state.Cancellation.Dispose();
+            state.Cancellation = new();
+            Arm(state);
+        }
+    }
+
     private Task RefreshAccountAsync(UsageAccountKey account)
     {
         lock (gate)
@@ -221,6 +238,7 @@ public sealed class AccountLimitsScheduler : IDisposable
     {
         var acquired = false;
         PlanLimits? limits = null;
+        DateTimeOffset? readStartedAt = null;
         Exception? failure = null;
         try
         {
@@ -240,6 +258,7 @@ public sealed class AccountLimitsScheduler : IDisposable
                 acquired = false;
                 await Task.Delay(allowed - clock.GetUtcNow(), clock, cancellation).ConfigureAwait(false);
             }
+            readStartedAt = clock.GetUtcNow();
             limits = await read(state.Account, cancellation).ConfigureAwait(false);
         }
         catch (Exception error) { failure = error; }
@@ -270,7 +289,7 @@ public sealed class AccountLimitsScheduler : IDisposable
                     else if (state.Generation == generation && !cancellation.IsCancellationRequested)
                     {
                         // A failed/missing report replaces the old value; it must not masquerade as fresh limits.
-                        state.Snapshot = new(state.Account, failure is null ? limits : null, clock.GetUtcNow());
+                        state.Snapshot = new(state.Account, failure is null ? limits : null, clock.GetUtcNow()) { ReadStartedAt = readStartedAt ?? clock.GetUtcNow() };
                         var shared = failure is null && state.Snapshot.LimitsShared;
                         state.Failures = shared ? 0 : Math.Min(8, state.Failures + 1);
                         var delay = shared ? Interval(state) : TimeSpan.FromMinutes(Math.Min(30, 3 * Math.Pow(2, state.Failures - 1)));

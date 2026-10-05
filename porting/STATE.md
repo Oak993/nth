@@ -628,3 +628,9 @@ Persisted account pins, pin/unpin routing, cached API key binding and request-lo
 Actual App API routing/caps/spend/card joins have scoped Windows evidence: Core267/267, Services89/89, App164/164, zero skipped/build warnings/errors. Request-local consent, cancel/revoke/observer ownership, private adoption and destination defaults repaired test-first, including independent R18-R22 and R18b.
 
 **Incomplete:** actual service credits/shared scheduler/chooser/final availability, API reset/all-out joins, verified CLI restricted priming/restoration and remaining step1 integration. New AccountCreditLimitsTests11 are red twice and not passing evidence. Helper owns Settings5b76d40261c338c7f3730b7d14ef129f9359e21f (Windows verdict READY, merge only after our step1 passes) and capsule step3a. Step1 NOT READY; no passing-step push, native/DONE/parity/package/release claim.
+
+## T11 account reports checkpoint, Codex, 2026-10-06
+
+Actual account credit readers, shared AutoContinue scheduler, API cap/out pill/final guards and polling lifetime repairs have scoped Windows evidence Core267/267 Services143/143 App211/211, zero skipped/build warnings/errors. Independent R23/R24/R23b/R23c regressions repaired test-first.
+
+**Incomplete:** live API wait/all-out and actual payload destination defaults, bootstrap/report liveness, Hydra configuration and verified CLI restricted priming/restoration; step1 NOT READY. Settings helper5b76d40261c338c7f3730b7d14ef129f9359e21f remains READY by lead Windows verdict but merges after step1 passes. Capsule step3a remains helper-owned. No passing-step push/native/DONE/parity/package/release claim.

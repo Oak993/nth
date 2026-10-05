@@ -118,7 +118,8 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     private void CheckSource(SwitchTarget target)
     {
         if (!AtSafePoint || Pinned || CanCommit?.Invoke() == false || ActiveAccountId != preparedFrom || runtime.HandshakeStamp.Epoch != preparedEpoch
-            || app.Settings.Accounts.Choose(incomingProvider(target), Guid.Parse(target.Account.Id)) is null)
+            || app.Settings.Accounts.Choose(incomingProvider(target), Guid.Parse(target.Account.Id)) is null
+            || !app.CanUseAccount(Guid.Parse(target.Account.Id)))
             throw new InvalidOperationException("The prepared switch is no longer safe or available.");
     }
 
