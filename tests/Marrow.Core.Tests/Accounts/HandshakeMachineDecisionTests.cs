@@ -5,8 +5,8 @@ namespace Marrow.Core.Tests.Accounts;
 // NOTES "Rule for every choice", "ONE first-time card", "Other provider when all accounts are out": one card for every unresolved kind, one Remember line.
 public sealed class HandshakeMachineDecisionTests
 {
-    private static IReadOnlyList<Choice> Card(string onLimit = DecisionValues.Switch, string bring = DecisionValues.Full, string midReply = DecisionValues.Finish) =>
-        [new Choice(DecisionKind.OnLimit, onLimit), new Choice(DecisionKind.Bring, bring), new Choice(DecisionKind.MidReply, midReply)];
+    private static IReadOnlyList<Choice> Card(string onLimit = DecisionValues.Switch, string bring = DecisionValues.Full) =>
+        [new Choice(DecisionKind.OnLimit, onLimit), new Choice(DecisionKind.Bring, bring)];
 
     [Fact]
     [Trait("Feature", "MA-5")]

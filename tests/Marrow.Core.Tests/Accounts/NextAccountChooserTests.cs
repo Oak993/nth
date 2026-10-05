@@ -109,6 +109,8 @@ public sealed class NextAccountChooserTests
     {
         var (chooser, _, limits) = Make();
         limits.SetUsage("c1", new AccountUsage(100, Now.AddHours(1), IsOut: true));
+        Assert.Equal("c2", chooser.EarlierBack("c3", null, null)!.Account.Id);
+        limits.SetUsage("c2", new AccountUsage(100, Now.AddHours(1), IsOut: true));
         Assert.Null(chooser.EarlierBack("c3", null, null));
         limits.SetUsage("c1", new AccountUsage(5, null));
         Assert.Equal("c1", chooser.EarlierBack("c3", null, null)!.Account.Id);

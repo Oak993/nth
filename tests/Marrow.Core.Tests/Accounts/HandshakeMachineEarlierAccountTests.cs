@@ -24,6 +24,7 @@ public sealed class HandshakeMachineEarlierAccountTests
         var request = Assert.Single(rig.Events, e => e.Kind == HandshakeEventKind.DecisionRequested).Request!;
         Assert.Equal([DecisionKind.EarlierAccount], request.Kinds);
         Assert.Equal(("c2", "c1", true), (request.OutgoingAccountId, request.IncomingAccountId, request.FirstTime));
+        Assert.All(rig.Events, e => Assert.Equal(("c2", HandshakeReason.EarlierAccountBack), (e.OutgoingAccountId, e.Reason)));
         await rig.Machine.TickAsync(rig.Ct);
         Assert.Single(rig.Events, e => e.Kind == HandshakeEventKind.DecisionRequested);
     }
