@@ -13,9 +13,12 @@
 // container clipped to the card's body (a rounded rectangle, the window manager's anti-aliased geometric clip), and a second
 // one clipped to the tip (a square turned 45 degrees with the tip's point rounded, which is exactly the card's tip: sides at
 // 45 degrees, a 90 degree point of radius 3). Composition offers no blend that makes a translucent layer adapt to what is
-// behind it, but it offers MinBlend and DestinationInvert: in Dark a MinBlend layer caps every channel of the blurred
-// backdrop (a bright desktop behind a dark popover can never wash out its white text), in Light an inverted MinBlend floors
-// it (black text never sits on a dark blur). The card then draws its tint, rim and edge over this (PopoverCard).
+// behind it, but it offers MinBlend: in Dark a MinBlend layer caps every channel of the blurred backdrop (a bright desktop
+// behind a dark popover can never wash out its white text). Light needs no layer: its white tint (PopoverHost.Tint, 0.5)
+// alone keeps black text at 4.5:1 over a black backdrop. (A floor for Light, DestinationInvert / MinBlend / DestinationInvert,
+// was probed and dropped: an inversion is not linear, so where the tip's clip overlaps the body's, their anti-aliased edges
+// drew a visible seam, the whole diamond of the tip's square.) The card then draws its tint, rim and edge over this
+// (PopoverCard).
 //
 // Everything Avalonia keeps internal (the surface, the composited window, the MicroCom interfaces) is reached by reflection
 // against Avalonia.Win32 12.1.2 (pinned, Directory.Packages.props); a member that is not found, a host that is not a
@@ -35,10 +38,6 @@ internal sealed class PopoverGlass : IDisposable
     /// <summary>Dark: the cap on each channel of the blurred backdrop (MinBlend), so a bright backdrop reads as mid grey
     /// under the card's tint and its white text keeps at least 4.5:1 (ED-NEW-glass-g2 (3)).</summary>
     internal const byte DarkCap = 0x64;
-
-    /// <summary>Light: the floor on each channel of the blurred backdrop (an inverted MinBlend), so a dark backdrop reads as
-    /// light grey under the card's tint and its black text keeps its contrast.</summary>
-    internal const byte LightFloor = 0x99;
 
     /// <summary>What a card's glass is: where the body and the tip are in the popup window's physical pixels.</summary>
     internal readonly record struct Shape(Rect Body, double Radius, Point TipCentre, double TipSide, double TipRadius, double Opacity);
@@ -85,7 +84,7 @@ internal sealed class PopoverGlass : IDisposable
     internal static PopoverGlass For(TopLevel window, bool dark) => new(window, dark);
 
     // One clipped stack: the container (IVisual), its geometric clip's rounded rectangle, and the theme layers in it.
-    private sealed record Layer(object Container, object Geometry, object[] DarkLayers, object[] LightLayers);
+    private sealed record Layer(object Container, object Geometry, object[] DarkLayers);
 
     /// <summary>Puts the glass where <paramref name="shape"/> says (attaching it first if it can); false while it cannot.</summary>
     internal bool Update(Shape shape)
@@ -109,7 +108,7 @@ internal sealed class PopoverGlass : IDisposable
         }
     }
 
-    /// <summary>The appearance changed while the popover showed: the cap or the floor.</summary>
+    /// <summary>The appearance changed while the popover showed: the cap goes on or off.</summary>
     internal void SetDark(bool value)
     {
         if (dark == value) return;
@@ -136,7 +135,7 @@ internal sealed class PopoverGlass : IDisposable
                 foreach (var layer in new[] { body, tip })
                 {
                     if (layer is null) continue;
-                    foreach (var visual in layer.DarkLayers.Concat(layer.LightLayers)) (visual as IDisposable)?.Dispose();
+                    foreach (var visual in layer.DarkLayers) (visual as IDisposable)?.Dispose();
                     (layer.Geometry as IDisposable)?.Dispose();
                     (layer.Container as IDisposable)?.Dispose();
                 }
@@ -229,20 +228,16 @@ internal sealed class PopoverGlass : IDisposable
             return visual;
         }
         Sprite(blurBrush, 0);
-        const int destinationInvert = 2, minBlend = 3; // CompositionCompositeMode
+        const int minBlend = 3; // CompositionCompositeMode
         var cap = Sprite(api.ColorBrush(compositor, DarkCap, DarkCap, DarkCap), minBlend);
-        var invertIn = Sprite(api.ColorBrush(compositor, 0xFF, 0xFF, 0xFF), destinationInvert);
-        var floor = Sprite(api.ColorBrush(compositor, (byte)(0xFF - LightFloor), (byte)(0xFF - LightFloor), (byte)(0xFF - LightFloor)), minBlend);
-        var invertOut = Sprite(api.ColorBrush(compositor, 0xFF, 0xFF, 0xFF), destinationInvert);
         (children as IDisposable)?.Dispose();
-        return new Layer(container, geometry, [cap], [invertIn, floor, invertOut]);
+        return new Layer(container, geometry, [cap]);
     }
 
     private void Theme(Layer layer)
     {
         var api = Api.Current!;
         foreach (var visual in layer.DarkLayers) Api.Call(visual, api.IVisual, "SetIsVisible", dark ? 1 : 0);
-        foreach (var visual in layer.LightLayers) Api.Call(visual, api.IVisual, "SetIsVisible", dark ? 0 : 1);
     }
 
     private void Place(Shape shape)

@@ -61,9 +61,10 @@ public static class PopoverHost
 
     // The glass's own layers over the window's see-through glass (ED-NEW-glass-g2 (3)), fitted to the reference frames
     // (PopoverCard's file note): the glass reads lighter than what is round it, by about 20 in Dark and 25 in Light (8-bit),
-    // over a backdrop the window's glass has already capped (Dark) or floored (Light) so its text keeps its contrast; a
+    // over the blurred backdrop, which the window's glass has capped in Dark so white text keeps its contrast (Light's tint
+    // alone keeps black text at 4.5:1 over black, and lands at the Mac's 235-240 over its light window); a
     // near-black hairline outermost; a light rim a point inside it.
-    internal static SwiftColor Tint { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.40), new SwiftColor(white: 1, opacity: 0.10));
+    internal static SwiftColor Tint { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.50), new SwiftColor(white: 1, opacity: 0.10));
 
     internal static SwiftColor Edge { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.28), new SwiftColor(white: 0, opacity: 0.80));
 

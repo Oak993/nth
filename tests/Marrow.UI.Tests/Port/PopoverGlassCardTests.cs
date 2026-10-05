@@ -80,8 +80,8 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
             card.RenderTransform = null;
             using var image = Render(card, card.Bounds.Size);
             var middle = image.GetPixel((int)(card.Bounds.Width / 2), 50);
-            // Before: #1E1E1E / #FFFFFF at alpha 255. Now the tint alone: white at 0.10 (Dark) or 0.40 (Light).
-            Assert.True(middle.Alpha < 128, $"the card's middle is {middle}: an opaque panel, not glass");
+            // Before: #1E1E1E / #FFFFFF at alpha 255. Now the tint alone: white at 0.10 (Dark) or 0.50 (Light).
+            Assert.True(middle.Alpha <= 140, $"the card's middle is {middle}: an opaque panel, not glass");
             var tint = PopoverHost.Tint.Resolve(appearance);
             Assert.InRange(middle.Alpha, tint.A - 2, tint.A + 2);
         }
@@ -99,19 +99,18 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     public void The_tint_hairline_and_rim_are_the_measured_values()
     {
         // Fitted to the reference frames (PopoverCard's file note): the glass lighter than what is round it (Dark +20, Light
-        // +25 over the capped or floored blur), a near-black hairline (Dark 0-28 between 35-60 and 60-90: about 0.8 black;
+        // +25 over the blur, capped in Dark), a near-black hairline (Dark 0-28 between 35-60 and 60-90: about 0.8 black;
         // Light 146 between 194 and 215: about 0.28), a rim a point inside brighter than the glass (Dark +25 to +47 over 60-90,
         // Light +8 over 215: white at about 0.2).
         static (byte A, byte W) Of(Color c) => (c.A, c.R);
         Assert.Equal(((byte)26, (byte)255), Of(PopoverHost.Tint.Resolve(ThemeVariant.Dark)));    // white 0.10
-        Assert.Equal(((byte)102, (byte)255), Of(PopoverHost.Tint.Resolve(ThemeVariant.Light)));  // white 0.40
+        Assert.Equal(((byte)128, (byte)255), Of(PopoverHost.Tint.Resolve(ThemeVariant.Light)));  // white 0.50
         Assert.Equal(((byte)204, (byte)0), Of(PopoverHost.Edge.Resolve(ThemeVariant.Dark)));     // black 0.80
         Assert.Equal(((byte)71, (byte)0), Of(PopoverHost.Edge.Resolve(ThemeVariant.Light)));     // black 0.28
         Assert.Equal(((byte)51, (byte)255), Of(PopoverHost.Rim.Resolve(ThemeVariant.Dark)));     // white 0.20
         Assert.Equal(((byte)51, (byte)255), Of(PopoverHost.Rim.Resolve(ThemeVariant.Light)));
         Assert.Equal(20, PopoverCard.BodyRadius); // round corners of about 20 pt (20.5 fitted)
         Assert.Equal(0x64, PopoverGlass.DarkCap);
-        Assert.Equal(0x99, PopoverGlass.LightFloor);
     }
 
     // WCAG relative luminance and contrast ratio.
@@ -140,10 +139,10 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
         var t = dark.A / 255.0;
         var darkGlass = Math.Min(backdrop, PopoverGlass.DarkCap) * (1 - t) + 255 * t;
         Assert.True(Contrast(255, darkGlass) >= 4.5, $"Dark over {backdrop}: glass {darkGlass:F0}, white text {Contrast(255, darkGlass):F2}:1");
-        // Light: floored at LightFloor, the tint over it; the label is black at 0.85 (labelColor, Light) over the glass.
+        // Light: the tint alone over the blur; the label is black at 0.85 (labelColor, Light) over the glass.
         var light = PopoverHost.Tint.Resolve(ThemeVariant.Light);
         t = light.A / 255.0;
-        var lightGlass = Math.Max(backdrop, PopoverGlass.LightFloor) * (1 - t) + 255 * t;
+        var lightGlass = backdrop * (1 - t) + 255 * t;
         var label = lightGlass * 0.15;
         Assert.True(Contrast(label, lightGlass) >= 4.5, $"Light over {backdrop}: glass {lightGlass:F0}, label {label:F0}, {Contrast(label, lightGlass):F2}:1");
     }

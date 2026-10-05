@@ -143,7 +143,7 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
             var through = Grab(Math.Clamp(tip.X - 30, origin.X + 455, origin.X + 535), body.Y + 80);
             Assert.True(through.StripeContrast() < Blurred, $"{name}: the stripes under the glass read {through.StripeContrast():F2} (bare {bare.StripeContrast():F2})");
             // 2. Legible over anything: over white (Dark) the cap holds the glass at about 100 x 0.9 + 25.5 = 115.5; over black
-            //    (Light) the floor holds it at about 153 x 0.6 + 102 = 194 (ED-NEW-glass-g2 (3)).
+            //    (Light) the tint alone lifts it to about 0.5 x 255 = 128 (ED-NEW-glass-g2 (3)).
             var overWhite = Grab(origin.X + 300, body.Y + 80, 60, 40).MeanLuma();
             var overBlack = Grab(origin.X + 700, body.Y + 80, 60, 40).MeanLuma();
             if (dark)
@@ -153,7 +153,7 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
             }
             else
             {
-                Assert.InRange(overBlack, 182, 206);
+                Assert.InRange(overBlack, 118, 140); // black text keeps at least 4.5:1 above 118
                 Assert.InRange(overWhite, 245, 256);
             }
             // 3. The edge, down a column from outside the top edge in: the backdrop (and the shadow), the dark hairline, the
