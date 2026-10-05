@@ -103,5 +103,6 @@ public sealed class ManualFolderTests
         Assert.Equal(2, opened.Count);
         Assert.Equal("https://github.com/example/L1/tree/0123456", opened[0]);
         Assert.StartsWith("file:", opened[1], StringComparison.Ordinal);
+        Assert.Equal(new Uri(backend.ManualFolder).AbsoluteUri, opened[1]);
     }
 }
