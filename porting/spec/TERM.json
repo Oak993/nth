@@ -1879,7 +1879,7 @@
       "cancellation": "The sheet is dismissed by Cancel (PR-TERM-080); nothing is written on dismissal.",
       "windows_path": "Same fixed size and strings, with the title2 semibold and callout styles of the port's type scale (17 pt and 12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:49 and :52). OD-0012 F1 rewrites the product name inside the explanation, which reads exactly \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\"; the file name droppy-code.json stays as is (OD-0008 B13, excepted by F1). The sheet's glass (WindowBackdrop at the user's backdropOpacity) is painted by the app under a sheet, over the app's own window rather than the desktop (ChatView.swift:1459-1461), so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) it is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
       "verification_method": "capture comparison plus a byte comparison of the two strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3561,6 +3561,7 @@
       "colors": "Dark: background white 0.08, foreground white 0.9. Light: background white 0.985, foreground white 0.12. Caret = Chrome.accentNSColor (theme accent, or the system control accent for System, Light and Dark). Selection background = that accent at 0.3 alpha. The 16 ANSI colours are SwiftTerm 1.20.0 defaults and are not configured anywhere in the source.",
       "states": [
         "focused: takes the keyboard once when the drawer is opened",
+        "focused: the caret is a block that fades out in about 0.64 s and back in about 0.64 s, a cycle of about 1.4 s (MacCaretView.swift:104-123; catalogue terminal.block-cursor-blink, 2-chat-use.mov S 132.237-134.31); unfocused: an outline that does not blink",
         "exited: keeps showing its final scrollback; the tab dims",
         "window live-resizing: autoresizing parked, frame synced at most every 50 ms, one final sync on release"
       ],
@@ -3568,7 +3569,9 @@
         "all keyboard input goes to the shell",
         "Option is sent as Meta (optionAsMetaKey = true)",
         "Escape at the shell prompt with no modifiers closes the drawer and is swallowed; Escape with a foreground program running reaches that program",
-        "mouse selection uses SwiftTerm's own handling"
+        "mouse selection uses SwiftTerm's own handling (SwiftTerm 1.20.0 MacTerminalView.swift:2878-3012 with SelectionService.swift): a double click selects the word (letters, digits and . _ -) or the balanced bracket expression under the pointer, a triple click the line, a shift click extends the selection, a press-drag selects; after a double click a drag keeps the seed word and snaps to words, after a triple click it grows by lines",
+        "a program that asked for the mouse (DECSET 9, 1000, 1002, 1003; encodings 1005, 1006, 1015, 1016; XTSHIFTESCAPE CSI > Ps s) is told of presses, releases, drags, motion and the wheel (Terminal.swift:6916-6999, MacTerminalView.swift:2878-3270); shift selects locally unless the program asked for shift clicks",
+        "the pointer is the I-beam over the body (MacTerminalView.swift:3271-3273; catalogue pointer.ibeam-text)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Terminal/TerminalPanel.swift:58-63",
@@ -3578,7 +3581,8 @@
         "DroppyCode/App/Views/Terminal/TerminalFont.swift:8-16"
       ],
       "notes": "There is no Droppy setting anywhere for terminal font, size, cursor style or palette; the face and size can come from another terminal application's configuration (PR-TERM-124 to PR-TERM-134). The view is a single long-lived object reparented between containers, never rebuilt, so scrollback survives tab and thread switches, and its font is not re-read after creation. OD-0013 (owner ruling): the main window chrome is not accepted until the one-frame live-resize edge strip probe P4 measured is gone (3-5 px of the window's own backdrop without the app layer at the growing edges, clipping for about a frame at the shrinking edges); it is not downgraded to a deviation. That ruling concerns the window edges; the 50 ms frame throttle in the live-resizing state is the source's own behaviour and is kept.",
-      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalStore.swift:22 `view.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)` -> B2 DroppyCode/App/Views/Terminal/TerminalStore.swift:22 `view.font = TerminalFont.preferred()` (DroppyCode/App/Views/Terminal/TerminalFont.swift:8-16). Colours and geometry unchanged."
+      "b2_change": "B1 DroppyCode/App/Views/Terminal/TerminalStore.swift:22 `view.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)` -> B2 DroppyCode/App/Views/Terminal/TerminalStore.swift:22 `view.font = TerminalFont.preferred()` (DroppyCode/App/Views/Terminal/TerminalFont.swift:8-16). Colours and geometry unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-TERM-011",

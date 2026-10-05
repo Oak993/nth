@@ -317,19 +317,14 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     // the light theme have no reference frame; the Acrylic backdrop behind it needs a real window (OD-0014, OD-0005).
     // Needed: a capture of a thread scrolled to 20 points and a light-theme chat on the reference runtime.
 
-    // STOP App.Views.Chat.ThreadTimeline #9
-    // Kind: real window and shared behaviour. Swift: ThreadTimeline.swift:359-440. Record: UI-CHAT-001.
-    // Missing: OD-0013 (the live-resize edge strip must be fixed: probe P4b on a real window, not a headless run) and OD-0071 (soft weighted scrolling in every scroll area: the shared SoftScroll unit's, not this view's).
-    // The column's geometry, its four states, the hidden indicators and the wheel are proven (ThreadTimelineMountedTests).
-    // Needed: probe P4b's outcome and the soft-scroll unit's merge.
+    // STOP App.Views.Chat.ThreadTimeline #9: RESOLVED (unit rec-composer). Swift: ThreadTimeline.swift:359-440. Record: UI-CHAT-001.
+    // OD-0013 is closed by OD-0017 (stretch, ED-101; WindowManagerFactoryStretchTests): ThreadTimelineLiveResizeNativeTests drags a real factory main window showing a long
+    // thread out and back and finds the app's layer at the moving edge in every step within the accepted residual, and the timeline at its end with rows after it. OD-0071:
+    // the timeline scrolls softly (ED-246, its timeline piece taken as an opt-in; ThreadTimelineScrollStabilityTests.The_timeline_scrolls_softly_...).
 
-    // STOP App.Views.Chat.ThreadTimeline #10
-    // Kind: owner decision. Swift: ThreadTimeline.swift:132-135 (the loading branch is `Color.clear`, then the content), :317-321,339 (a row's removal is `.identity`, whatever a row's own transition says). Records: PR-CHAT-027, PR-CHAT-045, UI-CHAT-001.
-    // Missing: OD-0076 ("nothing on screen changes by a cut") beats the source where it snaps, and its transition audit has no entry for two changes the port still cuts as the Mac does: the loading mark's swap with
-    // the content (a thread opens in one frame on the reference runtime, CATALOGUE.md C 164.452-164.640; the first pass places its rows whole, ThreadTimelineDrawTests, and the mark is replaced by what the thread shows,
-    // the loading state of ThreadTimelineMountedTests) and the rows that leave at once when their blocks leave the window or the thread (the drop-back of a followed run, ThreadTimelineDrawTests). The swap between the
-    // empty thread's prompt and the timeline is not one of them: it crossfades in both directions (ThreadTimelineReviewRound3Tests).
-    // Needed: the owner's ruling on those two entries (what the loading mark hands over to, and how rows that leave go); no transition is invented here.
+    // STOP App.Views.Chat.ThreadTimeline #10: RESOLVED by the owner, OD-0105 (1), 2026-10-05 ("Smooth fade"). Swift: ThreadTimeline.swift:132-135, :317-321,339.
+    // The loading mark fades out while the rows fade and rise in, in about 0.2 s, and rows that leave together fold shut together, in about 0.3 s (ThreadTimelineHandOverTests,
+    // frame by frame). A row whose place a new row takes in the same pass is replaced as before; the swap back to the loading mark stays a cut (the mark is blank for 400 ms).
 
     [Fact]
     [Trait("Req", "PR-CHAT-192")] // App/Views/Chat/ThreadTimeline.swift:270-278,595-603,1804-1811

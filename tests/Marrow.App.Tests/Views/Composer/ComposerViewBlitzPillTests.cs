@@ -81,7 +81,7 @@ public sealed class ComposerViewBlitzPillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-002")] // App/Views/Composer/ComposerView.swift:157-158, :176-178; ComposerTextView.swift:360-376
-    [Trait("Rule", "R-TEST-4")] // The paddings, the surface, the dots and the width: The_pill_pads_its_row_..., In_the_main_chat_the_pill_is_regular_glass_..., the working dots tests. The record's "44" is NOT proven: see the comment
+    [Trait("Rule", "R-TEST-4")] // The paddings, the surface, the dots and the width: The_pill_pads_its_row_..., In_the_main_chat_the_pill_is_regular_glass_..., the working dots tests, ComposerAreaGlassFrostTests and GlassMaterialNativeTests (the glass drawn). the ledger reads 46 since 0f85fb3a1
     public void An_empty_pill_is_46_points_high_8_4_22_4_8_and_stays_so_with_the_keyboard()
     {
         headless.OnUiThread(() =>
@@ -89,7 +89,7 @@ public sealed class ComposerViewBlitzPillTests(HeadlessSession headless)
             using var h = RuntimeHarness();
             // SOURCE FACT (arithmetic): the text view's height is ceil(max(18, content) + 2 * 2) = 22 (ComposerTextView.swift:374, textContainerInset
             // (0, 2) at :249), which is above the 20 the column starts at (ComposerView.swift:552, :554), so the text column is 22 + 4 + 4 = 30 and
-            // the pill is 30 + 8 + 8 = 46. The comment at :157 and the record say 44, which is the column before its first measure.
+            // the pill is 30 + 8 + 8 = 46. The comment at :157 says 44, which is the column before its first measure (the record was amended to 46, 0f85fb3a1).
             // SOURCE FACT (VIDEO): the pill's outline is 46 points from rim to rim at C 0.5 (empty and idle) and at C 84.5 (one typed line), measured
             // on the extracted frames. A pill whose thread the model does not hold has no controls (:160); with them the 28 point send disc, bottom
             // aligned, is shorter than the text column and changes nothing.

@@ -243,7 +243,7 @@ public sealed class FollowUpQueueTabDragTests(HeadlessSession headless)
             Assert.True(lifted.CornerRadius.TopLeft >= 16, "a capsule");
             Assert.Equal(1, lifted.BoxShadow.Count);
             var shadow = lifted.BoxShadow[0];
-            Assert.Equal(10, shadow.Blur);
+            Assert.Equal((10 - 0.5) / 0.288675, shadow.Blur, 6); // radius 10 drawn as sigma 10 (ED-327; measured by SwiftShadowHeadlessTests)
             Assert.Equal(4, shadow.OffsetY);
             Assert.Equal(0, shadow.OffsetX);
             Assert.Equal(Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), shadow.Color);

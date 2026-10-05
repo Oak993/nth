@@ -58,6 +58,12 @@ internal sealed class TerminalScreenBuffer
     public bool ApplicationCursorMode { get; private set; }
     public bool BracketedPasteMode { get; private set; }
     public bool CursorVisible { get; private set; } = true; // SwiftTerm DECTCEM defaults on
+    /// <summary>SwiftTerm Terminal.swift:727-731 <c>mouseMode</c>: what the program asked to be told of (DECSET 9, 1000, 1002, 1003).</summary>
+    public TerminalMouseMode MouseMode { get; private set; }
+    /// <summary>:589 <c>mouseProtocol</c>: how reported events are written (DECSET 1005, 1006, 1015, 1016).</summary>
+    public TerminalMouseEncoding MouseEncoding { get; private set; }
+    /// <summary>:735 <c>mouseShiftCapture</c>: XTSHIFTESCAPE (<c>CSI &gt; 1 s</c>) asks that a shift-click reach the program instead of selecting.</summary>
+    public bool MouseShiftCapture { get; private set; }
     public bool IsAlternateScreen => savedNormalLines is not null;
     public IReadOnlyList<string> ScrollbackLines => scrollback.Select(TrimLine).ToArray();
     public string? Title { get; private set; }
@@ -283,12 +289,38 @@ internal sealed class TerminalScreenBuffer
         if (code == "7") CurrentDirectory = value[(separator + 1)..];
     }
 
+    // SwiftTerm Terminal.swift:5260-5304 (reset) and :5495-5554 (set). The tracking modes 9 and 1000-1003 each name their mode when set and turn it
+    // off when reset, whichever mode was on; the encodings 1005, 1006, 1015 and 1016 only choose how events are written (a reset returns to the
+    // default encoding and leaves tracking as it is: :5290-5297).
+    private void SetMouseMode(int mode, bool set)
+    {
+        switch (mode)
+        {
+            case 9: MouseMode = set ? TerminalMouseMode.X10 : TerminalMouseMode.Off; break;
+            case 1000: MouseMode = set ? TerminalMouseMode.Vt200 : TerminalMouseMode.Off; break;
+            case 1002: MouseMode = set ? TerminalMouseMode.ButtonEventTracking : TerminalMouseMode.Off; break;
+            case 1003: MouseMode = set ? TerminalMouseMode.AnyEvent : TerminalMouseMode.Off; break;
+            case 1005: MouseEncoding = set ? TerminalMouseEncoding.Utf8 : TerminalMouseEncoding.X10; break;
+            case 1006: MouseEncoding = set ? TerminalMouseEncoding.Sgr : TerminalMouseEncoding.X10; break;
+            case 1015: MouseEncoding = set ? TerminalMouseEncoding.Urxvt : TerminalMouseEncoding.X10; break;
+            case 1016: MouseEncoding = set ? TerminalMouseEncoding.SgrPixel : TerminalMouseEncoding.X10; break;
+        }
+    }
+
     private void ExecuteCsi(char final, string argument)
     {
         var privateMode = argument.StartsWith("?", StringComparison.Ordinal);
         if (privateMode) argument = argument[1..];
         var parameters = argument.Split(';').Select(value => int.TryParse(value, out var parsed) ? parsed : 0).ToArray();
         int Param(int index, int fallback = 1) => index < parameters.Length && parameters[index] != 0 ? parameters[index] : fallback;
+        // XTSHIFTESCAPE (SwiftTerm Terminal.swift:6895-6905, parsed at EscapeSequenceParser.swift:467): CSI > Ps s.
+        if (final == 's' && argument.StartsWith(">", StringComparison.Ordinal))
+        {
+            var shift = argument.Length > 1 && int.TryParse(argument[1..].Split(';')[0], out var requested) ? requested : 0;
+            if (shift == 0) MouseShiftCapture = false;
+            else if (shift == 1) MouseShiftCapture = true;
+            return;
+        }
         if (privateMode)
         {
             foreach (var mode in parameters)
@@ -297,6 +329,7 @@ internal sealed class TerminalScreenBuffer
                 if (mode == 1 && final is 'h' or 'l') ApplicationCursorMode = final == 'h';
                 if (mode == 2004 && final is 'h' or 'l') BracketedPasteMode = final == 'h';
                 if (mode == 25 && final is 'h' or 'l') CursorVisible = final == 'h';
+                if (final is 'h' or 'l') SetMouseMode(mode, final == 'h');
                 if (mode is 47 or 1047 or 1049 && final is 'h' or 'l') SwitchAlternate(final == 'h');
             }
             return;

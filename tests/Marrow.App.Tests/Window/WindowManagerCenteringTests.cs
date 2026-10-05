@@ -47,6 +47,25 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
         }
     });
 
+    // WindowManager.swift:65 contentMinSize 860 x 560 is the CLIENT's minimum; Avalonia adds the standard frame's caption to the minimum tracking
+    // height of a window whose client is extended under it (ED-332 (1), measured natively: 591 for 560), so the model's MinHeight
+    // is taken down by that caption at the window's scale, and follows a change of scale. Stood in here as 31 px at 100 %.
+    [Fact]
+    [Trait("Req", "UI-LAUNCH-001")] // WindowManager.swift:65 contentMinSize; the HWND is the native test (WindowManagerNativeTests)
+    [Trait("Req", "PR-LAUNCH-028")] // the same minimum
+    public void The_main_minimum_height_gives_back_the_caption_Avalonia_adds_to_the_tracking_size_and_follows_the_scale() => WithManager((manager, harness, screens, cursor) =>
+    {
+        using var caption = Marrow.App.Port.WindowInvisibleBorder.CaptionAboveClient.Override((_, scale) => scale > 1.5 ? 40 : 31); // 31 px at 100 %, 40 px at 200 % (so a change of scale shows)
+        manager.ShowMain();
+        var main = manager.MainWindow!;
+        Assert.Equal(860, main.MinWidth);
+        Assert.Equal(1, main.RenderScaling);
+        Assert.Equal(529, main.MinHeight);
+        typeof(Avalonia.Controls.TopLevel).GetMethod("HandleScalingChanged", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, [2.0]);
+        Assert.Equal(2, main.RenderScaling);
+        Assert.Equal(560 - 40 / 2.0, main.MinHeight);
+    });
+
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225
     [Trait("Req", "UI-LAUNCH-001")] // the first launch's 1320 x 860 content, centred (WindowManager.swift:67-70; ED-225)

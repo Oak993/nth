@@ -482,6 +482,15 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         return new ValueMap<string, string>(environment, StringComparer.OrdinalIgnoreCase); // :278
     }
 
+    // PORT-ONLY: SK-11d / WU-9. The environment of an OpenCode chat that has a locked skills generation. A null launch, or any
+    // other provider, returns Environment(provider) unchanged.
+    public ValueMap<string, string> Environment(ProviderKind provider, Marrow.Services.Port.Skills.Providers.OpenCodeSkillLaunch? skills)
+    {
+        var environment = Environment(provider);
+        if (skills is null || (provider != ProviderKind.Opencode && provider != ProviderKind.OpencodeGo)) return environment;
+        return new ValueMap<string, string>(Marrow.Services.Port.Skills.Providers.OpenCodeSkillWiring.Apply(environment, skills), StringComparer.OrdinalIgnoreCase);
+    }
+
     // :286-310. PR-PROVREG-234, PR-PROVREG-235. Signs a CLI provider in from the app: the provider's own login
     // command, then a fresh status check and usage read. Returns the CLI's message when it failed, null on
     // success. The pinned checkout has no caller of this method and no reader of SigningIn (neither is in

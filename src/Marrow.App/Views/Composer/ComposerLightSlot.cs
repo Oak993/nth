@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Styling;
 using Marrow.App.Port;
+using Marrow.App.Port.Settings;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Models.ComposerLights;
@@ -49,13 +50,14 @@ internal sealed class ComposerLightSlot : Decorator
     }
 
     // the maker's liquid stops (OD-0063: heart and second, dark; the deeper pair, light) and the accent, per appearance
-    private void UpdatePalette()
+    private void UpdatePalette() => light.Palette = PaletteFor(EffortBrand.Create(provider));
+
+    /// <summary>The palette a composer of this brand wears. The preview in Settings > Customization takes the same rule (CZ-4.5.5, ComposerLightPalettes).</summary>
+    internal static ComposerLightPalette PaletteFor(EffortBrand brand)
     {
-        var brand = EffortBrand.Create(provider);
         var stops = brand.LiquidStops;
         string Hex(SwiftColor c, ThemeVariant theme) { var x = c.Resolve(theme); return $"#{x.R:X2}{x.G:X2}{x.B:X2}"; }
-        light.Palette = new ComposerLightPalette(
-            Hex(stops[1], ThemeVariant.Dark), Hex(stops[2], ThemeVariant.Dark), Hex(stops[0], ThemeVariant.Light), Hex(stops[1], ThemeVariant.Light),
-            Hex(Chrome.Accent, ThemeVariant.Dark), Hex(Chrome.Accent, ThemeVariant.Light));
+        (string, string, string) Of(ThemeVariant theme) => (Hex(stops[0], theme), Hex(stops[1], theme), Hex(stops[2], theme));
+        return ComposerLightPalettes.FromStops(Of(ThemeVariant.Dark), Of(ThemeVariant.Light), Hex(Chrome.Accent, ThemeVariant.Dark), Hex(Chrome.Accent, ThemeVariant.Light));
     }
 }

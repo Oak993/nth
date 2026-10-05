@@ -7,10 +7,10 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3931,
+      "IMPLEMENTED": 3944,
       "RETIRED": 15,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "SPECIFIED": 24
+      "SPECIFIED": 11
     },
     "by_area": {
       "CHAT": 193,
@@ -2713,7 +2713,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One checklist per turn; identity is positional, so the animation must key on the step array rather than on synthesized ids. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "capture comparison across the three statuses plus an interaction test on an update",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3472,7 +3472,7 @@
       "cancellation": "The task is keyed on the body text and is cancelled when it changes or the row goes away.",
       "windows_path": "Same warm-on-appear behavior for the merge pill (TimelineRows.swift:1030-1033).",
       "verification_method": "interaction test measuring the frame time of the first tap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4105,7 +4105,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One composited material pass for the whole row, not one per control, because the row floats over scrolling content and per-control sampling was the cost the source is avoiding. The slot order, the two spacings (10 outer, 8 between the trailing capsules), the container spacing 2 and the three conditional slots are all directly reproducible. The glass material is a named deviation under owner decision OD-0005, which resolves UNK-0004: Acrylic where the window shows the desktop, a shader reproducing the source-defined material over app content; visual parity stays UNVERIFIED without macOS (OD-0001).",
       "verification_method": "capture comparison plus a structural test asserting the control order under the four combinations of project present and repository present",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4740,7 +4740,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Animate on the id list only. Read the Windows animation-effects/reduce-motion system setting for the reduce-motion branch.",
       "verification_method": "interaction test toggling reduce motion",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5949,7 +5949,7 @@
       "cancellation": "Cancels the in-flight refresh.",
       "windows_path": "Hit-test the panel window against the current cursor position on focus loss.",
       "verification_method": "interaction test clicking a row versus clicking the transcript",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7167,7 +7167,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One control with these nine literals, per port_impacts X8(c). A compositor-side replicator or an equivalent instanced draw; it must not tick on the UI thread.",
       "verification_method": "capture comparison of a one-line and a five-line composer",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7189,7 +7189,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A compositor animation with these exact keyframes and per-instance delays, started from a process-wide clock origin so separate fields stay in phase.",
       "verification_method": "capture comparison of two composers side by side, asserting they are in phase",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -9823,7 +9823,7 @@
       "cancellation": "The load runs in .task(id: path), which SwiftUI cancels when the row collapses or the path changes.",
       "windows_path": "Same box, radius, fill, 420 point cap, 6 point spacing and caption row. \"Open\" is verbatim and opens the file with its registered application. PR-CHAT-101 specifies the rest of the expanded tool row. Text style per ED-059: the caption row's .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison of an expanded image-reading tool row and of an expanded command row whose text names a written screenshot, each while loading and after the image lands, plus an interaction test of \"Open\"",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -24967,9 +24967,9 @@
       "persistence": "The window frame is saved under the autosave name \"DroppyCodeMainWindow\".",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Create or restore the main window with the same default and minimum sizes and the same persisted-frame key, then activate and foreground it. The detailed window chrome is specified by the shell and chrome area; this requirement covers only that launch shows it. That chrome follows ED-063 (WindowDecorations.Full, ExtendClientAreaToDecorationsHint, 44 px title bar, the WndProc caption and system-menu hook), and it is not accepted while live resize shows the edge strip OD-0013 rules must be fixed. The window stays clear by default as upstream (OD-0014).",
+      "windows_path": "Create or restore the main window with the same default and minimum sizes and the same persisted-frame key, then activate and foreground it. The detailed window chrome is specified by the shell and chrome area; this requirement covers only that launch shows it. That chrome follows ED-063 (WindowDecorations.Full, ExtendClientAreaToDecorationsHint, 44 px title bar, the WndProc caption and system-menu hook) and ED-101's stretch under OD-0017, which closed OD-0013: the DWM one-frame residual during live resize is a named deviation. The window stays clear by default as upstream (OD-0014).",
       "verification_method": "restart test: window position and size survive a restart",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -75574,7 +75574,7 @@
       "cancellation": "Cancel or clicking away closes the popover and changes nothing.",
       "windows_path": "Direct translation; the trim for the disabled state is `.whitespaces` only, which must be reproduced exactly rather than widened to whitespace-and-newlines.",
       "verification_method": "interaction test asserting the verbatim strings, the pre-fill, the focus, the disabled rule and the Return path.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -83887,7 +83887,7 @@
       "cancellation": "The sheet is dismissed by Cancel (PR-TERM-080); nothing is written on dismissal.",
       "windows_path": "Same fixed size and strings, with the title2 semibold and callout styles of the port's type scale (17 pt and 12 pt per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:49 and :52). OD-0012 F1 rewrites the product name inside the explanation, which reads exactly \"Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.\"; the file name droppy-code.json stays as is (OD-0008 B13, excepted by F1). The sheet's glass (WindowBackdrop at the user's backdropOpacity) is painted by the app under a sheet, over the app's own window rather than the desktop (ChatView.swift:1459-1461), so under OD-0005 (Acrylic where the window shows the desktop, the source-defined material reproduced over app content) it is the source-defined material reproduced by the port's shader, not Acrylic. A named deviation.",
       "verification_method": "capture comparison plus a byte comparison of the two strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97651,7 +97651,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -97679,7 +97679,7 @@
         "No thread selected: the files are discarded with no message"
       ],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

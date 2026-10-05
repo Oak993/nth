@@ -84,7 +84,7 @@ public sealed class HydraPanelSurfaceTests(HeadlessSession headless)
             Assert.Equal(dark ? Color.FromArgb(77, 0, 0, 0) : Color.FromArgb(87, 255, 255, 255), fill); // 0.3 and 0.34 of 255
             Assert.Equal(1, scrim.BoxShadow.Count);
             var shadow = scrim.BoxShadow[0];
-            Assert.Equal(28, shadow.Blur);
+            Assert.Equal((28 - 0.5) / 0.288675, shadow.Blur, 6); // radius 28 drawn as sigma 28 (ED-327; measured by SwiftShadowHeadlessTests)
             Assert.Equal(10, shadow.OffsetY);
             Assert.Equal(0, shadow.OffsetX);
             Assert.Equal(dark ? Color.FromArgb(255, 0, 0, 0) : Color.FromArgb(166, 0, 0, 0), shadow.Color); // 1.0 and 0.65 of 255

@@ -26,10 +26,10 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
     // The pinned upstream files are git blobs of commit 52bc7926097cd622d08d6294e0d8b08a48c7516e (LF line endings):
     // LICENSE aa22744177a2a2baa627f035a5f1605ab3bdf9c4, THIRD_PARTY_NOTICES.md 02fb89f5b7217a35bc5aa3e248a5a43327dd97ca,
     // TRADEMARK.md 24f643399c3b0ef497ce8ebc5bd4f27afb18e96b. The digests are of those blobs' bytes.
-    private const string LicenseSha256 = "0180cc054aff4d1012b8805e2d3adaafa0e633a460918369190446ceb455debf";
-    private const string UpstreamNoticesSha256 = "46aed5220dcffabaaf022ba97e93297b7bf2dfcffdd979f6c74f31c4cfc80c88";
-    private const int UpstreamNoticesLength = 11093;
-    private const string TrademarkSha256 = "0474b31ac5075ee9b2993fbd72df75d723fbc763c896b912e9536de3ff8a0975";
+    internal const string LicenseSha256 = "0180cc054aff4d1012b8805e2d3adaafa0e633a460918369190446ceb455debf";
+    internal const string UpstreamNoticesSha256 = "46aed5220dcffabaaf022ba97e93297b7bf2dfcffdd979f6c74f31c4cfc80c88";
+    internal const int UpstreamNoticesLength = 11093;
+    internal const string TrademarkSha256 = "0474b31ac5075ee9b2993fbd72df75d723fbc763c896b912e9536de3ff8a0975";
 
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
@@ -60,9 +60,10 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
 
     private static string Missing(string resource) => $"The {resource} file is missing from this copy of the app.";
 
-    // Not PR-SETTINGS-249: its windows_path ships the three "with the installer", and no packed or installed folder is checked here
-    // (STOP App.Views.Settings.SettingsView #5, reopened for that clause; ED-259).
+    // The build output the app reads (and the app project's own output): the first of the places PR-SETTINGS-249's windows_path ships the three documents;
+    // the package built from the publish folder is LicensesPackTests.
     [Fact]
+    [Trait("Req", "PR-SETTINGS-249")]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1012-1056
     public void The_three_legal_documents_ship_in_the_folder_the_app_reads_and_in_the_app_projects_own_output()
@@ -83,9 +84,10 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
         }
     }
 
-    // Not PR-SETTINGS-249: the publish folder is what the installer packs (scripts/package-windows.ps1), but no pack was built or installed
-    // (STOP App.Views.Settings.SettingsView #5, reopened for the installer clause; ED-259).
+    // The publish folder is what the installer packs (scripts/package-windows.ps1): the project copies the three documents to its root; the package built from it
+    // holds them (LicensesPackTests, and the packaging script's own check).
     [Fact]
+    [Trait("Req", "PR-SETTINGS-249")]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1049 (read from the bundle: here the folder beside the executable)
     public void The_project_publishes_the_three_documents_to_the_root_of_the_publish_folder_beside_the_executable()
     {
@@ -139,6 +141,7 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
     });
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-249")] // App/Views/Settings/SettingsView.swift:1020-1044: Show opens the popover, a click outside dismisses it (cancellation clause)
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1020-1044 (.popover(isPresented:): Scroll, and Click outside: dismisses)
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1020-1044 (Click Show to open; Scroll the popover)
     public void The_licenses_popover_scrolls_and_a_click_outside_it_dismisses_it_and_Show_opens_it_again() => With(() => new LicensesRow(), (view, _, h, window) =>

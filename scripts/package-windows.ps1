@@ -123,6 +123,30 @@ Invoke-Native 'vpk pack' {
         @notesArgs
 }
 
+# PR-SETTINGS-249: the Licenses row reads LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside Marrow.App.exe, so the package that
+# Velopack installs (and updates) from must hold the three at the app root, byte for byte what was published. A package without them
+# stops here, before any installer is built from it. (tests/Marrow.App.Tests/Views/Settings/LicensesPackTests.cs checks the same package.)
+$fullPackage = Get-ChildItem -LiteralPath $releasesDir -File -Filter "$PackId-*-full.nupkg" | Sort-Object LastWriteTime | Select-Object -Last 1
+if (-not $fullPackage) { throw "vpk pack produced no $PackId-*-full.nupkg in $releasesDir." }
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [System.IO.Compression.ZipFile]::OpenRead($fullPackage.FullName)
+try {
+    if (-not $archive.GetEntry("lib/app/$MainExe")) { throw "$($fullPackage.Name) holds no lib/app/$MainExe." }
+    foreach ($document in @('LICENSE', 'THIRD_PARTY_NOTICES.md', 'TRADEMARK.md')) {
+        $entry = $archive.GetEntry("lib/app/$document")
+        if (-not $entry) { throw "$($fullPackage.Name) does not hold $document beside $MainExe (lib/app/$document)." }
+        $stream = $entry.Open()
+        try {
+            $memory = New-Object System.IO.MemoryStream
+            $stream.CopyTo($memory)
+            $packed = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash($memory.ToArray()))
+        } finally { $stream.Dispose() }
+        $published = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.IO.File]::ReadAllBytes((Join-Path $publishDir $document))))
+        if ($packed -ne $published) { throw "$document in $($fullPackage.Name) is not the published file." }
+    }
+} finally { $archive.Dispose() }
+Write-Host "$($fullPackage.Name) holds LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md beside $MainExe, byte for byte as published."
+
 # OD-0072, ED-247: the installer to share is the version gate around Velopack's Setup.exe, given the same title, id and
 # version as vpk pack, so its check and the package it installs cannot disagree.
 $velopackSetup = Get-ChildItem -LiteralPath $releasesDir -File -Filter "$PackId-*Setup.exe" | Sort-Object LastWriteTime | Select-Object -Last 1
