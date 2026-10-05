@@ -81,7 +81,7 @@ public sealed class AccountHandoffTests
         Assert.Equal(RuntimeMode.Supervised, captured.RuntimeMode);
         Assert.Equal(InteractionMode.Build, captured.InteractionMode);
         Assert.Equal(target.TranscriptRoot, captured.Environment[service == "claude" ? "CLAUDE_CONFIG_DIR" : "CODEX_HOME"]);
-        if (mode == NativeResumeMode.CodexPath) Assert.Equal(Path.Combine(target.TranscriptRoot, relative), captured.ResumePath);
+        if (mode == NativeResumeMode.CodexPath) Assert.Equal(Path.GetFullPath(Path.Combine(target.TranscriptRoot, relative)), captured.ResumePath);
         Assert.Empty(session.Inputs);
     }
 
