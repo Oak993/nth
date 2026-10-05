@@ -605,8 +605,16 @@ internal static class PopoverGlassAttach
 
     internal static PopoverGlass? Current(TopLevel window) => Make.Current(window);
 
-    internal static PopoverGlass? Default(TopLevel window) =>
-        OperatingSystem.IsWindows() && window.PlatformImpl is { } impl && impl.GetType().Assembly.GetName().Name == "Avalonia.Win32"
-            ? PopoverGlass.For(window, window.ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark)
-            : null;
+    internal static PopoverGlass? Default(TopLevel window)
+    {
+        if (!OperatingSystem.IsWindows() || window.PlatformImpl is not { } impl || impl.GetType().Assembly.GetName().Name != "Avalonia.Win32") return null;
+        try
+        {
+            return PopoverGlass.For(window, window.ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark);
+        }
+        catch (Exception error) when (PopoverGlass.NonFatal(error))
+        {
+            return null; // no glass: the card draws its opaque panel
+        }
+    }
 }

@@ -110,7 +110,7 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
         Assert.Equal(((byte)51, (byte)255), Of(PopoverHost.Rim.Resolve(ThemeVariant.Dark)));     // white 0.20
         Assert.Equal(((byte)51, (byte)255), Of(PopoverHost.Rim.Resolve(ThemeVariant.Light)));
         Assert.Equal(20, PopoverCard.BodyRadius); // round corners of about 20 pt (20.5 fitted)
-        Assert.Equal(0x64, PopoverGlass.DarkCap);
+        Assert.Equal(0x56, PopoverGlass.DarkCap);
     }
 
     // WCAG relative luminance and contrast ratio.
@@ -134,17 +134,20 @@ public sealed class PopoverGlassCardTests(HeadlessSession headless)
     [InlineData(255.0)]
     public void The_glass_keeps_its_text_readable_over_any_backdrop(double backdrop)
     {
-        // Dark: the window's glass caps each channel at DarkCap, the tint lies over it; the label is white (labelColor, Dark).
-        var dark = PopoverHost.Tint.Resolve(ThemeVariant.Dark);
-        var t = dark.A / 255.0;
-        var darkGlass = Math.Min(backdrop, PopoverGlass.DarkCap) * (1 - t) + 255 * t;
-        Assert.True(Contrast(255, darkGlass) >= 4.5, $"Dark over {backdrop}: glass {darkGlass:F0}, white text {Contrast(255, darkGlass):F2}:1");
-        // Light: the tint alone over the blur; the label is black at 0.85 (labelColor, Light) over the glass.
-        var light = PopoverHost.Tint.Resolve(ThemeVariant.Light);
-        t = light.A / 255.0;
-        var lightGlass = backdrop * (1 - t) + 255 * t;
-        var label = lightGlass * 0.15;
-        Assert.True(Contrast(label, lightGlass) >= 4.5, $"Light over {backdrop}: glass {lightGlass:F0}, label {label:F0}, {Contrast(label, lightGlass):F2}:1");
+        // The app's own text colours, composited over the glass: the label (SwiftColor.LabelColor, white or black at 0.85) at
+        // 4.5:1 or more, the secondary text (Chrome.SecondaryText, 0.7 of the label) at 3:1 or more (review of glass-g2: the first
+        // version modelled the Dark label as opaque white, 4.6:1 where the real one was 3.91:1).
+        static double Over(Color text, double glass) => text.R * (text.A / 255.0) + glass * (1 - text.A / 255.0);
+        foreach (var appearance in new[] { ThemeVariant.Dark, ThemeVariant.Light })
+        {
+            var t = PopoverHost.Tint.Resolve(appearance).A / 255.0;
+            var under = appearance == ThemeVariant.Dark ? Math.Min(backdrop, PopoverGlass.DarkCap) : backdrop; // the cap is Dark's only
+            var glass = under * (1 - t) + 255 * t;
+            var label = Over(SwiftColor.LabelColor.Resolve(appearance), glass);
+            var secondary = Over(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(appearance), glass);
+            Assert.True(Contrast(label, glass) >= 4.5, $"{appearance} over {backdrop}: glass {glass:F1}, label {label:F1}, {Contrast(label, glass):F2}:1");
+            Assert.True(Contrast(secondary, glass) >= 3, $"{appearance} over {backdrop}: glass {glass:F1}, secondary {secondary:F1}, {Contrast(secondary, glass):F2}:1");
+        }
     }
 
     [Theory]

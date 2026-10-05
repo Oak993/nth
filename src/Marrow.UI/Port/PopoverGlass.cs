@@ -36,8 +36,8 @@ namespace Marrow.UI.Port;
 internal sealed class PopoverGlass : IDisposable
 {
     /// <summary>Dark: the cap on each channel of the blurred backdrop (MinBlend), so a bright backdrop reads as mid grey
-    /// under the card's tint and its white text keeps at least 4.5:1 (ED-NEW-glass-g2 (3)).</summary>
-    internal const byte DarkCap = 0x64;
+    /// under the card's tint: its label (white 0.85) keeps at least 4.5:1 and its secondary text (0.7 of that) 3:1 (ED-NEW-glass-g2 (3)).</summary>
+    internal const byte DarkCap = 0x56;
 
     /// <summary>What a card's glass is: where the body and the tip are in the popup window's physical pixels.</summary>
     internal readonly record struct Shape(Rect Body, double Radius, Point TipCentre, double TipSide, double TipRadius, double Opacity);
@@ -101,7 +101,7 @@ internal sealed class PopoverGlass : IDisposable
             last = shape;
             return true;
         }
-        catch (Exception error) when (error is TargetInvocationException or COMException or InvalidCastException or ArgumentException or NullReferenceException or InvalidOperationException)
+        catch (Exception error) when (NonFatal(error))
         {
             Fail("a composition call failed: " + (error.InnerException ?? error).Message);
             return false;
@@ -118,7 +118,7 @@ internal sealed class PopoverGlass : IDisposable
         {
             lock (syncRoot!) { Theme(body); Theme(tip!); }
         }
-        catch (Exception error) when (error is TargetInvocationException or COMException)
+        catch (Exception error) when (NonFatal(error))
         {
             Fail("a composition call failed: " + (error.InnerException ?? error).Message);
         }
@@ -143,7 +143,7 @@ internal sealed class PopoverGlass : IDisposable
                 (collection as IDisposable)?.Dispose();
             }
         }
-        catch (Exception error) when (error is TargetInvocationException or COMException or ObjectDisposedException)
+        catch (Exception error) when (NonFatal(error))
         {
             // the window's composition went with the window: nothing left to take back
         }
@@ -151,9 +151,18 @@ internal sealed class PopoverGlass : IDisposable
         body = tip = null;
     }
 
+    // Anything a reflected call into Avalonia's internals can raise (a renamed or overloaded member, a COM error, a proxy of the
+    // wrong type, a member gone null) ends the glass, not the layout pass it runs in (PopoverCard.SyncGlass): the card falls back
+    // to its opaque panel. Only the process-fatal ones go on.
+    internal static bool NonFatal(Exception error) => error is not (OutOfMemoryException or StackOverflowException or AccessViolationException or ThreadInterruptedException);
+
+    private static int logged;
+
     private void Fail(string why)
     {
         Failure ??= why;
+        // Said once per process (every popover that opens after it fails the same way).
+        if (Interlocked.Exchange(ref logged, 1) == 0) System.Diagnostics.Trace.WriteLine("Marrow: the popovers' see-through glass is off, they draw their opaque panel: " + why);
         Dispose();
     }
 
@@ -341,7 +350,7 @@ internal sealed class PopoverGlass : IDisposable
                     NativePointer = P(proxyBase, "NativePointer"),
                 };
             }
-            catch (Exception error) when (error is TypeLoadException or MissingMemberException or InvalidOperationException or FileNotFoundException or ArgumentException)
+            catch (Exception error) when (NonFatal(error)) // a missing type or member, an ambiguous one, a load failure: Lazy then caches null, not the throw
             {
                 LoadFailure = "Avalonia.Win32's composition internals were not found: " + error.Message;
                 return null;
@@ -350,11 +359,23 @@ internal sealed class PopoverGlass : IDisposable
 
         internal static object Qi(object unknown, Type type) => current.Value!.QueryInterface.MakeGenericMethod(type).Invoke(null, [unknown])!;
 
-        internal static object? Call(object target, Type type, string name, params object?[] arguments) =>
-            (type.GetMethod(name) ?? throw new MissingMethodException(type.Name, name)).Invoke(target, arguments);
+        // A member that is not there (an Avalonia that renamed it) or is there twice is an InvalidOperationException, which every
+        // caller's NonFatal catch takes, as it does any other error of the call.
+        internal static object? Call(object target, Type type, string name, params object?[] arguments) => Member(() => type.GetMethod(name), type, name).Invoke(target, arguments);
 
-        internal static object? Get(object target, Type type, string name) =>
-            (type.GetProperty(name) ?? throw new MissingMemberException(type.Name, name)).GetValue(target);
+        internal static object? Get(object target, Type type, string name) => Member(() => type.GetProperty(name), type, name).GetValue(target);
+
+        private static T Member<T>(Func<T?> find, Type type, string name) where T : MemberInfo
+        {
+            try
+            {
+                return find() ?? throw new InvalidOperationException($"Avalonia.Win32 has no {type.Name}.{name}");
+            }
+            catch (AmbiguousMatchException error)
+            {
+                throw new InvalidOperationException($"Avalonia.Win32 has more than one {type.Name}.{name}", error);
+            }
+        }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate int CreateColorBrushWithColor(IntPtr self, uint color, out IntPtr brush);

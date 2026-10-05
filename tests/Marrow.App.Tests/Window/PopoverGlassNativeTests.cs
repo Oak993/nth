@@ -95,11 +95,7 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
 
     // Where the screen captures and the timing go: the gallery's folder when the parent opted in (MARROW_GALLERY=1,
     // MARROW_GALLERY_DIR); the child's environment is an allow-list, so the folder travels in its request file.
-    private static string? Artifacts()
-    {
-        var run = Environment.GetEnvironmentVariable(WindowManagerNativeChildProtocol.DirectoryVariable);
-        return run is null ? null : WindowManagerNativeChildProtocol.Read<WindowManagerNativeRequest>(run, "request.json").GalleryDirectory;
-    }
+    private static string? Artifacts() => GalleryRun.OptionalOutputFolder();
 
     private static void Save(ScreenGrab grab, string name)
     {
@@ -142,13 +138,13 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
             // 1. Seen through: the stripes under the body are blurred away.
             var through = Grab(Math.Clamp(tip.X - 30, origin.X + 455, origin.X + 535), body.Y + 80);
             Assert.True(through.StripeContrast() < Blurred, $"{name}: the stripes under the glass read {through.StripeContrast():F2} (bare {bare.StripeContrast():F2})");
-            // 2. Legible over anything: over white (Dark) the cap holds the glass at about 100 x 0.9 + 25.5 = 115.5; over black
+            // 2. Legible over anything: over white (Dark) the cap holds the glass at about 86 x 0.9 + 25.5 = 102.9; over black
             //    (Light) the tint alone lifts it to about 0.5 x 255 = 128 (ED-NEW-glass-g2 (3)).
             var overWhite = Grab(origin.X + 300, body.Y + 80, 60, 40).MeanLuma();
             var overBlack = Grab(origin.X + 700, body.Y + 80, 60, 40).MeanLuma();
             if (dark)
             {
-                Assert.InRange(overWhite, 105, 126); // white text keeps at least 4.5:1 below 118
+                Assert.InRange(overWhite, 95, 111); // the label (white 0.85) keeps 4.5:1 below about 105
                 Assert.InRange(overBlack, 12, 32);
             }
             else
@@ -171,10 +167,12 @@ public sealed class PopoverGlassNativeTests(WindowManagerNativeSession native)
             var inCorner = Grab(body.X + 12, body.Y + 12, 2, 2).MeanLuma();
             Assert.True(corner > 190, $"{name}: the corner's wedge is not the backdrop: {corner:F0}");
             Assert.True(Math.Abs(inCorner - overWhite) < 20, $"{name}: inside the round corner is not the glass: {inCorner:F0} against {overWhite:F0}");
-            // 5. The tip is glass over the stripes, and beside it the stripes stay sharp.
-            var inTip = Grab(tip.X - 3, tip.Y - 6, 6, 3);
+            // 5. The tip is glass over the stripes, and beside it the stripes stay sharp. The tip's block is 16 px wide, 9 to 10 px
+            //    above its point (where the tip is 18 px across), so it always spans a stripe's edge (review of glass-g2: a 6 px
+            //    block could sit inside one stripe and read 0 with no glass in the tip at all).
+            var inTip = Grab(tip.X - 8, tip.Y - 10, 16, 2);
             var beside = Grab(tip.X + 16, tip.Y - 6, 24, 3);
-            Assert.True(inTip.StripeContrast() < 12, $"{name}: the tip is not glass: contrast {inTip.StripeContrast():F1}");
+            Assert.True(inTip.StripeContrast() < 6, $"{name}: the tip is not glass: contrast {inTip.StripeContrast():F1}");
             Assert.True(beside.StripeContrast() > Sharp - 12, $"{name}: beside the tip the stripes are not sharp: {beside.StripeContrast():F1}");
         }
         finally

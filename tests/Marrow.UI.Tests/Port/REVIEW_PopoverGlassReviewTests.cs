@@ -23,6 +23,7 @@ public sealed class REVIEW_PopoverGlassReviewTests
     // PopoverGlassCardTests.The_glass_keeps_its_text_readable_over_any_backdrop models the Dark label as opaque white; the app's
     // label is SwiftColor.LabelColor, white at 0.85 in Dark (black at 0.85 in Light, which that test does model).
     [Fact]
+    [Trait("Decision", "ED-NEW-glass-g2")]
     public void REVIEW_the_real_dark_label_keeps_4_5_to_1_over_a_white_desktop()
     {
         var tint = PopoverHost.Tint.Resolve(ThemeVariant.Dark);
@@ -38,6 +39,7 @@ public sealed class REVIEW_PopoverGlassReviewTests
     // member ends in Failure (the opaque panel). Api.Call and Api.Get raise MissingMethodException / MissingMemberException for a
     // method or property that is not there, which no catch lists: it would escape into the layout pass and crash the app.
     [Fact]
+    [Trait("Decision", "ED-NEW-glass-g2")]
     public void REVIEW_a_missing_composition_method_raises_something_the_glass_catches()
     {
         var api = typeof(PopoverGlass).GetNestedType("Api", BindingFlags.NonPublic)!;

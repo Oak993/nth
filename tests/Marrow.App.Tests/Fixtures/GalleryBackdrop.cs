@@ -26,10 +26,12 @@ internal static class GalleryBackdrop
     }
 
     // A picture of the reference's own scene for a side-by-side with the Mac frames (ED-NEW-glass-g2 (4)): a backdrop.png put
-    // in the gallery's output folder is shown filling the working area instead of the gradient.
+    // in the gallery's output folder is shown filling the working area instead of the gradient. Only when the gallery is on:
+    // Cover also serves the other native Facts (TimelineRowsNativeRig), which run without it.
     private static Control? Wallpaper()
     {
-        var path = System.IO.Path.Combine(GalleryRun.OutputFolder(), "backdrop.png");
+        if (GalleryRun.OptionalOutputFolder() is not { } folder) return null;
+        var path = System.IO.Path.Combine(folder, "backdrop.png");
         return File.Exists(path) ? new Image { Source = new Avalonia.Media.Imaging.Bitmap(path), Stretch = Stretch.UniformToFill } : null;
     }
 
