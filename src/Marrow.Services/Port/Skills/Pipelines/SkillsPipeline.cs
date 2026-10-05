@@ -11,6 +11,7 @@ public sealed class SkillsPipeline : IGenerationStore
 {
     private readonly object gate = new();
     private readonly SemaphoreSlim operation = new(1, 1);
+    private int resetSerial; // ED-372: a completed download cannot undo a reset.
     private readonly StorePaths paths;
     private readonly SkillsCatalogue catalogue;
     private readonly ItemInstaller installer;
@@ -111,7 +112,7 @@ public sealed class SkillsPipeline : IGenerationStore
                 CollectCore(); // Recover unreferenced completed installs and tmp trees before the try.
                 checking = state.Transition(id, ItemState.Downloading, selectedPin).Transition(id, ItemState.Checking).Get(id);
             }
-            var plan = await downloads(item, checking, progress, cancellation).ConfigureAwait(false);
+            var plan = await DownloadOutsideOperation(item, checking, progress, cancellation).ConfigureAwait(false);
             if (plan.Item != item || plan.Record != checking || Path.GetFullPath(plan.DataRoot) != paths.Root)
                 throw new InvalidDataException("Download plan disagrees with the install.");
             checkpoint?.Invoke(PipelineStep.Downloaded);
@@ -214,9 +215,30 @@ public sealed class SkillsPipeline : IGenerationStore
 
     public void AcceptTerms(string id, DateTimeOffset at)
     {
-        operation.Wait();
-        try { lock (gate) Commit(state.AcceptTerms(ItemTerms.LicenceHash(catalogue.Items.Single(i => i.Id == id)) ?? throw new InvalidOperationException("Unpinned licence."), id, at)); }
-        finally { operation.Release(); }
+        // ED-372: like SK-14 SetDeclined, merge the current lists under gate without waiting for an item's operation.
+        lock (gate) Commit(state.AcceptTerms(ItemTerms.LicenceHash(catalogue.Items.Single(i => i.Id == id)) ?? throw new InvalidOperationException("Unpinned licence."), id, at));
+    }
+
+    // ED-372: only downloading runs without the operation slot; install, verification, routing and GC stay serialized.
+    // The caller owns the slot on entry and again on every exit, including a failed/cancelled download.
+    private async Task<InstallPlan> DownloadOutsideOperation(CatalogueItem item, ItemRecord checking, IProgress<double?> progress, CancellationToken cancellation)
+    {
+        ItemRecord before;
+        int reset;
+        ItemRecord[] needs;
+        lock (gate) { before = state.Get(item.Id); reset = resetSerial; needs = item.Needs.Select(state.Get).ToArray(); }
+        operation.Release();
+        InstallPlan plan;
+        try { plan = await downloads!(item, checking, progress, cancellation).ConfigureAwait(false); }
+        finally { await operation.WaitAsync().ConfigureAwait(false); }
+        cancellation.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (reset != resetSerial || state.Get(item.Id) != before || !needs.SequenceEqual(item.Needs.Select(state.Get)))
+                throw new InvalidOperationException("The item changed while it was downloading.");
+            if (ItemTerms.Required(item, state)) throw new PipelineTermsRequiredException(item.Id);
+        }
+        return plan;
     }
 
     private void Commit(AddonsState next)
@@ -310,7 +332,7 @@ public sealed class SkillsPipeline : IGenerationStore
                 var local = UpdateCheck.Compute(state, catalogue).State;
                 checking = local.Transition(id, ItemState.Downloading).Transition(id, ItemState.Checking).Get(id);
             }
-            var plan = await downloads(item, checking, progress, cancellation).ConfigureAwait(false);
+            var plan = await DownloadOutsideOperation(item, checking, progress, cancellation).ConfigureAwait(false);
             if (plan.Item != item || plan.Record != checking || Path.GetFullPath(plan.DataRoot) != paths.Root)
                 throw new InvalidDataException("Download plan disagrees with the update.");
             checkpoint?.Invoke(PipelineStep.Downloaded);
@@ -393,7 +415,7 @@ public sealed class SkillsPipeline : IGenerationStore
                 checking = state.Transition(id, ItemState.Downloading).Transition(id, ItemState.Checking).Get(id);
             }
             var item = trusted.Catalogue;
-            var plan = await downloads(item, checking, progress, cancellation).ConfigureAwait(false);
+            var plan = await DownloadOutsideOperation(item, checking, progress, cancellation).ConfigureAwait(false);
             if (plan.Item != item || plan.Record != checking || Path.GetFullPath(plan.DataRoot) != paths.Root)
                 throw new InvalidDataException("Download plan disagrees with the repair.");
             checkpoint?.Invoke(PipelineStep.Downloaded);
@@ -467,6 +489,7 @@ public sealed class SkillsPipeline : IGenerationStore
                 StorePaths.EnsureAncestors(ResetMarker);
                 Directory.CreateDirectory(paths.Skills);
                 Marrow.Core.Port.FileOps.WriteAtomic(ResetMarker, []);
+                resetSerial++;
                 orphans = []; orphansUnreadable = false; // Reset releases every orphan's trees
                 if (File.Exists(OrphanFile)) File.Delete(OrphanFile);
                 Commit(AddonsState.Restore([], state.AcceptedTerms, state.Declined, state.Found));

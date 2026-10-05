@@ -33,6 +33,7 @@ public sealed class FetchDownloadBlockingTests
             await held.WaitAsync(Guard);
             await terms.WaitAsync(Guard);
         }
+        Assert.False(ItemTerms.Required(rig.Item("N1"), rig.Host.Pipeline.State));
     }
 
     [Fact]
