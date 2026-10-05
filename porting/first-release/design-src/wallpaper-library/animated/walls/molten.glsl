@@ -39,8 +39,8 @@ vec3 env(vec3 r, float a) {
   float bx = smoothstep(0.26, 0.22, abs(side + 0.18 + 0.03 * sin(a))) * smoothstep(0.13, 0.09, abs(up - 0.62));
   float strip = smoothstep(0.08, 0.04, abs(side + 0.72)) * smoothstep(0.55, 0.35, abs(up - 0.15));
   lin += L5 * (bx * 1.6 + strip * 0.7);
-  float back = smoothstep(-0.6, -0.98, r.z);
-  lin = mix(lin, lab2lin(u_pal[0]) * 1.25 + 0.04, back * 0.85);
+  float back = smoothstep(-0.88, -0.995, r.z);
+  lin = mix(lin, lab2lin(u_pal[0]) * 1.1 + 0.03, back * 0.55);
   return lin;
 }
 
@@ -67,7 +67,7 @@ vec3 wall(vec2 p, float t) {
   lab.yz = mix(lab.yz, film, fs * 0.75 * (1.0 - smoothstep(-0.3, -0.9, r.z) * 0.75));
   lin = lab2lin(lab);
   float fres = pow(1.0 - n.z, 5.0);
-  lin = mix(lin, vec3(1.0), fres * 0.22);
+  lin = mix(lin, vec3(1.0), fres * 0.12);
   float lip = smoothstep(0.012, 0.0, e) * smoothstep(-0.1, 0.6, n.y + 0.3);
   lin += lab2lin(vec3(u_pal[5].x, 0.0, 0.0)) * lip * 0.25;
   // the backdrop: a seamless sweep with a soft light and the drops' contact shadow
