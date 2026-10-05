@@ -1,0 +1,732 @@
+{
+ "source": "ref-glow.js",
+ "fps": 60,
+ "props": {
+  "type": "default",
+  "scale": 0.7,
+  "glowWidth": 1.6,
+  "lobeSpacing": 2.1,
+  "rangeWidth": 1.9,
+  "processingTravel": 2.05,
+  "borderRadius": 22,
+  "reducedMotion": false
+ },
+ "card": {
+  "dark": "#1c1c1c",
+  "light": "#f4f4f4"
+ },
+ "jobs": [
+  {
+   "name": "ref_glow_idle_720x96_dark",
+   "state": "idle",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 120,
+     "level": 0,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_idle_720x96_light",
+   "state": "idle",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 120,
+     "level": 0,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_idle_480x150_dark",
+   "state": "idle",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 120,
+     "level": 0,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_idle_480x150_light",
+   "state": "idle",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 120,
+     "level": 0,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.2_720x96_dark",
+   "state": "level-0.2",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.2_720x96_light",
+   "state": "level-0.2",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.2_480x150_dark",
+   "state": "level-0.2",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.2_480x150_light",
+   "state": "level-0.2",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.6_720x96_dark",
+   "state": "level-0.6",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.6_720x96_light",
+   "state": "level-0.6",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.6_480x150_dark",
+   "state": "level-0.6",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-0.6_480x150_light",
+   "state": "level-0.6",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-1.0_720x96_dark",
+   "state": "level-1.0",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-1.0_720x96_light",
+   "state": "level-1.0",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-1.0_480x150_dark",
+   "state": "level-1.0",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_level-1.0_480x150_light",
+   "state": "level-1.0",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-0.8_720x96_dark",
+   "state": "proc-0.8",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-0.8_720x96_light",
+   "state": "proc-0.8",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-0.8_480x150_dark",
+   "state": "proc-0.8",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-0.8_480x150_light",
+   "state": "proc-0.8",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.35_720x96_dark",
+   "state": "proc-1.35",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 81,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.35_720x96_light",
+   "state": "proc-1.35",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 81,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.35_480x150_dark",
+   "state": "proc-1.35",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 81,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.35_480x150_light",
+   "state": "proc-1.35",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 81,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.9_720x96_dark",
+   "state": "proc-1.9",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 114,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.9_720x96_light",
+   "state": "proc-1.9",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 114,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.9_480x150_dark",
+   "state": "proc-1.9",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 114,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_glow_proc-1.9_480x150_light",
+   "state": "proc-1.9",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 114,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.2_720x96_dark",
+   "state": "level-0.2",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.2_720x96_light",
+   "state": "level-0.2",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.2_480x150_dark",
+   "state": "level-0.2",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.2_480x150_light",
+   "state": "level-0.2",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.2,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_720x96_dark",
+   "state": "level-0.6",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_720x96_light",
+   "state": "level-0.6",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_480x150_dark",
+   "state": "level-0.6",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-0.6_480x150_light",
+   "state": "level-0.6",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_720x96_dark",
+   "state": "level-1.0",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_720x96_light",
+   "state": "level-1.0",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_480x150_dark",
+   "state": "level-1.0",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_level-1.0_480x150_light",
+   "state": "level-1.0",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 1,
+     "processing": false
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_720x96_dark",
+   "state": "proc-0.8",
+   "width": 720,
+   "height": 96,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_720x96_light",
+   "state": "proc-0.8",
+   "width": 720,
+   "height": 96,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_480x150_dark",
+   "state": "proc-0.8",
+   "width": 480,
+   "height": 150,
+   "theme": "dark",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  },
+  {
+   "name": "ref_band_proc-0.8_480x150_light",
+   "state": "proc-0.8",
+   "width": 480,
+   "height": 150,
+   "theme": "light",
+   "layers": "band",
+   "script": [
+    {
+     "frames": 180,
+     "level": 0.6,
+     "processing": false
+    },
+    {
+     "frames": 48,
+     "level": 0,
+     "processing": true
+    }
+   ]
+  }
+ ]
+}
