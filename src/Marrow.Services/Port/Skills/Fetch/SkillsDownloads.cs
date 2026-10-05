@@ -1,15 +1,169 @@
-// PORT-ONLY: first-release feature unit SK-16 (DL-19). Stub for the red run; replaced below.
+// PORT-ONLY: first-release feature unit SK-16 (DL-19, skills-ONDEMAND-PLAN.md section 7: "Settings and offers share one download per item"). There is no Swift twin.
 using Marrow.Core.Port.Skills.Catalogue;
+using Marrow.Services.Port.Skills.Pages;
 using Marrow.Services.Port.Skills.Pipelines;
 
 namespace Marrow.Services.Port.Skills.Fetch;
 
+/// <summary>
+/// The one place a first download is started from (the host owns one). ENGINEERING DECISIONS (ED-NEW-cloud-sk-16): (1) one download per item: an item asked for while its download is running joins it,
+/// whoever asks (a Settings page or an in-chat offer), is told where it is at once and sees every later report; (2) an asker that leaves (its token is cancelled) stops waiting and leaves the
+/// download running for the others, and when the last asker has left the transfer is cancelled (what it fetched stays for a later try, ONDEMAND 3.2); (3) an item that needs items not installed
+/// fetches them first, each its own shared download, and its one progress bar runs across the need and the item weighted by their pinned bytes; (4) a failure reaches every asker and frees the item
+/// so the next ask is a new download (Retry); (5) nothing starts on its own: a download is a call, never a restart's doing (the pipeline writes nothing of a download in flight to state.json).
+/// </summary>
 public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue catalogue)
 {
-    public bool Available => throw new NotImplementedException();
-    public bool CanFetch(CatalogueItem item) => throw new NotImplementedException();
-    public Task<string> Install(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation) => throw new NotImplementedException();
-    public bool IsRunning(string id) => throw new NotImplementedException();
-    public FetchView? Running(string id) => throw new NotImplementedException();
-    public IDisposable Watch(Action changed) => throw new NotImplementedException();
+    private readonly object gate = new();
+    private readonly Dictionary<string, FetchFlight> flights = new(StringComparer.Ordinal);
+    private readonly List<Action> watchers = [];
+
+    /// <summary>True when the download and binding seams are bound, so a download can be tried at all (see <see cref="CanFetch"/> for one item).</summary>
+    public bool Available => pipeline.FetchingBound;
+
+    /// <summary>True when the seams are bound and the item and every item it still needs have a complete pin (a pinned file is what is fetched; nothing is guessed).</summary>
+    public bool CanFetch(CatalogueItem item) => Available && Chain(item).All(i => i.PinState == PinState.Pinned && CatalogueGate.Missing(i).Count == 0);
+
+    /// <summary>The needs not installed, dependencies first, and the item itself.</summary>
+    private List<CatalogueItem> Chain(CatalogueItem item)
+    {
+        var order = new List<CatalogueItem>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        void Visit(CatalogueItem next)
+        {
+            if (!seen.Add(next.Id)) return;
+            foreach (var need in next.Needs) Visit(catalogue.Items.Single(i => i.Id == need));
+            if (next == item || pipeline.InstalledFolder(next.Id) is null) order.Add(next);
+        }
+        Visit(item);
+        return order;
+    }
+
+    public bool IsRunning(string id) { lock (gate) return flights.ContainsKey(id); }
+
+    /// <summary>What a surface shows of a download running for the item, or null when none is.</summary>
+    public FetchView? Running(string id)
+    {
+        lock (gate) return flights.TryGetValue(id, out var flight) ? new FetchView(flight.Last) : null;
+    }
+
+    /// <summary>Calls <paramref name="changed"/> (on whatever thread) when a download starts, reports or ends. Dispose to stop.</summary>
+    public IDisposable Watch(Action changed)
+    {
+        ArgumentNullException.ThrowIfNull(changed);
+        lock (gate) watchers.Add(changed);
+        return new Watcher(this, changed);
+    }
+
+    private void Notify()
+    {
+        Action[] copy;
+        lock (gate) copy = watchers.ToArray();
+        foreach (var watcher in copy)
+        {
+            try { watcher(); }
+            catch (Exception) { /* a watcher cannot stop a download */ }
+        }
+    }
+
+    /// <summary>
+    /// Downloads and installs the item (and the needs it lacks) once, or joins the download already running for it. The task ends with the installed folder, with the failure, or cancelled when
+    /// <paramref name="cancellation"/> is. An item that is here is not downloaded again.
+    /// </summary>
+    public Task<string> Install(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(progress);
+        cancellation.ThrowIfCancellationRequested();
+        if (pipeline.InstalledFolder(item.Id) is { } here) return Task.FromResult(here);
+        if (!CanFetch(item)) return Task.FromException<string>(new FirstInstallUnavailableException());
+        return Join(item, progress, cancellation);
+    }
+
+    private async Task<string> Join(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation)
+    {
+        FetchFlight flight;
+        var start = false;
+        lock (gate)
+        {
+            if (!flights.TryGetValue(item.Id, out flight!))
+            {
+                flights[item.Id] = flight = new FetchFlight(item.Id);
+                start = true;
+            }
+            flight.Askers++;
+        }
+        using var listening = flight.Listen(progress);
+        var left = 0;
+        void Leave()
+        {
+            if (Interlocked.Exchange(ref left, 1) == 1) return;
+            var stop = false;
+            lock (gate)
+            {
+                if (--flight.Askers == 0 && !flight.Result.Task.IsCompleted)
+                {
+                    stop = true;
+                    if (flights.TryGetValue(item.Id, out var current) && current == flight) flights.Remove(item.Id);
+                }
+            }
+            if (!stop) return;
+            flight.Cancel.Cancel();
+            Notify();
+        }
+        using var registration = cancellation.Register(Leave);
+        if (start)
+        {
+            Notify();
+            _ = Task.Run(() => Run(flight, item));
+        }
+        try { return await flight.Result.Task.WaitAsync(cancellation).ConfigureAwait(false); }
+        finally { Leave(); }
+    }
+
+    private async Task Run(FetchFlight flight, CatalogueItem item)
+    {
+        string? path = null;
+        Exception? failure = null;
+        try
+        {
+            var token = flight.Cancel.Token;
+            var chain = Chain(item);
+            var weights = chain.Select(Bytes).ToArray();
+            var total = (double)weights.Sum();
+            double before = 0;
+            for (var step = 0; step < chain.Count; step++)
+            {
+                var offset = before;
+                var weight = weights[step];
+                var scaled = new Scaled(value =>
+                {
+                    flight.Report(value is null ? null : (offset + value.Value * weight) / total);
+                    Notify();
+                });
+                if (chain[step] == item) path = await pipeline.InstallAsync(item.Id, scaled, token).ConfigureAwait(false);
+                else await Join(chain[step], scaled, token).ConfigureAwait(false);
+                before += weight;
+            }
+        }
+        catch (Exception error) { failure = error; }
+        lock (gate) { if (flights.TryGetValue(item.Id, out var current) && current == flight) flights.Remove(item.Id); }
+        Notify();
+        if (failure is OperationCanceledException) flight.Result.TrySetCanceled();
+        else if (failure is not null) flight.Result.TrySetException(failure);
+        else flight.Result.TrySetResult(path!);
+    }
+
+    /// <summary>The item's pinned bytes: what its progress is weighted by (at least one, so an item with no size still moves the bar).</summary>
+    public static long Bytes(CatalogueItem item) => Math.Max(1, item.Files.Sum(f => f.Size) + item.Artifacts.Sum(a => a.Size ?? 0));
+
+    private sealed class Scaled(Action<double?> report) : IProgress<double?>
+    {
+        public void Report(double? value) => report(value);
+    }
+
+    private sealed class Watcher(SkillsDownloads owner, Action changed) : IDisposable
+    {
+        public void Dispose() { lock (owner.gate) owner.watchers.Remove(changed); }
+    }
 }

@@ -2,6 +2,7 @@
 using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.State;
+using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Port.Skills.Install;
 using Marrow.Services.Port.Skills.Pipelines;
@@ -25,7 +26,7 @@ public sealed class SkillsHost : IDisposable
     private bool disposed;
     private Task? collection;
 
-    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, TermsStep terms,
+    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, TermsStep terms, SkillsDownloads fetches,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
     {
         this.key = key;
@@ -33,6 +34,7 @@ public sealed class SkillsHost : IDisposable
         Pipeline = pipeline;
         Generations = generations;
         Terms = terms;
+        Downloads = fetches;
         GuardedDownloads = downloads;
         Unrestored = unrestored;
     }
@@ -46,6 +48,12 @@ public sealed class SkillsHost : IDisposable
     public SkillGenerations Generations { get; }
 
     public TermsStep Terms { get; }
+
+    /// <summary>
+    /// SK-16 (DL-19): the one place a first download is started from, so Settings and the in-chat offers share ONE download per item (an offer asked for an item Settings is fetching joins it, and the
+    /// reverse). Fetching is available only when the options bound the download and binding seams (<see cref="SkillsDownloads.Available"/>).
+    /// </summary>
+    public SkillsDownloads Downloads { get; }
 
     /// <summary>
     /// The download seam with the terms checked first (<see cref="TermsGate"/>): the one entry a first install goes through so no byte of a non-open item is requested before its terms are
@@ -95,7 +103,7 @@ public sealed class SkillsHost : IDisposable
             options.Deletion, guarded, options.Bindings, trustedDirectories: trust.Directories);
         var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, terms, guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, terms, new SkillsDownloads(pipeline, options.Catalogue), guarded, trust.Unrestored);
     }
 
     /// <summary>

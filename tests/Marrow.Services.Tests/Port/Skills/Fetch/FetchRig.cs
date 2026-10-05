@@ -68,12 +68,9 @@ internal sealed class FetchRig : IDisposable
 
     private async Task<InstallPlan> Download(CatalogueItem item, ItemRecord record, IProgress<double?> progress, CancellationToken cancellation)
     {
-        lock (gate)
-        {
-            Downloaded.Add(item.Id);
-            (entered.TryGetValue(item.Id, out var source) ? source : entered[item.Id] = new(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult();
-        }
+        lock (gate) Downloaded.Add(item.Id);
         progress.Report(0.25);
+        lock (gate) (entered.TryGetValue(item.Id, out var source) ? source : entered[item.Id] = new(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult(); // after the first report, so a joiner is told 0.25
         if (Hold.TryGetValue(item.Id, out var hold)) await hold.Task.WaitAsync(cancellation);
         cancellation.ThrowIfCancellationRequested();
         if (Fail.TryGetValue(item.Id, out var message)) throw new IOException(message);
