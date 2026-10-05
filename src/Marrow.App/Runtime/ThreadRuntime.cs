@@ -2950,8 +2950,13 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:2070-2077.
     public UsageAccountKey? UsageAccount { get; private set; }
 
-    public void Observe(ProviderSession provider) => Observe(provider,
-        Thread is { } thread ? UsageAccountKey.Default(thread.Provider) : null);
+    public void Observe(ProviderSession provider) => Observe(provider, CurrentUsageAccount());
+
+    // PORT-ONLY: ED-NEW-ma-ui. Observe freezes the actual source identity, including explicit account GUIDs.
+    private UsageAccountKey? CurrentUsageAccount() => Thread is not { } thread ? null
+        : thread.ProviderAccountID is { } id
+            && App?.Settings.Accounts.Accounts.FirstOrDefault(account => account.Id == id)?.UsesLegacyCredentials != true
+            ? new UsageAccountKey(thread.Provider, id.ToString("D")) : UsageAccountKey.Default(thread.Provider);
 
     // DEVIATION OD-0114 / ED-NEW-ma-2: immutable source identity survives later account changes.
     public void Observe(ProviderSession provider, UsageAccountKey? account)
@@ -3801,10 +3806,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
     public HandoffSummary SaveHandoff(string currentDiff)
     {
-        if (Phase != RuntimePhase.Idle || IsLoadingHistory || IsReverting || pendingSend is not null
-            || Approvals.Count != 0 || Questions.Count != 0 || HasWorkingHeads
-            || hydraPendingReports.Count != 0 || hydraBatches.Count != 0 || hydraWaiting.Count != 0
-            || Entries.Any(entry => entry.Item.TimelineItemContent is TimelineItem.Content.Tool tool && tool.Value.ToolCallStatus == ToolCall.Status.Running))
+        if (!IsAccountSwitchSafe)
             throw new InvalidOperationException("A handoff requires a quiescent thread with no pending tools, approvals or head results.");
         var journal = HandoffJournal.Read(HandoffFolder);
         var context = new HandoffContext(HandoffJournal.Restore(SnapshotForPersistence(), journal), Thread?.Title ?? "", currentDiff)

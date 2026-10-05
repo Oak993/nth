@@ -65,5 +65,6 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     private PlanLimits.Window? Binding(AccountPlanLimitsSnapshot? snapshot) => snapshot?.Limits?.Windows
         .Where(window => double.IsFinite(window.Percent) && window.Percent is >= 0 and <= 100
             && !(window.ResetsAt is { } reset && reset <= clock.GetUtcNow()))
-        .OrderByDescending(window => window.Percent).FirstOrDefault();
+        .OrderByDescending(window => window.Percent)
+        .ThenByDescending(window => window.ResetsAt ?? DateTimeOffset.MaxValue).FirstOrDefault();
 }

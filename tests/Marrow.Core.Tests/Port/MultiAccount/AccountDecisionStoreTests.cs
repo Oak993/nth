@@ -60,7 +60,7 @@ public sealed class AccountDecisionStoreTests
     {
         var stored = new AccountDecisionStore(new InMemorySettingsStore());
         var thread = Guid.NewGuid();
-        var pill = new Pill("Work", [new("a"), new("b")]);
+        Pill? pill = new Pill("Work", [new("a"), new("b")]);
         var consent = new PillDecisionStore(stored, thread, () => pill);
         var policy = new DecisionPolicy(consent);
         Assert.Equal(DecisionValues.Switch, policy.Resolve(thread, DecisionKind.OnLimit).Value);

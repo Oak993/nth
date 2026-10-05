@@ -9,8 +9,11 @@ namespace Marrow.App.Runtime;
 public sealed partial class ThreadRuntime
 {
     public bool IsAccountSwitchSafe => Phase == RuntimePhase.Idle && !IsLoadingHistory && !IsReverting && pendingSend is null
+        && closingTurnID is null && finishingTurnID is null && !isStartingSession
         && Approvals.Count == 0 && Questions.Count == 0 && !HasWorkingHeads
         && hydraPendingReports.Count == 0 && hydraBatches.Count == 0 && hydraWaiting.Count == 0
+        && !hydraFlushScheduled && HydraLanding is null && !IsHydraMerging
+        && commandTrees.Count == 0 && commandSettles.Count == 0 && hydraCommandTrees.Count == 0
         && !Entries.Any(entry => entry.Item.TimelineItemContent is TimelineItem.Content.Tool tool && tool.Value.ToolCallStatus == ToolCall.Status.Running);
 
     public HandoffSummary SaveHandshakeCheckpoint()

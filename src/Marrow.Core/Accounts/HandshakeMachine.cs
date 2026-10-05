@@ -387,11 +387,22 @@ public sealed class HandshakeMachine(
             linking = null;
         }
 
-        if (hardStop || host.AtSafePoint) await SwitchNowAsync(ct);
+        if (host.AtSafePoint) await SwitchNowAsync(ct);
     }
 
     private async Task SwitchNowAsync(CancellationToken ct)
     {
+        // PORT-ONLY: ED-NEW-ma-ui. Preparation cannot retain permission to use a row turned Off meanwhile.
+        if (target is null || Find(target.Account.Id) is not { Enabled: true }
+            || (limits.Usage(target.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false)
+            || host.ActiveAccountId != outgoing)
+        {
+            Emit(HandshakeEventKind.Degraded, phase, phase, null, detail: "The prepared account is no longer available.");
+            failedFor = outgoing;
+            await ResetPipelineAsync();
+            SetPhase(HandshakePhase.Idle);
+            return;
+        }
         SetPhase(HandshakePhase.Switch);
         try
         {
