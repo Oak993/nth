@@ -4,6 +4,7 @@ using Marrow.App.Port.Settings;
 using Marrow.App.Port.Voice;
 using Marrow.Core.Port;
 using Marrow.Services.Port.Voice.Capture;
+using Marrow.Services.Port.Voice.Probe;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Fixtures;
@@ -19,7 +20,12 @@ internal static class VoiceTypingPageRig
 
     public static ScriptedCaptureHost TwoMicrophones() => new((Realtek, "Microphone Array (Realtek)"), (Usb, "Headset (USB)"));
 
-    public static void Run(HeadlessSession headless, Action<VoiceTypingScene> check, ICaptureHost? host = null, string windowsLanguage = "en-US", Action<AppModel>? arrange = null) =>
+    /// <summary>
+    /// VT-14 adds the Speech model section's seams: the model backend, the hardware probe and the self-test (each defaults to its fail-closed ambient: nothing installed, no hardware read, nothing
+    /// timed). A scripted backend is told which model is in use (the settings' <c>voiceTyping.model</c>), as the store is.
+    /// </summary>
+    public static void Run(HeadlessSession headless, Action<VoiceTypingScene> check, ICaptureHost? host = null, string windowsLanguage = "en-US", Action<AppModel>? arrange = null,
+        ISpeechModelBackend? backend = null, IHardwareProbe? probe = null, ISpeechSelfTest? selfTest = null) =>
         headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
@@ -30,6 +36,10 @@ internal static class VoiceTypingPageRig
             using var presenter = Presentation.Presenter.Override(new ReviewOverlayPresenter(Presentation.Presenter.Current));
             using var language = WindowsDisplayLanguage.Source.Override(() => windowsLanguage);
             using var capture = host is null ? null : CaptureSeams.Host.Override(host);
+            if (backend is ScriptedSpeechModelBackend scripted) scripted.InUse = () => model.Settings.VoiceTyping.Model;
+            using var backendScope = backend is null ? null : SpeechModelSeams.Backend.Override(backend);
+            using var probeScope = probe is null ? null : HardwareProbeSeams.Probe.Override(probe);
+            using var selfTestScope = selfTest is null ? null : SpeechModelSeams.SelfTest.Override(selfTest);
             arrange?.Invoke(model);
             var page = new VoiceTypingSettingsPage();
             var holder = new Border { Child = page };
@@ -41,7 +51,7 @@ internal static class VoiceTypingPageRig
                 window.Show();
                 window.UpdateLayout();
                 VoiceTypingScene.Sync();
-                check(new VoiceTypingScene(page, model, CaptureSeams.Host.Current, window, frames, harness.Runtime!));
+                check(new VoiceTypingScene(page, model, CaptureSeams.Host.Current, window, frames, harness.Runtime!, SpeechModelController.For(model.Settings), SpeechModelSeams.Backend.Current));
             }
             finally
             {
