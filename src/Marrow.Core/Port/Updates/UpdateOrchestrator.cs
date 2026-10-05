@@ -110,6 +110,19 @@ public sealed class UpdateOrchestrator
         finally { End(); }
     }
 
+    /// <summary>PORT-ONLY (UE-4, the Updates page's per-row Update, ED-NEW-f-ue-4): runs one item alone. It needs an update to be due (available, version unknown until it runs, or failed before); a row that is current or not installed is refused.</summary>
+    public async Task UpdateOne(string id, CancellationToken cancellation = default)
+    {
+        if (items.All(i => i.Id != id)) throw new ArgumentException($"No update item has the id '{id}'.", nameof(id));
+        Begin();
+        try
+        {
+            if (Get(id).State is not (UpdateRowState.UpdateAvailable or UpdateRowState.ChecksWhenUpdated or UpdateRowState.Failed)) throw new InvalidOperationException($"'{id}' has no update due.");
+            await Run([id], cancellation);
+        }
+        finally { End(); }
+    }
+
     private async Task Run(IReadOnlyList<string> ids, CancellationToken cancellation)
     {
         var before = ids.ToDictionary(i => i, i => Get(i), StringComparer.Ordinal);

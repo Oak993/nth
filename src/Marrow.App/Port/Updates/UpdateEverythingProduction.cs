@@ -26,10 +26,17 @@ internal static class UpdateEverythingProduction
         service.StartBackgroundChecks();
     }
 
+    /// <summary>
+    /// PORT-ONLY (UE-4, ED-NEW-f-ue-4): where the units that own other kinds of item add them, so the pill and the Updates page list them: SK-13/SK-16 sets this to its SkillsPipeline's
+    /// <c>SkillUpdateItem</c>s (kind SkillsAndTools, the page's "Skills and tools" section) and UE-3 to its developer-tool items (kind DevTool, "Developer tools"). Read when the service is configured;
+    /// nothing sets it yet, so the groups are empty.
+    /// </summary>
+    internal static Func<IEnumerable<IUpdateItem>> ExtraItems { get; set; } = () => [];
+
     private static (IReadOnlyList<IUpdateItem> Items, Action Restart) Real(AppModel model)
     {
         var marrow = new MarrowUpdateItem(UpdateChecker.Shared, SelfUpdateEngine.Shared, (package, version) => AppUpdater.Shared.ApplyDownloaded(package, version));
-        var items = ProviderCliUpdateItem.For(ProviderRegistry.UpdatableProviders, model.Providers, new FetchedVersionListing(HttpVersionFetch.Get)).Append(marrow).ToList();
+        var items = ProviderCliUpdateItem.For(ProviderRegistry.UpdatableProviders, model.Providers, new FetchedVersionListing(HttpVersionFetch.Get)).Concat(ExtraItems()).Append(marrow).ToList();
         return (items, marrow.Restart);
     }
 }

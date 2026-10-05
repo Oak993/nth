@@ -55,6 +55,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
         ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
+        ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-NEW-f-ue-4): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),
