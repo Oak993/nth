@@ -9,7 +9,7 @@ using Marrow.Services.Port.Skills.Offers;
 using Marrow.Services.Port.Skills.Providers;
 namespace Marrow.App.Port.Skills;
 
-public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer
+public sealed class SkillsOfferFlow : MainActorModel, IToolRequestOffer, IOfferCardSource
 {
     private readonly ThreadRuntime runtime;
     private readonly SkillsCatalogue catalogue;
