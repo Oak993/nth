@@ -96,6 +96,29 @@ public sealed class VoicePreparation
         return updated;
     }
 
+    /// <summary>The size in bytes of the model the recommendation for the last probed PC would download (Welcome's <c>{mb}</c>); null before any probe.</summary>
+    public long? CandidateBytes
+    {
+        get
+        {
+            HardwareProfile? known;
+            lock (gate) known = profile;
+            return known is null ? null : Marrow.Core.Port.Voice.ModelCatalog.Find(Recommend(known).ModelId)?.Bytes;
+        }
+    }
+
+    /// <summary>The size in bytes of the smaller live model the slow question offers, the one a "live" answer installs for the stored result's model (Welcome's <c>{small}</c>); null with no stored result or no smaller model.</summary>
+    public long? LiveAnswerBytes
+    {
+        get
+        {
+            var record = settings.Record;
+            if (record is null) return null;
+            var smaller = SelfTestPlan.ApplyAnswer(record.Model, LiveWordsChoice.Live);
+            return smaller.LiveWords == true ? Marrow.Core.Port.Voice.ModelCatalog.Find(smaller.ModelId)?.Bytes : null;
+        }
+    }
+
     /// <summary>True once the user said yes (Welcome) or clicked the orb.</summary>
     public bool HasConsent => consent;
 

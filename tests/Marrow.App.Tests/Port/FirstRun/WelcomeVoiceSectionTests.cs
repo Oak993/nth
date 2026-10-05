@@ -61,14 +61,18 @@ public sealed class WelcomeVoiceSectionTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "WV-1")]
     [Trait("Decision", "ED-289")]
-    public void The_ask_state_shows_its_message_and_choices_and_yes_starts_the_preparation() => OnWelcome(VoiceQuestionRig.Pc(), (host, _) =>
+    public void The_ask_state_shows_its_heading_body_and_the_two_buttons_in_the_order_V2_draws_them()
     {
-        Assert.True(Shows(host, WelcomeVoiceWords.Message(VoiceQuestionState.Ask)!));
-        foreach (var choice in WelcomeVoiceWords.Choices(VoiceQuestionState.Ask)) Assert.True(Shows(host, choice));
-        var buttons = RootViewRig.All<Button>(host).Select(RootViewRig.AllText).ToList();
-        Assert.Contains("Yes", buttons);
-        Assert.Contains("No", buttons);
-    });
+        var rig = VoiceQuestionRig.Pc();
+        OnWelcome(rig, (host, _) =>
+        {
+            Assert.True(Shows(host, WelcomeVoiceWords.Heading(VoiceQuestionState.Ask)!));
+            Assert.True(Shows(host, rig.Said(VoiceQuestionState.Ask)!));
+            Assert.Contains("874 MB", rig.Said(VoiceQuestionState.Ask), StringComparison.Ordinal); // the owner's PC: large-v3-turbo-q8_0
+            var buttons = RootViewRig.All<Button>(host).Select(RootViewRig.AllText).ToList();
+            Assert.True(buttons.IndexOf("Maybe later") >= 0 && buttons.IndexOf("Maybe later") < buttons.IndexOf("Yes, set it up"));
+        });
+    }
 
     [Fact]
     [Trait("Feature", "WV-1")]
@@ -79,10 +83,10 @@ public sealed class WelcomeVoiceSectionTests(HeadlessSession headless)
         rig.Prep.Models.ThrowOnAnyTransfer = true;
         OnWelcome(rig, (host, _) =>
         {
-            RootViewRig.All<WelcomeVoiceSection>(host).Single().Choose(1);
+            RootViewRig.All<WelcomeVoiceSection>(host).Single().Choose(0); // no, the first of the two buttons
             Settle(host);
             Assert.Equal(VoiceQuestionState.No, rig.Question.State);
-            Assert.True(Shows(host, WelcomeVoiceWords.Message(VoiceQuestionState.No)!));
+            Assert.True(Shows(host, rig.Said(VoiceQuestionState.No)!));
             Assert.Empty(rig.Prep.Models.Installs);
             Assert.False(rig.Prep.Preparation.HasConsent);
         });
@@ -98,16 +102,16 @@ public sealed class WelcomeVoiceSectionTests(HeadlessSession headless)
         OnWelcome(rig, (host, _) =>
         {
             var section = RootViewRig.All<WelcomeVoiceSection>(host).Single();
-            var run = Task.Run(() => section.Choose(0));
+            var run = Task.Run(() => section.Choose(1)); // yes, the second
             Assert.True(SpinWait.SpinUntil(() => rig.Question.State == VoiceQuestionState.Yes, TimeSpan.FromSeconds(5)));
             Settle(host);
             Assert.Equal(VoiceQuestionState.Yes, rig.Question.State);
             Assert.True(rig.Prep.Preparation.HasConsent);
-            Assert.True(Shows(host, WelcomeVoiceWords.Message(VoiceQuestionState.Yes)!));
+            Assert.True(Shows(host, rig.Said(VoiceQuestionState.Yes)!));
             rig.Prep.Models.Gate.SetResult();
             Finish(run);
             Settle(host);
-            Assert.True(Shows(host, WelcomeVoiceWords.Message(VoiceQuestionState.Ready)!));
+            Assert.True(Shows(host, rig.Said(VoiceQuestionState.Ready)!));
         });
     }
 
@@ -122,14 +126,15 @@ public sealed class WelcomeVoiceSectionTests(HeadlessSession headless)
             Finish(Task.Run(() => rig.Question.YesAsync(null, CancellationToken.None)));
             Settle(host);
             Assert.Equal(VoiceQuestionState.Slow, rig.Question.State);
-            Assert.True(Shows(host, WelcomeVoiceWords.Message(VoiceQuestionState.Slow)!));
-            Assert.True(Shows(host, WelcomeVoiceWords.Note(VoiceQuestionState.Slow)!));
+            Assert.True(Shows(host, rig.Said(VoiceQuestionState.Slow)!));
+            Assert.True(Shows(host, WelcomeVoiceWords.Foot(VoiceQuestionState.Slow)!));
+            Assert.True(Shows(host, WelcomeVoiceWords.Details(VoiceQuestionState.Slow, rig.Question.SmallMb)[0]!));
             var section = RootViewRig.All<WelcomeVoiceSection>(host).Single();
             Finish(Task.Run(() => section.Choose(0)));
             Settle(host);
             Assert.Equal(VoiceQuestionState.SlowLive, rig.Question.State);
-            Assert.True(Shows(host, WelcomeVoiceWords.Message(VoiceQuestionState.SlowLive)!));
-            Assert.False(Shows(host, WelcomeVoiceWords.Message(VoiceQuestionState.Slow)!));
+            Assert.True(Shows(host, rig.Said(VoiceQuestionState.SlowLive)!));
+            Assert.False(Shows(host, rig.Said(VoiceQuestionState.Slow)!));
         });
     }
 
@@ -152,8 +157,8 @@ public sealed class WelcomeVoiceSectionTests(HeadlessSession headless)
             Settle(host);
             var section = RootViewRig.All<WelcomeVoiceSection>(host).Single();
             var askHeight = section.Bounds.Height;
-            var askText = WelcomeVoiceWords.Message(VoiceQuestionState.Slow)!;
-            var noText = WelcomeVoiceWords.Message(VoiceQuestionState.SlowLive)!;
+            var askText = rig.Said(VoiceQuestionState.Slow)!;
+            var noText = rig.Said(VoiceQuestionState.SlowLive)!;
             var answer = rig.Question.AnswerAsync(LiveWordsChoice.Live, CancellationToken.None);
             Assert.True(answer.IsCompleted); // the fakes finish at once, so the change lands on this thread, in this flow
             Settle(host);
@@ -204,11 +209,11 @@ public sealed class WelcomeVoiceSectionTests(HeadlessSession headless)
             using var clock = SwiftClock.Provider.Override(time);
             using var motion = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = true });
             Settle(host);
-            var askText = WelcomeVoiceWords.Message(VoiceQuestionState.Ask)!;
+            var askText = rig.Said(VoiceQuestionState.Ask)!;
             rig.Question.No();
             Settle(host);
             Assert.False(Shows(host, askText));
-            Assert.Equal(1.0, Layer(host, WelcomeVoiceWords.Message(VoiceQuestionState.No)!).Opacity, 3);
+            Assert.Equal(1.0, Layer(host, rig.Said(VoiceQuestionState.No)!).Opacity, 3);
         });
     }
 

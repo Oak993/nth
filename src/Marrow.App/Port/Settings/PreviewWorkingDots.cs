@@ -17,6 +17,9 @@ internal sealed class PreviewWorkingDots : Decorator
     /// <summary>Whether the dots are in (or arriving).</summary>
     internal bool Shown => current is not null;
 
+    /// <summary>How opaque the arriving dots are now (0.4 s ease-in-out); 0 when they are not in.</summary>
+    internal double Opacity01 => current?.Opacity ?? 0;
+
     internal PreviewWorkingDots()
     {
         IsHitTestVisible = false;

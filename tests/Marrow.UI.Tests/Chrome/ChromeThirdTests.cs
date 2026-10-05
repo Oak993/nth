@@ -85,7 +85,9 @@ public sealed class ChromeThirdTests(HeadlessSession headless)
     private static void AssertWholeShape(SwiftShapeBorder layer, WindowBackdrop backdrop)
     {
         Assert.Equal(new Rect(backdrop.Bounds.Size), BoundsIn(layer, backdrop));
-        Assert.Equal(new CornerRadius(26), layer.CornerRadius); // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius)
+        // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius) is the window's shape; the port's layers are the window's RECTANGLE, which the OS rounds, so the glass is
+        // one surface out to the OS edge (OD-0075, the owner's intent of 2026-10-05, ED-338)
+        Assert.Equal(default, layer.CornerRadius);
     }
 
     private static SwiftShapeBorder Tint(WindowBackdrop backdrop, ThemeVariant theme) =>

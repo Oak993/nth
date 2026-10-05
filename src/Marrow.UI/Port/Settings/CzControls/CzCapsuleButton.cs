@@ -22,5 +22,10 @@ public sealed class CzCapsuleButton : CzButton
         base.Refresh();
         if (Child is StackPanel row) foreach (var label in row.Children.OfType<TextBlock>()) label.Foreground = CzTheme.Text(this);
     }
-    public void SetAtDefaults(bool atDefaults) { IsEnabled = Focusable = !atDefaults; idleOpacity.To(atDefaults ? .42 : 1, CzMotion.Ease(.25)); }
+    /// <param name="animate">False for the first placement, before the button is shown: it starts at its look (a page does not fade its Reset in as it opens).</param>
+    public void SetAtDefaults(bool atDefaults, bool animate = true)
+    {
+        IsEnabled = Focusable = !atDefaults;
+        if (animate) idleOpacity.To(atDefaults ? .42 : 1, CzMotion.Ease(.25)); else idleOpacity.Jump(atDefaults ? .42 : 1);
+    }
 }

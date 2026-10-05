@@ -13,13 +13,15 @@ public sealed class DetailViewVoiceQuestionTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "WV-1")]
     [Trait("Decision", "ED-289")]
-    public void The_empty_detail_pane_shows_the_voice_section_when_it_has_a_question_and_does_not_when_it_has_none() => headless.OnUiThread(() =>
+    public void The_empty_detail_pane_shows_the_voice_section_when_it_has_a_question_and_does_not_when_it_has_none()
     {
+        var rig = VoiceQuestionRig.Pc(); // built off the UI loop: its probe is awaited
+        headless.OnUiThread(() =>
+        {
         using var harness = new AppModelHarness();
         var model = harness.MakeModel();
         harness.Main.OnMain(() =>
         {
-            var rig = VoiceQuestionRig.Pc();
             var without = RootViewRig.Show(model, new DetailView());
             try { Assert.Empty(RootViewRig.All<WelcomeVoiceSection>(without)); }
             finally { RootViewRig.Close(without); }
@@ -31,17 +33,20 @@ public sealed class DetailViewVoiceQuestionTests(HeadlessSession headless)
             }
             finally { RootViewRig.Close(with); }
         });
-    });
+        });
+    }
 
     [Fact]
     [Trait("Feature", "WV-1")]
     [Trait("Decision", "ED-289")]
-    public void A_project_ends_welcome_the_section_goes_and_the_question_knows() => headless.OnUiThread(() =>
+    public void A_project_ends_welcome_the_section_goes_and_the_question_knows()
     {
+        var rig = VoiceQuestionRig.Pc(); // built off the UI loop: its probe is awaited
+        headless.OnUiThread(() =>
+        {
         using var harness = new AppModelHarness();
         var model = harness.MakeModel();
         var directory = harness.NewFolder("project");
-        var rig = VoiceQuestionRig.Pc();
         var host = harness.Main.OnMain(() =>
         {
             var shown = RootViewRig.Show(model, new DetailView { VoiceQuestion = rig.Question });
@@ -63,4 +68,5 @@ public sealed class DetailViewVoiceQuestionTests(HeadlessSession headless)
         }
         finally { harness.Main.OnMain(() => RootViewRig.Close(host)); }
     });
+    }
 }

@@ -39,6 +39,7 @@ public sealed class WelcomeVoiceSection : Decorator
         Child = section;
         shown = question.State;
         if (Body(shown) is { } first) layers.Children.Add(first);
+        else if (shown != VoiceQuestionState.Gone) _ = question.ProbeAsync(); // the words name the model's size: read the PC (fetches nothing) when it is not known yet
         question.Changed += OnChanged;
         DetachedFromVisualTree += (_, _) => question.Changed -= OnChanged;
         AttachedToVisualTree += (_, _) =>
@@ -52,11 +53,11 @@ public sealed class WelcomeVoiceSection : Decorator
     /// <summary>Test-only: the layers now in the card (two while a change is fading).</summary>
     internal IReadOnlyList<Control> Layers => [.. layers.Children.OfType<Control>()];
 
-    /// <summary>The choice at <paramref name="index"/> of the state shown: what its button does. Ask: 0 yes, 1 no. Slow: 0 live words, 1 text after you stop.</summary>
+    /// <summary>The choice at <paramref name="index"/> of the state shown: what its button does. Ask: 0 no, 1 yes (the order of the buttons). Slow: 0 live words, 1 text after you stop.</summary>
     internal Task Choose(int index) => shown switch
     {
-        VoiceQuestionState.Ask when index == 0 => Guarded(() => question.YesAsync(null, CancellationToken.None)),
-        VoiceQuestionState.Ask when index == 1 => Done(question.No),
+        VoiceQuestionState.Ask when index == 0 => Done(question.No),
+        VoiceQuestionState.Ask when index == 1 => Guarded(() => question.YesAsync(null, CancellationToken.None)),
         VoiceQuestionState.Slow when index is 0 or 1 => Guarded(() => question.AnswerAsync(index == 0 ? LiveWordsChoice.Live : LiveWordsChoice.Accurate, CancellationToken.None)),
         _ => Task.CompletedTask,
     };
@@ -87,7 +88,7 @@ public sealed class WelcomeVoiceSection : Decorator
     private void Show()
     {
         var state = question.State;
-        if (state == shown) return;
+        if (state == shown && layers.Children.Count > 0) return; // already drawn; a state whose words wait for a size is drawn when it comes
         shown = state;
         var oldHeight = host.Bounds.Height;
         var width = host.Bounds.Width;
@@ -125,23 +126,36 @@ public sealed class WelcomeVoiceSection : Decorator
 
     private Control? Body(VoiceQuestionState state)
     {
-        var message = WelcomeVoiceWords.Message(state);
-        if (message is null) return null;
-        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var text = new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-        SwiftFont.System(SwiftFont.TextStyle.Body).Apply(text);
-        stack.Children.Add(text);
-        if (WelcomeVoiceWords.Note(state) is { } note)
-        {
-            var noteText = new TextBlock { Text = note, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-            SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(noteText);
-            noteText.Foreground = Chrome.SecondaryText.Brush(noteText);
-            stack.Children.Add(noteText);
-        }
+        var heading = WelcomeVoiceWords.Heading(state);
+        var message = WelcomeVoiceWords.Body(state, question.Mb, question.SmallMb);
+        if (heading is null || message is null) return null; // Gone, or a size the words name is not known yet
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 3, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var title = new TextBlock { Text = heading, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(title);
+        stack.Children.Add(title);
+        stack.Children.Add(Secondary(message, SwiftFont.TextStyle.Subheadline));
         var choices = WelcomeVoiceWords.Choices(state);
-        if (choices.Count > 0)
+        if (state == VoiceQuestionState.Slow)
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            // wv_lib.py opts: each option its heading over its line; then the foot
+            var details = WelcomeVoiceWords.Details(state, question.SmallMb);
+            var options = new StackPanel { Orientation = Orientation.Vertical, Spacing = 8, Margin = new Thickness(0, 7, 0, 0) };
+            for (var index = 0; index < choices.Count; index++)
+            {
+                var chosen = index;
+                var option = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left };
+                var name = new TextBlock { Text = choices[index], TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+                SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold).Apply(name);
+                option.Children.Add(name);
+                if (details[index] is { } line) option.Children.Add(Secondary(line, SwiftFont.TextStyle.Caption));
+                options.Children.Add(PlainControls.Button(option, () => _ = Choose(chosen)));
+            }
+            stack.Children.Add(options);
+            if (WelcomeVoiceWords.Foot(state) is { } foot) stack.Children.Add(Secondary(foot, SwiftFont.TextStyle.Caption));
+        }
+        else if (choices.Count > 0)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 7, 0, 0) };
             for (var index = 0; index < choices.Count; index++)
             {
                 var chosen = index;
@@ -150,5 +164,13 @@ public sealed class WelcomeVoiceSection : Decorator
             stack.Children.Add(row);
         }
         return new Border { Padding = new Thickness(16, 11), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
+    }
+
+    private static TextBlock Secondary(string text, SwiftFont.TextStyle style)
+    {
+        var block = new TextBlock { Text = text, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        SwiftFont.System(style).Apply(block);
+        block.Foreground = Chrome.SecondaryText.Brush(block);
+        return block;
     }
 }

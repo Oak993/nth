@@ -14,6 +14,7 @@ public sealed class VoiceQuestionRig
     public VoiceQuestionRig(ScriptedMachine machine, IReadOnlyDictionary<string, double> seconds)
     {
         Prep = new VoicePrepRig(machine, seconds);
+        Prep.Preparation.ProbeAsync(null, CancellationToken.None).GetAwaiter().GetResult(); // Getting ready's hardware step has read the PC before Welcome asks (always allowed: nothing is fetched)
         Question = new VoiceSpeedQuestion(Prep.Preparation, Prep.Settings);
         States.Add(Question.State);
         Question.Changed += () => States.Add(Question.State);
@@ -29,6 +30,9 @@ public sealed class VoiceQuestionRig
 
     /// <summary>The state at construction, then after every change.</summary>
     public List<VoiceQuestionState> States { get; } = [];
+
+    /// <summary>The body V2 says in <paramref name="state"/> now, with this PC's sizes filled.</summary>
+    public string? Said(VoiceQuestionState state) => Marrow.App.Port.FirstRun.WelcomeVoiceWords.Body(state, Question.Mb, Question.SmallMb);
 
     public VoiceHardwareRecord? Record => Prep.Settings.Record;
 }

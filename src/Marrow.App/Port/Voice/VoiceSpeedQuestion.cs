@@ -39,6 +39,15 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation, IVoicePrepa
         get { lock (gate) return error; }
     }
 
+    /// <summary>The size of the model the recommendation downloads as V2 writes it ("874 MB"; wv_lib.py <c>{mb}</c>), once the PC is probed; null before.</summary>
+    public string? Mb => Megabytes(preparation.CandidateBytes);
+
+    /// <summary>The size of the smaller live model the slow question offers ("264 MB"; <c>{small}</c>); null when there is none.</summary>
+    public string? SmallMb => Megabytes(preparation.LiveAnswerBytes);
+
+    // ENGINEERING DECISION (ED-NEW-cloud-wv-1): decimal megabytes rounded to the whole number, the unit the design's sizes use (874 MB is large-v3-turbo-q8_0's 874188075 bytes).
+    private static string? Megabytes(long? bytes) => bytes is { } b ? ((long)Math.Round(b / 1_000_000.0)).ToString(System.Globalization.CultureInfo.InvariantCulture) + " MB" : null;
+
     /// <summary>Raised after every change of state, on the thread that made it (a run's end is on a pool thread: a view posts to its own).</summary>
     public event Action? Changed;
 
@@ -62,6 +71,20 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation, IVoicePrepa
         }
         if (result.Status != VoicePreparationStatus.Prepared) Settle(VoiceQuestionState.Ask, result.Error ?? "The voice model was not prepared.");
         else Settle(result.AskSlowQuestion ? VoiceQuestionState.Slow : VoiceQuestionState.Ready, null);
+    }
+
+    /// <summary>Reads the PC when no probe has run (Getting ready's hardware step does it first): the words name the model's size, which the recommendation gives. Fetches nothing; a failure leaves the sizes unknown.</summary>
+    public async Task ProbeAsync()
+    {
+        try
+        {
+            await preparation.ProbeAsync(null, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            return;
+        }
+        Changed?.Invoke();
     }
 
     /// <summary>The user's no (only from Ask): nothing is downloaded and nothing is stored.</summary>
