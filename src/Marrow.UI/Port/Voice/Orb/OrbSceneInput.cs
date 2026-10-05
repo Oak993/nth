@@ -13,4 +13,6 @@ public readonly record struct OrbSceneInput(
     OrbBands Bands,
     double SlotDiameter,
     bool Dark,
-    bool ReduceMotion);
+    bool ReduceMotion,
+    double ViewSize = OrbScene.ViewPx,
+    double? TileGlow = null);

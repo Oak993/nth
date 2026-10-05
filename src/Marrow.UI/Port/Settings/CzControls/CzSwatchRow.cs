@@ -8,7 +8,7 @@ namespace Marrow.UI.Port.Settings;
 
 public sealed class CzSwatchRow : CzRadioGroup
 {
-    public CzSwatchRow(string name, IReadOnlyList<(string Id, string Text, IBrush Fill)> swatches, string selected)
+    public CzSwatchRow(string name, IReadOnlyList<(string Id, string Text, IBrush Fill)> swatches, string? selected)
         : base(name, swatches.Select(x => (x.Id, x.Text)).ToArray(), selected)
     {
         Spacing = 2;
