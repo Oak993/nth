@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Tests.Fixtures;
@@ -30,7 +31,7 @@ public sealed class LibraryPageMotionTests(HeadlessSession headless)
         Assert.Equal(to, samples[^1], 6);
         var sign = Math.Sign(to - from);
         for (var i = 1; i < samples.Count; i++) Assert.True((samples[i] - samples[i - 1]) * sign >= -1e-9, "the value turned back at frame " + i);
-        Assert.True(samples.Distinct().Count() >= 6, "the change was a cut: " + string.Join(", ", samples.Select(s => s.ToString("0.00"))));
+        Assert.True(samples.Distinct().Count() >= 6, "the change was a cut: " + string.Join(", ", samples.Select(s => s.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))));
         var largest = samples.Zip(samples.Skip(1), (a, b) => Math.Abs(b - a)).Max();
         Assert.True(largest <= Math.Abs(to - from) * 0.35, "a single frame moved " + largest);
     }

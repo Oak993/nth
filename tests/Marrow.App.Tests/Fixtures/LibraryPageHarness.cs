@@ -41,7 +41,7 @@ internal sealed class LibraryPageHarness : IDisposable
         Page = section == LibrarySection.Plugins ? new PluginsSettingsPage() : new SkillsSettingsPage();
         var margin = new Border { Padding = new Thickness(24), Child = Page };
         Root = new Panel { Children = { margin } };
-        Window = new Window { Content = Root, Width = 568, Height = 640 };
+        Window = new Avalonia.Controls.Window { Content = Root, Width = 568, Height = 640 };
         if (reduceMotion) EnvironmentValues.SetAccessibilityReduceMotion(Window, true);
         Window.Show();
         Settle();
@@ -61,7 +61,7 @@ internal sealed class LibraryPageHarness : IDisposable
 
     public Panel Root { get; }
 
-    public Window Window { get; }
+    public Avalonia.Controls.Window Window { get; }
 
     public ManualTimeProvider Time { get; }
 

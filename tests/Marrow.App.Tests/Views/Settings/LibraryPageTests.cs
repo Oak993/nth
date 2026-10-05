@@ -454,7 +454,7 @@ public sealed class LibraryPageTests(HeadlessSession headless)
     {
         using var seam = SkillsPageSeams.Controllers.Override(new LibraryControllers(null));
         var page = new SkillsSettingsPage();
-        var window = new Window { Content = new Panel { Children = { page } }, Width = 568, Height = 400 };
+        var window = new Avalonia.Controls.Window { Content = new Panel { Children = { page } }, Width = 568, Height = 400 };
         window.Show();
         var words = page.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
         Assert.Contains("Skills and tools are unavailable in this run.", words);
