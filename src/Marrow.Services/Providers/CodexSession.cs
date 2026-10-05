@@ -107,15 +107,9 @@ public sealed class CodexSession : ProviderSession
         var started = false;    // :78
         try
         {
-            var parameters = ThreadParameters; // :85
-
             if (configuration.ResumeID is { } resumeID) // :87
             {
-                var resume = new Dictionary<string, JSONValue>(parameters, StringComparer.Ordinal)
-                {
-                    ["threadId"] = resumeID,       // :89
-                    ["excludeTurns"] = true,        // :90
-                };
+                var resume = ResumeParameters(resumeID);
                 var result = await RequestThread(connected, "thread/resume", resume); // :91
                 if (result["thread"]?["id"]?.JSONValueString is not { } id || !SwiftString.Equal(id, resumeID)) // :92
                 {
@@ -128,7 +122,7 @@ public sealed class CodexSession : ProviderSession
                 return id;                                           // :98
             }
 
-            var newResult = await RequestThread(connected, "thread/start", parameters); // :100
+            var newResult = await RequestThread(connected, "thread/start", ThreadParameters); // :85,100
             if (newResult["thread"]?["id"]?.JSONValueString is not { } newID) // :101
             {
                 throw new ProviderError(new ProviderError.Case.Failed("Codex did not start a thread.")); // :102
@@ -147,6 +141,18 @@ public sealed class CodexSession : ProviderSession
                 connection = null; // :82
             }
         }
+    }
+
+    // :89-90; DEVIATION OD-0114 / ED-NEW-ma-4: caller has verified installed-version path support.
+    private Dictionary<string, JSONValue> ResumeParameters(string resumeID)
+    {
+        var resume = new Dictionary<string, JSONValue>(ThreadParameters, StringComparer.Ordinal)
+        {
+            ["threadId"] = resumeID,
+            ["excludeTurns"] = true,
+        };
+        if (configuration.ResumePath is { } path) resume["path"] = new JSONValue.String(path);
+        return resume;
     }
 
     // :110-127

@@ -40,6 +40,8 @@ public sealed record SessionConfiguration
     public required ValueMap<string, string> Environment { get; init; }  // :26
     public string? ResumeID { get; init; }                               // :27
     public string? ResumeAt { get; init; }                               // :28
+    // DEVIATION OD-0114 / ED-NEW-ma-4: supported Codex path resume, only set by a version-gated handoff.
+    public string? ResumePath { get; init; }
     public string? Model { get; init; }                                  // :29
     public string? Effort { get; init; }                                 // :30
     public bool FastMode { get; init; }                                  // :31
