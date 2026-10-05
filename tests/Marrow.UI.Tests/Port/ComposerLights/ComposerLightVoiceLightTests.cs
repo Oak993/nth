@@ -319,6 +319,32 @@ public sealed class ComposerLightVoiceLightTests(HeadlessSession headless)
     [Trait("Feature", "VT-9")]
     [Trait("Spec", "V-T61")]
     [Trait("Decision", "ED-251")]
+    public void Without_a_gpu_the_light_is_a_still_and_its_level_jumps_as_well() => headless.OnUiThread(() =>
+    {
+        // ED-251: the headless (software) renderer draws the light as one still; a fade of the level would be thirty slow frames, so the level takes the target at once
+        var clock = new ManualTimeProvider(); using var bind = SwiftClock.Provider.Override(clock);
+        var (window, view) = Show(ComposerLightSettings.Default);
+        try
+        {
+            var handler = view.Handler!;
+            Assert.False(handler.IsAnimating);
+            Assert.True(Light(Pixels(window)) > 20000, "the still is drawn");
+            view.VoiceLight = 0.35;
+            Tick();
+            Assert.Equal(0.35, handler.VoiceLight);
+            view.VoiceLight = 0;
+            Tick();
+            Assert.Equal(0, handler.VoiceLight);
+            Assert.Equal(0, Light(Pixels(window)));
+            Assert.False(handler.IsAnimating);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Feature", "VT-9")]
+    [Trait("Spec", "V-T61")]
+    [Trait("Decision", "ED-251")]
     public void A_view_made_with_a_level_starts_at_it_and_the_level_is_kept_in_0_to_1() => headless.OnUiThread(() =>
     {
         using var motion = new ComposerLightMotion();

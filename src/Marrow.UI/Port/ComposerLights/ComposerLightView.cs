@@ -117,7 +117,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
         // the follower moves by the frame it is in: a light that stood still (or a level that did not move) has no frame to measure from, so its first step after a change is 0 s
         var voiceDt = voice.Moving && lastVoiceNow is { } previous ? Math.Max(0, now - previous) : 0;
         lastVoiceNow = now;
-        voice.Step(snapshot.VoiceLight, voiceDt, snapshot.ReduceMotion);
+        voice.Step(snapshot.VoiceLight, voiceDt, snapshot.ReduceMotion || software);   // with no GPU the light is a still (ED-251): its level jumps as well
         if (voice.Value <= 0)
         {
             // at 0 the light draws nothing, asks for no frames (unless the level is on its way back) and its motion clock stands still
