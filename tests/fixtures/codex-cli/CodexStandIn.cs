@@ -52,6 +52,10 @@ internal static class CodexStandIn
             argv.Write(bytes, 0, bytes.Length);
             argv.WriteByte(0);
         }
+        // PORT-ONLY (SK-11b, DL-11): the launch's whole environment, written before argv-<n>.txt appears so a test that saw the argv can read it.
+        StringBuilder environmentDump = new StringBuilder();
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables()) environmentDump.Append(entry.Key).Append('=').Append(entry.Value).Append('\n');
+        File.WriteAllText(Path.Combine(dir, "env-" + call + ".txt"), environmentDump.ToString(), new UTF8Encoding(false));
         string pendingArgv = Path.Combine(dir, "argv-" + call + ".txt.tmp");
         File.WriteAllBytes(pendingArgv, argv.ToArray());
         File.Move(pendingArgv, Path.Combine(dir, "argv-" + call + ".txt"));

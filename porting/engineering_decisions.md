@@ -2410,6 +2410,100 @@ Unit CZ-2, the glass colour picker (OD-0099 Look Picks, Q-CZ-3 B). SOURCE: `port
 10. Accessibility (unit/integ-cz1-cz2): the square, the hue strip, the opacity strip and the recent row each carry a name (`Saturation and brightness`, `Hue`, `Opacity`, `Recent colours`; the hex field's `Hex colour` is the design's own); the two strips are sliders with a range, a small and a large change and value text (`n degrees`, `n %`), and a screen reader's set-value is a committed edit. The design names only its hex field; the rest follows CZ-15 (every control has a name; a slider has range and value text).
 
 ## ED-NEW-f-sk-9
+
+ENGINEERING DECISIONS, 2026-10-04, feature SK-9 / DL-9. Authority: BUILD-PLAN 2.5 SK-9;
+ONDEMAND 1, 2.3, 4.1/4.4, DL-9; PLAN 1.4, 2.1-2.4, 2.7, WU-4/5/14/21; OD-0099 amendments.
+No ledger statuses are changed. SK-5 production code and its tests remain untouched.
+
+1. **Plugin activation.** Adopt BUILD-PLAN's proposal: downloaded plugin hooks and MCP servers
+   are off until the user switches that plugin on. An individual skill switch never activates
+   plugin commands, agents, hooks or MCP. Whole plugin contents are copied only for Claude and
+   Grok, and only for activated plugin folders. Other providers receive only selected skill
+   folders. Whole-plugin copying still omits disabled, filtered, clashing and budget-excluded
+   skill subtrees: the owner's installed-and-enabled rule takes priority. A set containing
+   multiple plugins discovers their roots from the *pinned* plugin manifest paths; folder
+   activation is source-qualified (`itemId/pluginRoot`). A deliberate item-level activation
+   can select the set, with folder switches overriding it. `PluginFolders` returns additional
+   absolute roots; SK-11 must pass each separately with its documented plugin-loading flag.
+   Vendor plugin manifests and every copied vendor byte remain unmodified. Live compatibility
+   of each vendor plugin format is SK-11/DL-20's check, not established by folder tests.
+2. **Reviewed metadata, defaults and budgets.** SK-1's current catalogue schema does not yet
+   hold descriptions, group membership, priorities, external-access defaults or provider
+   budget measurements. Services accepts explicit reviewed `GenerationSkill` metadata tied
+   to the installed pin's catalogue names/paths. Name and description must also match its
+   hash-verified frontmatter. Group membership, priority and whether a key/login/internet is
+   required are mandatory inputs, never inferred from names or from a missing dependency.
+   Q-SKILLS-1 A's six groups are on unless external access is required; A3/A4/O5 are off.
+   Missing runtime tools do not disable an otherwise enabled skill. The caller supplies
+   measured character budgets for all offered models; `ForModels` selects the minimum.
+   Unknown/zero budgets and absent reliable clash snapshots fail closed. SK-2/SK-13 supplies
+   the reviewed metadata; SK-11/DL-20 supplies live budget measurements and resolved config
+   paths. No provider context size or YAML metadata is invented.
+3. **Persistent switches and identity.** `enabled.json` contains a release version and two
+   source-qualified switch maps, for skills and plugin folders; new skills use their reviewed
+   defaults, removed entries are dropped by reconciliation, existing switches carry over.
+   Plugins default off. Equal names from different vendors do not share a switch. PLAN 1.4
+   chooses Anthropic's skill-creator for Claude/Grok, OpenAI's for other providers, and neither
+   for Codex. Remaining same-name vendor candidates are selected deterministically by
+   default-on rank, manifest priority, then source-qualified id. Content keys hash the release,
+   selected source/skill ids and installed pins, and activated plugin-folder ids and pins.
+   They do not include chat, project or selected model. `generation.json` is generated internal
+   inventory metadata, not a disk trust root; it permits an empty generation to be verified
+   by SK-5 without loosening StoreManifest's nonempty-inventory invariant. `chat-paths.json`
+   records moved chat folder names; strict provider/chat/nonce validation keeps it from
+   becoming authority to access or delete outside the managed views.
+4. **Atomic publication with the frozen SK-5 API.** Before publishing, acquire a SK-5 lease on
+   a locked, trusted one-file bootstrap at the final pathname, and another at `tmp-<nonce>`.
+   Populate tmp while its lease prevents GC; remove only the owned final bootstrap while its
+   pathname lease remains held; atomically rename the complete tmp to that pathname, lock,
+   then whole-tree verify before returning the final lease. Thus direct SkillsStore.Collect
+   also cannot remove the target in the rename-to-acquire window. Initial bootstrap creation
+   races fail closed; a bootstrap is never handed to a session. Sources are whole-tree
+   verified and leased during composition, and copied bytes are rehashed before use. A live
+   generation stays frozen until disposal; current switches apply to new/resumed chats.
+   Spares are leased, claimed by rename, repaired when damaged, replenished in background
+   work outside the coordinator gate (below-normal priority on Windows), and bounded to the
+   global key and keys of the five recent chats, plus the current composer preparation.
+   Dispose waits for pending copies outside the gate. Read-only listing probes share one
+   leased generation with reference counting; sessions get their own paths. Generation
+   invocation checks the whole tree and the returned file bytes again. SK-5 handles removal
+   and unlock ordering; platform protection defaults to real Windows protection and refuses
+   operation on Linux unless an explicit test double is injected.
+5. **Unmodified explicit-only skills.** ONDEMAND 1 supersedes the earlier vendor patches in
+   PLAN 1.2. Native/Marrow-side invocation can keep explicit-only text out of its catalogue.
+   A file-loading provider may receive an explicit-only skill only if its pinned frontmatter
+   already says `disable-model-invocation: true`; otherwise the skill is omitted and reported
+   in `LeftOut`. No patch is synthesized and no implicit invocation is silently enabled.
+   Grok, Command Code, Copilot and OpenCode still receive no explicit-only skill until the
+   plan's live checks authorize them. Codex's own review-agent is not republished.
+6. **Read-only scans and closed seams.** Every scan gets explicit home/project/repository
+   roots; there is no ambient home lookup, network, process or auth-file access. Native own
+   skills are not even enumerated until Q17's switch is on. Provider config resolution and
+   registered/plugin/runtime folders not documented enough to discover safely are supplied
+   as resolved extra roots/reported entries by SK-11. Grok's documented paths arrays are read
+   directly, with comments handled. Unsupported TOML/YAML, substitutions and reparse points
+   refuse the scan rather than masquerading as no clash. Repeated folder/report entries are
+   conservatively counted in the budget: without source/path identity, collapsing same-name
+   user skills could undercount distinct copies. The user's description is never shortened.
+7. **Test evidence and scope.** All fixtures are Marrow-authored; no vendor text, CLI or user
+   data is used. Native ACL/junction/held-handle tests are WINDOWS-ONLY with explicit Linux
+   skip reasons and the shared SK-5 unlock teardown. The initial budget fixture was corrected
+   from 1700 to 1720 *before a behavioral implementation failure*: its 1507-character user
+   entry plus 10% margin left 23 characters at 1700, too little for either 25-character entry;
+   1720 leaves 41 and tests exactly one kept/one dropped. No assertion was weakened. Per-method
+   Feature/Rule traits were made explicit and xUnit's required collection assertion form was
+   used. Provider launch wiring, Settings integration, actual install-event registry refresh,
+   and the Windows 150 ms / first-read timings belong to the following units/live run and are
+   not claimed by this cloud component's offline tests. In particular SK-5 freezes its installed
+   descriptor inventory at construction; SK-13 must refresh that inventory under its single-owner
+   lifecycle when an installation adds a new id. SK-9 never treats an unregistered id as installed.
+8. **Launch diagnostics.** PLAN 2.1's spare-miss log is `skills/generation-launches.jsonl`,
+   containing provider, chat id, content key and an internal reason enum (existing chat, ready
+   spare, missing spare or damaged spare). It contains no skill bodies or user files. Persistence
+   failure refuses launch and disposes the unreturned lease. Item-level plugin activation
+   clears previous folder overrides; a subsequent folder switch can override that activation.
+   The user budget reserves 10% of the whole provider budget, a conservative reading of 2.7.
+
 ## ED-314
 
 [UI][CHAT][GIT] Unit rec-tlr (the open TimelineRows parity records, 2026-10-04; OD-0098: where no frame shows a state the pinned Swift is the proof). ENGINEERING DECISIONS and findings, by record:
@@ -2963,3 +3057,17 @@ CZ-3 "Stage and preview composer", branch `unit/f-cz-3`, 2026-10-05. Scope: BUIL
 8. ENGINEERING DECISION: ACP terminal updates can repeat with rawInput.command still present. Remember completed call IDs until the turn ends/stops/closes so the repetition cannot reinsert a completed command and offer a second missing-tool download. Keep every original timeline event. Permission taps follow the original Approval event so an observer sees an already published pending request. After these changes, the 30 SK-11c cases pass, no skips (/tmp/sk11c-edge-green.log). Application lease teardown, per-turn generation verification/notices and SK-12 offer/resume orchestration remain the later app-wiring units; no UI or continuation string is introduced here.
 9. ENGINEERING DECISION: the new child PATH needs a data root even for old offline ACP tests that never bound Storage. Prefer the existing bound IStorageLocations.Root. Only when it raises Storage.cs's exact existing unbound sentinel, allow the explicitly supplied MARROW_PORT_DATA_DIR if it is an existing absolute directory. An absent, relative or missing test root still traps; any other storage failure propagates. No real-profile lookup/default is introduced. This preserves the existing tests without editing them. App wiring keeps the Generation lease until the connection actually closes, not merely until Stop() schedules shutdown.
 10. VERIFICATION: the committed run-linux.py constructs its projects only under a fresh /tmp directory and restores only from the existing NUGET_PACKAGES filesystem cache. No network/provider CLI/user folder is used. Final Linux runner: 32/32 portable SK-11c cases, 204/204 portable Services regressions (SK-9, SK-11d, existing ACP/Copilot handlers/mapping and traceability), 347/347 Core skills/traceability cases, all zero skips. Artifacts: /tmp/marrow-sk11c-22myi767/{sk11c,regression,core}.{log,trx}. The extended Services selection ran 208 cases: 204 passed and four failed on missing Windows icu.dll. All four fail identically when the original providers from 7993466e replace the changed providers (/tmp/sk11c-original-icu.log); no Core/platform fix or test weakening is made. Two Windows startup-stdio byte-identity cases are delivered using the existing compiled offline stand-in, as ordinary tests with no Skip, but are not run on Linux. The full native Services/solution build is unverified here: the cache lacks NAudio/Whisper packages. Rule traits use the existing R-TEST-4/8/9 IDs; no new rule ID is invented. Engineering decisions are append-only, original line endings retained, and no ledger status changed.
+## ED-NEW-f-sk-11b
+
+ENGINEERING DECISIONS, 2026-10-04, feature SK-11b "Codex" (BUILD-PLAN 2.5; ONDEMAND-PLAN DL-11 and DL-12 for Codex; skills-PLAN WU-7; research-loading 3.2; OD-0099 amendments). Built on cloud/f-sk-9 (SK-9 generations, SK-5 store) with SK-6 shims and SK-10 events from staging. SK-9 and SK-5 are not changed; the Claude provider (SK-11a) is not touched. No ledger status is changed. Code: `src/Marrow.Services/Port/Skills/Providers/Codex*.cs` (one type per file) and the edit points marked PORT-ONLY (SK-11b) in `src/Marrow.Services/Providers/CodexSession.cs`; tests `tests/Marrow.Services.Tests/Port/Skills/Providers/` (Feature=SK-11b).
+
+1. **Seam shape.** `CodexSession(SessionConfiguration, CodexSkillWiring? skills = null)`: the wiring (a chat's SK-9 `Generation`, SK-5 `StorePaths`, and the listing probe's `PublishedSkill`s) is an optional second constructor parameter, so `SessionConfiguration`/`ProviderSession.cs` (shared with SK-11a) stay untouched; null is the Mac's behaviour. The caller (SK-12 / DL-19, in `ThreadRuntime`) owns the generation's lease and disposes it at session end. `ListCommands` takes an optional `GenerationListing`; both new parameters are trailing and optional, so every existing call compiles unchanged.
+2. **Connect (WU-7).** After `initialize` and the `initialized` notification, with wiring: `skills/list {cwds:[<session working directory>], forceReload:true}` then `skills/extraRoots/set {extraRoots:[<generation folder>]}`, on every connection (a reconnect or a second session sends its own). A `ListCommands` probe with a listing sends only `extraRoots/set` (it sends its own `skills/list` next). The `skills/list` reply is not used: the generation is built before the connection exists (SK-9's `Start` needs the clash snapshot first), so the call exists to follow WU-7's sequence and refresh Codex's cache. An RPC error reply to either call is ignored (Codex before 0.136.0 has no `extraRoots/set`); a failed transport is not swallowed and closes the connection like a failed `initialize`. A relative folder is refused before anything is sent (Codex answers -32600 to it). `skills/config/write` is never sent and `CODEX_INTERNAL_ORIGINATOR_OVERRIDE` is never set (source-scan test); `clientInfo.name` stays "marrow".
+3. **Listing path rewrite.** `CodexSkillPaths.Rewrite` is GenerationListing.ForChat's rule over the listing's skills as a snapshot (`PublishedSkill` records), because the listing lease is released after the probe while the slash list outlives it. A listed path of a skill the chat's generation no longer holds (switched off since the list was read) throws `InvalidOperationException` from the send, as `ForChat` does; no user-visible text is invented for it (UNRESOLVED: ThreadRuntime may want to turn it into a notice).
+4. **Resume.** `thread/resume` parameters are the unchanged `ThreadParameters` plus `threadId`/`excludeTurns` (extracted into `ResumeParameters`, taking the already-built dictionary, so `ThreadParameters` is still read once). Only when `Generation.PreviousFolder` is set (the old chat folder was held, so the chat moved) the existing `developerInstructions` string gets `"\n\n"` + skills-PLAN 2.1's line appended; the key is `developerInstructions` because that is the key the existing code already sends (the plan's `developer_instructions` is the Rust field name). `thread/start` is never changed.
+4a. **Always allow.** A command approval whose `acceptWithExecpolicyAmendment` decision holds, anywhere in its JSON, a string that contains `StorePaths.Views` (either slash, any case, and ending at a name boundary so `views-sibling` does not match) loses the "amend" option and its payload; Approve and Approve for session remain. The amendment's JSON shape is not assumed (all strings are scanned). Commands outside the root, and a session without wiring, are unchanged.
+5. **PATH rule (DL-11).** `CodexChildEnvironment.Apply` is applied to the environment of every `codex app-server` launch in `Connect` (sessions and every static probe that connects): `ShimPath.ForChild(env, <data root>)`, so only `PATH` changes and `addons\bin` exists even when empty. The root comes from an `Ambient<CodexChildRoot>` whose default asks the bound `Storage.Root` (the app binds it at start-up, so production gets the rule with no App edit); an unbound `Storage` (tests, tools) is "not known" and returns the environment unchanged without a folder (fail closed, no exception). The registry's one-shot probes (`--version`, update, plan-limits reads through `Shell.Run`) are in `ProviderRegistry.cs`/`PlanLimits.cs`, shared files, and are not changed here (UNRESOLVED for the lead: SK-12 wiring or a later unit adds the same one-line `Apply` there if those children should carry `addons\bin`).
+6. **Byte-identity method.** The hard rule (nothing installed means argv, environment and RPC bytes equal the Mac's) is proved on Linux against CodexSession's own members: `AppServerArguments` (`["app-server"]`), `InitializeParameters` (moved out of `Connect` verbatim; golden bytes in the original key order), `ThreadParameters` and the resume parameters byte-compared with and without wiring, `ResolveSkill` returning the same command object, approval options compared with and without wiring, and `Apply` returning the same dictionary when no root is known. The remaining proof, that `Start` really writes the same stdin lines and the same environment (initialize, initialized, thread/start, and PATH as the only changed variable), needs a process: the Windows-only stand-in tests (`CodexSessionUnchangedTests`, WindowsOnlyFact) record the real lines and a new `env-<n>.txt` dump (an additive line in `tests/fixtures/codex-cli/CodexStandIn.cs`, plus `CodexScript.LaunchEnvironment`). The only deliberate difference with nothing installed is the PATH insertion DL-11 itself requires.
+7. **Taps (DL-12).** `CodexToolTaps` turns Codex JSON into SK-10's `ToolEvent`s: `item/commandExecution/requestApproval` gives `CommandHeld(command)`; `item/started` of a `userMessage` gives `SkillUsed(name, itemId)` for each content part `{type:"skill", name, path}` (the shape the port itself sends; ItemId is the SK-9 `PublishedSkill.Id` prefix when the path is a Marrow generation path, null for a user's own skill); `item/completed` of a `commandExecution` gives `CommandFinished(command, exitCode, IsError, aggregatedOutput)` with `IsError` true for status `failed` or `interrupted`; a `declined` command never ran and gives nothing. The command is the text the approval card shows (`ToolTitles.UnwrapShell`), nothing more is unwrapped, so a PowerShell wrapper such as `powershell -Command "..."` reaches the detector as written (UNRESOLVED: whether SK-10's tokenizer should look inside such a wrapper; no live Windows Codex transcript was available). An exit code outside int range wraps unchecked. `CodexSession.OnToolEvent` is the sink; a listener that throws is logged and ignored, and the existing `ProviderEvent`s are identical with and without a listener (test). Model-initiated skill use is not tapped: no Codex item type for it is documented in the formats this unit read (UNRESOLVED; ONDEMAND S1 names only `{type:"skill"}` items).
+8. **Fixtures and trait ids.** The transcript is `tests/Marrow.Services.Tests/Port/Skills/Providers/Fixtures/codex-app-server-skills.jsonl`, hand-synthesized from the shapes CodexSession already parses; no live CLI was run. The traceability checker accepts only `Req`/`Rule`/`Decision`/`Spec`/`Feature` traits with fixed id patterns, so the tests carry `Feature=SK-11b`, `Rule=R-TEST-9|R-TEST-10` and `Spec=SK-T7` (WU-7), `SK-T11` (DL-11) or `SK-T12` (DL-12). (The SK-9 tests' `Rule` ids such as `DL-9-installed-enabled` already fail that checker's id test on this branch; not touched here.)
+9. **Verification limits.** Linux (apt SDK 10.0.112, fresh /tmp MARROW_PORT_DATA_DIR): see the report for the filtered run. `CodexSession` cannot start a process on Linux (`ProcessLauncher` is CreateProcessW) and `SlashCommand.CodexInput` needs the ICU shim (`icu.dll`), so three tests are Windows-only and were not run here: the two stand-in `Start` line/environment tests and the composed `CodexInput` skill part. No live Codex, no real model turn, no check of Codex's elevated Windows sandbox reading the generation (WU-11 / DL-20).
