@@ -18,6 +18,7 @@ internal sealed class ImportedSection : Decorator
     private readonly ImportModel model;
     private readonly StackPanel list = new() { Spacing = 0 };
     private readonly CzFoldRow fold;
+    private readonly CzFoldRow readOnlyFold;
     private readonly Dictionary<string, Row> rows = [];
 
     public ImportedSection(ImportModel model)
@@ -25,7 +26,9 @@ internal sealed class ImportedSection : Decorator
         this.model = model;
         var heading = LibraryUi.Text(ImportWords.SectionHeading, 13, secondary: true, weight: SwiftFont.Weight.Semibold);
         var note = LibraryUi.Text(ImportWords.SectionNote, 12, secondary: true, wrap: true);
-        fold = new CzFoldRow(new StackPanel { Spacing = 6, Children = { heading, note, LibraryUi.Panel(list, 12, 0.04, new Thickness(14, 6)) } }, false);
+        var newer = LibraryUi.Text(ImportWords.ReadOnlyNote, 12, secondary: true, wrap: true);
+        readOnlyFold = new CzFoldRow(newer, model.Controller.ReadOnly);
+        fold = new CzFoldRow(new StackPanel { Spacing = 6, Children = { heading, note, readOnlyFold, LibraryUi.Panel(list, 12, 0.04, new Thickness(14, 6)) } }, false);
         Child = fold;
         this.Track(() => model.Revision, _ => Apply());
         Apply();
@@ -39,6 +42,8 @@ internal sealed class ImportedSection : Decorator
     {
         var now = model.Controller.Imported;
         fold.Open = now.Count > 0;
+        var readOnly = model.Controller.ReadOnly;
+        readOnlyFold.Open = readOnly;
         foreach (var gone in rows.Keys.Where(id => now.All(i => i.Id != id)).ToArray())
         {
             list.Children.Remove(rows[gone].View);
@@ -52,6 +57,7 @@ internal sealed class ImportedSection : Decorator
                 list.Children.Add(row.View);
             }
             row.Apply(skill);
+            row.SetReadOnly(readOnly);
         }
     }
 
@@ -63,6 +69,7 @@ internal sealed class ImportedSection : Decorator
         private readonly CzCrossfadeText tag = new("") { FontSize = 11, Secondary = true };
         private readonly CrossfadeSlot action = new();
         private readonly Control owner;
+        private readonly Control toggleControl;
         private bool? asked;
 
         public Row(ImportModel model, ImportedSkill skill, Control owner)
@@ -71,6 +78,7 @@ internal sealed class ImportedSection : Decorator
             this.owner = owner;
             id = skill.Id;
             var toggle = new SettingsSwitch(new Binding<bool>(() => { _ = model.Revision; return Current()?.Enabled ?? false; }, on => model.Controller.SetEnabled(id, on)));
+            toggleControl = toggle;
             toggle.Named(skill.Name, "imported-switch-" + id);
             var name = LibraryUi.Mono(skill.Name, 11.5);
             name.VerticalAlignment = VerticalAlignment.Center;
@@ -88,6 +96,13 @@ internal sealed class ImportedSection : Decorator
         }
 
         public Control View { get; }
+
+        /// <summary>A library from a newer Marrow is shown and never changed: the switch and Remove are inert.</summary>
+        public void SetReadOnly(bool on)
+        {
+            toggleControl.IsEnabled = !on;
+            action.IsEnabled = !on;
+        }
 
         private ImportedSkill? Current() => model.Controller.Imported.FirstOrDefault(i => i.Id == id);
 

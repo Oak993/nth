@@ -34,7 +34,7 @@ public static class ImportWords
     public const string AlreadyImported = "Already imported";
     public const string NotRead = "Couldn’t read";
     public static string ImportSelected(int count) => count == 0 ? "Import" : "Import " + count;
-    public static string FoundCount(int skills, int apps) => skills + (skills == 1 ? " skill" : " skills") + " in " + apps + (apps == 1 ? " place" : " places");
+    public static string FoundCount(int skills, int apps) => skills + (skills == 1 ? " skill" : " skills") + " in " + apps + (apps == 1 ? " place." : " places.");
     public static string NotReadCount(int count) => count + (count == 1 ? " item couldn’t be read and is left out." : " items couldn’t be read and are left out.");
 
     // ---- duplicates
@@ -43,6 +43,8 @@ public static class ImportWords
     public const string Replace = "Replace";
     public const string Skip = "Skip";
     public const string ApplyToRest = "Do this for the rest";
+    /// <summary>Lead-proposed (pre-merge review M2): shown under the imported skills when a newer Marrow wrote them.</summary>
+    public const string ReadOnlyNote = "These skills were saved by a newer Marrow, so they can\u2019t be changed here.";
     public const string CouldNotSave = "Marrow couldn\u2019t save the imported skills. Nothing was changed.";
 
     // ---- the result

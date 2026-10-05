@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Marrow.App.Views.Settings;
 using Avalonia;
 using Avalonia.VisualTree;
 using Marrow.App.Port.Skills.Import;
@@ -166,8 +167,14 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
         var original = ForeignHome.Fingerprint(rig.Home.Home);
         var id = rig.Library.List().Single().Id;
         Assert.True(rig.Library.List().Single().Enabled);
-        Assert.True(h.Press("imported-switch-" + id) || h.TryFind("imported-switch-" + id) is not null);
-        rig.Controller.SetEnabled(id, false);
+        var toggle = h.Find<Control>("imported-switch-" + id).GetVisualDescendants().OfType<SmallSwitch>().Single(); // the imported row's own switch (the port's); it is turned the way the keyboard turns it
+        toggle.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Space });
+        h.Settle();
+        Assert.False(rig.Library.List().Single().Enabled);
+        toggle.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Space });
+        h.Settle();
+        Assert.True(rig.Library.List().Single().Enabled);
+        toggle.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Space });
         h.Settle();
         Assert.False(rig.Library.List().Single().Enabled);
         Assert.True(h.Press("imported-remove-" + id));
@@ -357,7 +364,7 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     public void The_page_listens_to_the_folders_while_it_shows_and_a_change_updates_the_line() => RunDetecting((h, rig) =>
     {
         h.Until(() => LineOpen(h));
-        Assert.Equal(1, rig.Watch.Started.Count);
+        Assert.Single(rig.Watch.Started);
         rig.Home.Skill(".claude/skills", "epsilon", "epsilon", "Epsilon skill.");
         rig.Watch.Changed!();
         rig.Time.Advance(TimeSpan.FromSeconds(3));
@@ -374,5 +381,50 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
         LibraryPageHarness.Run(headless, LibrarySection.Skills, h => h.Until(() => rig.Watch.Started.Count == 1), imports: rig.Model);
         Assert.False(rig.Detector!.Watching);
         Assert.Equal(1, rig.Watch.Disposed);
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Without_a_detector_the_page_has_no_line_and_listens_to_nothing()
+    {
+        using var rig = new ImportRig();
+        rig.Fill();
+        LibraryPageHarness.Run(headless, LibrarySection.Skills, h =>
+        {
+            h.Settle();
+            Assert.False(h.All().OfType<ImportArea>().Single().LineOpen);
+            Assert.NotNull(h.TryFind("import-skills"));
+            Assert.Empty(rig.Watch.Started);
+        }, imports: rig.Model);
+    }
+
+    [Fact]
+    [Trait("Feature", "SK-18")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Skills_saved_by_a_newer_marrow_are_shown_with_a_plain_line_and_the_switch_and_remove_do_nothing()
+    {
+        using var rig = new ImportRig();
+        rig.Fill();
+        rig.Library.Import(new ForeignSkillScanner(rig.Home.Home).Scan().Skills.Where(s => s.Name == "alpha"), ImportMode.Copy, _ => DuplicateChoice.Skip);
+        var index = Path.Combine(rig.Home.SkillsRoot, "imported", "index.json");
+        File.WriteAllText(index, File.ReadAllText(index).Replace("\"version\": 1", "\"version\": 2", StringComparison.Ordinal));
+        var library = new ImportedSkillsLibrary(rig.Home.SkillsRoot, rig.Time);
+        Assert.True(library.ReadOnly);
+        var controller = new ImportController(folders => new ForeignSkillScanner(rig.Home.Home, folders).Scan(), library);
+        var model = new ImportModel(controller);
+        var before = File.ReadAllText(index);
+        LibraryPageHarness.Run(headless, LibrarySection.Skills, h =>
+        {
+            Assert.Contains(ImportWords.ReadOnlyNote, h.Words());
+            var id = library.List().Single().Id;
+            var toggle = h.Find<Control>("imported-switch-" + id).GetVisualDescendants().OfType<SmallSwitch>().Single();
+            Assert.False(toggle.IsEffectivelyEnabled);
+            toggle.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Space });
+            h.Settle();
+            Assert.True(library.List().Single().Enabled);
+            Assert.False(h.Find<Button>("imported-remove-" + id).IsEffectivelyEnabled);
+            Assert.Equal(before, File.ReadAllText(index));
+        }, imports: model);
     }
 }

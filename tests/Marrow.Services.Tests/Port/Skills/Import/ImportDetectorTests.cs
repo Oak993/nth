@@ -220,7 +220,7 @@ public sealed class ImportDetectorTests
         var targets = ForeignWatchTargets.For(home.Home);
         Assert.Contains(targets, t => t.Deep && t.Folder == Path.Combine(home.Home, ".claude", "skills"));
         Assert.Contains(targets, t => !t.Deep && t.Folder == Path.Combine(home.Home, ".codex") && t.Names!.Contains("skills"));
-        Assert.Contains(targets, t => !t.Deep && t.Folder == home.Home && t.Names!.Contains(".cursor") && t.Names.Contains(".gemini"));
+        Assert.Contains(targets, t => !t.Deep && t.Folder == home.Home && t.Names!.Contains(".cursor") && t.Names!.Contains(".gemini"));
         Assert.DoesNotContain(targets, t => t.Deep && t.Folder == home.Home);
     }
 

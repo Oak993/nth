@@ -81,10 +81,15 @@ public sealed class ImportController
         }
     }
 
+    /// <summary>The imported skills were written by a newer Marrow: they are shown and never changed.</summary>
+    public bool ReadOnly => library.ReadOnly;
+
+    /// <summary>Opens the sheet. Only a closed sheet opens: while an import runs (even with the sheet hidden) the session it has is kept.</summary>
     public async Task OpenAsync()
     {
         lock (gate)
         {
+            if (phase != ImportPhase.Closed) return;
             ticks.Clear();
             result = null;
             question = null;
@@ -99,7 +104,9 @@ public sealed class ImportController
     {
         string[] chosen;
         lock (gate) chosen = [.. folders];
-        var scanned = await Task.Run(() => scan(chosen));
+        ForeignScan scanned;
+        try { scanned = await Task.Run(() => scan(chosen)); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { scanned = new ForeignScan([], [new ScanProblem("", e.Message)]); }
         lock (gate)
         {
             found = scanned;
@@ -235,7 +242,7 @@ public sealed class ImportController
                     return choice;
                 });
             }
-            catch (InvalidOperationException) { failure = ImportWords.CouldNotSave; }
+            catch (Exception e) when (e is InvalidOperationException or IOException or UnauthorizedAccessException) { failure = ImportWords.CouldNotSave; }
         });
         lock (gate)
         {
@@ -262,6 +269,7 @@ public sealed class ImportController
 
     public bool Remove(string id)
     {
+        if (library.ReadOnly) return false;
         var removed = library.Remove(id);
         Raise();
         return removed;
@@ -269,6 +277,7 @@ public sealed class ImportController
 
     public void SetEnabled(string id, bool on)
     {
+        if (library.ReadOnly) return;
         library.SetEnabled(id, on);
         Raise();
     }

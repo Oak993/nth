@@ -340,7 +340,7 @@ public sealed class ImportedSkillsLibraryTests
     [Fact]
     [Trait("Feature", "SK-18")]
     [Trait("Rule", "R-TEST-4")]
-    public void The_library_can_be_read_while_a_duplicate_question_waits_for_its_answer()
+    public async Task The_library_can_be_read_while_a_duplicate_question_waits_for_its_answer()
     {
         using var home = new ForeignHome();
         home.Skill(".claude/skills", "pdf", "pdf", "Work with PDF files.");
@@ -356,9 +356,9 @@ public sealed class ImportedSkillsLibraryTests
         }));
         Assert.True(asking.Wait(TimeSpan.FromSeconds(10)));
         var read = Task.Run(() => (library.List().Count, library.Snapshot().Count));
-        Assert.True(read.Wait(TimeSpan.FromSeconds(5)), "the library was locked while the question waited");
-        Assert.Equal((1, 1), read.Result);
+        Assert.Same(read, await Task.WhenAny(read, Task.Delay(TimeSpan.FromSeconds(5)))); // the library must not be locked while the question waits
+        Assert.Equal((1, 1), await read);
         answer.Set();
-        Assert.Single(import.Result.Skipped);
+        Assert.Single((await import).Skipped);
     }
 }

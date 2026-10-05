@@ -74,7 +74,9 @@ internal sealed class ImportArea : Decorator
     private void Open()
     {
         hidden = false;
-        _ = model.Controller.OpenAsync();
+        // a sheet that is not closed is an import in progress (hidden by Escape): it comes back as it was, it is not started again
+        if (model.Controller.Phase == ImportPhase.Closed) _ = model.Controller.OpenAsync();
+        else Sync();
     }
 
     private void Detect()
