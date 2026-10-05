@@ -24,13 +24,18 @@ public sealed class A11yFirstReleaseTests(HeadlessSession headless)
     [Trait("Review", "CZ-4")]
     public void A11Y_Customization_switch_has_visible_keyboard_focus() => headless.OnUiThread(() =>
     {
+        using var preference = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform { AccessibilityDisplayShouldReduceMotion = true });
         using var rig = new CustomizationPageRig(reduceMotion: true);
         rig.Do(() =>
         {
+            // Production Settings scrolls this long page. The unscrolled rig puts its first switch at y=944,
+            // below the 900 px capture: use a real scroll viewport before asserting rendered focus.
+            rig.Host.Child = null;
+            rig.Host.Child = new ScrollViewer { Content = rig.Page };
+            rig.Window.UpdateLayout();
             var toggle = A11yReview.Tree(rig.Page).OfType<SmallSwitch>().First(c => c.IsEffectivelyEnabled && c.IsEffectivelyVisible);
-            // The unscrolled rig's first switch starts at y=944, below its 900 px viewport. Capture the actual
-            // switch and its ring (production Settings uses a ScrollViewer), without changing the focus assertion.
-            rig.Window.Height = Math.Max(rig.Window.Height, toggle.TranslatePoint(default, rig.Window)!.Value.Y + toggle.Bounds.Height + 20);
+            toggle.BringIntoView();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             rig.Window.UpdateLayout();
             Assert.True(new Avalonia.Rect(rig.Window.Bounds.Size).Contains(new Avalonia.Rect(toggle.TranslatePoint(default, rig.Window)!.Value, toggle.Bounds.Size)));
             A11yReview.VisibleFocus(rig.Window, toggle);
