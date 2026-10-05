@@ -37,7 +37,9 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
 {
     private const double Frame = 1.0 / 60;
 
-    private static readonly string[] PageTitles = ["General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
+    // VT-13: Voice typing is listed after Appearance (Q-CZ-1 A). The canvas draws ten pages; the eleventh row takes the next start index and, as ED-249 rules for anything past
+    // index 10, the last two rows (Archive, About) start with index 10, so the wave still ends at G + 260 ms.
+    private static readonly string[] PageTitles = ["General", "Hydra", "Appearance", "Voice typing", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
     // OD-0088 (ED-250): the Appearance page starts with the Look card; its rows are Theme and Accent.
     private static readonly string[] CardRowTitles = ["Theme", "Accent"];
 
@@ -59,7 +61,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         for (var i = 0; i < rows.Length; i++)
         {
             Assert.Contains(Nodes<TextBlock>(rows[i]), text => text.Text == PageTitles[i]);
-            items.Add((i + 1, PageTitles[i], [rows[i]]));
+            items.Add((Math.Min(i + 1, 10), PageTitles[i], [rows[i]]));
         }
         var section = Nodes<ChromeSection>(view).First();
         var heading = Assert.IsAssignableFrom<StackPanel>(section.Child).Children[0];
@@ -208,7 +210,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         var (_, view) = Open(manager, rig);
         ToGlassReady(rig);
         var parts = Parts(view);
-        Assert.Equal(18, parts.Items.Count);
+        Assert.Equal(19, parts.Items.Count);
         for (var k = 0; k <= 15; k++)
         {
             if (k > 0) rig.At(k * Frame);
