@@ -83,9 +83,9 @@ public sealed class PiScript
     /// <summary>The argument vector of the run, NUL-decoded (R-PROC-1: a real argv, never re-split).</summary>
     public IReadOnlyList<string>? Arguments()
     {
-        var path = Path.Combine(ControlDirectory, "argv.txt");
-        if (!File.Exists(path)) return null;
-        var parts = Utf8.GetString(File.ReadAllBytes(path)).Split('\0');
+        var raw = Read("argv.txt");
+        if (raw is null) return null;
+        var parts = raw.Split('\0');
         return parts.Take(parts.Length - 1).ToList();
     }
 
@@ -107,7 +107,17 @@ public sealed class PiScript
 
     private string? Read(string name)
     {
-        var path = Path.Combine(ControlDirectory, name);
-        return File.Exists(path) ? Utf8.GetString(File.ReadAllBytes(path)) : null;
+        var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(ControlDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        string lockName;
+        using (var hash = System.Security.Cryptography.SHA256.Create())
+            lockName = "Local\\MarrowPiStandIn-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "", StringComparison.Ordinal);
+        using var publication = new Mutex(false, lockName);
+        publication.WaitOne();
+        try
+        {
+            var path = Path.Combine(ControlDirectory, name);
+            return File.Exists(path) ? Utf8.GetString(File.ReadAllBytes(path)) : null;
+        }
+        finally { publication.ReleaseMutex(); }
     }
 }

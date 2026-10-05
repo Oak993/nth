@@ -77,10 +77,22 @@ internal static class PiStandIn
 
     private static void Write(string name, byte[] bytes)
     {
-        string pending = Path.Combine(dir, name + ".tmp");
-        File.WriteAllBytes(pending, bytes);
-        string target = Path.Combine(dir, name);
-        if (File.Exists(target)) File.Delete(target);
-        File.Move(pending, target);
+        var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        string lockName;
+        using (var hash = System.Security.Cryptography.SHA256.Create())
+            lockName = "Local\\MarrowPiStandIn-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "");
+        using (var publication = new Mutex(false, lockName))
+        {
+            publication.WaitOne();
+            try
+            {
+                string pending = Path.Combine(dir, name + ".tmp");
+                File.WriteAllBytes(pending, bytes);
+                string target = Path.Combine(dir, name);
+                if (File.Exists(target)) File.Delete(target);
+                File.Move(pending, target);
+            }
+            finally { publication.ReleaseMutex(); }
+        }
     }
 }
