@@ -28,7 +28,7 @@ public sealed class SkillsHost : IDisposable
     private bool disposed;
     private Task? collection;
 
-    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, ImportedSkillsLibrary imported, TermsStep terms, SkillsDownloads fetches,
+    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, ImportedSkillsLibrary imported, TermsStep terms, SkillsDownloads fetches, SkillsCatalogue catalogue,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
     {
         this.key = key;
@@ -120,7 +120,7 @@ public sealed class SkillsHost : IDisposable
         var imported = new ImportedSkillsLibrary(paths.Skills, options.Clock ?? TimeProvider.System);
         var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource, imported);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, terms, new SkillsDownloads(pipeline, options.Catalogue), guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, terms, new SkillsDownloads(pipeline, options.Catalogue), options.Catalogue, guarded, trust.Unrestored);
     }
 
     /// <summary>
