@@ -85,6 +85,24 @@ public sealed class GlassMacCalibration(HeadlessSession headless)
                 card.Background = SwiftChrome.GlassTint.Opacity(0.22).Brush(card);
                 return [scrim, card];
             });
+            // glass-g3's backdrop for the head card (frame 01 there, levelled on a ring 40-100 pt away, past the Mac's own shadow), the card at 60, 60
+            // in a 520 x 347 crop. Its scrim's shadow is drawn as SwiftUI draws it (glass-g3's SwiftShadow.Caster): the scrim's own coverage at its
+            // alpha (0.3), under it, blurred (sigma 28, y 10); here a blurred copy of the scrim (Avalonia's BlurEffect, test-only).
+            Render(folder, "card18g3", () =>
+            {
+                var cast = Placed(60, 70, 400, 267);
+                cast.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
+                cast.CornerRadius = new CornerRadius(22);
+                cast.Effect = new BlurEffect { Radius = 28 / 0.57735 };
+                var scrim = Placed(60, 60, 400, 267);
+                scrim.Background = new SolidColorBrush(Color.FromArgb(77, 0, 0, 0));
+                scrim.CornerRadius = new CornerRadius(22);
+                var card = Placed(60, 60, 400, 267);
+                card.CornerRadius = new CornerRadius(22);
+                SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
+                card.Background = SwiftChrome.GlassTint.Opacity(0.22).Brush(card);
+                return [cast, scrim, card];
+            });
         }
         finally { ThemeManager.Current = previous; }
     });

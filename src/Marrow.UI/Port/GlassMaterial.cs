@@ -109,7 +109,7 @@ internal static class GlassMaterial
             // ED-NEW-glass-g1 (the first frame): until a piece has synchronised once, its window's renderer step (WindowHook) synchronises it right
             // after the renderer's own update, in the composition update that draws the window's first frame: the Loaded post below lands a frame
             // or more later (the knob-cache unit measured the glass 34 to 53 ms after a window was shown: pop-in).
-            if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top, queued: true).Pending.Add(this);
+            if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top).Pending.Add(this);
             if (queued) return;
             queued = true;
             Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
@@ -442,14 +442,12 @@ internal static class GlassMaterial
     private static readonly ConditionalWeakTable<TopLevel, WindowHook> windows = new();
     private static readonly ConditionalWeakTable<Attachment, TopLevel> hooked = new();
 
-    // `queued`: installed from a piece's first Queue (a UI turn, before the window's first update); no extra composition update is asked for then
-    // (one asked for in a UI turn makes the next dispatcher pass run a composition update and draw the window: WallpaperCardTests' pump).
-    private static WindowHook HookOf(TopLevel top, bool queued = false)
+    private static WindowHook HookOf(TopLevel top)
     {
         if (windows.TryGetValue(top, out var hook)) return hook;
         hook = new WindowHook();
         windows.Add(top, hook);
-        Install(top, hook, extraStep: !queued);
+        Install(top, hook);
         return hook;
     }
 
@@ -467,7 +465,7 @@ internal static class GlassMaterial
         if (windows.TryGetValue(top, out var hook)) hook.Materials.Remove(attachment);
     }
 
-    private static void Install(TopLevel top, WindowHook hook, bool extraStep)
+    private static void Install(TopLevel top, WindowHook hook)
     {
         try
         {
@@ -476,7 +474,7 @@ internal static class GlassMaterial
             if (renderer is null || update?.GetValue(renderer) is not Action original) return;
             update.SetValue(renderer, new Action(() => { TraceForTests?.Invoke("renderer update"); original(); hook.Repair(); }));
             // An update already queued holds the old delegate: one more step, after it, in the next composition update.
-            if (extraStep && ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
+            if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
             TraceForTests?.Invoke("hook installed");
         }
         catch (Exception e) when (e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException) { }
@@ -624,6 +622,7 @@ internal static class GlassMaterial
             uniform float4 corners{{i}};
             uniform float4 tint{{i}};
             uniform float4 film{{i}};
+            uniform float4 law{{i}};
             uniform float4 optics{{i}};
             uniform float4 flags{{i}};
             uniform float4 pointer{{i}};
@@ -639,19 +638,19 @@ internal static class GlassMaterial
         for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"d = smoothUnion(d, distance{i}(xy));\n");
         source.Append("return d; }\n");
         source.Append(BodySource);
-        source.Append("half4 main(float2 xy) { float4 tint = tint0; float4 film = film0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0; float4 optics = optics0;\n");
+        source.Append("half4 main(float2 xy) { float4 tint = tint0; float4 film = film0; float4 law = law0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0; float4 optics = optics0;\n");
         // ED-320 16: the inside of a lone rounded rectangle (Draw's Inside) is drawn with `interior` set: what the shader computes past Optics.Deep,
         // without the shape's distance. It is the same program and the same arithmetic as the whole shader's deep branch below, so the two are
         // byte-identical (GlassMaterialReachReviewTests). A container's union never has one (Inside is null): its pointer is the nearest piece's.
         if (n == 1) source.Append("""
             float2 delta = at - ptr.xy;
             float highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;
-            if (interior > 0.5) return inside(backdrop.eval(xy), at, extent, film, tint, ptr.w < 0.5, highlight, flags.w);
+            if (interior > 0.5) return inside(backdrop.eval(xy), at, extent, film, law, tint, ptr.w < 0.5, highlight, flags.w);
             float raw = distance0(xy);
 
             """);
         else source.Append("float raw = distance0(xy);\n");
-        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; film = film{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; optics = optics{i}; }}\n");
+        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; film = film{i}; law = law{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; optics = optics{i}; }}\n");
         if (n > 1) source.Append("float2 delta = at - ptr.xy;\nfloat highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;\n");
         // With one shape the scene's distance is the shape's own (no union): it is not evaluated twice.
         source.Append(n == 1 ? "float d = -raw;\n" : "float d = -sceneDistance(xy);\n");
@@ -663,15 +662,23 @@ internal static class GlassMaterial
             // lens bends nothing and lights nothing: the inside of a shape reads one texel and skips the normal's four distances.
             float deep = max(max(optics.z + LG_BENDSUPPORT * optics.y, LG_GLOWREACH), LG_RINGREACH);
             float2 n = float2(0.0, 0.0);
+            float lit = 1.0;
             if (d < deep) {
                 // P1 finite-difference inward normal follows curved edges and the merged neck.
                 float2 normal = float2(-sceneDistance(xy + float2(1.0, 0.0)) + sceneDistance(xy - float2(1.0, 0.0)),
                                       -sceneDistance(xy + float2(0.0, 1.0)) + sceneDistance(xy - float2(0.0, 1.0)));
                 n = normalize(normal + float2(0.000001));
+                // ED-NEW-glass-g3's law (item 4): the edge's light (rim, inner light, contact line) and its bend follow how light the backdrop is
+                // 12 pt in from the edge: the Mac's large dark card (27 under its scrim and shadow) has none, the composer pill (57) and the title
+                // capsules (52) have it whole. A transparent backdrop (the Acrylic) counts as a mid grey.
+                half4 deepRead = backdrop.eval(clamp(xy + n * 12.0, window.xy, window.zw));
+                half4 deepColour = unpremultiply(deepRead);
+                float level = float(dot(deepColour.rgb, half3(0.2126, 0.7152, 0.0722)) * deepRead.a + (1.0 - deepRead.a) * 0.25);
+                lit = smoothstep(LG_LITFROM, LG_LITTO, level);
             }
             // The contact line just outside the edge, dark where the edge faces sideways (the Mac frames' 1 px dark line at a capsule's
             // ends), and dashersw/liquid-glass-js's soft shadow in miniature.
-            float shade = d < 0.25 ? clamp(1.0 - abs(d + 0.5) / 0.75, 0.0, 1.0) * (LG_SHADEBASE + LG_SHADESIDE * n.x * n.x) : 0.0;
+            float shade = d < 0.25 ? clamp(1.0 - abs(d + 0.5) / 0.75, 0.0, 1.0) * (LG_SHADEBASE + LG_SHADESIDE * n.x * n.x) * (LG_SHADEDARK + (1.0 - LG_SHADEDARK) * lit) : 0.0;
             // What the pixel becomes is mix(under, value, amount): stage 0 (BlendMode.DstOut) takes `amount` of the pixel under away,
             // stage 1 (BlendMode.Plus) adds value * amount. The glass is translucent: its value keeps the alpha of what lies under it.
             float amount = flags.w * (1.0 - (1.0 - coverage) * (1.0 - shade));
@@ -680,7 +687,7 @@ internal static class GlassMaterial
             if (coverage <= 0.0) return outside;
             // Avoid double tinting existing overlays; tint the merged neck outside those overlays.
             bool tinted = ptr.w < 0.5 || raw > 0.0;
-            if (d >= deep) return inside(backdrop.eval(xy), at, extent, film, tint, tinted, highlight, flags.w);
+            if (d >= deep) return inside(backdrop.eval(xy), at, extent, film, law, tint, tinted, highlight, flags.w);
             // rizzytoday/liquid-glass's displacement map (buildDisplacementMap): a full bend at the edge that falls off as the
             // complement of the blurred neutral centre (a Gaussian edge, here its logistic form), with the per-channel scales of its
             // chromatic aberration (scale -180 + 0 / 10 / 20: red 1, green 0.944, blue 0.889); plus dashersw/liquid-glass-js's rim
@@ -688,22 +695,22 @@ internal static class GlassMaterial
             float dd = max(d, 0.0);
             float lens = (1.0 + exp(-LG_LOGISTIC * optics.z / optics.y)) / (1.0 + exp(LG_LOGISTIC * (dd - optics.z) / optics.y));
             lens = max(lens - LG_BENDFLOOR, 0.0) / (1.0 - LG_BENDFLOOR);
-            float disp = optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR);
+            float disp = (optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR)) * lit;
             // The reads stay inside the window's surface (`window`, half a device pixel in): past it the backdrop holds nothing, so a piece that fills its
             // window read transparent at its edge and its outer ring came out translucent over an opaque backdrop (REVIEW_GlassWindowEdgeTests).
             half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
             half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
             half4 b = backdrop.eval(clamp(xy - n * (disp * LG_BLUE), window.xy, window.zw));
             // Each read is lifted on its own, so the fringe is the bend's (not amplified by the saturation); deep inside the three are one.
-            half4 col = filmed(half3(lift(r, film.w).r, lift(g, film.w).g, lift(b, film.w).b), g.a, at, extent, film);
+            half4 col = filmed(half3(lift(r, film.w, law.x).r, lift(g, film.w, law.x).g, lift(b, film.w, law.x).b), g.a, at, extent, film, law);
             if (tinted) col = over(col, half3(tint.rgb), half(tint.a));
             // The specular rim: a bright line on the edge's first point, all around and strongest where the edge faces up or down,
             // the top brightest (the Mac frames: +33 to +41 levels on the composer pill and the title capsules); the light inner edge
             // under it.
             float rim = clamp(1.5 - d, 0.0, 1.0);
             float facing = n.y * n.y;
-            float spec = rim * (LG_RIMBASE + (1.0 - LG_RIMBASE) * facing) * (n.y > 0.0 ? LG_RIMTOP : LG_RIMBOTTOM);
-            float glow = d < LG_GLOWREACH ? LG_GLOW * pow(clamp(1.0 - (d - 1.0) / (LG_GLOWREACH - 1.0), 0.0, 1.0), 3.0) * (LG_GLOWSIDE + (1.0 - LG_GLOWSIDE) * facing) * (1.0 - rim) : 0.0;
+            float spec = lit * rim * (LG_RIMBASE + (1.0 - LG_RIMBASE) * facing) * (n.y > 0.0 ? LG_RIMTOP : LG_RIMBOTTOM);
+            float glow = d < LG_GLOWREACH ? lit * LG_GLOW * pow(clamp(1.0 - (d - 1.0) / (LG_GLOWREACH - 1.0), 0.0, 1.0), 3.0) * (LG_GLOWSIDE + (1.0 - LG_GLOWSIDE) * facing) * (1.0 - rim) : 0.0;
             col = over(col, half3(1.0), half(clamp(spec + glow + highlight, 0.0, 1.0)));
             return col * half(coverage * flags.w) + outside;
             }
@@ -721,19 +728,24 @@ internal static class GlassMaterial
     private const string BodySource = """
         half4 unpremultiply(half4 c) { return c.a > 0.002 ? half4(c.rgb / c.a, c.a) : half4(0.0); }
         half4 over(half4 below, half3 colour, half alpha) { return half4(colour * alpha + below.rgb * (1.0 - alpha), alpha + below.a * (1.0 - alpha)); }
-        half3 lift(half4 under, float saturation) {
+        half3 lift(half4 under, float saturation, float gain) {
             half4 c = unpremultiply(under);
             half luma = dot(c.rgb, half3(0.2126, 0.7152, 0.0722));
-            return clamp(luma + (c.rgb - luma) * half(saturation), 0.0, 1.0);
+            half3 s = clamp(luma + (c.rgb - luma) * half(saturation), 0.0, 1.0);
+            // ED-NEW-glass-g3's law (item 4), the Mac's dark glass a gain on what lies under it: c + gain c (1 - c)^2.
+            return s + half(gain) * s * (1.0 - s) * (1.0 - s);
         }
-        half4 filmed(half3 lifted, half alpha, float2 at, float2 extent, float4 film) {
-            half grey = half(mix(film.x, film.y, smoothstep(LG_FILMBEGIN, LG_FILMEND, clamp(at.y / max(extent.y, 1.0), 0.0, 1.0))));
-            return over(half4(lifted * alpha, alpha), half3(grey), half(film.z));
+        half4 filmed(half3 lifted, half alpha, float2 at, float2 extent, float4 film, float4 law) {
+            half ramp = half(smoothstep(LG_FILMBEGIN, LG_FILMEND, clamp(at.y / max(extent.y, 1.0), 0.0, 1.0)));
+            half grey = half(mix(film.x, film.y, ramp));
+            // The film covers what the backdrop leaves transparent at film.z (the Acrylic shows through it, lifted) and an opaque backdrop at law.y.
+            half cover = half(film.z) * (1.0 - alpha) + half(law.y) * alpha;
+            return over(half4(lifted * (1.0 - half(law.z) * ramp) * alpha, alpha), half3(grey), cover);
         }
-        half4 body(half4 under, float2 at, float2 extent, float4 film) { return filmed(lift(under, film.w), under.a, at, extent, film); }
+        half4 body(half4 under, float2 at, float2 extent, float4 film, float4 law) { return filmed(lift(under, film.w, law.x), under.a, at, extent, film, law); }
         // The inside of a shape, past Optics.Deep: the body, the tint, the pointer's highlight (the deep branch and the `interior` drawing).
-        half4 inside(half4 texel, float2 at, float2 extent, float4 film, float4 tint, bool tinted, float highlight, float amount) {
-            half4 col = body(texel, at, extent, film);
+        half4 inside(half4 texel, float2 at, float2 extent, float4 film, float4 law, float4 tint, bool tinted, float highlight, float amount) {
+            half4 col = body(texel, at, extent, film, law);
             if (tinted) col = over(col, half3(tint.rgb), half(tint.a));
             return over(col, half3(1.0), half(clamp(highlight, 0.0, 1.0))) * half(amount);
         }
@@ -760,7 +772,10 @@ internal static class GlassMaterial
             .Replace("LG_GLOWSIDE", F(Optics.GlowSide), StringComparison.Ordinal)
             .Replace("LG_GLOW", F(Optics.Glow), StringComparison.Ordinal)
             .Replace("LG_FILMBEGIN", F(FilmBegin), StringComparison.Ordinal)
-            .Replace("LG_FILMEND", F(FilmEnd), StringComparison.Ordinal);
+            .Replace("LG_FILMEND", F(FilmEnd), StringComparison.Ordinal)
+            .Replace("LG_LITFROM", F(LitFrom), StringComparison.Ordinal)
+            .Replace("LG_LITTO", F(LitTo), StringComparison.Ordinal)
+            .Replace("LG_SHADEDARK", F(Optics.ShadeDark), StringComparison.Ordinal);
     }
 
     // The pixels under a material as they are when it draws: what a whole drawing of the window has drawn before it (ED-320 11). The surface
@@ -1059,6 +1074,24 @@ internal static class GlassMaterial
     internal static readonly double[] FilmDark = [0.94, 0.70, 0.17, 1.4];
     internal static readonly double[] FilmLight = [1.0, 0.90, 0.30, 1.25];
 
+    // ED-NEW-glass-g3's law (its item 4), measured by glass-g3 on the Mac frames: over an opaque backdrop the dark glass is a gain, body = 1.47 x
+    // backdrop + 4 on the composer pill (88 over 57) and the head card (43.8 under its tint, over 27 under its scrim and shadow), not a white film,
+    // which over-lit the dark card (57.3 against 43.4). Here c + 0.95 c (1 - c)^2 per channel (89.8 and 47.5 there; it leaves white white and
+    // keeps the effort knob's peach, GlassSmallLensTests). The film stays for the part of the backdrop that is transparent (over the Acrylic) and,
+    // in the light appearance, over everything (no light frame was measured). x the gain, y the film over an opaque backdrop, z the darkening at
+    // the bottom of a small piece (the pill's 77 low down against 88 at its middle; the 267 pt card is flat, 43.4 and 42.7), w unused.
+    internal static float[] Law(double darkness, Size size)
+    {
+        var t = Math.Clamp(darkness, 0, 1);
+        var small = Math.Clamp((LawFlatFrom - size.Height) / (LawFlatFrom - LawShadedTo), 0, 1);
+        return [(float)(LawGain * t), (float)(FilmLight[2] * (1 - t)), (float)(LawBottom * small), 0f];
+    }
+    internal const double LawGain = 0.95, LawBottom = 0.13, LawShadedTo = 60, LawFlatFrom = 120;
+
+    // The backdrop's level 12 pt in from the edge from which the edge is lit (none at or below LitFrom, whole from LitTo): the card's 27 / 255 is
+    // 0.106, the title capsules' 52 is 0.204 and the pill's 57 is 0.224.
+    internal const double LitFrom = 0.12, LitTo = 0.20;
+
     // Where the film turns from its top grey to its bottom one, as fractions of the piece's height: dashersw's ramp is linear over the whole
     // height; the Mac pill is flat (87 to 88) down to about half its height and darkens to 77 by four fifths of it.
     internal const double FilmBegin = 0.45, FilmEnd = 0.85;
@@ -1094,6 +1127,7 @@ internal static class GlassMaterial
         //     bottom 123 over a body of 88 and 77 (the port: 123 and 124 over the same backdrop);
         //   - the light inner edge: +9, +6, +5, +3, +2 levels 1.5 to 5.5 pt under the top rim (with the bend's own lift there), a fifth of it at the sides.
         internal const double ShadeBase = 0, ShadeSide = 0.6;
+        internal const double ShadeDark = 0.15; // the contact line's share left on a dark backdrop (the Mac card's -5 to -7)
         internal const double RimBase = 0.15, RimTop = 0.20, RimBottom = 0.24;
         internal const double Glow = 0.035, GlowSide = 0.2;
 
@@ -1202,6 +1236,7 @@ internal static class GlassMaterial
                 ($"corners{i}", [(float)r.Corners.TopLeft, (float)r.Corners.TopRight, (float)r.Corners.BottomRight, (float)r.Corners.BottomLeft]),
                 ($"tint{i}", [r.Tint.R / 255f, r.Tint.G / 255f, r.Tint.B / 255f, r.Tint.A / 255f]),
                 ($"film{i}", Film(r.Darkness)),
+                ($"law{i}", Law(r.Darkness, r.Size)),
                 ($"optics{i}", Optics.For(r.Size).Uniform),
                 ($"flags{i}", [(float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f,
                     (float)Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)), (float)r.Opacity]),
