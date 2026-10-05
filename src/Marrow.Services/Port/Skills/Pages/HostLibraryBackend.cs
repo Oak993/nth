@@ -4,6 +4,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
+using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Port.Skills.Host;
 using Marrow.Services.Port.Skills.Terms;
@@ -29,7 +30,16 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
 
     public AddonsState State => host.Pipeline.State;
 
-    public IFirstInstall Installs { get; } = installs ?? new FailClosedFirstInstall();
+    /// <summary>The first install: through the host's shared downloads when its download and binding seams are bound (SK-16), otherwise the seam that fails closed.</summary>
+    public IFirstInstall Installs { get; } = installs ?? (host.Downloads.Available ? new SkillsFirstInstall(host.Downloads) : new FailClosedFirstInstall());
+
+    public bool FetchingAvailable => Installs.IsAvailable;
+
+    public FetchView? Fetching(string itemId) => host.Downloads.Running(itemId);
+
+    public IDisposable? WatchFetching(Action changed) => host.Downloads.Watch(changed);
+
+    public void CancelFetching(string itemId) => host.Downloads.Stop(itemId);
 
     public ISwitchReader Switches => new SwitchTruth(Current());
 

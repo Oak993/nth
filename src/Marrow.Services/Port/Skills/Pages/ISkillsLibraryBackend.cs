@@ -2,6 +2,7 @@
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
+using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Terms;
 
 namespace Marrow.Services.Port.Skills.Pages;
@@ -28,6 +29,18 @@ public interface ISkillsLibraryBackend
     void AcceptTerms(string itemId);
 
     IFirstInstall Installs { get; }
+
+    /// <summary>SK-16: whether the first-install seam can fetch at all (the one that fails closed says no). A scripted backend keeps what its install says.</summary>
+    bool FetchingAvailable => Installs.IsAvailable;
+
+    /// <summary>SK-16 (DL-19): a download running for the item that this page did not start (an in-chat offer's), or null: the row shows it and a press joins it.</summary>
+    FetchView? Fetching(string itemId) => null;
+
+    /// <summary>SK-16: calls <paramref name="changed"/> whenever a download starts, reports or ends, from any surface. Null when the backend has none to tell of.</summary>
+    IDisposable? WatchFetching(Action changed) => null;
+
+    /// <summary>SK-16: stops the download running for the item, for everyone who asked for it (the page's Cancel).</summary>
+    void CancelFetching(string itemId) { }
 
     Task UpdateAsync(string itemId, IProgress<double?> progress, CancellationToken cancellation);
 

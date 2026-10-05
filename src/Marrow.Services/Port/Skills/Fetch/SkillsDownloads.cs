@@ -47,6 +47,18 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
         lock (gate) return flights.TryGetValue(id, out var flight) ? new FetchView(flight.Last) : null;
     }
 
+    /// <summary>Stops the download running for the item, for every asker (each is cancelled); what it fetched stays for a later try. Nothing when none is running.</summary>
+    public void Stop(string id)
+    {
+        FetchFlight? flight;
+        lock (gate)
+        {
+            if (!flights.Remove(id, out flight)) return;
+        }
+        flight.Cancel.Cancel();
+        Notify();
+    }
+
     /// <summary>Calls <paramref name="changed"/> (on whatever thread) when a download starts, reports or ends. Dispose to stop.</summary>
     public IDisposable Watch(Action changed)
     {
