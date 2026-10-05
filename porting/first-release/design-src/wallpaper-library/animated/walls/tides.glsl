@@ -15,13 +15,16 @@ vec3 wall(vec2 p, float t) {
   col = mix(col, u_pal[5], 0.12 * smoothstep(0.4, 1.4, u));
   for (int k = 0; k < 5; k++) {
     float f = float(k);
-    float e = 0.92 - 0.42 * f + (0.13 * sin(v * 1.15 + f * 1.9 + a) + 0.05 * sin(v * 2.5 - f + 2.0 * a)) * (0.55 + 0.45 * m)
-            + 0.05 * m * lnoise(vec2(v * 0.6, f * 3.0), a, 0.4);
-    float dd = e - u;
+    vec2 pk = p + tiltD(f * 0.5 - 1.0);
+    float uk = dot(pk, dir);
+    float vk = dot(pk, vec2(dir.y, -dir.x));
+    float e = 0.92 - 0.42 * f + (0.13 * sin(vk * 1.15 + f * 1.9 + a) + 0.05 * sin(vk * 2.5 - f + 2.0 * a)) * (0.55 + 0.45 * m)
+            + 0.05 * m * lnoise(vec2(vk * 0.6, f * 3.0), a, 0.4);
+    float dd = e - uk;
     float cov = smoothstep(-u_px, u_px, dd);
     float sh = exp(-max(-dd, 0.0) / 0.1) * (1.0 - cov) * 0.16 * depth;
     col.x -= sh * mix(0.6, 1.0, u_dark);
-    vec3 lc = mix(u_pal[k], u_pal[k + 1], smoothstep(-1.6, 1.8, v) * 0.55);
+    vec3 lc = mix(u_pal[k], u_pal[k + 1], smoothstep(-1.6, 1.8, vk) * 0.55);
     float crest = exp(-max(dd, 0.0) / 0.018) * cov;
     lc.x += 0.07 * crest - 0.06 * smoothstep(0.0, 0.42, dd);
     lc = mix(lc, u_pal[5], crest * 0.18);

@@ -85,4 +85,16 @@ public sealed class MicrophoneChoicesTests
     {
         Assert.Equal(new MicrophoneResolution("{0.0.1.00000000}.{aaa}", false), MicrophoneChoices.Resolve(Host(), "{0.0.1.00000000}.{AAA}"));
     }
+
+    [Fact]
+    [Trait("Feature", "VT-13")]
+    [Trait("Spec", "V-T42")]
+    [Trait("Decision", "ED-267")] // review of VT-13: a menu id is unique and "" is Windows default's, so an endpoint listed twice or with an empty id is listed once or not at all
+    public void An_endpoint_listed_twice_or_with_an_empty_id_is_not_listed_again()
+    {
+        var host = new ScriptedCaptureHost(("{a}", "First"), ("{a}", "First again"), ("", "No id"), ("{A}", "Other case"), ("Windows default", "Named like the default"), ("{b}", "Second"));
+        var items = MicrophoneChoices.Items(host);
+        Assert.Equal([null, "{a}", "{b}"], items.Select(i => i.Value));
+        Assert.Equal(["Windows default", "First", "Second"], items.Select(i => i.Label));
+    }
 }

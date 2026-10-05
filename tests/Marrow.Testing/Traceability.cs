@@ -26,7 +26,12 @@ public static partial class Traceability
     // ("V-T10"). They locate a test; they never replace the Req, Rule or Decision trait R-TEST-1 asks for.
     [GeneratedRegex(@"\A[A-Z]{1,4}-[0-9]+[a-z]?\z")] private static partial Regex FeatureId();
 
-    [GeneratedRegex(@"\A[A-Z]{1,4}-T[0-9]+\z")] private static partial Regex SpecTestId();
+    // Skills downloads name their acceptance lists by the plan's item ("DL-16", skills-ONDEMAND-PLAN.md), not by a T-number.
+    [GeneratedRegex(@"\A(?:[A-Z]{1,4}-T[0-9]+|DL-[0-9]+)\z")] private static partial Regex SpecTestId();
+
+    // Two locating traits the skills units use: Platform marks a test that only runs on Windows, and Review marks a test
+    // an independent review wrote (its value names the unit reviewed). Like Feature and Spec, neither replaces R-TEST-1's trait.
+    [GeneratedRegex(@"\AWINDOWS-ONLY\z")] private static partial Regex PlatformId();
 
     [GeneratedRegex(@"\b(?:class|record)\s+(\w+)")] private static partial Regex TypeKeyword();
 
@@ -38,8 +43,10 @@ public static partial class Traceability
             .Where(m => m.GetCustomAttributes<FactAttribute>().Any());
 
     /// <summary>xunit 2 keeps a trait only in its constructor arguments.</summary>
+    // xUnit applies a class's [Trait]s to each of its tests, so a trait on the class counts for every method in it.
     public static List<(string Name, string Value)> Traits(MethodInfo method) =>
-        method.GetCustomAttributesData().Where(a => a.AttributeType == typeof(TraitAttribute))
+        method.GetCustomAttributesData().Concat(method.DeclaringType!.GetCustomAttributesData())
+            .Where(a => a.AttributeType == typeof(TraitAttribute))
             .Select(a => ((string)a.ConstructorArguments[0].Value!, (string)a.ConstructorArguments[1].Value!)).ToList();
 
     /// <summary>R-TEST-1: every test names a requirement, a rule or a decision, and every id is well formed.</summary>
@@ -64,6 +71,8 @@ public static partial class Traceability
                     "Oracle" => OracleId().IsMatch(value),
                     "Feature" => FeatureId().IsMatch(value),
                     "Spec" => SpecTestId().IsMatch(value),
+                    "Platform" => PlatformId().IsMatch(value),
+                    "Review" => FeatureId().IsMatch(value),
                     _ => false,
                 };
                 if (!ok) problems.Add($"{name}: bad trait {trait}='{value}'");
