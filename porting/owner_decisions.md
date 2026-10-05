@@ -1090,3 +1090,39 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Context:** the owner's multiple-accounts feature (several accounts per service, the Handshake, Pills, link up, one-message opinions, local models, per-account enable/disable), designed with the owner on 2026-10-05. Everything agreed is in `E:\Droppy\work\design\ideas\multi-account.md`; the design page is https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X. The feasibility study (branch codex/ma-0, `porting/first-release/multi-account-FEASIBILITY.md`) found it technically feasible for file-based CLIs (Copilot CLI and Antigravity keep sign-ins in Windows Credential Manager and stay single-account), and quoted provider terms against bypassing protective measures and circumventing rate limits; the lead raised this risk with the owner before this decision.
 - **Owner, verbatim:** "once we finalize the multi account page, that too needs to get pushed in this release"
 - **Effect:** multiple accounts join the first-release scope (OD-0103) as a new feature family. Its interface is built only after the owner finalizes the design page, and its picks are then recorded verbatim; design-independent foundations (accounts store, per-account isolation and limits, the local provider) may start at once. The installer still comes last (OD-0105).
+
+## OD-0115 Multiple accounts: the design picks (2026-10-05)
+
+- **Page:** https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X (version 8; copy: `porting/first-release/design-src/multi-account/`). Every agreed rule: `porting/first-release/multi-account-NOTES.md`.
+- **Owner, verbatim:** "multi-account: handshake=A, composer=A, popover=ok, link=A, opinions=B, usage=B, card-layout=A" and "Just fix that generic toggle and ship it with the current release."
+- **Effect:**
+  - Handshake animation A (neural filaments), from and to the shared capsule, in the usage light.
+  - Composer account control A (the glass capsule), styles from Customization, default Merged capsule.
+  - The account popover as shown; link up A (tap the link beside an account); one-message opinions B (an "Ask others" button); usage panel B (the current account, the others one tap away); first-time card layout A.
+  - Every switch is the port's own SmallSwitch (SettingsView.cs, ED-280), never the page's generic toggle.
+  - It ships in the first release (OD-0114).
+
+## OD-0116 Automatic account switching is off by default and asked the first time (2026-10-05)
+
+- **Context:** the feasibility study (codex/ma-0) and the Handshake engine (cloud/ma-5) note that provider terms forbid bypassing protective measures or circumventing rate limits; the lead asked whether "Keep me going" starts on or off.
+- **Owner, verbatim:** "Switched off by default, app asks user the first time."
+- **Effect:** automatic switching ("Keep me going", the Handshake into another account) is off by default for every service. The first time an account runs out, the first-time card asks the user (OD-0115 layout A, with the Remember line); nothing switches automatically until the user chooses it. Pills a user creates are that user's explicit choice.
+
+## OD-0117 The Pills section is visible to everyone (2026-10-05)
+
+- **Owner, verbatim:** "Also, pills section in settings will be visible to users who have single accounts connected as well, just the options will be disabled with a message letting them know what this feature is and what would enable its functionality (multiple accounts)"
+- **Effect:** amends the notes' "Pills only once 2+ accounts or services are connected". Settings › Pills always shows in the sidebar. With fewer than two accounts or services connected, its controls are present but disabled (dimmed, not focusable as actions), under one short plain message that says what Pills are (a chain of accounts and models that Marrow moves through when one runs out) and what turns them on (connecting a second account or service, with a button to Settings › Models). Everything enables live, with a transition, the moment a second account or service is connected.
+
+## OD-0118 Import skills from other apps on the PC (2026-10-05)
+
+- **Owner, verbatim:** "Also, can we have an option to import skills from other apps and llms on the pc in skills settings?" then "It goes in this release"
+- **Effect:** a new first-release unit SK-18 in Settings › Skills: an "Import skills" action scans the places other AI tools on this PC keep skills (Claude Code's skills and plugins folders, Codex's skills, Antigravity's, Cursor's rules, and any folder the user picks), lists what it found grouped by app (name, one-line description, source), and imports the ticked ones either as a Copy (Marrow's own) or a Link (kept in sync with the original). Nothing in the other apps is moved or changed; duplicates offer keep both / replace / skip; imported skills carry a quiet "from <app>" tag and can be removed; they then work wherever Marrow gives skills. Design follows the existing Skills pages (SK-15) and goes to the owner only if a new layout is needed.
+
+## OD-0119 Multi-account checklist conflicts settled (2026-10-05)
+
+- **Owner, verbatim (Hindi, as spoken):** "हैंडशेक स्विच ऑन बाय डिफॉल्ट हाँ तो ऑफ करके डिफॉल्ट में रखो ना और ऐप पहली बार पूछेगी तो फिर ऑन होगा" · "द बिल्डर मस्ट पिक वन स्मार्टली जो सही लग रहा है वो पिक कर लो" · "मैंने और स्टाइल्स मांगे थे तो वो अपडेट हो गया बारह स्टाइल्स हैं अब".
+- **Effect:**
+  - Pills visibility: OD-0117 stands (the section is always in Settings; disabled below two connected accounts, with a note saying it turns on once two are connected and what the feature does). The page's 2+ gate is outdated.
+  - Switching and the Handshake into another account: off by default; on only after the user agrees when the app asks the first time (OD-0116). The page's `hs: true` default is outdated.
+  - Per-account Handshake point: the builder picks. Lead pick: the account's ⋯ menu "Handshake at…", plus a small quiet note on that account's row only when its point differs from the default (NOTES:56, matches the page's Settings footer).
+  - Pill-in-composer styles: the page's twelve styles are current; the NOTES list of four is outdated.
