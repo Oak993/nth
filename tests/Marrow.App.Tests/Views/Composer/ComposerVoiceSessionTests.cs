@@ -1,0 +1,247 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Marrow.App.Port.Voice;
+using Marrow.App.Runtime;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Composer;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Port.Voice;
+using Marrow.Core.Port.Voice.Session;
+using Xunit;
+using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
+
+namespace Marrow.App.Tests.Views.Composer;
+
+// VT-10, V-T82 and the session rules of V-14 (voice-SPEC V-8.1, V-8.5, V-14.4, V-14.7; V-7.11): Esc, the editor during a session, where the text lands, one session
+// at a time and the composer leaving. Sessions are scripted (no microphone, no engine). The live words and their animation are VT-11's; here the text reaches
+// the draft when the session lands.
+[Collection("Headless")]
+public sealed class ComposerVoiceSessionTests(HeadlessSession headless)
+{
+    private static VoiceOrbSlot Slot(Control view) => LogicalQuery.SelfAndDescendants<VoiceOrbSlot>(view).Single();
+
+    private static VoiceComposerRig Seen(VoiceOrbSettings? orb = null, bool workingHead = false)
+    {
+        var rig = new VoiceComposerRig(orb, workingHead: workingHead);
+        rig.Main.OnMain(() => rig.App.Settings.VoiceNotes = new VoiceNotesSettings(Local: true, Cloud: true));
+        return rig;
+    }
+
+    private static void Listen(VoiceComposerRig rig, ComposerView view, Avalonia.Controls.Window window)
+    {
+        rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+        rig.Elapse(window, 0.1);
+        Assert.Equal(VoiceSessionState.Listening, view.Voice!.Session.State);
+    }
+
+    [Fact] // V-T82, V-14.4
+    [Trait("Decision", "ED-292")]
+    public void Esc_while_listening_cancels_and_is_consumed_so_it_does_not_take_back_a_running_turn()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            rig.Main.OnMain(() => rig.Runtime.RehearseTurn("working"));
+            var (view, window) = rig.Open();
+            Listen(rig, view, window);
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape))); // consumed
+            rig.Elapse(window, 0.2);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice!.Session.State);
+            Assert.True(rig.Runtime.IsRunning); // Esc's ordinary meaning (take the running turn back) did not run
+            Assert.Equal(TurnStatus.Running, rig.Runtime.Turns.Single().Status);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-T82, V-14.4: Esc also cancels while the text is being finished
+    [Trait("Decision", "ED-292")]
+    public void Esc_while_the_text_is_being_finished_cancels_it_too_and_nothing_lands_in_the_draft()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window) = rig.Open();
+            Listen(rig, view, window);
+            rig.Elapse(window, 3.0);
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+            rig.Elapse(window, 0.01);
+            Assert.Equal(VoiceSessionState.Processing, view.Voice!.Session.State);
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
+            rig.Elapse(window, 10);
+            Assert.Equal(VoiceSessionState.Rest, view.Voice.Session.State);
+            Assert.Equal("", rig.Runtime.Draft.Text);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-14.4: otherwise Esc keeps its existing meaning
+    [Trait("Decision", "ED-292")]
+    public void With_no_session_running_Esc_keeps_its_ordinary_meaning()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            var (view, window) = rig.Open();
+            Assert.False(rig.Main.OnMain(() => Press(view, Key.Escape))); // nothing to cancel, nothing to take back
+            rig.Main.OnMain(() => rig.Runtime.RehearseTurn("working"));
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape))); // the running turn is taken back, as before
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-T82, V-8.5
+    [Trait("Decision", "ED-292")]
+    public void The_editor_is_read_only_during_a_session_and_free_again_after_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            rig.Main.OnMain(() => rig.Runtime.Draft = new ComposerDraft { Text = "keep" });
+            var (view, window) = rig.Open();
+            var box = rig.Main.OnMain(() => One<ComposerNSTextView>(view));
+            Assert.False(rig.Main.OnMain(() => box.IsReadOnly));
+            Listen(rig, view, window);
+            Assert.True(rig.Main.OnMain(() => box.IsReadOnly));
+            rig.Main.OnMain(() =>
+            {
+                box.Focus();
+                window.KeyTextInput("typed");
+                Drain();
+            });
+            Assert.Equal("keep", rig.Runtime.Draft.Text); // typing is ignored
+            Assert.True(rig.Main.OnMain(() => Press(view, Key.Enter))); // so is Return: nothing is sent
+            rig.Elapse(window, 0.2);
+            Assert.Equal("keep", rig.Runtime.Draft.Text);
+            Assert.Empty(rig.Runtime.SentPrompts);
+            Assert.Equal(VoiceSessionState.Listening, view.Voice!.Session.State);
+            rig.Main.OnMain(() => Press(view, Key.Escape));
+            rig.Elapse(window, 0.3);
+            Assert.False(rig.Main.OnMain(() => box.IsReadOnly));
+            Assert.Equal("keep", rig.Runtime.Draft.Text);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-8.1 (interim: the text lands when the session does; VT-11 writes it live)
+    [Trait("Decision", "ED-292")]
+    public void The_text_lands_in_the_draft_after_the_caret_with_a_space_and_the_caret_ends_after_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            rig.Main.OnMain(() => rig.Runtime.Draft = new ComposerDraft { Text = "Hello" });
+            var (view, window) = rig.Open();
+            var box = rig.Main.OnMain(() => One<ComposerNSTextView>(view));
+            rig.Main.OnMain(() => box.SelectionStart = box.SelectionEnd = 5);
+            Listen(rig, view, window);
+            rig.Elapse(window, 3.0);
+            Assert.Equal("Hello", rig.Runtime.Draft.Text); // nothing before it lands
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+            rig.Elapse(window, 10);
+            Assert.Equal("Hello switch the theme please.", rig.Runtime.Draft.Text);
+            Assert.Equal("Hello switch the theme please.".Length, rig.Main.OnMain(() => box.SelectionStart));
+            Assert.Empty(rig.Runtime.SentPrompts); // "Leave the text in the composer" is the default
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-8.1: a selection is replaced
+    [Trait("Decision", "ED-292")]
+    public void A_selection_is_replaced_by_the_words()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            rig.Main.OnMain(() => rig.Runtime.Draft = new ComposerDraft { Text = "one OLD two" });
+            var (view, window) = rig.Open();
+            var box = rig.Main.OnMain(() => One<ComposerNSTextView>(view));
+            rig.Main.OnMain(() =>
+            {
+                box.SelectionStart = 4;
+                box.SelectionEnd = 7;
+            });
+            Listen(rig, view, window);
+            rig.Elapse(window, 3.0);
+            rig.Main.OnMain(() => Click(Slot(view).HitTarget));
+            rig.Elapse(window, 10);
+            Assert.Equal("one switch the theme please. two", rig.Runtime.Draft.Text);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-14.7
+    [Trait("Decision", "ED-292")]
+    public void The_composer_leaving_stops_the_session_as_a_second_click_does_and_the_text_lands_and_is_never_sent()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen(VoiceOrbSettings.Default with { AfterVoice = VoiceAfterVoice.Send });
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window) = rig.Open();
+            Listen(rig, view, window);
+            rig.Elapse(window, 3.0);
+            rig.Main.OnMain(() => ((Border)Host(window)).Child = null); // a thread switch takes the composer off the screen
+            rig.Elapse(window, 0.01);
+            var session = view.Voice!.Session;
+            Assert.Equal(VoiceSessionState.Processing, session.State);
+            Assert.Equal(VoiceStopReason.ComposerLeft, session.LastStopReason);
+            rig.Elapse(window, 10);
+            Assert.Equal(VoiceSessionState.Rest, session.State);
+            Assert.Equal(VoiceComposerRig.SwitchThemeText, rig.Runtime.Draft.Text); // in that thread's draft
+            Assert.Empty(rig.Runtime.SentPrompts); // and never auto-sent, whatever "After voice input" says
+            Assert.False(rig.Capture.IsRunning);
+            rig.Close(window);
+        });
+    }
+
+    [Fact] // V-14.7: the window closing is the composer leaving too
+    [Trait("Decision", "ED-292")]
+    public void Closing_the_window_stops_the_capture()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (view, window) = rig.Open();
+            Listen(rig, view, window);
+            Assert.True(rig.Capture.IsRunning);
+            rig.Close(window);
+            rig.Main.Advance(TimeSpan.FromSeconds(0.1));
+            Assert.False(rig.Capture.IsRunning);
+        });
+    }
+
+    [Fact] // V-7.11: one session at a time
+    [Trait("Decision", "ED-292")]
+    public void A_second_orb_clicked_finishes_the_first_session_and_then_starts()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var rig = Seen();
+            rig.Speak(VoiceComposerRig.SwitchTheme());
+            var (first, firstWindow) = rig.Open();
+            var (second, secondWindow) = rig.Open();
+            Listen(rig, first, firstWindow);
+            rig.Elapse(firstWindow, 3.0);
+            rig.Main.OnMain(() => Click(Slot(second).HitTarget));
+            rig.Elapse(firstWindow, 0.01);
+            Assert.Equal(VoiceSessionState.Processing, first.Voice!.Session.State); // the first finishes as a second click would make it
+            Assert.True(second.Voice!.Session.StartQueued);
+            Assert.NotEqual(VoiceSessionState.Listening, second.Voice.Session.State);
+            Assert.Same(first.Voice.Session, rig.Hub.Active);
+            rig.Elapse(firstWindow, 10);
+            Assert.Equal(VoiceSessionState.Listening, second.Voice.Session.State);
+            Assert.Same(second.Voice.Session, rig.Hub.Active);
+            Assert.Equal(VoiceComposerRig.SwitchThemeText, rig.Runtime.Draft.Text); // the first one's text landed
+            rig.Close(secondWindow);
+            rig.Close(firstWindow);
+        });
+    }
+}
