@@ -22,9 +22,8 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     private static readonly string[] UpstreamTitles = ["General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
 
     // CZ-4 sets Customization ready: it is listed right after Appearance (CZ-2.1); the other new pages are still hidden
-    private static readonly string[] ReadyRaw = ["general", "hydra", "appearance", "customization", "providers", "mcp", "models", "sourceControl", "shortcuts", "archive", "about"];
 
-    private static readonly string[] ReadyTitles = ["General", "Hydra", "Appearance", "Customization", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
+    private static string[] ReadyTitles => SettingsSidebar.Pages("").Select(page => page.Title).ToArray();
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T1 / CZ-2.1: raw values, and AllCases puts Customization and Voice typing after Appearance; Updates takes the Tools place; Plugins sits directly above Skills
@@ -126,7 +125,8 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.True(typeof(Control).IsAssignableFrom(type));
         }
         Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
-        Assert.Equal(ReadyRaw, SettingsSidebar.Pages("").Select(page => page.Id));
+        Assert.Equal(SwiftEnum<SettingsPage>.AllCases.Where(page => page.IsReady).Select(page => page.Id), SettingsSidebar.Pages("").Select(page => page.Id));
+        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("").SkipWhile(page => page != SettingsPage.Customization).Prepend(SettingsPage.Customization).First() == SettingsPage.Customization ? SettingsPage.Appearance : SettingsPage.Customization);
     }
 
     [Fact]

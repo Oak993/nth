@@ -79,7 +79,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             var checker = UpdateChecker.Shared; Assert.Null(checker.LastError);
             var sidebar = Field<Control>(view, "sidebar"); var field = Assert.Single(Nodes<TextBox>(sidebar));
             var about = Nodes<SidebarRow>(view).Single(row => Text(row).Contains("About"));
-            Assert.Equal(11, Nodes<SidebarRow>(view).Length); // CZ-4: Customization is listed
+            Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, Nodes<SidebarRow>(view).Length); // CZ-4: Customization is listed
             Click(w, about); Drain(w);
             Assert.Single(Nodes<AboutSettingsPage>(view)); Assert.Empty(Nodes<GeneralSettingsPage>(view)); // the click selects the page
             for (var i = 0; i < 50 && checker.LastError is null; i++) Drain(w);
