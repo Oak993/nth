@@ -14,7 +14,40 @@ public sealed partial class AppModel
     public MultiAccountRouting AccountRouting => accountRouting ??= new(this);
     internal void DetachAccountRouting(Guid thread) => accountRouting?.Detach(thread);
     internal void TickAccountRouting(Guid thread) => accountRouting?.AtSafePoint(thread);
-    internal Marrow.Services.Port.Usage.AccountPlanLimitsSnapshot? AccountSnapshot(Guid id) => accountRouting?.Snapshot(id);
+    private long accountReportsRevision;
+    public long AccountReportsRevision { get => Read(accountReportsRevision); private set => Set(ref accountReportsRevision, value); }
+    internal void NotifyAccountReport() => AccountReportsRevision++;
+    internal Marrow.Services.Port.Usage.AccountPlanLimitsSnapshot? AccountSnapshot(Guid id)
+    {
+        _ = AccountReportsRevision;
+        return accountRouting?.Snapshot(id);
+    }
+
+    private bool accountReportsReady;
+    private void InitializeAccountReports()
+    {
+        Settings.Accounts.Changed += RefreshAccountReportsIfReady;
+        Settings.Pills.Changed += (_, _) => RefreshAccountReportsIfReady();
+        Settings.PropertyChanged += (_, value) =>
+        {
+            if (value.PropertyName is nameof(AppSettings.DeepseekAPIKeyInput) or nameof(AppSettings.MetaAPIKeyInput)
+                or nameof(AppSettings.ZaiAPIKeyInput) or nameof(AppSettings.OpenRouterAPIKeyInput)) RefreshAccountReportsIfReady();
+        };
+        Providers.PropertyChanged += (_, value) =>
+        {
+            if (value.PropertyName == nameof(ProviderRegistry.Statuses)) RefreshAccountReportsIfReady();
+        };
+    }
+    private void StartAccountReports()
+    {
+        accountReportsReady = true;
+        RefreshAccountReportsIfReady();
+    }
+    private void RefreshAccountReportsIfReady()
+    {
+        if (accountReportsReady && !Settings.Accounts.SaveBlocked
+            && (Settings.Accounts.Accounts.Count(IsAccountConnected) >= 2 || Settings.Pills.Pills.Count > 0)) AccountRouting.RefreshReports();
+    }
     internal bool CanUseAccount(Guid id) => accountRouting?.CanUseAccount(id) != false && ApiKeys.CanUseAccount(id);
     public bool IsAccountConnected(Account account) => account.Service == ProviderKind.Local
         ? Providers.Local.Resolve(account.Defaults.Model) is not null

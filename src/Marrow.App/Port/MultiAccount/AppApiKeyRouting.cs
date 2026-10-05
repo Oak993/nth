@@ -58,6 +58,7 @@ public sealed class AppApiKeyRouting(AppModel app) : IKeyMovePolicy, IApiKeyCred
     }
     public HandshakeEvent? State(Guid thread) => live.GetValueOrDefault(thread)?.State;
     public bool AwaitingChoice(Guid thread) => live.GetValueOrDefault(thread)?.Request is not null;
+    internal bool TakeWait(Guid thread, Guid source) => live.GetValueOrDefault(thread)?.TakeWait(source.ToString("D")) == true;
     public void Cancel(Guid thread) { if (live.Remove(thread, out var rotation)) rotation.Dispose(); }
     internal void Retired(AppApiKeyRotation rotation) { if (live.GetValueOrDefault(rotation.ThreadId) == rotation) live.Remove(rotation.ThreadId); }
     internal void Publish(HandshakeEvent value) => Changed?.Invoke(this, value);
@@ -90,7 +91,7 @@ public sealed class AppApiKeyRouting(AppModel app) : IKeyMovePolicy, IApiKeyCred
             var allow = choices[0].Value == DecisionValues.Switch && Policy(thread) == expected;
             if (allow && request.FirstTime) app.Settings.AccountHandshakeEnabled = true;
             rotation.ValidatePending(request);
-            rotation.Answer(allow, expected);
+            rotation.Answer(allow, expected, choices[0].Value == DecisionValues.Wait);
         }
         finally { rotation.EndAnswer(); }
         return true;

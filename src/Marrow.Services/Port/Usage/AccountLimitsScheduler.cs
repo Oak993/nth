@@ -49,6 +49,8 @@ public sealed class AccountLimitsScheduler : IDisposable
         concurrency = new(maxConcurrency);
     }
 
+    public event EventHandler<AccountPlanLimitsSnapshot>? SnapshotChanged;
+
     public AccountPlanLimitsSnapshot? Snapshot(UsageAccountKey account)
     {
         lock (gate) return accounts.TryGetValue(account, out var state) ? state.Snapshot : null;
@@ -240,6 +242,7 @@ public sealed class AccountLimitsScheduler : IDisposable
         PlanLimits? limits = null;
         DateTimeOffset? readStartedAt = null;
         Exception? failure = null;
+        AccountPlanLimitsSnapshot? published = null;
         try
         {
             while (true)
@@ -290,6 +293,7 @@ public sealed class AccountLimitsScheduler : IDisposable
                     {
                         // A failed/missing report replaces the old value; it must not masquerade as fresh limits.
                         state.Snapshot = new(state.Account, failure is null ? limits : null, clock.GetUtcNow()) { ReadStartedAt = readStartedAt ?? clock.GetUtcNow() };
+                        published = state.Snapshot;
                         var shared = failure is null && state.Snapshot.LimitsShared;
                         state.Failures = shared ? 0 : Math.Min(8, state.Failures + 1);
                         var delay = shared ? Interval(state) : TimeSpan.FromMinutes(Math.Min(30, 3 * Math.Pow(2, state.Failures - 1)));
@@ -304,6 +308,7 @@ public sealed class AccountLimitsScheduler : IDisposable
                     Arm(state);
                 }
             }
+            if (published is not null) SnapshotChanged?.Invoke(this, published);
             // The public poll task propagates port traps; they never become an unknown-quota snapshot.
             if (failure is not null && !SwiftTry.IsThrownError(failure)) completion.TrySetException(failure);
             else completion.TrySetResult();

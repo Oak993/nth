@@ -634,3 +634,9 @@ Actual App API routing/caps/spend/card joins have scoped Windows evidence: Core2
 Actual account credit readers, shared AutoContinue scheduler, API cap/out pill/final guards and polling lifetime repairs have scoped Windows evidence Core267/267 Services143/143 App211/211, zero skipped/build warnings/errors. Independent R23/R24/R23b/R23c regressions repaired test-first.
 
 **Incomplete:** live API wait/all-out and actual payload destination defaults, bootstrap/report liveness, Hydra configuration and verified CLI restricted priming/restoration; step1 NOT READY. Settings helper5b76d40261c338c7f3730b7d14ef129f9359e21f remains READY by lead Windows verdict but merges after step1 passes. Capsule step3a remains helper-owned. No passing-step push/native/DONE/parity/package/release claim.
+
+## T11 real API/controller, Hydra and bootstrap checkpoint, Codex, 2026-10-06
+
+Real 402/429 waits/resume and other-service consent, destination payload defaults with identical refused-request retries, destination/final/private Hydra policy, task-group main-actor hop and bootstrap/observable account reports have scoped Windows evidence Core267/267 Services321/321 App221/221. Zero skips/build warnings/errors. Every counted defect failed exact method alone twice, including the preemption regression; fixture/interruption/lock errors excluded.
+
+**Incomplete:** verified CLI restricted text-only priming/restoration; private cost measurement, optional incoming light-model AI-summary fallback, between-tool safe pause, remaining view/report and manual-choice joins. Step1 NOT READY, no passing-step push. Settings5b76d40261c338c7f3730b7d14ef129f9359e21f is independently Windows READY but merges after step1 passes. Capsule step3a remains helper-owned and unmerged. No native/DONE/parity/package/release claim.

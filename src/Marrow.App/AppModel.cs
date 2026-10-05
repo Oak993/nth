@@ -208,6 +208,7 @@ public sealed partial class AppModel : MainActorModel
         SyncChildCells(threads);
         threadIndex = new ThreadIndex(threads); // AppModel.swift:141
         AutoContinue = new AutoContinue(this); // AppModel.swift:142
+        InitializeAccountReports(); // OD-0114: start only after bootstrap has loaded credentials and provider statuses.
         if (Settings.LastProjectID is { } lastID && Project(lastID) is null) Settings.LastProjectID = null; // AppModel.swift:143-145
     }
 
@@ -315,6 +316,7 @@ public sealed partial class AppModel : MainActorModel
             }
         }); // AppModel.swift:255-261
         await Providers.RefreshAll(); // AppModel.swift:263
+        StartAccountReports(); // OD-0114: Settings can read each connected account before a chat opens.
         await TaskGroup.Run(async group =>
         {
             foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.OpenRouter /* PORT-ONLY (ED-234) */ })

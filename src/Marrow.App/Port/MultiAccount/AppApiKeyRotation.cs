@@ -19,6 +19,7 @@ public sealed class AppApiKeyRotation : IAsyncApiKeyRotation, IDisposable
     private bool disposed;
     private bool answering;
     private Resolution? acceptedPolicy;
+    private (string Source, Resolution Policy)? waitAnswer;
     public AppApiKeyRotation(AppApiKeyRouting owner, ApiKeyPool pool, Guid threadId, Guid accountId,
         Action<KeyChoice> selected, Func<string?> pin, Func<bool> owns, bool canAsk = true)
     {
@@ -40,6 +41,7 @@ public sealed class AppApiKeyRotation : IAsyncApiKeyRotation, IDisposable
         if (!owns()) throw new CancellationError();
         pool.Pin(ThreadId, pin());
         last = null;
+        waitAnswer = null;
     }
     private KeyChoice? Select(KeyChoice? choice) { if (choice is not null) selected(choice); return choice; }
     public KeyChoice? Current() { Prepare(); return Select(inner.Current()); }
@@ -103,15 +105,24 @@ public sealed class AppApiKeyRotation : IAsyncApiKeyRotation, IDisposable
         if (disposed || !owns() || pin() is not null || !ReferenceEquals(request, Request)) throw new CancellationError();
     }
     public void EndAnswer() => answering = false;
-    public void Answer(bool allow, Resolution policy)
+    public void Answer(bool allow, Resolution policy, bool wait = false)
     {
         acceptedPolicy = policy;
+        waitAnswer = wait && State?.OutgoingAccountId is { } source ? (source, policy) : null;
         answer!.TrySetResult(allow);
+    }
+    internal bool TakeWait(string source)
+    {
+        var choice = waitAnswer;
+        waitAnswer = null;
+        return choice is { } value && !disposed && owns() && pin() is null
+            && value.Source == source && owner.Policy(ThreadId) == value.Policy;
     }
     public void Dispose()
     {
         if (disposed) return;
         disposed = true;
+        waitAnswer = null;
         answer?.TrySetCanceled();
         pool.Changed -= Changed;
         pool.Release(ThreadId);

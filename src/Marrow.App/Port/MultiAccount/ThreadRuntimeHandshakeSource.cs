@@ -55,7 +55,9 @@ public sealed partial class ThreadRuntime
         });
     }
 
-    internal SessionConfiguration CreateHandshakeConfiguration(SwitchTarget target)
+    internal SessionConfiguration CreateHandshakeConfiguration(SwitchTarget target) => BuildHandshakeConfiguration(target, useComposerSettings: false);
+
+    internal SessionConfiguration BuildHandshakeConfiguration(SwitchTarget target, bool useComposerSettings)
     {
         var app = App ?? throw new InvalidOperationException("The conversation is unavailable.");
         var source = Thread ?? throw new InvalidOperationException("The conversation is unavailable.");
@@ -65,13 +67,20 @@ public sealed partial class ThreadRuntime
             throw new InvalidOperationException("The destination account is unavailable.");
         var directory = source.WorktreePath ?? app.Project(source.ProjectID)?.Path
             ?? throw new InvalidOperationException("The conversation folder is unavailable.");
+        var destination = source with
+        {
+            Provider = account.Service, ProviderAccountID = id,
+            Model = useComposerSettings ? source.Model : target.Settings.Model ?? account.Defaults.Model ?? app.Providers.DefaultModel(account.Service)?.Id,
+            Effort = useComposerSettings ? source.Effort : target.Settings.Effort ?? account.Defaults.Effort,
+            FastMode = useComposerSettings ? source.FastMode : target.Settings.Fast ?? account.Defaults.FastMode,
+        };
         return new()
         {
             Provider = account.Service, AccountId = id, Executable = app.Providers.Executable(account.Service),
             WorkingDirectory = SessionDirectoryUrl(directory), Environment = ValueMap<string, string>.Empty,
-            Model = target.Settings.Model ?? account.Defaults.Model ?? app.Providers.DefaultModel(account.Service)?.Id,
-            Effort = target.Settings.Effort ?? account.Defaults.Effort, FastMode = target.Settings.Fast ?? account.Defaults.FastMode,
+            Model = destination.Model, Effort = destination.Effort, FastMode = destination.FastMode,
             RuntimeMode = source.RuntimeMode, InteractionMode = source.InteractionMode, AntiSlopEnabled = app.Settings.AntiSlopEnabled,
+            Hydra = KeepsHydraPolicyInSystemPrompt(account.Service) ? app.HydraLaunch(destination) : null,
         };
     }
 }

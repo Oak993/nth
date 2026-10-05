@@ -49,7 +49,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var account = app.Settings.Accounts.Get(Guid.Parse(ActiveAccountId));
         var source = app.Thread(runtime.ThreadID) ?? throw new InvalidOperationException("The conversation is unavailable.");
         var target = new SwitchTarget(new(account.Id.ToString("D"), account.Service.Id, account.CustomName ?? app.Settings.Accounts.DefaultName(account.Id)));
-        var configuration = runtime.CreateHandshakeConfiguration(target) with { Model = source.Model, Effort = source.Effort, FastMode = source.FastMode };
+        var configuration = runtime.BuildHandshakeConfiguration(target, useComposerSettings: true);
         var candidate = create(configuration, account.Id);
         app.ApiKeys.BindPrivate(candidate.Session, account.Id);
         await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct);
@@ -111,7 +111,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         if (current.Model != preparedConfiguration.Model || current.Effort != preparedConfiguration.Effort
             || current.FastMode != preparedConfiguration.FastMode || current.RuntimeMode != preparedConfiguration.RuntimeMode
             || current.InteractionMode != preparedConfiguration.InteractionMode || current.AntiSlopEnabled != preparedConfiguration.AntiSlopEnabled
-            || current.WorkingDirectory != preparedConfiguration.WorkingDirectory)
+            || current.Hydra != preparedConfiguration.Hydra || current.WorkingDirectory != preparedConfiguration.WorkingDirectory)
             throw new InvalidOperationException("The destination settings changed while the Handshake was preparing.");
     }
 

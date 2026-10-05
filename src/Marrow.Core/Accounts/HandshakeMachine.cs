@@ -118,11 +118,19 @@ public sealed class HandshakeMachine(
     }
 
     /// <summary>The limit hit, with or without warning.</summary>
-    public async Task LimitHitAsync(string accountId, DateTimeOffset? resetsAt, CancellationToken ct)
+    public async Task LimitHitAsync(string accountId, DateTimeOffset? resetsAt, CancellationToken ct, bool waitOnce = false)
     {
         CancelLinking();
         await gate.WaitAsync(ct);
-        try { await HardLimitAsync(accountId, resetsAt, ct); }
+        try
+        {
+            if (waitOnce && host.ActiveAccountId == accountId)
+            {
+                answers[DecisionKind.OnLimit] = DecisionValues.Wait;
+                answerPolicies[DecisionKind.OnLimit] = StoredPolicy(DecisionKind.OnLimit);
+            }
+            await HardLimitAsync(accountId, resetsAt, ct);
+        }
         finally { gate.Release(); }
     }
 
@@ -348,7 +356,8 @@ public sealed class HandshakeMachine(
         var now = clock.GetUtcNow();
         var usage = limits.Usage(active);
         if (usage is not null && !usage.IsExhaustedAt(now)
-            || usage is null && !waitForAny && waitUntil is { } reportedReset && now >= reportedReset)
+            || usage is null && (limits.IsAvailable(active) == true
+                || !waitForAny && waitUntil is { } reportedReset && now >= reportedReset))
         {
             reason = HandshakeReason.ResetReached;
             ClearAnswers();

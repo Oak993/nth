@@ -87,11 +87,18 @@ public class OpenAICompatibleSession : ProviderSession
     public SessionConfiguration Configuration { get; private set; }   // :37
 
     // OD-0114: retain this request's payload; tool children use the selected account's environment.
-    public void RebindApiAccount(Guid id, ValueMap<string, string> environment)
+    public void RebindApiAccount(Guid id, ValueMap<string, string> environment, string? model, string? effort, bool fast)
     {
         MainActor.AssumeIsolated();
         if (!Configuration.Provider.IsAPIKeyBased) throw new InvalidOperationException("This session has no API account.");
-        Configuration = Configuration with { AccountId = id, Environment = environment, ApiKey = null };
+        var switched = Configuration.AccountId != id;
+        if (switched) apiAccountRevision++;
+        Configuration = Configuration with
+        {
+            AccountId = id, Environment = environment, ApiKey = null,
+            Model = switched ? model : Configuration.Model, Effort = switched ? effort : Configuration.Effort,
+            FastMode = switched ? fast : Configuration.FastMode,
+        };
     }
 
     // PORT-ONLY (SK-11f, ED-366 1): Marrow's own skill tools (the catalogue block, use_skill, request_tool). Null, the default, leaves every byte
@@ -220,6 +227,8 @@ public class OpenAICompatibleSession : ProviderSession
     public Func<ReportedTokenUsage, double?>? KeySpendEstimator { get; set; }
 
     private string? rotatedKey;
+    private long apiAccountRevision;
+    private long turnAccountRevision;
 
     // MARK: - Lifecycle
 
@@ -272,6 +281,7 @@ public class OpenAICompatibleSession : ProviderSession
         }
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
         if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-NEW-ma-3
+        turnAccountRevision = apiAccountRevision;
         runtimeMode = input.RuntimeMode;             // :288
         interactionMode = input.InteractionMode;     // :289
         if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-NEW-ma-3
@@ -677,8 +687,13 @@ public class OpenAICompatibleSession : ProviderSession
             mcpTools = [.. await MCPHub.Shared.Tools()];
             didLoadMCPTools = true;
         }
-        var payload = RequestPayload(model, effort, withTools); // :511
         await UseRotationKeyAsync(); // PORT-ONLY (MA-6)
+        if (apiAccountRevision != turnAccountRevision)
+        {
+            model = currentModel = ModelForInput(Configuration.Model ?? OpenAICompatibleSessionConfig.DefaultModel);
+            effort = Configuration.Effort;
+        }
+        var payload = RequestPayload(model, effort, withTools); // :511. A refusal retries this same payload.
         var attempt = 0; // :516
         while (true) // :517
         {
@@ -745,6 +760,7 @@ public class OpenAICompatibleSession : ProviderSession
         }
         var message = rotation.StopReason ?? $"All {OpenAICompatibleSessionConfig.Title} API keys are out.";
         OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = message }));
+        OnEvent?.Invoke(new ProviderEvent.UsageLimit(null));
         throw new ProviderError(new ProviderError.Case.Failed(message));
     }
 
@@ -761,6 +777,8 @@ public class OpenAICompatibleSession : ProviderSession
         if (selected is not { } next)
         {
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = rotation.StopReason ?? $"All {OpenAICompatibleSessionConfig.Title} API keys are out." }));
+            var reset = round.StatusCode == 429 && round.RetryAfter is { } delay ? SwiftClock.Provider.Current.GetUtcNow() + delay : (DateTimeOffset?)null;
+            OnEvent?.Invoke(new ProviderEvent.UsageLimit(reset));
             return false;
         }
         rotatedKey = next.Secret;
@@ -1186,7 +1204,7 @@ public class OpenAICompatibleSession : ProviderSession
             while (next < limit) // :876
             {
                 var index = next; // :877
-                group.AddTask(async () => (index, await ExecuteTool(tools[index]))); // :878
+                group.AddTask(async () => (index, await MainActor.Invoke(() => ExecuteTool(tools[index])))); // :878; Swift's call hops to the session's main actor.
                 next += 1; // :879
             }
             while (await group.Next() is (true, var result)) // :881
@@ -1196,7 +1214,7 @@ public class OpenAICompatibleSession : ProviderSession
                 if (next < tools.Count) // :884
                 {
                     var index = next; // :885
-                    group.AddTask(async () => (index, await ExecuteTool(tools[index]))); // :886
+                    group.AddTask(async () => (index, await MainActor.Invoke(() => ExecuteTool(tools[index])))); // :886
                     next += 1; // :887
                 }
             }

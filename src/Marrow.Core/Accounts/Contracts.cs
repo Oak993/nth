@@ -12,6 +12,9 @@ public interface IAccountLimits
     /// <summary>The latest reading of the account's binding window, or null when unknown.</summary>
     AccountUsage? Usage(string accountId);
 
+    /// <summary>Real account health when no quota window exists; null means unknown.</summary>
+    bool? IsAvailable(string accountId) => null;
+
     /// <summary>The measured usage percent this thread spends per minute on the account, or null when there is no data yet.</summary>
     double? SpendPercentPerMinute(string accountId, Guid threadId);
 

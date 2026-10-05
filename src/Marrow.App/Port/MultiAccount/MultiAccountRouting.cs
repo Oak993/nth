@@ -35,6 +35,15 @@ public sealed class MultiAccountRouting
         scheduler = new(clock, (key, ct) => read(app, key, ct));
         app.AutoContinue.UsageLimits = scheduler;
         limits = new(app.Settings.Accounts, scheduler, rates, clock, app.ApiKeys.CanUseAccount);
+        scheduler.SnapshotChanged += (_, snapshot) =>
+        {
+            var epoch = Interlocked.Read(ref pollingEpoch);
+            MainActor.Post(() =>
+            {
+                if (epoch == pollingEpoch && connected.Values.Any(row => row.Key == snapshot.Account)
+                    && ReferenceEquals(scheduler.Snapshot(snapshot.Account), snapshot)) app.NotifyAccountReport();
+            });
+        };
         app.Settings.Accounts.Changed += SettingsChanged;
         app.Settings.AccountDecisions.Changed += SettingsChanged;
         app.Settings.Pills.Changed += (_, _) => SettingsChanged();
@@ -49,6 +58,7 @@ public sealed class MultiAccountRouting
     }
 
     public event EventHandler<HandshakeEvent>? Changed;
+    internal void RefreshReports() => Queue(RefreshAsync);
     public HandshakeEvent? State(Guid thread) => app.ApiKeys.State(thread) ?? routes.GetValueOrDefault(thread)?.State;
     public AccountPlanLimitsSnapshot? Snapshot(Guid account) => limits.Snapshot(account);
     internal bool CanUseAccount(Guid account) => limits.Usage(account.ToString("D"))?.IsExhaustedAt(clock.GetUtcNow()) != true && app.ApiKeys.CanUseAccount(account);
@@ -98,7 +108,8 @@ public sealed class MultiAccountRouting
         route.LimitedSessionId = app.Thread(runtime.ThreadID)?.ProviderSessionID;
         TrackPoll(scheduler.LimitReachedAsync(limits.Key(account.Value)));
         // LimitHit cancels the machine's own linking operation immediately, before waiting for its gate.
-        TrackOperation(route.Machine.LimitHitAsync(account.Value.ToString("D"), reset, route.Cancellation.Token));
+        var waitOnce = app.ApiKeys.TakeWait(runtime.ThreadID, account.Value);
+        TrackOperation(route.Machine.LimitHitAsync(account.Value.ToString("D"), reset, route.Cancellation.Token, waitOnce));
         return true;
     }
 
@@ -241,6 +252,11 @@ public sealed class MultiAccountRouting
         if (!route.Runtime.TryHandshakeAccountId(out var active)) { Detach(thread); return; }
         if (!Eligible(route.Runtime) && route.Machine.Phase == HandshakePhase.Idle && !route.ResumeWaiting) return;
         limits.Observe(thread, active);
+        // A normal API conversation chooses its key within the request. Pills keep their own step order.
+        if (app.Thread(thread) is { Provider.IsAPIKeyBased: true, PillRelay: null }
+            && route.Machine.Phase == HandshakePhase.Idle && !route.Runtime.HandshakeReplyInterrupted && !route.ResumeWaiting
+            && (limits.Snapshot(active)?.Limits?.Windows.Any(window => double.IsFinite(window.Percent) && window.Percent is >= 0 and <= 100) != true
+                || !app.ApiKeys.CanUseAccount(active))) return;
         await route.Machine.TickAsync(route.Cancellation.Token);
         if (route.ResumeWaiting && route.Runtime.IsAccountSwitchSafe && route.LimitedAccount is { } account && route.LimitedTurn is { } turn)
         {

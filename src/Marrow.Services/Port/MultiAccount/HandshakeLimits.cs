@@ -37,6 +37,16 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
         return binding is null ? null : new(binding.Percent, binding.ResetsAt);
     }
 
+    public bool? IsAvailable(string accountId)
+    {
+        if (!Guid.TryParse(accountId, out var id)) return null;
+        if (Usage(accountId) is { } usage) return !usage.IsExhaustedAt(clock.GetUtcNow());
+        return HasUsableCredits(Snapshot(id)) ? true : null;
+    }
+
+    private static bool HasUsableCredits(AccountPlanLimitsSnapshot? snapshot) => snapshot?.Limits?.AccountCredits is
+        { IsUsable: true, Total: var total } && double.IsFinite(total) && total > 0;
+
     public void NoteLimit(Guid id, DateTimeOffset? reset) => hardLimits[id] = (reset, clock.GetUtcNow());
 
     public void Observe(Guid thread, Guid id)
@@ -50,8 +60,9 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     // Reconciliation never observes another thread's spending merely to revive this account.
     private void ReconcileHardLimit(Guid id, AccountPlanLimitsSnapshot? snapshot)
     {
-        if (Binding(snapshot) is { Percent: < 100 } && hardLimits.TryGetValue(id, out var hard)
-            && snapshot!.ObservedAt > hard.ObservedAt && (hard.Reset is null || snapshot.ObservedAt >= hard.Reset)) hardLimits.Remove(id);
+        if (hardLimits.TryGetValue(id, out var hard) && snapshot is not null && canUseAccount?.Invoke(id) != false
+            && (Binding(snapshot) is { Percent: < 100 } || HasUsableCredits(snapshot))
+            && snapshot.ReadStartedAt > hard.ObservedAt && (hard.Reset is null || snapshot.ReadStartedAt >= hard.Reset)) hardLimits.Remove(id);
     }
 
     public double? SpendPercentPerMinute(string accountId, Guid threadId)

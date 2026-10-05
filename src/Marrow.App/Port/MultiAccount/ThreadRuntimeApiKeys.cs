@@ -21,7 +21,8 @@ public sealed partial class ThreadRuntime
             if (account.Service != api.Configuration.Provider || !account.Enabled || !app.IsAccountConnected(account))
                 throw new InvalidOperationException("The selected API account is unavailable.");
             var switched = api.Configuration.AccountId != id;
-            api.RebindApiAccount(id, app.Providers.Environment(id));
+            api.RebindApiAccount(id, app.Providers.Environment(id),
+                account.Defaults.Model ?? app.Providers.DefaultModel(account.Service)?.Id, account.Defaults.Effort, account.Defaults.FastMode);
             UsageAccount = account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, id.ToString("D"));
             if (sessionSignature is { } signature) sessionSignature = signature with { AccountId = id };
             app.UpdateThread(ThreadID, thread => thread with
