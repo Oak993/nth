@@ -70,10 +70,79 @@ reboot, uninstall, source/settings changes, or `upgrade --all` was used.
 
 ## UE-3 implementation and verification
 
-Acceptance tests replay these JSON streams through a strict scripted process seam; there is no
-real-process fallback in tests. Additional failure, cancellation and changed-Office cases are
-explicitly synthetic and do not masquerade as live observations. Implementation, test-first
-results, independent review and final gates are recorded here when complete.
+Implementation commit: `8cf4ca0032bea2a3d3c4a4942e17090e5bd46564`; test-first capture/stub commit:
+`6ec433c06`. Final branch head and remote verification are in the external task handoff.
 
-Current verdict: **NOT READY** — Git remains blocked by active processes and Office completion/current
-status is unconfirmed. These are captured live limitations, not test failures or a reason to forge success.
+- `WingetUpdater`: installed-package parser, exact recorded upgrade argv, known target/version
+  verification, signed no-installed/no-applicable exit handling, preserved error streams and cancellation.
+  Missing Available stays unknown; malformed supported rows and duplicate matches fail.
+- `OfficeC2RUpdater`: the one recorded request, immediate plus bounded delayed postchecks; zero exit
+  and unchanged version remain failed/unconfirmed. Latest listing is unknown, not installed-as-latest.
+- `DevToolUpdateCatalog`: only installed standalone tools; both CPython minors; manual/unmatched
+  snapshots without install commands; explicit per-tool recovery keeps independent probes/Office.
+  Strict default callers propagate inventory faults. Untrialled gh/other Node/Python upgrades refuse.
+- `WindowsDevToolProcess` / `WindowsOfficeInstallation`: explicit production bindings; exact argv
+  allowlist, ArgumentList without shell commands, canonical Office path and normalized Python paths,
+  no selectors/WindowsApps Python probes, filtered read-only registry values. Read-only probes have
+  thirty-second deadlines; installer waits are never killed/cancelled halfway through.
+- `UpdateEverythingProduction` asynchronously composes developer items with provider items, the
+  existing skills hook and Marrow in the shared UE-2 service. Completed fake sources still configure
+  synchronously for launch tests. Configuration emits a row-change notification for an attached page.
+
+Tests replay JSON streams through a strict scripted seam with no real-process fallback. Additional
+failure, cancellation and changed-Office cases are explicitly synthetic. Process-boundary tests
+validate argv without starting processes. App tests use fake items/deferred sources; existing
+provider, UE-2, page/pill and launch composition regressions retain their expectations.
+
+| Evidence | Result | Scratch log(s), under E:/Droppy/work/scratch/codex-ue-3 |
+|---|---|---|
+| Original Services test-first run | 53 failed, 1 passed / 54 | red-tests.log |
+| Process-binding test-first run | 14 failed / 14; earlier 8-case run excluded six methods whose old names contained Native, corrected and rerun | boundary-red-tests-2.log; boundary-red-tests.log |
+| App composition test-first run | 3 failed / 3 | app-red-tests.log |
+| Review regressions before fixes | Services 4 failed / 4; attached-page App 1 failed / 1 | review-red-services-tests.log; review-red-app-tests.log |
+| Intermediate review slice | Services 77 passed, 2 failed / 79; App 33 passed / 33 | review-green-services-tests.log; review-green-app-tests.log |
+| Four remaining cases, isolated before fixes | Each failed alone twice: known target erased, Node v-prefix recovery, rejected registered Python, forward-slash alias | red-Losing_the_available_column-{1,2}.log; red-Explicit_inventory_recovery-{1,2}.log; red-A_rejected_registered_Python_probe-{1,2}.log; red-A_Store_alias_using_forward_slashes-{1,2}.log |
+| Final Services (75 UE-3 + 45 provider regression + 6 traceability/layering cases) | **126 passed / 126, twice; zero failed/skipped** | final-services-tests-{1,2}.log |
+| Final App (4 new composition cases + 106 update/page/pill/launch/metadata regression cases) | **110 passed / 110, twice; zero failed/skipped** | final-app-tests-{1,2}.log |
+| Final Core UE-2/listing/model/metadata slice | **56 passed / 56; zero failed/skipped** | final-core-tests.log |
+| Final Services, App and Core builds | **0 warnings, 0 errors**, all three | final-services-build.log; final-app-build.log; final-core-build.log |
+
+All builds/tests held the lead's unmodified heavy.sh slot and tests used one*.sh with Native
+excluded. The wrappers create fresh MARROW_PORT_DATA_DIR roots and clear API-key variables.
+Wrapper exit codes alone are not acceptance: the recorded Passed!/Failed! counts above are the
+raw results. There is no remaining scoped failure. No real CLI/network updater/Office request,
+Marrow app launch, native test, installer retry, packaging or release step occurred in tests.
+The initial two failed builds were overload/analyzer compilation repairs, not acceptance red.
+
+An independent subagent reviewed tests and implementation read-only. Its concrete findings
+(notification, inventory loss, invented latest, malformed-row omission, direct-probe recovery)
+have red witnesses and fixes; final static review found no further concrete defect within the
+implemented scope. It ran no tests, mutations or live process, so it does not independently attest
+runtime green or full parity. No self-mutation or full independent mutation pass is claimed.
+
+Verification entrypoint results: Gate A 12 PASS, Gate B 8 PASS. Gate C has 1 PASS, 1 FAIL (26
+inherited stub markers) and 1 NOT_IMPLEMENTED; the baseline has exactly the same 26 markers and
+none of their files changed (inherited-stubs.json). Gates E and F are NOT_IMPLEMENTED. Gate D
+was not invoked: it directly runs bare solution dotnet test, forbidden by the lead's current
+one*.sh-only rule, and would not substitute for a source-bound full acceptance gate. No global
+port gate is called green. `node porting/tools/mark.mjs T13-trial-h DONE` exited 2, **no task
+T13-trial-h in the queue**; the queue/spec/parity status was not edited and DONE was not accepted.
+
+The protected-file checker against the requested base reports one authorized ledger change,
+porting/engineering_decisions.md. T13 explicitly requires ED-NEW-ue-3; its prior 1,598,840 bytes
+were verified unchanged. STATE's prior 60,188 bytes were also preserved. No guard/spec/build
+configuration, pinned reference, or other worktree's content was changed by implementation.
+
+## Remaining limits and verdict
+
+**NOT READY.** Python 3.14 and 3.13 were updated and verified. Node recorded no applicable update;
+gh was absent. Git's once-only installer attempt failed, and Office's zero exit does not prove
+completion or current status. Read-only Office inspection overlapped Python waits, so this is not
+a compliant one-tool-at-a-time trial closure. No failed upgrader was retried.
+
+Unclosed implementation/product coverage: unsupported internal Office automation/completion;
+untrialled installed gh/other Node/Python recipes; Store/portable Python variants without an
+accepted registration/direct probe; immutable unmatched-version snapshots; logged inventory
+errors without a dedicated page banner; running-app/native binding validation and full/mutation
+acceptance. Original installer launch provenance is unresolved. These are explicit limitations,
+not forged success, skipped tests, or reasons to modify the gate. See ED-NEW-ue-3 and STATE.
