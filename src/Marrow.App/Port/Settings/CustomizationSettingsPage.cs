@@ -1,25 +1,141 @@
-// PORT-ONLY, first-release SA-1 (customization-SPEC CZ-2.2; its chrome row carries the Preview state control, CZ-3.2): the shell of the Customization Settings page. The page is hidden from the sidebar, from search and
-// from SettingsNavigation until the unit that builds it sets IsReady to true (the pattern of voice-SPEC V-2.6's VoiceFeature.Enabled).
-// Tracked as incomplete in porting/STATE.md while IsReady is false. The unit that builds the page replaces the empty content below and
-// never edits SettingsView.cs (its factory line, title, symbol and keywords are SA-1's).
+// PORT-ONLY, first-release CZ-4 (customization-SPEC CZ-2.2, CZ-3, CZ-5, CZ-6, CZ-7, CZ-8, CZ-13.1; OWNER OD-0085, OD-0089, OD-0076): the Customization page, layout B "Stage". The chrome row carries the Preview state control (Rest,
+// Typing, Running a turn: session state, bound to PreviewSession). Under it, in the page's column: the pinned block (CZ-3's CustomizationStage: the heading, the preview composer on its stage and the model switch), the Style cards, and
+// the sections of the picked style (Border beam, Uiverse light or Off), each folding open and shut as the style changes. Every setting is the app's composer light (AppSettings.ComposerLight): a change reaches every composer at once.
+// NOT HERE (other units, hooks marked below): the sticky behaviour of the pinned block (CZ-6), the Voice orb section (CZ-7) and the Working dots section (CZ-5), which belong at the end of `Sticky`, and the Speech section, which
+// belongs in `Rest`, after the point where the pinned block lets go.
+using Avalonia;
 using Avalonia.Controls;
+using Marrow.Core.Models.ComposerLights;
+using Marrow.Core.Port.Settings;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
+using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Port.Settings;
 
-/// <summary>The Customization page: a shell until its unit fills it (customization-SPEC CZ-2.2; its chrome row carries the Preview state control, CZ-3.2).</summary>
+/// <summary>The Customization page (customization-SPEC CZ-3 to CZ-8).</summary>
 internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
 {
-    /// <summary>False until the unit that builds this page sets it; while false the page is not listed or searchable.</summary>
-    internal const bool IsReady = false;
+    /// <summary>The page is ready: it is listed in the sidebar, found by its search and opened by a request (SA-1's pattern; the other new pages are still hidden).</summary>
+    internal const bool IsReady = true;
+
+    private PreviewSession? session;
+    private bool echoing, built;
+
+    /// <summary>CZ-3.2: the Preview state control in the chrome row.</summary>
+    internal CzSegmentedControl PreviewStatePick { get; }
+
+    /// <summary>CZ-3.3: the sticky container's children: the pinned block, Style, the style's sections. HOOK: CZ-5 and CZ-7 add the Voice orb and Working dots sections at its end; CZ-6 turns the container sticky.</summary>
+    internal StackPanel Sticky { get; } = new() { Orientation = Avalonia.Layout.Orientation.Vertical };
+
+    /// <summary>CZ-3.3: what follows the sticky container, where the pinned block lets go. HOOK: the Speech section (CZ-11).</summary>
+    internal StackPanel Rest { get; } = new() { Orientation = Avalonia.Layout.Orientation.Vertical };
+
+    internal CustomizationStage? Stage { get; private set; }
+    internal CzStyleCards? StyleCards { get; private set; }
+    internal BeamSections? Beam { get; private set; }
+    internal AuraSections? Aura { get; private set; }
+    internal CzSection? Off { get; private set; }
+    internal CzAdvancedState Advanced { get; } = new();
+    internal PreviewSession? Session => session;
 
     public CustomizationSettingsPage()
     {
-        Child = new StackPanel();
+        PreviewStatePick = new CzSegmentedControl("Preview state", [("rest", "Rest"), ("typing", "Typing"), ("running", "Running a turn")], "rest", small: true);
+        ChromeAccessories = [PreviewStatePick];
+        Child = new StackPanel { Orientation = Avalonia.Layout.Orientation.Vertical, Children = { Sticky, Rest } };
+        // the pinned block carries the page's top inset itself (CZ-3.4: its 372 includes the 60 above its heading, which CZ-6 needs when it pins), and SettingsView gives a page with chrome controls the same 60 above its content:
+        // the page takes that one back, so the heading stays 60 below the sheet's edge and the stage is not pushed down by 120
+        Margin = new Thickness(0, -CustomizationStage.TopInset, 0, 0);
+        // on attach, in this order: the page is built from the app's model, then it follows the app's settings
+        this.Track(() => AppEnvironment.GetAppModel(this), Build);
+        this.Track(() => { var settings = AppEnvironment.GetAppModel(this).Settings; return (Light: settings.ComposerLight, settings.Accent); }, shown => Apply(shown.Light));
     }
 
     /// <inheritdoc />
     public bool HasChromeControls => true;
 
     /// <inheritdoc />
-    public IReadOnlyList<Control> ChromeAccessories { get; } = [];
+    public IReadOnlyList<Control> ChromeAccessories { get; }
+
+    private void Build(AppModel model)
+    {
+        if (built) return;
+        built = true;
+        var settings = model.Settings;
+        session = new PreviewSession(settings.DefaultProvider);
+        var editor = new CzLightEditor(() => settings.ComposerLight, value => settings.ComposerLight = value, settings.FlushPendingWrites);
+        var style = settings.ComposerLight.Style;
+
+        // the pinned block (CZ-3.4): the stage and its foot; bound to the app's settings by the two functions it reads inside tracked reads
+        Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
+
+        // Style (CZ-5)
+        StyleCards = new CzStyleCards(StyleId(style));
+        StyleCards.SelectionChanged += id => { if (!echoing) editor.Edit(s => s with { Style = StyleOf(id) }); };
+        var styleSection = new Border { Padding = new Thickness(0, 0, 0, Chrome.SectionSpacing), Child = new ChromeSection("Style", () => StyleCards) };
+
+        // the three styles' sections (CZ-6, CZ-7, CZ-8); the others' settings are kept while one shows (CZ-5.3)
+        Beam = new BeamSections(editor, Advanced, ComposerSize, () => CzTheme.Dark(this), open: style == ComposerLightStyle.Beam);
+        Aura = new AuraSections(editor, Advanced, () => PreviewMakers.For(session.Maker).Name, () => AccentName(settings), open: style == ComposerLightStyle.Aura);
+        var offRows = new CzRowStack();
+        offRows.Add(new CzNoteRow(CzRowText.OffNote));
+        Off = new CzSection(null, offRows, open: style == ComposerLightStyle.Off);
+
+        Sticky.Children.Add(Stage);
+        Sticky.Children.Add(styleSection);
+        foreach (var section in Beam.Sections) Sticky.Children.Add(section);
+        foreach (var section in Aura.Sections) Sticky.Children.Add(section);
+        Sticky.Children.Add(Off);
+        Sticky.Children.Add(Aura.Picker);
+
+        // the chrome row's Preview state control is the session's pick (CZ-3.2, CZ-4.6); the session can move it too (touching Working dots)
+        PreviewStatePick.SelectionChanged += id => { if (!echoing) session.Pick(StateOf(id)); };
+        session.Changed += ShowState;
+        ShowState();
+
+        ActualThemeVariantChanged += (_, _) => Apply(settings.ComposerLight);
+        session.Changed += () => Aura.Apply();
+    }
+
+    private void ShowState()
+    {
+        if (session is null) return;
+        echoing = true;
+        try { PreviewStatePick.Show(session.State switch { PreviewState.Typing => "typing", PreviewState.Running => "running", _ => "rest" }); }
+        finally { echoing = false; }
+    }
+
+    // what the settings say now, into every row; the folds for the style
+    private void Apply(ComposerLightSettings light)
+    {
+        if (Beam is null || Aura is null || Off is null || StyleCards is null) return;
+        echoing = true;
+        try { StyleCards.Show(StyleId(light.Style)); }
+        finally { echoing = false; }
+        Beam.Apply();
+        Aura.Apply();
+        foreach (var section in Beam.Sections) section.Open = light.Style == ComposerLightStyle.Beam;
+        foreach (var section in Aura.Sections) section.Open = light.Style == ComposerLightStyle.Aura;
+        Off.Open = light.Style == ComposerLightStyle.Off;
+    }
+
+    // CZ-6: the Auto values are the preview composer's (472 wide; the real pill's height, CZ-3's decision)
+    private (double Width, double Height) ComposerSize()
+    {
+        var pill = Stage?.Preview.Pill;
+        return (ComposerPreview.ComposerWidth, pill is { Bounds.Height: > 0 } ? pill.Bounds.Height : ComposerPreview.PillHeight);
+    }
+
+    private static string AccentName(AppSettings settings)
+    {
+        var index = AccentPalette.IndexOf(settings.Accent);
+        return AccentPalette.All[index < 0 ? 0 : index].Name;
+    }
+
+    private static string StyleId(ComposerLightStyle style) => style switch { ComposerLightStyle.Aura => "aura", ComposerLightStyle.Off => "off", _ => "beam" };
+
+    private static ComposerLightStyle StyleOf(string id) => id switch { "aura" => ComposerLightStyle.Aura, "off" => ComposerLightStyle.Off, _ => ComposerLightStyle.Beam };
+
+    private static PreviewState StateOf(string id) => id switch { "typing" => PreviewState.Typing, "running" => PreviewState.Running, _ => PreviewState.Rest };
 }
