@@ -92,9 +92,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Settings/AboutUpdateViews.cs", "1.5", 1, Tiny),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "8", 1, Fit),
         ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "9", 1, Circle),
-        ("Marrow.App/Views/Settings/MCPKeyPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "9", 1, Circle),
-        ("Marrow.App/Views/Settings/MCPSetupPanel.cs", "Chrome.WindowCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "10", 1, Fit),
         ("Marrow.App/Views/Settings/ModelsSettingsPage.cs", "Chrome.CardCornerRadius", 1, Fit),
         ("Marrow.App/Views/Settings/TokenActivitySection.cs", "999", 1, Capsule),
@@ -102,7 +100,6 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs", "22", 2, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "16, 16, 0, 0", 1, Fit),
         ("Marrow.App/Views/Terminal/TerminalPanel.cs", "999", 1, Capsule),
-        ("Marrow.App/Views/Tour/TourView.cs", "CardCornerRadius", 4, Fit),
         ("Marrow.App/Views/Usage/UsageFloatingPanel.cs", "cornerRadius", 2, Fit), // :84, :92 the panel and its scrim, r 22 (HydraPanel.CornerRadius), tall panels
         ("Marrow.App/Views/Usage/UsageViews.cs", "2.5", 2, Tiny),
         ("Marrow.UI/Chrome/Chrome.cs", "side / 2", 1, Circle),

@@ -18,8 +18,22 @@ namespace Marrow.App.Tests.Window.Native;
 // ED-236: the high-contrast stripes GlassWindowNativeTests shows behind a glass window.
 internal sealed class Stripes : Control
 {
+    private IBrush? fill;
+
+    /// <summary>A brush drawn over the whole backdrop instead of the stripes (the corner tests' bands of four colours): a busier backdrop that is still the same down every column.</summary>
+    public IBrush? Fill
+    {
+        get => fill;
+        set { fill = value; InvalidateVisual(); }
+    }
+
     public override void Render(DrawingContext context)
     {
+        if (fill is not null)
+        {
+            context.FillRectangle(fill, new Rect(Bounds.Size));
+            return;
+        }
         var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         var step = 6 / scale; // six physical pixels
         for (var x = 0.0; x < Bounds.Width; x += 2 * step)

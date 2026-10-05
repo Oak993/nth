@@ -1,0 +1,258 @@
+/* Voice Notes Picks (D-VN): the page (after look-picks) and three stages. The page's colours are the kit's tokens
+   (:root light, dark twice). The mocks are drawn in BOTH themes at once, side by side, so each frame carries its own
+   theme's tokens: .th-d and .th-l, taken from the locked voice composer design (voice-composer.html :root and its dark
+   block: the window, the composer, the glass pill) and the Settings window of the Voice typing page design (gen.py
+   D3_DARK / D3_LIGHT, WIN_BG_D / WIN_BG_L). Every change is transitioned (OD-0076). */
+:root{--warnTx:#9A5B00;--tbc:#9A5B00;--tbcSoft:rgba(154,91,0,.12)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--warnTx:#F2B04A;--tbc:#F2B04A;--tbcSoft:rgba(242,176,74,.14);color-scheme:dark}}
+:root[data-theme="dark"]{--warnTx:#F2B04A;--tbc:#F2B04A;--tbcSoft:rgba(242,176,74,.14);color-scheme:dark}
+
+.dk-page{max-width:1180px;gap:18px;padding-bottom:170px}
+.dk-hdr .links{display:flex;flex-wrap:wrap;gap:6px}
+.dk-hdr .links a{font:500 12px/1 var(--mono);padding:7px 10px;border-radius:999px;background:var(--chip);color:var(--ink);text-decoration:none;transition:background-color .25s ease}
+.dk-hdr .links a:hover{background:var(--chipH)}
+.dk-hdr .links a b{color:var(--faint);font-weight:600;transition:color .25s ease}
+.dk-hdr .links a.on b{color:var(--accent)}
+.tb{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 12px;border-radius:20px}
+.tb .dk-sp{flex:1 1 0;min-width:0}
+.dk-q{scroll-margin-top:12px;padding:18px;gap:14px;min-width:0}
+.dk-qh{flex-wrap:nowrap;align-items:flex-start}
+.dk-qn{flex:none;margin-top:2px}
+.dk-qh h2{font-size:18px;min-width:0;overflow-wrap:anywhere}
+.swift{margin:0;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;font-size:12.5px;color:var(--sub);max-width:110ch}
+.swift .sl{font:500 11px/1.4 var(--mono);color:var(--faint);white-space:nowrap}
+.swift .st{min-width:0;flex:1 1 300px;overflow-wrap:anywhere;text-wrap:pretty}
+.ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0}
+.ctl .dk-grp{flex-wrap:wrap;max-width:100%}
+.ctl .dk-seg>button{padding:5px 11px}
+.dk-opts{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+.dk-opt{gap:8px;justify-content:flex-start}
+.dk-opt .oh{align-items:flex-start;flex-wrap:wrap}
+.dk-opt .ot{flex:1 1 120px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.3;padding-top:2px}
+.dk-opt .rc{margin-left:0;margin-top:1px}
+.dk-opt .od{overflow-wrap:anywhere}
+.dk-opt .why{font-size:12px;line-height:1.42;color:var(--good);text-wrap:pretty}
+.dk-opt .why b{font-weight:600}
+.dk-opt .pk{margin-top:auto}
+.dk-notes{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
+.dk-note{background:var(--card2);box-shadow:inset 0 0 0 1px var(--hair)}
+.dk-note b{font-family:var(--mono);font-size:11px}
+.ol{font:600 12px/1 var(--mono);min-width:22px;height:20px;padding:0 6px;display:inline-grid;place-items:center;border-radius:6px;background:var(--chip);color:var(--ink);flex:none}
+.dk-picks{width:min(1120px,calc(100vw - 24px));padding:9px 10px 9px 16px;gap:8px 12px}
+.dk-picks .cnt{font-size:12px;color:var(--sub);white-space:nowrap}
+.dk-picks .cnt b{color:var(--ink);font-weight:600}
+.dk-picks .pline{flex:1 1 320px;min-width:0;font:500 12px/1.3 var(--mono);color:var(--ink);background:var(--chip);padding:7px 10px;border-radius:12px;overflow-wrap:anywhere;user-select:all;transition:background-color .3s ease}
+.stagecard{padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.stagecard h2{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em}
+.stagecard .sub{margin:0;color:var(--sub);font-size:13px;max-width:100ch}
+.tbcw{color:var(--tbc);font-weight:600}
+.lh{margin:4px 0 -4px;font-size:13.5px;font-weight:600}
+@media (max-width:640px){
+  .dk-picks .pline{order:3;flex-basis:100%}
+  .dk-picks .dk-btn{order:2;margin-left:auto}
+  .dk-picks{padding:9px 10px 9px 12px}
+  .dk-q,.stagecard{padding:14px}
+  .dk-page{padding-bottom:200px}
+}
+
+/* ---------------- the word list: every note in every set ---------------- */
+.wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
+.wcase{border-radius:14px;background:var(--card2);box-shadow:inset 0 0 0 1px var(--hair);padding:11px 12px 8px;min-width:0;transition:box-shadow .25s ease,background-color .25s ease}
+.wcase.cur{box-shadow:inset 0 0 0 2px var(--accentRing);background:var(--accentSoft)}
+.wcase .wh{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.wcase .wh b{font-size:13px;font-weight:600}
+.wcase .wh span{font-size:11.5px;line-height:1.4;color:var(--faint);text-wrap:pretty}
+.wcase ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.wcase li{display:flex;gap:8px;align-items:flex-start;padding:5px 6px;margin:0 -6px;border-radius:9px;cursor:pointer;transition:background-color .2s ease}
+.wcase li:hover{background:var(--chip)}
+.wcase li.cur{background:var(--chipH)}
+.wcase li .ol{min-width:20px;height:18px;font-size:11px;margin-top:1px;transition:background-color .25s ease,color .25s ease}
+.wcase li.cur .ol{background:var(--accent);color:var(--accentInk)}
+.wcase li .ol.lk{font-size:10px;padding:0 5px}
+.wcase .nt{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wcase .nx{font-size:12.5px;line-height:1.42;color:var(--ink);overflow-wrap:anywhere}
+.wcase .nx u{text-decoration-color:var(--faint);text-underline-offset:2px}
+.wcase .dst{font-size:11px;line-height:1.35;color:var(--faint);overflow-wrap:anywhere}
+.wcase .dst.tbc{color:var(--tbc);font-weight:500}
+.dtab{overflow-x:auto;max-width:100%;border-radius:12px;box-shadow:inset 0 0 0 1px var(--hair)}
+.dtab table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
+.dtab th,.dtab td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--hair);vertical-align:top}
+.dtab th{font-size:11.5px;font-weight:600;color:var(--sub)}
+.dtab td:first-child{font-weight:500}
+.dtab td:nth-child(2){color:var(--sub)}
+.dtab td:nth-child(3){font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+.dtab tr.tbc td:first-child{color:var(--tbc)}
+.dtab tr:last-child td{border-bottom:0}
+
+/* ---------------- stages: dark and light side by side, each frame fitted to its cell ---------------- */
+.stage{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:12px;min-width:0}
+.stage.one{grid-template-columns:minmax(0,1fr)}
+.frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px;min-width:0}
+.cell{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cap{display:flex;align-items:baseline;gap:8px;font-size:11.5px;color:var(--sub);min-width:0}
+.cap b{font:600 11px/1 var(--mono);color:var(--ink)}
+.cap span{min-width:0;overflow-wrap:anywhere}
+.fit{position:relative;width:100%;overflow:hidden;border-radius:12px;height:calc(var(--h) * var(--k,1) * 1px);transition:height .34s cubic-bezier(.32,.72,0,1)}
+.fit>.in{position:absolute;left:0;top:0;width:calc(var(--w) * 1px);height:calc(var(--h) * 1px);transform:scale(var(--k,1));transform-origin:0 0}
+.fit.auto>.in{height:auto}
+.xg.all{display:inline-grid}
+.xg.all>span{display:inline-flex;align-items:baseline}
+
+/* the per-frame theme tokens */
+.th-l{--wink:#1C1C1E;--wink2:rgba(28,28,30,.42);--wink3:rgba(28,28,30,.6);--turn:rgba(0,0,0,.035);--winedge:rgba(0,0,0,.12);
+  --disc:rgba(0,0,0,.13);--discarrow:#FFFFFF;--ringtrk:rgba(28,28,30,.14);--ringarc:rgba(28,28,30,.55);--hoverfill:rgba(28,28,30,.07);
+  --vwarn:#B7791F;--nwarn:#FF9500;--winshadow:0 10px 28px rgba(70,50,35,.16);
+  --winbg:linear-gradient(100deg,#DFD4CC 0%,#E1CEC4 52%,#D0C4BC 100%);--plate:rgba(255,255,255,.26);
+  --pgBg:rgba(250,249,251,.56);--pgRim:rgba(255,255,255,.75);--pgEdge:rgba(40,30,60,.14);--pgHi:rgba(255,255,255,.85);--pgShade:rgba(60,40,30,.10);--pgDrop:0 8px 22px -10px rgba(70,50,35,.32);
+  --pgLab:#55565B;--pgLabHi:#16161A;--pgX:#4A4B50;--pgXBg:rgba(255,255,255,.55);--pgXRim:rgba(40,30,60,.12);
+  --sbg:linear-gradient(176deg,#d6d5d5 0%,#d8d3d0 48%,#ded2ca 82%,#d6c9c1 100%);--head:rgba(0,0,0,.8);--tx:#1C1C1E;--tx2:rgba(28,28,30,.68);
+  --cardfill:rgba(0,0,0,.03);--div:rgba(0,0,0,.1);--cap:rgba(255,255,255,.55);--caph:rgba(255,255,255,.82);--tile:rgba(0,0,0,.05);--trk:rgba(0,0,0,.1);--pac:#0067C0;--pacInk:#FFFFFF;
+  color-scheme:light}
+.th-d{--wink:#ECECEC;--wink2:rgba(236,236,236,.45);--wink3:rgba(236,236,236,.62);--turn:rgba(255,255,255,.05);--winedge:rgba(255,255,255,.1);
+  --disc:rgba(255,255,255,.13);--discarrow:#FFFFFF;--ringtrk:rgba(236,236,236,.16);--ringarc:rgba(236,236,236,.62);--hoverfill:rgba(236,236,236,.07);
+  --vwarn:#E0A84A;--nwarn:#FF9500;--winshadow:0 10px 28px rgba(0,0,0,.34);
+  --winbg:linear-gradient(100deg,#50463F 0%,#523F36 52%,#41362F 100%);--plate:rgba(255,255,255,.04);
+  --pgBg:rgba(18,18,22,.50);--pgRim:rgba(255,255,255,.16);--pgEdge:rgba(0,0,0,.35);--pgHi:rgba(255,255,255,.22);--pgShade:rgba(0,0,0,.22);--pgDrop:0 10px 24px -10px rgba(0,0,0,.6);
+  --pgLab:#8D8E94;--pgLabHi:#F7F7F8;--pgX:#B4B5BA;--pgXBg:rgba(255,255,255,.09);--pgXRim:rgba(255,255,255,.16);
+  --sbg:linear-gradient(176deg,#484646 0%,#4b4644 48%,#51453d 82%,#4a3e36 100%);--head:rgba(255,255,255,.84);--tx:#ECECEC;--tx2:rgba(236,236,236,.7);
+  --cardfill:rgba(255,255,255,.03);--div:rgba(255,255,255,.12);--cap:rgba(0,0,0,.2);--caph:rgba(0,0,0,.3);--tile:rgba(255,255,255,.07);--trk:rgba(255,255,255,.1);--pac:#4CC2FF;--pacInk:#06121C;
+  color-scheme:dark}
+
+/* ---------------- the chat window and the composer (voice-composer.html, 820 x 52, corner 22) ---------------- */
+.vwin{position:relative;height:100%;border-radius:10px;overflow:hidden;background:var(--winbg);box-shadow:inset 0 0 0 1px var(--winedge);
+  font-family:var(--app);color:var(--wink);-webkit-font-smoothing:antialiased;isolation:isolate}
+.vwin .rep{position:absolute;left:44px;right:44px;top:16px;font-size:14px;line-height:21px;color:var(--wink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vwin .rep b{font-weight:600}
+.cmp{position:absolute;left:30px;right:30px;bottom:14px;height:52px;border-radius:22px;transition:height .3s cubic-bezier(.32,.72,0,1)}
+.cmp.tall{height:70px}
+.cmp .plate{position:absolute;inset:0;border-radius:inherit;background:var(--plate);box-shadow:inset 0 0 0 1px var(--winedge)}
+.cmp .att{position:absolute;left:8px;bottom:12px;width:34px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--wink3)}
+.cmp .att svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
+.cmp .fld{position:absolute;left:48px;bottom:16px;height:20px;right:240px;white-space:nowrap;overflow:hidden;font-size:15px;line-height:20px;transition:right .42s cubic-bezier(.32,.72,0,1)}
+.cmp .lay{position:absolute;left:0;top:0;right:0;height:20px;display:flex;align-items:center;gap:10px;opacity:0;transform:translateY(3px);transition:opacity .2s ease,transform .3s cubic-bezier(.32,.72,0,1);pointer-events:none}
+.cmp .lay.on{opacity:1;transform:none;transition:opacity .26s ease .05s,transform .38s cubic-bezier(.32,.72,0,1) .05s}
+.cmp .hint{color:var(--wink2)}
+.cmp .note{color:var(--wink3);font-size:14px}
+.cmp .note>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cmp .note svg{flex-shrink:0;width:15px;height:15px;color:var(--vwarn)}
+.cmp .note svg path,.cmp .note svg circle{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.cmp .lnk{color:var(--wink);text-decoration:underline;text-decoration-color:var(--wink2);text-underline-offset:2px}
+.cmp .typed{display:block;color:var(--wink);text-align:right;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 36px);mask-image:linear-gradient(90deg,transparent 0,#000 36px)}
+.cmp .typed i{font-style:normal;color:var(--wink3)}
+/* text in the draft: the composer's notice line above it (ComposerView.cs: subheadline, the warning colour, one line, 6 px) */
+.cmp .col{position:absolute;left:48px;right:240px;top:12px;opacity:0;transition:opacity .2s ease}
+.cmp.tall .col{opacity:1;transition:opacity .3s ease .12s}
+.cmp .ntc{position:relative;height:15px;margin-bottom:6px}
+.cmp .ntc>div{position:absolute;inset:0;font-size:11.5px;line-height:15px;color:var(--nwarn);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .12s ease-out}
+.cmp .ntc>div.on{opacity:1;transition:opacity .32s ease .05s}
+.cmp .ntc u{text-decoration-color:color-mix(in srgb,var(--nwarn) 60%,transparent);text-underline-offset:2px}
+.cmp .dtx{font-size:15px;line-height:20px;color:var(--wink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp.tall .fld{opacity:0;transition:opacity .15s ease,right .42s cubic-bezier(.32,.72,0,1)}
+.cmp .fld{transition:opacity .25s ease .1s,right .42s cubic-bezier(.32,.72,0,1)}
+/* the tools on the right: the orb, the model chip, the context ring, send */
+.cmp .tools{position:absolute;right:72px;bottom:0;height:52px;display:flex;align-items:center;gap:14px;z-index:2}
+.cmp .oslot{position:relative;flex:none;width:32px;height:32px}
+.cmp .chip{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--wink);white-space:nowrap}
+.cmp .chip .mk{width:15px;height:15px}
+.cmp .chip .mk path{stroke:#D97757;stroke-width:1.7;stroke-linecap:round}
+.cmp .chip .ef{color:var(--wink3)}
+.cmp .chip .cv{width:8px;height:6px;color:var(--wink3);margin-left:2px}
+.cmp .chip .cv path{fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.cmp .ring{position:absolute;right:46px;bottom:17px;width:18px;height:18px}
+.cmp .ring .t{fill:none;stroke:var(--ringtrk);stroke-width:2}
+.cmp .ring .a{fill:none;stroke:var(--ringarc);stroke-width:2;stroke-linecap:round}
+.cmp .send{position:absolute;right:8px;bottom:12px;width:28px;height:28px;border-radius:50%;background:var(--disc);display:flex;align-items:center;justify-content:center}
+.cmp .send path{fill:none;stroke:var(--discarrow);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* the orb, drawn as a still (the live one is the exact Liquid Orb export, V-11; as on the welcome-voice page) */
+.vorb{position:absolute;left:0;top:0;z-index:3;display:block;width:32px;height:32px;border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 50% 50%,#1a1240 0%,#140f33 46%,#3a2386 78%,#a688ff 93%,#e2d6ff 100%);box-shadow:0 0 11px rgba(140,110,255,.5),inset 0 0 0 .5px rgba(255,255,255,.25);
+  transition:transform .45s cubic-bezier(.34,1.4,.5,1)}
+.vorb::before{content:"";position:absolute;left:4%;right:4%;top:28%;height:44%;border-radius:50%;
+  background:radial-gradient(50% 50% at 50% 50%,#fff 0%,rgba(140,225,255,.95) 26%,rgba(255,95,190,.75) 52%,rgba(150,110,255,.35) 72%,transparent 82%);filter:blur(.6px);animation:vnorb 4.6s ease-in-out infinite}
+.vorb::after{content:"";position:absolute;left:20%;right:20%;top:44%;height:12%;border-radius:50%;background:#fff;filter:blur(.4px);opacity:.95;animation:vnorb 4.6s ease-in-out infinite}
+@keyframes vnorb{50%{transform:scaleX(.82) translateY(4%)}}
+.live .vorb{transform:scale(1.16)}
+.live.fin .vorb{transform:scale(1.1)}
+.live.fin .vorb::before,.live.fin .vorb::after{animation-duration:1.2s}
+
+/* the glass pill (V-12.2 to V-12.4): inline, H 40, its right end at the orb's centre + 20, opening to the left */
+.vpill{position:absolute;right:-4px;top:50%;height:40px;margin-top:-20px;width:40px;z-index:1;border-radius:999px;overflow:hidden;
+  background:var(--pgBg);-webkit-backdrop-filter:blur(6px) saturate(1.7);backdrop-filter:blur(6px) saturate(1.7);
+  box-shadow:inset 0 0 0 .5px var(--pgRim),inset 0 0 0 1px var(--pgEdge),inset .7px 0 .8px -.1px rgba(255,96,150,.38),inset -.7px 0 .8px -.1px rgba(96,176,255,.4),inset 0 -2px 4px var(--pgShade),var(--pgDrop);
+  opacity:0;transition:width .42s cubic-bezier(.32,.72,0,1),opacity .18s ease .24s}
+.vpill::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(70% 55% at 50% 0%,var(--pgHi) 0%,transparent 70%) 0 0/100% 100% no-repeat,radial-gradient(14px 70% at 0% 50%,rgba(255,255,255,.10),transparent 100%),radial-gradient(14px 70% at 100% 50%,rgba(255,255,255,.10),transparent 100%);opacity:.55}
+.live .vpill{opacity:1;transition:width .42s cubic-bezier(.32,.72,0,1),opacity .14s ease}
+.vpill .px{position:absolute;left:8px;top:50%;width:24px;height:24px;margin-top:-12px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(80% 60% at 50% 0%,var(--pgHi),transparent 75%),var(--pgXBg);
+  box-shadow:inset 0 0 0 .5px var(--pgXRim),inset .5px 0 .6px -.1px rgba(255,96,150,.3),inset -.5px 0 .6px -.1px rgba(96,176,255,.32),0 1px 2px rgba(0,0,0,.12);color:var(--pgX)}
+.vpill .px svg{width:11px;height:11px}
+.vpill .px path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.vpill .plab{position:absolute;left:40px;top:0;bottom:0;display:flex;align-items:center;white-space:nowrap;font-family:var(--app);font-size:13.5px;font-weight:600;line-height:20px;
+  background-image:linear-gradient(105deg,var(--pgLab) 0%,var(--pgLab) 38%,var(--pgLabHi) 49%,var(--pgLab) 60%,var(--pgLab) 100%);background-position:135% 0;background-size:260% 100%;
+  color:transparent;-webkit-background-clip:text;background-clip:text;animation:vnsweep 2.35s ease-in-out infinite}
+@keyframes vnsweep{0%,12%{background-position:135% 0}70%,100%{background-position:-55% 0}}
+.vpill .plab .lt{font-weight:400}
+.vpill .plab .amb{-webkit-text-fill-color:var(--vwarn);color:var(--vwarn);transition:-webkit-text-fill-color .4s ease}
+/* crossfading runs: the leaving words fade fast and sink, the new ones rise in (V-12.9 relabel; OD-0076) */
+.xg{display:inline-grid;vertical-align:top}
+.xg>span{grid-area:1/1;white-space:pre;transition:opacity .2s ease,transform .32s cubic-bezier(.32,.72,0,1)}
+.xg>span.out{opacity:0;transform:translateY(-4px);transition:opacity .14s ease,transform .3s cubic-bezier(.32,.72,0,1)}
+.xg>span.pre{opacity:0;transform:translateY(4px)}
+.xg.num{font-variant-numeric:tabular-nums}
+.xg{position:relative}
+.xg>span.gone{position:absolute;left:0;top:0}
+.xg.ease{transition:width .42s cubic-bezier(.32,.72,0,1)}
+.xg.all>span.gone{position:absolute;left:0;top:0}
+/* look C: the draining line inside the pill's foot, from the cross to the orb */
+.vpill .drn{position:absolute;left:36px;right:42px;bottom:5px;height:2px;border-radius:1px;background:color-mix(in srgb,var(--pgLab) 55%,transparent);opacity:0;
+  transform-origin:0 50%;transform:scaleX(var(--f,1));transition:transform 1s linear,opacity .3s ease,background-color .4s ease}
+.vpill .drn.on{opacity:1}
+.vpill .drn.amb{background:var(--vwarn)}
+.live.fin .vpill .drn{opacity:0}
+.still .vpill .drn{transition:opacity .3s ease,background-color .4s ease}
+
+/* ---------------- the Settings pane: Voice typing > Speech model, the hardware card (gen.py, voice.js) ---------------- */
+.spane{position:relative;padding:20px 24px 22px;border-radius:10px;background:var(--sbg);box-shadow:inset 0 0 0 1px var(--winedge);font-family:var(--app);color:var(--tx);-webkit-font-smoothing:antialiased}
+.spane .sh{font-size:14px;line-height:18px;font-weight:600;color:var(--head);margin-bottom:10px}
+.spane .card{border-radius:12px;background:var(--cardfill)}
+.spane .row{display:flex;align-items:center;gap:20px;padding:9px 11px 9px 16px;min-height:36px}
+.spane .rt{flex:1;min-width:0;display:flex;flex-direction:column}
+.spane .rt b{font-weight:400;font-size:14px;line-height:20px}
+.spane .dt{font-size:12px;line-height:16px;color:var(--tx2)}
+.spane .dv{height:1px;margin-left:16px;background:var(--div)}
+.spane .czbtn{appearance:none;border:0;font:inherit;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 12px;border-radius:13px;background:var(--cap);color:var(--tx);font-size:12px;font-weight:500;white-space:nowrap;flex-shrink:0;cursor:default;transition:background-color .12s ease,transform .12s ease}
+.spane .czbtn.pri{background:var(--pac);color:var(--pacInk);background-image:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 60%);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 2px rgba(0,0,0,.2)}
+.spane .czbtn.sm{height:22px;padding:0 9px;font-size:11.5px;border-radius:11px}
+.spane .czbtn.press{transform:scale(.94);filter:brightness(1.15)}
+.spane .hwlist{display:flex;flex-direction:column;gap:2px;padding:0 16px 10px}
+.spane .hwi{display:grid;grid-template-columns:16px 104px minmax(0,1fr);align-items:center;column-gap:8px;min-height:24px;font-size:12.5px;line-height:16px}
+.spane .hwk{color:var(--tx2)}
+.spane .hwv{color:var(--tx);min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.spane .ck{width:12px;height:12px;color:var(--tx2)}
+.spane .ck path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.spane .hwrec{margin:0 12px 12px;padding:10px 12px 12px;border-radius:10px;background:var(--tile);display:flex;flex-direction:column;gap:10px}
+.spane .hwrt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.spane .hwrt b{font-weight:600;font-size:13px;line-height:18px}
+.spane .hwstate{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);flex-wrap:wrap}
+.spane .hwnote{padding:0 16px 12px;font-size:11.5px;line-height:16px;color:var(--tx2)}
+.spane .acc{color:var(--pac)}
+.spane .lk{appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--pac);font-weight:500;cursor:default}
+.spane .mst{display:flex;align-items:center;justify-content:flex-end;gap:6px;width:96px;flex-shrink:0;font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums}
+.spane .mx{width:20px;height:20px;border-radius:10px;display:grid;place-items:center;color:var(--tx2);background:var(--cap)}
+.spane .mx svg{width:9px;height:9px}
+.spane .mx path{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.spane .mbar{height:2px;margin:0 16px;border-radius:1px;background:var(--trk);overflow:hidden;opacity:0;transition:opacity .3s ease}
+.spane .mbar.on{opacity:1}
+.spane .mbar i{display:block;height:100%;width:var(--p,0%);background:var(--pac);transition:width .18s linear}
+.spane .sp{display:inline-block;width:11px;height:11px;border-radius:50%;border:1.6px solid color-mix(in srgb,currentColor 25%,transparent);border-top-color:currentColor;animation:vnspin .8s linear infinite;flex:none}
+@keyframes vnspin{to{transform:rotate(360deg)}}
+.spane .cudal{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px}
+.spane .cudal .dt{flex:1 1 220px;min-width:0}
+/* a re-render crossfades: the old picture fades out on top while the new one fades in and the frame eases its height */
+.swap{position:relative}
+.swap>.old{position:absolute;left:0;top:0;right:0;opacity:0;transition:opacity .2s ease;pointer-events:none}
+.swap>.new{animation:vnin .34s ease both}
+@keyframes vnin{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.vpill .plab,.vorb::before,.vorb::after,.spane .sp{animation:none}}
