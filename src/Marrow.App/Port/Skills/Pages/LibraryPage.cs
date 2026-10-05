@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port.Settings;
+using Marrow.App.Port.Skills.Import;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.Terms;
@@ -76,6 +77,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         page.Children.Add(listing);
         page.Children.Add(panes);
         if (section == LibrarySection.Skills) page.Children.Add(providers);
+        if (section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is { } imports) page.Children.Add(new ImportArea(imports)); // SK-18
         page.Children.Add(Footer(reset));
         Child = page;
 

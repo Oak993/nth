@@ -8,7 +8,8 @@ using Marrow.Services.Port.Skills.Store;
 namespace Marrow.Services.Port.Skills.Generations;
 
 /// <summary>One coordinator per root owner (SkillsStore, or SK-8's SkillsPipeline through IGenerationStore). Pool-thread work: copying and hashing never run on a UI executor here.</summary>
-public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, IStoreProtection? protection = null, Func<string, IReadOnlyList<ExistingSkill>>? clashSource = null) : IDisposable
+public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, IStoreProtection? protection = null, Func<string, IReadOnlyList<ExistingSkill>>? clashSource = null,
+    IImportedSkillSource? importedSource = null) : IDisposable
 {
     private readonly object gate = new();
     private readonly ChatGenerationPaths chatPaths = new(paths);
@@ -174,6 +175,20 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
                 usedNames.Add(skill.Name);
                 chosen.Add(skill);
             }
+            // SK-18 (OD-0118): skills the user brought in from other apps join the catalogue's, after it: a catalogue skill keeps a name, a provider's own skills still win a clash, the same budget applies.
+            // Their on/off is the imported library's own (they are not catalogue items), and an empty source changes nothing: the key below is then exactly what it always was.
+            var importedChosen = new List<(ImportedGenerationSkill Skill, GenerationSkill Meta)>();
+            foreach (var imported in (importedSource?.Snapshot() ?? []).OrderBy(i => i.Name, StringComparer.Ordinal))
+            {
+                if (!SkillName.IsValid(imported.Name) || string.IsNullOrWhiteSpace(imported.Description) || imported.Description.Any(char.IsControl) || !imported.Files.ContainsKey("SKILL.md")) continue;
+                if (GenerationFilters.Clashes(provider, imported.Name, user) || usedNames.Contains(imported.Name)) continue;
+                var meta = new GenerationSkill("import", imported.Name, imported.Id, imported.Description, SkillGroup.Other, 1_000, false);
+                var cost = imported.Name.Length + imported.Description.Length + 3;
+                if (cost > room) { leftOut.Add(meta.Id); continue; }
+                room -= cost;
+                usedNames.Add(imported.Name);
+                importedChosen.Add((imported, meta));
+            }
             var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             var locations = new Dictionary<string, string>(StringComparer.Ordinal);
             var pluginRoots = new List<string>();
@@ -211,13 +226,22 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
                         AddFile(root + "/" + file.Path[(skill.SourcePath.Length + 1)..], ReadPinned(item.Store, file));
                 }
             }
+            foreach (var (imported, meta) in importedChosen)
+            {
+                var root = (GenerationFilters.PluginLoading(provider) ? "skills/" : "") + imported.Name;
+                locations.Add(meta.Id, root + "/SKILL.md");
+                foreach (var (relative, bytes) in imported.Files.OrderBy(f => f.Key, StringComparer.Ordinal)) AddFile(root + "/" + relative, bytes);
+            }
             var entries = chosen.Select(s => s.Id + "@" + verified.Single(i => i.Store.Catalogue.Id == s.ItemId).Store.Pin).Order(StringComparer.Ordinal).ToArray();
             // The switch for non-skill plugin contents also changes the resulting entry list and therefore the content key.
             var pluginEntries = pluginRoots.Order(StringComparer.Ordinal).Select(r => r + "@" + verified.Single(i => r == "plugins/" + i.Store.Catalogue.Id || r.StartsWith("plugins/" + i.Store.Catalogue.Id + "/", StringComparison.Ordinal)).Store.Pin).ToArray();
-            var identity = JsonSerializer.SerializeToUtf8Bytes(new { version = switches.Version, entries, plugins = pluginEntries });
+            var importedEntries = importedChosen.Select(c => c.Meta.Id + "@" + ImportedFingerprint(c.Skill)).Order(StringComparer.Ordinal).ToArray();
+            var identity = importedEntries.Length == 0
+                ? JsonSerializer.SerializeToUtf8Bytes(new { version = switches.Version, entries, plugins = pluginEntries })
+                : JsonSerializer.SerializeToUtf8Bytes(new { version = switches.Version, entries, plugins = pluginEntries, imported = importedEntries });
             var key = Convert.ToHexStringLower(SHA256.HashData(identity))[..16];
             files["generation.json"] = identity; // trusted generated inventory member, also permits a valid empty generation.
-            return new(key, new StoreManifest(files.Select(f => Pin(f.Key, f.Value))), files, chosen.ToArray(), locations, leftOut.ToArray(), pluginRoots.ToArray());
+            return new(key, new StoreManifest(files.Select(f => Pin(f.Key, f.Value))), files, chosen.Concat(importedChosen.Select(c => c.Meta)).ToArray(), locations, leftOut.ToArray(), pluginRoots.ToArray());
             void AddFile(string path, byte[] bytes)
             {
                 StoreManifest.RequireRelative(path);
@@ -225,6 +249,16 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             }
         }
         finally { foreach (var lease in leases) lease.Dispose(); }
+    }
+
+    // What makes two imported skills the same bytes: the name, the description and every file by path and hash. A change in an original a Link follows changes this, and so the generation's key.
+    private static string ImportedFingerprint(ImportedGenerationSkill skill)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hash.AppendData(Encoding.UTF8.GetBytes(skill.Name + "\n" + skill.Description + "\n"));
+        foreach (var (path, bytes) in skill.Files.OrderBy(f => f.Key, StringComparer.Ordinal))
+            hash.AppendData(Encoding.UTF8.GetBytes(path + "=" + Convert.ToHexStringLower(SHA256.HashData(bytes)) + "\n"));
+        return Convert.ToHexStringLower(hash.GetHashAndReset())[..32];
     }
 
     private static byte[] ReadPinned(StoreItem item, CatalogueFile file)
