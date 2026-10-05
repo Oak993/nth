@@ -43,7 +43,12 @@ public sealed class FetchReviewFixesTests
         using var rig = new FetchRig();
         rig.Fail["S1"] = "fixture download failed";
         rig.Hold["S3"] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var firstAsker = new CancellationTokenSource();
+        var first = rig.Host.Downloads.Install(rig.Item("S3"), new PipelineProgress([]), firstAsker.Token);
+        await rig.Entered("S3"); // deterministically hold S3 before asking for failing S1
         var offer = rig.Host.OfferDownloads.Install([rig.Item("S1"), rig.Item("S3")], _ => { }, CancellationToken.None);
+        firstAsker.Cancel(); // only the offer still wants S3
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first.WaitAsync(Guard));
         await Assert.ThrowsAsync<IOException>(() => offer.WaitAsync(Guard));
         var until = DateTime.UtcNow + Guard;
         while (rig.Host.Downloads.IsRunning("S3")) { Assert.True(DateTime.UtcNow < until); await Task.Delay(10); }
