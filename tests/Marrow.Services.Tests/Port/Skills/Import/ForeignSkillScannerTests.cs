@@ -1,4 +1,5 @@
 using Marrow.Services.Port.Skills.Import;
+using Marrow.Services.Tests.Port.Skills.Store.Fixtures;
 
 namespace Marrow.Services.Tests.Port.Skills.Import;
 
@@ -178,7 +179,8 @@ public sealed class ForeignSkillScannerTests
         File.WriteAllText(Path.Combine(outside, "SKILL.md"), ForeignHome.SkillText("outside", "Out there."));
         Directory.CreateDirectory(Path.Combine(home.Home, ".claude/skills"));
         var link = Path.Combine(home.Home, ".claude/skills/linked");
-        Directory.CreateSymbolicLink(link, outside);
+        if (OperatingSystem.IsWindows()) WindowsJunction.Create(home.Root, link, outside);
+        else Directory.CreateSymbolicLink(link, outside);
         Assert.True(Directory.Exists(link));
         Assert.True((File.GetAttributes(link) & FileAttributes.ReparsePoint) != 0);
         Assert.Equal(ForeignHome.SkillText("outside", "Out there."), File.ReadAllText(Path.Combine(link, "SKILL.md")));

@@ -1,5 +1,6 @@
 using System.Text;
 using Marrow.Services.Port.Skills.Import;
+using Marrow.Services.Tests.Port.Skills.Store.Fixtures;
 using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Port.Skills.Import;
@@ -278,13 +279,26 @@ public sealed class ImportedSkillsLibraryTests
     {
         using var home = new ForeignHome();
         var folder = home.Skill(".claude/skills", "notes", "notes", "Notes.");
-        var secret = Path.Combine(home.Root, "secret.txt");
+        var outside = Path.Combine(home.Root, "outside");
+        Directory.CreateDirectory(outside);
+        var secret = Path.Combine(outside, "secret.txt");
         File.WriteAllText(secret, "SECRET");
-        var link = Path.Combine(folder, "leak.txt");
-        File.CreateSymbolicLink(link, secret);
-        Assert.True(File.Exists(link));
+        var link = Path.Combine(folder, OperatingSystem.IsWindows() ? "leak" : "leak.txt");
+        string exposedSecret;
+        if (OperatingSystem.IsWindows())
+        {
+            WindowsJunction.Create(home.Root, link, outside);
+            Assert.True(Directory.Exists(link));
+            exposedSecret = Path.Combine(link, "secret.txt");
+        }
+        else
+        {
+            File.CreateSymbolicLink(link, secret);
+            exposedSecret = link;
+        }
+        Assert.True(File.Exists(exposedSecret));
         Assert.True((File.GetAttributes(link) & FileAttributes.ReparsePoint) != 0);
-        Assert.Equal("SECRET", File.ReadAllText(link));
+        Assert.Equal("SECRET", File.ReadAllText(exposedSecret));
         var library = Open(home);
         library.Import([Find(home, "notes")], ImportMode.Copy, NeverAsked);
         Assert.Equal(["SKILL.md"], library.Snapshot().Single().Files.Keys);
