@@ -78,7 +78,7 @@ public sealed class LibraryControllerDownloadAllTests
         await LibraryRig.Within(rig.Install.Started("S1"));
         Assert.Equal(RunPhase.Downloading, rig.Page.Dialog.Phase);
         Assert.Equal("Downloading all skills", rig.Page.Dialog.Title);
-        Assert.Equal("One at a time.", rig.Page.Dialog.Sub);
+        Assert.Equal("One at a time. Hide it and keep using Marrow.", rig.Page.Dialog.Sub); // exact Sections TX b:sub, independently pinned by LibraryReviewTests
         rig.Install.Report("S1", 0.5);
         Assert.Equal(0.5, rig.Row("S1").Progress);
         Assert.Equal(ItemState.Downloading, rig.Row("S1").State);
@@ -171,7 +171,7 @@ public sealed class LibraryControllerDownloadAllTests
         Assert.Equal(RunPhase.Partial, dialog.Phase);
         Assert.Equal("2 of 3 downloaded", dialog.Title);
         Assert.Equal("1 didn’t download. The rest are on this PC.", dialog.Sub);
-        Assert.Equal("Retry tries the failed ones again.", dialog.Foot);
+        Assert.Equal("Retry tries the failed ones again. Or download them yourself.", dialog.Foot); // exact Sections TX b:foot
         Assert.Equal(1, dialog.Failed);
         Assert.Equal(RunLineState.Failed, dialog.Lines[1].State);
         Assert.Equal("Didn’t download", dialog.Lines[1].Right);
@@ -188,9 +188,10 @@ public sealed class LibraryControllerDownloadAllTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")]
-    public async Task With_the_install_seam_unbound_every_item_fails_closed_and_the_page_says_why()
+    public async Task A_backend_claiming_bound_still_fails_closed_if_its_install_seam_is_unbound()
     {
         using var rig = new LibraryRig(install: new FailClosedFirstInstall());
+        rig.Backend.CanFetch = true; // deliberately misreported capability: retain the failure-path proof as well as the new admission tests.
         await LibraryRig.Within(rig.Go());
         Assert.Equal(RunPhase.Partial, rig.Page.Dialog.Phase);
         Assert.Equal("0 of 3 downloaded", rig.Page.Dialog.Title);

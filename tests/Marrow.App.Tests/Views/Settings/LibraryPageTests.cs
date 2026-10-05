@@ -439,8 +439,10 @@ public sealed class LibraryPageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-326")] // the install seam fails closed: the row says why, nothing is fetched
-    public void With_the_install_seam_unbound_an_item_fails_with_its_reason() => LibraryPageHarness.Run(headless, LibrarySection.Skills, harness =>
+    public void A_backend_claiming_bound_still_shows_its_unbound_install_failure() => LibraryPageHarness.Run(headless, LibrarySection.Skills, harness =>
     {
+        harness.Backend.CanFetch = true; // deliberately misreported: preserve every failure-path assertion; normal unbound controls are tested separately.
+        harness.Controller.Select("S2"); harness.Controller.Select("S1"); harness.Settle();
         Assert.True(harness.Press("action-download"));
         harness.Until(() => harness.Controller.Rows[0].State == ItemState.Failed);
         Assert.Equal("failed", harness.Page.Details["S1"].Action.Kind);

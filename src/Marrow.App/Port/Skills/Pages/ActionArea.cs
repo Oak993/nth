@@ -47,7 +47,7 @@ internal sealed class ActionArea : Decorator
         }
         if (bar is not null) bar.Set(row.Progress ?? 0, animated: true);
         if (percent is not null) percent.Text = (int)Math.Floor((row.Progress ?? 0) * 100) + "%";
-        if (primary is not null) primary.IsEnabled = !row.TermsOwed;
+        if (primary is not null) primary.IsEnabled = !row.TermsOwed && model.Controller.CanFetch;
     }
 
     private static string KindOf(LibraryRow row, bool removeAsked) => row.State switch
@@ -73,7 +73,7 @@ internal sealed class ActionArea : Decorator
         {
             case "download":
                 primary = LibraryButtons.Make(LibraryWords.Download(row.SizeMb), () => _ = controller.Download(id), ButtonLook.Primary, "action-download");
-                primary.IsEnabled = !row.TermsOwed;
+                primary.IsEnabled = !row.TermsOwed && controller.CanFetch;
                 Add(primary);
                 break;
             case "waiting":
@@ -100,7 +100,9 @@ internal sealed class ActionArea : Decorator
             case "failed":
                 Add(LibraryUi.Glyph("exclamationmark.triangle.fill", 13, ChromeTokens.Warning));
                 Add(LibraryUi.Text(LibraryWords.DidNotDownload, 12.5));
-                Add(LibraryButtons.Make(LibraryWords.Retry, () => _ = controller.Download(id), ButtonLook.Accent, "action-retry"));
+                primary = LibraryButtons.Make(LibraryWords.Retry, () => _ = controller.Download(id), ButtonLook.Accent, "action-retry");
+                primary.IsEnabled = !row.TermsOwed && controller.CanFetch;
+                Add(primary);
                 break;
             case "remove":
                 Add(LibraryButtons.Make(LibraryWords.Remove, () => _ = controller.ConfirmRemove(id), ButtonLook.Danger, "action-remove"));
@@ -121,9 +123,12 @@ internal sealed class ActionArea : Decorator
             default:
                 Add(LibraryUi.Glyph("checkmark.circle.fill", 14, ChromeTokens.Success));
                 Add(LibraryUi.Text(LibraryWords.Installed, 12.5));
+                if (!row.Plugins) Add(LibraryUi.Text(LibraryWords.ReadyInNewChats, 11.5, secondary: true));
                 Add(LibraryButtons.Glyph("trash", LibraryWords.Remove, "action-trash", () => controller.AskRemove(id)));
                 break;
         }
+        if (!controller.CanFetch && what is "download" or "failed")
+            return new StackPanel { Spacing = 6, Children = { line, LibraryUi.Text(LibraryWords.DownloadsUnavailable, 11.5, secondary: true, trim: true) } };
         return line;
     }
 }

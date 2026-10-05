@@ -9,6 +9,9 @@ namespace Marrow.Services.Port.Skills.Pages;
 
 public interface ISkillsLibraryBackend
 {
+    /// <summary>True only when a real first-install path is bound. An unbound seam must never queue a download.</summary>
+    bool CanFetch { get; }
+
     SkillsCatalogue Catalogue { get; }
 
     /// <summary>The state the pipeline holds now (installed items, accepted terms, found-on-this-PC).</summary>

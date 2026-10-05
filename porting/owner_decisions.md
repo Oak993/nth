@@ -1051,3 +1051,6 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
     - Every wallpaper, new and old, is held to the bar of a wallpaper shipped with an operating system by Apple, Samsung or Microsoft: extremely premium, with nothing generic or computer-rendered.
     - Each wallpaper gets more premium options.
     - The tiers (vibrant, balanced, minimal), the packs with dark and light palettes, the seamless loops, the speed control, crossfades instead of cuts (OD-0076), the per-frame cost budget and the SkSL subset all still apply.
+- **Approval, owner, 2026-10-05 (chat, verbatim):** "All wallpapers approved"
+  - **What was approved:** both published library pages. Animated: https://claude.ai/artifact/LFRLdPKiHhScEMwqBBs55c, 72 wallpapers (version 2). Static: https://claude.ai/artifact/CrziwfNftCftsFK6mGgUPz, 90 wallpapers.
+  - **Effect:** all 162 wallpapers ship as drawn, in the design snapshot at porting/first-release/design-src/wallpaper-library (static at ab4308969, animated at 76a61a4e2). That snapshot is the source of truth for the app's per-wallpaper fidelity tests. This includes the four premium options (Dynamic, Match accent, Perspective, Focus) and the names, all unique across both collections.

@@ -27,15 +27,15 @@ internal sealed class DownloadAllDialog : Decorator
     private readonly CzCrossfadeText room = new("") { FontSize = 12, Wrap = true };
     private readonly CzCrossfadeText heading = new("") { FontSize = 12, Secondary = true };
     private readonly CzCrossfadeText foot = new("") { FontSize = 12, Secondary = true, Wrap = true };
-    private readonly TextBlock download = LibraryUi.Text("", 12);
-    private readonly TextBlock onDisk = LibraryUi.Text("", 12);
-    private readonly TextBlock free = LibraryUi.Text("", 12);
-    private readonly TextBlock freeLabel = LibraryUi.Text("", 12, secondary: true);
-    private readonly TextBlock from = LibraryUi.Text("", 12, wrap: true);
-    private readonly TextBlock progress = LibraryUi.Text("", 12, secondary: true);
+    private readonly CzCrossfadeText download = new("") { FontSize = 12 };
+    private readonly CzCrossfadeText onDisk = new("") { FontSize = 12 };
+    private readonly CzCrossfadeText free = new("") { FontSize = 12 };
+    private readonly CzCrossfadeText freeLabel = new("") { FontSize = 12, Secondary = true };
+    private readonly CzCrossfadeText from = new("") { FontSize = 12, Wrap = true };
+    private readonly CzCrossfadeText progress = new("") { FontSize = 12, Secondary = true };
     private readonly LibraryBar bar = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly CzFoldRow confirmSection, runSection, largeBox, plainBox, roomFold, freeRow;
-    private readonly StackPanel lines = new() { Spacing = 0 };
+    private readonly CrossfadeSlot lines = new();
     private readonly CrossfadeSlot buttons = new();
     private string? buttonsKey;
     private RunView view = RunView.Closed;
@@ -89,7 +89,9 @@ internal sealed class DownloadAllDialog : Decorator
         footer.Children.Add(foot);
         footer.Children.Add(buttons);
 
-        var stack = new StackPanel { Spacing = 12, Children = { header, confirmSection, runSection, listBox, footer } };
+        var estimate = LibraryUi.Text(LibraryWords.SizeEstimateNote, 11.5, secondary: true, wrap: true);
+        var stack = new StackPanel { Spacing = 12, Children = { header, estimate, confirmSection, runSection, listBox, footer } };
+        if (!model.Controller.CanFetch) stack.Children.Insert(1, LibraryUi.Text(LibraryWords.DownloadsUnavailable, 11.5, secondary: true, wrap: true));
         var surface = new Border { Child = stack, Padding = new Thickness(18), Width = Width440 }.RoundedRectangle(22, RoundedCornerStyle.Continuous);
         SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
         Child = surface;
@@ -168,19 +170,19 @@ internal sealed class DownloadAllDialog : Decorator
             largeBox.Open = next.Large;
             plainBox.Open = !next.Large;
             if (next.Large) warning.SetText(next.Statement ?? ""); else plain.SetText(next.Statement ?? "");
-            download.Text = next.DownloadFact;
-            onDisk.Text = next.DiskFact;
-            from.Text = next.HostsFact;
+            download.SetText(next.DownloadFact);
+            onDisk.SetText(next.DiskFact);
+            from.SetText(next.HostsFact);
             freeRow.Open = next.FreeFact is not null;
-            freeLabel.Text = next.FreeLabel is { } drive ? LibraryWords.FactFree(drive) : "";
-            free.Text = next.FreeFact ?? "";
+            freeLabel.SetText(next.FreeLabel is { } drive ? LibraryWords.FactFree(drive) : "");
+            free.SetText(next.FreeFact ?? "");
             roomFold.Open = next.RoomNote is not null;
             if (next.RoomNote is { } note) room.SetText(note);
         }
         if (next.Phase is RunPhase.Downloading or RunPhase.Paused or RunPhase.Done or RunPhase.Partial)
         {
             bar.Set(next.Overall, animated: previousPhase != RunPhase.Confirm && previousPhase != RunPhase.None);
-            progress.Text = next.ProgressText ?? "";
+            progress.SetText(next.ProgressText ?? "");
         }
         ApplyLines(next);
         ApplyButtons(next);
@@ -192,14 +194,15 @@ internal sealed class DownloadAllDialog : Decorator
         if (!ids.SequenceEqual(lineIds))
         {
             lineIds = ids;
-            lines.Children.Clear();
+            var group = new StackPanel { Spacing = 0 };
             lineViews.Clear();
             foreach (var line in next.Lines)
             {
                 var row = new DialogLineView(line, plugins);
                 lineViews[line.Id] = row;
-                lines.Children.Add(row);
+                group.Children.Add(row);
             }
+            lines.Show(group, LibraryUi.Ease(this, LibraryUi.Fade));
             return;
         }
         foreach (var line in next.Lines) lineViews[line.Id].Apply(line);
@@ -241,7 +244,9 @@ internal sealed class DownloadAllDialog : Decorator
                 break;
             default:
                 Add(LibraryButtons.Make(LibraryWords.Close, controller.CloseRun, ButtonLook.Plain, "dialog-close"));
-                Add(LibraryButtons.Make(LibraryWords.RetryCount(next.Failed), () => _ = controller.RetryFailed(), ButtonLook.Primary, "dialog-retry"));
+                var retry = LibraryButtons.Make(LibraryWords.RetryCount(next.Failed), () => _ = controller.RetryFailed(), ButtonLook.Primary, "dialog-retry");
+                retry.IsEnabled = controller.CanFetch;
+                Add(retry);
                 break;
         }
         buttons.Show(group, first ? null : LibraryUi.Ease(this, LibraryUi.Fade));

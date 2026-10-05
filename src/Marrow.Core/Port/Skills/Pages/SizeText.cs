@@ -49,4 +49,13 @@ public static class SizeText
         if (gb >= 1) return gb.ToString("0.0", Invariant) + " GB";
         return Math.Round(bytes / 1e6, MidpointRounding.AwayFromZero).ToString("0", Invariant) + " MB";
     }
+
+    /// <summary>Required space always rounds upward, never advertising less than the admission check needs.</summary>
+    public static string Required(long bytes)
+    {
+        var gb = bytes / 1e9;
+        if (gb >= 10) return Math.Ceiling(gb).ToString("0", Invariant) + " GB";
+        if (gb >= 1) return (Math.Ceiling(gb * 10) / 10).ToString("0.0", Invariant) + " GB";
+        return Math.Ceiling(bytes / 1e6).ToString("0", Invariant) + " MB";
+    }
 }

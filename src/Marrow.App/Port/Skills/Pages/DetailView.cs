@@ -8,6 +8,7 @@ using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Settings;
+using Marrow.App.Views.Settings;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
 namespace Marrow.App.Port.Skills.Pages;
@@ -20,7 +21,7 @@ internal sealed class DetailView : Decorator
     private readonly CzCrossfadeText failureText = new("") { FontSize = 12, Wrap = true };
     private readonly SwitchesBox switches;
     private readonly TermsBox? termsBox;
-    private readonly StackPanel needs = new() { Spacing = 2 };
+    private readonly CrossfadeSlot needs = new();
 
     public DetailView(LibraryModel model, LibraryRow row)
     {
@@ -107,7 +108,7 @@ internal sealed class DetailView : Decorator
 
     public string FailureShown => failureText.Text;
 
-    public IReadOnlyList<string> NeedsShown => needs.Children.OfType<Control>().Select(c => c is StackPanel line ? string.Join(" ", line.Children.OfType<TextBlock>().Select(t => t.Text)) : "").ToList();
+    public IReadOnlyList<string> NeedsShown => needs.Live is StackPanel group ? group.Children.OfType<StackPanel>().Select(line => string.Join(" ", line.Children.OfType<TextBlock>().Select(t => t.Text))).ToList() : [];
 
     public void Apply(LibraryRow row, bool removeAsked)
     {
@@ -127,7 +128,7 @@ internal sealed class DetailView : Decorator
         var key = string.Join("|", row.Needs.Select(n => n.Id + ":" + n.FoundPath));
         if (key == needsKey) return;
         needsKey = key;
-        needs.Children.Clear();
+        var group = new StackPanel { Spacing = 2 };
         foreach (var need in row.Needs)
         {
             var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -137,7 +138,8 @@ internal sealed class DetailView : Decorator
                 line.Children.Add(LibraryUi.Text(LibraryWords.FoundOnThisPc, 11.5, secondary: true));
                 ToolTip.SetTip(line, need.FoundPath);
             }
-            needs.Children.Add(line);
+            group.Children.Add(line);
         }
+        needs.Show(group, LibraryUi.Ease(this, LibraryUi.Fade));
     }
 }

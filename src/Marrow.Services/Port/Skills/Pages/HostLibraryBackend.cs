@@ -41,6 +41,8 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
 
     public void CancelFetching(string itemId) => host.Downloads.Stop(itemId);
 
+    public bool CanFetch => Installs is not FailClosedFirstInstall;
+
     public ISwitchReader Switches => new SwitchTruth(Current());
 
     private SkillSwitches Current()

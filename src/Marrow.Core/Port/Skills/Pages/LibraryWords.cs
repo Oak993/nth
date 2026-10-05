@@ -9,6 +9,7 @@ public static class LibraryWords
     public const string Waiting = "Waiting";
     public const string Checking = "Checking\u2026";
     public const string Installed = "Installed";
+    public const string ReadyInNewChats = "Ready in new chats"; // ONDEMAND-PLAN 4.4: the running chat keeps its generation.
     public const string DidNotDownload = "Didn\u2019t download";
     public const string Retry = "Retry";
     public const string Remove = "Remove";
@@ -60,6 +61,9 @@ public static class LibraryWords
     /// <summary>ENGINEERING DECISION: the unbound download seam fails closed with this reason (SK-16 binds the real one); it is the failure the row shows.</summary>
     public const string DownloadsUnavailable = "Downloading isn\u2019t available in this build yet.";
 
+    /// <summary>UNRESOLVED until SK-2 supplies measured download and unpacked sizes; no exact-size claim.</summary>
+    public const string SizeEstimateNote = "Sizes are estimates. Unpacked size is not known yet.";
+
     // ---- Download all
     public static string DownloadAllButton(LibrarySection section, double? remainingMb) =>
         remainingMb is { } mb ? "Download all " + section.Noun() + " \u00B7 " + SizeText.Short(mb) : "All " + section.Noun() + " are here";
@@ -71,7 +75,7 @@ public static class LibraryWords
     public static string PartialTitle(int done, int of) => done + " of " + of + " downloaded";
 
     public static string ItemsFrom(int items, string hosts) => items + (items == 1 ? " item" : " items") + " from " + hosts + ".";
-    public const string RunningSub = "One at a time.";
+    public const string RunningSub = "One at a time. Hide it and keep using Marrow.";
     public const string PausedSub = "Nothing is downloading. Resume carries on where it stopped.";
     public static string DoneSub(int items, string disk) => "All " + items + " are on this PC: " + disk + ".";
     public static string PartialSub(int failed) => failed + " didn\u2019t download. The rest are on this PC.";
@@ -103,7 +107,7 @@ public static class LibraryWords
     public const string ConfirmFoot = "Nothing downloads until you press Continue.";
     public const string RunningFoot = "Cancel stops the rest. What has already downloaded stays.";
     public const string DoneFoot = "New skills start as listed in each detail; switch them there.";
-    public const string PartialFoot = "Retry tries the failed ones again.";
+    public const string PartialFoot = "Retry tries the failed ones again. Or download them yourself.";
 
     public const string Continue = "Continue";
     public const string Pause = "Pause";

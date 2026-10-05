@@ -169,6 +169,7 @@ public sealed class LibraryController : IDisposable
     {
         lock (gate)
         {
+            if (!backend.CanFetch) return Task.CompletedTask;
             if (run is { Phase: RunPhase.Downloading or RunPhase.Paused }) return Task.CompletedTask;
             var row = Rows.FirstOrDefault(r => r.Id == id);
             if (row is null || row.TermsOwed || row.OnThisPc || row.Busy) return Task.CompletedTask;
@@ -422,7 +423,9 @@ public sealed class LibraryController : IDisposable
         }
     }
 
-    public bool CanDownloadAll => run is { Phase: RunPhase.Downloading or RunPhase.Paused or RunPhase.Done or RunPhase.Partial } || !Plan.IsEmpty;
+    public bool CanFetch => backend.CanFetch;
+
+    public bool CanDownloadAll => backend.CanFetch && (run is { Phase: RunPhase.Downloading or RunPhase.Paused or RunPhase.Done or RunPhase.Partial } || !Plan.IsEmpty);
 
     /// <summary>Opens the confirmation. Nothing downloads until <see cref="Continue"/>. While a run goes on, its dialog is what opens again.</summary>
     public void OpenDownloadAll()
@@ -453,6 +456,7 @@ public sealed class LibraryController : IDisposable
     {
         lock (gate)
         {
+            if (!backend.CanFetch) return Task.CompletedTask;
             if (confirmation is not { CanContinue: true } plan) return Task.CompletedTask;
             confirmation = null;
             run = new Run(plan);
@@ -549,6 +553,7 @@ public sealed class LibraryController : IDisposable
     {
         lock (gate)
         {
+            if (!backend.CanFetch) return Task.CompletedTask;
             if (run is not { Phase: RunPhase.Partial } r) return Task.CompletedTask;
             var failed = r.Plan.ToDownload.Where(id => r.Results.TryGetValue(id, out var s) && s == RunLineState.Failed).ToList();
             foreach (var id in failed)
@@ -601,7 +606,7 @@ public sealed class LibraryController : IDisposable
             _ => new RunLine(l.Id, l.Title, RunLineState.Waiting, 0, SizeText.Short(l.SizeMb ?? 0)),
         }).ToList();
         return new RunView(RunPhase.Confirm, plan.Title, plan.Sub, plan.Statement, plan.Large && !plan.IsEmpty, LibraryWords.ConfirmFoot, null, 0, lines, plan.IncludedHeading, plan.DownloadFact,
-            plan.DiskFact, plan.Free?.Label, plan.FreeFact, plan.HostsFact, plan.RoomNote, plan.CanContinue, 0);
+            plan.DiskFact, plan.Free?.Label, plan.FreeFact, plan.HostsFact, plan.RoomNote, plan.CanContinue && backend.CanFetch, 0);
     }
 
     private RunView Running(Run r)
