@@ -106,9 +106,24 @@ internal static class GlassMaterial
 
         public void Queue()
         {
+            // ED-NEW-glass-g1 (the first frame): until a piece has synchronised once, its window's renderer step (WindowHook) synchronises it right
+            // after the renderer's own update, in the composition update that draws the window's first frame: the Loaded post below lands a frame
+            // or more later (the knob-cache unit measured the glass 34 to 53 ms after a window was shown: pop-in).
+            if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top).Pending.Add(this);
             if (queued) return;
             queued = true;
             Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
+        }
+
+        private bool synchronizedOnce;
+
+        // Run by the window's renderer step (WindowHook.Repair), after the renderer's update and before the frame is committed.
+        internal void SynchronizeFirst(WindowHook hook)
+        {
+            if (synchronizedOnce || !owner.IsAttachedToVisualTree()) return;
+            Synchronize();
+            if (!synchronizedOnce) hook.Later.Add(this); // its visuals are made by a later update: tried at the next step
+            TraceForTests?.Invoke(synchronizedOnce ? "first synchronised in the renderer step" : "first synchronisation waits: no composition visual yet");
         }
 
         // Synchronise at the next composition update, without a dispatcher hop: for a change that is already on the render path.
@@ -194,6 +209,7 @@ internal static class GlassMaterial
             if (spacing is null && ContainerOf(owner) is { } group)
             {
                 RemoveMaterial();
+                synchronizedOnce = true; // the container draws it
                 AttachmentFor(group).Queue();
                 return;
             }
@@ -201,20 +217,24 @@ internal static class GlassMaterial
             var nextParent = owner.GetVisualParent() is { } p ? ElementComposition.GetElementVisual(p) as CompositionContainerVisual : null;
             if ((spacing is null && ownEffect is null) || visual is null || nextParent is null || SwiftGlass.GetUsesDesktopBackdrop(owner))
             {
+                // Settled when there is nothing to draw; a piece whose composition visuals are not made yet is tried again at the next step.
+                synchronizedOnce = visual is not null && nextParent is not null;
                 RemoveMaterial();
                 return;
             }
+            Handler? fresh = null;
             if (parent != nextParent)
             {
                 RemoveMaterial();
                 parent = nextParent;
-                material = visual.Compositor.CreateCustomVisual(new Handler());
+                material = visual.Compositor.CreateCustomVisual(fresh = new Handler());
                 // A custom visual clips to its Size unless told not to, and that clip also cut its render bounds back to the owner's: Avalonia then
                 // redrew only the owner's box when the material appeared or changed, not the margin it reads (SampledMargin, Backdrop).
                 material.ClipToBounds = false;
             }
             var index = parent.Children.IndexOf(visual);
             if (index < 0 || material is null) return;
+            synchronizedOnce = true;
             Place(visual);
             Hook(this);
             // Preserve source control type, layout, tint, hairline and foreground; draw immediately before it.
@@ -255,6 +275,9 @@ internal static class GlassMaterial
             if (previous is null || previous.Spacing != state.Spacing || !previous.Regions.SequenceEqual(state.Regions))
             {
                 previous = state;
+                // ED-NEW-glass-g1 (the first frame): a material made in this update holds its state before the batch that makes it is committed, so
+                // the frame that first draws it already has its bounds and its regions (a message is taken a frame later for a new visual).
+                fresh?.Prime(state);
                 material.SendHandlerMessage(state);
             }
         }
@@ -393,9 +416,23 @@ internal static class GlassMaterial
     private sealed class WindowHook
     {
         public readonly HashSet<Attachment> Materials = [];
+        /// <summary>Pieces not yet synchronised (Attachment.Queue): synchronised here first, so a window's first frame already has its glass. A piece in
+        /// a container queues the container, which is taken in the same step (a few rounds at most: a container of containers is not made).</summary>
+        public readonly HashSet<Attachment> Pending = [];
+        public readonly List<Attachment> Later = [];
         private readonly List<Attachment> pass = [];
         public void Repair()
         {
+            if (Pending.Count > 0) TraceForTests?.Invoke($"renderer step with {Pending.Count} pending");
+            for (var round = 0; round < 4 && Pending.Count > 0; round++)
+            {
+                pass.AddRange(Pending);
+                Pending.Clear();
+                foreach (var piece in pass) piece.SynchronizeFirst(this);
+                pass.Clear();
+            }
+            foreach (var piece in Later) Pending.Add(piece);
+            Later.Clear();
             if (Materials.Count == 0) return;
             pass.AddRange(Materials);
             foreach (var material in pass) material.Reinsert();
@@ -405,16 +442,19 @@ internal static class GlassMaterial
     private static readonly ConditionalWeakTable<TopLevel, WindowHook> windows = new();
     private static readonly ConditionalWeakTable<Attachment, TopLevel> hooked = new();
 
+    private static WindowHook HookOf(TopLevel top)
+    {
+        if (windows.TryGetValue(top, out var hook)) return hook;
+        hook = new WindowHook();
+        windows.Add(top, hook);
+        Install(top, hook);
+        return hook;
+    }
+
     private static void Hook(Attachment attachment)
     {
         if (hooked.TryGetValue(attachment, out _) || TopLevel.GetTopLevel(attachment.Owner) is not { } top) return;
-        if (!windows.TryGetValue(top, out var hook))
-        {
-            hook = new WindowHook();
-            windows.Add(top, hook);
-            Install(top, hook);
-        }
-        hook.Materials.Add(attachment);
+        HookOf(top).Materials.Add(attachment);
         hooked.Add(attachment, top);
     }
 
@@ -432,9 +472,10 @@ internal static class GlassMaterial
             var renderer = typeof(TopLevel).GetProperty("Renderer", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(top);
             var update = renderer?.GetType().GetField("_update", BindingFlags.Instance | BindingFlags.NonPublic);
             if (renderer is null || update?.GetValue(renderer) is not Action original) return;
-            update.SetValue(renderer, new Action(() => { original(); hook.Repair(); }));
+            update.SetValue(renderer, new Action(() => { TraceForTests?.Invoke("renderer update"); original(); hook.Repair(); }));
             // An update already queued holds the old delegate: one more step, after it, in the next composition update.
-            if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(hook.Repair);
+            if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
+            TraceForTests?.Invoke("hook installed");
         }
         catch (Exception e) when (e is ArgumentException or MemberAccessException or TargetInvocationException or InvalidCastException or FieldAccessException) { }
     }
@@ -447,6 +488,9 @@ internal static class GlassMaterial
     {
         private State? state;
         private readonly Backdrop backdrop = new();
+        // Called on the UI thread for a handler whose visual is made in the same update, before that batch is committed (the render thread has not
+        // seen the handler yet).
+        public void Prime(State first) => state = first;
         private Reach? reach;
         public override void OnMessage(object message)
         {
@@ -463,6 +507,7 @@ internal static class GlassMaterial
             if (feature is null) return;
             using var lease = feature.Lease();
             DrawsForTests++;
+            if (DrawsForTests == 1) TraceForTests?.Invoke("first draw (render thread)");
             Backdrop.DisposeReleased();
             var target = Frame.Target(this);
             var next = target is null ? null : Frame.ReachOf(target);
@@ -491,6 +536,9 @@ internal static class GlassMaterial
     // Test-only (InternalsVisibleTo), ED-NEW-glass-g1's frame cost: while set, each draw waits for the GPU's work before and after itself and reports its
     // first piece's size and how long the draw took, the GPU's part included. Called on the render thread.
     internal static volatile Action<Size, TimeSpan>? FrameCostForTests;
+
+    // Test-only (InternalsVisibleTo): the first-frame steps (a piece's first synchronisation, the first draw), for the native first-frame test.
+    internal static volatile Action<string>? TraceForTests;
 
     // Sent before a material leaves its parent: its handler gives up the backdrop it keeps (disposed at the next render, where the GPU context is current).
     private sealed class Released { public static readonly Released Message = new(); }
@@ -542,9 +590,30 @@ internal static class GlassMaterial
         """.Replace("EXTENT", ContinuousCorner.Extent.ToString("R", CultureInfo.InvariantCulture), StringComparison.Ordinal));
     private static readonly ConcurrentDictionary<int, Lazy<SKRuntimeEffect>> effects = new();
 
+    // OD-0108 (ED-NEW-fix-knobcache, on unit/fix-knobcache: GlassWarmup, GpuWarmup's "glass"): the programs the material draws with, for the GPU
+    // warm-up, made by the material's own builders, so a change to the shader is warmed as it is drawn. The same API as that unit's, for its merge.
+    // ED-NEW-glass-g1: one program per shape count (a container merges its pieces in one smoothUnion program), 1 to WarmShapes; the inside of a lone
+    // piece is the same program (its `interior` uniform), and so are both draws of a pixel (the `stage` uniform: DstOut, then Plus), so there are no
+    // separate inside programs to warm any more. A warm-up that mirrors the draws must draw each program twice, with BlendMode.DstOut and with
+    // BlendMode.Plus, and the blur as a Clamp image shader under the blur filter (Draw).
+    internal const int WarmShapes = 8;
+
+    internal static IReadOnlyList<SKRuntimeEffect> WarmupPrograms() => [.. Enumerable.Range(1, WarmShapes).Select(Effect)];
+
+    /// <summary>The program for <paramref name="count"/> shapes (the warm-up's), made as a draw makes it.</summary>
+    internal static SKRuntimeEffect WarmupProgram(int count) => Effect(count);
+
+    /// <summary>Raised the first time a draw asks for the program of a shape count in this process (render thread; the warm-up records it).</summary>
+    internal static event Action<int>? ShapeCountDrawn;
+    private static readonly ConcurrentDictionary<int, bool> drawnCounts = new();
+
+    /// <summary>The backdrop blur's sigma (device px) for a piece whose smaller side is <paramref name="smaller"/> pt, at <paramref name="scale"/>:
+    /// 12 pt on a panel, 15 % of the smaller side on a small lens (Draw).</summary>
+    internal static float BlurSigma(double smaller, float scale) => (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+
     private static SKRuntimeEffect Effect(int count) => effects.GetOrAdd(count, static n => new Lazy<SKRuntimeEffect>(() =>
     {
-        var source = new StringBuilder(ShaderHeader).Append("\nuniform float stage;\nuniform float interior;\n");
+        var source = new StringBuilder(ShaderHeader).Append("\nuniform float stage;\nuniform float interior;\nuniform float4 window;\n");
         for (var i = 0; i < n; i++) source.Append(CultureInfo.InvariantCulture, $$"""
 
             uniform float4 transform{{i}};
@@ -618,9 +687,11 @@ internal static class GlassMaterial
             float lens = (1.0 + exp(-LG_LOGISTIC * optics.z / optics.y)) / (1.0 + exp(LG_LOGISTIC * (dd - optics.z) / optics.y));
             lens = max(lens - LG_BENDFLOOR, 0.0) / (1.0 - LG_BENDFLOOR);
             float disp = optics.x * lens + optics.w * max(exp(-0.8 * dd) - LG_RINGFLOOR, 0.0) / (1.0 - LG_RINGFLOOR);
-            half4 r = backdrop.eval(xy - n * disp);
-            half4 g = backdrop.eval(xy - n * (disp * LG_GREEN));
-            half4 b = backdrop.eval(xy - n * (disp * LG_BLUE));
+            // The reads stay inside the window's surface (`window`, half a device pixel in): past it the backdrop holds nothing, so a piece that fills its
+            // window read transparent at its edge and its outer ring came out translucent over an opaque backdrop (REVIEW_GlassWindowEdgeTests).
+            half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
+            half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
+            half4 b = backdrop.eval(clamp(xy - n * (disp * LG_BLUE), window.xy, window.zw));
             // Each read is lifted on its own, so the fringe is the bend's (not amplified by the saturation); deep inside the three are one.
             half4 col = filmed(half3(lift(r, film.w).r, lift(g, film.w).g, lift(b, film.w).b), g.a, at, extent, film);
             if (tinted) col = over(col, half3(tint.rgb), half(tint.a));
@@ -706,6 +777,9 @@ internal static class GlassMaterial
         private IntPtr surface, context, blurredContext; // blurredContext: the GPU context the blur's own surface was made on
         private SKSizeI size, keptSize, blurredSize;
         private bool valid;
+
+        /// <summary>The window surface's size at the last Take (device pixels).</summary>
+        public SKSizeI Whole => size;
 
         public static void DisposeReleased()
         {
@@ -1079,7 +1153,7 @@ internal static class GlassMaterial
         var smaller = state.Regions.Max(r => Math.Min(r.Size.Width, r.Size.Height));
         // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
         // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
-        var radius = (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+        var radius = BlurSigma(smaller, scale);
         var reach = state.Regions.Max(r => Optics.For(r.Size).Reach * Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)));
         var spread = SpreadOf(state, output, scale, radius);
         if (reads.IsEmpty) return spread;
@@ -1093,15 +1167,9 @@ internal static class GlassMaterial
         if (under is { } taken)
         {
             using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
+            using var blurPaint = new SKPaint { ImageFilter = blur };
             using var pixels = taken.Surface.Snapshot(); // released before the next frame writes to the kept surface, so Skia copies nothing
-            // The kept pixels are extended past the window's edge by their own edge pixels (Clamp) over the whole blurred surface, so a read the
-            // bend takes past the window (up to Optics.MaxBend + MaxRing, 50 pt, beyond the blur's 3 sigma) finds the window's edge, not nothing:
-            // a piece that fills its window keeps its outer ring as opaque as what lies under it (REVIEW_GlassWindowEdgeTests). Where the edge
-            // pixels are themselves transparent (the Acrylic), the extension is transparent too.
-            using var extended = pixels.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
-                SKMatrix.CreateTranslation(taken.Area.Left - crop.Left, taken.Area.Top - crop.Top));
-            using var blurPaint = new SKPaint { Shader = extended, ImageFilter = blur };
-            blurredCanvas.DrawRect(new SKRect(0, 0, crop.Width, crop.Height), blurPaint);
+            blurredCanvas.DrawImage(pixels, taken.Area.Left - crop.Left, taken.Area.Top - crop.Top, blurPaint);
         }
         blurredCanvas.Restore();
         using var image = surface.Snapshot();
@@ -1112,7 +1180,14 @@ internal static class GlassMaterial
         using var backdrop = image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
             new SKSamplingOptions(SKFilterMode.Linear), shaderTransform);
         var effect = Effect(state.Regions.Length);
-        var uniforms = new SKRuntimeEffectUniforms(effect) { ["merge"] = (float)(2 * state.Spacing), ["stage"] = 0f, ["interior"] = 0f };
+        if (drawnCounts.TryAdd(state.Regions.Length, true)) ShapeCountDrawn?.Invoke(state.Regions.Length);
+        // The window's surface in the shader's coordinates, half a device pixel in (the bend's reads are clamped to it).
+        var surfaceRect = kept.Whole.Width > 0 && kept.Whole.Height > 0 ? new SKRect(0.5f, 0.5f, kept.Whole.Width - 0.5f, kept.Whole.Height - 0.5f) : new SKRect(-1e6f, -1e6f, 1e6f, 1e6f);
+        var windowLocal = transform.TryInvert(out var toLocal) ? toLocal.MapRect(surfaceRect) : surfaceRect;
+        var uniforms = new SKRuntimeEffectUniforms(effect)
+        {
+            ["merge"] = (float)(2 * state.Spacing), ["stage"] = 0f, ["interior"] = 0f, ["window"] = new[] { windowLocal.Left, windowLocal.Top, windowLocal.Right, windowLocal.Bottom },
+        };
         for (var i = 0; i < state.Regions.Length; i++)
         {
             var r = state.Regions[i];
