@@ -29,6 +29,9 @@ public sealed class VoiceStateColumn : Grid
     /// <summary>The `Download` capsule.</summary>
     public CzCapsuleButton DownloadButton { get; }
 
+    /// <summary>The trash beside `Use` that removes an installed model (Q-V-13 B); it is part of the `Use` face.</summary>
+    public VoiceTrashButton Trash { get; }
+
     /// <summary>The cross that cancels a download.</summary>
     public VoiceCancelButton CancelButton { get; }
 
@@ -58,8 +61,10 @@ public sealed class VoiceStateColumn : Grid
         CancelButton = new VoiceCancelButton();
         var progress = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { percent, CancelButton } };
         UseButton = new CzCapsuleButton("Use");
+        Trash = new VoiceTrashButton { VerticalAlignment = VerticalAlignment.Center };
+        var installed = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { Trash, UseButton } };
         DownloadButton = new CzCapsuleButton("Download");
-        Control[] contents = [inUse, progress, UseButton, DownloadButton];
+        Control[] contents = [inUse, progress, installed, DownloadButton];
         faces = new Panel[contents.Length];
         fades = new CzNumber[contents.Length];
         scales = new CzNumber[contents.Length];

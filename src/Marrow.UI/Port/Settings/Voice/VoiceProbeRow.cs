@@ -104,7 +104,7 @@ public sealed class VoiceProbeRow : Grid
         check.SetChecked(value);
     }
 
-    /// <summary>The row as it was before any check: dim, low, nothing shown. No transition: the list it sits in is folded away when this is called.</summary>
+    /// <summary>The row as it was before any check: dim, low, nothing shown. Without a transition (a fresh start); not used by the card, which lets values and checks fade out.</summary>
     public void Reset()
     {
         on = busy = done = false;

@@ -4,14 +4,26 @@ using Marrow.Services.Port.Voice.Models;
 
 namespace Marrow.App.Port.Voice;
 
-/// <summary><see cref="ISpeechModelBackend"/> over VT-7's store and downloader, which the app's start-up composition builds on the data root.</summary>
-internal sealed class StoreSpeechModelBackend(ModelStore store, ModelDownloader downloader) : ISpeechModelBackend
+/// <summary>
+/// <see cref="ISpeechModelBackend"/> over VT-7's store and downloader. The pair is made on first use (the start-up composition builds the backend and opens no folder), and the downloader is
+/// the one the store's files go through, so a finished download is recorded in the store the list reads.
+/// </summary>
+internal sealed class StoreSpeechModelBackend : ISpeechModelBackend
 {
-    public ModelInstallState State(ModelFile file) => store.State(file);
+    private readonly Lazy<(ModelStore Store, ModelDownloader Downloader)> parts;
 
-    public long InstalledBytes => store.InstalledBytes;
+    public StoreSpeechModelBackend(Func<(ModelStore Store, ModelDownloader Downloader)> make) =>
+        parts = new Lazy<(ModelStore, ModelDownloader)>(make, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    public ISpeechModelDownload Download(ModelFile file) => new ModelDownloadHandle(downloader.Start(file));
+    public StoreSpeechModelBackend(ModelStore store, ModelDownloader downloader) : this(() => (store, downloader))
+    {
+    }
 
-    public ModelRemoveResult Remove(ModelFile file) => store.Remove(file);
+    public ModelInstallState State(ModelFile file) => parts.Value.Store.State(file);
+
+    public long InstalledBytes => parts.Value.Store.InstalledBytes;
+
+    public ISpeechModelDownload Download(ModelFile file) => new ModelDownloadHandle(parts.Value.Downloader.Start(file));
+
+    public ModelRemoveResult Remove(ModelFile file) => parts.Value.Store.Remove(file);
 }

@@ -1,4 +1,4 @@
-// PORT-ONLY, first-release VT-13 (voice-SPEC V-16.3.1, V-16.3.5; OD-0099 Q-V-19 B, Q-CZ-1 A; no chrome accessory): the Voice typing Settings page, page A: the Voice typing section
+// PORT-ONLY, first-release VT-13 and VT-14 (voice-SPEC V-16.3.1, V-16.3.5; OD-0099 Q-V-19 B, Q-CZ-1 A; no chrome accessory): the Voice typing Settings page, page A: the Voice typing section
 // (Engine, the OpenAI key row, Language, Microphone, the Customization link) and the privacy line. Page B (the Speech model section) is VT-14's and goes into <see cref="Sections"/>
 // between the two; the key row's field and storing are VT-16's. The page is hidden from the sidebar, from search and from SettingsNavigation until IsReady is true (SA-1's pattern,
 // voice-SPEC V-2.6's VoiceFeature.Enabled); VT-13 sets it. Tracked as incomplete in porting/STATE.md.
@@ -28,10 +28,14 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
     private const string CloudId = "cloud";
     private const string LocalId = "local";
 
-    private readonly StackPanel root = new() { Spacing = Chrome.SectionSpacing };
+    // The sections sit Chrome.SectionSpacing apart, but each spacing belongs to the section it precedes (the Speech model fold carries its own, and the privacy line its margin), so that a folded-away
+    // section leaves no gap behind it (VT-14).
+    private readonly StackPanel root = new() { Spacing = 0 };
     private AppSettings? settings;
     private ICaptureHost? captureHost;
     private IDisposable? deviceWatch;
+    private SpeechModelController? speech;
+    private bool speechWatched;
     private bool built;
     private bool refreshing;
 
@@ -39,8 +43,8 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
     {
         Child = root;
         this.Track(() => AppEnvironment.GetAppModel(this), model => Build(model.Settings));
-        AttachedToVisualTree += (_, _) => WatchDevices();
-        DetachedFromVisualTree += (_, _) => StopWatching();
+        AttachedToVisualTree += (_, _) => { WatchDevices(); WatchSpeech(); };
+        DetachedFromVisualTree += (_, _) => { StopWatching(); StopWatchingSpeech(); };
     }
 
     /// <inheritdoc />
@@ -49,8 +53,14 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
     /// <inheritdoc />
     public IReadOnlyList<Control> ChromeAccessories { get; } = [];
 
-    /// <summary>The page's sections, top to bottom: the Voice typing section, then the privacy line. VT-14 inserts the Speech model section between them.</summary>
+    /// <summary>The page's sections, top to bottom: the Voice typing section, the Speech model section (folded away for the cloud engine), then the privacy line. Each section after the first carries its own top spacing.</summary>
     internal StackPanel Sections => root;
+
+    /// <summary>The Speech model section (VT-14): the hardware card and the model list.</summary>
+    internal SpeechModelSection SpeechModel { get; private set; } = null!;
+
+    /// <summary>The fold that takes the Speech model section away for the cloud engine (V-16.3.2).</summary>
+    internal CzFoldRow SpeechFold { get; private set; } = null!;
 
     internal VoiceSettingsRow EngineRow { get; private set; } = null!;
     internal CzSegmentedControl EngineControl { get; private set; } = null!;
@@ -116,11 +126,35 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
         section.Track(() => (store.VoiceTyping, store.VoiceOrb.LangMode), _ => Refresh());
         root.Children.Add(section);
 
+        // Speech model (V-16.3.2): folds away for the cloud engine; its own top spacing folds with it.
+        speech = SpeechModelController.For(store);
+        SpeechModel = new SpeechModelSection(store, speech);
+        SpeechFold = new CzFoldRow(new Border { Padding = new Thickness(0, Chrome.SectionSpacing, 0, 0), Child = SpeechModel }, !cloud);
+        root.Children.Add(SpeechFold);
+        SpeechFold.Track(() => store.VoiceHardware, _ => SpeechModel.Refresh());
+
         // Privacy line (V-16.3.5): 12 / 17, secondary; the design's .czpriv padding 4 4 0.
-        PrivacyLine = new CzCrossfadeText(cloud ? VoiceTypingText.PrivacyCloud : VoiceTypingText.PrivacyLocal) { Wrap = true, Secondary = true, FontSize = 12, Margin = new Thickness(4, 4, 4, 0) };
+        PrivacyLine = new CzCrossfadeText(cloud ? VoiceTypingText.PrivacyCloud : VoiceTypingText.PrivacyLocal) { Wrap = true, Secondary = true, FontSize = 12, Margin = new Thickness(4, Chrome.SectionSpacing + 4, 4, 0) };
         PrivacyLine.SetValue(SwiftFont.LineBoxProperty, 17.0);
         root.Children.Add(PrivacyLine);
         WatchDevices();
+        WatchSpeech();
+    }
+
+    // The Speech model section follows its controller (the probe, the downloads and the answers tell it from any thread, on the UI thread).
+    private void WatchSpeech()
+    {
+        if (!built || speechWatched || speech is null) return;
+        speechWatched = true;
+        speech.Changed += SpeechModel.Refresh;
+        SpeechModel.Refresh();
+    }
+
+    private void StopWatchingSpeech()
+    {
+        if (!speechWatched || speech is null) return;
+        speechWatched = false;
+        speech.Changed -= SpeechModel.Refresh;
     }
 
     // Stores a change of voiceTyping and shows it at once (the tracked read would follow on the next turn of the loop).
@@ -144,6 +178,8 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
             EngineControl.Select(cloud ? CloudId : LocalId);
             EngineRow.SetDetail(cloud ? VoiceTypingText.EngineCloudDetail : VoiceTypingText.EngineLocalDetail);
             KeyFold.Open = cloud;
+            SpeechFold.Open = !cloud;
+            SpeechModel.Refresh();
             PrivacyLine.SetText(cloud ? VoiceTypingText.PrivacyCloud : VoiceTypingText.PrivacyLocal);
             var language = VoiceLanguageRow.For(typing.Lang, settings.VoiceOrb.LangMode, WindowsDisplayLanguage.Current());
             LanguageMenu.SetOptions(VoiceLanguageRow.MenuItems, language.CheckedCode, language.ButtonText);
@@ -156,7 +192,8 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
     private void RefreshMicrophone()
     {
         if (settings is null || captureHost is null) return;
-        var state = MicrophoneRowState.Of(captureHost, settings.VoiceTyping.Mic);
+        // A listing that fails (the audio service stopped) keeps the list the page has, and throws nothing into the device-watch callback (review of VT-13).
+        if (!MicrophoneRowState.TryOf(captureHost, settings.VoiceTyping.Mic, out var state)) return;
         MicrophoneMenu.SetOptions(state.MenuOptions, state.SelectedId);
     }
 

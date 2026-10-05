@@ -7,7 +7,7 @@ namespace Marrow.UI.Port.Settings;
 
 /// <summary>
 /// Q-V-13 B: "an installed model (not the one in use) can be removed from a trash icon shown on hover at the row's end, confirmed by a second click". The trash is there to be
-/// found by the pointer or the keyboard only while the row is hovered or focused (<see cref="SetRevealed"/>: opacity 0.15 s ease; hidden it takes no pointer and no focus). The
+/// seen only while the row is hovered or the trash has the focus (<see cref="SetRevealed"/>: opacity 0.15 s ease; hidden it takes no pointer, but the keyboard still reaches it, and focusing it shows it). The
 /// first click ARMS it (ENGINEERING DECISION: the fill and the glyph move to the system error colour over 0.12 s, the name says it asks for the second click, and the icon stays
 /// where it is); the second click raises <see cref="Confirmed"/>. Leaving the row, or losing the hover and the focus, disarms it. There is no timer: nothing here waits on a clock.
 /// </summary>
@@ -23,7 +23,6 @@ public sealed class VoiceTrashButton : VoiceGlyphButton
         reveal = new CzNumber(Motion, 0, v => Opacity = v);
         Opacity = 0;
         IsHitTestVisible = false;
-        Focusable = false;
         Invoked += OnInvoked;
     }
 
@@ -50,7 +49,6 @@ public sealed class VoiceTrashButton : VoiceGlyphButton
         if (revealed == value) return;
         revealed = value;
         IsHitTestVisible = value;
-        Focusable = value;
         reveal.To(value ? 1 : 0, CzMotion.Ease(.15));
         if (!value) Disarm();
     }

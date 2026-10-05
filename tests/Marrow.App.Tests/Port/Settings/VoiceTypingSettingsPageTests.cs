@@ -66,7 +66,7 @@ public sealed class VoiceTypingSettingsPageTests(HeadlessSession headless)
     [Trait("Decision", "ED-267")] // V-16.3.1: the rows are in the design's order, the Microphone row (Q-V-19 B) after Language and before the Customization link
     public void The_rows_are_in_order_with_the_Microphone_row_after_Language() => VoiceTypingPageRig.Run(headless, scene =>
     {
-        var order = LogicalQuery.SelfAndDescendants<VoiceSettingsRow>(scene.Page).Select(row => row.TitleText).ToArray();
+        var order = LogicalQuery.SelfAndDescendants<VoiceSettingsRow>(scene.Page.Sections.Children[0]).Select(row => row.TitleText).ToArray(); // the Voice typing section; VT-14's Speech model section follows it
         Assert.Equal(["Engine", "OpenAI key", "Language", "Microphone", "Orb and after voice input"], order);
     }, VoiceTypingPageRig.TwoMicrophones());
 
@@ -304,6 +304,37 @@ public sealed class VoiceTypingSettingsPageTests(HeadlessSession headless)
         Assert.Equal("Headset (USB)", scene.Page.MicrophoneMenu.ValueLabel.Text);
         Assert.Empty(host.OpenRequests);
     }, VoiceTypingPageRig.TwoMicrophones());
+
+    [Fact]
+    [Trait("Spec", "V-T42")]
+    [Trait("Decision", "ED-267")] // review of VT-13: an enumerator that lists an id twice, or lists an empty one, must not fail the page build (CzMenuButton needs unique ids)
+    public void An_enumerator_that_repeats_or_blanks_an_id_does_not_break_the_page() => VoiceTypingPageRig.Run(headless, scene =>
+    {
+        Assert.Equal(["Windows default", "Headset (USB)"], scene.Page.MicrophoneMenu.Items.Select(i => i.Label.Text));
+        ((ScriptedCaptureHost)scene.Host).Add(VoiceTypingPageRig.Usb, "Headset (USB) again");
+        VoiceTypingScene.Sync();
+        scene.Advance(600);
+        Assert.Equal(["Windows default", "Headset (USB)"], scene.Page.MicrophoneMenu.Items.Select(i => i.Label.Text));
+    }, new ScriptedCaptureHost((VoiceTypingPageRig.Usb, "Headset (USB)"), (VoiceTypingPageRig.Usb, "Headset (USB) again"), ("", "Nameless")));
+
+    [Fact]
+    [Trait("Spec", "V-T42")]
+    [Trait("Decision", "ED-267")] // review of VT-13: a device-watch refresh whose listing throws keeps the list the page has and throws nothing
+    public void A_refresh_that_cannot_list_keeps_the_last_list() => VoiceTypingPageRig.Run(headless, scene =>
+    {
+        var host = (FlakyCaptureHost)scene.Host;
+        Assert.Equal(3, scene.Page.MicrophoneMenu.Items.Count);
+        host.Failing = true;
+        host.Inner.Add("{ccc}", "Webcam");
+        VoiceTypingScene.Sync();
+        scene.Advance(600);
+        Assert.Equal(["Windows default", "Microphone Array (Realtek)", "Headset (USB)"], scene.Page.MicrophoneMenu.Items.Select(i => i.Label.Text));
+        host.Failing = false;
+        host.Inner.Add("{ddd}", "Line in");
+        VoiceTypingScene.Sync();
+        scene.Advance(600);
+        Assert.Equal(5, scene.Page.MicrophoneMenu.Items.Count);
+    }, new FlakyCaptureHost(VoiceTypingPageRig.TwoMicrophones()));
 
     [Fact]
     [Trait("Spec", "V-T42")]
