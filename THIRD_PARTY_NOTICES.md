@@ -73,6 +73,75 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Liquid glass material
+
+The app's drawn glass (`src/Marrow.UI/Port/GlassMaterial.cs`, owner decision OD-0107 and its amendment; ED-356) carries
+techniques and values from the two works below, re-implemented in one SkSL shader. From liquid-glass: the displacement map's
+profile (a full bend at the edge falling off as the complement of a blurred, inset neutral centre; `buildDisplacementMap`) and its
+chromatic aberration (per-channel displacement scales 0 / 10 / 20 on 180), and the backdrop saturation. From liquid-glass-js: the
+rim ring (`rimIntensity * exp(-rimDistance * d)` with rimDistance 0.8), the white-to-grey tint gradient (topTint 1.0, bottomTint
+0.7, tintOpacity 0.2; the port fits its strength and ramp to the macOS reference frames) and its soft shadow, drawn here as a contact
+line. No code is copied verbatim; the shapes, the blur and the compositing are the port's own.
+
+### liquid-glass (Riz Roze)
+
+- Source: https://github.com/rizzytoday/liquid-glass, commit 841af14fb3eb9653d24aacf4eb049c9f389db1ef (`core/liquid-glass.ts`)
+- License: MIT
+
+```
+MIT License
+
+Copyright (c) 2026 Riz Roze
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### liquid-glass-js (Armagan Amcalar)
+
+- Source: https://github.com/dashersw/liquid-glass-js, commit 78cb6ccb0b9987bb60a88b14ccbd13a9e6e8ab2a (`container.js`, `button.js`,
+  `glass.css`)
+- License: MIT
+
+```
+MIT License
+
+Copyright (c) 2025 Armagan Amcalar
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Liquid Orb Editor (LerSent001)
 
 The effort slider's knob (`src/Marrow.App/Views/Composer/JewelOrb.cs`, OD-0090) carries code ported from Liquid Orb Editor,
