@@ -2,6 +2,7 @@ using System.Text.Json;
 using Marrow.Core.Accounts;
 using Marrow.Core.Accounts.Pills;
 using Marrow.Core.Models;
+using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Accounts.Pills;
 
@@ -19,6 +20,7 @@ public sealed class PillRelayTests
     [Trait("Rule", "R-TEST-4")]
     public void The_pill_and_step_ride_on_the_thread_through_its_json()
     {
+        using var runtime = new TestRuntime(); // ChatThread reads UserDefaults
         var pillId = Guid.NewGuid();
         var thread = Thread().WithPillRelay(new PillThreadState(pillId, 2, "x1"));
         var json = JsonSerializer.Serialize(thread, Marrow.Core.Support.Coding.StorageOptions);
@@ -33,6 +35,7 @@ public sealed class PillRelayTests
     [Trait("Rule", "R-TEST-4")]
     public void A_thread_with_no_pill_writes_no_pill_keys_and_an_old_thread_reads_as_having_none()
     {
+        using var runtime = new TestRuntime(); // ChatThread reads UserDefaults
         var thread = Thread();
         var json = JsonSerializer.Serialize(thread, Marrow.Core.Support.Coding.StorageOptions);
         Assert.DoesNotContain("pill", json, StringComparison.OrdinalIgnoreCase);
@@ -47,6 +50,7 @@ public sealed class PillRelayTests
     [Trait("Rule", "R-TEST-4")]
     public void Pill_fields_that_cannot_be_read_mean_no_relay_and_a_partial_set_is_no_relay()
     {
+        using var runtime = new TestRuntime(); // ChatThread reads UserDefaults
         var thread = Thread();
         var json = JsonSerializer.Serialize(thread, Marrow.Core.Support.Coding.StorageOptions);
         var broken = json[..^1] + ",\"pillID\":\"not a guid\",\"pillStepIndex\":\"two\",\"pillStepAccountID\":\"x1\"}";

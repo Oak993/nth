@@ -15,6 +15,7 @@ public sealed class PillRestartHandshakeTests
     [Trait("Rule", "R-TEST-4")]
     public async Task After_a_restart_the_thread_continues_its_relay_from_the_stored_step()
     {
+        using var runtime = new TestRuntime(); // ChatThread reads UserDefaults
         // First run: a pill c1 -> c2 -> x1; the thread has moved on to step 1 and its state is saved.
         var settings = new InMemorySettingsStore();
         var store = new PillStore(new PillStorage(settings));

@@ -23,5 +23,20 @@ public sealed record PillResume(Pill? Pill, int? StepIndex, PillResumeReason Rea
 public static class PillRelayResolver
 {
     /// <summary>Where a restarted thread continues in its relay.</summary>
-    public static PillResume Resolve(IReadOnlyList<Pill> pills, PillThreadState saved) => throw new NotImplementedException();
+    public static PillResume Resolve(IReadOnlyList<Pill> pills, PillThreadState saved)
+    {
+        if (pills.FirstOrDefault(p => p.Id == saved.PillId) is not { } pill) return new PillResume(null, null, PillResumeReason.PillGone);
+        if (pill.Steps.Count == 0) return new PillResume(pill, null, PillResumeReason.Empty);
+        if (saved.StepIndex >= 0 && saved.StepIndex < pill.Steps.Count && pill.Steps[saved.StepIndex].AccountId == saved.AccountId)
+            return new PillResume(pill, saved.StepIndex, PillResumeReason.Exact);
+
+        var same = Enumerable.Range(0, pill.Steps.Count).Where(i => pill.Steps[i].AccountId == saved.AccountId).ToList();
+        if (same.Count > 0)
+        {
+            // The nearest to where it was; a tie goes to the later step.
+            var nearest = same.OrderBy(i => Math.Abs(i - saved.StepIndex)).ThenByDescending(i => i).First();
+            return new PillResume(pill, nearest, PillResumeReason.Moved);
+        }
+        return new PillResume(pill, Math.Clamp(saved.StepIndex, 0, pill.Steps.Count - 1), PillResumeReason.Replaced);
+    }
 }

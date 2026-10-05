@@ -432,7 +432,7 @@ public sealed class HandshakeMachine(
     private AccountInfo? Find(string id) => store.Accounts.FirstOrDefault(a => a.Id == id);
 
     private (PillStep Step, int Index)? CurrentStep() =>
-        host.Pill is { } pill && host.StepIndex is { } i && i >= 0 && i < pill.Steps.Count ? (pill.Steps[i], i) : null;
+        host.Pill is { } pill && host.StepIndex is { } i && i >= 0 && i < pill.Steps.Count ? (pill.Effective(i), i) : null; // MA-7: a pill's same-for-every point replaces the step's own
 
     private void CancelLinking()
     {
