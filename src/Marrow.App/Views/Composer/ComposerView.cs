@@ -11,15 +11,20 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
+using Marrow.App.Port.Voice;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Diff;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Usage;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Voice;
+using Marrow.Core.Port.Voice.Transcript;
 using Marrow.Core.Support;
 using Marrow.Services.Git;
 using Marrow.Services.Providers;
@@ -380,6 +385,23 @@ public sealed class ComposerView : Decorator
     private int? historyIndex; // :130
     private readonly FileIndex fileIndex = new(); // :132
     private ComposerControls? controls;
+    private readonly Border padded;
+    private readonly Grid root;
+    // the attachment button's place, four easings of one 0 (inside) to 1 (outside) choice (CZ-14.1): the pill's width 0.42 s, the text's inset 0.34 s, the buttons' fade 0.28 s
+    // and their scale 0.34 s
+    private readonly AnimatedScalar widthPlace;
+    private readonly AnimatedScalar insetPlace;
+    private readonly AnimatedScalar fadePlace;
+    private readonly AnimatedScalar scalePlace;
+    private readonly Canvas outsideHost = new() { ClipToBounds = false };
+    private readonly ComposerVoiceController? voice;
+    private ComposerAttachButton? insideAttach;
+    private ComposerAttachButton? outsideAttach;
+    private Grid? layers;
+    private bool attachShown;
+    private VoiceNoteContent? shownNote;
+    private bool noteInField;
+    private TopLevel? escapeWatch;
     private (ChatThread Thread, bool RecentDownloadsPicker, bool GoesToHead, bool QueueGoesToHead, ProviderKind? HeadsProvider)? drawnControls;
 
     // :190-215 the .onChange observers, alive while the pill is on screen.
@@ -438,13 +460,27 @@ public sealed class ComposerView : Decorator
         row.Children.Add(textColumn);
 
         // :176-178
-        var padded = new Border { Child = row, Padding = new Thickness(14, 8, 8, 8) };
+        padded = new Border { Child = row, Padding = new Thickness(14, 8, 8, 8) };
         // :179-185 While a turn runs, accent dots flow along the pill's bottom two-fifths, behind the text.
-        var layers = new Grid();
+        layers = new Grid();
         layers.Children.Add(new ComposerWorkingDotsSlot(runtime));
         layers.Children.Add(padded);
         // :186 .modifier(ComposerSurface())
-        Child = new ComposerSurface().Body(layers);
+        // PORT-ONLY, owner-ruled (OD-0091, voice-SPEC V-14.1): the attachment button sits at the pill's left, inside it or in the margin the pill gives up for it, so the
+        // pill hangs in a grid that lets the margin button overflow to its left.
+        root = new Grid { ClipToBounds = false };
+        root.Children.Add(new ComposerSurface().Body(layers));
+        Child = root;
+        root.Children.Add(outsideHost); // the margin button hangs to the left of the pill: a canvas, because a negative margin would make its box wider than the button
+        widthPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+        insetPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+        fadePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+        scalePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+        if (VoiceFeature.Enabled)
+        {
+            voice = new ComposerVoiceController(new ComposerVoiceHost(() => Model.Settings, DraftSelection, ReplaceDraft, Send));
+            root.Children.Add(new VoiceAnnouncer(voice) { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top });
+        }
         // :187-189 .geometryGroup(): the pill's width glides as the panels take or give room, and the text view and the
         // controls move as one with the glass. The port animates no frame of its own on a width change, so the row's
         // children are laid out with the pill in the same pass.
@@ -455,6 +491,18 @@ public sealed class ComposerView : Decorator
             inputs => textColumn.Update(inputs.Placeholder, inputs.Notice));
         // :160-174
         this.Track(ControlInputs, ShowControls);
+        // PORT-ONLY (voice-SPEC V-14.1): the attachment button's place follows voiceOrb.attach, and the change is eased (OD-0076).
+        var placed = false; // the first showing is the setting as it is: no motion
+        this.Track(() => Model.Settings.VoiceOrb.Attachment, attachment =>
+        {
+            var target = attachment == VoiceAttachment.Outside ? 1 : 0;
+            widthPlace.Set(target, placed ? LookCurve.Ez(0.42) : null);
+            insetPlace.Set(target, placed ? LookCurve.Ez(0.34) : null);
+            fadePlace.Set(target, placed ? LookCurve.Ease(0.28) : null);
+            scalePlace.Set(target, placed ? LookCurve.Ez(0.34) : null);
+            placed = true;
+        });
+        if (voice is not null) StartVoiceViews(voice);
 
         // :190-203, :205-215 the list's show and hide, and the observers of the commands, their errors and the list's
         // visibility, alive while the pill is on screen.
@@ -472,6 +520,7 @@ public sealed class ComposerView : Decorator
             else
             {
                 controller.HideSuggestions();
+                voice?.ComposerLeaving(); // V-14.7: the chat column going behind another is the composer leaving
             }
         };
         // :204 .task(id: commandKey) { await loadCommands() }
@@ -527,6 +576,9 @@ public sealed class ComposerView : Decorator
         foreach (var observer in observers) observer.Dispose();
         observers.Clear();
         controller.HideSuggestions(); // :197
+        // PORT-ONLY (voice-SPEC V-14.7): a composer leaving the screen stops a running session as a second click would; its text lands in the draft and is never sent.
+        voice?.ComposerLeaving();
+        WatchEscape(false);
     }
 
     // :205 model.providers.commands[commandKey]
@@ -553,24 +605,26 @@ public sealed class ComposerView : Decorator
         // draws them again.
         if (controls is { } drawn && inputs is { } update)
         {
-            drawn.Update(update.Thread, update.RecentDownloadsPicker, update.GoesToHead, update.QueueGoesToHead, update.HeadsProvider);
+            drawn.Update(update.Thread, update.GoesToHead, update.QueueGoesToHead, update.HeadsProvider);
+            SetRecentDownloadsPicker(update.RecentDownloadsPicker);
             return;
         }
         if (controls is { } previous) row.Children.Remove(previous);
         controls = null;
-        if (inputs is not { } value) return; // :160 no resolved thread: no controls at all
+        if (inputs is not { } value)
+        {
+            ShowAttach(false); // :160 no resolved thread: no controls at all, and the attachment button was one of them
+            return;
+        }
         var made = new ComposerControls(
             runtime,
             value.Thread,
             compact: compactModelChip,
-            recentDownloadsPicker: value.RecentDownloadsPicker,
             goesToHead: value.GoesToHead,
             queueGoesToHead: value.QueueGoesToHead,
             headsProvider: value.HeadsProvider,
-            showingRecents: new Binding<bool>(() => state.ShowingRecents, shown => state.ShowingRecents = shown),
-            onAttach: paths => Attach(paths.Select(path => (AttachmentSource)new AttachmentSource.File(path)).ToList()),
-            onChooseFiles: ChooseFiles,
-            onSend: Send)
+            onSend: Send,
+            voice: voice)
         {
             Margin = new Thickness(8, 0, 0, 0), // :145 spacing: 8
             VerticalAlignment = VerticalAlignment.Bottom,
@@ -578,6 +632,169 @@ public sealed class ComposerView : Decorator
         Grid.SetColumn(made, 1);
         row.Children.Add(made);
         controls = made;
+        MakeAttachButtons(value.RecentDownloadsPicker);
+        ShowAttach(true);
+    }
+
+    // ---- the attachment button at the pill's left (voice-SPEC V-14.1; owner-ruled, OD-0091 and OD-0086) ----
+
+    // The width the pill gives up for the button outside it: the 36 point circle and 8 to the pill.
+    private const double OutsideAttachWidth = 44;
+
+    // The text starts 14 in from the pill's edge; the button inside it takes 34 and 6 more.
+    private const double InsideAttachInset = 34;
+
+    private void MakeAttachButtons(bool recentDownloadsPicker)
+    {
+        if (insideAttach is not null)
+        {
+            SetRecentDownloadsPicker(recentDownloadsPicker);
+            return;
+        }
+        var showingRecents = new Binding<bool>(() => state.ShowingRecents, shown => state.ShowingRecents = shown);
+        Action<IReadOnlyList<string>> onAttach = paths => Attach(paths.Select(path => (AttachmentSource)new AttachmentSource.File(path)).ToList());
+        insideAttach = new ComposerAttachButton(ComposerAttachPlace.Inside, recentDownloadsPicker, showingRecents, onAttach, ChooseFiles)
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Margin = new Thickness(8, 0, 0, 8), // 8 from the left, on the controls row's bottom line (the pill pads 8)
+        };
+        outsideAttach = new ComposerAttachButton(ComposerAttachPlace.Outside, recentDownloadsPicker, showingRecents, onAttach, ChooseFiles);
+        // in the margin the pill gave up, centred on the last line of a one-line pill: 22 up from its foot, so 4 clear of the 36 point circle's own
+        Canvas.SetLeft(outsideAttach, -OutsideAttachWidth);
+        Canvas.SetBottom(outsideAttach, 4);
+    }
+
+    private void SetRecentDownloadsPicker(bool recentDownloadsPicker)
+    {
+        if (insideAttach is not null) insideAttach.RecentDownloadsPicker = recentDownloadsPicker;
+        if (outsideAttach is not null) outsideAttach.RecentDownloadsPicker = recentDownloadsPicker;
+    }
+
+    // :160 the button is one of the controls: it is there when they are.
+    private void ShowAttach(bool shown)
+    {
+        attachShown = shown;
+        ApplyAttachPlace();
+    }
+
+    // 0 is inside the pill, 1 outside it; between, the two buttons cross over (the design's .attach.in and .attach.out: opacity and a scale from 0.6), the pill's
+    // width and the text's inset ease between their two values. A button nobody sees is not in the tree, so Named(view, "Attach files") finds the one that shows.
+    private void ApplyAttachPlace()
+    {
+        var shown = attachShown && insideAttach is not null && outsideAttach is not null;
+        Margin = new Thickness(shown ? OutsideAttachWidth * widthPlace.Value : 0, Margin.Top, Margin.Right, Margin.Bottom);
+        padded.Padding = new Thickness(14 + (shown ? InsideAttachInset * (1 - insetPlace.Value) : 0), 8, 8, 8);
+        if (!shown)
+        {
+            if (insideAttach is not null) layers!.Children.Remove(insideAttach);
+            if (outsideAttach is not null) outsideHost.Children.Remove(outsideAttach);
+            return;
+        }
+        var inside = insideAttach!;
+        var outside = outsideAttach!;
+        var fade = fadePlace.Value;
+        var scale = scalePlace.Value;
+        // the inside button stays until all four have reached the outside; the outside one is there from the first step out until all four are back inside
+        var insideHere = widthPlace.Value < 1 || insetPlace.Value < 1 || fade < 1 || scale < 1;
+        var outsideHere = widthPlace.Value > 0 || insetPlace.Value > 0 || fade > 0 || scale > 0;
+        if (insideHere)
+        {
+            if (!layers!.Children.Contains(inside)) layers.Children.Add(inside);
+            inside.Show(1 - fade, 1 - scale);
+        }
+        else layers!.Children.Remove(inside);
+        if (outsideHere)
+        {
+            if (!outsideHost.Children.Contains(outside)) outsideHost.Children.Add(outside);
+            outside.Show(fade, scale);
+        }
+        else outsideHost.Children.Remove(outside);
+    }
+
+    // ---- the voice views (voice-SPEC V-14.3, V-14.4, V-14.6, V-8.5) ----
+
+    // Esc while voice input is live cancels it and is consumed, whatever has the keyboard in this window; the editor takes no typing meanwhile; a note shows in the field
+    // or the notice line; the composer leaving stops the session.
+    private void StartVoiceViews(ComposerVoiceController voiceController)
+    {
+        this.Track(() => voiceController.IsLive, live =>
+        {
+            WatchEscape(live);
+            ApplyDictating();
+        });
+        // PORT-ONLY (voice-SPEC V-8.3, VT-11): the dictation layer follows the session; the editor is read-only while the session is live and while the layer still draws
+        var layer = textColumn.Dictation;
+        layer.ActiveChanged += ApplyDictating;
+        voiceController.DictationBegan += layer.Begin;
+        voiceController.Transcript += layer.Apply;
+        voiceController.DictationAbandoned += layer.Abandon;
+        this.Track(() => (voiceController.Note, runtime.Draft.Text.Length == 0), now =>
+        {
+            if (!ReferenceEquals(now.Note, shownNote))
+            {
+                shownNote = now.Note;
+                noteInField = now.Item2; // the field when the draft is empty as the note arrives; with text in it, the notice line (never hide the user's text)
+            }
+            textColumn.SetVoiceNote(now.Note, noteInField, fieldVisible: now.Item2);
+        });
+    }
+
+    private void ApplyDictating()
+    {
+        if (controller.TextViewInstance is { } box) box.Dictating = voice is { IsLive: true } || textColumn.Dictation.IsActive;
+    }
+
+    private void WatchEscape(bool live)
+    {
+        if (live && escapeWatch is null && TopLevel.GetTopLevel(this) is { } top)
+        {
+            escapeWatch = top;
+            top.AddHandler(InputElement.KeyDownEvent, OnVoiceKey, RoutingStrategies.Tunnel);
+        }
+        else if (!live && escapeWatch is { } watched)
+        {
+            watched.RemoveHandler(InputElement.KeyDownEvent, OnVoiceKey);
+            escapeWatch = null;
+        }
+    }
+
+    private void OnVoiceKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Handled || e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None || voice is not { IsLive: true } active) return;
+        // V-14.4 "otherwise Esc keeps its existing meaning": a sheet or popover opened after the session went live is the keyboard's first (as an NSWindow's sheet or an NSPopover is a
+        // key window of its own); this handler was added when the session went live, so it runs before theirs and has to ask
+        if (sender is TopLevel top && (SheetKeyboard.IsTaken(top) || WindowTransients.Newest(top) is not null)) return;
+        active.Cancel();
+        e.Handled = true;
+    }
+
+    // The draft as the voice controller needs it: the text and the editor's selection (a caret at the end when the editor is not on screen).
+    private DraftSelection DraftSelection()
+    {
+        if (controller.TextViewInstance is { LiveText: not null } drawing)
+        {
+            // a dictation is drawing the words: the draft the session began with is the editor's own text and selection
+            var first = Math.Min(drawing.SelectionStart, drawing.SelectionEnd);
+            return new DraftSelection(drawing.Text ?? "", first, Math.Abs(drawing.SelectionEnd - drawing.SelectionStart));
+        }
+        var text = runtime.Draft.Text;
+        if (controller.TextViewInstance is not { } box || (box.Text ?? "") != text) return new DraftSelection(text, text.Length, 0);
+        var start = Math.Min(box.SelectionStart, box.SelectionEnd);
+        return new DraftSelection(text, start, Math.Abs(box.SelectionEnd - box.SelectionStart));
+    }
+
+    // One edit of the draft, the caret after it; the editor's own replacement keeps its undo stack (ComposerController.ReplaceCharacters).
+    private void ReplaceDraft(int start, int length, string replacement)
+    {
+        var text = runtime.Draft.Text;
+        if (controller.TextViewInstance is { } box && (box.LiveText is not null || (box.Text ?? "") == text))
+        {
+            // the words land as one edit of the editor's own text (V-8.7: one undo step); the editor stays read-only until the layer hands the picture back
+            box.RunUnlocked(() => controller.ReplaceCharacters(start, length, replacement));
+            return;
+        }
+        runtime.Draft = runtime.Draft with { Text = text[..start] + replacement + text[(start + length)..] };
     }
 
     // :228-237 Written with part 1 because the text view reports every loss of focus here (ComposerTextView.swift:280-282).
@@ -954,6 +1171,8 @@ public sealed class ComposerView : Decorator
 
     internal string? AttachmentNotice => state.AttachmentNotice;
 
+    internal ComposerVoiceController? Voice => voice;
+
     // :475-485 The built-in commands, then the provider's, ranked for the query (Provider.swift:306-323).
     private ValueList<Suggestion> CommandSuggestions(string matching)
     {
@@ -1064,6 +1283,14 @@ internal sealed class ComposerTextColumn : Decorator
     private string? attachmentNotice;
     private TextBlock? notice;
     private NoticeSlot? noticeSlot; // the notice's row: it folds open and shut, so the pill's height eases
+    // PORT-ONLY (voice-SPEC V-14.6): a voice note shows over the placeholder in the field, or in a notice row of its own when the draft holds text.
+    private readonly Panel noteHost = new() { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Top, ClipToBounds = false };
+    private FieldFade? placeholderFade;
+    private bool dictationWords;
+    private VoiceNoteLine? fieldLine;
+    private FieldFade? fieldFade;
+    private NoticeSlot? voiceSlot;
+    private VoiceNoteLine? voiceLine;
     private IFrameSource? heightFrames;
     private Action<TimeSpan>? heightFrame;
 
@@ -1148,7 +1375,16 @@ internal sealed class ComposerTextColumn : Decorator
         // :595-602 The text view itself takes its new height at once (.transaction { $0.animation = nil }), so it lays out
         // every line with nothing to scroll; only the clip around it grows and shrinks.
         clip = new Border { Child = textView, ClipToBounds = true };
-        stack.Children.Add(clip);
+        // The note layer lies over the field; only its link takes the pointer, the rest of it lets the text view have it.
+        stack.Children.Add(new Grid { Children = { clip, noteHost } });
+        placeholderFade = new FieldFade(this, true, textView.SetPlaceholderFade);
+        // PORT-ONLY (voice-SPEC V-8.2, VT-11): the draft follows the dictated words as they change, and the placeholder gives way to them
+        textView.Dictation.TextChanged += value => runtime.Draft = runtime.Draft with { Text = value };
+        textView.Dictation.HasWordsChanged += has =>
+        {
+            dictationWords = has;
+            placeholderFade!.Set(!has && fieldLine is null);
+        };
         Child = stack;
         ApplyHeight();
         this.Track(() => ComposerHeight, _ => ApplyHeight());
@@ -1156,6 +1392,9 @@ internal sealed class ComposerTextColumn : Decorator
         // elsewhere (recall, a send, a take-back) reaches the text view.
         this.Track(() => runtime.Draft.Text, _ => textView.Update(this.placeholder, this.onKey, this.onAttach));
     }
+
+    /// <summary>PORT-ONLY (voice-SPEC V-8.3, VT-11): the layer that draws live dictation over the editor.</summary>
+    internal DictationLayer Dictation => textView.Dictation;
 
     // The parent's body run again with new values for :544 placeholder and :546 attachmentNotice (R-VIEW-1).
     internal void Update(string placeholder, string? attachmentNotice)
@@ -1186,6 +1425,62 @@ internal sealed class ComposerTextColumn : Decorator
         {
             shown.Text = attachmentNotice; // the same Text with new words
         }
+    }
+
+    /// <summary>
+    /// PORT-ONLY (voice-SPEC V-14.6, OD-0076): the voice note, if any. In the field (<paramref name="inField"/> and the draft still empty, <paramref name="fieldVisible"/>)
+    /// it crossfades with the placeholder; otherwise it shows in a notice row of its own, which folds open and shut as the attachment notice's does.
+    /// </summary>
+    internal void SetVoiceNote(VoiceNoteContent? note, bool inField, bool fieldVisible)
+    {
+        ShowFieldNote(note is not null && inField && fieldVisible ? note : null);
+        ShowNoticeNote(note is not null && !inField ? note : null);
+    }
+
+    private void ShowFieldNote(VoiceNoteContent? wanted)
+    {
+        if (ReferenceEquals(wanted, fieldLine?.Content)) return;
+        if (fieldLine is { } leaving && fieldFade is { } leavingFade)
+        {
+            leavingFade.Set(false);
+            MainActor.AsyncAfter(TimeSpan.FromSeconds(0.3), () => noteHost.Children.Remove(leaving)); // gone once it has faded
+            fieldLine = null;
+            fieldFade = null;
+        }
+        if (wanted is null)
+        {
+            placeholderFade!.Set(!dictationWords);
+            return;
+        }
+        var line = new VoiceNoteLine(wanted, VoiceNotePlace.Field) { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0) };
+        var fade = new FieldFade(line, false, (opacity, rise) =>
+        {
+            line.Opacity = opacity;
+            line.SetRise(rise);
+        });
+        noteHost.Children.Add(line);
+        fieldLine = line;
+        fieldFade = fade;
+        fade.Set(true);
+        placeholderFade!.Set(false);
+    }
+
+    private void ShowNoticeNote(VoiceNoteContent? wanted)
+    {
+        if (ReferenceEquals(wanted, voiceLine?.Content)) return;
+        if (voiceSlot is { } slot && voiceLine is { } gone)
+        {
+            slot.Leave(gone, () => stack.Children.Remove(slot));
+            voiceSlot = null;
+            voiceLine = null;
+        }
+        if (wanted is null) return;
+        var line = new VoiceNoteLine(wanted, VoiceNotePlace.Notice) { HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6) };
+        var row = new NoticeSlot();
+        stack.Children.Insert(2, row); // after the chips and the attachments, before the text
+        row.Arrive(line.Transition(SwiftTransition.SoftAppear));
+        voiceSlot = row;
+        voiceLine = line;
     }
 
     // :577-581
@@ -1356,19 +1651,20 @@ internal sealed class NoticeSlot : Decorator
     }
 }
 
-/// <summary>:609-657 <c>private struct ComposerControls: View</c>.</summary>
+/// <summary>
+/// :609-657 <c>private struct ComposerControls: View</c>. PORT-ONLY, owner-ruled (OD-0091, OD-0086; voice-SPEC V-14.1, V-14.2): the attachment button (:626-646) is no longer the
+/// first item here; it moved to the composer's left (<see cref="ComposerAttachButton"/>), and the voice orb's slot stands in its old place when voice typing is on.
+/// </summary>
 internal sealed class ComposerControls : Decorator
 {
-    private bool recentDownloadsPicker;
     private readonly ModelEffortSlot slot;
     private readonly ContextMeter? meter;
     private readonly SendButton send;
 
-    /// <summary>:613-623 the inputs a re-evaluated body is handed. The views below keep their state (the chip's popover, the
-    /// ring's popover, the attach popover) and take the new values.</summary>
-    internal void Update(ChatThread thread, bool recentDownloadsPicker, bool goesToHead, bool queueGoesToHead, ProviderKind? headsProvider)
+    /// <summary>:613-623 the inputs a re-evaluated body is handed. The views below keep their state (the chip's open popover, the
+    /// ring's popover) and take the new values.</summary>
+    internal void Update(ChatThread thread, bool goesToHead, bool queueGoesToHead, ProviderKind? headsProvider)
     {
-        this.recentDownloadsPicker = recentDownloadsPicker;
         slot.Update(thread);
         meter?.Update(thread.Provider, headsProvider);
         send.Update(goesToHead, queueGoesToHead);
@@ -1379,43 +1675,14 @@ internal sealed class ComposerControls : Decorator
         ThreadRuntime runtime,
         ChatThread thread,
         bool compact,
-        bool recentDownloadsPicker,
         bool goesToHead,
         bool queueGoesToHead,
         ProviderKind? headsProvider,
-        Binding<bool> showingRecents,
-        Action<IReadOnlyList<string>> onAttach,
-        Action onChooseFiles,
-        Action onSend)
+        Action onSend,
+        ComposerVoiceController? voice = null)
     {
-        this.recentDownloadsPicker = recentDownloadsPicker;
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 }; // :626
-        var icon = SwiftImage.SystemName("paperclip").Font(Chrome.IconFont); // :634-635
-        var attach = PlainControls.Button(icon, () =>
-        {
-            if (this.recentDownloadsPicker) showingRecents.Value = !showingRecents.Value; // :628-629
-            else onChooseFiles(); // :631
-        });
-        attach.Chip(showingRecents.Value); // :637 .buttonStyle(.chip(active: showingRecents)).
-        attach.Focusable = false; // :638
-        ToolTip.SetTip(attach, "Attach files"); // :639
-        AutomationProperties.SetName(attach, "Attach files"); // :640
-        var popup = new Popup { PlacementTarget = attach, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :641
-        var presented = false;
-        attach.Track(() => showingRecents.Value, shown =>
-        {
-            attach.Chip(shown); // :637 read the same binding as the popover, including external dismissal.
-            if (shown == presented) return;
-            presented = shown;
-            if (shown) popup.Child = new DownloadsPopover(
-                pick: path => { showingRecents.Value = false; onAttach([path]); }, // :643
-                chooseOther: () => { showingRecents.Value = false; onChooseFiles(); }); // :644
-            Presentation.Presenter.Current.SetPresented(popup, shown);
-            if (!shown) popup.Child = null;
-        });
-        popup.Closed += (_, _) => { if (showingRecents.Value) showingRecents.Value = false; };
-        DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
-        row.Children.Add(attach);
+        if (voice is not null) row.Children.Add(new VoiceOrbSlot(voice)); // V-14.2: the orb, where the attachment was
         row.Children.Add(slot = new ModelEffortSlot(runtime, thread, compact)); // :647
         if (!compact) row.Children.Add(meter = new ContextMeter(runtime, thread.Provider, headsProvider)); // :650-651
         row.Children.Add(send = new SendButton(runtime, goesToHead, queueGoesToHead, onSend)); // :653

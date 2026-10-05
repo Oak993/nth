@@ -82,7 +82,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-251")] // customization-SPEC CZ-T45, CZ-4.3: at width 472 the preview lays out as a real composer does (the real pill: 46 high, attach, chip, ring 27 wide, send 28 at 8 from the edge)
+    [Trait("Decision", "ED-251")] // customization-SPEC CZ-T45, CZ-4.3; voice-SPEC V-14.1: at width 472 the preview matches the real pill (46 high, attach at left, trailing chip/ring/send)
     public void At_472_the_preview_is_laid_out_as_a_real_composer_of_the_same_width() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -95,13 +95,12 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
         h.Main.OnMain(() =>
         {
             var controls = One<ComposerControls>(real);
-            var row = Assert.IsType<StackPanel>(controls.Child);
             pillR = Frame(real, realWindow);
-            attachR = Frame(row.Children[0], real);
-            chipR = Frame(row.Children[1], real);
-            ringR = Frame(row.Children[2], real);
-            sendR = Frame(row.Children[3], real);
-            discR = Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[3]).First(b => b.Bounds.Width >= 27), real);
+            attachR = Frame(Named(real, "Attach files"), real);
+            chipR = Frame(One<ModelEffortSlot>(controls), real);
+            ringR = Frame(One<ContextMeter>(controls), real);
+            sendR = Frame(One<SendButton>(controls), real);
+            discR = Frame(RealComposerRig.SendDisc(controls), real);
             var text = One<ComposerNSTextView>(real);
             placeholderR = Frame(text, real);
             realFont = text.FontSize;
@@ -116,17 +115,25 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
             Assert.Equal(pillR.Width, pill.Bounds.Width, .5);
             Assert.Equal(pillR.Height, pill.Bounds.Height, .5);
             var row = preview.Controls;
-            Assert.Equal(new[] { "Button", "PreviewComposerChip", "PreviewRing", "PreviewSendButton" }, row.Children.Select(c => c.GetType().Name).ToArray());
+            Assert.Equal(new[] { "PreviewComposerChip", "PreviewRing", "PreviewSendButton" }, row.Children.Select(c => c.GetType().Name).ToArray());
             Assert.Equal(2, row.Spacing);
             Rect Rel(Visual v) => Frame(v, pill);
-            Assert.Equal(attachR.Size.Width, Rel(row.Children[0]).Width, .5);
-            Assert.Equal(attachR.Size.Height, Rel(row.Children[0]).Height, .5);
-            Assert.Equal(chipR.Height, Rel(row.Children[1]).Height, .5);
-            Assert.Equal(chipR.Y, Rel(row.Children[1]).Y, .5);
-            Assert.Equal(ringR.Width, Rel(row.Children[2]).Width, .5);
-            Assert.Equal(pillR.Width - ringR.X, pill.Bounds.Width - Rel(row.Children[2]).X, 1.5);
-            Assert.Equal(sendR.Width, Rel(row.Children[3]).Width, .5);
-            Assert.Equal(pillR.Width - sendR.X, pill.Bounds.Width - Rel(row.Children[3]).X, 1.5);
+            var attach = Named(preview, "Attach files");
+            var chip = One<PreviewComposerChip>(row);
+            var ring = One<PreviewRing>(row);
+            var send = One<PreviewSendButton>(row);
+            Assert.DoesNotContain(attach, LogicalQuery.SelfAndDescendants<Button>(row));
+            Assert.Equal(new Rect(8, pill.Bounds.Height - 36, 34, 28), Rel(attach));
+            Assert.Equal(attachR.Size.Width, Rel(attach).Width, .5);
+            Assert.Equal(attachR.Size.Height, Rel(attach).Height, .5);
+            Assert.Equal(attachR.X, Rel(attach).X);
+            Assert.Equal(attachR.Y, Rel(attach).Y);
+            Assert.Equal(chipR.Height, Rel(chip).Height, .5);
+            Assert.Equal(chipR.Y, Rel(chip).Y, .5);
+            Assert.Equal(ringR.Width, Rel(ring).Width, .5);
+            Assert.Equal(pillR.Width - ringR.X, pill.Bounds.Width - Rel(ring).X, 1.5);
+            Assert.Equal(sendR.Width, Rel(send).Width, .5);
+            Assert.Equal(pillR.Width - sendR.X, pill.Bounds.Width - Rel(send).X, 1.5);
             var disc = Frame(preview.Send, pill);
             Assert.Equal((discR.Width, discR.Height), (disc.Width, disc.Height));
             Assert.Equal(pillR.Width - discR.Right, pill.Bounds.Width - disc.Right, .5);
@@ -134,7 +141,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
             Assert.Equal(placeholderR.Y, Rel(preview.Hint).Y, .5);
             Assert.Equal(realFont, preview.Hint.FontSize);
             // the real chip and the preview's are one control: neither is shorter than the other
-            Assert.Equal(row.Children[3].Bounds.Height, sendR.Height, .5);
+            Assert.Equal(send.Bounds.Height, sendR.Height, .5);
         });
     });
 
@@ -154,7 +161,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
             realWords = One<ComposerNSTextView>(real).Placeholder; // the harness's thread is a Codex one: the same words go in the preview, so the glyphs compare
             var text = Frame(One<ComposerNSTextView>(real), realWindow);
             realText = PreviewPixels.Region(realWindow, new Rect(text.X, text.Y, 120, text.Height));
-            var send = One<ComposerControls>(real).Child is StackPanel row ? Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[3]).First(b => b.Bounds.Width >= 27), realWindow) : default;
+            var send = Frame(RealComposerRig.SendDisc(real), realWindow);
             realEnd = PreviewPixels.Region(realWindow, send);
         });
         Close(h, realWindow);

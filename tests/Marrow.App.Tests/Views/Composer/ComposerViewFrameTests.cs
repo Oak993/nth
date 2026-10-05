@@ -37,21 +37,21 @@ public sealed class ComposerViewFrameTests(HeadlessSession headless)
             {
                 var controls = One<ComposerControls>(view);
                 var row = Assert.IsType<StackPanel>(controls.Child);
-                // :626 HStack(spacing: 2): the attach button, the model chip, the ring, send, in that order, 2 apart.
+                // :626 HStack(spacing: 2): the model chip, the ring, send, in that order, 2 apart. The attach button, first in the source, is the pill's left (V-14.1, owner-ruled).
                 Assert.Equal(2, row.Spacing);
-                Assert.Equal(new[] { "Button", "ModelEffortSlot", "ContextMeter", "SendButton" }, row.Children.Select(child => child.GetType().Name).ToArray());
+                Assert.Equal(new[] { "ModelEffortSlot", "ContextMeter", "SendButton" }, row.Children.Select(child => child.GetType().Name).ToArray());
                 for (var index = 1; index < row.Children.Count; index++)
                     Assert.Equal(2, Frame(row.Children[index], row).X - Frame(row.Children[index - 1], row).Right, 0.5);
                 // On the frame: the disc 8 from the pill's right edge, 28 across; the ring 17.5 across with its centre 55.5 from the edge.
                 var pill = Frame(view, window);
                 Assert.Equal(46, pill.Height, 0.5); // the pill with its controls is 46 from rim to rim on the frame (rows 1298-1343), not the record's 44
-                var send = Frame(row.Children[3], window);
-                var disc = Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[3]).First(button => button.Bounds.Width >= 27), window);
+                var send = Frame(row.Children[2], window);
+                var disc = Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[2]).First(button => button.Bounds.Width >= 27), window);
                 Assert.Equal(pill.Right - 8, disc.Right, 1);
                 Assert.Equal(28, disc.Width, 0.5);
                 Assert.Equal(28, disc.Height, 0.5);
                 Assert.Equal(4, disc.X - send.X, 0.5); // the send button's leading padding
-                var meter = Frame(row.Children[2], window);
+                var meter = Frame(row.Children[1], window);
                 Assert.Equal(15 + 12, meter.Width, 0.5); // the ring button: 15 across and 6 either side
                 Assert.Equal(pill.Right - 55.5, meter.X + meter.Width / 2, 1.5);
             });
@@ -67,13 +67,13 @@ public sealed class ComposerViewFrameTests(HeadlessSession headless)
             // A compact (floating panel) composer leaves the ring out entirely and keeps the other three in order, 2 apart.
             foreach (var compact in new[] { true })
             {
-                var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime, h.Thread, compact, false, false, false, null, Binding<bool>.Constant(false), _ => { }, () => { }, () => { }));
+                var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime, h.Thread, compact, false, false, null, () => { }));
                 var compactWindow = h.Main.OnMain(() => Show(controls, h.App, 600));
                 Pump(h, compactWindow);
                 h.Main.OnMain(() =>
                 {
                     var row = Assert.IsType<StackPanel>(controls.Child);
-                    Assert.Equal(new[] { "Button", "ModelEffortSlot", "SendButton" }, row.Children.Select(child => child.GetType().Name).ToArray());
+                    Assert.Equal(new[] { "ModelEffortSlot", "SendButton" }, row.Children.Select(child => child.GetType().Name).ToArray());
                     Assert.Empty(LogicalQuery.SelfAndDescendants<ContextMeter>(controls));
                     for (var index = 1; index < row.Children.Count; index++)
                         Assert.Equal(2, Frame(row.Children[index], row).X - Frame(row.Children[index - 1], row).Right, 0.5);
