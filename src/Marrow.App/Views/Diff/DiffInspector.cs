@@ -11,6 +11,7 @@ using Avalonia.Media;
 using Avalonia.Media.Transformation;
 using Avalonia.Threading;
 using Marrow.App.Runtime;
+using Marrow.App.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
@@ -30,6 +31,8 @@ public sealed class DiffInspector : Decorator
     private readonly ScrollViewer scrollViewer;
     private readonly StackPanel filesPanel;
     private readonly Border stateContainer;
+    private readonly AnimatedScalar stateOpacity;
+    private readonly AnimatedScalar filesOpacity;
     private readonly HashSet<string> collapsed = new(StringComparer.Ordinal);
     private ValueList<DiffFile> files = ValueList<DiffFile>.Empty;
     private FileChangeSummary summary = FileChangeSummaryDiff.Create(ValueList<DiffFile>.Empty);
@@ -40,6 +43,8 @@ public sealed class DiffInspector : Decorator
     private long scrolledRequest;
     private string? loadKey;
     private TaskHandle? loadTask;
+    private AuroraDiffLoadingState? loadingState;
+    private readonly List<AuroraDiffLoadingState> exitingStates = [];
 
     // :5, :22-121
     public DiffInspector(ThreadRuntime runtime)
@@ -59,6 +64,8 @@ public sealed class DiffInspector : Decorator
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
         };
+        stateOpacity = new AnimatedScalar(stateContainer, 1, value => stateContainer.Opacity = value);
+        filesOpacity = new AnimatedScalar(scrollViewer, 1, value => scrollViewer.Opacity = value);
         // :24 VStack(spacing: 0): the chrome row at its own height, the rest of the 540 to the empty state or the scroll view
         // (a vertical StackPanel measures the scroll view without a limit, so it would never scroll).
         root = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
@@ -79,7 +86,20 @@ public sealed class DiffInspector : Decorator
     // :22-108
     private void BuildRoot()
     {
-        root.Children.Clear();
+        var leaving = files.Count != 0 || !isLoading ? loadingState : null;
+        if (leaving is not null) loadingState = null;
+        Control body = files.Count == 0 ? stateContainer : scrollViewer;
+        // Keep the real content owner and active exit overlays mounted while rebuilding chrome. Detaching a
+        // reused owner would cancel AnimatedScalar, freezing content at its partial arrival opacity.
+        foreach (var child in root.Children.ToArray())
+            if (!ReferenceEquals(child, body) && !(child is AuroraDiffLoadingState exit && exitingStates.Contains(exit)))
+            {
+                // A reused body must not retain an interrupted arrival opacity after its scalar stops on detach.
+                if (ReferenceEquals(child, stateContainer)) stateOpacity.Set(1, null);
+                if (ReferenceEquals(child, scrollViewer)) filesOpacity.Set(1, null);
+                root.Children.Remove(child);
+            }
+        if (files.Count != 0 || !isLoading || !ReferenceEquals(stateContainer.Child, loadingState)) stateContainer.Child = null;
 
         var menu = new ChromeTextMenu(
             "plusminus",
@@ -144,7 +164,7 @@ public sealed class DiffInspector : Decorator
             return trailing;
         }), hasFiles ? 8 : 4);
         Grid.SetRow(chromeRow, 0);
-        root.Children.Add(chromeRow);
+        root.Children.Insert(0, chromeRow);
 
         if (files.Count == 0)
         {
@@ -156,17 +176,8 @@ public sealed class DiffInspector : Decorator
             };
             if (isLoading)
             {
-                state.Children.Add(new LoadingMark
-                {
-                    Width = 64,
-                    Height = 64,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                });
-                state.Children.Add(new TextBlock
-                {
-                    Text = "Reading the diff\u2026",
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                });
+                // DEVIATION OD-0113: loader 5 is a glass placeholder, not an icon. The label below is retained.
+                loadingState ??= new AuroraDiffLoadingState();
             }
             else
             {
@@ -183,9 +194,10 @@ public sealed class DiffInspector : Decorator
                 });
             }
 
-            stateContainer.Child = state;
+            stateContainer.Child = isLoading ? loadingState : state;
             Grid.SetRow(stateContainer, 1);
-            root.Children.Add(stateContainer);
+            if (!root.Children.Contains(stateContainer)) root.Children.Add(stateContainer);
+            root.Children.Move(root.Children.IndexOf(stateContainer), 1);
         }
         else
         {
@@ -199,7 +211,8 @@ public sealed class DiffInspector : Decorator
             // :98 .padding(12) is on the lazy stack inside the scroll view, so it scrolls with the cards.
             filesPanel.Margin = new Thickness(12);
             Grid.SetRow(scrollViewer, 1);
-            root.Children.Add(scrollViewer);
+            if (!root.Children.Contains(scrollViewer)) root.Children.Add(scrollViewer);
+            root.Children.Move(root.Children.IndexOf(scrollViewer), 1);
             // :100-106 .onChange(of: scrollRequest): the scroll runs once for each request, not on every redraw.
             if (scrollTarget is not null && scrolledRequest != scrollRequest)
             {
@@ -216,6 +229,16 @@ public sealed class DiffInspector : Decorator
                         scrollViewer.Offset = new Vector(0, Math.Max(0, target.Bounds.Y + filesPanel.Margin.Top));
                 });
             }
+        }
+        if (leaving is not null)
+        {
+            // Locked pane.frame: content starts 50 ms into the loader's exit and fades over 300 ms.
+            var opacity = files.Count == 0 ? stateOpacity : filesOpacity;
+            opacity.Set(0, null);
+            opacity.Set(1, Animation.TimingCurve(1.0 / 3, 0, 2.0 / 3, 1, .3).Delay(.05));
+            exitingStates.Add(leaving);
+            Grid.SetRow(leaving, 1); root.Children.Add(leaving);
+            leaving.Complete(() => { exitingStates.Remove(leaving); root.Children.Remove(leaving); });
         }
     }
 

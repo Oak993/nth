@@ -129,8 +129,8 @@ public sealed class ThreadTimeline : Decorator
             DrawPasses++;
             if (runtime.IsLoadingHistory)
             {
-                // :134-135; OD-0016 / ED-097. LoadingMark owns the 400 ms blank period and 0.2 s fade, and cancels its frames on detach.
-                if (branches.On is not LoadingMark) branches.Show(new LoadingMark { Width = 64, Height = 64, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, fadesIn: false);
+                // :134-135; OD-0113 / ED-097. Curtain Fold owns the 400 ms blank period and 0.2 s fade.
+                if (branches.On is not AuroraLoader) branches.Show(new AuroraLoader(AuroraLoaderKind.CurtainFold) { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, fadesIn: false);
                 return;
             }
             var model = AppEnvironment.GetAppModel(this);
@@ -589,8 +589,8 @@ public sealed class ThreadTimeline : Decorator
         {
             if (ReferenceEquals(On, next)) return;
             var previous = On; On = next;
-            if (previous is null || next is LoadingMark || stilled()) { Cut(next); return; }
-            if (previous is LoadingMark) { HandOverFrom(previous, next, fadesIn); return; }
+            if (previous is null || next is AuroraLoader || stilled()) { Cut(next); return; }
+            if (previous is AuroraLoader) { HandOverFrom(previous, next, fadesIn); return; }
             var back = Children.Contains(next); // a layer that was leaving, turned back
             Leave(previous);
             if (!back) { next.Opacity = fadesIn ? 0 : 1; Children.Add(next); }

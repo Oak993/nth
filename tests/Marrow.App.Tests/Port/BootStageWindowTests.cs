@@ -22,6 +22,7 @@ namespace Marrow.App.Tests.Port;
 //   ED-103 (6) reduce motion: the still mark, the main window at 2.5 s, the stage closed at 2.9 s
 //   The launch: the tour's 700 ms and About's showSettings follow the main window's appearance; "the app is ready" is
 //   the end of AppModel.bootstrap() (AppDelegate.swift:27), the file note's ENGINEERING DECISION.
+// OD-0113 supersedes the Comet-specific timeline/scale with locked Boot B. ED-236 now cloaks on the first stage frame, before preparation.
 // Headless (R-TEST-7): the frame clock and SwiftClock are manual, so every time below is exact.
 [Collection("Headless")]
 public sealed class BootStageWindowTests(HeadlessSession headless)
@@ -86,7 +87,7 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-103")]
-    public void Once_ready_the_main_window_appears_when_the_outline_lands_its_content_follows_the_particles_and_the_stage_closes() => headless.OnUiThread(() =>
+    public void Once_ready_B_grows_for_one_second_content_follows_its_rectangle_and_the_stage_closes_after_the_glow() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         var time = new ManualTimeProvider();
@@ -105,9 +106,8 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
             for (var t = 0.0; t < 2; t += Step) Frame(time, frames, Step);
             var readyAt = boot.Stage.Elapsed;
             boot.Ready();
-            var sequence = new BootSequence(BootStageWindow.Layout(new Rect(0, 0, 900, 600)), reduceMotion: false);
-            var showAt = sequence.MainWindowShownAt(readyAt);
-            var closesAt = sequence.StageClosesAt(readyAt);
+            var showAt = Math.Max(readyAt, 1.8); // locked H_()
+            var closesAt = showAt + 1 + 1.2; // GROW + GLOW
             Assert.True(showAt < closesAt);
 
             var followed = 0;
@@ -124,10 +124,14 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
                 // ED-103 (5): the root content follows this frame's share of particles landed.
                 var frame = boot.Stage.Frame;
                 Assert.Equal(frame.ContentOpacity, content.Opacity);
-                var scale = Assert.IsType<ScaleTransform>(content.RenderTransform);
-                Assert.Equal(frame.ContentScale, scale.ScaleX);
-                Assert.Equal(frame.ContentScale, scale.ScaleY);
-                Assert.Equal(RelativePoint.Center, content.RenderTransformOrigin);
+                Assert.Null(content.RenderTransform); // the real window never scales
+                if (frame.Progress < 1)
+                {
+                    var clip = Assert.IsType<RectangleGeometry>(content.Clip);
+                    Assert.Equal(frame.ContentClip, clip.Rect);
+                    Assert.Equal(frame.CornerRadius, clip.RadiusX);
+                }
+                else Assert.Null(content.Clip);
                 followed++;
             }
 
@@ -150,7 +154,7 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-103")]
-    public void With_reduce_motion_the_main_window_appears_at_2_5_s_and_the_stage_closes_at_2_9_s() => headless.OnUiThread(() =>
+    public void With_reduce_motion_the_main_window_appears_at_1_3_s_and_the_stage_closes_at_1_9_s() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         var time = new ManualTimeProvider();
@@ -165,9 +169,9 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             boot.Ready();
             for (var i = 0; i < 100 && boot.Window.IsVisible; i++) Frame(time, frames, Step);
-            Assert.InRange(Assert.Single(shownAt), 2.5, 2.5 + Step + 1e-9);
+            Assert.InRange(Assert.Single(shownAt), 1.3, 1.3 + Step + 1e-9);
             Assert.False(boot.Window.IsVisible);
-            Assert.InRange(boot.Stage.Elapsed, 2.9, 2.9 + Step + 1e-9);
+            Assert.InRange(boot.Stage.Elapsed, 1.9, 1.9 + Step + 1e-9);
         }
         finally
         {
@@ -210,11 +214,11 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-103")]
-    public void The_window_particles_land_on_the_title_bar_sidebar_conversation_and_composer_of_the_main_frame()
+    public void The_exact_window_layout_keeps_its_38_DIP_title_band_and_uses_the_8_DIP_Windows_corner()
     {
         var layout = BootStageWindow.Layout(new Rect(100, 50, 900, 600));
         Assert.Equal(new Rect(100, 50, 900, 600), layout.Frame);
-        Assert.Equal(14, layout.CornerRadius);
+        Assert.Equal(8, layout.CornerRadius);
         Assert.Equal(
             [
                 new Rect(100, 50, 900, 38), // title bar
@@ -322,7 +326,7 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-236")]
-    public void The_main_window_is_shown_cloaked_when_the_disintegration_begins_and_uncloaked_just_before_the_hand_over_shows_it() => headless.OnUiThread(() =>
+    public void B_cloaks_before_preparation_and_uncloaks_at_H_with_content_zero_before_the_grow() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         var time = new ManualTimeProvider();
@@ -339,15 +343,14 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             // Not ready: the mark turns, and nothing of the main window is cloaked, shown or touched.
             for (var t = 0.0; t < 12; t += Step) Frame(time, frames, Step);
-            Assert.Empty(log.Events);
-            Assert.False(main.IsVisible);
-            Assert.Equal(1, content.Opacity);
+            Assert.Equal(["cloak"], log.Events.Select(e => e.Event));
+            Assert.True(main.IsVisible); Assert.True(boot.MainIsCloaked);
+            Assert.Equal(0, content.Opacity);
 
             var readyAt = boot.Stage.Elapsed;
             boot.Ready();
-            var sequence = new BootSequence(BootStageWindow.Layout(new Rect(0, 0, 900, 600)), reduceMotion: false);
-            var warmAt = BootSequence.FinalRest(readyAt) + .1;
-            var showAt = sequence.MainWindowShownAt(readyAt);
+            var warmAt = Step; // first stage frame, before bootstrap/preparation
+            var showAt = Math.Max(readyAt, 1.8);
             var cloakedFrames = 0;
             for (var i = 0; i < 600 && boot.Window.IsVisible; i++)
             {
@@ -371,11 +374,11 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
             Assert.True(main.ShowActivated); // restored: the hand-over activates it as before
             // the lead the backdrop gets: well over the ~0.35 s P13 saw the blur take
             Assert.True(uncloak.Elapsed - cloak.Elapsed >= 0.5, $"lead {uncloak.Elapsed - cloak.Elapsed}");
-            Assert.True(cloakedFrames > 8);
+            Assert.True(uncloak.Elapsed - cloak.Elapsed >= 12);
             // uncloaked at the hand-over, with the content already at the hand-over frame's opacity, before the show runs
             Assert.InRange(uncloak.Elapsed, showAt, showAt + Step + 1e-9);
             Assert.True(uncloak.Visible);
-            Assert.True(uncloak.ContentOpacity > 0 && uncloak.ContentOpacity < 1, $"content opacity {uncloak.ContentOpacity}");
+            Assert.Equal(0, uncloak.ContentOpacity); // p below .35 on the first sampled grow frame
             Assert.Equal(uncloak.Elapsed, show.Elapsed);
             Assert.Equal(uncloak.ContentOpacity, show.ContentOpacity);
             Assert.False(boot.MainIsCloaked);
@@ -390,7 +393,7 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-236")]
-    public void With_reduce_motion_the_main_window_is_shown_cloaked_half_a_second_before_the_hand_over() => headless.OnUiThread(() =>
+    public void With_reduce_motion_B_cloaks_before_preparation_and_reveals_at_the_1_2_second_floor_plus_100_ms() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         var time = new ManualTimeProvider();
@@ -409,8 +412,8 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
             Assert.Equal(["cloak", "uncloak", "show"], log.Events.Select(e => e.Event));
             Assert.False(log.Events[0].Visible);
             Assert.False(log.Events[0].ShowActivated);
-            Assert.InRange(log.Events[0].Elapsed, 2.0, 2.0 + Step + 1e-9); // 2.5 s less BootStageWindow.ReduceMotionWarmLead
-            Assert.InRange(log.Events[1].Elapsed, 2.5, 2.5 + Step + 1e-9);
+            Assert.InRange(log.Events[0].Elapsed, Step, Step + 1e-9); // ED-236: prepare on the first B frame.
+            Assert.InRange(log.Events[1].Elapsed, 1.3, 1.3 + Step + 1e-9);
         }
         finally
         {

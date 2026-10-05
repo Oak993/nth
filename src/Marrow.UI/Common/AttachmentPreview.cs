@@ -390,10 +390,9 @@ public sealed class AttachmentLargePreview : Border
     private readonly Attachment attachment; // :232
     private readonly Size? imageSize; // :234
     private readonly Image mediaImage = new(); // :236 @State private var image / :237 videoFrame, one control for either
-    private readonly LoadingMark loadingMark = new() { Width = 48, Height = 48, IsVisible = false }; // OD-0016 deviation
+    private readonly AuroraLoader loadingMark = new(AuroraLoaderKind.FlowArc); // DEVIATION OD-0113: loader 4, 40 DIP
     private readonly Panel contentArea = new();
     private readonly AttachmentPlayBadge videoBadge = new() { IsVisible = false }; // :312 overlay { AttachmentPlayBadge() }, shown with the frame
-    private Marrow.Core.Port.WorkItem? loadingMarkTimer;
 
     // :232-234
     public AttachmentLargePreview(Attachment attachment, Size? imageSize = null)
@@ -555,18 +554,15 @@ public sealed class AttachmentLargePreview : Border
         }
     }
 
-    // OD-0016 deviation (UI-COMPOSER-077): the 48px loading mark replaces the spinner in the image/video slot, shown
-    // only after 400 ms (ED-097) so a fast load never flashes it.
+    // OD-0113 deviation (UI-COMPOSER-077): Flow Arc owns the 400 ms gate and 200 ms fade, starting at the wait.
     private void ScheduleLoadingMark()
     {
-        loadingMarkTimer = MainActor.AsyncAfter(TimeSpan.FromMilliseconds(400), () => loadingMark.IsVisible = true);
+        loadingMark.BeginWait();
     }
 
     private void CancelLoadingMark()
     {
-        loadingMarkTimer?.Cancel();
-        loadingMarkTimer = null;
-        loadingMark.IsVisible = false;
+        loadingMark.Complete(); // same 150 ms fade as the arriving image/video, without a second 400 ms gate
     }
 }
 

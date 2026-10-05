@@ -70,8 +70,8 @@ public sealed class AppDelegate
         {
             try
             {
-                await mainShown.Task;
-                _ = await firstRun.RunAsync(windows.MainWindow);
+                if (boot is null) await mainShown.Task;
+                _ = await firstRun.RunAsync(boot?.Window ?? windows.MainWindow); // OD-0113: warm-up behind B while the main HWND is cloaked
             }
             finally { firstRunDone.TrySetResult(); }
         });
@@ -90,7 +90,8 @@ public sealed class AppDelegate
         MainActor.Spawn(async () => // :27 Task { await windows.model.bootstrap() }
         {
             await BootstrapModel(windows.Model);
-            boot?.Ready(); // ED-103 (3): the app is ready once its model has bootstrapped
+            if (boot is not null) await firstRunDone.Task;
+            boot?.Ready(); // OD-0108 / OD-0113: bootstrap AND preparation must finish before B reveals the window
         });
         UpdateChecker.Shared.StartBackgroundChecks(); // :28
         UpdateEverythingProduction.Configure(windows.Model); // UE-5 (OD-0100): Update everything's items and its background check; no Swift twin
