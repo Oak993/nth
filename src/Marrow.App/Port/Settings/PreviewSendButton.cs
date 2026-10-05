@@ -17,6 +17,7 @@ internal sealed class PreviewSendButton : Decorator
     private readonly Panel face = new();
     private readonly AnimatedColor fill;
     private Control? image;
+    private AnimatedColor? ink; // the current glyph's ink: follows the enabled state as the real button's does (SendDraftState.Apply, :833)
     private string? shown;
 
     /// <summary>The 28 across button (the real one's disc).</summary>
@@ -50,7 +51,11 @@ internal sealed class PreviewSendButton : Decorator
         fill.Set((enabled ? Popovers.GetTint(this) ?? SwiftColor.AccentColor : SwiftColor.Quaternary).Opacity(dim), animation); // :836
         if (symbol != shown)
         {
-            var next = SwiftImage.SystemName(symbol).Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White.Opacity(dim)); // :831-833
+            var next = SwiftImage.SystemName(symbol).Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White); // :831-833
+            var nextInk = new AnimatedColor(next);
+            next.Foreground = nextInk.Brush;
+            nextInk.Set(SwiftColor.White.Opacity(dim), null);
+            ink = nextInk;
             var previous = image;
             image = next;
             if (previous is null || !animated)
@@ -65,5 +70,6 @@ internal sealed class PreviewSendButton : Decorator
             }
             shown = symbol;
         }
+        else ink!.Set(SwiftColor.White.Opacity(dim), animation); // :833, :838 every state change sets the ink again
     }
 }
