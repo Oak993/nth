@@ -62,12 +62,12 @@ public sealed class StoreModelSourceTests : IDisposable
     [Fact]
     [Trait("Feature", "VT-15")]
     [Trait("Decision", "ED-289")]
-    public void The_path_is_the_stores_and_a_missing_file_does_not_verify()
+    public async Task The_path_is_the_stores_and_a_missing_file_does_not_verify()
     {
         var (_, _, source) = Build();
         var file = ModelCatalog.Find("base.en")!;
         Assert.Equal(Path.Combine(root, "data", "models", "whisper", "ggml-base.en.bin"), source.PathFor(file));
         Assert.False(source.IsInstalled(file));
-        Assert.Equal(ModelVerification.Missing, source.VerifyAsync(file, CancellationToken.None).GetAwaiter().GetResult());
+        Assert.Equal(ModelVerification.Missing, await source.VerifyAsync(file, CancellationToken.None));
     }
 }
