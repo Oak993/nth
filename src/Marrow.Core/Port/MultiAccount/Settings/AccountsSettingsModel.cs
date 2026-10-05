@@ -55,7 +55,7 @@ public sealed class AccountsSettingsModel
         var several = list.Count > 1;
         var rows = several ? list.Select((a, i) => Row(a, i + 1)).ToArray() : [];
         var first = Row(list[0], 1);
-        return new ServiceBlockView(service, service.DisplayName, several ? MultiAccountWords.Several(list.Count) : MultiAccountWords.One(list[0].Plan),
+        return new ServiceBlockView(service, ServiceNames.Title(service), several ? MultiAccountWords.Several(list.Count) : MultiAccountWords.One(list[0].Plan),
             several, AccountCapabilities.SupportsMultipleAccounts(service), rows, several ? null : first.WeekFraction, several ? "" : first.UsageText);
     }
 
