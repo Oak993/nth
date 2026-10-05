@@ -35,14 +35,14 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
         return piece;
     }
 
-    private static Func<int, int, Color> Render(Control? backdrop, Control glass, IBrush? windowBackground, double width = 256, double height = 160)
+    private static Func<int, int, Color> Render(Control? backdrop, Control glass, IBrush? windowBackground, double width = 256, double height = 160, bool light = false)
     {
         var panel = new Panel();
         if (backdrop is not null) panel.Children.Add(backdrop);
         panel.Children.Add(glass);
         var window = new Window
         {
-            Width = width, Height = height, RequestedThemeVariant = ThemeVariant.Dark, Background = windowBackground,
+            Width = width, Height = height, RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark, Background = windowBackground,
             TransparencyLevelHint = [WindowTransparencyLevel.Transparent], Content = panel,
         };
         window.Show();
@@ -127,8 +127,8 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
     public void The_glass_lifts_the_brightness_and_the_saturation_of_what_is_under_it() => headless.OnUiThread(() =>
     {
         var grey = Render(new Panel { Background = new SolidColorBrush(Color.FromRgb(128, 128, 128)) }, Piece(Panel, 160, 120), Brushes.Black)(128, 80);
-        // 0.83 * 128 + 0.17 * 0.94 * 255 = 147 (it was 110: an 18 % dark veil).
-        Assert.InRange(grey.G, (byte)140, (byte)152);
+        // glass-g3's law: the gain c + 0.95 c (1 - c)^2, 128 to 158 (it was 110 under the 18 % dark veil, then 147 under the 0.17 film).
+        Assert.InRange(grey.G, (byte)150, (byte)166);
         var under = Color.FromRgb(150, 110, 90);
         var coloured = Render(new Panel { Background = new SolidColorBrush(under) }, Piece(Panel, 160, 120), Brushes.Black)(128, 80);
         var chroma = Math.Max(coloured.R, Math.Max(coloured.G, coloured.B)) - Math.Min(coloured.R, Math.Min(coloured.G, coloured.B));
@@ -192,8 +192,9 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
         {
             const int left = 100, offset = 40; // the ramp starts 40 px in, so every read lies on it, clear of its clamped ends
             var shape = GlassShape.RoundedRectangle(radius, RoundedCornerStyle.Continuous);
-            var a = Render(new GlassRamp(false, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160);
-            var b = Render(new GlassRamp(true, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160);
+            // Read in the light appearance, where the body is affine in what lies under it (the dark one's gain is not): the bend is the same in both.
+            var a = Render(new GlassRamp(false, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160, light: true);
+            var b = Render(new GlassRamp(true, offset), Piece(shape, width, height, left), Brushes.Black, 420, 160, light: true);
             var x = left + inset; // the pixel `inset` + 0.5 in from the left edge, on the middle row
             var middle = (int)(left + width / 2);
             // k from two points `span` either side of the middle, where nothing bends sideways (on the ramp, short of its clamped end at 295).

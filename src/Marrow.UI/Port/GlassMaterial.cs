@@ -1089,8 +1089,8 @@ internal static class GlassMaterial
     internal const double LawGain = 0.95, LawBottom = 0.13, LawShadedTo = 60, LawFlatFrom = 120;
 
     // The backdrop's level 12 pt in from the edge from which the edge is lit (none at or below LitFrom, whole from LitTo): the card's 27 / 255 is
-    // 0.106, the title capsules' 52 is 0.204 and the pill's 57 is 0.224.
-    internal const double LitFrom = 0.12, LitTo = 0.20;
+    // 0.106 (0.13 to 0.15 near its edge, where the scrim's cast shadow thins), the title capsules' 52 is 0.204 and the pill's 57 is 0.224.
+    internal const double LitFrom = 0.15, LitTo = 0.20;
 
     // Where the film turns from its top grey to its bottom one, as fractions of the piece's height: dashersw's ramp is linear over the whole
     // height; the Mac pill is flat (87 to 88) down to about half its height and darkens to 77 by four fifths of it.
@@ -1127,8 +1127,8 @@ internal static class GlassMaterial
         //     bottom 123 over a body of 88 and 77 (the port: 123 and 124 over the same backdrop);
         //   - the light inner edge: +9, +6, +5, +3, +2 levels 1.5 to 5.5 pt under the top rim (with the bend's own lift there), a fifth of it at the sides.
         internal const double ShadeBase = 0, ShadeSide = 0.6;
-        internal const double ShadeDark = 0.15; // the contact line's share left on a dark backdrop (the Mac card's -5 to -7)
-        internal const double RimBase = 0.15, RimTop = 0.20, RimBottom = 0.24;
+        internal const double ShadeDark = 0.05; // the contact line's share left on a dark backdrop (the Mac card: none outside its edge, -3 on its first point)
+        internal const double RimBase = 0.15, RimTop = 0.21, RimBottom = 0.20;
         internal const double Glow = 0.035, GlowSide = 0.2;
 
         public static Optics For(Size size)
