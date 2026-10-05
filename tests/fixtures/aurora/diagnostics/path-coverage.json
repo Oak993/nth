@@ -1,0 +1,47 @@
+{
+  "purpose": "Isolated small-band path coverage evidence; not a parity oracle",
+  "browser": "Chromium 151.0.7922.173 Debian 13",
+  "skiaSharp": "3.119.4",
+  "operation": "First fill from locked 16 px dark still; captured before strokes, with no blur or clip",
+  "rendererSourceSha256": "8edbf2a674a2356391591ab57ed83d15e8d3b74acd2e6cd89b8e7a4e0da5602b",
+  "browserPixelAt1_2": [
+    5,
+    10,
+    28,
+    100
+  ],
+  "skiaPixelAt1_2": [
+    6,
+    10,
+    29,
+    80
+  ],
+  "geometry": {
+    "start": [
+      1,
+      5.4688
+    ],
+    "control1": [
+      1,
+      2.14758784
+    ],
+    "control2": [
+      2.14758784,
+      1
+    ],
+    "end": [
+      5.4688,
+      1
+    ]
+  },
+  "files": [
+    {
+      "file": "chromium-151-night-fill-16.png",
+      "sha256": "8e23d8998fa646a4d7b2af23841ae6c82e1f240d745bb19bd4a475fa292cd323"
+    },
+    {
+      "file": "skiasharp-night-fill-16.png",
+      "sha256": "3f7dd4aa247ecde912023927389229542c081949e82ae7df07611b9c18f84632"
+    }
+  ]
+}

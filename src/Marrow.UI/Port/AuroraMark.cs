@@ -7,8 +7,8 @@ namespace Marrow.UI.Port;
 
 /// <summary>
 /// Deterministic Canvas 2D drawing in icon units. Own one instance per render thread and dispose it there.
-/// Reuses paths, paints, gradient buffers and picture recorders. Skia's C ABI avoids managed wrappers
-/// for changing gradients, pictures and filters. Native drawing objects still allocate in Skia and are unreferenced
+/// Reuses paths, paints, gradient buffers and raster scratch canvases. Skia's C ABI avoids managed wrappers
+/// for changing gradients, surfaces, snapshots and filters. Native drawing objects still allocate in Skia and are unreferenced
 /// as soon as their consumer takes ownership. The zero-allocation contract measures managed bytes, as OrbRendererTests do.
 /// </summary>
 public sealed class AuroraMark : IDisposable
@@ -16,14 +16,16 @@ public sealed class AuroraMark : IDisposable
     public const int LaunchDurationMs = 1200;
     public const int IdlePeriodMs = 7200;
 
-    // These are Skia-generated programs, not custom SkSL. The App warm-up registry can invoke Warmup
+    // These are Skia-generated device program families, not custom SkSL.
+    // Blur and cached-night preparation use CPU raster surfaces; their image sampling/blends
+    // and the direct gradients/solids run on the supplied destination canvas. The App warm-up registry can invoke Warmup
     // on its own GPU canvas, before showing Aurora, without Marrow.UI depending on Marrow.App.
     public static IReadOnlyList<string> WarmupPrograms { get; } = Array.AsReadOnly(new[]
     {
-        "aurora-small-gradient-src-over", "aurora-night-gradient-blur-src-over",
-        "aurora-ray-gradient-blur-plus", "aurora-foot-gradient-blur-plus",
-        "aurora-ridge-gradient-src-over", "aurora-glass-gradient-blur-src-over",
-        "aurora-star-solid-src-over", "aurora-outline-solid-src-over",
+        "aurora-small-gradient-dither-src-over", "aurora-night-image-linear-src-over",
+        "aurora-ray-gradient-dither-plus", "aurora-blur-image-catmull-rom-plus",
+        "aurora-blur-image-catmull-rom-src-over", "aurora-ridge-gradient-dither-src-over",
+        "aurora-glass-gradient-dither-src-over", "aurora-star-solid-src-over", "aurora-outline-solid-src-over",
     });
 
     private readonly record struct Ray(double U, double H, double A, double W, double K);
@@ -35,10 +37,16 @@ public sealed class AuroraMark : IDisposable
     private readonly SKPaint layerPaint = new() { IsAntialias = true };
     private readonly SKPath path = new();
     private readonly SKPoint[] points = new SKPoint[2];
-    private readonly uint[] colors = new uint[13];
+    private readonly SKColorF[] colors = new SKColorF[13];
     private readonly float[] stops = new float[13];
-    private readonly nint blurRecorder = Native.sk_picture_recorder_new();
-    private readonly nint filterRecorder = Native.sk_picture_recorder_new();
+    private Raster scratch = new();
+    private Raster filteredScratch = new();
+    private Raster nightRaster = new();
+    private nint nightImage;
+    private double nightSize;
+    private int nightPixels;
+    private string? nightTheme;
+    private SKMatrix blurOrigin;
     private SKRect blurBounds;
     private SKMatrix blurTransform;
     private SKBlendMode blurBlend;
@@ -93,24 +101,55 @@ public sealed class AuroraMark : IDisposable
 
     private void Night(SKCanvas c, double size, string theme, Box p, double alpha)
     {
-        // The reference backend elides the cached picture's paint/layer once alpha rounds to 255.
-        var grouped = size > 32 && MathF.Round((float)alpha * 255, MidpointRounding.AwayFromZero) < 255;
-        if (size > 32)
+        if (size <= 32)
         {
-            // K.layer draws the complete night picture with the launch alpha as a group.
-            if (grouped) Layer(c, alpha, SKBlendMode.SrcOver);
-            var shadow = BeginBlur(c, size, size * 0.03, SKBlendMode.SrcOver);
-            Solid(string.Equals(theme, "light", StringComparison.Ordinal) ? Color(10, 30, 50, .32) : Color(0, 0, 0, .6));
-            Squircle(p.X + p.W * .03, p.Y + p.H * .05, p.W * .94, p.H * .96, p.R);
-            Native.sk_canvas_draw_path(shadow, path.Handle, paint.Handle);
-            EndBlur(c);
+            Squircle(p.X, p.Y, p.W, p.H, p.R);
+            NightGradient(p, alpha);
+            c.DrawPath(path, paint);
+            return;
         }
-        Squircle(p.X, p.Y, p.W, p.H, p.R);
-        colors[0] = 0xff040818; colors[1] = 0xff06122a; colors[2] = 0xff071a2c; colors[3] = 0xff08222c;
+        var matrix = c.TotalMatrix;
+        var scale = Math.Sqrt((double)matrix.ScaleX * matrix.ScaleX + (double)matrix.SkewY * matrix.SkewY);
+        if (scale == 0) scale = 1; // IconKit.scaleOf: Math.hypot(...) || 1.
+        var cacheScale = scale <= .5 + 1e-6 ? .5 : scale <= 1 + 1e-6 ? 1 : scale <= 1.5 + 1e-6 ? 1.5 :
+            scale <= 2 + 1e-6 ? 2 : scale <= 3 + 1e-6 ? 3 : scale <= 4 + 1e-6 ? 4 : scale <= 6 + 1e-6 ? 6 : scale <= 8 + 1e-6 ? 8 : scale;
+        var pixels = (int)Math.Floor(size * cacheScale + .5);
+        if (nightImage == 0 || nightSize != size || nightPixels != pixels || !string.Equals(nightTheme, theme, StringComparison.Ordinal))
+        {
+            nightRaster.Ensure(pixels, pixels, false);
+            nightRaster.Clear();
+            var nightMatrix = SKMatrix.CreateScale((float)(pixels / size), (float)(pixels / size));
+            SetMatrix(nightRaster.Canvas, nightMatrix);
+            var originalSize = deviceSize;
+            deviceSize = new SKSizeI(pixels, pixels);
+            try
+            {
+                var shadow = BeginBlur(nightMatrix, size * .03, SKBlendMode.SrcOver);
+                Solid(string.Equals(theme, "light", StringComparison.Ordinal) ? Color(10, 30, 50, .32) : Color(0, 0, 0, .6));
+                Squircle(p.X + p.W * .03, p.Y + p.H * .05, p.W * .94, p.H * .96, p.R);
+                Native.sk_canvas_draw_path(shadow, path.Handle, paint.Handle);
+                EndBlur(nightRaster.Canvas);
+                Squircle(p.X, p.Y, p.W, p.H, p.R);
+                NightGradient(p, 1);
+                Native.sk_canvas_draw_path(nightRaster.Canvas, path.Handle, paint.Handle);
+            }
+            finally { deviceSize = originalSize; }
+            var nextImage = Snapshot(nightRaster.Surface);
+            if (nightImage != 0) Native.sk_image_unref(nightImage);
+            nightImage = nextImage;
+            nightSize = size; nightPixels = pixels; nightTheme = theme;
+        }
+        layerPaint.Color = SKColors.White.WithAlpha(AlphaByte(alpha)); layerPaint.BlendMode = SKBlendMode.SrcOver;
+        var source = SKRect.Create(pixels, pixels); var dest = SKRect.Create((float)size, (float)size);
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear);
+        Native.sk_canvas_draw_image_rect(c.Handle, nightImage, in source, in dest, in sampling, layerPaint.Handle);
+    }
+
+    private void NightGradient(Box p, double alpha)
+    {
+        colors[0] = Opaque(0xff040818); colors[1] = Opaque(0xff06122a); colors[2] = Opaque(0xff071a2c); colors[3] = Opaque(0xff08222c);
         stops[0] = 0; stops[1] = .5f; stops[2] = .8f; stops[3] = 1;
-        Gradient(p.X, p.Y, p.X, p.Y + p.H, 4, size > 32 ? 1 : alpha);
-        c.DrawPath(path, paint);
-        if (grouped) c.Restore();
+        Gradient(p.X, p.Y, p.X, p.Y + p.H, 4, alpha);
     }
 
     private void DrawStars(SKCanvas c, double size, Box p, double k, double tw, double alpha)
@@ -141,17 +180,17 @@ public sealed class AuroraMark : IDisposable
             Solid(Color(80, 255, 190, .45), reveal, stroke: tiny ? 4 : 6, round: true);
             FootPath(p, phase, sway, tiny ? -2 : -3, 16, 0, 1, 1);
             c.DrawPath(path, paint);
-            Solid(0xff8affd0, reveal, stroke: tiny ? 2 : 2.5, round: true);
+            Solid(Opaque(0xff8affd0), reveal, stroke: tiny ? 2 : 2.5, round: true);
             FootPath(p, phase, sway, 0, 16, 0, 1, 1);
             c.DrawPath(path, paint);
             c.Restore();
             return;
         }
-        var glow = BeginBlur(c, size, size * .02, SKBlendMode.Plus);
+        var glow = BeginBlur(c, size * .02, SKBlendMode.Plus);
         DrawRays(glow, p, reveal, phase, sway, bright, 3, .55);
         EndBlur(c);
         DrawRays(c.Handle, p, reveal, phase, sway, bright, 1, .7);
-        var foot = BeginBlur(c, size, size * .006, SKBlendMode.Plus);
+        var foot = BeginBlur(c, size * .006, SKBlendMode.Plus);
         for (var i = 0; i <= 12; i++)
         {
             colors[i] = Color(170, 255, 215, Fixed3((.02 + .22 * Rays[i * 13].A * Rays[i * 13 + 1].A) * bright));
@@ -162,7 +201,7 @@ public sealed class AuroraMark : IDisposable
         Native.sk_canvas_draw_path(foot, path.Handle, paint.Handle);
         EndBlur(c);
 
-        colors[0] = 0xff04121a; colors[1] = 0xff02080d; stops[0] = 0; stops[1] = 1;
+        colors[0] = Opaque(0xff04121a); colors[1] = Opaque(0xff02080d); stops[0] = 0; stops[1] = 1;
         Gradient(p.X, p.Y + p.H * .78, p.X, p.Y + p.H, 2);
         path.Rewind(); path.MoveTo((float)p.X, (float)(p.Y + p.H));
         for (var i = 0; i <= 30; i++)
@@ -219,7 +258,7 @@ public sealed class AuroraMark : IDisposable
         }
         c.Save(); Squircle(p.X, p.Y, p.W, p.H, p.R); c.ClipPath(path, SKClipOperation.Intersect, true);
         var lw = size * .018;
-        var rim = BeginBlur(c, size, size * .006, SKBlendMode.SrcOver, alpha);
+        var rim = BeginBlur(c, size * .006, SKBlendMode.SrcOver, alpha);
         colors[0] = Color(255, 255, 255, .55); colors[1] = Color(255, 255, 255, .08);
         colors[2] = Color(160, 255, 220, .05); colors[3] = Color(160, 255, 220, .3);
         stops[0] = 0; stops[1] = .4f; stops[2] = .8f; stops[3] = 1;
@@ -240,11 +279,11 @@ public sealed class AuroraMark : IDisposable
         c.DrawPath(path, paint);
     }
 
-    private void Solid(uint color, double alpha = 1, SKBlendMode blend = SKBlendMode.SrcOver, double stroke = 0, bool round = false)
+    private void Solid(SKColorF color, double alpha = 1, SKBlendMode blend = SKBlendMode.SrcOver, double stroke = 0, bool round = false)
     {
         Native.sk_paint_set_shader(paint.Handle, 0);
-        var c = (SKColor)color;
-        paint.Color = c.WithAlpha((byte)Math.Clamp((int)MathF.Round(c.Alpha * (float)alpha, MidpointRounding.AwayFromZero), 0, 255));
+        paint.IsDither = false;
+        paint.ColorF = color.WithAlpha(color.Alpha * (float)alpha);
         Style(blend, stroke, round);
     }
 
@@ -252,11 +291,12 @@ public sealed class AuroraMark : IDisposable
         SKBlendMode blend = SKBlendMode.SrcOver, double stroke = 0, bool round = false)
     {
         points[0] = new SKPoint((float)x0, (float)y0); points[1] = new SKPoint((float)x1, (float)y1);
-        var shader = Native.sk_shader_new_linear_gradient(points, colors, stops, count, SKShaderTileMode.Clamp, 0);
+        var shader = Native.sk_shader_new_linear_gradient_color4f(points, colors, 0, stops, count, SKShaderTileMode.Clamp, 0);
         if (shader == 0) throw new InvalidOperationException("Aurora gradient creation failed.");
         Native.sk_paint_set_shader(paint.Handle, shader);
         Native.sk_shader_unref(shader);
         paint.ColorF = new SKColorF(1, 1, 1, (float)alpha);
+        paint.IsDither = true;
         Style(blend, stroke, round);
     }
 
@@ -269,68 +309,106 @@ public sealed class AuroraMark : IDisposable
         paint.StrokeJoin = SKStrokeJoin.Miter;
     }
 
-    private void Layer(SKCanvas c, double alpha, SKBlendMode blend)
-    {
-        Native.sk_paint_set_imagefilter(layerPaint.Handle, 0);
-        layerPaint.ColorF = new SKColorF(1, 1, 1, (float)alpha);
-        layerPaint.BlendMode = blend;
-        c.SaveLayer(layerPaint);
-    }
+    // IconKit.blur rasterizes into two pooled HTML canvases (initially 300 by 150),
+    // filters at scratch resolution, then samples the requested padded source rectangle.
+    private nint BeginBlur(SKCanvas c, double radius, SKBlendMode blend, double alpha = 1) =>
+        BeginBlur(c.TotalMatrix, radius, blend, alpha);
 
-    // K.blur's two scratch canvases are pictures in the selected Node Skia backend. Record
-    // unclipped, with the exact downscaled transform and padded extent, filter that picture,
-    // then apply the destination's clip, alpha and blend only when compositing it back.
-    private nint BeginBlur(SKCanvas c, double size, double radius, SKBlendMode blend, double alpha = 1)
+    private nint BeginBlur(SKMatrix matrix, double radius, SKBlendMode blend, double alpha = 1)
     {
-        var matrix = c.TotalMatrix;
         var scale = Math.Sqrt((double)matrix.ScaleX * matrix.ScaleX + (double)matrix.SkewY * matrix.SkewY);
+        if (scale == 0) scale = 1; // IconKit.scaleOf: Math.hypot(...) || 1.
         var rd = radius * scale;
         var k = Math.Clamp(rd / 2.5, 1, 8);
-        var width = Math.Max(1, Math.Ceiling(deviceSize.Width / k)) + 4;
-        var height = Math.Max(1, Math.Ceiling(deviceSize.Height / k)) + 4;
-        blurBounds = SKRect.Create((float)width, (float)height);
+        var width = (int)(Math.Max(1, Math.Ceiling(deviceSize.Width / k)) + 4);
+        var height = (int)(Math.Max(1, Math.Ceiling(deviceSize.Height / k)) + 4);
+        blurBounds = SKRect.Create(width, height);
         blurTransform = new SKMatrix((float)k, 0, (float)(-2 * k), 0, (float)k, (float)(-2 * k), 0, 0, 1);
-        blurBlend = blend; blurAlpha = alpha;
-        blurSigma = (float)(Math.Round(rd / k, 2, MidpointRounding.AwayFromZero) / 2);
-        var target = Native.sk_picture_recorder_begin_recording(blurRecorder, in blurBounds);
+        blurOrigin = matrix; blurBlend = blend; blurAlpha = alpha;
+        // CSS filter blur() specifies sigma directly; shadowBlur alone uses radius / 2.
+        blurSigma = (float)Math.Round(rd / k, 2, MidpointRounding.AwayFromZero);
+        scratch.Ensure(width, height, true); filteredScratch.Ensure(width, height, true);
+        scratch.Clear(); filteredScratch.Clear();
         var scratchMatrix = new SKMatrix((float)(matrix.ScaleX / k), (float)(matrix.SkewX / k), (float)(matrix.TransX / k + 2),
             (float)(matrix.SkewY / k), (float)(matrix.ScaleY / k), (float)(matrix.TransY / k + 2), 0, 0, 1);
-        var matrix44 = new SKMatrix44(scratchMatrix);
-        Native.sk_canvas_set_matrix(target, in matrix44);
-        return target;
+        SetMatrix(scratch.Canvas, scratchMatrix);
+        return scratch.Canvas;
     }
 
-    private void EndBlur(SKCanvas c)
+    private void EndBlur(SKCanvas c) => EndBlur(c.Handle);
+
+    private void EndBlur(nint canvas)
     {
-        var picture = Native.sk_picture_recorder_end_recording(blurRecorder);
+        var image = Snapshot(scratch.Surface);
         nint filtered = 0;
         try
         {
-            var target = Native.sk_picture_recorder_begin_recording(filterRecorder, in blurBounds);
             var filter = Native.sk_imagefilter_new_blur(blurSigma, blurSigma, SKShaderTileMode.Decal, 0, 0);
             if (filter == 0) throw new InvalidOperationException("Aurora blur creation failed.");
             Native.sk_paint_set_imagefilter(layerPaint.Handle, filter);
             Native.sk_imagefilter_unref(filter);
             layerPaint.Color = SKColors.White; layerPaint.BlendMode = SKBlendMode.SrcOver;
-            var identity = SKMatrix.Identity;
-            Native.sk_canvas_draw_picture(target, picture, in identity, layerPaint.Handle);
+            var sampling = new SKSamplingOptions(SKFilterMode.Linear);
+            Native.sk_canvas_draw_image(filteredScratch.Canvas, image, 0, 0, in sampling, layerPaint.Handle);
             Native.sk_paint_set_imagefilter(layerPaint.Handle, 0);
-            filtered = Native.sk_picture_recorder_end_recording(filterRecorder);
-            layerPaint.ColorF = new SKColorF(1, 1, 1, (float)blurAlpha); layerPaint.BlendMode = blurBlend;
-            c.Save();
-            try
-            {
-                c.ResetMatrix();
-                c.ClipRect(blurTransform.MapRect(blurBounds), SKClipOperation.Intersect, true);
-                Native.sk_canvas_draw_picture(c.Handle, filtered, in blurTransform, layerPaint.Handle);
-            }
-            finally { c.Restore(); }
+            filtered = Snapshot(filteredScratch.Surface);
+            layerPaint.Color = SKColors.White.WithAlpha(AlphaByte(blurAlpha)); layerPaint.BlendMode = blurBlend;
+            sampling = new SKSamplingOptions(SKCubicResampler.CatmullRom);
+            var dest = blurTransform.MapRect(blurBounds);
+            SetMatrix(canvas, SKMatrix.Identity);
+            // The Skia C shim uses Chrome's fast source-rectangle constraint.
+            Native.sk_canvas_draw_image_rect(canvas, filtered, in blurBounds, in dest, in sampling, layerPaint.Handle);
         }
         finally
         {
-            if (filtered != 0) Native.sk_picture_unref(filtered);
-            Native.sk_picture_unref(picture);
+            SetMatrix(canvas, blurOrigin);
+            if (filtered != 0) Native.sk_image_unref(filtered);
+            Native.sk_image_unref(image);
             Native.sk_paint_set_imagefilter(layerPaint.Handle, 0);
+        }
+        // The module pushes tmp followed by the filtered canvas, reversing their roles next call.
+        (scratch, filteredScratch) = (filteredScratch, scratch);
+    }
+
+    private static nint Snapshot(nint surface)
+    {
+        var image = Native.sk_surface_new_image_snapshot(surface);
+        return image != 0 ? image : throw new InvalidOperationException("Aurora scratch snapshot failed.");
+    }
+
+    private static void SetMatrix(nint canvas, SKMatrix matrix)
+    {
+        var matrix44 = new SKMatrix44(matrix);
+        Native.sk_canvas_set_matrix(canvas, in matrix44);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private readonly record struct ImageInfo(nint ColorSpace, int Width, int Height, int ColorType, SKAlphaType AlphaType);
+
+    private struct Raster
+    {
+        public nint Surface;
+        public nint Canvas;
+        private int width;
+        private int height;
+        public void Ensure(int w, int h, bool pool)
+        {
+            if (pool) { w = Math.Max(Math.Max(width, 300), w); h = Math.Max(Math.Max(height, 150), h); }
+            if (Surface != 0 && width == w && height == h) return;
+            var info = new ImageInfo(0, w, h, 4, SKAlphaType.Premul);
+            var surface = Native.sk_surface_new_raster(in info, 0, 0);
+            if (surface == 0) throw new InvalidOperationException("Aurora scratch allocation failed.");
+            Dispose(); Surface = surface; Canvas = Native.sk_surface_get_canvas(surface); width = w; height = h;
+        }
+        public readonly void Clear()
+        {
+            SetMatrix(Canvas, SKMatrix.Identity);
+            Native.sk_canvas_clear(Canvas, 0);
+        }
+        public void Dispose()
+        {
+            if (Surface != 0) Native.sk_surface_unref(Surface);
+            Surface = 0; Canvas = 0;
         }
     }
 
@@ -366,7 +444,9 @@ public sealed class AuroraMark : IDisposable
     private static double Out(double u) => 1 - Math.Pow(1 - u, 3);
     private static double InOut(double u) => u < .5 ? 4 * u * u * u : 1 - Math.Pow(-2 * u + 2, 3) / 2;
     private static double Fixed3(double value) => Math.Round(value, 3, MidpointRounding.AwayFromZero);
-    private static uint Color(byte r, byte g, byte b, double alpha) => (uint)new SKColor(r, g, b, (byte)Math.Clamp((int)MathF.Round((float)alpha * 255, MidpointRounding.AwayFromZero), 0, 255));
+    private static byte AlphaByte(double alpha) => (byte)Math.Clamp((int)MathF.Round((float)alpha * 255, MidpointRounding.AwayFromZero), 0, 255);
+    private static SKColorF Color(byte r, byte g, byte b, double alpha) => new(r / 255f, g / 255f, b / 255f, (float)alpha);
+    private static SKColorF Opaque(uint color) => (SKColorF)(SKColor)color;
 
     private static double Random(ref uint s)
     {
@@ -395,26 +475,31 @@ public sealed class AuroraMark : IDisposable
     {
         if (disposed) return;
         disposed = true;
-        Native.sk_picture_recorder_delete(blurRecorder); Native.sk_picture_recorder_delete(filterRecorder);
+        scratch.Dispose(); filteredScratch.Dispose(); nightRaster.Dispose();
+        if (nightImage != 0) Native.sk_image_unref(nightImage);
         path.Dispose(); paint.Dispose(); layerPaint.Dispose();
     }
 
     private static class Native
     {
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern nint sk_picture_recorder_new();
+        internal static extern nint sk_surface_new_raster(in ImageInfo info, nint rowBytes, nint props);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void sk_picture_recorder_delete(nint recorder);
+        internal static extern nint sk_surface_get_canvas(nint surface);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern nint sk_picture_recorder_begin_recording(nint recorder, in SKRect bounds);
+        internal static extern nint sk_surface_new_image_snapshot(nint surface);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern nint sk_picture_recorder_end_recording(nint recorder);
+        internal static extern void sk_surface_unref(nint surface);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void sk_picture_unref(nint picture);
+        internal static extern void sk_image_unref(nint image);
+        [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void sk_canvas_clear(nint canvas, uint color);
+        [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void sk_canvas_draw_image(nint canvas, nint image, float x, float y, in SKSamplingOptions sampling, nint paint);
+        [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void sk_canvas_draw_image_rect(nint canvas, nint image, in SKRect source, in SKRect dest, in SKSamplingOptions sampling, nint paint);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void sk_canvas_set_matrix(nint canvas, in SKMatrix44 matrix);
-        [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern void sk_canvas_draw_picture(nint canvas, nint picture, in SKMatrix matrix, nint paint);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void sk_canvas_draw_path(nint canvas, nint path, nint paint);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
@@ -426,7 +511,7 @@ public sealed class AuroraMark : IDisposable
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void sk_paint_set_imagefilter(nint paint, nint filter);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern nint sk_shader_new_linear_gradient([In] SKPoint[] points, [In] uint[] colors, [In] float[] positions, int count, SKShaderTileMode mode, nint matrix);
+        internal static extern nint sk_shader_new_linear_gradient_color4f([In] SKPoint[] points, [In] SKColorF[] colors, nint colorSpace, [In] float[] positions, int count, SKShaderTileMode mode, nint matrix);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void sk_paint_set_shader(nint paint, nint shader);
         [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]

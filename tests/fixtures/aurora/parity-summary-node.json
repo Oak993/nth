@@ -1,0 +1,882 @@
+{
+  "task": "AURORA-RENDER",
+  "status": "NOT READY",
+  "baseSha": "889c9ebd523cbfedb39d9bf06e22ba7b9988ea46",
+  "referenceBackend": "skia-canvas 3.0.8 CPU",
+  "csharpSkiaSharp": "3.119.4",
+  "frames": 210,
+  "requiredMaxChannelDifference": 2,
+  "measuredMaxChannelDifference": 255,
+  "channelUnits": "1/255 decoded RGBA, including transparent edges",
+  "framesWithinTolerance": 8,
+  "maxBySize": {
+    "16": 29,
+    "24": 31,
+    "32": 128,
+    "48": 255,
+    "64": 255,
+    "256": 255,
+    "512": 191
+  },
+  "build": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "filteredTests": {
+    "total": 35,
+    "passed": 34,
+    "failed": 1,
+    "traceabilityPassed": 12
+  },
+  "managedBytesPerDrawAfterWarmup": 0,
+  "nativeAllocations": "Not zero; Skia drawing objects allocate and are unreferenced.",
+  "windowsGpuVerification": "NOT RUN",
+  "manifestSha256": "967e387ce0e9ef684ee74e0163fbbfbe0fb427b6d8cc969fc71481277dd991a7",
+  "sourceSha256": {
+    "src/Marrow.UI/Port/AuroraMark.cs": "3c8bb3b9edff40df6b02f11382fd3cf8d9c2d54496bd75d3ebd057a98f8434f7",
+    "src/Marrow.UI/Port/AuroraTime.cs": "7c3825a6f7196686911ee00cd0d958852182e353dab304baaa29c8ef95a65ffe",
+    "tests/Marrow.UI.Tests/Port/AuroraMarkTests.cs": "abbc28d5b4ad5858094c2629593232c001fc838a04438120903a762f88d700fb"
+  },
+  "framesMeasured": [
+    {
+      "file": "png/16-dark-still-0.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-dark-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/16-dark-launch-120.png",
+      "maxChannelDifference": 12
+    },
+    {
+      "file": "png/16-dark-launch-300.png",
+      "maxChannelDifference": 19
+    },
+    {
+      "file": "png/16-dark-launch-540.png",
+      "maxChannelDifference": 19
+    },
+    {
+      "file": "png/16-dark-launch-780.png",
+      "maxChannelDifference": 22
+    },
+    {
+      "file": "png/16-dark-launch-1020.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/16-dark-launch-1200.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-dark-idle-0.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-dark-idle-900.png",
+      "maxChannelDifference": 29
+    },
+    {
+      "file": "png/16-dark-idle-1800.png",
+      "maxChannelDifference": 19
+    },
+    {
+      "file": "png/16-dark-idle-3600.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-dark-idle-5400.png",
+      "maxChannelDifference": 19
+    },
+    {
+      "file": "png/16-dark-idle-6300.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-dark-idle-7200.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-light-still-0.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-light-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/16-light-launch-120.png",
+      "maxChannelDifference": 13
+    },
+    {
+      "file": "png/16-light-launch-300.png",
+      "maxChannelDifference": 20
+    },
+    {
+      "file": "png/16-light-launch-540.png",
+      "maxChannelDifference": 20
+    },
+    {
+      "file": "png/16-light-launch-780.png",
+      "maxChannelDifference": 22
+    },
+    {
+      "file": "png/16-light-launch-1020.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/16-light-launch-1200.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-light-idle-0.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-light-idle-900.png",
+      "maxChannelDifference": 29
+    },
+    {
+      "file": "png/16-light-idle-1800.png",
+      "maxChannelDifference": 20
+    },
+    {
+      "file": "png/16-light-idle-3600.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-light-idle-5400.png",
+      "maxChannelDifference": 20
+    },
+    {
+      "file": "png/16-light-idle-6300.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/16-light-idle-7200.png",
+      "maxChannelDifference": 25
+    },
+    {
+      "file": "png/24-dark-still-0.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/24-dark-launch-120.png",
+      "maxChannelDifference": 20
+    },
+    {
+      "file": "png/24-dark-launch-300.png",
+      "maxChannelDifference": 29
+    },
+    {
+      "file": "png/24-dark-launch-540.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-launch-780.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-launch-1020.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-launch-1200.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-idle-0.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-idle-900.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-idle-1800.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-idle-3600.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-idle-5400.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-idle-6300.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-dark-idle-7200.png",
+      "maxChannelDifference": 31
+    },
+    {
+      "file": "png/24-light-still-0.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/24-light-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/24-light-launch-120.png",
+      "maxChannelDifference": 17
+    },
+    {
+      "file": "png/24-light-launch-300.png",
+      "maxChannelDifference": 23
+    },
+    {
+      "file": "png/24-light-launch-540.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/24-light-launch-780.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/24-light-launch-1020.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/24-light-launch-1200.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/24-light-idle-0.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/24-light-idle-900.png",
+      "maxChannelDifference": 29
+    },
+    {
+      "file": "png/24-light-idle-1800.png",
+      "maxChannelDifference": 28
+    },
+    {
+      "file": "png/24-light-idle-3600.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/24-light-idle-5400.png",
+      "maxChannelDifference": 28
+    },
+    {
+      "file": "png/24-light-idle-6300.png",
+      "maxChannelDifference": 29
+    },
+    {
+      "file": "png/24-light-idle-7200.png",
+      "maxChannelDifference": 24
+    },
+    {
+      "file": "png/32-dark-still-0.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/32-dark-launch-120.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/32-dark-launch-300.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-launch-540.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-launch-780.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-launch-1020.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-launch-1200.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-idle-0.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-idle-900.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-idle-1800.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-idle-3600.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-idle-5400.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-idle-6300.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-dark-idle-7200.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-still-0.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/32-light-launch-120.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/32-light-launch-300.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-launch-540.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-launch-780.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-launch-1020.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-launch-1200.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-idle-0.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-idle-900.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-idle-1800.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-idle-3600.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-idle-5400.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-idle-6300.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/32-light-idle-7200.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/48-dark-still-0.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-launch-0.png",
+      "maxChannelDifference": 40
+    },
+    {
+      "file": "png/48-dark-launch-120.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/48-dark-launch-300.png",
+      "maxChannelDifference": 215
+    },
+    {
+      "file": "png/48-dark-launch-540.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-launch-780.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-launch-1020.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-launch-1200.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-idle-0.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-idle-900.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-idle-1800.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-idle-3600.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-idle-5400.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-idle-6300.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-dark-idle-7200.png",
+      "maxChannelDifference": 204
+    },
+    {
+      "file": "png/48-light-still-0.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-launch-0.png",
+      "maxChannelDifference": 40
+    },
+    {
+      "file": "png/48-light-launch-120.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/48-light-launch-300.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-launch-540.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-launch-780.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-launch-1020.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-launch-1200.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-idle-0.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-idle-900.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-idle-1800.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-idle-3600.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-idle-5400.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-idle-6300.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/48-light-idle-7200.png",
+      "maxChannelDifference": 102
+    },
+    {
+      "file": "png/64-dark-still-0.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-launch-0.png",
+      "maxChannelDifference": 53
+    },
+    {
+      "file": "png/64-dark-launch-120.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-launch-300.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-launch-540.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-launch-780.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-launch-1020.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-launch-1200.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-idle-0.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-idle-900.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-idle-1800.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-idle-3600.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-idle-5400.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-idle-6300.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-dark-idle-7200.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-still-0.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-launch-0.png",
+      "maxChannelDifference": 53
+    },
+    {
+      "file": "png/64-light-launch-120.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-launch-300.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-launch-540.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-launch-780.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-launch-1020.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-launch-1200.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-idle-0.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-idle-900.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-idle-1800.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-idle-3600.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-idle-5400.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-idle-6300.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/64-light-idle-7200.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/256-dark-still-0.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/256-dark-launch-120.png",
+      "maxChannelDifference": 255
+    },
+    {
+      "file": "png/256-dark-launch-300.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-launch-540.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-launch-780.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-launch-1020.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-launch-1200.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-idle-0.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-idle-900.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-idle-1800.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-idle-3600.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-idle-5400.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-idle-6300.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-dark-idle-7200.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-light-still-0.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-launch-0.png",
+      "maxChannelDifference": 0
+    },
+    {
+      "file": "png/256-light-launch-120.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-light-launch-300.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/256-light-launch-540.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-launch-780.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-launch-1020.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-launch-1200.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-idle-0.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-idle-900.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-idle-1800.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-idle-3600.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-idle-5400.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-idle-6300.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/256-light-idle-7200.png",
+      "maxChannelDifference": 85
+    },
+    {
+      "file": "png/512-dark-still-0.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-launch-0.png",
+      "maxChannelDifference": 4
+    },
+    {
+      "file": "png/512-dark-launch-120.png",
+      "maxChannelDifference": 170
+    },
+    {
+      "file": "png/512-dark-launch-300.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-dark-launch-540.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-launch-780.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-launch-1020.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-launch-1200.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-idle-0.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-idle-900.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-idle-1800.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-idle-3600.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-idle-5400.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-idle-6300.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-dark-idle-7200.png",
+      "maxChannelDifference": 64
+    },
+    {
+      "file": "png/512-light-still-0.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-launch-0.png",
+      "maxChannelDifference": 4
+    },
+    {
+      "file": "png/512-light-launch-120.png",
+      "maxChannelDifference": 191
+    },
+    {
+      "file": "png/512-light-launch-300.png",
+      "maxChannelDifference": 153
+    },
+    {
+      "file": "png/512-light-launch-540.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-launch-780.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-launch-1020.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-launch-1200.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-idle-0.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-idle-900.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-idle-1800.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-idle-3600.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-idle-5400.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-idle-6300.png",
+      "maxChannelDifference": 128
+    },
+    {
+      "file": "png/512-light-idle-7200.png",
+      "maxChannelDifference": 128
+    }
+  ]
+}

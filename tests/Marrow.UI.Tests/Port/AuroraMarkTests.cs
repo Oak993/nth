@@ -15,7 +15,14 @@ public sealed class AuroraMarkTests
     public void References_bind_the_locked_sources_and_cover_every_size_theme_and_motion()
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(Fixtures(), "manifest.json")));
-        var root = Path.GetFullPath(Path.Combine(Fixtures(), "../../.."));
+        var root = Path.GetFullPath(Path.Combine(Fixtures(), "../../../.."));
+        Assert.Equal("browser Canvas 2D", manifest.RootElement.GetProperty("backend").GetString());
+        Assert.Equal(1, manifest.RootElement.GetProperty("dpr").GetInt32());
+        Assert.Equal(1, manifest.RootElement.GetProperty("canvasPixelsPerOutputPixel").GetInt32());
+        Assert.Equal("fresh", manifest.RootElement.GetProperty("documentPerFrame").GetString());
+        Assert.Equal("Google Chrome", manifest.RootElement.GetProperty("browser").GetProperty("name").GetString());
+        Assert.Equal(manifest.RootElement.GetProperty("inputsSha256").GetString(),
+            Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(Fixtures(), "inputs.json")))));
         foreach (var source in manifest.RootElement.GetProperty("sources").EnumerateArray())
         {
             var bytes = File.ReadAllBytes(Path.Combine(root, source.GetProperty("path").GetString()!));
@@ -47,21 +54,43 @@ public sealed class AuroraMarkTests
         using var renderer = new AuroraMark();
         var worst = 0;
         var failures = new List<string>();
+        var reports = new List<object>();
+        var maxBySize = new SortedDictionary<int, int>();
         foreach (var frame in frames.EnumerateArray())
         {
             var file = frame.GetProperty("file").GetString()!;
             var bytes = File.ReadAllBytes(Path.Combine(Fixtures(), file));
             Assert.Equal(frame.GetProperty("sha256").GetString(), Convert.ToHexStringLower(SHA256.HashData(bytes)));
-            using var reference = SKBitmap.Decode(bytes);
+            using var stream = new SKMemoryStream(bytes);
+            using var codec = SKCodec.Create(stream);
+            using var reference = SKBitmap.Decode(codec, codec.Info.WithAlphaType(SKAlphaType.Unpremul));
             var size = frame.GetProperty("size").GetInt32();
             using var actual = Render(renderer, size, frame.GetProperty("theme").GetString()!,
                 new AuroraTime(frame.GetProperty("launch").GetDouble(), frame.GetProperty("idle").GetDouble(), frame.GetProperty("still").GetBoolean()));
-            var max = Compare(reference, actual);
+            var difference = Measure(reference, actual);
+            var max = difference.Max;
             worst = Math.Max(worst, max);
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{file}: max {max}/255"));
-            if (max > 2) failures.Add(string.Create(CultureInfo.InvariantCulture, $"{file}: {max}/255"));
+            maxBySize[size] = Math.Max(maxBySize.GetValueOrDefault(size), max);
+            var detail = string.Create(CultureInfo.InvariantCulture,
+                $"{file}: max {max}/255 at ({difference.X},{difference.Y}) {difference.Channel}, expected {difference.Expected}, actual {difference.Actual}; {difference.PixelsAboveTolerance} pixels exceed 2");
+            Console.WriteLine(detail);
+            reports.Add(new { file, size, theme = frame.GetProperty("theme").GetString(),
+                mode = frame.GetProperty("mode").GetString(), ms = frame.GetProperty("ms").GetInt32(),
+                maxDifference = max, x = difference.X, y = difference.Y, channel = difference.Channel,
+                expected = difference.Expected.ToString(), actual = difference.Actual.ToString(),
+                pixelsAboveTolerance = difference.PixelsAboveTolerance });
+            if (max > 2) failures.Add(detail);
         }
+        foreach (var (size, max) in maxBySize)
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Aurora {size}px measured maximum: {max}/255"));
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Aurora measured maximum: {worst}/255 over {frames.GetArrayLength()} frames"));
+        var reportFile = Environment.GetEnvironmentVariable("AURORA_PARITY_REPORT");
+        if (!string.IsNullOrEmpty(reportFile))
+            File.WriteAllText(reportFile, JsonSerializer.Serialize(new {
+                oracle = "Chrome 154.0.8037.93 Canvas 2D", tolerancePerChannel = 2,
+                comparison = "Every unpremultiplied RGBA channel; no masks", maxDifference = worst,
+                maxBySize, framesWithinTolerance = frames.GetArrayLength() - failures.Count, frames = reports,
+            }, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
         Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
 
@@ -213,7 +242,7 @@ public sealed class AuroraMarkTests
     }
 
     private static string Fixtures([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "../../fixtures/aurora"));
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "../../fixtures/aurora/chrome"));
 
     private static SKBitmap Render(AuroraMark renderer, int size, string theme, AuroraTime time)
     {
@@ -224,21 +253,32 @@ public sealed class AuroraMarkTests
         return bitmap;
     }
 
-    private static int Compare(SKBitmap expected, SKBitmap actual)
+    private static int Compare(SKBitmap expected, SKBitmap actual) => Measure(expected, actual).Max;
+
+    private static (int Max, int X, int Y, string Channel, SKColor Expected, SKColor Actual, int PixelsAboveTolerance)
+        Measure(SKBitmap expected, SKBitmap actual)
     {
         Assert.Equal(expected.Width, actual.Width);
         Assert.Equal(expected.Height, actual.Height);
-        var max = 0;
+        var max = 0; var worstX = 0; var worstY = 0; var worstChannel = "";
+        var worstExpected = SKColors.Transparent; var worstActual = SKColors.Transparent;
+        var count = 0;
         for (var y = 0; y < expected.Height; y++)
             for (var x = 0; x < expected.Width; x++)
             {
                 var a = expected.GetPixel(x, y);
                 var b = actual.GetPixel(x, y);
-                max = Math.Max(max, Math.Abs(a.Red - b.Red));
-                max = Math.Max(max, Math.Abs(a.Green - b.Green));
-                max = Math.Max(max, Math.Abs(a.Blue - b.Blue));
-                max = Math.Max(max, Math.Abs(a.Alpha - b.Alpha));
+                var red = Math.Abs(a.Red - b.Red); var green = Math.Abs(a.Green - b.Green);
+                var blue = Math.Abs(a.Blue - b.Blue); var alpha = Math.Abs(a.Alpha - b.Alpha);
+                var pixelMax = Math.Max(Math.Max(red, green), Math.Max(blue, alpha));
+                if (pixelMax > 2) count++;
+                if (pixelMax > max)
+                {
+                    max = pixelMax; worstX = x; worstY = y;
+                    worstChannel = red == max ? "R" : green == max ? "G" : blue == max ? "B" : "A";
+                    worstExpected = a; worstActual = b;
+                }
             }
-        return max;
+        return (max, worstX, worstY, worstChannel, worstExpected, worstActual, count);
     }
 }

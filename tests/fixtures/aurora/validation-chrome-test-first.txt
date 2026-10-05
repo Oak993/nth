@@ -1,0 +1,648 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.22]   Discovering: Marrow.UI.Tests
+[xUnit.net 00:00:01.29]   Discovered:  Marrow.UI.Tests
+[xUnit.net 00:00:01.33]   Starting:    Marrow.UI.Tests
+png/16-dark-still-0.png: max 25/255
+png/16-dark-launch-0.png: max 0/255
+png/16-dark-launch-120.png: max 12/255
+png/16-dark-launch-300.png: max 19/255
+png/16-dark-launch-540.png: max 19/255
+png/16-dark-launch-780.png: max 22/255
+png/16-dark-launch-1020.png: max 24/255
+png/16-dark-launch-1200.png: max 25/255
+png/16-dark-idle-0.png: max 25/255
+png/16-dark-idle-900.png: max 29/255
+png/16-dark-idle-1800.png: max 19/255
+png/16-dark-idle-3600.png: max 25/255
+png/16-dark-idle-5400.png: max 19/255
+png/16-dark-idle-6300.png: max 25/255
+png/16-dark-idle-7200.png: max 25/255
+png/16-light-still-0.png: max 25/255
+png/16-light-launch-0.png: max 0/255
+png/16-light-launch-120.png: max 13/255
+png/16-light-launch-300.png: max 20/255
+png/16-light-launch-540.png: max 20/255
+png/16-light-launch-780.png: max 22/255
+png/16-light-launch-1020.png: max 24/255
+png/16-light-launch-1200.png: max 25/255
+png/16-light-idle-0.png: max 25/255
+png/16-light-idle-900.png: max 29/255
+png/16-light-idle-1800.png: max 20/255
+png/16-light-idle-3600.png: max 25/255
+png/16-light-idle-5400.png: max 20/255
+png/16-light-idle-6300.png: max 25/255
+png/16-light-idle-7200.png: max 25/255
+png/24-dark-still-0.png: max 31/255
+png/24-dark-launch-0.png: max 0/255
+png/24-dark-launch-120.png: max 19/255
+png/24-dark-launch-300.png: max 30/255
+png/24-dark-launch-540.png: max 31/255
+png/24-dark-launch-780.png: max 31/255
+png/24-dark-launch-1020.png: max 31/255
+png/24-dark-launch-1200.png: max 31/255
+png/24-dark-idle-0.png: max 31/255
+png/24-dark-idle-900.png: max 31/255
+png/24-dark-idle-1800.png: max 31/255
+png/24-dark-idle-3600.png: max 31/255
+png/24-dark-idle-5400.png: max 31/255
+png/24-dark-idle-6300.png: max 31/255
+png/24-dark-idle-7200.png: max 31/255
+png/24-light-still-0.png: max 24/255
+png/24-light-launch-0.png: max 0/255
+png/24-light-launch-120.png: max 17/255
+png/24-light-launch-300.png: max 24/255
+png/24-light-launch-540.png: max 24/255
+png/24-light-launch-780.png: max 24/255
+png/24-light-launch-1020.png: max 24/255
+png/24-light-launch-1200.png: max 24/255
+png/24-light-idle-0.png: max 24/255
+png/24-light-idle-900.png: max 29/255
+png/24-light-idle-1800.png: max 28/255
+png/24-light-idle-3600.png: max 24/255
+png/24-light-idle-5400.png: max 28/255
+png/24-light-idle-6300.png: max 29/255
+png/24-light-idle-7200.png: max 24/255
+png/32-dark-still-0.png: max 58/255
+png/32-dark-launch-0.png: max 0/255
+png/32-dark-launch-120.png: max 85/255
+png/32-dark-launch-300.png: max 51/255
+png/32-dark-launch-540.png: max 51/255
+png/32-dark-launch-780.png: max 51/255
+png/32-dark-launch-1020.png: max 57/255
+png/32-dark-launch-1200.png: max 58/255
+png/32-dark-idle-0.png: max 58/255
+png/32-dark-idle-900.png: max 51/255
+png/32-dark-idle-1800.png: max 51/255
+png/32-dark-idle-3600.png: max 58/255
+png/32-dark-idle-5400.png: max 51/255
+png/32-dark-idle-6300.png: max 59/255
+png/32-dark-idle-7200.png: max 58/255
+png/32-light-still-0.png: max 58/255
+png/32-light-launch-0.png: max 0/255
+png/32-light-launch-120.png: max 85/255
+png/32-light-launch-300.png: max 51/255
+png/32-light-launch-540.png: max 51/255
+png/32-light-launch-780.png: max 51/255
+png/32-light-launch-1020.png: max 57/255
+png/32-light-launch-1200.png: max 58/255
+png/32-light-idle-0.png: max 58/255
+png/32-light-idle-900.png: max 51/255
+png/32-light-idle-1800.png: max 51/255
+png/32-light-idle-3600.png: max 58/255
+png/32-light-idle-5400.png: max 51/255
+png/32-light-idle-6300.png: max 59/255
+png/32-light-idle-7200.png: max 58/255
+png/48-dark-still-0.png: max 241/255
+png/48-dark-launch-0.png: max 40/255
+png/48-dark-launch-120.png: max 255/255
+png/48-dark-launch-300.png: max 240/255
+png/48-dark-launch-540.png: max 241/255
+png/48-dark-launch-780.png: max 241/255
+png/48-dark-launch-1020.png: max 241/255
+png/48-dark-launch-1200.png: max 241/255
+png/48-dark-idle-0.png: max 241/255
+png/48-dark-idle-900.png: max 241/255
+png/48-dark-idle-1800.png: max 241/255
+png/48-dark-idle-3600.png: max 241/255
+png/48-dark-idle-5400.png: max 241/255
+png/48-dark-idle-6300.png: max 241/255
+png/48-dark-idle-7200.png: max 241/255
+png/48-light-still-0.png: max 112/255
+png/48-light-launch-0.png: max 40/255
+png/48-light-launch-120.png: max 128/255
+png/48-light-launch-300.png: max 102/255
+png/48-light-launch-540.png: max 89/255
+png/48-light-launch-780.png: max 116/255
+png/48-light-launch-1020.png: max 110/255
+png/48-light-launch-1200.png: max 112/255
+png/48-light-idle-0.png: max 112/255
+png/48-light-idle-900.png: max 115/255
+png/48-light-idle-1800.png: max 110/255
+png/48-light-idle-3600.png: max 110/255
+png/48-light-idle-5400.png: max 113/255
+png/48-light-idle-6300.png: max 110/255
+png/48-light-idle-7200.png: max 112/255
+png/64-dark-still-0.png: max 255/255
+png/64-dark-launch-0.png: max 128/255
+png/64-dark-launch-120.png: max 255/255
+png/64-dark-launch-300.png: max 255/255
+png/64-dark-launch-540.png: max 255/255
+png/64-dark-launch-780.png: max 255/255
+png/64-dark-launch-1020.png: max 255/255
+png/64-dark-launch-1200.png: max 255/255
+png/64-dark-idle-0.png: max 255/255
+png/64-dark-idle-900.png: max 255/255
+png/64-dark-idle-1800.png: max 255/255
+png/64-dark-idle-3600.png: max 255/255
+png/64-dark-idle-5400.png: max 255/255
+png/64-dark-idle-6300.png: max 255/255
+png/64-dark-idle-7200.png: max 255/255
+png/64-light-still-0.png: max 255/255
+png/64-light-launch-0.png: max 128/255
+png/64-light-launch-120.png: max 255/255
+png/64-light-launch-300.png: max 255/255
+png/64-light-launch-540.png: max 255/255
+png/64-light-launch-780.png: max 255/255
+png/64-light-launch-1020.png: max 255/255
+png/64-light-launch-1200.png: max 255/255
+png/64-light-idle-0.png: max 255/255
+png/64-light-idle-900.png: max 255/255
+png/64-light-idle-1800.png: max 255/255
+png/64-light-idle-3600.png: max 255/255
+png/64-light-idle-5400.png: max 255/255
+png/64-light-idle-6300.png: max 255/255
+png/64-light-idle-7200.png: max 255/255
+png/256-dark-still-0.png: max 242/255
+png/256-dark-launch-0.png: max 255/255
+png/256-dark-launch-120.png: max 255/255
+png/256-dark-launch-300.png: max 242/255
+png/256-dark-launch-540.png: max 242/255
+png/256-dark-launch-780.png: max 242/255
+png/256-dark-launch-1020.png: max 242/255
+png/256-dark-launch-1200.png: max 242/255
+png/256-dark-idle-0.png: max 242/255
+png/256-dark-idle-900.png: max 242/255
+png/256-dark-idle-1800.png: max 242/255
+png/256-dark-idle-3600.png: max 242/255
+png/256-dark-idle-5400.png: max 242/255
+png/256-dark-idle-6300.png: max 242/255
+png/256-dark-idle-7200.png: max 242/255
+png/256-light-still-0.png: max 191/255
+png/256-light-launch-0.png: max 255/255
+png/256-light-launch-120.png: max 149/255
+png/256-light-launch-300.png: max 170/255
+png/256-light-launch-540.png: max 191/255
+png/256-light-launch-780.png: max 191/255
+png/256-light-launch-1020.png: max 191/255
+png/256-light-launch-1200.png: max 191/255
+png/256-light-idle-0.png: max 191/255
+png/256-light-idle-900.png: max 191/255
+png/256-light-idle-1800.png: max 191/255
+png/256-light-idle-3600.png: max 191/255
+png/256-light-idle-5400.png: max 191/255
+png/256-light-idle-6300.png: max 191/255
+png/256-light-idle-7200.png: max 191/255
+png/512-dark-still-0.png: max 255/255
+png/512-dark-launch-0.png: max 255/255
+png/512-dark-launch-120.png: max 255/255
+png/512-dark-launch-300.png: max 255/255
+png/512-dark-launch-540.png: max 255/255
+png/512-dark-launch-780.png: max 255/255
+png/512-dark-launch-1020.png: max 255/255
+png/512-dark-launch-1200.png: max 255/255
+png/512-dark-idle-0.png: max 255/255
+png/512-dark-idle-900.png: max 255/255
+png/512-dark-idle-1800.png: max 255/255
+png/512-dark-idle-3600.png: max 255/255
+png/512-dark-idle-5400.png: max 255/255
+png/512-dark-idle-6300.png: max 255/255
+png/512-dark-idle-7200.png: max 255/255
+png/512-light-still-0.png: max 255/255
+png/512-light-launch-0.png: max 255/255
+png/512-light-launch-120.png: max 255/255
+png/512-light-launch-300.png: max 255/255
+png/512-light-launch-540.png: max 255/255
+png/512-light-launch-780.png: max 255/255
+png/512-light-launch-1020.png: max 255/255
+png/512-light-launch-1200.png: max 255/255
+png/512-light-idle-0.png: max 255/255
+png/512-light-idle-900.png: max 255/255
+png/512-light-idle-1800.png: max 255/255
+png/512-light-idle-3600.png: max 255/255
+png/512-light-idle-5400.png: max 255/255
+png/512-light-idle-6300.png: max 255/255
+png/512-light-idle-7200.png: max 255/255
+Aurora measured maximum: 255/255 over 210 frames
+[xUnit.net 00:00:05.87]     Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels [FAIL]
+[xUnit.net 00:00:05.87]       png/16-dark-still-0.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-dark-launch-120.png: 12/255
+[xUnit.net 00:00:05.87]       png/16-dark-launch-300.png: 19/255
+[xUnit.net 00:00:05.87]       png/16-dark-launch-540.png: 19/255
+[xUnit.net 00:00:05.87]       png/16-dark-launch-780.png: 22/255
+[xUnit.net 00:00:05.87]       png/16-dark-launch-1020.png: 24/255
+[xUnit.net 00:00:05.87]       png/16-dark-launch-1200.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-dark-idle-0.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-dark-idle-900.png: 29/255
+[xUnit.net 00:00:05.87]       png/16-dark-idle-1800.png: 19/255
+[xUnit.net 00:00:05.87]       png/16-dark-idle-3600.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-dark-idle-5400.png: 19/255
+[xUnit.net 00:00:05.87]       png/16-dark-idle-6300.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-dark-idle-7200.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-light-still-0.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-light-launch-120.png: 13/255
+[xUnit.net 00:00:05.87]       png/16-light-launch-300.png: 20/255
+[xUnit.net 00:00:05.87]       png/16-light-launch-540.png: 20/255
+[xUnit.net 00:00:05.87]       png/16-light-launch-780.png: 22/255
+[xUnit.net 00:00:05.87]       png/16-light-launch-1020.png: 24/255
+[xUnit.net 00:00:05.87]       png/16-light-launch-1200.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-light-idle-0.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-light-idle-900.png: 29/255
+[xUnit.net 00:00:05.87]       png/16-light-idle-1800.png: 20/255
+[xUnit.net 00:00:05.87]       png/16-light-idle-3600.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-light-idle-5400.png: 20/255
+[xUnit.net 00:00:05.87]       png/16-light-idle-6300.png: 25/255
+[xUnit.net 00:00:05.87]       png/16-light-idle-7200.png: 25/255
+[xUnit.net 00:00:05.87]       png/24-dark-still-0.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-launch-120.png: 19/255
+[xUnit.net 00:00:05.87]       png/24-dark-launch-300.png: 30/255
+[xUnit.net 00:00:05.87]       png/24-dark-launch-540.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-launch-780.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-launch-1020.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-launch-1200.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-idle-0.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-idle-900.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-idle-1800.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-idle-3600.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-idle-5400.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-idle-6300.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-dark-idle-7200.png: 31/255
+[xUnit.net 00:00:05.87]       png/24-light-still-0.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-launch-120.png: 17/255
+[xUnit.net 00:00:05.87]       png/24-light-launch-300.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-launch-540.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-launch-780.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-launch-1020.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-launch-1200.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-idle-0.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-idle-900.png: 29/255
+[xUnit.net 00:00:05.87]       png/24-light-idle-1800.png: 28/255
+[xUnit.net 00:00:05.87]       png/24-light-idle-3600.png: 24/255
+[xUnit.net 00:00:05.87]       png/24-light-idle-5400.png: 28/255
+[xUnit.net 00:00:05.87]       png/24-light-idle-6300.png: 29/255
+[xUnit.net 00:00:05.87]       png/24-light-idle-7200.png: 24/255
+[xUnit.net 00:00:05.87]       png/32-dark-still-0.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-dark-launch-120.png: 85/255
+[xUnit.net 00:00:05.87]       png/32-dark-launch-300.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-dark-launch-540.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-dark-launch-780.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-dark-launch-1020.png: 57/255
+[xUnit.net 00:00:05.87]       png/32-dark-launch-1200.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-dark-idle-0.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-dark-idle-900.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-dark-idle-1800.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-dark-idle-3600.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-dark-idle-5400.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-dark-idle-6300.png: 59/255
+[xUnit.net 00:00:05.87]       png/32-dark-idle-7200.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-light-still-0.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-light-launch-120.png: 85/255
+[xUnit.net 00:00:05.87]       png/32-light-launch-300.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-light-launch-540.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-light-launch-780.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-light-launch-1020.png: 57/255
+[xUnit.net 00:00:05.87]       png/32-light-launch-1200.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-light-idle-0.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-light-idle-900.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-light-idle-1800.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-light-idle-3600.png: 58/255
+[xUnit.net 00:00:05.87]       png/32-light-idle-5400.png: 51/255
+[xUnit.net 00:00:05.87]       png/32-light-idle-6300.png: 59/255
+[xUnit.net 00:00:05.87]       png/32-light-idle-7200.png: 58/255
+[xUnit.net 00:00:05.87]       png/48-dark-still-0.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-launch-0.png: 40/255
+[xUnit.net 00:00:05.87]       png/48-dark-launch-120.png: 255/255
+[xUnit.net 00:00:05.87]       png/48-dark-launch-300.png: 240/255
+[xUnit.net 00:00:05.87]       png/48-dark-launch-540.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-launch-780.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-launch-1020.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-launch-1200.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-idle-0.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-idle-900.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-idle-1800.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-idle-3600.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-idle-5400.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-idle-6300.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-dark-idle-7200.png: 241/255
+[xUnit.net 00:00:05.87]       png/48-light-still-0.png: 112/255
+[xUnit.net 00:00:05.87]       png/48-light-launch-0.png: 40/255
+[xUnit.net 00:00:05.87]       png/48-light-launch-120.png: 128/255
+[xUnit.net 00:00:05.87]       png/48-light-launch-300.png: 102/255
+[xUnit.net 00:00:05.87]       png/48-light-launch-540.png: 89/255
+[xUnit.net 00:00:05.87]       png/48-light-launch-780.png: 116/255
+[xUnit.net 00:00:05.87]       png/48-light-launch-1020.png: 110/255
+[xUnit.net 00:00:05.87]       png/48-light-launch-1200.png: 112/255
+[xUnit.net 00:00:05.87]       png/48-light-idle-0.png: 112/255
+[xUnit.net 00:00:05.87]       png/48-light-idle-900.png: 115/255
+[xUnit.net 00:00:05.87]       png/48-light-idle-1800.png: 110/255
+[xUnit.net 00:00:05.87]       png/48-light-idle-3600.png: 110/255
+[xUnit.net 00:00:05.87]       png/48-light-idle-5400.png: 113/255
+[xUnit.net 00:00:05.87]       png/48-light-idle-6300.png: 110/255
+[xUnit.net 00:00:05.87]       png/48-light-idle-7200.png: 112/255
+[xUnit.net 00:00:05.87]       png/64-dark-still-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-launch-0.png: 128/255
+[xUnit.net 00:00:05.87]       png/64-dark-launch-120.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-launch-300.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-launch-540.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-launch-780.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-launch-1020.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-launch-1200.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-idle-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-idle-900.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-idle-1800.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-idle-3600.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-idle-5400.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-idle-6300.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-dark-idle-7200.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-still-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-launch-0.png: 128/255
+[xUnit.net 00:00:05.87]       png/64-light-launch-120.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-launch-300.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-launch-540.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-launch-780.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-launch-1020.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-launch-1200.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-idle-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-idle-900.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-idle-1800.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-idle-3600.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-idle-5400.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-idle-6300.png: 255/255
+[xUnit.net 00:00:05.87]       png/64-light-idle-7200.png: 255/255
+[xUnit.net 00:00:05.87]       png/256-dark-still-0.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-launch-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/256-dark-launch-120.png: 255/255
+[xUnit.net 00:00:05.87]       png/256-dark-launch-300.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-launch-540.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-launch-780.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-launch-1020.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-launch-1200.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-idle-0.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-idle-900.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-idle-1800.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-idle-3600.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-idle-5400.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-idle-6300.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-dark-idle-7200.png: 242/255
+[xUnit.net 00:00:05.87]       png/256-light-still-0.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-launch-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/256-light-launch-120.png: 149/255
+[xUnit.net 00:00:05.87]       png/256-light-launch-300.png: 170/255
+[xUnit.net 00:00:05.87]       png/256-light-launch-540.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-launch-780.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-launch-1020.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-launch-1200.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-idle-0.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-idle-900.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-idle-1800.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-idle-3600.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-idle-5400.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-idle-6300.png: 191/255
+[xUnit.net 00:00:05.87]       png/256-light-idle-7200.png: 191/255
+[xUnit.net 00:00:05.87]       png/512-dark-still-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-launch-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-launch-120.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-launch-300.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-launch-540.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-launch-780.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-launch-1020.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-launch-1200.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-idle-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-idle-900.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-idle-1800.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-idle-3600.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-idle-5400.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-idle-6300.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-dark-idle-7200.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-still-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-launch-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-launch-120.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-launch-300.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-launch-540.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-launch-780.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-launch-1020.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-launch-1200.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-idle-0.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-idle-900.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-idle-1800.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-idle-3600.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-idle-5400.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-idle-6300.png: 255/255
+[xUnit.net 00:00:05.87]       png/512-light-idle-7200.png: 255/255
+[xUnit.net 00:00:05.87]       Stack Trace:
+[xUnit.net 00:00:05.87]         /workspace/marrow-port/tests/Marrow.UI.Tests/Port/AuroraMarkTests.cs(69,0): at Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels()
+[xUnit.net 00:00:05.87]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.87]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:05.89]   Finished:    Marrow.UI.Tests
+  Failed Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels [4 s]
+  Error Message:
+   png/16-dark-still-0.png: 25/255
+png/16-dark-launch-120.png: 12/255
+png/16-dark-launch-300.png: 19/255
+png/16-dark-launch-540.png: 19/255
+png/16-dark-launch-780.png: 22/255
+png/16-dark-launch-1020.png: 24/255
+png/16-dark-launch-1200.png: 25/255
+png/16-dark-idle-0.png: 25/255
+png/16-dark-idle-900.png: 29/255
+png/16-dark-idle-1800.png: 19/255
+png/16-dark-idle-3600.png: 25/255
+png/16-dark-idle-5400.png: 19/255
+png/16-dark-idle-6300.png: 25/255
+png/16-dark-idle-7200.png: 25/255
+png/16-light-still-0.png: 25/255
+png/16-light-launch-120.png: 13/255
+png/16-light-launch-300.png: 20/255
+png/16-light-launch-540.png: 20/255
+png/16-light-launch-780.png: 22/255
+png/16-light-launch-1020.png: 24/255
+png/16-light-launch-1200.png: 25/255
+png/16-light-idle-0.png: 25/255
+png/16-light-idle-900.png: 29/255
+png/16-light-idle-1800.png: 20/255
+png/16-light-idle-3600.png: 25/255
+png/16-light-idle-5400.png: 20/255
+png/16-light-idle-6300.png: 25/255
+png/16-light-idle-7200.png: 25/255
+png/24-dark-still-0.png: 31/255
+png/24-dark-launch-120.png: 19/255
+png/24-dark-launch-300.png: 30/255
+png/24-dark-launch-540.png: 31/255
+png/24-dark-launch-780.png: 31/255
+png/24-dark-launch-1020.png: 31/255
+png/24-dark-launch-1200.png: 31/255
+png/24-dark-idle-0.png: 31/255
+png/24-dark-idle-900.png: 31/255
+png/24-dark-idle-1800.png: 31/255
+png/24-dark-idle-3600.png: 31/255
+png/24-dark-idle-5400.png: 31/255
+png/24-dark-idle-6300.png: 31/255
+png/24-dark-idle-7200.png: 31/255
+png/24-light-still-0.png: 24/255
+png/24-light-launch-120.png: 17/255
+png/24-light-launch-300.png: 24/255
+png/24-light-launch-540.png: 24/255
+png/24-light-launch-780.png: 24/255
+png/24-light-launch-1020.png: 24/255
+png/24-light-launch-1200.png: 24/255
+png/24-light-idle-0.png: 24/255
+png/24-light-idle-900.png: 29/255
+png/24-light-idle-1800.png: 28/255
+png/24-light-idle-3600.png: 24/255
+png/24-light-idle-5400.png: 28/255
+png/24-light-idle-6300.png: 29/255
+png/24-light-idle-7200.png: 24/255
+png/32-dark-still-0.png: 58/255
+png/32-dark-launch-120.png: 85/255
+png/32-dark-launch-300.png: 51/255
+png/32-dark-launch-540.png: 51/255
+png/32-dark-launch-780.png: 51/255
+png/32-dark-launch-1020.png: 57/255
+png/32-dark-launch-1200.png: 58/255
+png/32-dark-idle-0.png: 58/255
+png/32-dark-idle-900.png: 51/255
+png/32-dark-idle-1800.png: 51/255
+png/32-dark-idle-3600.png: 58/255
+png/32-dark-idle-5400.png: 51/255
+png/32-dark-idle-6300.png: 59/255
+png/32-dark-idle-7200.png: 58/255
+png/32-light-still-0.png: 58/255
+png/32-light-launch-120.png: 85/255
+png/32-light-launch-300.png: 51/255
+png/32-light-launch-540.png: 51/255
+png/32-light-launch-780.png: 51/255
+png/32-light-launch-1020.png: 57/255
+png/32-light-launch-1200.png: 58/255
+png/32-light-idle-0.png: 58/255
+png/32-light-idle-900.png: 51/255
+png/32-light-idle-1800.png: 51/255
+png/32-light-idle-3600.png: 58/255
+png/32-light-idle-5400.png: 51/255
+png/32-light-idle-6300.png: 59/255
+png/32-light-idle-7200.png: 58/255
+png/48-dark-still-0.png: 241/255
+png/48-dark-launch-0.png: 40/255
+png/48-dark-launch-120.png: 255/255
+png/48-dark-launch-300.png: 240/255
+png/48-dark-launch-540.png: 241/255
+png/48-dark-launch-780.png: 241/255
+png/48-dark-launch-1020.png: 241/255
+png/48-dark-launch-1200.png: 241/255
+png/48-dark-idle-0.png: 241/255
+png/48-dark-idle-900.png: 241/255
+png/48-dark-idle-1800.png: 241/255
+png/48-dark-idle-3600.png: 241/255
+png/48-dark-idle-5400.png: 241/255
+png/48-dark-idle-6300.png: 241/255
+png/48-dark-idle-7200.png: 241/255
+png/48-light-still-0.png: 112/255
+png/48-light-launch-0.png: 40/255
+png/48-light-launch-120.png: 128/255
+png/48-light-launch-300.png: 102/255
+png/48-light-launch-540.png: 89/255
+png/48-light-launch-780.png: 116/255
+png/48-light-launch-1020.png: 110/255
+png/48-light-launch-1200.png: 112/255
+png/48-light-idle-0.png: 112/255
+png/48-light-idle-900.png: 115/255
+png/48-light-idle-1800.png: 110/255
+png/48-light-idle-3600.png: 110/255
+png/48-light-idle-5400.png: 113/255
+png/48-light-idle-6300.png: 110/255
+png/48-light-idle-7200.png: 112/255
+png/64-dark-still-0.png: 255/255
+png/64-dark-launch-0.png: 128/255
+png/64-dark-launch-120.png: 255/255
+png/64-dark-launch-300.png: 255/255
+png/64-dark-launch-540.png: 255/255
+png/64-dark-launch-780.png: 255/255
+png/64-dark-launch-1020.png: 255/255
+png/64-dark-launch-1200.png: 255/255
+png/64-dark-idle-0.png: 255/255
+png/64-dark-idle-900.png: 255/255
+png/64-dark-idle-1800.png: 255/255
+png/64-dark-idle-3600.png: 255/255
+png/64-dark-idle-5400.png: 255/255
+png/64-dark-idle-6300.png: 255/255
+png/64-dark-idle-7200.png: 255/255
+png/64-light-still-0.png: 255/255
+png/64-light-launch-0.png: 128/255
+png/64-light-launch-120.png: 255/255
+png/64-light-launch-300.png: 255/255
+png/64-light-launch-540.png: 255/255
+png/64-light-launch-780.png: 255/255
+png/64-light-launch-1020.png: 255/255
+png/64-light-launch-1200.png: 255/255
+png/64-light-idle-0.png: 255/255
+png/64-light-idle-900.png: 255/255
+png/64-light-idle-1800.png: 255/255
+png/64-light-idle-3600.png: 255/255
+png/64-light-idle-5400.png: 255/255
+png/64-light-idle-6300.png: 255/255
+png/64-light-idle-7200.png: 255/255
+png/256-dark-still-0.png: 242/255
+png/256-dark-launch-0.png: 255/255
+png/256-dark-launch-120.png: 255/255
+png/256-dark-launch-300.png: 242/255
+png/256-dark-launch-540.png: 242/255
+png/256-dark-launch-780.png: 242/255
+png/256-dark-launch-1020.png: 242/255
+png/256-dark-launch-1200.png: 242/255
+png/256-dark-idle-0.png: 242/255
+png/256-dark-idle-900.png: 242/255
+png/256-dark-idle-1800.png: 242/255
+png/256-dark-idle-3600.png: 242/255
+png/256-dark-idle-5400.png: 242/255
+png/256-dark-idle-6300.png: 242/255
+png/256-dark-idle-7200.png: 242/255
+png/256-light-still-0.png: 191/255
+png/256-light-launch-0.png: 255/255
+png/256-light-launch-120.png: 149/255
+png/256-light-launch-300.png: 170/255
+png/256-light-launch-540.png: 191/255
+png/256-light-launch-780.png: 191/255
+png/256-light-launch-1020.png: 191/255
+png/256-light-launch-1200.png: 191/255
+png/256-light-idle-0.png: 191/255
+png/256-light-idle-900.png: 191/255
+png/256-light-idle-1800.png: 191/255
+png/256-light-idle-3600.png: 191/255
+png/256-light-idle-5400.png: 191/255
+png/256-light-idle-6300.png: 191/255
+png/256-light-idle-7200.png: 191/255
+png/512-dark-still-0.png: 255/255
+png/512-dark-launch-0.png: 255/255
+png/512-dark-launch-120.png: 255/255
+png/512-dark-launch-300.png: 255/255
+png/512-dark-launch-540.png: 255/255
+png/512-dark-launch-780.png: 255/255
+png/512-dark-launch-1020.png: 255/255
+png/512-dark-launch-1200.png: 255/255
+png/512-dark-idle-0.png: 255/255
+png/512-dark-idle-900.png: 255/255
+png/512-dark-idle-1800.png: 255/255
+png/512-dark-idle-3600.png: 255/255
+png/512-dark-idle-5400.png: 255/255
+png/512-dark-idle-6300.png: 255/255
+png/512-dark-idle-7200.png: 255/255
+png/512-light-still-0.png: 255/255
+png/512-light-launch-0.png: 255/255
+png/512-light-launch-120.png: 255/255
+png/512-light-launch-300.png: 255/255
+png/512-light-launch-540.png: 255/255
+png/512-light-launch-780.png: 255/255
+png/512-light-launch-1020.png: 255/255
+png/512-light-launch-1200.png: 255/255
+png/512-light-idle-0.png: 255/255
+png/512-light-idle-900.png: 255/255
+png/512-light-idle-1800.png: 255/255
+png/512-light-idle-3600.png: 255/255
+png/512-light-idle-5400.png: 255/255
+png/512-light-idle-6300.png: 255/255
+png/512-light-idle-7200.png: 255/255
+  Stack Trace:
+     at Marrow.UI.Tests.Port.AuroraMarkTests.Every_reference_pixel_matches_within_two_levels_in_all_four_channels() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/AuroraMarkTests.cs:line 69
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Test Run Failed.
+Total tests: 1
+     Failed: 1
+ Total time: 6.5900 Seconds

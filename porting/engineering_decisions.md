@@ -2988,3 +2988,56 @@ ENGINEERING DECISION: reusable Skia paints, paths, gradient buffers and native p
 EVIDENCE: tests/fixtures/aurora/generate.mjs executes the two locked scripts verbatim in Node/skia-canvas 3.0.8 CPU. Its 210 PNGs cover 16,24,32,48,64,256,512, both themes, the still and seven timestamps each for launch/idle; regeneration is byte-identical. Source/PNG hashes and time arguments are in manifest.json. Tests were written and failed before the renderer existed; the initial output is validation-test-first.txt. The final warnings-as-errors Linux build with EnableWindowsTargeting=true has 0 warnings and 0 errors. The requested new-test/Traceability filter excluding Native ran 35 tests: 34 passed, 1 failed; all 12 Traceability checks passed. The failed test keeps the required 2/255 threshold at every RGBA channel/pixel. Measured maximum: 255/255. Full per-frame results, source hashes and authentic build/test outputs are under tests/fixtures/aurora/.
 
 STATUS: NOT READY. Strict pixel parity is a release blocker; it has not been masked, skipped or relaxed. The selected Node backend replays scratch canvases as pictures and uses radius/2 blur sigma; browser Canvas scratch-rasterization parity is also unresolved. An independent source review's concrete fixes (device bounds, scale-cache allocation, size-aware warm-up, opaque night-layer elision and float/arc star geometry) are included. The remaining edge/interior pixel differences require repair and the strict test must pass before integration. This entry records an incomplete renderer, not a shipping motion approval or a DONE/VERIFIED task. See tests/fixtures/aurora/README.md and parity-summary.json.
+
+### Chrome oracle follow-up (2026-10-05) — NOT READY
+
+SOURCE FACT: imported `tests/fixtures/aurora/chrome/` byte-for-byte from
+`origin/codex/icon-aurora` at `eb2d30e43` (Chrome 154.0.8037.93, DPR 1, direct
+Canvas 2D exports, 210 frames). The primary test verifies source/input/frame
+hashes and compares every unpremultiplied RGBA channel at every pixel against
+the original 2/255 bound. The former Node set is a secondary diagnostic only.
+
+ENGINEERING DECISION: replace recorded scratch pictures with pooled CPU raster
+surfaces and raster snapshots. Preserve IconKit reduction/padding, scratch-role
+reversal, static night raster scale steps, destination clip/blend and quantized
+drawImage alpha. Use float CSS gradient stops, unpremultiplied sRGB interpolation,
+gradient dithering and Chrome's Catmull–Rom high-quality image sampling.
+`WarmupPrograms` names the destination gradient/solid/image/blend families;
+there is no custom SkSL. Native handles are released; managed allocations remain
+zero after warm-up, including continuously changing canvas scale.
+
+SOURCE FACT / clarification of the lead's blur premise: IconKit uses CSS
+`filter: blur(length)`, whose length is Gaussian sigma directly. Radius/2 is the
+`shadowBlur` rule, unused by this module. Chromium's filter builder passes the
+length unchanged into FEGaussianBlur/BlurPaintFilter. Independent source review
+confirmed this. Direct Chromium 151/SkiaSharp impulse probes agree at seven sigma
+values (including the browser's box approximation); an exact-Gaussian replacement
+and path refinement/supersampling experiments disagreed and were not retained.
+The local Chromium 151 16px and 256px stills matched the lead's Chrome 154 PNGs
+byte-for-byte. This auxiliary evidence does not replace the locked oracle.
+
+MEASURED: per-size maxima over both themes and all timestamps are
+16=29/255, 24=31/255, 32=85/255, 48=128/255, 64=153/255, 256=255/255, 512=255/255.
+202/210 frames fail. Only dark/light launch-0 at sizes 16/24/32/256 pass.
+Every still, idle frame and nonzero launch frame fails. `parity-summary.json`
+names every frame, its worst coordinate/channel, expected/actual ARGB and the
+count of pixels exceeding 2. No pixels are masked and no tolerance was loosened.
+
+KNOWN DISCREPANCY: isolated locked 16px night cubic fill at (1,2) has browser
+alpha 100 and SkiaSharp alpha 80, before any blur, clipping or prior drawing.
+The full still's opaque green-band pixel (5,6) has G=247 versus G=222. Larger
+failures also include partially transparent composition/resampling; the cause
+of every remaining composition discrepancy is not yet isolated. The native
+coverage discrepancy and the strict per-frame results prevent READY status.
+See `tests/fixtures/aurora/diagnostics/` for isolated coverage/kernel evidence.
+
+VALIDATION: full Debug solution build with `-warnaserror` and
+`-p:EnableWindowsTargeting=true`: 0 warnings, 0 errors. New tests plus all
+Traceability tests with `&FullyQualifiedName!~Native`: 34/35 pass; only the strict
+parity test fails, all 12 Traceability checks pass. Seven size allocation checks
+measure 0 B for 120 changing draws each; the continuous-scale check also passes.
+Final logs are `validation-build.txt` and `validation-tests.txt`. The independent
+review found no additional material native ABI/ownership defect and confirmed
+the unresolved coverage discrepancy. Windows GPU warm-up/runtime remains
+unverified. LoadingMark.cs, BootStageWindow.cs, app icon assets and all locked
+design sources are untouched. This remains NOT READY for integration/release.
