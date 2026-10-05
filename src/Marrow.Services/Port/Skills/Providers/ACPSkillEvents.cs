@@ -9,9 +9,10 @@ namespace Marrow.Services.Port.Skills.Providers;
 public sealed class ACPSkillEvents
 {
     private readonly Dictionary<string, string> commands = new(StringComparer.Ordinal);
+    private readonly HashSet<string> completed = new(StringComparer.Ordinal);
     public void Observe(JSONValue update)
     {
-        if (update["toolCallId"]?.JSONValueString is not { } id) return;
+        if (update["toolCallId"]?.JSONValueString is not { } id || completed.Contains(id)) return;
         if (update["kind"]?.JSONValueString is { } kind && kind != "execute") { commands.Remove(id); return; }
         if ((update["kind"]?.JSONValueString == "execute" || commands.ContainsKey(id)) &&
             update["rawInput"]?["command"]?.JSONValueString is { Length: > 0 } command) commands[id] = command;
@@ -26,9 +27,10 @@ public sealed class ACPSkillEvents
         Observe(update);
         if (update["toolCallId"]?.JSONValueString is not { } id || result.Status is not (ToolCall.Status.Completed or ToolCall.Status.Failed) ||
             !commands.Remove(id, out var command)) return null;
+        completed.Add(id);
         // Core's normalized event uses int?. Refuse an out-of-range code instead of narrowing/wrapping it.
         if (result.ExitCode is < int.MinValue or > int.MaxValue) return null;
         return new(command, result.ExitCode is { } exit ? (int)exit : null, result.Status == ToolCall.Status.Failed, result.Output ?? "");
     }
-    public void Clear() => commands.Clear();
+    public void Clear() { commands.Clear(); completed.Clear(); }
 }

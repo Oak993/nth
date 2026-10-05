@@ -621,7 +621,7 @@ public sealed partial class CopilotSession : ProviderSession
         Action<JSONRPCConnection> configure)
     {
         var arguments = LaunchArguments();
-        var childEnvironment = ShimPath.ForChild(environment, Storage.Root); // DL-6; the sole environment change.
+        var childEnvironment = ChildEnvironment(environment); // DL-6; the sole environment change.
         var process = new StdioProcess(
             executable.Path, arguments, directory, childEnvironment, StdioFramer.Framing.ContentLength);
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :491
@@ -635,6 +635,10 @@ public sealed partial class CopilotSession : ProviderSession
         }
         return connection;
     }
+
+    // PORT-ONLY: DL-6 child-only PATH insertion; shared by all Copilot connections (sessions and probes).
+    private static Dictionary<string, string> ChildEnvironment(IReadOnlyDictionary<string, string> environment) =>
+        ShimPath.ForChild(environment, Storage.Root);
 
     // :480-483, extracted unchanged for the DL-11 byte-identity test.
     private static List<string> LaunchArguments()
@@ -1027,7 +1031,6 @@ public sealed partial class CopilotSession : ProviderSession
             return;
         }
         pendingRequests[requestID] = new PendingRequest.Permission(request, toolCallID); // :784
-        if (skillEvents.Held(request) is { } held) OnSkillsEvent?.Invoke(held);
         // A write prompt carries the CLI's own patch, which beats the row's reconstruction. :785-790
         if (Is(request["kind"]?.JSONValueString, "write") && toolCallID is { } callID && request["diff"]?.JSONValueString is { Length: > 0 } diff)
         {
@@ -1052,6 +1055,7 @@ public sealed partial class CopilotSession : ProviderSession
             approval = approval with { Reason = judged };
         }
         OnEvent?.Invoke(new ProviderEvent.Approval(approval)); // :803
+        if (skillEvents.Held(request) is { } held) OnSkillsEvent?.Invoke(held);
     }
 
     /// <summary>What the thread's mode approves without asking. Full access approves it all (the CLI normally does

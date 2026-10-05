@@ -129,11 +129,14 @@ public sealed class ACPSession : ProviderSession
         _ => new ValueList<string>(["acp"]), // :103-104 .opencode, .opencodeGo (and any other ACP kind)
     };
 
+    // PORT-ONLY: DL-6 applies to every ACP child, including the catalog probe's session.
+    private Dictionary<string, string> ChildEnvironment => ShimPath.ForChild(configuration.Environment, Storage.Root);
+
     public async Task<string> Start() // :108-152
     {
         if (configuration.Executable is not { } executable) throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider)); // :109
         await LaunchGate.Wait(); // :110
-        var process = new StdioProcess(executable.Path, LaunchArguments, WorkingDirectory, ShimPath.ForChild(configuration.Environment, Storage.Root)); // :111-116
+        var process = new StdioProcess(executable.Path, LaunchArguments, WorkingDirectory, ChildEnvironment); // :111-116; DL-6
         var connection = new JSONRPCConnection(process, sendsVersion: true); // :117
         connection.OnNotification = (method, parameters) => HandleNotification(method, parameters); // :118
         connection.OnRequest = (id, method, parameters) => HandleRequest(id, method, parameters); // :119
@@ -358,8 +361,12 @@ public sealed class ACPSession : ProviderSession
     // MARK: - Session state
 
     // :251-269. Part 2 of 8 (PR-PROVACP-026, 028-031).
-    private async Task<JSONValue> OpenSession(JSONRPCConnection connection)
+    private Task<JSONValue> OpenSession(JSONRPCConnection connection) => OpenSessionCore(connection.Request);
+
+    // PORT-ONLY: explicit offline request seam; body is the existing OpenSession protocol unchanged.
+    private async Task<JSONValue> OpenSessionCore(Func<string, JSONValue, Task<JSONValue>> request)
     {
+        ArgumentNullException.ThrowIfNull(request);
         // :252-253. The connected servers ride into every new session through ACP's own field, HTTP ones
         // directly where the agent says it speaks HTTP MCP, else through mcp-remote.
         var baseParams = new Dictionary<string, JSONValue>
@@ -372,7 +379,7 @@ public sealed class ACPSession : ProviderSession
             var parameters = new Dictionary<string, JSONValue>(baseParams) { ["sessionId"] = resumeID }; // :256-257
             isReplaying = true; // :258
             var result = await SwiftTry.OptionalAsync<JSONValue>(async () =>
-                await connection.Request("session/load", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters)))); // :259
+                await request("session/load", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters)))); // :259
             isReplaying = false; // :260
             if (result is { } r) // :261
             {
@@ -380,7 +387,7 @@ public sealed class ACPSession : ProviderSession
                 return r; // :263
             }
         }
-        var newResult = await connection.Request("session/new", new JSONValue.Object(new ValueMap<string, JSONValue>(baseParams))); // :266
+        var newResult = await request("session/new", new JSONValue.Object(new ValueMap<string, JSONValue>(baseParams))); // :266
         sessionID = newResult["sessionId"]?.JSONValueString; // :267
         return newResult; // :268
     }
@@ -800,7 +807,6 @@ public sealed class ACPSession : ProviderSession
             })
             .OfType<ApprovalRequest.Option>());
         pendingPermissions[id.Key] = id; // :576
-        if (skillEvents.Held(toolCall) is { } held) OnSkillsEvent?.Invoke(held);
         var kind = call.ToolCallKind switch // :577-581
         {
             ToolCall.Kind.Command => ApprovalRequest.Kind.Command,
@@ -809,6 +815,7 @@ public sealed class ACPSession : ProviderSession
         };
         OnEvent?.Invoke(new ProviderEvent.Approval(new ApprovalRequest( // :582-589
             id.Key, kind, call.Title, mapped, call.Detail, null, toolCall["toolCallId"]?.JSONValueString)));
+        if (skillEvents.Held(toolCall) is { } held) OnSkillsEvent?.Invoke(held);
     }
 
     // :592-602. Part 4 of 8 (PR-PROVACP-095).
