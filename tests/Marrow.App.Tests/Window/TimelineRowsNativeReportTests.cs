@@ -167,4 +167,45 @@ public sealed class TimelineRowsNativeReportTests(WindowManagerNativeSession nat
         // milliseconds from run to run (views built), more than the parse a cold tap adds.
         Assert.True(heads.Tap <= floor.Tap + FrameBudget, $"The warmed heads report's tap frame took {heads.Tap:F1} ms: more than one frame ({FrameBudget:F1} ms) over a tiny report's {floor.Tap:F1} ms.");
     }, nameof(A_warmed_heads_report_opens_within_one_frame_of_the_first_tap), typeof(TimelineRowsNativeReportTests));
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-145")] // TimelineRows.swift:317-324 "parses off the main thread as the pill appears ... so the tap that opens it finds the blocks ready rather than parsing the whole batch first"
+    public void The_reports_of_a_thread_are_parsed_off_the_UI_thread_as_their_pills_appear_one_per_head_and_the_tap_on_a_warmed_pill_parses_nothing() => native.Run(subject =>
+    {
+        var batch = Batch("delta");
+        var note = Note("echo");
+        var heads = HydraReportDigest.Parse(batch).Heads.Select(head => head.Body).ToList();
+        var noteBody = note.Split('\n', 2)[1].Trim();
+        var expected = heads.Append(noteBody).ToList();
+        var uiThread = native.OnUi(() => Environment.CurrentManagedThreadId);
+        using var log = new MarkdownParseLog(uiThread);
+        // The window's UI thread runs outside this test's flow, so the observer is the process default for the length of the run.
+        var original = native.OnUi(() => MarkdownView.ParseObserver.Current);
+        native.OnUi(() => MarkdownView.ParseObserver.SetProcessDefault(log.Record));
+        try
+        {
+            var thread = SeedReports((batch, true), (note, false));
+            var (window, _) = Rig.Open(native, subject, thread);
+            Rig.Watch(native, window);
+            N.Until(() => Rig.Find<Button>(native, window, button => ToolTip.GetTip(button) as string == PillTip).Count == 2, "The thread's two report pills never appeared.", 30000);
+            var pills = Rig.Find<Button>(native, window, button => ToolTip.GetTip(button) as string == PillTip);
+            N.Until(() => native.OnUi(() => expected.All(Cached)), "The warm of the reports never finished.", 60000);
+            Thread.Sleep(300);
+            // The reports (the app parses its own replies too, which are not these) were parsed: each head's own body and the note's whole body, each once, never the batch as one
+            // text, and none on the UI thread.
+            var mine = log.Parses.Where(parse => expected.Contains(parse.Text)).ToList();
+            Assert.Equal(expected.OrderBy(text => text, StringComparer.Ordinal), mine.Select(parse => parse.Text).OrderBy(text => text, StringComparer.Ordinal));
+            Assert.DoesNotContain(batch, log.Texts);
+            Assert.All(mine, parse => Assert.NotEqual(uiThread, parse.Thread));
+            // The tap on each warmed pill, with a real click: the popover opens, and the parser is asked for none of them again, on any thread.
+            var floor = FirstTap(window, pills[0]);
+            CloseThePopover();
+            var note1 = FirstTap(window, pills[1]);
+            CloseThePopover();
+            Console.WriteLine($"TAP heads report (warm, parse counted): usual gap {floor.Usual:F1} ms, tap frame {floor.Tap:F1} ms; note (warm): usual gap {note1.Usual:F1} ms, tap frame {note1.Tap:F1} ms");
+            Assert.Equal(expected.Count, log.Parses.Count(parse => expected.Contains(parse.Text)));
+            Assert.DoesNotContain(log.Parses, parse => expected.Contains(parse.Text) && parse.Thread == uiThread);
+        }
+        finally { native.OnUi(() => MarkdownView.ParseObserver.SetProcessDefault(original)); }
+    }, nameof(The_reports_of_a_thread_are_parsed_off_the_UI_thread_as_their_pills_appear_one_per_head_and_the_tap_on_a_warmed_pill_parses_nothing), typeof(TimelineRowsNativeReportTests));
 }
