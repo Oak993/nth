@@ -1,0 +1,290 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:04.81]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan [FAIL]
+[xUnit.net 00:00:04.85]     Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite [FAIL]
+[xUnit.net 00:00:04.89]     Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan [142 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-05-02' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 103
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite [24 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 250
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer [4 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 267
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch [FAIL]
+[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present [FAIL]
+[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance [FAIL]
+[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString [FAIL]
+[xUnit.net 00:00:04.95]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch [12 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-02-01' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 498
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present [13 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 233
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance [10 ms]
+  Error Message:
+   System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/1cebac6779694bbaa6b1225fc570e908/root/token-activity-live-v2.json'.
+  Stack Trace:
+     at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Fixtures.TokenLedgerFiles.ReadMap(String path, String name) in /workspace/marrow-port/tests/Marrow.Services.Tests/Fixtures/TokenLedgerFiles.cs:line 39
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 76
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString [22 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 583
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted [17 ms]
+  Error Message:
+   System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/285091752c954ba3a328dc868668a16d/root/token-activity-codex-v3.json'.
+  Stack Trace:
+     at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 191
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile [FAIL]
+[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again [FAIL]
+[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3 [FAIL]
+[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing [FAIL]
+[xUnit.net 00:00:05.01]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals [FAIL]
+[xUnit.net 00:00:05.10]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile [9 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 467
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again [10 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-05-01' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 141
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3 [43 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key 'C:\sessions\rollout-2026-03-04T10-00-00-AAAAAAAA-1111-2222-3333-444444444444.jsonl' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 303
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing [56 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/eea58fc068fe407fb22607105663471e/home/home-boolean-total/.codex/sessions/boolean-total-a1b2c3d4-1111-2222-3333-cccccccccccc.jsonl' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 623
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals [19 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 112
+Actual:   12
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 126
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file [47 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+           ↓ (pos 0)
+Expected: ["C:\\v2\\b.jsonl"]
+Actual:   []
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 286
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.12]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults [FAIL]
+[xUnit.net 00:00:05.22]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read [FAIL]
+[xUnit.net 00:00:05.23]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written [FAIL]
+[xUnit.net 00:00:05.23]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor [FAIL]
+[xUnit.net 00:00:05.30]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load [FAIL]
+[xUnit.net 00:00:05.33]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: True, expectedTokens: 60) [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults [13 ms]
+  Error Message:
+   Assert.Single() Failure: The collection was empty
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 265
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read [101 ms]
+  Error Message:
+   System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/dce2e7a1e2be484993c37a59aa495f6f/root/token-activity-codex-v3.json'.
+  Stack Trace:
+     at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 342
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written [1 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 250
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor [6 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-05-01' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 174
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load [66 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 3
+Actual:   2
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 39
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: True, expectedTokens: 60) [267 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Boolean newlineInsideBudget, Int64 expectedTokens) in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 448
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:05.50]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: False, expectedTokens: 260) [FAIL]
+[xUnit.net 00:00:05.52]     Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: False, expectedTokens: 260) [179 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Boolean newlineInsideBudget, Int64 expectedTokens) in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 448
+   at InvokeStub_TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating [13 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 8
+Actual:   5
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 215
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.54]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero [FAIL]
+[xUnit.net 00:00:05.60]     Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative [FAIL]
+[xUnit.net 00:00:05.62]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero [19 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 603
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative [42 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 542
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff [12 ms]
+  Error Message:
+   Assert.Single() Failure: The collection was empty
+  Stack Trace:
+     at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 404
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.65]     Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically [8 ms]
+  Error Message:
+   System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/6430996478c9419ea49b28813e238f79/root/token-activity-live-v2.json'.
+  Stack Trace:
+     at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64& fileLength, UnixFileMode& filePermissions, Boolean failForSymlink, Boolean& wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 296
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.75]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory [FAIL]
+  Failed Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory [3 ms]
+  Error Message:
+   System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+  Stack Trace:
+     at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 423
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /tmp/sk12-results/services-sk12-verified.trx
+
+Failed!  - Failed:    27, Passed:    37, Skipped:     0, Total:    64, Duration: 1 s - Marrow.Services.Tests.dll (net10.0)

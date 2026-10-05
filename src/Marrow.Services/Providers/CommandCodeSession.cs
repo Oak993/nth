@@ -108,6 +108,20 @@ public sealed class CommandCodeSession : ProviderSession
     /// 100, short for a long agentic job. :77-79</summary>
     private const int MaxTurns = 400;
 
+    // PORT-ONLY: SK-11e / WU-10 and DL-12. With a null launch, a null probe or an executable whose `--help` did not list --skill, the
+    // argv is exactly BuildArguments' and the environment exactly today's.
+    public Marrow.Services.Port.Skills.Providers.ProviderSkillLaunch? SkillLaunch { get; init; }
+    public Marrow.Services.Port.Skills.Providers.CommandCodeSkillFlagProbe? SkillFlagProbe { get; init; }
+    public Action<Marrow.Core.Port.Skills.Detect.ToolEvent>? ToolEvents { get; set; }
+    private Marrow.Services.Port.Skills.Providers.CommandCodeToolEventTap? toolTap;
+    private Marrow.Services.Port.Skills.Providers.CommandCodeToolEventTap Tap => toolTap ??= new(ToolEvents);
+
+    /// <summary>The turn's argv with the bundle appended when allowed. Reads the probe's stored answer only; never runs a process.</summary>
+    internal List<string> WithSkills(List<string> arguments, string executablePath) =>
+        SkillLaunch is { } launch && SkillFlagProbe is { } probe && probe.Listed(executablePath)
+            ? Marrow.Services.Port.Skills.Providers.ProviderSkillArguments.CommandCode(arguments, launch)
+            : arguments;
+
     public CommandCodeSession(SessionConfiguration configuration) // :75-88
     {
         stream = new StreamedTextTracker( // :78-81
@@ -203,9 +217,9 @@ public sealed class CommandCodeSession : ProviderSession
         toolNames.Clear(); // :141
         toolInputs.Clear(); // :142
 
-        var arguments = BuildArguments(isFinalReport, model, effort, interactionMode, runtimeMode, modURL, sessionID); // :144-166
+        var arguments = WithSkills(BuildArguments(isFinalReport, model, effort, interactionMode, runtimeMode, modURL, sessionID), executable.Path); // :144-166 (+ PORT-ONLY SK-11e)
 
-        var environment = ApprovalsEnvironment(configuration.Environment, runtimeMode, approvalDirectory); // :168-173
+        var environment = ApprovalsEnvironment(Marrow.Services.Port.Skills.Providers.ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch), runtimeMode, approvalDirectory); // :168-173 (+ PORT-ONLY SK-11e DL-6 PATH)
         if (SwiftTry.Optional(MCPBridge.InstallBridge) is { } bridge) // :174-176
         {
             environment = SetEnvironment(environment, "DROPPY_CODE_MCP_BRIDGE", bridge.LocalPath);
@@ -487,6 +501,7 @@ public sealed class CommandCodeSession : ProviderSession
                 var input = @event["input"] ?? new JSONValue.Null();
                 toolNames[callId] = name;
                 toolInputs[callId] = input;
+                Tap.Queued(callId, name, input); // PORT-ONLY: SK-11e / DL-12
                 if (name == "todo_write")
                 {
                     OnEvent?.Invoke(new ProviderEvent.Todos(ACPSession.ParseTodoItems(input["todos"])));
@@ -512,6 +527,7 @@ public sealed class CommandCodeSession : ProviderSession
             {
                 if (@event["toolCallId"]?.JSONValueString is not { } callId || IsTodoWrite(callId)) return;
                 var text = ContentText(@event["result"]);
+                Tap.Completed(callId, @event); // PORT-ONLY: SK-11e / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callId, new ToolUpdate
                 {
                     Status = ToolCall.Status.Completed,
@@ -524,6 +540,7 @@ public sealed class CommandCodeSession : ProviderSession
             {
                 if (@event["toolCallId"]?.JSONValueString is not { } callId || IsTodoWrite(callId)) return;
                 var error = ErrorText(@event["error"]) ?? "The tool failed.";
+                Tap.Errored(callId, @event); // PORT-ONLY: SK-11e / DL-12
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callId, new ToolUpdate
                 {
                     Output = error,
@@ -930,6 +947,7 @@ public sealed class CommandCodeSession : ProviderSession
             return;
         }
         pendingApprovals[id] = approval;
+        Tap.Held(name, input); // PORT-ONLY: SK-11e / DL-12
         OnEvent?.Invoke(new ProviderEvent.Approval(approval));
     }
 

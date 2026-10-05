@@ -57,6 +57,7 @@ public sealed class VoiceStateColumn : Grid
             VerticalAlignment = VerticalAlignment.Center, FontFeatures = FontFeatureCollection.Parse("tnum"),
         };
         percent.Foreground = CzTheme.Text(this, true);
+        AutomationProperties.SetLiveSetting(percent, initial == VoiceModelState.Downloading ? AutomationLiveSetting.Polite : AutomationLiveSetting.Off);
         ActualThemeVariantChanged += (_, _) => percent.Foreground = CzTheme.Text(this, true);
         CancelButton = new VoiceCancelButton();
         var progress = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { percent, CancelButton } };
@@ -105,6 +106,8 @@ public sealed class VoiceStateColumn : Grid
     /// <summary>Shows a face, the others leaving; <paramref name="fraction"/> (0 to 1) is the progress text of the downloading face.</summary>
     public void SetState(VoiceModelState next, double fraction = 0)
     {
+        // The visible whole percent is the live text; hidden faces must not announce resets or unrelated state changes.
+        AutomationProperties.SetLiveSetting(percent, next == VoiceModelState.Downloading ? AutomationLiveSetting.Polite : AutomationLiveSetting.Off);
         percent.Text = Math.Floor(Math.Clamp(fraction, 0, 1) * 100).ToString(CultureInfo.InvariantCulture) + "%";
         AutomationProperties.SetHelpText(CancelButton, percent.Text);
         if (next == state) return;

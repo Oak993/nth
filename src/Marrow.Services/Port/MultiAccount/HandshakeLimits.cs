@@ -23,12 +23,14 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     public AccountUsage? Usage(string accountId)
     {
         if (!Guid.TryParse(accountId, out var id)) return null;
+        var snapshot = Snapshot(id);
+        ReconcileHardLimit(id, snapshot);
         if (hardLimits.TryGetValue(id, out var hard))
         {
             if (hard.Reset is null || hard.Reset > clock.GetUtcNow()) return new(100, hard.Reset, IsOut: true);
             hardLimits.Remove(id);
         }
-        var binding = Binding(Snapshot(id));
+        var binding = Binding(snapshot);
         return binding is null ? null : new(binding.Percent, binding.ResetsAt);
     }
 
@@ -38,8 +40,15 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     {
         if (Snapshot(id) is not { } snapshot) return;
         rates.Observe(thread, snapshot);
+        ReconcileHardLimit(id, snapshot);
+    }
+
+    // Reports belong to accounts even after their last thread has moved elsewhere.
+    // Reconciliation never observes another thread's spending merely to revive this account.
+    private void ReconcileHardLimit(Guid id, AccountPlanLimitsSnapshot? snapshot)
+    {
         if (Binding(snapshot) is { Percent: < 100 } && hardLimits.TryGetValue(id, out var hard)
-            && snapshot.ObservedAt > hard.ObservedAt && (hard.Reset is null || snapshot.ObservedAt >= hard.Reset)) hardLimits.Remove(id);
+            && snapshot!.ObservedAt > hard.ObservedAt && (hard.Reset is null || snapshot.ObservedAt >= hard.Reset)) hardLimits.Remove(id);
     }
 
     public double? SpendPercentPerMinute(string accountId, Guid threadId)

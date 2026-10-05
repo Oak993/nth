@@ -19,6 +19,7 @@ public sealed class LibraryController : IDisposable
     private readonly LibrarySection section;
     private readonly ISkillsLibraryBackend backend;
     private readonly Action<Action> post;
+    private readonly IDisposable? watching;
     private readonly object gate = new();
     private readonly SemaphoreSlim installing = new(1, 1);
     private readonly Dictionary<string, ItemRecord> overlay = [];
@@ -36,6 +37,8 @@ public sealed class LibraryController : IDisposable
         this.section = section;
         this.backend = backend ?? throw new ArgumentNullException(nameof(backend));
         this.post = post ?? (action => action());
+        // SK-16 (DL-19): a download another surface started (an in-chat offer) is shown here with its progress, and a change of it redraws the page.
+        watching = backend.WatchFetching(() => this.post(() => { lock (gate) Notify(); }));
     }
 
     private sealed class Run(DownloadAllPlan plan)
@@ -56,6 +59,9 @@ public sealed class LibraryController : IDisposable
 
     public LibrarySection Section => section;
 
+    /// <summary>SK-16: whether the first-install seam can fetch at all (the seam that fails closed says no); the page keeps its Download controls and an unavailable item fails with the one unavailable message.</summary>
+    public bool FetchingAvailable => backend.CanFetch;
+
     private void Notify()
     {
         Revision++;
@@ -70,7 +76,7 @@ public sealed class LibraryController : IDisposable
         {
             lock (gate)
             {
-                return LibraryRows.Build(section, backend.Catalogue, backend.State, Effective, id => progress.GetValueOrDefault(id), backend.Switches);
+                return LibraryRows.Build(section, backend.Catalogue, backend.State, Effective, id => progress.GetValueOrDefault(id) ?? backend.Fetching(id)?.Progress, backend.Switches);
             }
         }
     }
@@ -78,7 +84,12 @@ public sealed class LibraryController : IDisposable
     private ItemRecord Effective(string id)
     {
         var real = backend.State.Get(id);
-        if (!overlay.TryGetValue(id, out var mine)) return real;
+        if (!overlay.TryGetValue(id, out var mine))
+        {
+            // SK-16: a download that is running for the item and that this page did not start (an offer's) shows as downloading, with the one progress both surfaces share.
+            if (real.InstalledPin is null && real.State == ItemState.Available && backend.Fetching(id) is not null) return new ItemRecord(id, ItemState.Downloading, null, PinOf(Item(id)), null);
+            return real;
+        }
         if (mine.State == ItemState.Installed && real.InstalledPin is not null)
         {
             overlay.Remove(id);
@@ -177,6 +188,7 @@ public sealed class LibraryController : IDisposable
         {
             if (transfers.TryGetValue(id, out var transfer)) transfer.Cancel();
             else if (overlay.TryGetValue(id, out var record) && record.State == ItemState.Queued) { Clear(id); Notify(); }
+            backend.CancelFetching(id); // SK-16: Cancel on the page stops the download for everyone who asked (an offer's card returns to asked)
         }
     }
 
@@ -660,6 +672,7 @@ public sealed class LibraryController : IDisposable
 
     public void Dispose()
     {
+        watching?.Dispose();
         lock (gate)
         {
             run?.Cancel.Cancel();

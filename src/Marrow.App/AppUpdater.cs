@@ -407,6 +407,7 @@ public sealed class AppUpdater
                 var image = engine is null ? await Download(update.DownloadURL) : await DownloadPackage(update.Version); // :267
                 Progress.BeginVerification(); // :268
                 var staged = await Stage(image, update.Version); // :269
+                UpdateChecker.RememberDownloadedRelease(update); // UE-6: the verified package carries this captured offer, even if the checker has moved on
                 Progress.BeginStaging(); // :270
                 if (engine is null) HandOff(staged, update.Version); // :271
                 else HandOffToVelopack(update.Version);

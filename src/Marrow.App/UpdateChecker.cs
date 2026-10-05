@@ -174,6 +174,8 @@ public sealed class UpdateChecker : MainActorModel
     private static class Keys
     {
         public const string Update = "updateChecker_release";
+        public const string InstalledRelease = "updateChecker_installedRelease";
+        public const string DownloadedRelease = "updateChecker_downloadedRelease";
         public const string LastChecked = "updateChecker_lastChecked";
         public const string NotifiedVersion = "updateChecker_notifiedVersion";
     }
@@ -185,6 +187,7 @@ public sealed class UpdateChecker : MainActorModel
     private readonly URLSession session;
 
     private AvailableUpdate? update;
+    private readonly AvailableUpdate? installedRelease;
     private bool isChecking;
     private DateTimeOffset? lastCheckedAt;
     private string? lastError;
@@ -209,6 +212,23 @@ public sealed class UpdateChecker : MainActorModel
         if (defaults.Data(Keys.Update) is { } data && // :114
             SwiftTry.Optional(() => AvailableUpdate.DecodeFromBytes(data)) is { } saved) // :115
             update = saved; // :116
+        // OD-0111 / UE-6: on the first launch of the offered version, retain its notes separately. A later successful
+        // no-update check clears the offer, and a future offer replaces it, but neither may erase the installed What's new.
+        var downloaded = defaults.Data(Keys.DownloadedRelease) is { } downloadedData
+            ? SwiftTry.Optional(() => AvailableUpdate.DecodeFromBytes(downloadedData)) : null;
+        var applied = downloaded is not null && string.Equals(downloaded.Version, appInfo.Version, StringComparison.Ordinal)
+            ? downloaded : update is not null && string.Equals(update.Version, appInfo.Version, StringComparison.Ordinal) ? update : null;
+        if (applied is not null)
+        {
+            installedRelease = applied;
+            defaults.Set(Keys.InstalledRelease, AvailableUpdate.EncodeToBytes(applied));
+            if (ReferenceEquals(applied, downloaded)) defaults.RemoveObject(Keys.DownloadedRelease);
+        }
+        else if (defaults.Data(Keys.InstalledRelease) is { } installedData &&
+                 SwiftTry.Optional(() => AvailableUpdate.DecodeFromBytes(installedData)) is { } installed &&
+                 string.Equals(installed.Version, appInfo.Version, StringComparison.Ordinal))
+            installedRelease = installed;
+
         lastCheckedAt = defaults.Object(Keys.LastChecked) as DateTimeOffset?; // :118
 
         // :119-124 `--preview-update 9.9.9` shows the update story without a newer release.
@@ -245,9 +265,17 @@ public sealed class UpdateChecker : MainActorModel
     public string CurrentVersion => appInfo.Version;
 
     public AvailableUpdate? Update { get => Read(update); private set => Set(ref update, value); }             // :85
+    /// <summary>UE-6: the notes for this running version, retained across checks and future update offers.</summary>
+    public AvailableUpdate? InstalledRelease => installedRelease;
+
     public bool IsChecking { get => Read(isChecking); private set => Set(ref isChecking, value); }              // :86
     public DateTimeOffset? LastCheckedAt { get => Read(lastCheckedAt); private set => Set(ref lastCheckedAt, value); } // :87
     public string? LastError { get => Read(lastError); private set => Set(ref lastError, value); }             // :89
+
+    // UE-6: preserve the captured offer after a successful download, independently of later checks. It becomes installed notes
+    // only when that exact version actually runs, so a failed apply cannot overwrite the running version's What's new.
+    internal static void RememberDownloadedRelease(AvailableUpdate release) =>
+        UserDefaults.Standard.Current.Set(Keys.DownloadedRelease, AvailableUpdate.EncodeToBytes(release));
 
     // :93-96
     public bool UpdateAvailable

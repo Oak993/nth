@@ -30,6 +30,25 @@ public sealed class VelopackSelfUpdateEngineTests
         return new VelopackEngineRig(engine, feed, applied, packages);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Decision", "ED-360")]
+    [Trait("Feature", "UE-6")]
+    [Trait("Spec", "UE-T83")]
+    public async Task A_newer_feed_cannot_substitute_its_package_for_the_version_whose_notes_were_offered(bool checkedEarlier)
+    {
+        var rig = Make("1.7.0", f => f.ServeRelease(ListUrl, "1.8.0", Package));
+        if (checkedEarlier) await rig.Engine.CheckAsync(CancellationToken.None);
+        rig.Feed.ServeRelease(ListUrl, "1.9.0", Package);
+        if (checkedEarlier) await rig.Engine.CheckAsync(CancellationToken.None);
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Engine.DownloadAsync("1.8.0", _ => { }, CancellationToken.None));
+        Assert.Contains("1.8.0", error.Message, StringComparison.Ordinal);
+        Assert.Empty(Directory.GetFiles(rig.PackagesDir, "*.nupkg"));
+        Assert.Throws<InvalidOperationException>(rig.Engine.WaitExitThenApplyAndRestart);
+        Assert.Empty(rig.Applied);
+    }
+
     [Fact]
     [Trait("Decision", "ED-235")]
     public async Task The_repository_is_read_through_githubs_release_list_and_only_that()

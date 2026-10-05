@@ -147,6 +147,41 @@ public sealed class LiveAccountRestartSafetyTests
         Assert.Equal(TurnStatus.Failed, Assert.Single(rig.Runtime.Turns).Status);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void An_exited_CLI_without_a_recorded_conversation_identity_cannot_start_fresh_during_automatic_wait_recovery(string? identity)
+    {
+        using var reader = MultiAccountRouting.LimitsReader.Override((app, key, ct) => Task.FromResult<PlanLimits?>(null));
+        using var executable = ProviderRegistry.SetCLIUpdaterExecutableForTesting(provider => provider == ProviderKind.Claude ? SwiftURL.Create("file:///offline/fake-cli") : null);
+        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude, configure: thread => thread with { ProviderSessionID = identity });
+        rig.H.Main.OnMain(() =>
+        {
+            rig.App.Settings.Accounts.MarkSignedIn(rig.App.Settings.Accounts.ForService(ProviderKind.Claude)[0].Id);
+            rig.App.Settings.Accounts.MarkSignedIn(rig.App.Settings.Accounts.Add(ProviderKind.Claude).Id);
+            rig.App.Settings.AccountDecisions.SetSetting(DecisionKind.OnLimit, DecisionValues.Wait);
+            rig.App.Settings.AutoContinueAfterLimit = false;
+        });
+        var candidate = new ThreadRuntimeScriptedSession { StartScript = () => Task.FromResult(identity ?? "fresh-session") };
+        var launches = 0;
+        using var factory = AccountSessionFactory.Launcher.Override((registry, configuration, id, fresh) =>
+        {
+            launches++;
+            return new(registry.PrepareSession(configuration, id, useAccountDefaults: false), candidate);
+        });
+        FinishAndExit(rig);
+        rig.H.Main.OnMain(() => rig.H.Main.Time.Advance(TimeSpan.FromSeconds(31)));
+        rig.H.Main.Loop.Run(() => rig.App.AccountRouting.DrainAsync(), AppModelHarness.Bound);
+        rig.H.Main.Loop.RunUntilIdle();
+        Assert.Equal(0, launches);
+        Assert.Equal(0, candidate.StartCalls);
+        Assert.Empty(candidate.Inputs);
+        Assert.Equal(identity, rig.Thread.ProviderSessionID);
+        Assert.Equal(TurnStatus.Failed, Assert.Single(rig.Runtime.Turns).Status);
+        Assert.Null(ThreadRuntimeReflection.Get<ProviderSession>(rig.Runtime, "session"));
+    }
+
     private static void FinishAndExit(ThreadRuntimeTurnRig rig)
     {
         rig.Send("Preserve this full conversation and interrupted turn.");

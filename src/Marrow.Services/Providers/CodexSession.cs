@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Skills.Detect;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Services.Port.Skills.Providers;
 using Marrow.Services.Store;
 
 // Source: DroppyCode/Services/Providers/CodexSession.swift (B3 52bc792), :1-1059.
@@ -42,6 +44,9 @@ public sealed class CodexSession : ProviderSession
         public sealed record Question(RPCID Id) : PendingRequest;                                        // :25
     }
 
+    // PORT-ONLY (SK-11b, WU-7): the folder Connect tells Codex about after initialize, and whether skills/list goes first (a session) or not (a ListCommands probe, which sends its own).
+    private sealed record SkillRoot(string Folder, bool ListFirst);
+
     // :28-33
     private sealed record PolicySettings(JSONValue ApprovalPolicy, JSONValue Sandbox, JSONValue SandboxPolicy, JSONValue Reviewer);
 
@@ -56,6 +61,7 @@ public sealed class CodexSession : ProviderSession
     private static readonly Logger Log = new(Logger.Subsystem, "codex"); // :13
 
     private readonly SessionConfiguration configuration; // :35
+    private readonly CodexSkillWiring? skills;            // PORT-ONLY (SK-11b, WU-7): null is the Mac's behaviour, byte for byte
     private JSONRPCConnection? connection;                // :36
     private string? threadID;                             // :37
     private string? turnID;                               // :38
@@ -74,10 +80,17 @@ public sealed class CodexSession : ProviderSession
     // nickname with its role (:694, :703).
     private const string Dot = "\U000000B7"; // U+00B7 MIDDLE DOT
 
-    // :55-57
-    public CodexSession(SessionConfiguration configuration) => this.configuration = configuration;
+    // :55-57. PORT-ONLY (SK-11b, WU-7): the optional second parameter attaches this chat's skills generation; without it nothing differs.
+    public CodexSession(SessionConfiguration configuration, CodexSkillWiring? skills = null)
+    {
+        this.configuration = configuration;
+        this.skills = skills;
+    }
 
     public Action<ProviderEvent>? OnEvent { get; set; } // :14
+
+    // PORT-ONLY (SK-11b, DL-12): the normalized events of ONDEMAND-PLAN.md 5.2, for the missing-tool detector. Nothing else in the session depends on a listener.
+    public Action<ToolEvent>? OnToolEvent { get; set; }
 
     // :59-62
     public bool IsRunning => connection is { } c && !c.IsClosed;
@@ -102,14 +115,16 @@ public sealed class CodexSession : ProviderSession
                 c.OnNotification = HandleNotification; // :73
                 c.OnRequest = HandleRequest;            // :74
                 c.OnClose = HandleClose;                // :75
-            });
+            },
+            skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true));
         connection = connected; // :77
         var started = false;    // :78
         try
         {
+            var parameters = ThreadParameters; // :85
             if (configuration.ResumeID is { } resumeID) // :87
             {
-                var resume = ResumeParameters(resumeID);
+                var resume = ResumeParameters(parameters, resumeID);
                 var result = await RequestThread(connected, "thread/resume", resume); // :91
                 if (result["thread"]?["id"]?.JSONValueString is not { } id || !SwiftString.Equal(id, resumeID)) // :92
                 {
@@ -122,7 +137,7 @@ public sealed class CodexSession : ProviderSession
                 return id;                                           // :98
             }
 
-            var newResult = await RequestThread(connected, "thread/start", ThreadParameters); // :85,100
+            var newResult = await RequestThread(connected, "thread/start", parameters); // :100
             if (newResult["thread"]?["id"]?.JSONValueString is not { } newID) // :101
             {
                 throw new ProviderError(new ProviderError.Case.Failed("Codex did not start a thread.")); // :102
@@ -143,15 +158,19 @@ public sealed class CodexSession : ProviderSession
         }
     }
 
-    // :89-90; DEVIATION OD-0114 / ED-NEW-ma-4: caller has verified installed-version path support.
-    private Dictionary<string, JSONValue> ResumeParameters(string resumeID)
+    // :85-90, moved out of Start unchanged; PORT-ONLY (SK-11b, WU-7): a chat whose generation moved (its old folder was still held) is told where its skills now are.
+    private Dictionary<string, JSONValue> ResumeParameters(Dictionary<string, JSONValue> parameters, string resumeID)
     {
-        var resume = new Dictionary<string, JSONValue>(ThreadParameters, StringComparer.Ordinal)
+        var resume = new Dictionary<string, JSONValue>(parameters, StringComparer.Ordinal)
         {
-            ["threadId"] = resumeID,
-            ["excludeTurns"] = true,
+            ["threadId"] = resumeID,       // :89
+            ["excludeTurns"] = true,        // :90
         };
         if (configuration.ResumePath is { } path) resume["path"] = new JSONValue.String(path);
+        if (skills?.MovedNote is { } moved)
+        {
+            resume["developerInstructions"] = (resume["developerInstructions"].JSONValueString ?? "") + "\n\n" + moved;
+        }
         return resume;
     }
 
@@ -192,6 +211,10 @@ public sealed class CodexSession : ProviderSession
         }
     }
 
+    // :131. PORT-ONLY (SK-11b, WU-7): a skill path the listing probe reported is sent as the same skill under this chat's generation; without wiring the command is used as it is.
+    private SlashCommand ResolveSkill(SlashCommand command) =>
+        skills is not null && command.SkillPath is { } path ? command with { SkillPath = skills.ResolveSkillPath(path) } : command;
+
     // :129-162
     public async Task Send(TurnInput input)
     {
@@ -202,7 +225,7 @@ public sealed class CodexSession : ProviderSession
 
         var content = new List<JSONValue>(
             input.Command is { } command
-                ? command.CodexInput(input.Text) // :131
+                ? ResolveSkill(command).CodexInput(input.Text) // :131
                 : [new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
                   {
                       ["type"] = "text",
@@ -633,9 +656,11 @@ public sealed class CodexSession : ProviderSession
     }
 
     // :348-356. PR-PROVCLI-096.
-    public static async Task<ValueList<SlashCommand>> ListCommands(SwiftURL executable, SwiftURL directory, IReadOnlyDictionary<string, string> environment)
+    // PORT-ONLY (SK-11b, WU-7): an optional listing generation (SK-9) is registered as an extra root first, so the slash list also names Marrow's skills.
+    public static async Task<ValueList<SlashCommand>> ListCommands(SwiftURL executable, SwiftURL directory, IReadOnlyDictionary<string, string> environment,
+        Marrow.Services.Port.Skills.Generations.GenerationListing? listing = null)
     {
-        var connection = await Connect(executable, directory, environment, _ => { }); // :349
+        var connection = await Connect(executable, directory, environment, _ => { }, listing is null ? null : new SkillRoot(listing.Folder, ListFirst: false)); // :349
         var watchdog = MainActor.Spawn(async () => // :350-352
         {
             await SwiftTask.TrySleep(TimeSpan.FromSeconds(20));
@@ -889,14 +914,33 @@ public sealed class CodexSession : ProviderSession
     private static string TemporaryDirectory =>
         Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR") ?? System.IO.Path.GetTempPath();
 
+    // :508, :511. The argument vector of every app-server launch.
+    private static IReadOnlyList<string> AppServerArguments => ["app-server"];
+
+    // :521-524, moved out of Connect unchanged.
+    private static JSONValue InitializeParameters() => new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+    {
+        ["clientInfo"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+        {
+            ["name"] = "marrow",   // DEVIATION OD-0008 B11: upstream "droppy-code"
+            ["title"] = "Marrow",  // DEVIATION OD-0008 B11: upstream "Droppy Code"
+            ["version"] = AppInfo.Current.Version,
+        })),
+        ["capabilities"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+        {
+            ["experimentalApi"] = true,
+        })),
+    }));
+
     // :505-531
     private static async Task<JSONRPCConnection> Connect(
         SwiftURL executable,
         SwiftURL directory,
         IReadOnlyDictionary<string, string> environment,
-        Action<JSONRPCConnection> configure)
+        Action<JSONRPCConnection> configure,
+        SkillRoot? skillRoot = null)
     {
-        var process = new StdioProcess(executable.Path, ["app-server"], directory.Path, environment); // :511
+        var process = new StdioProcess(executable.Path, AppServerArguments, directory.Path, CodexChildEnvironment.Apply(environment)); // :511. PORT-ONLY (SK-11b, DL-11): the PATH rule, nothing else.
         var connection = new JSONRPCConnection(process, sendsVersion: false); // :512
         configure(connection); // :513
         connection.Start(); // :514
@@ -912,19 +956,7 @@ public sealed class CodexSession : ProviderSession
         {
             try
             {
-                _ = await connection.Request("initialize", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> // :521-524
-                {
-                    ["clientInfo"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
-                    {
-                        ["name"] = "marrow",   // DEVIATION OD-0008 B11: upstream "droppy-code"
-                        ["title"] = "Marrow",  // DEVIATION OD-0008 B11: upstream "Droppy Code"
-                        ["version"] = AppInfo.Current.Version,
-                    })),
-                    ["capabilities"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
-                    {
-                        ["experimentalApi"] = true,
-                    })),
-                })));
+                _ = await connection.Request("initialize", InitializeParameters()); // :521-524
             }
             catch
             {
@@ -933,6 +965,16 @@ public sealed class CodexSession : ProviderSession
             }
 
             connection.Notify("initialized"); // :529
+            if (skillRoot is not null)
+            {
+                // PORT-ONLY (SK-11b, WU-7): skills/list then skills/extraRoots/set on every connection; an error reply is tolerated.
+                try { await CodexSkillRoots.Register(connection.Request, directory.Path, skillRoot.Folder, skillRoot.ListFirst); }
+                catch
+                {
+                    connection.Close();
+                    throw;
+                }
+            }
             return connection;                 // :530
         }
         finally
@@ -986,10 +1028,18 @@ public sealed class CodexSession : ProviderSession
                 break;
             }
             case "item/started": // :560-561
-                if (parameters["item"] is { } startedItem) ItemStarted(startedItem, target, Sink);
+                if (parameters["item"] is { } startedItem)
+                {
+                    Tap(CodexToolTaps.ItemStarted(startedItem, skills?.Chat.Skills));
+                    ItemStarted(startedItem, target, Sink);
+                }
                 break;
             case "item/completed": // :562-563
-                if (parameters["item"] is { } completedItem) ItemCompleted(completedItem, target, Sink);
+                if (parameters["item"] is { } completedItem)
+                {
+                    Tap(CodexToolTaps.ItemCompleted(completedItem));
+                    ItemCompleted(completedItem, target, Sink);
+                }
                 break;
             case "item/agentMessage/delta": // :564-567
                 if (parameters["itemId"]?.JSONValueString is { } msgID && parameters["delta"]?.JSONValueString is { } msgDelta)
@@ -1476,12 +1526,30 @@ public sealed class CodexSession : ProviderSession
         return exitCode is { } code && code != 0 ? ToolCall.Status.Failed : ToolCall.Status.Completed; // :913-914
     }
 
+    // PORT-ONLY (SK-11b, DL-12): a listener that throws must never break the session.
+    private void Tap(IReadOnlyList<ToolEvent> events)
+    {
+        if (OnToolEvent is not { } listener) return;
+        foreach (var toolEvent in events)
+        {
+            try { listener(toolEvent); }
+            catch (Exception error) { Log.Error($"a tool event listener threw: {error.GetType().Name}"); }
+        }
+    }
+
     // :929-996. PR-PROVCLI-124, 125, 126, 127, 128, 129.
     private void HandleRequest(RPCID id, string method, JSONValue parameters)
     {
         if (SwiftString.Equal(method, "item/commandExecution/requestApproval")) // :931
         {
             var (options, payloads) = DecisionOptions(parameters["availableDecisions"]?.JSONValueArray, command: true); // :932
+            if (skills is not null && CodexAlwaysAllow.Withholds(parameters["availableDecisions"]?.JSONValueArray, skills.ViewsRoot))
+            {
+                // PORT-ONLY (SK-11b, WU-7): no "Always allow" for a skill script; Approve and Approve for session remain.
+                options = new ValueList<ApprovalRequest.Option>(options.Where(o => o.Id != "amend"));
+                payloads = new ValueMap<string, JSONValue>(payloads.Where(p => p.Key != "amend").ToDictionary(p => p.Key, p => p.Value));
+            }
+            if (CodexToolTaps.Request(method, parameters) is { } held) Tap([held]);
             pendingRequests[id.Key] = new PendingRequest.Decision(id, payloads); // :933
             var command = parameters["command"]?.JSONValueString is { } rawCommand ? ToolTitles.UnwrapShell(rawCommand) : "Command"; // :934
             var cwd = parameters["cwd"]?.JSONValueString is { } cwdRaw ? ToolTitles.RelativePath(cwdRaw, WorkingDirectory) : null; // :937

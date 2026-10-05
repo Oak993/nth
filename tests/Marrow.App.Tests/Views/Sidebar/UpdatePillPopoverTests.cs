@@ -10,6 +10,7 @@ using Marrow.App.Views.Sidebar;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Updates;
 using Marrow.UI.Port;
+using Marrow.UI.Chrome;
 using Xunit;
 using static Marrow.App.Tests.Views.Sidebar.SidebarViewTests;
 
@@ -20,6 +21,14 @@ namespace Marrow.App.Tests.Views.Sidebar;
 [Collection("Headless")]
 public sealed class UpdatePillPopoverTests(HeadlessSession headless)
 {
+    // These are headless UI tests: make the OS animation preference an explicit input, as SidebarViewTests does.
+    // No assertion changes, and no SystemParametersInfo call is needed on the test host.
+    private void OnUiThread(Action body) => headless.OnUiThread(() =>
+    {
+        using var preference = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform());
+        body();
+    });
+
     private static FakeUpdateItem Cli(string id, string title, string installed = "1.0.0", string? latest = "1.1.0") => new(id, title, UpdateItemKind.ProviderCli, installed, latest);
 
     private static void Tick(AppModelHarness harness, ManualFrameSource frames, int ms)
@@ -31,7 +40,7 @@ public sealed class UpdatePillPopoverTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void The_popover_opens_on_a_real_window_with_its_left_edge_on_the_pills_left_edge_and_inside_the_window() => headless.OnUiThread(() =>
+    public void The_popover_opens_on_a_real_window_with_its_left_edge_on_the_pills_left_edge_and_inside_the_window() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -80,7 +89,7 @@ public sealed class UpdatePillPopoverTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")] // OD-0076: the card does not jump when the banner arrives
-    public void The_failure_banner_folds_its_height_in_frame_by_frame_and_the_card_follows_without_a_jump() => headless.OnUiThread(() =>
+    public void The_failure_banner_folds_its_height_in_frame_by_frame_and_the_card_follows_without_a_jump() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -131,7 +140,7 @@ public sealed class UpdatePillPopoverTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void The_done_phase_stays_until_the_popover_has_been_opened_and_closed() => headless.OnUiThread(() =>
+    public void The_done_phase_stays_until_the_popover_has_been_opened_and_closed() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);

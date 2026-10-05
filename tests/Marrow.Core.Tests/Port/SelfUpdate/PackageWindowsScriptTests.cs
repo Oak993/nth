@@ -61,18 +61,21 @@ public sealed class PackageWindowsScriptTests
         Assert.Equal("MarrowCode", MarrowReleaseFeed.PackageId);
     }
 
+    // OD-0111 supersedes UE-1's optional-notes expectation. The App tests exercise this preflight in temp repositories.
     [Fact]
-    [Trait("Feature", "UE-1")]
-    [Trait("Rule", "R-TEST-4")]
-    public void Release_notes_reach_the_pack_only_when_a_file_is_named_and_it_exists()
+    [Trait("Feature", "UE-6")]
+    [Trait("Decision", "ED-360")]
+    [Trait("Spec", "UE-T74")]
+    public void The_pack_always_receives_the_validated_notes_and_validation_precedes_tooling_and_outputs()
     {
         var lines = Executable().ToArray();
-        var at = Array.FindIndex(lines, l => l.Contains("if ($ReleaseNotesFile)", StringComparison.Ordinal));
-        Assert.True(at >= 0);
-        Assert.Contains("Test-Path -LiteralPath $ReleaseNotesFile", lines[at + 1], StringComparison.Ordinal);
-        Assert.Contains("'--releaseNotes'", lines[at + 2], StringComparison.Ordinal);
-        Assert.Single(lines, l => l.Contains("--releaseNotes", StringComparison.Ordinal));
-        Assert.Contains(lines, l => l.Trim() == "@notesArgs");                                    // empty unless a file was named
-        Assert.Contains(lines, l => l.Trim() == "$notesArgs = @()");
+        var validation = Array.FindIndex(lines, l => l.Contains("$releaseNotes = Get-ReleaseNotes", StringComparison.Ordinal));
+        var tooling = Array.FindIndex(lines, l => l.Contains("Get-Command vpk", StringComparison.Ordinal));
+        var deletion = Array.FindIndex(lines, l => l.Contains("Remove-Item", StringComparison.Ordinal));
+        Assert.True(validation >= 0 && tooling > validation && deletion > validation);
+        var argument = Assert.Single(lines, l => l.Contains("'--releaseNotes'", StringComparison.Ordinal));
+        Assert.Contains("$ReleaseNotesFile", argument, StringComparison.Ordinal);
+        Assert.DoesNotContain(lines, l => l.Trim() == "$notesArgs = @()");
+        Assert.Contains(lines, l => l.Trim() == "@notesArgs");
     }
 }

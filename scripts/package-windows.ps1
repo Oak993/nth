@@ -15,7 +15,7 @@
 
   Release folder for the feed (UE-1, OD-0100): artifacts/releases is exactly the folder `vpk upload github` takes: the full
   nupkg, the delta nupkg when an earlier release is in it, RELEASES and releases.win.json (which carries the release notes
-  when -ReleaseNotesFile names a markdown file; the About page shows them), plus Setup.exe. The feed is the owner's public
+  with mandatory exact-version markdown from CHANGELOG.md by default; the app shows them), plus Setup.exe. The feed is the owner's public
   repository https://github.com/Oak993/marrow-releases (Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed). The script prints the
   upload command for the owner to run after his word for that publish; it never runs it. A delta needs the earlier release's
   files in artifacts/releases first (vpk download github would fetch them: that is a network call this script does not make).
@@ -34,6 +34,11 @@
   Start Menu\Programs\Marrow.lnk, which StartMenuRoot with the title "Marrow" would overwrite and later delete. Neither app
   can replace the other.
 
+  Release notes (OD-0111 / UE-6): a ## [version] entry in CHANGELOG.md with populated ### New features, ### Bug fixes or
+  ### Refinements. -ReleaseNotesFile can override it with a file containing only that exact version. Missing, empty,
+  mismatched or unrecognised notes fail before any commands or outputs. -ValidateReleaseNotesOnly checks this without
+  packaging or writing files. scripts/extract-release-notes.ps1 extracts a standalone release notes file.
+
   Prerequisite: the vpk tool at the same version as the Velopack package in Directory.Packages.props:
     dotnet tool install -g vpk --version <that version>
 
@@ -49,7 +54,8 @@ param(
     [string]$PackTitle = 'Marrow',
     [string]$PackAuthors = 'Marrow Code',
     [string]$MainExe = 'Marrow.App.exe',
-    [string]$ReleaseNotesFile = ''
+    [string]$ReleaseNotesFile = '',
+    [switch]$ValidateReleaseNotesOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -77,6 +83,15 @@ $version = $versionMatch.Groups[1].Value
 $buildMatch = [regex]::Match($assemblyInfo, 'AssemblyMetadata\("CFBundleVersion",\s*"([^"]+)"\)')
 $build = if ($buildMatch.Success) { $buildMatch.Groups[1].Value } else { '?' }
 
+# OD-0111: validate before any native command, deletion or artifact creation. An explicit file must identify this version;
+# otherwise extract it from the repository CHANGELOG. The read-only mode executes the same guard for tests and release preparation.
+. (Join-Path $PSScriptRoot 'release-notes.ps1')
+$releaseNotes = Get-ReleaseNotes -Version $version -ChangelogFile (Join-Path $root 'CHANGELOG.md') -ReleaseNotesFile $ReleaseNotesFile
+if ($ValidateReleaseNotesOnly) {
+    Write-Host "Release notes validated for Marrow $version. No artifacts produced."
+    return
+}
+
 # vpk must match the Velopack library the app was built with (Directory.Packages.props).
 $packages = Get-Content -LiteralPath (Join-Path $root 'Directory.Packages.props') -Raw
 $libraryMatch = [regex]::Match($packages, '<PackageVersion Include="Velopack" Version="([^"]+)"')
@@ -94,6 +109,10 @@ Write-Host "Marrow $version (build $build) -> Velopack package $PackId, local on
 
 if (Test-Path -LiteralPath $publishDir) { Remove-Item -LiteralPath $publishDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $releasesDir | Out-Null
+# Always pack a snapshot of the validated exact-version notes, including for an explicit override.
+$ReleaseNotesFile = Join-Path $root "artifacts/release-notes-$version.md"
+[System.IO.File]::WriteAllText($ReleaseNotesFile, $releaseNotes, [System.Text.UTF8Encoding]::new($false))
+$notesArgs = @('--releaseNotes', $ReleaseNotesFile)
 
 Invoke-Native 'dotnet publish' {
     dotnet publish $project -c $Configuration -r $Runtime --self-contained true -o $publishDir --nologo -v q
@@ -102,12 +121,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $publishDir $MainExe))) { throw "$Ma
 
 # No --signParams (nothing is signed), no vpk upload/publish. --shortcuts: the Start menu entry only, in the
 # "Marrow Code" folder (ED-247: never Programs\Marrow.lnk, the Electron app's).
-# UE-1: release notes (markdown) go into releases.win.json, which the About page shows, when a file is named.
-$notesArgs = @()
-if ($ReleaseNotesFile) {
-    if (-not (Test-Path -LiteralPath $ReleaseNotesFile)) { throw "Release notes file not found: $ReleaseNotesFile" }
-    $notesArgs = @('--releaseNotes', (Resolve-Path -LiteralPath $ReleaseNotesFile).Path)
-}
+# OD-0111: every package carries its validated markdown notes in releases.win.json.
 Invoke-Native 'vpk pack' {
     vpk pack `
         --packId $PackId `
