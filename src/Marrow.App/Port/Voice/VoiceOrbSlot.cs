@@ -120,6 +120,8 @@ internal sealed class VoiceOrbSlot : Decorator
         levelLink = null;
         voice.ResetLevel();
         Orb.Bands = default;
+    }
+
     // The session ended: the keyboard goes back to where the press took it from, if the orb's button still has it (the user has not moved on).
     private void GiveKeyboardBack()
     {
