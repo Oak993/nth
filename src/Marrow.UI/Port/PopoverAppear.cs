@@ -21,6 +21,32 @@ namespace Marrow.UI.Port;
 /// <summary>NSPopover's appearance animation for a popup's content (see the file note).</summary>
 public static class PopoverAppear
 {
+    /// <summary>Opt-in Q-RM A sheet motion. Other popovers keep the measured scale by default.</summary>
+    public static readonly AttachedProperty<bool> StillProperty = AvaloniaProperty.RegisterAttached<Control, bool>("Still", typeof(PopoverAppear));
+    private static readonly AttachedProperty<int> FadeVersionProperty = AvaloniaProperty.RegisterAttached<Control, int>("FadeVersion", typeof(PopoverAppear));
+
+    public static Action Fade(Control content, bool opening, Action? closed = null)
+    {
+        var version = content.GetValue(FadeVersionProperty) + 1;
+        content.SetValue(FadeVersionProperty, version);
+        if (!FrameClock.IsBound) { content.Opacity = opening ? 1 : 0; closed?.Invoke(); return () => { }; }
+        var from = opening ? 0 : content.Opacity;
+        content.Opacity = from;
+        var start = SwiftClock.Now;
+        var duration = opening ? FadeSeconds : CloseSeconds;
+        var frames = FrameClock.Source.Current;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            if (content.GetValue(FadeVersionProperty) != version) return;
+            var fraction = Math.Clamp((SwiftClock.Now - start).TotalSeconds / duration, 0, 1);
+            content.Opacity = opening ? fraction : from * (1 - fraction);
+            if (fraction == 1) { closed?.Invoke(); return; }
+            frames.RequestFrame(tick!);
+        };
+        frames.RequestFrame(tick);
+        return () => { content.SetValue(FadeVersionProperty, version + 1); frames.CancelFrame(tick); content.Opacity = 1; };
+    }
     internal const double StartScale = 0.1;
     internal const double FadeSeconds = 0.06;
     internal static readonly Animation Grow = Animation.Spring(response: 0.21, dampingFraction: 1.0);
@@ -31,6 +57,7 @@ public static class PopoverAppear
     /// </summary>
     public static void Play(Control content, PlacementMode placement)
     {
+        if (content.GetValue(StillProperty)) { Fade(content, opening: true); return; }
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) return; // a site's own transform is kept
         content.RenderTransformOrigin = Origin(content, placement);
         var scale = new ScaleTransform(StartScale, StartScale);
@@ -63,6 +90,7 @@ public static class PopoverAppear
     /// </summary>
     public static Action Dismiss(Control content, PlacementMode placement, Action closed)
     {
+        if (content.GetValue(StillProperty)) return Fade(content, opening: false, closed);
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) { closed(); return () => { }; }
         content.RenderTransformOrigin = Origin(content, placement);
         var from = content.RenderTransform is ScaleTransform current ? current.ScaleX : 1;

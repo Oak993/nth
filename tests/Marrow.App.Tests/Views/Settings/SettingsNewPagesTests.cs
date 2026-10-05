@@ -110,7 +110,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         (SettingsPage Page, string Type, bool Ready)[] shells =
         [
             (SettingsPage.Customization, "CustomizationSettingsPage", true), (SettingsPage.VoiceTyping, "VoiceTypingSettingsPage", true),
-            (SettingsPage.Updates, "UpdatesSettingsPage", true), (SettingsPage.Plugins, "PluginsSettingsPage", false), (SettingsPage.Skills, "SkillsSettingsPage", false), // Updates is built since UE-4 (IsReady is true: UpdatesSettingsPageTests)
+            (SettingsPage.Updates, "UpdatesSettingsPage", true), (SettingsPage.Plugins, "PluginsSettingsPage", true), (SettingsPage.Skills, "SkillsSettingsPage", true), // UE-4 and SK-15 supply the ready page bodies.
         ];
         foreach (var (page, name, ready) in shells)
         {
@@ -126,7 +126,8 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         }
         Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
         Assert.Equal(SwiftEnum<SettingsPage>.AllCases.Where(page => page.IsReady).Select(page => page.Id), SettingsSidebar.Pages("").Select(page => page.Id));
-        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("").SkipWhile(page => page != SettingsPage.Customization).Prepend(SettingsPage.Customization).First() == SettingsPage.Customization ? SettingsPage.Appearance : SettingsPage.Customization);
+        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("")[2]);
+        Assert.Equal(SettingsPage.Customization, SettingsSidebar.Pages("")[3]);
     }
 
     [Fact]
@@ -165,15 +166,15 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-251")] // hidden pages are absent from the real sidebar and from its search
-    public void Hidden_pages_are_absent_from_the_sidebar_and_from_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
+    [Trait("Decision", "ED-251")] // SK-15: both ready pages appear in the real sidebar and its search.
+    public void Ready_pages_are_present_in_the_sidebar_and_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
     {
         Assert.Equal(ReadyTitles, SettingsViewRig.RowTitles(sidebar));
         foreach (var query in new[] { "plugins", "skills", "install" })
         {
             SettingsViewRig.Search(sidebar, query);
             var titles = SettingsViewRig.RowTitles(sidebar);
-            Assert.DoesNotContain(titles, title => title is "Plugins" or "Skills");
+            Assert.Equal(query == "install" ? ["Plugins", "Skills"] : query == "plugins" ? ["Plugins"] : new[] { "Skills" }, titles);
         }
         foreach (var query in new[] { "voice typing", "dictation", "microphone" }) // VT-13: the ready page is found by its title and its keywords
         {
@@ -202,6 +203,15 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
         }
     });
+
+    // Plugins directly above Skills, after MCP (OD-0099 Sections C); their units have made them ready (SK-15).
+    private static IEnumerable<string> WithPluginsAndSkills(IEnumerable<string> upstream, string plugins, string skills)
+    {
+        var list = upstream.ToList();
+        var at = list.FindIndex(item => item is "mcp" or "MCP") + 1;
+        list.InsertRange(at, [plugins, skills]);
+        return list;
+    }
 
     private static string RepoRoot()
     {
