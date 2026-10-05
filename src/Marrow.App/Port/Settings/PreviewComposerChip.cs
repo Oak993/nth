@@ -64,7 +64,6 @@ internal sealed class PreviewComposerChip : Decorator
     private void Describe(string makerId)
     {
         AutomationProperties.SetName(Button, PreviewMakers.ChipName(makerId));
-        ToolTip.SetTip(Button, PreviewMakers.For(makerId).Name);
     }
 
     /// <summary>A click (or an assistive technology's invoke): the next maker.</summary>

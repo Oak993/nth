@@ -66,7 +66,6 @@ internal sealed class PreviewSwitchChip : CzButton
     private void Describe(string makerId)
     {
         AutomationProperties.SetName(this, PreviewMakers.ChipName(makerId));
-        ToolTip.SetTip(this, PreviewMakers.For(makerId).Name);
     }
 
     /// <summary>The maker changed: the name crossfades, the width eases to it over 0.3 s ez, the dot to its colour over 0.35 s.</summary>
