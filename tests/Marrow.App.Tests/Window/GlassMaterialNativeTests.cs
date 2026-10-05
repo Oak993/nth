@@ -146,4 +146,84 @@ public sealed class GlassMaterialNativeTests(WindowManagerNativeSession native)
         GC.KeepAlive(stripes);
         GC.KeepAlive(window);
     }, factType: typeof(GlassMaterialNativeTests));
+
+    // ED-NEW-glass-g1 (the first frame; the knob-cache unit's finding: on a real window the glass first drew 34 to 53 ms after the window was shown,
+    // with or without the GPU warm-up). A fresh window, red around a glass piece over black and white stripes, is shown while a thread reads the screen
+    // there as fast as it can (a few hundred grabs a second, every presented frame seen). The first grab that shows the window (its red) must already
+    // show the glass over the stripes (blurred: no stripe steps), never the sharp stripes with the glass still to come.
+    [Fact]
+    [Trait("Decision", "ED-NEW-glass-g1")]
+    [Trait("Req", "PR-WIN-180")] // Chrome.swift:179-182; the owner's bar: no pop-in
+    public void A_freshly_shown_window_has_its_glass_in_the_first_frame_it_presents() => native.Run(subject =>
+    {
+        var (work, scale) = native.OnUi(() =>
+        {
+            var screen = subject.Main.Screens.Primary ?? throw new InvalidOperationException("No native screen is available.");
+            subject.Settings.Hide();
+            subject.Main.Hide();
+            return (screen.WorkingArea, screen.Scaling);
+        });
+        var origin = new PixelPoint(work.X + (work.Width - (int)(400 * scale)) / 2, work.Y + (work.Height - (int)(200 * scale)) / 2);
+        var results = new List<(double At, bool Shown, double Glass, double Bare, int Draws)>();
+        var running = true;
+        // The window's red at (10, 10), the glass's middle at (200, 100), the bare stripes at (60, 100), all in pt from the window's corner.
+        var (gx, gy, gw, gh) = (origin.X, origin.Y, (int)(400 * scale), (int)(200 * scale));
+        var clock = Stopwatch.StartNew();
+        var reader = new Thread(() =>
+        {
+            while (Volatile.Read(ref running))
+            {
+                var grab = ScreenGrab.Of(gx, gy, gw, gh);
+                var (r, g, b) = grab.At((int)(10 * scale), (int)(10 * scale));
+                double Contrast(int cx, int cy)
+                {
+                    double steps = 0;
+                    for (var x = cx - (int)(30 * scale); x < cx + (int)(30 * scale); x++) steps += Math.Abs(grab.Luma(x + 1, cy) - grab.Luma(x, cy));
+                    return steps / (int)(60 * scale);
+                }
+                var sample = (clock.Elapsed.TotalMilliseconds, r > 170 && g < 90 && b < 90, Contrast((int)(200 * scale), (int)(100 * scale)), Contrast((int)(60 * scale), (int)(100 * scale)), Volatile.Read(ref GlassMaterial.DrawsForTests));
+                lock (results) results.Add(sample);
+            }
+        }) { IsBackground = true };
+        var steps = new List<string>();
+        GlassMaterial.TraceForTests = step => { lock (steps) steps.Add($"{clock.Elapsed.TotalMilliseconds:F1} ms {step}"); };
+        reader.Start();
+        Thread.Sleep(300);
+        var window = native.OnUi(() =>
+        {
+            lock (steps) steps.Add($"{clock.Elapsed.TotalMilliseconds:F1} ms Show");
+            var glass = new Border { Width = 200, Height = 80, Background = Brushes.Transparent, CornerRadius = new CornerRadius(20),
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.RoundedRectangle(20, RoundedCornerStyle.Continuous)));
+            var stripes = new Stripes { Width = 340, Height = 120, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var window = new AvaloniaWindow
+            {
+                WindowDecorations = WindowDecorations.None, ShowInTaskbar = false, Topmost = true, CanResize = false, ShowActivated = false,
+                WindowStartupLocation = WindowStartupLocation.Manual, Position = origin, Width = 400, Height = 200,
+                RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark,
+                Content = new Panel { Background = new SolidColorBrush(Color.FromRgb(220, 40, 40)), Children = { stripes, glass } }, // the themeless template draws no window background
+            };
+            Themeless(window);
+            native.Register(window);
+            window.Show();
+            return window;
+        });
+        Thread.Sleep(1200);
+        Volatile.Write(ref running, false);
+        reader.Join();
+        GlassMaterial.TraceForTests = null;
+        (double At, bool Shown, double Glass, double Bare, int Draws)[] seen;
+        lock (results) seen = [.. results];
+        var first = Array.FindIndex(seen, s => s.Shown);
+        Assert.True(first >= 0, "the window was never seen");
+        var glassAt = Array.FindIndex(seen, s => s.Shown && s.Glass < 3);
+        File.WriteAllText(Path.Combine(Evidence, "first-frame.txt"),
+            $"{seen.Length} grabs; window first seen at grab {first} ({seen[first].At:F1} ms), glass first seen at grab {glassAt} ({(glassAt < 0 ? double.NaN : seen[glassAt].At):F1} ms)\n" +
+            string.Join("\n", seen.Skip(Math.Max(0, first - 2)).Take(12).Select(s => $"{s.At:F1} ms shown {s.Shown} glass contrast {s.Glass:F2} bare {s.Bare:F2} material draws {s.Draws}")) + "\n" +
+            string.Join("\n", steps.Take(20)) + "\n");
+        Assert.True(seen[first].Bare > 10, $"the instrument: the stripes beside the glass are sharp in the first frame ({seen[first].Bare:F2})");
+        Assert.True(seen[first].Glass < 3, $"the first frame the window presents already has its glass: stripe contrast {seen[first].Glass:F2} under it" +
+            $" (the glass is first seen {(glassAt < 0 ? double.NaN : seen[glassAt].At - seen[first].At):F1} ms later)");
+        GC.KeepAlive(window);
+    }, factType: typeof(GlassMaterialNativeTests));
 }
