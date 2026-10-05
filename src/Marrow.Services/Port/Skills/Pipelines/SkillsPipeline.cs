@@ -27,6 +27,9 @@ public sealed class SkillsPipeline : IGenerationStore
     private readonly Dictionary<string, int> leases = new(StorePaths.Comparer);
     private readonly HashSet<string> retired = new(StorePaths.Comparer); // integ-sk8-sk9: generations never handed out again (SK-9 binding).
     private AddonsState state;
+    private string OrphanFile => Path.Combine(paths.Addons, "orphans.json");
+    private List<PipelineOrphan> orphans = [];
+    private bool orphansUnreadable; // a corrupt orphans.json retains every tool and store tree (fail closed)
 
     public SkillsPipeline(StorePaths paths, SkillsCatalogue catalogue, IEnumerable<StoreItem> trustedVersions, AddonsState initial,
         ItemInstaller installer, IStoreProtection protection, IStoreDeletion? deletion = null,
@@ -51,12 +54,58 @@ public sealed class SkillsPipeline : IGenerationStore
         state = File.Exists(paths.StateFile) ? AddonsStateStore.Load(paths.StateFile) : initial.AfterRestart();
         foreach (var record in state.Items.Where(r => r.InstalledPin != null && r.State != ItemState.Removing))
             if (!versions.ContainsKey((record.Id, record.InstalledPin!))) throw new InvalidDataException("An installed pin has no trusted descriptor.");
+        LoadOrphans();
         state = UpdateCheck.Compute(state, catalogue).State;
         if (state.Items.Any(r => r.InstalledPin != null && r.State is not (ItemState.Removing or ItemState.Damaged))) Snapshot();
         AddonsStateStore.Save(paths.StateFile, state);
     }
 
     public AddonsState State { get { lock (gate) return state; } }
+
+    /// <summary>SK-13 review fix: the ids of installed items whose trust could not be rebuilt at open; their trees are retained until the item is removed or Reset runs.</summary>
+    public IReadOnlyList<string> Orphans { get { lock (gate) return orphans.Select(o => o.Id).ToArray(); } }
+
+    /// <summary>
+    /// Marks installed trees as orphans BEFORE their records leave state.json: persisted in addons/orphans.json (merged with the earlier ones), retained by every GC of every launch until
+    /// <see cref="RemoveAsync"/> of that id or <see cref="ResetAsync"/>. Folders are the item's folder and spares; empty means unknown, which retains every tool and store tree.
+    /// Call before a pipeline is built over the root: the pipeline reads the file once, at construction.
+    /// </summary>
+    public static void MarkOrphans(StorePaths paths, IEnumerable<PipelineOrphan> marked)
+    {
+        var (existing, unreadable) = ReadOrphans(paths);
+        if (unreadable) existing.Add(new PipelineOrphan("?unreadable", [])); // a corrupt file keeps retaining every tool and store tree once rewritten
+        var merged = existing.Where(o => !marked.Any(m => m.Id == o.Id)).Concat(marked.Select(m => new PipelineOrphan(m.Id, m.Folders.Select(paths.RequireManaged).Distinct(StorePaths.Comparer).ToArray())))
+            .OrderBy(o => o.Id, StringComparer.Ordinal).ToArray();
+        StorePaths.EnsureAncestors(paths.Addons);
+        Directory.CreateDirectory(paths.Addons);
+        Marrow.Core.Port.FileOps.WriteAtomic(Path.Combine(paths.Addons, "orphans.json"), System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(merged, PipelineOrphanJsonContext.Default.PipelineOrphanArray));
+    }
+
+    private static (List<PipelineOrphan> Orphans, bool Unreadable) ReadOrphans(StorePaths paths)
+    {
+        var file = Path.Combine(paths.Addons, "orphans.json");
+        if (!File.Exists(file)) return ([], false);
+        try
+        {
+            var loaded = System.Text.Json.JsonSerializer.Deserialize(File.ReadAllBytes(file), PipelineOrphanJsonContext.Default.PipelineOrphanArray) ?? throw new InvalidDataException("null");
+            return (loaded.Select(o => new PipelineOrphan(o.Id ?? throw new InvalidDataException("id"), (o.Folders ?? throw new InvalidDataException("folders")).Select(paths.RequireManaged).ToArray())).ToList(), false);
+        }
+        catch (Exception error) when (error is System.Text.Json.JsonException or InvalidDataException or ArgumentException or IOException)
+        {
+            return ([], true);
+        }
+    }
+
+    private void LoadOrphans() => (orphans, orphansUnreadable) = ReadOrphans(paths);
+
+    private void SaveOrphans()
+    {
+        StorePaths.EnsureAncestors(OrphanFile);
+        Directory.CreateDirectory(paths.Addons);
+        if (orphans.Count == 0 && !orphansUnreadable) { File.Delete(OrphanFile); return; }
+        Marrow.Core.Port.FileOps.WriteAtomic(OrphanFile, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(orphans.ToArray(), PipelineOrphanJsonContext.Default.PipelineOrphanArray));
+        orphansUnreadable = false;
+    }
     public string? LatestPin(string id) => catalogue.Items.FirstOrDefault(i => i.Id == id) is { } item ? UpdateCheck.CataloguePin(item) : null;
     public IReadOnlyList<PipelineRoute> Snapshot()
     {
@@ -282,6 +331,7 @@ public sealed class SkillsPipeline : IGenerationStore
         {
             lock (gate)
             {
+                if (orphans.RemoveAll(o => o.Id == id) > 0) SaveOrphans(); // an explicit removal releases an orphan's trees to the GC
                 var removed = ItemDependents.Installed(catalogue, state, id).Where(d => catalogue.Items.Single(i => i.Id == d).Kind is ItemKind.Pyset or ItemKind.Nodeset).Append(id).ToHashSet(StringComparer.Ordinal);
                 Commit(AddonsState.Restore(state.Items.Where(r => !removed.Contains(r.Id)), state.AcceptedTerms, state.Declined, state.Found));
                 CollectCore();
@@ -300,6 +350,8 @@ public sealed class SkillsPipeline : IGenerationStore
                 StorePaths.EnsureAncestors(ResetMarker);
                 Directory.CreateDirectory(paths.Skills);
                 Marrow.Core.Port.FileOps.WriteAtomic(ResetMarker, []);
+                orphans = []; orphansUnreadable = false; // Reset releases every orphan's trees
+                if (File.Exists(OrphanFile)) File.Delete(OrphanFile);
                 Commit(AddonsState.Restore([], state.AcceptedTerms, state.Declined, state.Found));
                 foreach (var root in new[] { paths.Tools, paths.Store, paths.Views, Path.Combine(paths.Addons, "bin"), Path.Combine(paths.Addons, "downloads"), Path.Combine(paths.Addons, "work") }) trees.Unlock(root);
                 CollectCore();
@@ -318,11 +370,12 @@ public sealed class SkillsPipeline : IGenerationStore
     private void CollectCore()
     {
         StorePaths.EnsureAncestors(ResetMarker);
-        var retained = Snapshot().SelectMany(r => r.SparePaths.Prepend(r.Folder)).ToHashSet(StorePaths.Comparer);
+        var retained = Snapshot().SelectMany(r => r.SparePaths.Prepend(r.Folder)).Concat(orphans.SelectMany(o => o.Folders)).ToHashSet(StorePaths.Comparer);
+        var retainAll = orphansUnreadable || orphans.Any(o => o.Folders.Length == 0);
         foreach (var root in new[] { paths.Tools, paths.Store, paths.Views })
         {
             StorePaths.EnsureAncestors(root);
-            if (!Directory.Exists(root)) continue;
+            if (!Directory.Exists(root) || retainAll && root != paths.Views) continue;
             var children = Directory.EnumerateFileSystemEntries(root).ToArray();
             foreach (var child in children)
             {
