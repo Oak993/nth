@@ -175,7 +175,7 @@ internal sealed class AccountCapsule : Panel
         Repaint();
     }
 
-    private Animation? Ease(Animation curve) => FrameClock.IsBound ? curve : null; // AnimatedScalar lands at once under Reduce Motion itself
+    private Animation? Ease(Animation curve) => FrameClock.IsBound && !ReduceMotion ? curve : null;
 
     // ---- the usage light: one colour per percent, eased over 0.6 s
 

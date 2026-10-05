@@ -180,6 +180,6 @@ public sealed class CustomizationDotsRowsTests(HeadlessSession headless)
         Assert.Same(page.Dots!.Section, sections[^1]);
         Assert.Equal("Working dots", sections[^1].Title);
         Assert.Equal(1, sections[^1].Fraction);
-        Assert.Empty(page.Rest.Children);
+        Assert.IsType<Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection>(Assert.Single(page.Rest.Children)); // "Pill in the composer" (multi-account step 3a) is the one part of the rest
     });
 }
