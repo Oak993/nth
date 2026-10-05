@@ -52,7 +52,7 @@ public sealed class ComposerVoiceAnnouncementTests(HeadlessSession headless)
             using var rig = Seen();
             rig.Speak(VoiceComposerRig.SwitchTheme());
             var (view, window) = rig.Open();
-            string Said() => rig.Main.OnMain(() => LogicalQuery.SelfAndDescendants<VoiceAnnouncer>(view).Single().Text);
+            string Said() => rig.Main.OnMain(() => LogicalQuery.SelfAndDescendants<VoiceAnnouncer>(view).Single().Text!);
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
             rig.Elapse(window, 0.1);
             Assert.Equal("Listening. Your words are written into the composer as you speak. Click the orb again to finish, or press Escape to cancel.", Said());

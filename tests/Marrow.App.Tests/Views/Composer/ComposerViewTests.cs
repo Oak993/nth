@@ -3238,8 +3238,8 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             foreach (var recent in new[] { true, false })
             {
                 var shown = false; var chosen = 0;
-                var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime, h.Thread, true, recent, false, false, null,
-                    new Binding<bool>(() => shown, v => shown = v), _ => { }, () => chosen++, () => { }));
+                // the attachment button moved out of ComposerControls to the pill's left (V-14.1, owner-ruled): the same button, built on its own
+                var controls = h.Main.OnMain(() => new ComposerAttachButton(ComposerAttachPlace.Inside, recent, new Binding<bool>(() => shown, v => shown = v), _ => { }, () => chosen++));
                 var window = h.Main.OnMain(() => Show(controls, h.App, 400)); Pump(h, window);
                 h.Main.OnMain(() => { var button = Named(controls, "Attach files"); Assert.False(button.Focusable); Assert.Equal("Attach files", ToolTip.GetTip(button)); Click(button); }); Pump(h, window);
                 Assert.Equal(recent, shown); Assert.Equal(recent ? 0 : 1, chosen);
@@ -3317,8 +3317,9 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             using var h = RuntimeHarness();
             foreach (var compact in new[] { false, true })
             {
-                var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime,h.Thread,compact,false,false,false,null,Binding<bool>.Constant(false),_ => {},() => {},() => {}));
-                var row = Assert.IsType<StackPanel>(controls.Child); Assert.Equal(2,row.Spacing); Assert.Equal(compact ? 3 : 4,row.Children.Count); Assert.IsType<Button>(row.Children[0]); Assert.IsType<ModelEffortSlot>(row.Children[1]); if (!compact) Assert.IsType<ContextMeter>(row.Children[2]); Assert.IsType<SendButton>(row.Children[^1]);
+                var controls = h.Main.OnMain(() => new ComposerControls(h.Runtime,h.Thread,compact,false,false,null,() => {}));
+                // the attachment button, first in the source (:626-646), is the pill's left now (V-14.1, owner-ruled): the controls are the chip, the ring and send
+                var row = Assert.IsType<StackPanel>(controls.Child); Assert.Equal(2,row.Spacing); Assert.Equal(compact ? 2 : 3,row.Children.Count); Assert.IsType<ModelEffortSlot>(row.Children[0]); if (!compact) Assert.IsType<ContextMeter>(row.Children[1]); Assert.IsType<SendButton>(row.Children[^1]);
             }
         });
     }

@@ -179,6 +179,46 @@ public sealed class ComposerNSTextView : TextBox
         }
     }
 
+    // PORT-ONLY (voice-SPEC V-14.6, OD-0076): the placeholder is one of the field's layers and crossfades with a voice note: its opacity and how far it sits below its
+    // place, in px (FieldFade).
+    private double placeholderOpacity = 1;
+    private double placeholderRise;
+
+    public double PlaceholderOpacity => placeholderOpacity;
+
+    public void SetPlaceholderFade(double opacity, double rise)
+    {
+        if (opacity == placeholderOpacity && rise == placeholderRise) return;
+        placeholderOpacity = opacity;
+        placeholderRise = rise;
+        if (string.IsNullOrEmpty(Text)) InvalidateVisual();
+    }
+
+    // PORT-ONLY (voice-SPEC V-8.5, Q-V-10): while voice input is live the editor is read-only, takes no typing, no paste and no Return, and its selection stays where
+    // it was; Esc still reaches the composer (it cancels the session), and the pointer does not take the keyboard from whatever has it.
+    private bool dictating;
+
+    public bool Dictating
+    {
+        get => dictating;
+        set
+        {
+            if (dictating == value) return;
+            dictating = value;
+            IsReadOnly = value;
+        }
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        if (dictating)
+        {
+            e.Handled = true;
+            return;
+        }
+        base.OnPointerPressed(e);
+    }
+
     public Action<IReadOnlyList<AttachmentSource>>? OnAttach { get; set; } // :120
     public Action? OnWidthChange { get; set; } // :121
     public Action? OnResign { get; set; } // :122
@@ -258,6 +298,13 @@ public sealed class ComposerNSTextView : TextBox
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (dictating)
+        {
+            // V-8.5: typing, paste, Return and the arrows do nothing while the words are being written. Esc is the composer's, which cancels the session before the
+            // editor sees the key (ComposerView.OnVoiceKey); it is not the editor's Esc (a list closing, a turn taken back) until the session is over.
+            if (e.Key != Key.Escape) e.Handled = true;
+            return;
+        }
         // :154-161 override func performKeyEquivalent(with event: NSEvent) -> Bool. This accelerator is the
         // port's whole reachable path to paste(_:) (no OS Edit menu exists to gate through validateUserInterfaceItem,
         // OD-0008 C3); Ctrl is the Windows chord mapping for Command.
@@ -432,8 +479,8 @@ public sealed class ComposerNSTextView : TextBox
             typeface,
             FontSize,
             SwiftColor.PlaceholderTextColor.Brush(this)); // :203-204 font, .placeholderTextColor
-        var origin = new Point(Padding.Left, Padding.Top); // :206-209 inset.width + lineFragmentPadding, inset.height
-        context.DrawText(formatted, origin); // :210
+        var origin = new Point(Padding.Left, Padding.Top + placeholderRise); // :206-209 inset.width + lineFragmentPadding, inset.height
+        using (context.PushOpacity(placeholderOpacity)) context.DrawText(formatted, origin); // :210
     }
 }
 
@@ -549,6 +596,9 @@ public sealed class ComposerTextView : Decorator
             UpdateHeight(); // :304
         }
     }
+
+    /// <summary>PORT-ONLY (voice-SPEC V-14.6): the placeholder's opacity and how far below its place it sits, for the crossfade with a voice note.</summary>
+    public void SetPlaceholderFade(double opacity, double rise) => textView.SetPlaceholderFade(opacity, rise);
 
     // :360-376 func updateHeight()
     private void UpdateHeight()

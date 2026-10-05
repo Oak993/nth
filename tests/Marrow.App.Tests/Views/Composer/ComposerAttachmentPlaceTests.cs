@@ -110,12 +110,16 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
             Assert.Equal(1, rig.Main.OnMain(() => AttachButtons(view))); // the one that left is gone
             Assert.Contains(lefts, left => left is > 1 and < 43); // it travelled: no single cut
             Assert.Contains(insets, inset => inset is > 15 and < 47);
+            // the pill's width follows the design's ez (cubic-bezier .32 .72 0 1) over 0.42 s, the text's inset the same curve over 0.34 s (CZ-14.1); +1 px: layout rounds both
+            var width = Animation.TimingCurve(0.32, 0.72, 0, 1, 0.42);
+            var inset = Animation.TimingCurve(0.32, 0.72, 0, 1, 0.34);
             for (var i = 1; i < lefts.Count; i++)
             {
                 Assert.True(lefts[i] >= lefts[i - 1] - 0.001, $"the width only grows: {lefts[i - 1]} then {lefts[i]}");
-                Assert.True(lefts[i] - lefts[i - 1] <= 0.15 * 44 + 0.01, $"no frame moves it over 15 % of its travel: {lefts[i - 1]} then {lefts[i]}");
                 Assert.True(insets[i] <= insets[i - 1] + 0.001, $"the inset only shrinks: {insets[i - 1]} then {insets[i]}");
-                Assert.True(insets[i - 1] - insets[i] <= 0.15 * 34 + 0.01, $"no frame moves it over 15 % of its travel: {insets[i - 1]} then {insets[i]}");
+                var t = i / 60.0;
+                Assert.True(Math.Abs(lefts[i] - 44 * width.Progress(Math.Min(t, 0.42))) <= 1.01, $"the width at {t:F3} s is {lefts[i]}, the curve says {44 * width.Progress(Math.Min(t, 0.42)):F1}");
+                Assert.True(Math.Abs(insets[i] - (14 + 34 * (1 - inset.Progress(Math.Min(t, 0.34))))) <= 1.01, $"the inset at {t:F3} s is {insets[i]}, the curve says {14 + 34 * (1 - inset.Progress(Math.Min(t, 0.34))):F1}");
             }
             rig.Close(window);
         });
@@ -136,7 +140,7 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
             rig.Main.OnMain(() => Click(inside));
             rig.PumpWindow(window);
             var (popup, presented) = rig.Presenter.Calls[^1];
-            Assert.True(presented);
+            Assert.True(presented, "the click opened the popover");
             Assert.Same(inside, popup.PlacementTarget);
             Assert.Equal(PlacementMode.Bottom, popup.Placement);
 
@@ -145,17 +149,18 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
             rig.Elapse(window, 1.0);
             var outside = rig.Main.OnMain(() => Named(view, "Attach files"));
             Assert.NotSame(inside, outside);
-            var (latest, latestPresented) = rig.Presenter.Calls[^1];
-            Assert.True(latestPresented); // still open, now from the visible button
-            Assert.Same(outside, latest.PlacementTarget);
-            Assert.Contains(rig.Presenter.Calls, call => ReferenceEquals(call.Popup.PlacementTarget, inside) && !call.Presented); // the first button's popover closed
+            // the popover went over: the first button's closed, the one now showing opened, and it is the one that stands
+            var calls = rig.Presenter.Calls.Select(call => (Inside: ReferenceEquals(call.Popup.PlacementTarget, inside), call.Presented)).ToList();
+            Assert.False(calls.Last(call => call.Inside).Presented, "the first button's popover is closed");
+            var outsideCalls = rig.Presenter.Calls.Where(call => ReferenceEquals(call.Popup.PlacementTarget, outside)).ToList();
+            Assert.True(outsideCalls.Count > 0 && outsideCalls[^1].Presented, "still open, now from the visible button");
             var plate = rig.Main.OnMain(() => Assert.IsType<Border>(outside.Content));
             var accent = rig.Main.OnMain(() => Chrome.Accent.Opacity(0.16).Resolve(plate.ActualThemeVariant));
             Assert.Equal(accent, Assert.IsAssignableFrom<ISolidColorBrush>(plate.Background).Color); // the chip reads active
 
             rig.Main.OnMain(() => Click(outside)); // a second click closes it
             rig.PumpWindow(window);
-            Assert.False(rig.Presenter.Calls[^1].Presented);
+            Assert.False(rig.Presenter.Calls.Last(call => ReferenceEquals(call.Popup.PlacementTarget, outside)).Presented, "the second click closed it");
             rig.Close(window);
         });
     }
