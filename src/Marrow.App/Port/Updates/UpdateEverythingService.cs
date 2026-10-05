@@ -28,6 +28,7 @@ public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
     public static IDisposable OverrideShared(UpdateEverythingService service) => Running.Override(service);
 
     private UpdateOrchestrator orchestrator;
+    private IReadOnlyList<IUpdateItem> items;
     private UpdatePillProjector projector = new();
     private Action restart;
     private UpdatePillState state = UpdatePillState.Hidden;
@@ -36,7 +37,8 @@ public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
     public UpdateEverythingService(IEnumerable<IUpdateItem> items, Action restart)
     {
         this.restart = restart;
-        orchestrator = Attach(new UpdateOrchestrator(items));
+        this.items = items.ToArray();
+        orchestrator = Attach(new UpdateOrchestrator(this.items));
     }
 
     /// <summary>What the pill and its popover show now; observable.</summary>
@@ -47,14 +49,30 @@ public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
 
     public bool IsBusy => orchestrator.IsBusy;
 
+    public AvailableUpdate? MarrowOffer
+    {
+        get
+        {
+            foreach (var row in Rows.Where(row => row.Kind == UpdateItemKind.Marrow && row.Installed is not null))
+            {
+                if ((row.State is UpdateRowState.Unchecked or UpdateRowState.NotInstalled or UpdateRowState.UpToDate) && !row.RestartRequired) continue;
+                var target = row.RestartRequired ? row.Installed : row.Latest;
+                if (items.FirstOrDefault(item => item.Id == row.Id) is IMarrowUpdateOffer source && source.OfferedRelease is { } offer &&
+                    string.Equals(offer.Version, target, StringComparison.Ordinal)) return offer;
+            }
+            return null;
+        }
+    }
+
     /// <summary>Gives the service the app's items and the restart ("Restart Marrow"). Replaces what it had; a run in progress is not interrupted (the old orchestrator finishes unobserved).</summary>
     public void Configure(IEnumerable<IUpdateItem> items, Action restart)
     {
         orchestrator.Changed -= OnChanged;
         this.restart = restart;
         projector = new UpdatePillProjector();
-        orchestrator = Attach(new UpdateOrchestrator(items));
-        Refresh();
+        this.items = items.ToArray();
+        orchestrator = Attach(new UpdateOrchestrator(this.items));
+        OnChanged();
     }
 
     private UpdateOrchestrator Attach(UpdateOrchestrator created)

@@ -21,7 +21,7 @@ namespace Marrow.App.Tests.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B3 52bc792), :241-251 (popover presentation), :638-682
 // (the pill's ready face), :795-818 (the celebration sweep) and :821-845 (the Software update row); App/UpdateChecker.swift:156-187. OD-0012 I1 for the empty feed. The checks here run against a
-// loopback socket that accepts and never answers (LoopbackConnectionCounter), so a check stays in flight until the test
+// loopback socket that answers only when polled (LoopbackConnectionCounter), so a check stays in flight until the test
 // lets it end; no request leaves the machine.
 [Collection("Headless")]
 public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
@@ -79,7 +79,7 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0")); using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
         // OD-0076: the button and the sentence swap over 0.18 s; each state is read once that swap has finished (the leaving button is gone).
         void Settle() { runtime.Time.Advance(TimeSpan.FromMilliseconds(300)); source.Advance(TimeSpan.FromMilliseconds(300)); Dispatcher.UIThread.RunJobs(); }
-        using var feed = new LoopbackConnectionCounter();
+        using var feed = new LoopbackConnectionCounter(completeWithInvalidJson: true);
         var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], feed.Url("/releases"))); using var shared = UpdateChecker.OverrideShared(checker);
         var row = new AboutUpdateCheckRow(); var window = Show(row);
         Assert.Equal("Check now", Label(row)); Assert.True(CheckButton(row).IsEnabled);
@@ -93,7 +93,7 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
         Tap(CheckButton(row), window); // a press on the disabled button does nothing
         Assert.Equal("Checking…", Label(row)); Assert.False(CheckButton(row).IsEnabled);
 
-        // End the check: the listener closes the connection it accepted, so the request fails without an answer.
+        // End the in-flight check with one loopback response containing invalid JSON (no HTTP transport retry).
         var finished = new TaskCompletionSource<bool>();
         using var observe = new Tracked<bool>(() => checker.LastCheckedAt is not null && !checker.IsChecking, done => { if (done) finished.TrySetResult(true); });
         var connections = 0;

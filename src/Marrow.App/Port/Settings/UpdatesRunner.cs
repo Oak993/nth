@@ -11,6 +11,9 @@ internal interface IUpdatesRunner
 
     bool IsBusy { get; }
 
+    /// <summary>The release owned by this runner's Marrow install/restart row; never a global checker fallback.</summary>
+    AvailableUpdate? MarrowOffer => null;
+
     /// <summary>Raised after every change of a row, on whatever thread made it.</summary>
     event Action? Changed;
 

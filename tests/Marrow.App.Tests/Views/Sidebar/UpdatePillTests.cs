@@ -25,6 +25,14 @@ namespace Marrow.App.Tests.Views.Sidebar;
 [Collection("Headless")]
 public sealed class UpdatePillTests(HeadlessSession headless)
 {
+    // These are headless UI tests: make the OS animation preference an explicit input, as SidebarViewTests does.
+    // No assertion changes, and no SystemParametersInfo call is needed on the test host.
+    private void OnUiThread(Action body) => headless.OnUiThread(() =>
+    {
+        using var preference = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform());
+        body();
+    });
+
     private static FakeUpdateItem Cli(string id, string title, string installed = "1.0.0", string? latest = "1.1.0") => new(id, title, UpdateItemKind.ProviderCli, installed, latest);
 
     // Layout is run before the pill is looked at: geometry is read, and the headless window lays out on its own schedule.
@@ -61,7 +69,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void While_nothing_is_out_of_date_the_sidebar_has_a_pill_slot_with_no_height_and_nothing_to_press() => headless.OnUiThread(() =>
+    public void While_nothing_is_out_of_date_the_sidebar_has_a_pill_slot_with_no_height_and_nothing_to_press() => OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var harness = new AppModelHarness();
@@ -88,7 +96,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void An_out_of_date_item_brings_the_pill_in_above_the_Add_project_and_Settings_rows_left_aligned_with_the_list() => headless.OnUiThread(() =>
+    public void An_out_of_date_item_brings_the_pill_in_above_the_Add_project_and_Settings_rows_left_aligned_with_the_list() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -125,7 +133,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
     [Trait("Decision", "ED-308")] // OD-0076: nothing cuts
     [InlineData(false)]
     [InlineData(true)]
-    public void The_pill_arrives_and_leaves_by_easing_and_a_reduced_motion_setting_stills_it(bool reduceMotion) => headless.OnUiThread(() =>
+    public void The_pill_arrives_and_leaves_by_easing_and_a_reduced_motion_setting_stills_it(bool reduceMotion) => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -185,7 +193,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-320")] // the app's GlassMaterial
-    public void The_pill_is_the_apps_glass_capsule() => headless.OnUiThread(() =>
+    public void The_pill_is_the_apps_glass_capsule() => OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var harness = new AppModelHarness();
@@ -211,7 +219,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void The_ring_and_the_words_follow_the_run_one_item_at_a_time() => headless.OnUiThread(() =>
+    public void The_ring_and_the_words_follow_the_run_one_item_at_a_time() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -255,7 +263,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")] // OD-0076
-    public void A_change_of_words_crossfades_and_the_capsule_eases_to_its_new_width() => headless.OnUiThread(() =>
+    public void A_change_of_words_crossfades_and_the_capsule_eases_to_its_new_width() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -302,7 +310,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void A_press_presents_the_popover_on_the_pill_and_a_second_press_dismisses_it() => headless.OnUiThread(() =>
+    public void A_press_presents_the_popover_on_the_pill_and_a_second_press_dismisses_it() => OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var recorder = new RecordingPresenter();
@@ -332,7 +340,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void The_popover_closes_when_the_pill_goes() => headless.OnUiThread(() =>
+    public void The_popover_closes_when_the_pill_goes() => OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var recorder = new RecordingPresenter();
@@ -359,7 +367,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void The_popover_lists_the_installed_items_with_their_versions_and_the_one_button() => headless.OnUiThread(() =>
+    public void The_popover_lists_the_installed_items_with_their_versions_and_the_one_button() => OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var harness = new AppModelHarness();
@@ -398,7 +406,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void The_popovers_button_runs_Update_everything_and_the_rows_follow_the_run_with_a_bar_on_the_one_in_hand() => headless.OnUiThread(() =>
+    public void The_popovers_button_runs_Update_everything_and_the_rows_follow_the_run_with_a_bar_on_the_one_in_hand() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -456,7 +464,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void A_failed_item_puts_a_banner_in_the_popover_and_Retry_in_its_button() => headless.OnUiThread(() =>
+    public void A_failed_item_puts_a_banner_in_the_popover_and_Retry_in_its_button() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -506,7 +514,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void When_Marrow_waits_for_a_restart_the_pill_and_the_popover_offer_Restart_Marrow() => headless.OnUiThread(() =>
+    public void When_Marrow_waits_for_a_restart_the_pill_and_the_popover_offer_Restart_Marrow() => OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
@@ -545,7 +553,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-308")]
-    public void The_floating_sidebars_pill_builds_its_popover_after_the_one_it_is_in_has_opened() => headless.OnUiThread(() =>
+    public void The_floating_sidebars_pill_builds_its_popover_after_the_one_it_is_in_has_opened() => OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var harness = new AppModelHarness();
