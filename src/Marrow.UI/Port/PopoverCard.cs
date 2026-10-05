@@ -18,6 +18,20 @@
 // point and the anchor (the card's edge 13 pt from it, a whole number so the card stays on whole points). The card's
 // corners stay square and its material plain until the glass pass (OD-0005); the tip keeps clear of the corners by its
 // shoulder.
+//
+// THE GLASS (OD-0107 and its amendment, OD-0005; ED-NEW-glass-g2). On the Mac the panel is an NSPopover's Liquid Glass, not
+// a flat card: the scene behind it seen blurred through it, a dark hairline round it, a thin light rim inside that, the tip
+// part of the same glass. SOURCE FACT, measured on the reference frames (2-chat-use.mov 34.2 s, the effort popover; 151.0 s,
+// the sidebar row menu; 1-settings-tour.mov 143.2 s, the theme list in Light; 1 px = 1 pt): the corners are round with a
+// radius of about 20 pt (the outline leaves each straight side about 20 pt from the corner and passes 8.5 pt from it on the
+// diagonal, a circle of 20.5); the outermost pixel is a near-black hairline (Dark 0-28 between a backdrop of 35-60 and a
+// glass of 60-90; Light 146 between 194 and 215); inside it a pixel brighter than the glass (Dark +25 to +47, Light +8);
+// the glass itself lighter than what is round it (Dark +20, Light +25). The card now draws that over the popup window's own
+// see-through glass (PopoverGlass, which the card keeps in step with its outline, its grow-in and its fade): a translucent
+// tint, the hairline and the rim, and its content clipped to the round corners. Where no glass can be had (the overlay
+// host, a failed attach) it draws ED-238's opaque panel under the tint so its text stays legible. The corners are circular
+// arcs, not Apple's continuous curve: the window manager's clip under them is a circular rounded rectangle, and the two
+// must coincide or the blur would show past the rim.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -35,6 +49,35 @@ public enum PopoverTipEdge
     Right,
 }
 
+/// <summary>What is under a popover's card.</summary>
+internal enum PopoverMaterial
+{
+    /// <summary>The popup window's see-through glass, or glass still to come (its first frame): the card draws only its
+    /// translucent tint, hairline and rim.</summary>
+    Glass,
+
+    /// <summary>No glass can be had (the overlay host, a host that is no WinUI-composited window, a failed attach): the card
+    /// draws ED-238's opaque panel under its tint.</summary>
+    Fallback,
+}
+
+/// <summary>When a popover's material and its grow-in reached each step (Stopwatch ticks; 0 not yet), for the native timing
+/// check (ED-NEW-glass-g2 (6)).</summary>
+internal sealed class PopoverGlassTimeline
+{
+    public long Opened { get; set; }
+    public long Attached { get; set; }
+    public long FirstGlass { get; set; }
+    public long OpacityOne { get; set; }
+    public long ScaleOne { get; set; }
+    public bool SawFade { get; set; }
+    public bool SawGrow { get; set; }
+
+    public double Ms(long ticks) => ticks == 0 || Opened == 0 ? double.NaN : (ticks - Opened) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+    public override string ToString() => FormattableString.Invariant($"attached {Ms(Attached):F1} ms, first glass {Ms(FirstGlass):F1} ms, opacity 1 at {Ms(OpacityOne):F1} ms, scale 1 at {Ms(ScaleOne):F1} ms");
+}
+
 /// <summary>A popover's panel with its tip (see the file note).</summary>
 public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
 {
@@ -43,7 +86,11 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     internal const double TipApexRadius = 3;
     internal const double TipShoulderRadius = 4;
     internal const double TipGap = 1;
-    private const double Edge = 1; // ED-238's 1 pt panel edge
+    private const double Edge = 1; // ED-238's 1 pt panel edge: now the dark hairline
+    private const double Rim = 1;  // the light rim inside it
+
+    /// <summary>The card's corner radius, measured on the reference frames (see the file note).</summary>
+    internal const double BodyRadius = 20;
 
     // OD-0095: "one outline, one fill, one shadow". ENGINEERING DECISION (no number is published for NSPopover's window
     // shadow; the videos show it soft and faint, more a lift than a drop): a Gaussian falloff, 0.22 black at the outline,
@@ -62,6 +109,14 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     public static readonly StyledProperty<IBrush?> BorderBrushProperty =
         AvaloniaProperty.Register<PopoverCard, IBrush?>(nameof(BorderBrush));
 
+    /// <summary>The light rim a point inside the hairline.</summary>
+    public static readonly StyledProperty<IBrush?> RimBrushProperty =
+        AvaloniaProperty.Register<PopoverCard, IBrush?>(nameof(RimBrush));
+
+    /// <summary>The opaque panel drawn under the tint where no see-through glass is under the card (ED-238's fill).</summary>
+    public static readonly StyledProperty<IBrush?> FallbackBrushProperty =
+        AvaloniaProperty.Register<PopoverCard, IBrush?>(nameof(FallbackBrush));
+
     public static readonly StyledProperty<PopoverTipEdge> TipEdgeProperty =
         AvaloniaProperty.Register<PopoverCard, PopoverTipEdge>(nameof(TipEdge), PopoverTipEdge.Bottom);
 
@@ -70,7 +125,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
 
     static PopoverCard()
     {
-        AffectsRender<PopoverCard>(BackgroundProperty, BorderBrushProperty, TipEdgeProperty, TipOffsetProperty);
+        AffectsRender<PopoverCard>(BackgroundProperty, BorderBrushProperty, RimBrushProperty, FallbackBrushProperty, TipEdgeProperty, TipOffsetProperty);
         AffectsMeasure<PopoverCard>(TipEdgeProperty);
     }
 
@@ -100,22 +155,33 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         };
     }
 
-    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-    {
-        base.OnPropertyChanged(change);
-        if (change.Property == TipEdgeProperty && shadowRoom) Margin = ShadowMargin(TipEdge); // the card flipped
-    }
-
     public PopoverCard()
     {
         LayoutUpdated += (_, _) => FollowAnchor();
+        ActualThemeVariantChanged += (_, _) => glass?.SetDark(ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark);
     }
 
-    /// <summary>The panel's fill.</summary>
+    /// <summary>The glass's tint, drawn over the see-through glass (translucent).</summary>
     public IBrush? Background { get => GetValue(BackgroundProperty); set => SetValue(BackgroundProperty, value); }
 
-    /// <summary>The panel's 1 pt edge.</summary>
+    /// <summary>The panel's 1 pt edge: the dark hairline round the glass.</summary>
     public IBrush? BorderBrush { get => GetValue(BorderBrushProperty); set => SetValue(BorderBrushProperty, value); }
+
+    /// <summary>The 1 pt light rim inside the hairline.</summary>
+    public IBrush? RimBrush { get => GetValue(RimBrushProperty); set => SetValue(RimBrushProperty, value); }
+
+    /// <summary>The opaque panel under the tint where no glass is (see <see cref="Material"/>).</summary>
+    public IBrush? FallbackBrush { get => GetValue(FallbackBrushProperty); set => SetValue(FallbackBrushProperty, value); }
+
+    /// <summary>What is under the card: see-through glass (or glass still to come), or nothing, so it draws its opaque
+    /// fallback panel.</summary>
+    internal PopoverMaterial Material
+    {
+        get => material;
+        set { if (material == value) return; material = value; InvalidateVisual(); }
+    }
+
+    private PopoverMaterial material;
 
     /// <summary>The edge the tip stands on.</summary>
     public PopoverTipEdge TipEdge { get => GetValue(TipEdgeProperty); set => SetValue(TipEdgeProperty, value); }
@@ -170,15 +236,34 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        Child?.Arrange(Body(finalSize).Deflate(Edge));
+        if (Child is { } child)
+        {
+            var inner = Body(finalSize).Deflate(Edge);
+            child.Arrange(inner);
+            // The content stays inside the round corners (a row's hover fill, a list running to the edge): clipped to the
+            // body inside the hairline, concentric with it. A site's own clip on its content is left alone.
+            if (child.Clip is null || ReferenceEquals(child.Clip, contentClip))
+            {
+                var radius = Math.Max(0, BodyRadius - Edge);
+                if (contentClip is not RectangleGeometry { } current || current.Rect != new Rect(inner.Size))
+                    contentClip = new RectangleGeometry(new Rect(inner.Size), radius, radius);
+                child.Clip = contentClip;
+            }
+        }
         return finalSize;
     }
+
+    private Geometry? contentClip;
+
+    /// <summary>How far from either end of its edge the tip's centre is held: past the round corner and the tip's own half
+    /// width and shoulder, so the tip always stands on the straight part.</summary>
+    internal static double TipLeast => BodyRadius + TipHalfWidth + TipShoulderRadius;
 
     // The tip's centre along its edge, held on the straight part of the edge.
     private double Along(Size size)
     {
         var length = Vertical ? size.Width : size.Height;
-        var least = TipHalfWidth + TipShoulderRadius;
+        var least = TipLeast;
         var at = TipOffset ?? length / 2;
         return length < 2 * least ? length / 2 : Math.Clamp(at, least, length - least);
     }
@@ -213,7 +298,11 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     }
 
     /// <summary>The panel's one outline: the card's rectangle and the tip, at the card's current size.</summary>
-    internal Geometry Outline => Shape(Bounds.Size);
+    internal Geometry Outline => Shape(Bounds.Size, Edge / 2);
+
+    /// <summary>The glass's own outline, the outer edge of the hairline: what the tint fills and the window's glass is
+    /// clipped to.</summary>
+    internal Geometry GlassOutline => Shape(Bounds.Size, 0);
 
     /// <summary>
     /// The card takes a press only inside its one outline: the clear room beside the tip and round the card (its gap,
@@ -221,27 +310,35 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     /// </summary>
     public bool HitTest(Point point) => Bounds.Width > 0 && Bounds.Height > 0 && Outline.FillContains(point);
 
-    private Geometry Shape(Size size)
+    // The outline <paramref name="inset"/> inside the glass's own edge: the body's rectangle deflated by it with concentric
+    // corners, and the tip's sides moved in by it along their normals (sides at 45 degrees: the point comes in by inset * sqrt 2,
+    // the half width where the sides meet the deflated edge is TipHalfWidth + inset - inset * sqrt 2), the point's rounding
+    // concentric, the shoulders' too. Inset 0 is the glass; Edge / 2 is the hairline's stroke line (Outline).
+    private Geometry Shape(Size size, double inset)
     {
-        var body = Body(size).Deflate(Edge / 2); // the edge is stroked on the outline: half of it inside
+        var body = Body(size).Deflate(inset);
         var along = Along(size);
-        var depth = TipHeight - Edge / 2;
-        // Clockwise from the top left, with the tip's three corners on the edge it stands on (radius 0: a card corner).
+        var depth = TipHeight + inset - inset * Math.Sqrt(2); // from the deflated edge to the point
+        var half = TipHalfWidth + inset - inset * Math.Sqrt(2);
+        var corner = Math.Max(0, Math.Min(BodyRadius - inset, Math.Min(body.Width, body.Height) / 2));
+        var apex = Math.Max(0, TipApexRadius - inset);
+        var shoulder = TipShoulderRadius + inset;
+        // Clockwise from the top left, with the tip's three corners on the edge it stands on.
         var corners = new List<(Point Point, double Radius)>();
-        void Tip(Point shoulderIn, Point apex, Point shoulderOut)
+        void Tip(Point shoulderIn, Point point, Point shoulderOut)
         {
-            corners.Add((shoulderIn, TipShoulderRadius));
-            corners.Add((apex, TipApexRadius));
-            corners.Add((shoulderOut, TipShoulderRadius));
+            corners.Add((shoulderIn, shoulder));
+            corners.Add((point, apex));
+            corners.Add((shoulderOut, shoulder));
         }
-        corners.Add((body.TopLeft, 0));
-        if (TipEdge == PopoverTipEdge.Top) Tip(new Point(along - TipHalfWidth, body.Top), new Point(along, body.Top - depth), new Point(along + TipHalfWidth, body.Top));
-        corners.Add((body.TopRight, 0));
-        if (TipEdge == PopoverTipEdge.Right) Tip(new Point(body.Right, along - TipHalfWidth), new Point(body.Right + depth, along), new Point(body.Right, along + TipHalfWidth));
-        corners.Add((body.BottomRight, 0));
-        if (TipEdge == PopoverTipEdge.Bottom) Tip(new Point(along + TipHalfWidth, body.Bottom), new Point(along, body.Bottom + depth), new Point(along - TipHalfWidth, body.Bottom));
-        corners.Add((body.BottomLeft, 0));
-        if (TipEdge == PopoverTipEdge.Left) Tip(new Point(body.Left, along + TipHalfWidth), new Point(body.Left - depth, along), new Point(body.Left, along - TipHalfWidth));
+        corners.Add((body.TopLeft, corner));
+        if (TipEdge == PopoverTipEdge.Top) Tip(new Point(along - half, body.Top), new Point(along, body.Top - depth), new Point(along + half, body.Top));
+        corners.Add((body.TopRight, corner));
+        if (TipEdge == PopoverTipEdge.Right) Tip(new Point(body.Right, along - half), new Point(body.Right + depth, along), new Point(body.Right, along + half));
+        corners.Add((body.BottomRight, corner));
+        if (TipEdge == PopoverTipEdge.Bottom) Tip(new Point(along + half, body.Bottom), new Point(along, body.Bottom + depth), new Point(along - half, body.Bottom));
+        corners.Add((body.BottomLeft, corner));
+        if (TipEdge == PopoverTipEdge.Left) Tip(new Point(body.Left, along + half), new Point(body.Left - depth, along), new Point(body.Left, along - half));
         return Rounded(corners);
     }
 
@@ -284,10 +381,16 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     {
         var size = Bounds.Size;
         if (size.Width <= 0 || size.Height <= 0) return;
-        var shape = Shape(size);
+        var shape = Shape(size, Edge / 2);
+        var glassShape = Shape(size, 0);
+        // The shadow lies outside the glass only: under a translucent card it would darken the glass from inside.
+        using (context.PushGeometryClip(new CombinedGeometry(GeometryCombineMode.Exclude, new RectangleGeometry(new Rect(size).Inflate(ShadowReach + ShadowDrop + 2)), glassShape)))
         using (context.PushTransform(Matrix.CreateTranslation(0, ShadowDrop)))
             foreach (var pen in ShadowPens(size)) context.DrawGeometry(null, pen, shape);
-        context.DrawGeometry(Background, BorderBrush is { } edge ? new Pen(edge, Edge) : null, shape);
+        if (Material == PopoverMaterial.Fallback && FallbackBrush is { } panel) context.DrawGeometry(panel, null, glassShape);
+        context.DrawGeometry(Background, null, glassShape);
+        if (BorderBrush is { } edge) context.DrawGeometry(null, new Pen(edge, Edge), shape);
+        if (RimBrush is { } rim) context.DrawGeometry(null, new Pen(rim, Rim), Shape(size, Edge + Rim / 2));
     }
 
     private (Size Size, PopoverTipEdge Edge) shadowKey;
@@ -356,7 +459,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         };
         var length = vertical ? card.Width : card.Height;
         var at = vertical ? anchor.Center.X - card.Left : anchor.Center.Y - card.Top;
-        var least = TipHalfWidth + TipShoulderRadius;
+        var least = TipLeast;
         return (edge, length < 2 * least ? length / 2 : Math.Clamp(at, least, length - least));
     }
 
@@ -379,5 +482,139 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         if (edge != TipEdge) TipEdge = edge;
         if (TipOffset is not { } current || Math.Abs(current - offset) > 0.01) TipOffset = offset;
         if (RenderTransform is ScaleTransform) RenderTransformOrigin = TipOrigin; // a grow-in under way follows the tip
+        SyncGlass();
+    }
+
+    private PopoverGlass? glass;
+    private TopLevel? glassWindow;
+    private bool pumping;
+
+    /// <summary>The steps of the last showing's material and grow-in (ED-NEW-glass-g2 (6)).</summary>
+    internal PopoverGlassTimeline Timeline { get; private set; } = new();
+
+    /// <summary>The window glass under the card while it shows (null otherwise).</summary>
+    internal PopoverGlass? Glass => glass;
+
+    /// <summary>The card has just been shown in <paramref name="host"/> (PopoverHost, on the popup's Opened): a native popup
+    /// window gets its see-through glass, kept in step with the card from here on; any other host (the overlay's) has none, so
+    /// the card draws its opaque panel.</summary>
+    internal void Shown(Control? host)
+    {
+        DetachGlass();
+        Timeline = new PopoverGlassTimeline { Opened = System.Diagnostics.Stopwatch.GetTimestamp() };
+        if (host is not TopLevel window || PopoverGlassAttach.Current(window) is not { } made)
+        {
+            Material = PopoverMaterial.Fallback;
+            return;
+        }
+        Material = PopoverMaterial.Glass;
+        glass = made;
+        glassWindow = window;
+        SyncGlass();
+    }
+
+    /// <summary>The popup has closed: its glass goes with it.</summary>
+    internal void Hidden() => DetachGlass();
+
+    private void DetachGlass()
+    {
+        glass?.Dispose();
+        glass = null;
+        glassWindow = null;
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == TipEdgeProperty && shadowRoom) Margin = ShadowMargin(TipEdge); // the card flipped
+        if (glass is null) return;
+        if (change.Property == RenderTransformProperty || change.Property == OpacityProperty || change.Property == TipOffsetProperty
+            || change.Property == TipEdgeProperty || change.Property == BoundsProperty) SyncGlass();
+    }
+
+    // Puts the window's glass under the card's outline as it is drawn now (its scale and fade included); while the card
+    // grows or fades, or the glass waits for the window's first frame, again on the next frame.
+    private void SyncGlass()
+    {
+        if (glass is not { } shown || glassWindow is not { } window) return;
+        if (glass.Failure is null && !glass.Attached) glass.SetDark(ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark);
+        var shape = GlassShape(window);
+        var placed = shape is { } s && shown.Update(s);
+        if (shown.Failure is not null)
+        {
+            Material = PopoverMaterial.Fallback;
+            DetachGlass();
+            return;
+        }
+        var now = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (placed && Timeline.Attached == 0) Timeline.Attached = now;
+        if (Timeline.FirstGlass == 0 && shown.FirstShownTicks != 0) Timeline.FirstGlass = shown.FirstShownTicks;
+        // The grow-in starts just after the popup has opened (Presentation: PopoverAppear.Play after IsOpen): a step counts
+        // once the card has been seen below it.
+        if (Opacity < 1) Timeline.SawFade = true;
+        if (RenderTransform is ScaleTransform { ScaleX: < 1 }) Timeline.SawGrow = true;
+        if (Timeline.OpacityOne == 0 && Timeline.SawFade && Opacity >= 1) Timeline.OpacityOne = now;
+        if (Timeline.ScaleOne == 0 && Timeline.SawGrow && RenderTransform is not ScaleTransform { ScaleX: < 1 }) Timeline.ScaleOne = now;
+        var moving = !placed || RenderTransform is not null || Opacity < 1;
+        if (moving && !pumping)
+        {
+            pumping = true;
+            window.RequestAnimationFrame(_ =>
+            {
+                pumping = false;
+                SyncGlass();
+            });
+        }
+    }
+
+    /// <summary>Where the card's glass is in <paramref name="window"/>'s physical pixels, its grow-in's scale and its fade
+    /// included; null while the card is not laid out in it.</summary>
+    internal PopoverGlass.Shape? GlassShape(Visual window)
+    {
+        var size = Bounds.Size;
+        if (size.Width <= 0 || size.Height <= 0 || this.TransformToVisual(window) is not { } toWindow) return null;
+        var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+        var m = toWindow * Matrix.CreateScale(scaling, scaling);
+        var body = Body(size);
+        var topLeft = body.TopLeft.Transform(m);
+        var bottomRight = body.BottomRight.Transform(m);
+        var scale = m.M11; // the card is only moved and scaled, never turned
+        var along = Along(size);
+        var centre = TipEdge switch
+        {
+            PopoverTipEdge.Top => new Point(along, body.Top),
+            PopoverTipEdge.Bottom => new Point(along, body.Bottom),
+            PopoverTipEdge.Left => new Point(body.Left, along),
+            _ => new Point(body.Right, along),
+        };
+        double opacity = 1;
+        for (Visual? at = this; at is not null && !ReferenceEquals(at, window); at = at.GetVisualParent())
+        {
+            if (!at.IsVisible) opacity = 0;
+            opacity *= at.Opacity;
+        }
+        return new PopoverGlass.Shape(new Rect(topLeft, bottomRight), BodyRadius * scale, centre.Transform(m),
+            TipHalfWidth * Math.Sqrt(2) * scale, TipApexRadius * scale, opacity);
+    }
+}
+
+/// <summary>Where a popup window's glass comes from: the window's own composition (PopoverGlass), which a test replaces.</summary>
+internal static class PopoverGlassAttach
+{
+    internal static Marrow.Core.Port.Ambient<Func<TopLevel, PopoverGlass?>> Make { get; } = new(Default);
+
+    internal static PopoverGlass? Current(TopLevel window) => Make.Current(window);
+
+    internal static PopoverGlass? Default(TopLevel window)
+    {
+        if (!OperatingSystem.IsWindows() || window.PlatformImpl is not { } impl || impl.GetType().Assembly.GetName().Name != "Avalonia.Win32") return null;
+        try
+        {
+            return PopoverGlass.For(window, window.ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark);
+        }
+        catch (Exception error) when (PopoverGlass.NonFatal(error))
+        {
+            return null; // no glass: the card draws its opaque panel
+        }
     }
 }

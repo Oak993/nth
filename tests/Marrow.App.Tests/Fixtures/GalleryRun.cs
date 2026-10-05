@@ -18,6 +18,14 @@ internal static class GalleryRun
         Environment.GetEnvironmentVariable(EnableVariable) != "1" ? null
             : Path.GetFullPath(Environment.GetEnvironmentVariable(DirectoryVariable) is { Length: > 0 } custom ? custom : DefaultDirectory);
 
+    /// <summary>The child's side, for a fixture any native Fact shares (GalleryBackdrop): the folder the parent's request names
+    /// when the gallery is on, null when it is off or outside a native child.</summary>
+    internal static string? OptionalOutputFolder()
+    {
+        var run = Environment.GetEnvironmentVariable(WindowManagerNativeChildProtocol.DirectoryVariable);
+        return run is null ? null : WindowManagerNativeChildProtocol.Read<WindowManagerNativeRequest>(run, "request.json").GalleryDirectory;
+    }
+
     /// <summary>The child's side: the folder the parent's request names.</summary>
     internal static string OutputFolder()
     {

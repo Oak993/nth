@@ -19,10 +19,20 @@ internal static class GalleryBackdrop
         {
             WindowDecorations = WindowDecorations.None, ShowInTaskbar = false, Topmost = true, CanResize = false, ShowActivated = false,
             WindowStartupLocation = WindowStartupLocation.Manual, Position = work.Position,
-            Width = work.Width / scale, Height = work.Height / scale, Content = Picture(),
+            Width = work.Width / scale, Height = work.Height / scale, Content = Wallpaper() ?? Picture(),
         };
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
         return window;
+    }
+
+    // A picture of the reference's own scene for a side-by-side with the Mac frames (ED-NEW-glass-g2 (4)): a backdrop.png put
+    // in the gallery's output folder is shown filling the working area instead of the gradient. Only when the gallery is on:
+    // Cover also serves the other native Facts (TimelineRowsNativeRig), which run without it.
+    private static Control? Wallpaper()
+    {
+        if (GalleryRun.OptionalOutputFolder() is not { } folder) return null;
+        var path = System.IO.Path.Combine(folder, "backdrop.png");
+        return File.Exists(path) ? new Image { Source = new Avalonia.Media.Imaging.Bitmap(path), Stretch = Stretch.UniformToFill } : null;
     }
 
     private static Control Picture()
