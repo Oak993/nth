@@ -45,7 +45,7 @@ vec3 wall(vec2 p){
 });
 
 SW.add({
-  id: 'dunes', name: 'Dunes', tier: 'balanced', grain: .35,
+  id: 'barchan', name: 'Barchan', tier: 'balanced', grain: .35,
   desc: 'Wind-carved dunes seen from above, warm on every face that catches the low sun and cool in the lee.',
   opt: { label: 'Sun height', def: .4 },
   roles: [[.20, .05, .55, .07], [.30, .07, .66, .08], [.45, .08, .78, .08], [.62, .09, .90, .06], [.42, .06, .90, .04], [.18, .05, .80, .06]],

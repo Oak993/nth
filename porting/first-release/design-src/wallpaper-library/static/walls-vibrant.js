@@ -39,7 +39,7 @@ vec3 wall(vec2 p){
 });
 
 SW.add({
-  id: 'bloom', name: 'Bloom', tier: 'vibrant', grain: .3,
+  id: 'corolla', name: 'Corolla', tier: 'vibrant', grain: .3,
   desc: 'A fan of long curved petals opening from the corner, each one cupped, lit along its edge and shading the petal beneath.',
   opt: { label: 'Openness', def: .5 },
   roles: [[.42, .17, .62, .16], [.50, .19, .68, .16], [.58, .19, .74, .15], [.65, .17, .80, .13], [.72, .15, .86, .11], [.16, .05, .95, .025]],
@@ -163,23 +163,24 @@ vec3 wall(vec2 p){
   float hzA = mix(.45, 1., u_opt);
   for (int k = 0; k < 5; k++) {
     float i = float(k);
+    float u = i/4.;
+    vec2 q = p + u_tilt*(.3 + .7*u);
     float base = hz + .2 - i*.2;
     float amp = .2 + i*.06;
     float sc = .5 + i*.08;
     float e = .006;
-    float y = base + amp*(ridgeS(p.x*sc, i) - .62);
-    float y2 = base + amp*(ridgeS((p.x + e)*sc, i) - .62);
+    float y = base + amp*(ridgeS(q.x*sc, i) - .62);
+    float y2 = base + amp*(ridgeS((q.x + e)*sc, i) - .62);
     float sl = (y2 - y)/e;
-    float a = cover((p.y - y)/sqrt(1. + sl*sl));
+    float a = cover((q.y - y)/sqrt(1. + sl*sl));
     float far = 1. - i/4.;
-    float u = i/4.;
     vec3 m = mix(mix(u_pal[0], u_pal[1], .55), u_pal[1], sm1(u*2.));
     m = mix(m, u_pal[2], sm1(u*2. - .6));
     m = mix(m, u_pal[5], sm1(u*1.6 - .55));
     m = dim(m, .18 + .12*u);
     m = mix(m, u_pal[0], far*far*hzA*.55);
     m = mix(m, u_pal[4], .28*far*exp(-length(p - sp)*1.2));
-    float dep = max(y - p.y, 0.);
+    float dep = max(y - q.y, 0.);
     m = mix(m, mix(u_pal[0], u_pal[1], .6), hzA*.38*s01(.0, .3, dep)*(.3 + .7*far));
     m.x += .08*exp(-dep/.007)*exp(-abs(p.x - sp.x)*.8)*(.35 + .65*far);
     col = mix(col, m, a);
@@ -189,7 +190,7 @@ vec3 wall(vec2 p){
 });
 
 SW.add({
-  id: 'borealis', name: 'Borealis', tier: 'vibrant', grain: .3,
+  id: 'northlight', name: 'Northlight', tier: 'vibrant', grain: .3,
   desc: 'Curtains of aurora over a still northern lake, the ridge and the light mirrored in the water, with stars after dark.',
   opt: { label: 'Intensity', def: .6 },
   roles: [[.17, .05, .93, .05], [.80, .19, .70, .17], [.56, .20, .60, .17], [.70, .16, .68, .15], [.13, .03, .60, .06], [.11, .04, .78, .08]],
@@ -363,7 +364,7 @@ vec3 wall(vec2 p){
 });
 
 SW.add({
-  id: 'lagoon', name: 'Lagoon', tier: 'vibrant', grain: .25,
+  id: 'atoll', name: 'Atoll', tier: 'vibrant', grain: .25,
   desc: 'A tropical lagoon from above: deep channels, turquoise shallows netted with caustic light, and a sandbar edged with foam.',
   opt: { label: 'Caustics', def: .55 },
   roles: [[.24, .09, .52, .13], [.34, .12, .62, .14], [.49, .13, .74, .12], [.64, .12, .84, .09], [.74, .06, .93, .05], [.93, .02, .99, .01]],
