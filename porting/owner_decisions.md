@@ -1045,3 +1045,12 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - For consistency the lead extends colour packs (3-5) to the static wallpapers.
   - Switching packs or options crossfades, never cuts (OD-0076).
   - One shader per wallpaper takes the pack as data.
+- **Second amendment, owner, 2026-10-05 (chat, verbatim):** "I love all the wallpapers and animated wallpapers but we need to increase our library 3x and with more premium options." Then: "Like they should feel like they're shipped by Apple, Samsung or Microsoft. Extremely premium."
+  - **Context:** the two library pages. Animated: https://claude.ai/artifact/LFRLdPKiHhScEMwqBBs55c (24 wallpapers). Static: 30 wallpapers, not yet published.
+  - **Effect:** the library grows to three times its size, so 90 static and 72 animated wallpapers. The current 54 are kept, since the owner loves them.
+    - Every wallpaper, new and old, is held to the bar of a wallpaper shipped with an operating system by Apple, Samsung or Microsoft: extremely premium, with nothing generic or computer-rendered.
+    - Each wallpaper gets more premium options.
+    - The tiers (vibrant, balanced, minimal), the packs with dark and light palettes, the seamless loops, the speed control, crossfades instead of cuts (OD-0076), the per-frame cost budget and the SkSL subset all still apply.
+- **Approval, owner, 2026-10-05 (chat, verbatim):** "All wallpapers approved"
+  - **What was approved:** both published library pages. Animated: https://claude.ai/artifact/LFRLdPKiHhScEMwqBBs55c, 72 wallpapers (version 2). Static: https://claude.ai/artifact/CrziwfNftCftsFK6mGgUPz, 90 wallpapers.
+  - **Effect:** all 162 wallpapers ship as drawn, in the design snapshot at porting/first-release/design-src/wallpaper-library (static at ab4308969, animated at 76a61a4e2). That snapshot is the source of truth for the app's per-wallpaper fidelity tests. This includes the four premium options (Dynamic, Match accent, Perspective, Focus) and the names, all unique across both collections.

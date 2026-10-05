@@ -27,7 +27,7 @@ vec3 wall(vec2 p, float t) {
   float xr = p.x / W;
   float cell = floor(xr);
   float u = fract(xr) * 2.0 - 1.0;
-  vec2 ps = vec2((cell + 0.5) * W - u * W * 0.85, p.y + 0.015 * u * u);
+  vec2 ps = vec2((cell + 0.5) * W - u * W * 0.85, p.y + 0.015 * u * u) + tiltD(-2.0);
   vec3 c = (field(ps, a, m) * 2.0 + field(ps + vec2(0.0, 0.05), a, m) + field(ps - vec2(0.0, 0.05), a, m)) * 0.25;
   float lum = 0.965 + 0.05 * (1.0 - u * u);
   float hl = gauss(u + 0.5, 0.18) * 0.1 + gauss(u - 0.72, 0.07) * 0.04;

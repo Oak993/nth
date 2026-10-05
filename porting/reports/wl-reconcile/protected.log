@@ -1,0 +1,36 @@
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.6.2': No such file or directory
+PROTECTED PATHS CHANGED against HEAD (27):
+  porting/engineering_decisions.md
+  porting/owner_decisions.md
+  porting/reports/review-wl-4-5.md
+  porting/reports/wl-reconcile/animated-focus-iteration2.trx
+  porting/reports/wl-reconcile/app-iteration1.trx
+  porting/reports/wl-reconcile/arithmetic-compile-green.trx
+  porting/reports/wl-reconcile/core-traceability-final.trx
+  porting/reports/wl-reconcile/core-traceability.trx
+  porting/reports/wl-reconcile/dot-order-green.trx
+  porting/reports/wl-reconcile/dot-order-red.trx
+  porting/reports/wl-reconcile/matrix-coverage-red.trx
+  porting/reports/wl-reconcile/oracle-matrix-red.trx
+  porting/reports/wl-reconcile/pixels-final.jsonl
+  porting/reports/wl-reconcile/pixels-iteration1.jsonl
+  porting/reports/wl-reconcile/pixels-iteration2.jsonl
+  porting/reports/wl-reconcile/review-app-red-scoped.trx
+  porting/reports/wl-reconcile/review-app-red.trx
+  porting/reports/wl-reconcile/review-ui-red-scoped.trx
+  porting/reports/wl-reconcile/review-ui-red.trx
+  porting/reports/wl-reconcile/seams-ui-red.trx
+  porting/reports/wl-reconcile/services-traceability-final.trx
+  porting/reports/wl-reconcile/services-traceability.trx
+  porting/reports/wl-reconcile/signed-square-green.trx
+  porting/reports/wl-reconcile/signed-square-red.trx
+  porting/reports/wl-reconcile/ui-iteration1.trx
+  porting/reports/wl-reconcile/ui-iteration2.trx
+  tests/Marrow.App.Tests/Marrow.App.Tests.csproj
+
+A worker may not change these. Revert them before review:
+  git checkout HEAD -- <path>        (tracked files)
+  and delete any new untracked file listed above.
+If the change is genuinely needed, the ORCHESTRATOR makes it, with a reason in the commit.

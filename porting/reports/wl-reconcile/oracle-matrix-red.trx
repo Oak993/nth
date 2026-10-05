@@ -1,0 +1,630 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="3d66c2b6-55dc-4f0a-933e-0186606bd8fa" name="@1909c9b16337 2026-10-05 12:26:39" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T12:26:39.3927771+00:00" queuing="2026-10-05T12:26:39.3927771+00:00" start="2026-10-05T12:26:36.4266538+00:00" finish="2026-10-05T12:26:39.4795354+00:00" />
+  <TestSettings name="default" id="b7e48ff9-a4c8-469e-af1d-8feeb6e84358">
+    <Deployment runDeploymentRoot="_1909c9b16337_2026-10-05_12_26_39" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="4587bd6f-065f-48b0-a403-7766c0dff5d6" testId="163abe08-a9f6-ddf8-6d20-cad155352d7f" testName="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests.Metric_has_known_colour_endpoints_and_symmetric_distance" computerName="1909c9b16337" duration="00:00:00.0089953" startTime="2026-10-05T12:26:39.3646092+00:00" endTime="2026-10-05T12:26:39.3646703+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4587bd6f-065f-48b0-a403-7766c0dff5d6" />
+    <UnitTestResult executionId="161d4600-583c-47dc-8acb-47ab510bc884" testId="1572fb2c-6df7-8cc0-426d-cb8bf1ba2b17" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks" computerName="1909c9b16337" duration="00:00:00.0011721" startTime="2026-10-05T12:26:39.3828655+00:00" endTime="2026-10-05T12:26:39.3840641+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="161d4600-583c-47dc-8acb-47ab510bc884">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.StaticCases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 76
+   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 52
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8077cd5e-3a82-45f6-aa76-260cc141a4c5" testId="a46b6972-fe9d-f664-c50a-1323a3327765" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_a_uniform_three_level_colour_error_over_the_whole_picture_is_not_within_tolerance" computerName="1909c9b16337" duration="00:00:00.0007457" startTime="2026-10-05T12:26:39.3849521+00:00" endTime="2026-10-05T12:26:39.3850187+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8077cd5e-3a82-45f6-aa76-260cc141a4c5" />
+    <UnitTestResult executionId="ebe6a52f-aed5-4042-b55d-123568c3fe5e" testId="9f411938-b326-9394-3d67-fade56120a7c" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value" computerName="1909c9b16337" duration="00:00:00.0048260" startTime="2026-10-05T12:26:39.3042494+00:00" endTime="2026-10-05T12:26:39.3396380+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ebe6a52f-aed5-4042-b55d-123568c3fe5e">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs:line 71
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="100160d7-e341-4c64-96b2-2254d4ea8977" testId="c6ce1da1-80a7-0c84-5d37-f288019c45a8" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt" computerName="1909c9b16337" duration="00:00:00.0006888" startTime="2026-10-05T12:26:39.3600804+00:00" endTime="2026-10-05T12:26:39.3601751+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="100160d7-e341-4c64-96b2-2254d4ea8977">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.StaticCases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 76
+   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 35
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="485bddfc-bac9-4b51-8807-7f64f5a7a6fe" testId="a2f70d72-02b7-ca63-d34e-98891bc24288" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent" computerName="1909c9b16337" duration="00:00:00.0007660" startTime="2026-10-05T12:26:39.3403855+00:00" endTime="2026-10-05T12:26:39.3404627+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="485bddfc-bac9-4b51-8807-7f64f5a7a6fe">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.StaticCases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 76
+   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 44
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5e3d0219-fcf4-4a12-832b-beec5a7ab26f" testId="97ba8d37-7ecb-5919-d940-1ce489b92a20" testName="Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus" computerName="1909c9b16337" duration="00:00:00.0010000" startTime="2026-10-05T12:26:39.3308501+00:00" endTime="2026-10-05T12:26:39.3309112+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5e3d0219-fcf4-4a12-832b-beec5a7ab26f">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 11
+   at Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Wallpapers() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/StaticWallpaperFidelityTests.cs:line 7
+   at InvokeStub_StaticWallpaperFidelityTests.Wallpapers(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="26c5cf22-1043-4c5c-96f5-e652cfc10540" testId="880077d9-e324-a5b0-27fd-1222312be3d4" testName="Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_its_approved_pack_references" computerName="1909c9b16337" duration="00:00:00.0010000" startTime="2026-10-05T12:26:39.3012271+00:00" endTime="2026-10-05T12:26:39.3052110+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="26c5cf22-1043-4c5c-96f5-e652cfc10540">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 11
+   at Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Wallpapers() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/AnimatedWallpaperFidelityTests.cs:line 7
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="66114742-0f91-4658-9480-6aece0287770" testId="62b59b22-1a5f-e3c4-a70a-d3865ae557fc" testName="Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget" computerName="1909c9b16337" duration="00:00:00.0169446" startTime="2026-10-05T12:26:39.3378908+00:00" endTime="2026-10-05T12:26:39.3387576+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="66114742-0f91-4658-9480-6aece0287770">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs:line 71
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="22d86ddf-aa50-486d-9db5-abe923f82b19" testId="d1dadb04-4c5b-8270-42c6-cedd1cf1ad2f" testName="Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_its_approved_pack_and_phase_references" computerName="1909c9b16337" duration="00:00:00.0010000" startTime="2026-10-05T12:26:39.3040659+00:00" endTime="2026-10-05T12:26:39.3351256+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="22d86ddf-aa50-486d-9db5-abe923f82b19">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 11
+   at Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Wallpapers() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/AnimatedWallpaperFidelityTests.cs:line 7
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="7f3845ba-7821-4b99-8783-5927f822be4e" testId="f101d63c-c14b-75fe-c8d3-3ef6a57d57b4" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer" computerName="1909c9b16337" duration="00:00:00.0967945" startTime="2026-10-05T12:26:39.3616389+00:00" endTime="2026-10-05T12:26:39.3825881+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7f3845ba-7821-4b99-8783-5927f822be4e" />
+    <UnitTestResult executionId="a4868629-feae-4776-9a2b-7e8e7ae55cb4" testId="ee92216d-d182-2de5-8939-13f1cb48123b" testName="Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference" computerName="1909c9b16337" duration="00:00:00.0075270" startTime="2026-10-05T12:26:39.3395709+00:00" endTime="2026-10-05T12:26:39.3617138+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a4868629-feae-4776-9a2b-7e8e7ae55cb4">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs:line 12
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="35cb5e15-9006-4537-8763-442ced81855d" testId="c18246dc-180d-a855-982c-2abf21a1edf8" testName="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests.Missing_frame_alpha_or_wrong_size_never_compares_as_a_pass" computerName="1909c9b16337" duration="00:00:00.0547258" startTime="2026-10-05T12:26:39.3042134+00:00" endTime="2026-10-05T12:26:39.3637210+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="35cb5e15-9006-4537-8763-442ced81855d" />
+    <UnitTestResult executionId="2b4bb2af-c982-45a9-9684-65b747d7b640" testId="64263471-99a4-79fd-b687-a278341f94c7" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer" computerName="1909c9b16337" duration="00:00:00.0002483" startTime="2026-10-05T12:26:39.3851861+00:00" endTime="2026-10-05T12:26:39.3852483+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2b4bb2af-c982-45a9-9684-65b747d7b640" />
+    <UnitTestResult executionId="c7a53fd3-97c7-4ea5-86f3-3d11a959c032" testId="af761047-8a39-21cc-8ed7-2a6042d67f73" testName="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests.Sparse_and_global_regressions_are_caught_by_independent_bounds" computerName="1909c9b16337" duration="00:00:00.0218922" startTime="2026-10-05T12:26:39.3650157+00:00" endTime="2026-10-05T12:26:39.3650633+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c7a53fd3-97c7-4ea5-86f3-3d11a959c032" />
+    <UnitTestResult executionId="0efa172c-9a42-4ef3-9971-7a0182a1a418" testId="6e547f7a-e930-f69a-2f45-7b5b9ec818de" testName="Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_dusk_accent_and_full_focus" computerName="1909c9b16337" duration="00:00:00.0010000" startTime="2026-10-05T12:26:39.3360647+00:00" endTime="2026-10-05T12:26:39.3360952+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0efa172c-9a42-4ef3-9971-7a0182a1a418">
+      <Output>
+        <ErrorInfo>
+          <Message>System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 11
+   at Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Wallpapers() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/AnimatedWallpaperFidelityTests.cs:line 7
+   at InvokeStub_AnimatedWallpaperFidelityTests.Wallpapers(Object, Object, IntPtr*)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+   at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+   at System.IO.File.ReadAllText(String path, Encoding encoding)
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 7
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 8
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 13
+   at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs:line 9</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_its_approved_pack_references" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="880077d9-e324-a5b0-27fd-1222312be3d4">
+      <Execution id="26c5cf22-1043-4c5c-96f5-e652cfc10540" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests" name="Every_static_wallpaper_matches_its_approved_pack_references" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests.Missing_frame_alpha_or_wrong_size_never_compares_as_a_pass" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c18246dc-180d-a855-982c-2abf21a1edf8">
+      <Execution id="35cb5e15-9006-4537-8763-442ced81855d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests" name="Missing_frame_alpha_or_wrong_size_never_compares_as_a_pass" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="a2f70d72-02b7-ca63-d34e-98891bc24288">
+      <Execution id="485bddfc-bac9-4b51-8807-7f64f5a7a6fe" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_match_accent_is_compared_at_more_than_one_accent" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="9f411938-b326-9394-3d67-fade56120a7c">
+      <Execution id="ebe6a52f-aed5-4042-b55d-123568c3fe5e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_focus_is_compared_at_an_intermediate_value" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ee92216d-d182-2de5-8939-13f1cb48123b">
+      <Execution id="a4868629-feae-4776-9a2b-7e8e7ae55cb4" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests" name="Approved_inventory_and_every_required_compact_look_have_an_offline_reference" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_its_approved_pack_and_phase_references" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="d1dadb04-4c5b-8270-42c6-cedd1cf1ad2f">
+      <Execution id="22d86ddf-aa50-486d-9db5-abe923f82b19" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests" name="Every_animated_wallpaper_matches_its_approved_pack_and_phase_references" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="64263471-99a4-79fd-b687-a278341f94c7">
+      <Execution id="2b4bb2af-c982-45a9-9684-65b747d7b640" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests.Metric_has_known_colour_endpoints_and_symmetric_distance" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="163abe08-a9f6-ddf8-6d20-cad155352d7f">
+      <Execution id="4587bd6f-065f-48b0-a403-7766c0dff5d6" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests" name="Metric_has_known_colour_endpoints_and_symmetric_distance" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_dusk_accent_and_full_focus" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="6e547f7a-e930-f69a-2f45-7b5b9ec818de">
+      <Execution id="0efa172c-9a42-4ef3-9971-7a0182a1a418" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests" name="Every_animated_wallpaper_matches_dusk_accent_and_full_focus" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="f101d63c-c14b-75fe-c8d3-3ef6a57d57b4">
+      <Execution id="7f3845ba-7821-4b99-8783-5927f822be4e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="97ba8d37-7ecb-5919-d940-1ce489b92a20">
+      <Execution id="5e3d0219-fcf4-4a12-832b-beec5a7ab26f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests" name="Every_static_wallpaper_matches_dusk_accent_and_full_focus" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests.Sparse_and_global_regressions_are_caught_by_independent_bounds" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="af761047-8a39-21cc-8ed7-2a6042d67f73">
+      <Execution id="c7a53fd3-97c7-4ea5-86f3-3d11a959c032" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.WallpaperPerceptualComparisonTests" name="Sparse_and_global_regressions_are_caught_by_independent_bounds" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="1572fb2c-6df7-8cc0-426d-cb8bf1ba2b17">
+      <Execution id="161d4600-583c-47dc-8acb-47ab510bc884" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c6ce1da1-80a7-0c84-5d37-f288019c45a8">
+      <Execution id="100160d7-e341-4c64-96b2-2254d4ea8977" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_a_uniform_three_level_colour_error_over_the_whole_picture_is_not_within_tolerance" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="a46b6972-fe9d-f664-c50a-1323a3327765">
+      <Execution id="8077cd5e-3a82-45f6-aa76-260cc141a4c5" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_a_uniform_three_level_colour_error_over_the_whole_picture_is_not_within_tolerance" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="62b59b22-1a5f-e3c4-a70a-d3865ae557fc">
+      <Execution id="66114742-0f91-4658-9480-6aece0287770" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests" name="Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="163abe08-a9f6-ddf8-6d20-cad155352d7f" executionId="4587bd6f-065f-48b0-a403-7766c0dff5d6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1572fb2c-6df7-8cc0-426d-cb8bf1ba2b17" executionId="161d4600-583c-47dc-8acb-47ab510bc884" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a46b6972-fe9d-f664-c50a-1323a3327765" executionId="8077cd5e-3a82-45f6-aa76-260cc141a4c5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9f411938-b326-9394-3d67-fade56120a7c" executionId="ebe6a52f-aed5-4042-b55d-123568c3fe5e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c6ce1da1-80a7-0c84-5d37-f288019c45a8" executionId="100160d7-e341-4c64-96b2-2254d4ea8977" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a2f70d72-02b7-ca63-d34e-98891bc24288" executionId="485bddfc-bac9-4b51-8807-7f64f5a7a6fe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="97ba8d37-7ecb-5919-d940-1ce489b92a20" executionId="5e3d0219-fcf4-4a12-832b-beec5a7ab26f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="880077d9-e324-a5b0-27fd-1222312be3d4" executionId="26c5cf22-1043-4c5c-96f5-e652cfc10540" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="62b59b22-1a5f-e3c4-a70a-d3865ae557fc" executionId="66114742-0f91-4658-9480-6aece0287770" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d1dadb04-4c5b-8270-42c6-cedd1cf1ad2f" executionId="22d86ddf-aa50-486d-9db5-abe923f82b19" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f101d63c-c14b-75fe-c8d3-3ef6a57d57b4" executionId="7f3845ba-7821-4b99-8783-5927f822be4e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ee92216d-d182-2de5-8939-13f1cb48123b" executionId="a4868629-feae-4776-9a2b-7e8e7ae55cb4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c18246dc-180d-a855-982c-2abf21a1edf8" executionId="35cb5e15-9006-4537-8763-442ced81855d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="64263471-99a4-79fd-b687-a278341f94c7" executionId="2b4bb2af-c982-45a9-9684-65b747d7b640" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="af761047-8a39-21cc-8ed7-2a6042d67f73" executionId="c7a53fd3-97c7-4ea5-86f3-3d11a959c032" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6e547f7a-e930-f69a-2f45-7b5b9ec818de" executionId="0efa172c-9a42-4ef3-9971-7a0182a1a418" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="16" executed="16" passed="6" failed="10" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.39]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:02.24]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:02.29]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.38]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.38]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.38]       Stack Trace:
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(11,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection)
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/AnimatedWallpaperFidelityTests.cs(7,0): at Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Wallpapers()
+[xUnit.net 00:00:02.38]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.38]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.38]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.38]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.38]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.38]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.38]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.38]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.38]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.38]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.38]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.38]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.40]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.40]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.40]       Stack Trace:
+[xUnit.net 00:00:02.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(11,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection)
+[xUnit.net 00:00:02.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/StaticWallpaperFidelityTests.cs(7,0): at Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Wallpapers()
+[xUnit.net 00:00:02.40]            at InvokeStub_StaticWallpaperFidelityTests.Wallpapers(Object, Object, IntPtr*)
+[xUnit.net 00:00:02.40]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.40]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.40]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.40]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.40]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.40]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.40]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.40]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.40]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.40]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.40]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.41]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.41]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.41]       Stack Trace:
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(11,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection)
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/AnimatedWallpaperFidelityTests.cs(7,0): at Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Wallpapers()
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.41]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.41]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.41]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.41]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.41]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.41]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.41]       Stack Trace:
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(11,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Wallpapers(String collection)
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/AnimatedWallpaperFidelityTests.cs(7,0): at Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Wallpapers()
+[xUnit.net 00:00:02.41]            at InvokeStub_AnimatedWallpaperFidelityTests.Wallpapers(Object, Object, IntPtr*)
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.41]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.41]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.41]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.41]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.41]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.41]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.41]       Stack Trace:
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs(71,0): at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget()
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.41]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.41]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.41]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.41]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.41]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.41]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.41]       Stack Trace:
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs(71,0): at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget()
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.41]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.41]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.41]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.41]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.41]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.41]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.41]       Stack Trace:
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(76,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.StaticCases()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(44,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent()
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.41]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.41]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.41]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.41]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.41]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.41]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.41]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.43]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.43]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.43]       Stack Trace:
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(76,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.StaticCases()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(35,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt()
+[xUnit.net 00:00:02.43]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.43]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.43]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.43]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.43]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.43]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.43]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.43]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.43]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.43]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.43]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.43]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.43]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.43]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.43]       Stack Trace:
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs(12,0): at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference()
+[xUnit.net 00:00:02.43]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.43]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.43]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.43]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.43]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.43]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.43]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.43]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.43]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.43]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.43]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.43]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.45]       System.TypeInitializationException : The type initializer for 'Marrow.App.Tests.Wallpapers.WallpaperReferences' threw an exception.
+[xUnit.net 00:00:02.45]       ---- System.IO.DirectoryNotFoundException : Could not find a part of the path '/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/fixtures/wallpapers/reference/manifest.json'.
+[xUnit.net 00:00:02.45]       Stack Trace:
+[xUnit.net 00:00:02.45]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Cases()
+[xUnit.net 00:00:02.45]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(76,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.StaticCases()
+[xUnit.net 00:00:02.45]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(52,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks()
+[xUnit.net 00:00:02.45]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.45]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.45]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:02.45]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:02.45]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.45]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:02.45]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)
+[xUnit.net 00:00:02.45]            at System.IO.StreamReader.ValidateArgsAndOpenPath(String path, Int32 bufferSize)
+[xUnit.net 00:00:02.45]            at System.IO.File.ReadAllText(String path, Encoding encoding)
+[xUnit.net 00:00:02.45]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(7,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.&lt;&gt;c.&lt;.cctor&gt;b__10_0()
+[xUnit.net 00:00:02.45]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+[xUnit.net 00:00:02.45]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+[xUnit.net 00:00:02.45]            at System.Lazy`1.CreateValue()
+[xUnit.net 00:00:02.45]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(8,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.get_Manifest()
+[xUnit.net 00:00:02.45]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(13,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences.Load()
+[xUnit.net 00:00:02.45]         /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferences.cs(9,0): at Marrow.App.Tests.Wallpapers.WallpaperReferences..cctor()
+[xUnit.net 00:00:02.46]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.3555802+00:00">
+        <Text>[xUnit.net 00:00:02.38]     Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_its_approved_pack_references [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.3563262+00:00">
+        <Text>[xUnit.net 00:00:02.40]     Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.3575485+00:00">
+        <Text>[xUnit.net 00:00:02.41]     Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_its_approved_pack_and_phase_references [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.3590417+00:00">
+        <Text>[xUnit.net 00:00:02.41]     Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_dusk_accent_and_full_focus [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.3627444+00:00">
+        <Text>[xUnit.net 00:00:02.41]     Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.3627983+00:00">
+        <Text>[xUnit.net 00:00:02.41]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.3628422+00:00">
+        <Text>[xUnit.net 00:00:02.41]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.4036515+00:00">
+        <Text>[xUnit.net 00:00:02.43]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.4037205+00:00">
+        <Text>[xUnit.net 00:00:02.43]     Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:26:39.4037862+00:00">
+        <Text>[xUnit.net 00:00:02.45]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

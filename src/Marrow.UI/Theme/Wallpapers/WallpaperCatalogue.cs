@@ -46,16 +46,44 @@ public static class WallpaperCatalogue
                     w.GetProperty("tier").GetString()!, w.GetProperty("desc").GetString()!, packs, options,
                     kind == WallpaperKind.Animated ? w.GetProperty("period").GetDouble() : 0, source,
                     kind == WallpaperKind.Animated ? w.GetProperty("defaults").GetProperty("pack").GetString()!
-                        : packs[w.GetProperty("defaultPack").GetInt32()].Id));
+                        : packs[w.GetProperty("defaultPack").GetInt32()].Id,
+                    kind == WallpaperKind.Animated ? Premium(w) : null,
+                    kind == WallpaperKind.Static ? new StaticWallpaperData(w) : null));
             }
         }
         return list.AsReadOnly();
     }
 
+    private static double[] Numbers(JsonElement list) => list.EnumerateArray().Select(n => n.GetDouble()).ToArray();
+
+    private static WallpaperLookKey[] Looks(JsonElement set) => new[] { "dawn", "day", "dusk", "night" }.Select(key =>
+    {
+        var look = set.GetProperty(key); var tint = Numbers(look.GetProperty("tint"));
+        return new WallpaperLookKey(Numbers(look.GetProperty("dL")), Numbers(look.GetProperty("kC")), Numbers(look.GetProperty("dh")), tint[0], tint[1]);
+    }).ToArray();
+
+    /// <summary>OPTIONS-FORMAT: the roles, Dynamic looks, Perspective, Focus and Match data of an animated wallpaper, as written in wallpapers.json.</summary>
+    private static WallpaperPremium Premium(JsonElement w)
+    {
+        var dynamic = w.GetProperty("dynamic"); var sun = dynamic.GetProperty("sun");
+        var m = w.GetProperty("match"); var warm = m.GetProperty("dark_warm"); var perspective = w.GetProperty("perspective");
+        return new(w.GetProperty("roles").EnumerateArray().Select(Numbers).ToArray(),
+            new(Looks(dynamic.GetProperty("light")), Looks(dynamic.GetProperty("dark")),
+                new[] { "dawn", "day", "dusk", "night" }.Select(key => Numbers(sun.GetProperty(key))).ToArray()),
+            new(perspective.GetProperty("mode").GetString()!, perspective.GetProperty("default").GetBoolean()),
+            w.GetProperty("focus").GetProperty("default").GetDouble(), w.GetProperty("defaults").GetProperty("dynamic").GetBoolean(),
+            new(Numbers(m.GetProperty("off")), m.GetProperty("hero").GetInt32(), m.GetProperty("ck").GetDouble(), m.GetProperty("lk").GetDouble(),
+                Numbers(m.GetProperty("dl")), Numbers(m.GetProperty("dc")), Numbers(m.GetProperty("cm")),
+                new(Numbers(warm.GetProperty("band")), warm.GetProperty("ground_hue").GetDouble(), warm.GetProperty("mid_hue").GetDouble(),
+                    warm.GetProperty("ground_below").GetDouble(), warm.GetProperty("mid_below").GetDouble(), warm.GetProperty("mid_amount").GetDouble(),
+                    warm.GetProperty("kc").GetDouble(), warm.GetProperty("dl").GetDouble(), warm.GetProperty("bright_dl").GetDouble(),
+                    warm.GetProperty("bright_kc").GetDouble())));
+    }
+
     /// <summary>Mechanical GLSL-subset translation, with the source host's coordinate/dither contract.</summary>
     public static string SkSL(WallpaperDefinition wall)
     {
-        var source = wall.Source;
+        var source = WallpaperShaderArithmetic.Translate(wall.Source);
         if (wall.Kind == WallpaperKind.Static)
         {
             source = source.Replace("void main()", "half4 main(float2 coord)", StringComparison.Ordinal)
@@ -67,9 +95,9 @@ public static class WallpaperCatalogue
             float wl_ign(vec2 v) { return fract(52.9829189 * fract(dot(v, vec2(.06711056, .00583715)))); }
             half4 main(float2 coord) {
                 vec2 fc = vec2(coord.x, u_res.y - coord.y);
-                vec2 p = (fc - .5 * u_res) * (2. / u_res.y);
+                vec2 p = (fc - .5 * u_res) * (2. / u_res.y) + u_tilt * u_pan;
                 vec3 c = wall(p, u_t);
-                c += (wl_ign(fc) + wl_ign(fc + vec2(37., 17.)) - 1.) / 255.;
+                c += u_dither * (wl_ign(fc) + wl_ign(fc + vec2(37., 17.)) - 1.) / 255.;
                 return half4(c, 1.);
             }
             """;
@@ -77,8 +105,10 @@ public static class WallpaperCatalogue
             ? "float" + m.Value[3] : "float" + m.Value[3] + "x" + m.Value[3]);
         var header = wall.Kind == WallpaperKind.Static
             ? "uniform float2 u_res; uniform float u_dpr; uniform float3 u_pal[6]; uniform float u_dark; uniform float u_grain; uniform float u_opt;\n"
-            : "uniform float2 u_res; uniform float u_t; uniform float3 u_pal[6]; uniform float u_dark; uniform float2 u_opt; uniform float u_px;\n";
-        return header + source;
+                + "uniform float2 u_tilt; uniform float u_tg; uniform float2 u_light; uniform float2 u_light0; uniform float u_lw; uniform float u_focus;\n"
+            : "uniform float2 u_res; uniform float u_t; uniform float3 u_pal[6]; uniform float u_dark; uniform float2 u_opt; uniform float u_px;\n"
+                + "uniform float2 u_tilt; uniform float2 u_sun; uniform float u_focus; uniform float u_pan; uniform float u_dither;\n";
+        return header + WallpaperShaderArithmetic.Helpers + source;
     }
 
     public static SKRuntimeEffect Compile(WallpaperDefinition wall) => SKRuntimeEffect.CreateShader(SkSL(wall), out var error)

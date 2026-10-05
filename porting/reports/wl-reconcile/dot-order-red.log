@@ -1,0 +1,19 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.77]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperShaderArithmeticTests.The_hash_reduces_three_products_in_the_pages_left_to_right_order [FAIL]
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperShaderArithmeticTests.The_hash_reduces_three_products_in_the_pages_left_to_right_order [3 ms]
+  Error Message:
+   Assert.InRange() Failure: Value not in range
+Range:  (0 - 1)
+Actual: 255
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperShaderArithmeticTests.The_hash_reduces_three_products_in_the_pages_left_to_right_order() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperShaderArithmeticTests.cs:line 30
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/dot-order-red.trx
+
+Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2, Duration: 53 ms - Marrow.UI.Tests.dll (net10.0)

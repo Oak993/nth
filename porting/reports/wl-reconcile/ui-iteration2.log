@@ -1,0 +1,30 @@
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:05.79]     Marrow.UI.Tests.Theme.Wallpapers.StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(id: "cloudsea") [FAIL]
+  Failed Marrow.UI.Tests.Theme.Wallpapers.StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(id: "cloudsea") [8 ms]
+  Error Message:
+   System.InvalidOperationException : Static/cloudsea: error: program is too large
+1 error
+
+  Stack Trace:
+     at Marrow.UI.Theme.Wallpapers.WallpaperCatalogue.Compile(WallpaperDefinition wall) in /workspace/marrow-port/src/Marrow.UI/Theme/Wallpapers/WallpaperCatalogue.cs:line 114
+   at Marrow.UI.Tests.Theme.Wallpapers.StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(String id) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/StaticWallpaperTests.cs:line 22
+   at InvokeStub_StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:31.11]     Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperRenderTests.REVIEW_every_static_wallpaper_renders_a_picture_that_is_neither_black_nor_flat_in_both_themes_and_with_every_option_on(id: "cloudsea") [FAIL]
+  Failed Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperRenderTests.REVIEW_every_static_wallpaper_renders_a_picture_that_is_neither_black_nor_flat_in_both_themes_and_with_every_option_on(id: "cloudsea") [1 ms]
+  Error Message:
+   System.InvalidOperationException : Static/cloudsea: error: program is too large
+1 error
+
+  Stack Trace:
+     at Marrow.UI.Theme.Wallpapers.WallpaperCatalogue.Compile(WallpaperDefinition wall) in /workspace/marrow-port/src/Marrow.UI/Theme/Wallpapers/WallpaperCatalogue.cs:line 114
+   at Marrow.UI.Theme.Wallpapers.WallpaperRenderer.Set(WallpaperSelection selection, Boolean dark) in /workspace/marrow-port/src/Marrow.UI/Theme/Wallpapers/WallpaperRenderer.cs:line 76
+   at Marrow.UI.Theme.Wallpapers.WallpaperRenderer..ctor(WallpaperSelection selection, Boolean dark, WallpaperEnvironment environment) in /workspace/marrow-port/src/Marrow.UI/Theme/Wallpapers/WallpaperRenderer.cs:line 60
+   at Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperRenderTests.REVIEW_every_static_wallpaper_renders_a_picture_that_is_neither_black_nor_flat_in_both_themes_and_with_every_option_on(String id) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperRenderTests.cs:line 25
+   at InvokeStub_REVIEW_StaticWallpaperRenderTests.REVIEW_every_static_wallpaper_renders_a_picture_that_is_neither_black_nor_flat_in_both_themes_and_with_every_option_on(Object, Span`1)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+WARNING: Overwriting results file: /workspace/marrow-port/porting/reports/wl-reconcile/ui-final.trx
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/ui-final.trx
+
+Failed!  - Failed:     2, Passed:  1230, Skipped:     0, Total:  1232, Duration: 6 m 32 s - Marrow.UI.Tests.dll (net10.0)

@@ -1,0 +1,22 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.61]     Marrow.UI.Tests.Theme.Wallpapers.StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(id: "cloudsea") [FAIL]
+  Failed Marrow.UI.Tests.Theme.Wallpapers.StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(id: "cloudsea") [4 ms]
+  Error Message:
+   System.InvalidOperationException : Static/cloudsea: error: program is too large
+1 error
+
+  Stack Trace:
+     at Marrow.UI.Theme.Wallpapers.WallpaperCatalogue.Compile(WallpaperDefinition wall) in /workspace/marrow-port/src/Marrow.UI/Theme/Wallpapers/WallpaperCatalogue.cs:line 114
+   at Marrow.UI.Tests.Theme.Wallpapers.StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(String id) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/StaticWallpaperTests.cs:line 22
+   at InvokeStub_StaticWallpaperTests.Every_approved_static_shader_compiles_and_rasters(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/arithmetic-compile-green.trx
+
+Failed!  - Failed:     1, Passed:    91, Skipped:     0, Total:    92, Duration: 4 s - Marrow.UI.Tests.dll (net10.0)

@@ -29,6 +29,15 @@ public sealed class WallpaperPlayback : IDisposable
         pending = true; frames.RequestFrame(frame);
     }
 
+    /// <summary>The clock crossed a minute or the accent changed: the renderer re-reads both, and frames are requested only if a change now eases.</summary>
+    public void Wake()
+    {
+        if (disposed) return;
+        renderer.Wake();
+        if (renderer.Visible) changed();
+        Refresh();
+    }
+
     private void Tick(TimeSpan now)
     {
         pending = false;

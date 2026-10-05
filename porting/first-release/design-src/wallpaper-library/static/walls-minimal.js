@@ -1,7 +1,7 @@
 // Static wallpaper library, tier 3: Minimal. Calm, low contrast, undistracting, still colourful: one or two quiet
 // ideas, soft light and a real material.
 SW.add({
-  id: 'linen', name: 'Linen', tier: 'minimal', grain: .15,
+  id: 'flax', name: 'Flax', tier: 'minimal', grain: .15,
   thumbTex: 1.35,
   desc: 'Plain-woven linen in a soft wash of colour, gently draped, every thread slightly uneven and slubbed, lit by a window you cannot see.',
   opt: { label: 'Weave', def: .45 },
@@ -156,7 +156,7 @@ vec3 wall(vec2 p){
 });
 
 SW.add({
-  id: 'mist', name: 'Mist', tier: 'minimal', grain: .3,
+  id: 'inkwash', name: 'Inkwash', tier: 'minimal', grain: .3,
   desc: 'Three faint ridges dissolving into morning mist, like an ink painting washed almost to nothing.',
   opt: { label: 'Mist', def: .55 },
   roles: [[.20, .04, .92, .03], [.26, .045, .86, .04], [.30, .05, .80, .05], [.34, .05, .74, .055], [.40, .05, .95, .025], [.17, .04, .88, .035]],
@@ -177,9 +177,10 @@ vec3 wall(vec2 p){
   float m = mix(.08, .3, u_opt);
   for (int k = 0; k < 3; k++) {
     float i = float(k);
-    float y = ridgeMi(p.x, i);
-    float a = cover((p.y - y)*.6);
-    float dep = max(y - p.y, 0.);
+    vec2 q = p + u_tilt*(.4 + .3*i);
+    float y = ridgeMi(q.x, i);
+    float a = cover((q.y - y)*.6);
+    float dep = max(y - q.y, 0.);
     vec3 r = mix(u_pal[1], u_pal[3], i/2.);
     float fade = s01(.0, m + .1*i, dep);
     r = mix(r, mix(u_pal[4], u_pal[0], .4), fade*.85);
@@ -248,7 +249,7 @@ vec3 wall(vec2 p){
 });
 
 SW.add({
-  id: 'halo', name: 'Halo', tier: 'minimal', grain: .3,
+  id: 'aureole', name: 'Aureole', tier: 'minimal', grain: .3,
   desc: 'A soft ring of light whose colour drifts slowly around it, held in a quiet field.',
   opt: { label: 'Glow', def: .5 },
   roles: [[.20, .04, .92, .025], [.40, .08, .84, .06], [.42, .08, .83, .065], [.44, .08, .84, .06], [.42, .08, .83, .065], [.24, .045, .89, .03]],
@@ -280,7 +281,7 @@ vec3 wall(vec2 p){
 });
 
 SW.add({
-  id: 'drift', name: 'Drift', tier: 'minimal', grain: .4,
+  id: 'confluence', name: 'Confluence', tier: 'minimal', grain: .4,
   desc: 'A gradient mesh of five quiet colours melting into each other under a fine film grain.',
   opt: { label: 'Softness', def: .5 },
   roles: [[.30, .06, .88, .05], [.34, .07, .86, .06], [.28, .06, .90, .045], [.36, .07, .85, .06], [.32, .06, .87, .055], [.26, .05, .92, .03]],

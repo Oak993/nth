@@ -9,17 +9,17 @@ public sealed class WallpaperLibraryTests
     public static IEnumerable<object[]> Shaders() => new (WallpaperKind Kind, string Id)[]
     {
         (WallpaperKind.Static, "riptide"),
-        (WallpaperKind.Static, "bloom"),
+        (WallpaperKind.Static, "corolla"),
         (WallpaperKind.Static, "prism"),
         (WallpaperKind.Static, "solstice"),
-        (WallpaperKind.Static, "borealis"),
+        (WallpaperKind.Static, "northlight"),
         (WallpaperKind.Static, "satin"),
         (WallpaperKind.Static, "orbit"),
-        (WallpaperKind.Static, "lagoon"),
+        (WallpaperKind.Static, "atoll"),
         (WallpaperKind.Static, "radiant"),
         (WallpaperKind.Static, "spectrum"),
         (WallpaperKind.Static, "meadow"),
-        (WallpaperKind.Static, "dunes"),
+        (WallpaperKind.Static, "barchan"),
         (WallpaperKind.Static, "frost"),
         (WallpaperKind.Static, "cascade"),
         (WallpaperKind.Static, "folio"),
@@ -28,14 +28,14 @@ public sealed class WallpaperLibraryTests
         (WallpaperKind.Static, "watercolor"),
         (WallpaperKind.Static, "arches"),
         (WallpaperKind.Static, "strata"),
-        (WallpaperKind.Static, "linen"),
+        (WallpaperKind.Static, "flax"),
         (WallpaperKind.Static, "washi"),
         (WallpaperKind.Static, "dawn"),
         (WallpaperKind.Static, "arc"),
-        (WallpaperKind.Static, "mist"),
+        (WallpaperKind.Static, "inkwash"),
         (WallpaperKind.Static, "pebble"),
-        (WallpaperKind.Static, "halo"),
-        (WallpaperKind.Static, "drift"),
+        (WallpaperKind.Static, "aureole"),
+        (WallpaperKind.Static, "confluence"),
         (WallpaperKind.Static, "afternoon"),
         (WallpaperKind.Static, "vellum"),
         (WallpaperKind.Animated, "borealis"),
@@ -94,10 +94,11 @@ public sealed class WallpaperLibraryTests
 
     [Fact]
     [Trait("Rule", "R-TEST-1")]
-    public void Catalogue_has_54_wallpapers_270_dual_palettes_and_source_labels()
+    public void Catalogue_has_162_wallpapers_810_dual_palettes_and_source_labels()
     {
-        Assert.Equal(30, WallpaperCatalogue.All.Count(x => x.Kind == WallpaperKind.Static));
-        Assert.Equal(24, WallpaperCatalogue.All.Count(x => x.Kind == WallpaperKind.Animated));
+        Assert.Equal(90, WallpaperCatalogue.All.Count(x => x.Kind == WallpaperKind.Static));
+        Assert.Equal(72, WallpaperCatalogue.All.Count(x => x.Kind == WallpaperKind.Animated));
+        Assert.Equal(810, WallpaperCatalogue.All.Sum(x => x.Packs.Length));
         foreach (var w in WallpaperCatalogue.All)
         {
             Assert.NotEmpty(w.Name); Assert.NotEmpty(w.Desc); Assert.Contains(w.Tier, new[] { "vibrant", "balanced", "minimal" });
@@ -158,7 +159,9 @@ public sealed class WallpaperLibraryTests
         Assert.Equal(count, r.Renders);
         Frame(r, 40, 24); Assert.Equal(count + 1, r.Renders);
         r.Set(new(WallpaperKind.Static, "riptide"), false); Assert.True(r.NeedsFrames);
-        for (var i = 0; i < 40; i++) { r.Advance(1.0 / 60); Frame(r); }
+        // Finding 4: .16 * ln(1/.002) = .99434 s, so the first idle frame is 60/60 s.
+        for (var i = 0; i < 59; i++) { r.Advance(1.0 / 60); Frame(r); }
+        Assert.True(r.NeedsFrames); r.Advance(1.0 / 60); Frame(r);
         Assert.False(r.NeedsFrames); Assert.True(Diff(before, Frame(r)) > 3);
     }
 

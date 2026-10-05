@@ -13,6 +13,12 @@
 // things that are not colour, such as stars), u_grain (0..1) and u_opt (0..1, the wallpaper's own option).
 // main() adds the grain (luminance only, in OKLab L), converts to sRGB and dithers by one 8-bit step (triangular), so
 // no ramp bands.
+//
+// The premium options add six uniforms (OPTIONS-FORMAT.md): u_tilt (vec2, the Perspective displacement in height
+// units, |u_tilt| <= 0.015, already zero when Perspective is off), u_tg (1: main() shifts the picture by u_tilt; 0: the
+// wallpaper layers by itself), u_light (vec2, the current direction toward the light), u_light0 (the authored one), u_lw
+// (the strength of the engine's brightness wash from the change of light; 0 when the wallpaper reads u_light itself) and
+// u_focus (float 0..1, read only by wallpapers that soften themselves; the others are blurred by the engine).
 (function (root) {
   const HEAD = `#version 300 es
 precision highp float;
@@ -22,6 +28,12 @@ uniform vec3 u_pal[6];
 uniform float u_dark;
 uniform float u_grain;
 uniform float u_opt;
+uniform vec2 u_tilt;
+uniform float u_tg;
+uniform vec2 u_light;
+uniform vec2 u_light0;
+uniform float u_lw;
+uniform float u_focus;
 out vec4 o;
 `;
   // the shared library: every wallpaper may use these
@@ -63,7 +75,9 @@ vec3 fromLab(vec3 L){
 void main(){
   vec2 fc = gl_FragCoord.xy;
   vec2 p = (fc/u_res - .5)*2.*vec2(u_res.x/u_res.y, 1.);
+  p += u_tilt*u_tg;
   vec3 L = wall(p);
+  L.x += u_lw*dot(p, u_light - u_light0);
   float g = h21(fc*1.13 + 3.7) + h21(fc*.97 + 19.1) - 1.;
   L.x += g*u_grain*.034;
   vec3 c = fromLab(L);
@@ -72,9 +86,12 @@ void main(){
 }
 `;
   const list = [];
+  const opts = {};
   const SW = {
-    HEAD, LIB, MAIN, list,
+    HEAD, LIB, MAIN, list, opts,
     add(w) { list.push(w); },
+    // the premium-option data of wallpapers whose entry carries none (the first thirty): SW.options({ id: { dyn, light, persp, focus } })
+    options(map) { Object.assign(opts, map); },
     // the full fragment shader of one wallpaper
     fs(w) { return HEAD + LIB + w.src + '\n' + MAIN; },
   };

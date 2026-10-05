@@ -23,12 +23,18 @@ internal sealed class WallpaperVisualHandler : CompositionCustomVisualHandler, I
         {
             stopped = true; playback?.Dispose(); renderer?.Dispose(); opacityPaint.Dispose(); frame = null; return;
         }
-        if (stopped || message is not WallpaperSnapshot next) return;
+        if (stopped) return;
+        if (message is WallpaperWake) { playback?.Wake(); return; }
+        if (message is not WallpaperSnapshot next) return;
         if (renderer is null)
         {
-            renderer = new(next.Selection, next.Dark); playback = new(renderer, this, Invalidate);
+            renderer = new(next.Selection, next.Dark, next.Environment); playback = new(renderer, this, Invalidate);
         }
-        else renderer.Set(next.Selection, next.Dark);
+        else
+        {
+            if (next.Environment is { } environment && snapshot?.Environment != environment) renderer.SetEnvironment(environment);
+            renderer.Set(next.Selection, next.Dark);
+        }
         snapshot = next; renderer.Visible = next.Visible; renderer.ReduceMotion = next.ReduceMotion;
         playback!.Refresh(); Invalidate();
     }
