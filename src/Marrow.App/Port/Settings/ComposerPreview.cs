@@ -36,6 +36,9 @@ internal sealed class ComposerPreview : Grid
     /// <summary>CZ-4.3: the frame, the attachment inside the composer (CZ-7b adds the other place): 472 wide, 12 from the stage's left and bottom.</summary>
     internal const double ComposerWidth = 472, ComposerLeft = 12, ComposerBottom = 12;
 
+    /// <summary>The plate's height once laid out: the real composer's 46 (ED-NEW-f-cz-3 item 2, CZ-T45). The page shows the Auto values of a composer of this size (CZ-6) before the preview has been measured.</summary>
+    internal const double PillHeight = 46;
+
     private const double CaretPeriod = 1.06; // playground .caret: blink 1.06s ease-in-out infinite
 
     private readonly PreviewSession session;
@@ -64,6 +67,7 @@ internal sealed class ComposerPreview : Grid
     internal Button Send => send.Disc;
     internal string SendSymbol => send.Symbol;
     internal bool DotsShown => dots.Shown;
+    internal double DotsOpacity => dots.Opacity01;
     internal double RingAngle => Ring.Angle;
     internal double HintOpacity => Hint.Opacity;
     internal string TypedText => Typed.Text ?? "";

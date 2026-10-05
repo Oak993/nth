@@ -356,20 +356,23 @@ public sealed class TourViewTests(HeadlessSession headless)
     // a separate unit, and are not testable here).
     [Fact]
     [Trait("Req", "UI-UPDATE-036")] // App/Views/Tour/TourView.swift:79-95
-    public void The_card_is_a_continuous_20pt_rounded_shape_with_glass_and_a_hairline_border() => headless.OnUiThread(() =>
+    public void The_card_fills_the_windows_rectangle_with_glass_and_a_hairline_border() => headless.OnUiThread(() =>
     {
         var view = new TourView(SamplePages());
         ShowInFrame(view);
 
-        var rounded = view.GetVisualDescendants().OfType<Border>().Where(b => b.CornerRadius == new CornerRadius(20)).ToArray();
-        Assert.NotEmpty(rounded); // :63, :80-95 shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        // :63, :80-95 shape = RoundedRectangle(cornerRadius: 20, style: .continuous) is the Mac window's own shape (a clear window the size of the card). The port's window is a
+        // rectangle of the system's Acrylic that DWM rounds by 8 px at most, so (OD-0075, the owner's intent of 2026-10-05, ED-338) the scrim, the glass and the
+        // clip are that rectangle and the card reads as glass out to the OS edge; TourWindowCornerTests proves the corner pixels.
+        Assert.DoesNotContain(view.GetVisualDescendants().OfType<Border>(), b => b.CornerRadius == new CornerRadius(20));
 
-        var glass = Assert.Single(rounded, b => SwiftGlass.GetEffect(b) is not null); // :82 .glassEffect(.regular, in: shape)
+        var glass = Assert.Single(view.GetVisualDescendants().OfType<Border>(), b => SwiftGlass.GetEffect(b) is { Shape.Kind: GlassShapeKind.RoundedRectangle }); // :82 .glassEffect(.regular, in: shape)
         var effect = SwiftGlass.GetEffect(glass)!;
-        Assert.Equal(GlassShapeKind.RoundedRectangle, effect.Shape.Kind);
-        Assert.Equal(20, effect.Shape.CornerRadius);
+        Assert.Equal(0, effect.Shape.CornerRadius);
+        Assert.Equal(default, glass.CornerRadius);
 
-        var stroke = Assert.Single(rounded, b => b.BorderThickness == new Thickness(1)); // :88-90 strokeBorder(..., lineWidth: 1)
+        var stroke = Assert.IsType<Border>(view.Children[2]); // :88-90 strokeBorder(..., lineWidth: 1), the front layer
+        Assert.Equal(new Thickness(1), stroke.BorderThickness);
         Assert.False(stroke.IsHitTestVisible);
     });
 

@@ -267,7 +267,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Sidebar_search_and_no_results_keep_source_insets_fonts_and_empty_archive_replaces_all_chrome() => WithSettings((view, _, _) =>
     {
         var search = Assert.Single(Nodes<SidebarSearchField>(view)); Assert.Equal(new Thickness(10, 14, 10, 0), search.Margin); var field = Assert.Single(Nodes<TextBox>(search)); Assert.Equal("Search", field.PlaceholderText); Assert.Equal(13, field.FontSize);
-        var rows = Field<StackPanel>(view, "rows"); Assert.Equal(new Thickness(10, 12, 10, 8), rows.Margin); Assert.Equal(1, rows.Spacing); Assert.Equal(10, Nodes<SidebarRow>(view).Length);
+        var rows = Field<StackPanel>(view, "rows"); Assert.Equal(new Thickness(10, 12, 10, 8), rows.Margin); Assert.Equal(1, rows.Spacing); Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, Nodes<SidebarRow>(view).Length); // CZ-4: Customization is listed
         var empty = Field<Control>(view, "detail"); Assert.Empty(Nodes<ScrollViewer>(empty)); Assert.Empty(Nodes<ChromeCompactTitle>(empty)); Assert.Empty(Nodes<ArchiveDeleteAllButton>(empty)); Assert.Equal(SwiftFont.System(44, SwiftFont.Weight.Light), SwiftImage.GetFont(Nodes<SwiftImage>(empty).Single()));
         field.Text = "no-such-settings-page"; Sync(); Assert.Empty(Nodes<SidebarRow>(view)); var heading = Nodes<TextBlock>(rows).Single(text => text.Text == "No results"); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight); var note = Nodes<TextBlock>(rows).Single(text => text.Text == "Try a setting or a provider name."); Assert.Equal(11, note.FontSize);
         var block = Assert.Single(Nodes<StackPanel>(rows), panel => panel.Spacing == 6); Assert.Equal(new Thickness(8, 14, 8, 0), block.Margin);
@@ -949,11 +949,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-004")] // App/Views/Settings/SettingsView.swift:110-122
-    public void Window_content_is_780_by_580_with_a_212_sidebar_and_26_corner() => WithSettings((view, _, _) =>
+    public void Window_content_is_780_by_580_with_a_212_sidebar_and_a_frame_that_is_the_windows_rectangle() => WithSettings((view, _, _) =>
     {
         Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
         Assert.Equal(212, Field<Control>(view, "sidebar").Width);
-        Assert.Equal(26, Field<SwiftShapeBorder>(view, "frame").CornerRadius.TopLeft);
+        Assert.Equal(0, Field<SwiftShapeBorder>(view, "frame").CornerRadius.TopLeft); // SettingsView.swift:119-120 is a 26 pt shape; the port's frame is the window's rectangle, which DWM rounds (OD-0075, ED-338)
         Assert.Equal(new Thickness(0), Field<Control>(view, "detail").Margin);
         Assert.Single(Nodes<WindowBackdrop>(view));
     });
@@ -963,7 +963,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Whitespace_search_keeps_all_pages_and_matching_is_case_insensitive() => WithSettings((view, _, _) =>
     {
         var field = Nodes<TextBox>(Field<Control>(view, "sidebar")).Single(); field.Text = " \n\t "; Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        Assert.Equal(10, Nodes<SidebarRow>(view).Length);
+        Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, Nodes<SidebarRow>(view).Length);
         field.Text = "  RESTORE  "; Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Assert.Single(Nodes<SidebarRow>(view));
     });
 

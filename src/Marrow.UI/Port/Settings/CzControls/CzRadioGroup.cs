@@ -37,6 +37,14 @@ public class CzRadioGroup : StackPanel
         if (focus) button.Focus(NavigationMethod.Directional);
         if (changed) SelectionChanged?.Invoke(id);
     }
+    /// <summary>PORT-ONLY CZ-4: shows <paramref name="id"/> as the pick because the setting it mirrors changed (not a user's pick): works while the group is folded shut or dimmed, and raises <see cref="SelectionChanged"/> so the pill and cards follow; the owner of the setting ignores that echo.</summary>
+    public void Show(string id)
+    {
+        if (Buttons.All(x => x.Id != id)) throw new ArgumentOutOfRangeException(nameof(id));
+        var changed = SelectedId != id; SelectedId = id; UpdateSelection();
+        if (changed) SelectionChanged?.Invoke(id);
+    }
+
     protected virtual void UpdateSelection()
     {
         foreach (var button in Buttons)

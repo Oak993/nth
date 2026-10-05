@@ -1024,3 +1024,54 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
     - whether one is the default for new users (upstream's default is no wallpaper, OD-0014);
     - the motion speed;
     - Reduce Motion behaviour.
+
+## OD-0110 A whole wallpaper library: a Static collection and an Animated collection, vibrant to minimal (2026-10-05)
+
+- **Context:** OD-0109's variants page (https://claude.ai/artifact/EiKx64RynPdYEAqsnqrumM, 12 wallpapers).
+- **Owner, verbatim:** "I'm not gonna answer Wallpaper Picks artifact, we need a whole sub section of collection of static wallpapers and then another whole sub section of collection of animated wallpapers with the ability to set their speed, all loopable and way more premium, but we need to ensure we cater all users, some like too vibrant while others are minimalistic and don't like too distracting yet colorful. So, we need to create a whole library."
+- **Effect (replaces OD-0109's pick questions):**
+  - The port ships a wallpaper library, not a short list. The wallpaper settings get two sub-sections: a collection of Static wallpapers, and a collection of Animated wallpapers with a speed control.
+  - Every animated wallpaper loops seamlessly, with no visible restart and no period a viewer can notice.
+  - The whole library is far more premium than the twelve on the variants page.
+  - The library covers every taste. Each collection spans tiers from vibrant through balanced to minimal: calm and undistracting, yet still colourful.
+  - Upstream's default stays: no wallpaper until the user picks one (OD-0014).
+  - Glass behaviour, cost and Reduce Motion follow OD-0109's notes. The animated wallpapers are measured natively, so the glass over them stays smooth.
+  - **LEAD plan:** the library is first drawn as one browsable page, the source of truth for each wallpaper's look and code. That page is published for the owner to see, not to pick from. The library is then built into the app with per-wallpaper fidelity tests against that page, as VT-8 did for the orb.
+- **Amendment, owner, 2026-10-05 (chat, verbatim):** "Maybe give options within those animated wallpapers to choose color packs? set speed, etc?"
+  - **Effect:** every animated wallpaper offers per-wallpaper options:
+    - colour packs, 4-6 named packs chosen by swatches, each with dark and light palettes, spanning quiet to rich;
+    - speed;
+    - at most two more where they fit, such as motion amount or brightness and softness.
+  - For consistency the lead extends colour packs (3-5) to the static wallpapers.
+  - Switching packs or options crossfades, never cuts (OD-0076).
+  - One shader per wallpaper takes the pack as data.
+- **Second amendment, owner, 2026-10-05 (chat, verbatim):** "I love all the wallpapers and animated wallpapers but we need to increase our library 3x and with more premium options." Then: "Like they should feel like they're shipped by Apple, Samsung or Microsoft. Extremely premium."
+  - **Context:** the two library pages. Animated: https://claude.ai/artifact/LFRLdPKiHhScEMwqBBs55c (24 wallpapers). Static: 30 wallpapers, not yet published.
+  - **Effect:** the library grows to three times its size, so 90 static and 72 animated wallpapers. The current 54 are kept, since the owner loves them.
+    - Every wallpaper, new and old, is held to the bar of a wallpaper shipped with an operating system by Apple, Samsung or Microsoft: extremely premium, with nothing generic or computer-rendered.
+    - Each wallpaper gets more premium options.
+    - The tiers (vibrant, balanced, minimal), the packs with dark and light palettes, the seamless loops, the speed control, crossfades instead of cuts (OD-0076), the per-frame cost budget and the SkSL subset all still apply.
+- **Approval, owner, 2026-10-05 (chat, verbatim):** "All wallpapers approved"
+  - **What was approved:** both published library pages. Animated: https://claude.ai/artifact/LFRLdPKiHhScEMwqBBs55c, 72 wallpapers (version 2). Static: https://claude.ai/artifact/CrziwfNftCftsFK6mGgUPz, 90 wallpapers.
+  - **Effect:** all 162 wallpapers ship as drawn, in the design snapshot at porting/first-release/design-src/wallpaper-library (static at ab4308969, animated at 76a61a4e2). That snapshot is the source of truth for the app's per-wallpaper fidelity tests. This includes the four premium options (Dynamic, Match accent, Perspective, Focus) and the names, all unique across both collections.
+
+## OD-0111 Every update ships with its What's new, and the app shows it with the update (2026-10-05)
+
+- **Context:** the self-update (UE-1, ED-320) already reads a release's markdown notes and the About page shows them as section cards, but the packaging script's `-ReleaseNotesFile` was optional, so a release could go out with no notes.
+- **Owner, verbatim:** "अच्छा एक चीज़ मैंडेटरी करवा देना कि आपकी जो अपडेट होती है ना जो मैं फॉर एग्जांपल अपने गिट हब पे अपलोड करूँगा न्यू अपडेट तो जब ऐप के अंदर शो होगी किसी और यूज़र को कि अपडेट आई हुई है ठीक है ना तो यू नो इट शुड शो कि न्यू वर्जन के अंदर क्या चेंजेस हैं क्या अपडेट्स हैं ठीक है ना वो एक चेंज लॉग और अपडेट्स व्हाट्स न्यू ठीक है ना वो होना चाहिए ठीक है ना विथ एवरी पुश ऑफ न्यू अपडेट ये चीज़ साथ साथ पुश होनी चाहिए ताकि जिसका भी ऐप में अपडेट आए उसको पता हो कि क्या चीज़ चेंज हो रही है क्या अपडेट हो रहा है क्या नई चीज़ ऐड हो रही है एवरी थिंग ठीक है ना"
+- **In English:** "Make one thing mandatory. When I upload a new update to my GitHub and the app shows another user that an update is available, it should show what changed in the new version: a changelog and What's new. It must be pushed together with every new update, so whoever gets the update knows what is changing, what is updated and what is new."
+- **Effect:**
+  - Release notes are mandatory. A release cannot be packaged or uploaded without a What's new for that exact version: packaging fails closed when the notes are missing, empty, for another version, or have no recognised section.
+  - The notes come from the repository's CHANGELOG, one section per version, in the parity headings (New features, Bug fixes, Refinements), so every pushed update carries its own changelog.
+  - When the app offers an update, the user sees that version's What's new (the parity section cards) before installing, and can read it again after updating.
+  - Nothing is published or uploaded without the owner's word (unchanged).
+
+## OD-0112 The app icon is D "Aurora" (2026-10-05)
+
+- **Asked:** 2026-10-05. The owner found the OD-0015 icon and its animation less premium than the app ("an app's icon tells you what the app will be like inside") and asked for twenty original directions, each with a launch animation and an idle loop, free of the old three-colour mark. Page: https://claude.ai/artifact/1FCzPs4jpmNAFidJ5FRotZ (copy: `porting/first-release/design-src/app-icon/`).
+- **Answer, verbatim:** "app-icon: D lock it and ship it, see who you want to delegate this task to , claude helper or codex whichever"
+- **Effect:**
+  - Supersedes OD-0015. The port ships D "Aurora": a tile of smoked night glass holding an aurora curtain (emerald foot, teal above, violet fringe) over a dark ridge and a few stars. The locked source is `porting/first-release/design-src/app-icon/src/icons-a-j/D-aurora.js` with `iconkit.js`, including its own small-size art for 16 to 32 px.
+  - Every place OD-0015 named uses it: the executable and its `icon.ico`, the window, the taskbar, Alt-Tab, Start, toasts, the in-app logo images, and later the installer.
+  - The loading mark and boot animation (OD-0016, OD-0018 "Comet", ED-097/102/103/154) are remade from D's launch animation and idle loop. That motion goes to the owner as a review page before it ships; OD-0108's warm-up behind the boot animation is unchanged.
+  - The OD-0015 files stay in history only. The deviation list in the final report names the new icon.

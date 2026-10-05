@@ -560,7 +560,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:64-68
     [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:33-43; UI/Chrome/Chrome.swift:9-11
-    public void The_window_content_clips_to_the_windows_rounded_shape_and_the_detail_pane_clips_its_own_bounds()
+    public void The_window_content_clips_to_the_windows_rectangle_and_the_detail_pane_clips_its_own_bounds()
     {
         headless.OnUiThread(() =>
         {
@@ -575,11 +575,11 @@ public sealed class RootViewTests(HeadlessSession headless)
                 Assert.Equal(0, Chrome.SheetInset);
                 Assert.True(root.DetailClip.ClipToBounds); // :40 .clipped()
 
-                // PR-WIN-062: clipped to the 26-point continuous rounded rectangle, after the backdrop (:64-65
-                // paint behind windowClip; RootView's own constructor builds them in that order) is painted.
+                // PR-WIN-062: clipped after the backdrop (:64-65 paint behind windowClip; RootView's own constructor builds them in that order) is painted. OD-0075 and
+                // the owner's intent of 2026-10-05 (ED-338): the clip is the window's rectangle, not the 26-point continuous rounded rectangle, so the backdrop
+                // and the detail sheet reach the window's edge, and the backdrop's hairline is the rectangle's inner stroke (nothing of the window is drawn in the 26-point shape).
                 Assert.True(root.WindowClip.ClipToBounds);
-                Assert.Equal(new CornerRadius(Chrome.WindowCornerRadius), root.WindowClip.CornerRadius);
-                Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(root.WindowClip));
+                Assert.Equal(default, root.WindowClip.CornerRadius);
                 Assert.NotEmpty(LogicalQuery.SelfAndDescendants<WindowBackdrop>(root.WindowClip));
             });
         });
@@ -763,7 +763,7 @@ public sealed class RootViewTests(HeadlessSession headless)
                     Dispatcher.UIThread.RunJobs();
                     Assert.Equal(root.Bounds.Size, root.WindowClip.Bounds.Size); // :68 ignoresSafeArea
                     Assert.NotNull(root.WindowClip.Clip);
-                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // backdrop shares the curved clip
+                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // backdrop shares the window's clip
                     Assert.Single(LogicalQuery.SelfAndDescendants<WindowBackdrop>(root.WindowClip)); // :64 before clipShape
                     Assert.Single(LogicalQuery.SelfAndDescendants<DetailView>(root.DetailClip)); // :40 clips the detail itself
                     var padding = Assert.IsType<Border>(root.DetailClip.GetVisualParent());
@@ -774,7 +774,7 @@ public sealed class RootViewTests(HeadlessSession headless)
                     Assert.NotNull(image); // forces the composited tree to draw as well as lay out
                     window.Width = 760;
                     window.UpdateLayout();
-                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // :66 the clip follows the resized shape
+                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // :66 the clip follows the resized window
                 }
                 finally { window.Hide(); Dispatcher.UIThread.RunJobs(); }
             });
@@ -807,7 +807,7 @@ public sealed class RootViewTests(HeadlessSession headless)
                     window.UpdateLayout();
                     Dispatcher.UIThread.RunJobs();
                     var layers = Assert.IsType<Panel>(root.Child);
-                    Assert.Equal(5, layers.Children.Count); // clipped body, genie, row glide, palette host, and (OD-0075) the corner wedge painted beneath them all
+                    Assert.Equal(4, layers.Children.Count); // clipped body, genie, row glide, palette host
                     Assert.Same(root.WindowClip, layers.Children[0]);
                     Assert.IsType<GenieLayer>(layers.Children[1]);
                     Assert.IsType<RowGlideLayer>(layers.Children[2]);
@@ -1306,9 +1306,9 @@ public sealed class RootViewTests(HeadlessSession headless)
 // STOP App.Views.RootView #4 (Window review fixes)
 // Kind: platform/capture gap.
 // Swift: App/Views/RootView.swift:64-68 (B3 52bc792). Record: PR-WIN-062 (partial composited-clip proof only).
-// Missing: window region or DWM corner preference so the native shadow follows the curve, and a four-corner capture.
+// Missing (as of that review): window region or DWM corner preference so the native shadow follows the curve, and a four-corner capture.
 // Needed: the native window-chrome owner supplies that region/preference and a four-corner capture verifies it.
-// This review explicitly defers implementing PR-WIN-062's remaining native/capture portion.
-// PARTLY RESOLVED (defects-priority): the owner ruled the other way for the corners (OD-0075: the wedge between the window's rectangle and its 26 pt shape is filled
-// with the window's scrim, no window region), and that is built and proved on pixels headless (RootViewCornerWedgeTests, UI.Tests WindowCornerWedgeTests). The
-// four-corner capture of the REAL window (the system's Acrylic under the fill) and the Mac-corner comparison are still owed natively.
+// This review explicitly deferred implementing PR-WIN-062's remaining native/capture portion; the four-corner capture exists since (below).
+// PARTLY RESOLVED (defects-priority): the owner ruled the other way for the corners (OD-0075, and his intent of 2026-10-05: the glass is extended to the window's
+// edge, no window region), and that is built and proved on pixels headless (RootViewCornerWedgeTests) and on the REAL window's screen pixels
+// (MainWindowCornerWedgeNativeTests, ED-338).

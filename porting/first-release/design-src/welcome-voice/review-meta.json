@@ -1,0 +1,18 @@
+{
+ "folder": "E:/Droppy/work/design/decisions-2026-10-04/welcome-voice/src/../../_tools/../welcome-voice/review",
+ "entry": "index.html",
+ "files": [
+  "boards/Orb.html",
+  "boards/PlaceA.html",
+  "boards/PlaceB.html",
+  "boards/PlaceC.html",
+  "boards/PlaceD.html",
+  "boards/PlaceE.html",
+  "boards/PlaceF.html",
+  "boards/Words.html"
+ ],
+ "bytes": 980325,
+ "title": "Welcome Voice Boards",
+ "description": "Six places and three word sets for the Welcome screen’s voice-typing question (OD-0096 consent amendment, OD-0097 Q-V-1), each with Yes, No and the slow-PC question, dark and light.",
+ "icon": "mic"
+}
