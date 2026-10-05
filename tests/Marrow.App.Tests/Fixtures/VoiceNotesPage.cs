@@ -7,8 +7,14 @@ namespace Marrow.App.Tests.Fixtures;
 // repository so the strings the tests compare to are the page's bytes, not a copy of them.
 internal static class VoiceNotesPage
 {
-    internal static string PagePath([CallerFilePath] string here = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "..", "porting", "first-release", "design-src", "voice-notes", "voice-notes.html"));
+    internal static string PagePath() =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ThisFile())!, "..", "..", "..", "porting", "first-release", "design-src", "voice-notes", "voice-notes.html"));
+
+    /// <summary>The page's own script (vn-page.js): the look-A row's strings are drawn there.</summary>
+    internal static string Script() =>
+        File.ReadAllText(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ThisFile())!, "..", "..", "..", "porting", "first-release", "design-src", "voice-notes", "src", "vn-page.js")));
+
+    private static string ThisFile([CallerFilePath] string here = "") => here;
 
     private static readonly Lazy<JsonDocument> Data = new(Load);
 
