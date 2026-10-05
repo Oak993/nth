@@ -67,7 +67,7 @@ public sealed class ComposerDictationWithdrawTests(HeadlessSession headless)
             var start = rig.Main.OnMain(() => SwiftClock.Now);
             Assert.True(rig.Main.OnMain(() => Press(view, Key.Escape)));
             var sawText = new List<string>();
-            for (var frame = 1; frame <= 40; frame++)
+            for (var frame = 1; frame <= 70; frame++)
             {
                 rig.Elapse(window, Frame);
                 var t = rig.Main.OnMain(() => (SwiftClock.Now - start).TotalSeconds); // the clock's own time: a frame is a whole number of 100 ns ticks
