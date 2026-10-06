@@ -3,7 +3,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using Avalonia.Platform;
+using Avalonia.Rendering.SceneGraph;
+using Avalonia.Skia;
 using Marrow.Core.Port.Voice;
+using Marrow.UI.Port;
+using SkiaSharp;
 
 namespace Marrow.App.Port.Voice;
 
@@ -28,9 +33,10 @@ internal sealed class VoicePillRim : Control
         if (size.Width <= 0 || size.Height <= 0) return;
         var tokens = VoicePillTokens.For(ActualThemeVariant);
         var round = new RoundedRect(new Rect(size), size.Height / 2);
-        context.DrawRectangle(null, null, round, new BoxShadows(new BoxShadow { IsInset = true, OffsetY = -2, Blur = 4, Color = tokens.PgShade }));
-        context.DrawRectangle(null, null, round, new BoxShadows(new BoxShadow { IsInset = true, OffsetX = -0.7, Blur = 0.8, Spread = -0.1, Color = Color.FromArgb(0x66, 96, 176, 255) }));
-        context.DrawRectangle(null, null, round, new BoxShadows(new BoxShadow { IsInset = true, OffsetX = 0.7, Blur = 0.8, Spread = -0.1, Color = Color.FromArgb(0x61, 255, 96, 150) }));
+        // A CSS blur B is a Gaussian of sigma B / 2 (inset 0 -2px 4px: sigma 2); Avalonia's BoxShadow.Blur is not (its sigma is 0.288675 b + 0.5), so the blur is converted.
+        context.DrawRectangle(null, null, round, new BoxShadows(new BoxShadow { IsInset = true, OffsetY = -2, Blur = SwiftShadow.Blur(2.0), Color = tokens.PgShade }));
+        // The fringe's .8px blur is sigma 0.4, below the 0.5 Avalonia's box shadow cannot go under: drawn in Skia directly.
+        context.Custom(new Fringe(new Rect(size), Color.FromArgb(0x66, 96, 176, 255), -0.7, Color.FromArgb(0x61, 255, 96, 150), 0.7));
         context.DrawRectangle(null, null, round, new BoxShadows(new BoxShadow { IsInset = true, Spread = 1, Color = tokens.PgEdge }));
         context.DrawRectangle(null, null, round, new BoxShadows(new BoxShadow { IsInset = true, Spread = 0.5, Color = tokens.PgRim }));
         using (context.PushClip(round))
@@ -56,6 +62,55 @@ internal sealed class VoicePillRim : Control
         {
             var inverse = (Matrix.CreateScale(rx, ry) * Matrix.CreateTranslation(cx, cy)).Invert();
             context.DrawRectangle(brush, null, new Rect(box.TopLeft * inverse, box.BottomRight * inverse));
+        }
+    }
+
+    /// <summary>
+    /// The two dispersion-fringe insets, <c>inset .7px 0 .8px -.1px</c> in blue (offset -0.7) and pink (offset +0.7): the padding-box rounded rectangle minus the same
+    /// rectangle grown by the spread -0.1 and moved by the offset, painted through a Gaussian of sigma 0.4 (CSS blur .8 / 2) and clipped to the padding box.
+    /// Blue first, pink over it (the stack lists pink first).
+    /// </summary>
+    private sealed class Fringe(Rect box, Color first, double firstOffset, Color second, double secondOffset) : ICustomDrawOperation
+    {
+        private const float Sigma = 0.4f, Spread = -0.1f;
+
+        public Rect Bounds => box;
+
+        public bool HitTest(Point point) => false;
+
+        public bool Equals(ICustomDrawOperation? other) => false;
+
+        public void Dispose() { }
+
+        public void Render(ImmediateDrawingContext context)
+        {
+            var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
+            if (feature is null) return;
+            using var lease = feature.Lease();
+            var canvas = lease.SkCanvas;
+            var rect = new SKRect((float)box.Left, (float)box.Top, (float)box.Right, (float)box.Bottom);
+            var radius = rect.Height / 2;
+            canvas.Save();
+            canvas.ClipRoundRect(new SKRoundRect(rect, radius, radius), SKClipOperation.Intersect, true);
+            Draw(canvas, rect, first, (float)firstOffset, (float)lease.CurrentOpacity);
+            Draw(canvas, rect, second, (float)secondOffset, (float)lease.CurrentOpacity);
+            canvas.Restore();
+        }
+
+        private static void Draw(SKCanvas canvas, SKRect rect, Color color, float offset, float opacity)
+        {
+            var hole = new SKRect(rect.Left - Spread + offset, rect.Top - Spread, rect.Right + Spread + offset, rect.Bottom + Spread);
+            var holeRadius = hole.Height / 2;
+            using var path = new SKPath { FillType = SKPathFillType.EvenOdd };
+            path.AddRect(SKRect.Inflate(rect, 8, 8));
+            path.AddRoundRect(hole, holeRadius, holeRadius);
+            using var paint = new SKPaint
+            {
+                IsAntialias = true,
+                Color = new SKColor(color.R, color.G, color.B, (byte)Math.Round(color.A * Math.Clamp(opacity, 0, 1))),
+                MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, Sigma),
+            };
+            canvas.DrawPath(path, paint);
         }
     }
 
