@@ -33,9 +33,11 @@ public sealed partial class MultiAccountRouting
         var row = app.Settings.Accounts.Accounts.FirstOrDefault(row => row.Id == destination);
         if (row is not { Enabled: true } || row.Service != original.Provider || !app.IsAccountConnected(row) || !app.CanUseAccount(destination)) return false;
         var epoch = runtime.HandshakeStamp.Epoch;
+        var readBackEnabled = app.Settings.AccountHandshakeEnabled;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(ct);
         manualSelections.Add(thread, cancellation);
         bool StillOwns() => !cancellation.IsCancellationRequested && manualSelections.GetValueOrDefault(thread) == cancellation
+            && app.Settings.AccountHandshakeEnabled == readBackEnabled
             && !app.ApiKeys.AwaitingChoice(thread) && app.Thread(thread) is { } current
             && current.ProviderAccountPinID == original.ProviderAccountPinID && current.Provider == original.Provider
             && runtime.TryHandshakeAccountId(out var active) && active == source && runtime.HandshakeStamp.Epoch == epoch;
@@ -56,9 +58,12 @@ public sealed partial class MultiAccountRouting
                 }
                 if (string.IsNullOrWhiteSpace(briefing)) briefing = await host.RequestIncomingBriefingAsync(target, summary, cancellation.Token);
             }
-            var readBack = await standby.ReceiveAsync(new(bring, summary, briefing), true, cancellation.Token);
-            var gaps = summaries.FindGaps(summary, readBack ?? "");
-            if (gaps.Count > 0) await standby.FillGapsAsync(gaps, cancellation.Token);
+            var readBack = await standby.ReceiveAsync(new(bring, summary, briefing), readBackEnabled, cancellation.Token);
+            if (readBackEnabled)
+            {
+                var gaps = summaries.FindGaps(summary, readBack ?? "");
+                if (gaps.Count > 0) await standby.FillGapsAsync(gaps, cancellation.Token);
+            }
             await WaitForManualSafePointAsync(runtime, cancellation.Token);
             if (!StillOwns()) return false;
             await host.SwitchAsync(standby, target, resumeReply: false, cancellation.Token);

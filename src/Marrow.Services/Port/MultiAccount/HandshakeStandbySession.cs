@@ -31,6 +31,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     public SessionConfiguration Configuration { get; }
     public string SessionId { get; private set; } = "";
     public HandoffPackage? ReceivedPackage { get; private set; }
+    public bool ReadBackRequested { get; private set; }
 
     public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct, Func<bool>? canTransfer = null,
         Func<Task<HandshakeCostObservation?>>? observeUsage = null)
@@ -90,6 +91,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     {
         var answer = await RunTextTurnAsync(prompt, readBack, ct);
         ReceivedPackage = package;
+        ReadBackRequested = readBack;
         return answer;
     }
 

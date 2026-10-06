@@ -96,9 +96,13 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             var final = await summaries.BuildAsync(runtime.ThreadID, ct);
             var stamp = runtime.HandshakeStamp;
             var fingerprint = await FingerprintAsync(final, ct);
-            var readBack = await incoming.ReceiveAsync(original with { Summary = final }, true, ct);
-            var gaps = summaries.FindGaps(final, readBack ?? "");
-            if (gaps.Count > 0) await incoming.FillGapsAsync(gaps, ct);
+            var needsReadBack = incoming.ReadBackRequested;
+            var readBack = await incoming.ReceiveAsync(original with { Summary = final }, needsReadBack, ct);
+            if (needsReadBack)
+            {
+                var gaps = summaries.FindGaps(final, readBack ?? "");
+                if (gaps.Count > 0) await incoming.FillGapsAsync(gaps, ct);
+            }
             var proof = await summaries.BuildAsync(runtime.ThreadID, ct);
             var proofFingerprint = await FingerprintAsync(proof, ct);
             if (stamp != runtime.HandshakeStamp || fingerprint != proofFingerprint) continue;
