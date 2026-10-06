@@ -6,7 +6,7 @@ namespace Marrow.App;
 
 public sealed partial class AppModel
 {
-    public void ApplyHandshakeAccount(Guid threadId, SessionConfiguration configuration, string sessionId, PillThreadState? relay = null)
+    public void ApplyHandshakeAccount(Guid threadId, SessionConfiguration configuration, string sessionId, PillThreadState? relay = null, bool pinAccount = false)
     {
         if (Thread(threadId) is null || configuration.AccountId is not { } id
             || Settings.Accounts.Choose(configuration.Provider, id) is null || string.IsNullOrWhiteSpace(sessionId))
@@ -15,6 +15,7 @@ public sealed partial class AppModel
         {
             Provider = configuration.Provider, ProviderAccountID = id, ProviderSessionID = sessionId, ProviderResumeAt = null,
             Model = configuration.Model, Effort = configuration.Effort, FastMode = configuration.FastMode,
+            ProviderAccountPinID = pinAccount ? id : current.ProviderAccountPinID,
         }).WithPillRelay(relay ?? current.PillRelay), accountSwitch: true);
     }
 }

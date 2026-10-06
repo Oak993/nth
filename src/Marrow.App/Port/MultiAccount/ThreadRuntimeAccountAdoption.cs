@@ -54,7 +54,7 @@ public sealed partial class ThreadRuntime
     }
 
     public void AdoptHandshakeSession(ProviderSession candidate, string sessionId, SessionConfiguration configuration,
-        PillThreadState? relay = null, bool resumeReply = false)
+        PillThreadState? relay = null, bool resumeReply = false, bool pinAccount = false)
     {
         var app = App ?? throw new InvalidOperationException("The conversation is unavailable.");
         var source = Thread ?? throw new InvalidOperationException("The conversation is unavailable.");
@@ -79,7 +79,7 @@ public sealed partial class ThreadRuntime
 
         app.AutoContinue.TakeLimitOwnership(ThreadID);
         ReleaseSession(stop: true);
-        app.ApplyHandshakeAccount(ThreadID, configuration, sessionId, relay);
+        app.ApplyHandshakeAccount(ThreadID, configuration, sessionId, relay, pinAccount);
         var destination = Thread!;
         session = candidate;
         var hydra = KeepsHydraPolicyInSystemPrompt(destination.Provider) ? app.HydraLaunch(destination) : null;

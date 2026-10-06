@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 namespace Marrow.App.Runtime;
 
 public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillStore pills, IHandoffSummary summaries,
-    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null) : IThreadAccountHost, IAccountSwitchCommitGuard, IIncomingBriefingHost
+    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null, Func<bool>? manualSelection = null) : IThreadAccountHost, IAccountSwitchCommitGuard, IIncomingBriefingHost
 {
     private readonly Func<SessionConfiguration, Guid, AccountSessionLaunch> create = launch ?? ((configuration, id) => AccountSessionFactory.Create(app.Providers, configuration, id, freshContext: true));
     private HandshakeStandbySession? prepared;
@@ -21,7 +21,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     private PillResume? Relay => app.Thread(runtime.ThreadID)?.PillRelay is { } saved ? PillRelayResolver.Resolve(pills.Pills, saved) : null;
     public Pill? Pill => Relay?.Pill;
     public int? StepIndex => Relay?.StepIndex;
-    public bool Pinned => app.Thread(runtime.ThreadID)?.ProviderAccountPinID is not null;
+    public bool Pinned => app.Thread(runtime.ThreadID)?.ProviderAccountPinID is not null && manualSelection?.Invoke() != true;
     public Func<bool>? CanCommit { get; set; }
     public bool AtSafePoint => runtime.IsAccountSwitchSafe;
     public bool ReplyInFlight => runtime.HandshakeReplyInFlight;
@@ -119,7 +119,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                     relay = new(pill.Id, index, target.Account.Id);
                 }
                 var candidate = incoming.TakeSession();
-                try { runtime.AdoptHandshakeSession(candidate, incoming.SessionId, incoming.Configuration, relay, resumeReply); }
+                try { runtime.AdoptHandshakeSession(candidate, incoming.SessionId, incoming.Configuration, relay, resumeReply, pinAccount: manualSelection is not null); }
                 catch { candidate.OnEvent = null; candidate.Stop(); throw; }
                 prepared = null;
                 preparedTarget = null;
@@ -148,8 +148,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     private void CheckSource(SwitchTarget target)
     {
         if (!AtSafePoint || Pinned || CanCommit?.Invoke() == false || ActiveAccountId != preparedFrom || runtime.HandshakeStamp.Epoch != preparedEpoch
-            || app.Settings.Accounts.Choose(incomingProvider(target), Guid.Parse(target.Account.Id)) is null
-            || !app.CanUseAccount(Guid.Parse(target.Account.Id)))
+            || !AccountAvailable(incomingProvider(target), Guid.Parse(target.Account.Id)))
             throw new InvalidOperationException("The prepared switch is no longer safe or available.");
     }
 

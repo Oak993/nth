@@ -9,7 +9,7 @@ using Marrow.Services.Providers;
 namespace Marrow.App.Runtime;
 
 // PORT-ONLY: OD-0114/0116. One app poller and one serialized, cancellable Handshake per live thread.
-public sealed class MultiAccountRouting
+public sealed partial class MultiAccountRouting
 {
     public static Ambient<Func<AppModel, UsageAccountKey, CancellationToken, Task<PlanLimits?>>> LimitsReader { get; } = new(ReadLimitsAsync);
     private readonly AppModel app;
@@ -145,6 +145,7 @@ public sealed class MultiAccountRouting
     public bool NoteLimit(ThreadRuntime runtime, UsageAccountKey? observed, DateTimeOffset? reset)
     {
         MainActor.AssumeIsolated();
+        CancelManualSelection(runtime.ThreadID);
         if (!runtime.TryHandshakeAccountId(out _)) return false;
         if (!Eligible(runtime))
         {
@@ -231,7 +232,7 @@ public sealed class MultiAccountRouting
             () => { if (enableHandshake) app.Settings.AccountHandshakeEnabled = true; });
     }
 
-    internal bool CanSwitchAtAccountStep(Guid thread) => !app.ApiKeys.AwaitingChoice(thread)
+    internal bool CanSwitchAtAccountStep(Guid thread) => !ManualSelectionPending(thread) && !app.ApiKeys.AwaitingChoice(thread)
         && routes.TryGetValue(thread, out var route) && route.Machine.Phase == HandshakePhase.InSync
         && route.State?.Reason is HandshakeReason.NearLimit or HandshakeReason.EarlierAccountBack;
 
@@ -247,12 +248,14 @@ public sealed class MultiAccountRouting
 
     public void AtSafePoint(Guid thread)
     {
+        ManualSafePoint?.Invoke(thread);
         if (routes.ContainsKey(thread)) StartTick(thread);
     }
 
     public void Detach(Guid thread)
     {
         MainActor.AssumeIsolated();
+        CancelManualSelection(thread);
         app.ApiKeys.Cancel(thread);
         runtimes.Remove(thread);
         rates.Forget(thread);
@@ -323,7 +326,7 @@ public sealed class MultiAccountRouting
 
     private async Task TickAsync(Guid thread)
     {
-        if (app.ApiKeys.AwaitingChoice(thread)) return;
+        if (ManualSelectionPending(thread) || app.ApiKeys.AwaitingChoice(thread)) return;
         if (!routes.TryGetValue(thread, out var route)) return;
         if (!route.Runtime.TryHandshakeAccountId(out var active)) { Detach(thread); return; }
         if (!Eligible(route.Runtime) && route.Machine.Phase == HandshakePhase.Idle && !route.ResumeWaiting) return;

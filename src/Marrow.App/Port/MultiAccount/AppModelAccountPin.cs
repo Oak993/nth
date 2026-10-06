@@ -10,6 +10,11 @@ public sealed partial class AppModel
     {
         MainActor.AssumeIsolated();
         if (Thread(threadId) is not { } thread || Settings.Accounts.SaveBlocked || ApiKeys.AwaitingChoice(threadId)) return false;
+        if (accountRouting?.ManualSelectionPending(threadId) == true)
+        {
+            if (accountId is not null) return false;
+            accountRouting.CancelManualSelection(threadId);
+        }
         if (accountId is { } id)
         {
             var account = Settings.Accounts.Accounts.FirstOrDefault(row => row.Id == id);
