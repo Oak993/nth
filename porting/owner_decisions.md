@@ -1126,3 +1126,8 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - Switching and the Handshake into another account: off by default; on only after the user agrees when the app asks the first time (OD-0116). The page's `hs: true` default is outdated.
   - Per-account Handshake point: the builder picks. Lead pick: the account's ⋯ menu "Handshake at…", plus a small quiet note on that account's row only when its point differs from the default (NOTES:56, matches the page's Settings footer).
   - Pill-in-composer styles: the page's twelve styles are current; the NOTES list of four is outdated.
+
+## OD-0120 Confirm before sending a conversation to another service (2026-10-06)
+
+- **Owner, verbatim:** "Ask for confirmation and have the option to check "Don't ask again" for the user to select it."
+- **Effect:** Link-up and "Ask others" ask for confirmation before the conversation goes to another service. The confirmation has a "Don't ask again" checkbox, unchecked by default; only the user can check it. Replaces the planned quiet notice line (ma-3b5-plan Q2).
