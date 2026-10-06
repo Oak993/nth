@@ -46,7 +46,10 @@ public sealed class AccountReportDemandTests
         rig.Drain();
         Assert.Equal(initial, rig.Reads.Count);
         rig.Percent = 65;
-        rig.Advance();
+        // Check the actual minimum boundary. Four minutes can include two valid reads (at 1 and 4)
+        // when the provider jitter is zero; that does not violate the one-minute throttle.
+        rig.H.Main.OnMain(() => rig.H.Main.Time.Advance(Marrow.Services.Port.Usage.AccountLimitsScheduler.MinimumInterval));
+        rig.Drain();
         Assert.Equal(65, rig.H.Main.OnMain(() => rig.App.AccountRouting.Snapshot(rig.Next)!.Limits!.Windows[0].Percent));
         Assert.Equal(2, rig.Reads.Count(key => key == new UsageAccountKey(ProviderKind.Claude, rig.Next.ToString("D"))));
         rig.H.Main.OnMain(next.Dispose);

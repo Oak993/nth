@@ -70,7 +70,9 @@ public sealed partial class ThreadRuntime
         var local = configuration.Provider == ProviderKind.Local ? app.Providers.Local.Resolve(configuration.Model) : null;
         if (configuration.Provider == ProviderKind.Local && local is null)
             throw new InvalidOperationException("The local server or model is unavailable.");
-        var limited = resumeReply ? Turns.FirstOrDefault(turn => turn.Id == limitedReplyTurnID && turn.Status != TurnStatus.Running) : null;
+        var pausedReply = OwnsAccountStepPause ? Turns.FirstOrDefault(turn => turn.Id == currentTurnID && turn.Status == TurnStatus.Running) : null;
+        if (pausedReply is not null && !resumeReply) throw new InvalidOperationException("A paused reply must retain its continuation ownership.");
+        var limited = resumeReply ? pausedReply ?? Turns.FirstOrDefault(turn => turn.Id == limitedReplyTurnID && turn.Status != TurnStatus.Running) : null;
         if (resumeReply && limited is null) throw new InvalidOperationException("There is no settled interrupted reply to continue.");
         if (!IsAccountSwitchSafe || Thread != source || app.Settings.Accounts.Choose(configuration.Provider, accountId) is null)
             throw new InvalidOperationException("The prepared switch became stale.");

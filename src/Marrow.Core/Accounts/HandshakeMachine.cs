@@ -494,6 +494,13 @@ public sealed class HandshakeMachine(
             SetPhase(HandshakePhase.Idle);
             return;
         }
+        // Priming can run while the source works. At a running step, only an already chosen Finish
+        // grants continuation; Stop/unset keep working until the natural reply end (or hard limit).
+        if (reason is HandshakeReason.NearLimit or HandshakeReason.EarlierAccountBack && host.ReplyInFlight)
+        {
+            if (Get(DecisionKind.MidReply).Value != DecisionValues.Finish) return;
+            resume = true;
+        }
         SetPhase(HandshakePhase.Switch);
         try
         {
@@ -501,6 +508,15 @@ public sealed class HandshakeMachine(
                 guarded.CanCommit = () => !host.Pinned && PolicyStillCurrent() && host.ActiveAccountId == outgoing
                     && (reason != HandshakeReason.NearLimit || CurrentOptions.Enabled);
             await host.SwitchAsync(standby!, target!, resume, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // A user stop at the provider's paused boundary keeps the original turn/session.
+            // Retire its private preparation and suppress another proactive start at this same reading.
+            failedFor = outgoing;
+            await ResetPipelineAsync();
+            SetPhase(HandshakePhase.Idle);
+            throw;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -585,11 +601,11 @@ public sealed class HandshakeMachine(
     {
         void Capture(DecisionKind kind) => policyAtPreparation.TryAdd(kind, StoredPolicy(kind));
         Capture(DecisionKind.Bring);
+        Capture(DecisionKind.MidReply);
         if (why == HandshakeReason.EarlierAccountBack) Capture(DecisionKind.EarlierAccount);
         else
         {
             Capture(DecisionKind.OnLimit);
-            if (host.ReplyInFlight) Capture(DecisionKind.MidReply);
             if (host.Pill is null && Find(host.ActiveAccountId)?.Service != to.Account.Service) Capture(DecisionKind.OtherService);
         }
     }

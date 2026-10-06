@@ -84,6 +84,9 @@ public class OpenAICompatibleSession : ProviderSession
 
     public Config OpenAICompatibleSessionConfig { get; } // :34 Swift: config (R-NAME-3)
     public Action<ProviderEvent>? OnEvent { get; set; }  // :35
+    // PORT-ONLY: OD-0114. Called only after the full tool round is retained, before another request.
+    // False transfers continuation ownership to the host; this retired loop emits no completion.
+    public Func<CancellationToken, Task<bool>>? ContinueAfterAccountStep { get; set; }
     public SessionConfiguration Configuration { get; private set; }   // :37
 
     // OD-0114: retain this request's payload; tool children use the selected account's environment.
@@ -418,6 +421,8 @@ public class OpenAICompatibleSession : ProviderSession
                     toolIndex += 1; // :402
                 }
                 if (!shouldContinue || interrupted) break; // :404
+                if (!Configuration.IsHydraHead && ContinueAfterAccountStep is { } boundary
+                    && !await boundary(SwiftTask.CancellationToken)) return;
             }
         }
         catch (CancellationError) // :406

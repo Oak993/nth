@@ -3051,7 +3051,11 @@ public sealed partial class ThreadRuntime : MainActorModel
             case ACPSession acp: acp.OnSkillsEvent = skills; break;
             case PiSession pi: pi.ToolEvents = skills; break;
             case CommandCodeSession command: command.ToolEvents = skills; break;
-            case OpenAICompatibleSession api: api.OnToolEvent = skills; break;
+            case OpenAICompatibleSession api:
+                api.OnToolEvent = skills;
+                api.ContinueAfterAccountStep = ct => weakSelf.TryGetTarget(out var owner) && owner.sessionEpoch == epoch
+                    ? owner.ContinueAfterAccountStepAsync(api, epoch, ct) : Task.FromResult(false);
+                break;
         }
         provider.OnEvent = observedSessionEvent = @event =>
         {

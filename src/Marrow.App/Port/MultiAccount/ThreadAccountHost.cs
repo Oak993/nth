@@ -24,7 +24,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     public bool Pinned => app.Thread(runtime.ThreadID)?.ProviderAccountPinID is not null;
     public Func<bool>? CanCommit { get; set; }
     public bool AtSafePoint => runtime.IsAccountSwitchSafe;
-    public bool ReplyInFlight => runtime.HandshakeReplyInterrupted;
+    public bool ReplyInFlight => runtime.HandshakeReplyInFlight;
     public async Task<IStandbySession> StartStandbyAsync(SwitchTarget target, CancellationToken ct)
     {
         var from = ActiveAccountId;

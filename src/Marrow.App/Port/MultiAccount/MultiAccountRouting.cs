@@ -231,6 +231,20 @@ public sealed class MultiAccountRouting
             () => { if (enableHandshake) app.Settings.AccountHandshakeEnabled = true; });
     }
 
+    internal bool CanSwitchAtAccountStep(Guid thread) => !app.ApiKeys.AwaitingChoice(thread)
+        && routes.TryGetValue(thread, out var route) && route.Machine.Phase == HandshakePhase.InSync
+        && route.State?.Reason is HandshakeReason.NearLimit or HandshakeReason.EarlierAccountBack;
+
+    internal async Task SwitchAtAccountStepAsync(Guid thread, CancellationToken ct)
+    {
+        MainActor.AssumeIsolated();
+        if (!CanSwitchAtAccountStep(thread) || !routes.TryGetValue(thread, out var route)) return;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, route.Cancellation.Token);
+        var work = route.Machine.TickAsync(linked.Token);
+        TrackOperation(work);
+        await work;
+    }
+
     public void AtSafePoint(Guid thread)
     {
         if (routes.ContainsKey(thread)) StartTick(thread);

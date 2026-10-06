@@ -49,13 +49,14 @@ public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost
         return Briefing;
     }
 
-    public Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)
+    public Task? SwitchGate { get; set; }
+    public async Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)
     {
+        if (SwitchGate is not null) await SwitchGate.WaitAsync(ct);
         Log.Add($"switch:{target.Account.Id}:{(resumeReply ? "resume" : "noresume")}:{(AtSafePoint ? "safe" : "UNSAFE")}");
         ActiveAccountId = target.Account.Id;
         StepIndex = target.StepIndex;
         ReplyInFlight = false;
-        return Task.CompletedTask;
     }
 
     private sealed class Standby(FakeThreadHost host) : IStandbySession
