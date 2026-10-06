@@ -652,3 +652,9 @@ Destination Hydra, system policy and the live runtime signature now move togethe
 The shared report scheduler now accepts overlapping visible-view leases without a chat runtime. Last-owner release pauses accounts and invalidates queued/late callbacks; reopening retains cached data and provider throttle. Focused Windows8/8 and App account/traceability126/126, zero skips/build warnings/errors. Existing Core/Services results remain prior evidence.
 
 **Incomplete:** verified CLI restricted priming/restoration (documented Claude subscription/managed-hook gap); private cost measurement, optional incoming light-model summary, between-tool safe pause and manual account selection. Report leases still need binding when helper Settings/capsule merge. Step1 NOT READY, no push; helper Settings/capsule scopes remain unmerged. No native/DONE/release claim.
+
+## T11 manual API account pin checkpoint, Codex, 2026-10-06
+
+A connected eligible API account can be pinned for this conversation through the public App operation; the next request retains the real session/context, uses its chosen key/defaults and persists the independent pin. Off/capped/missing/foreign accounts are rejected and Back to order preserves automatic-switching OFF. Focused Windows6/6 and App account/traceability132/132, zero skips/build warnings/errors; exact methods alone twice.
+
+**Incomplete:** selecting another CLI/Local account via the guarded handoff; verified CLI restricted priming/restoration; private cost/light-summary/between-tool safe-pause joins; report leases still await helper view binding. Step1 NOT READY/unpushed; Settings/capsule remain helper-owned/unmerged. No native/DONE/release claim.
