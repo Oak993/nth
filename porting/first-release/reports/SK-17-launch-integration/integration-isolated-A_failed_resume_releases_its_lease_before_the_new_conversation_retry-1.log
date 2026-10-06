@@ -1,0 +1,4 @@
+  Error Message:
+   System.IO.IOException : no conversation found
+     at Marrow.App.Runtime.ThreadRuntime.EnsureSession(String directory, Boolean allowNewSession) in E:\Droppy\wt\cx\sk-17-live\src\Marrow.App\Runtime\ThreadRuntime.cs:line 2050
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 207 ms - Marrow.App.Tests.dll (net10.0)

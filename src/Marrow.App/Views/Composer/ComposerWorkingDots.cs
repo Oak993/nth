@@ -22,6 +22,22 @@ namespace Marrow.App.Views.Composer;
 /// </summary>
 public sealed class ComposerWorkingDots : Border
 {
+    // PORT-ONLY CZ-5 (customization-SPEC CZ-10.4; OWNER OD-0089 amendment): the colour the dots wear. The source draws them in Chrome.accentNSColor (:13-19), which stays the default; the
+    // workingDots setting (WorkingDotsColor) can hand another. A new colour reaches the running field through Retarget(ease: true), the field's own 0.32 s ease; the still dots take it at once.
+    public SwiftColor Tint
+    {
+        get => tint;
+        set
+        {
+            // an instance the field already wears starts nothing, a new one eases (animated) or lands at once (still)
+            tint = value;
+            dotField.UpdateColor(value, ease: true);
+        }
+    }
+
+    private readonly DotFieldControl dotField;
+    private SwiftColor tint = Chrome.AccentNSColor;
+
     // :13-19 Uses DotFieldLayerView with Chrome.accentNSColor and animated: !reduceMotion
     public ComposerWorkingDots()
     {
@@ -30,7 +46,7 @@ public sealed class ComposerWorkingDots : Border
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
 
         // Create the underlying dot field
-        var dotField = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
+        dotField = new DotFieldControl(tint, animated: true, sweeps: false) { EaseAppearanceChanges = true };
 
         Child = dotField;
 
@@ -116,6 +132,9 @@ public sealed class DotFieldControl : Canvas
     private SwiftColor color;
     private bool animated;
     private bool sweeps;
+    // PORT-ONLY CZ-5, CZ-10.4 / Q-CZ-7 / OD-0076: ComposerWorkingDots (including the preview) eases every appearance change.
+    // Raw fields and finishing sweeps retain their existing ED-253 rules; Retarget still lands instantly when motion is reduced.
+    internal bool EaseAppearanceChanges { get; init; }
     private Size laidOutSize;                   // :62
 
     // Visual tree for rendering
@@ -306,13 +325,13 @@ public sealed class DotFieldControl : Canvas
         compositionVisual = null;
         compositionHandler = null;
     }
-    public void UpdateColor(SwiftColor newColor)
+    public void UpdateColor(SwiftColor newColor, bool ease = false)
     {
         // :104-111 Configure: only update color if changed
         if (newColor != color)
         {
             color = newColor;
-            UpdateBrushes(ease: false);
+            UpdateBrushes(ease);
         }
     }
 
@@ -336,18 +355,18 @@ public sealed class DotFieldControl : Canvas
         else Dispatcher.Post(() => { if (TopLevel.GetTopLevel(this) is not null) UpdateBrushes(ease: true); });
     }
 
-    // The system accent changed (a colour that uses it): at once, as SwiftColor's own brushes take it.
+    // The system accent changed: working dots ease over the same 0.32 s as a tint pick; other fields keep their existing rule.
     private void OnColorValuesChanged(object? sender, PlatformColorValues values)
     {
-        if (Dispatcher.UIThread.CheckAccess()) UpdateBrushes(ease: false);
-        else Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is not null) UpdateBrushes(ease: false); });
+        if (Dispatcher.UIThread.CheckAccess()) UpdateBrushes(ease: EaseAppearanceChanges);
+        else Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is not null) UpdateBrushes(ease: EaseAppearanceChanges); });
     }
 
     public void OnAppearanceChanged()
     {
         // :118-122 viewDidChangeEffectiveAppearance re-resolves the dynamic accent; inside a tree that turns over (ED-254) it
         // eases, as SwiftColor's brushes there do.
-        UpdateBrushes(ease: AppearanceTurn.Eases(this));
+        UpdateBrushes(ease: EaseAppearanceChanges || AppearanceTurn.Eases(this));
     }
 
     private void UpdateBrushes(bool ease)

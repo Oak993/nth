@@ -1,0 +1,37 @@
+
+Welcome to .NET 10.0!
+---------------------
+SDK Version: 10.0.401
+
+Telemetry
+---------
+The .NET tools collect usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the DOTNET_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your favorite shell.
+
+Read more about .NET CLI Tools telemetry: https://aka.ms/dotnet-cli-telemetry
+
+----------------
+Installed an ASP.NET Core HTTPS development certificate.
+To trust the certificate, run 'dotnet dev-certs https --trust'
+Learn about HTTPS: https://aka.ms/dotnet-https
+
+----------------
+Write your first app: https://aka.ms/dotnet-hello-world
+Find out what's new: https://aka.ms/dotnet-whats-new
+Explore documentation: https://aka.ms/dotnet-docs
+Report issues and find source on GitHub: https://github.com/dotnet/core
+Use 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli
+--------------------------------------------------------------------------------------
+  Determining projects to restore...
+  Restored /workspace/marrow-port/src/Marrow.UI/Marrow.UI.csproj (in 53.41 sec).
+  Restored /workspace/marrow-port/tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj (in 53.41 sec).
+  Restored /workspace/marrow-port/src/Marrow.Setup/Marrow.Setup.csproj (in 2 ms).
+  Restored /workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj (in 19.71 sec).
+  Restored /workspace/marrow-port/src/Marrow.Core/Marrow.Core.csproj (in 2 ms).
+  Restored /workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj (in 29.67 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Testing/Marrow.Testing.csproj (in 3 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/Marrow.Skills.PipelineWorker.csproj (in 6 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 0.7 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 11 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj (in 5 ms).
+  Restored /workspace/marrow-port/src/Marrow.App/Marrow.App.csproj (in 13.68 sec).
+  Restored /workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj (in 3.68 sec).

@@ -1,0 +1,997 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="ec753dd8-fe77-4669-aa61-6b537a3c0a75" name="@2aa35d38bc5c 2026-10-05 04:26:50" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T04:26:50.9559723+00:00" queuing="2026-10-05T04:26:50.9559723+00:00" start="2026-10-05T04:26:44.5495815+00:00" finish="2026-10-05T04:26:52.2925501+00:00" />
+  <TestSettings name="default" id="e9bb9f59-8e3a-435b-bc72-7998a7de9ad5">
+    <Deployment runDeploymentRoot="_2aa35d38bc5c_2026-10-05_04_26_50" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="7282554e-254d-41a0-81fe-26fb3cade081" testId="34ed5c58-7ad1-f171-cf17-7e2d0e0dbae6" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Record_IgnoresNonPositiveSpendAndKeysByLocalDay" computerName="2aa35d38bc5c" duration="00:00:00.0011955" startTime="2026-10-05T04:26:51.6822416+00:00" endTime="2026-10-05T04:26:51.6823138+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7282554e-254d-41a0-81fe-26fb3cade081" />
+    <UnitTestResult executionId="3d630306-a515-472e-8228-f4a131f1dc1a" testId="c2480a93-d8b8-9c67-bff8-278c04decb74" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero" computerName="2aa35d38bc5c" duration="00:00:00.0193009" startTime="2026-10-05T04:26:51.4752832+00:00" endTime="2026-10-05T04:26:51.4926860+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3d630306-a515-472e-8228-f4a131f1dc1a">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 603
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="bdcbe690-7565-433a-ab13-b3a663f7bc4a" testId="ce48e255-0872-9480-3b84-efcb384d8f32" testName="Marrow.Services.Tests.Store.TokenLedgerTests.SeedBaseline_IsANoOpOnceAlreadySeeded" computerName="2aa35d38bc5c" duration="00:00:00.0002309" startTime="2026-10-05T04:26:51.4751361+00:00" endTime="2026-10-05T04:26:51.4751775+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bdcbe690-7565-433a-ab13-b3a663f7bc4a" />
+    <UnitTestResult executionId="6edea157-3488-4fb3-bc4d-15f501d38d31" testId="374f0146-b6d6-0091-bc0f-4e72fbace39c" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: True, expectedTokens: 60)" computerName="2aa35d38bc5c" duration="00:00:00.2677758" startTime="2026-10-05T04:26:51.0043203+00:00" endTime="2026-10-05T04:26:51.2740088+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6edea157-3488-4fb3-bc4d-15f501d38d31">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Boolean newlineInsideBudget, Int64 expectedTokens) in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 448
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="cdf3987f-ef43-4b09-aaaa-a8f78b66751c" testId="1dfeeddd-3ac9-d141-9397-5c118588125a" testName="Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" computerName="2aa35d38bc5c" duration="00:00:00.3256384" startTime="2026-10-05T04:26:51.6826569+00:00" endTime="2026-10-05T04:26:52.0036265+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cdf3987f-ef43-4b09-aaaa-a8f78b66751c" />
+    <UnitTestResult executionId="dd93c064-4f5a-4d00-a009-1298822778f1" testId="e8918da2-876f-6546-7b4a-85609358fece" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Building_the_ledger_scans_nothing" computerName="2aa35d38bc5c" duration="00:00:00.0493156" startTime="2026-10-05T04:26:50.7682298+00:00" endTime="2026-10-05T04:26:50.8425322+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dd93c064-4f5a-4d00-a009-1298822778f1" />
+    <UnitTestResult executionId="d00040bb-4060-4b5c-b8a9-b4c27f310f54" testId="ad448ede-a55a-3322-413c-e73d9bc48e51" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Build_WeeklyModeSumsTheColumnIntoEveryRealCellAndLeavesOutOfYearCellsAtZero" computerName="2aa35d38bc5c" duration="00:00:00.0098522" startTime="2026-10-05T04:26:51.4931552+00:00" endTime="2026-10-05T04:26:51.5033583+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d00040bb-4060-4b5c-b8a9-b4c27f310f54" />
+    <UnitTestResult executionId="6c5b02ef-7321-4de6-a323-e3b07eaef6ee" testId="c8f8b9ca-6e93-ddab-3cea-0f9245054f30" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative" computerName="2aa35d38bc5c" duration="00:00:00.0424148" startTime="2026-10-05T04:26:51.5036140+00:00" endTime="2026-10-05T04:26:51.5459592+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6c5b02ef-7321-4de6-a323-e3b07eaef6ee">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 542
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="104cc639-6020-4088-98eb-77adc2a04420" testId="a1773336-e3f2-772a-8741-f761241f3936" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Build_MonthTicksAreTwelveFixedEnglishAbbreviationsAtEachMonthsFirstColumn" computerName="2aa35d38bc5c" duration="00:00:00.0018425" startTime="2026-10-05T04:26:51.5823007+00:00" endTime="2026-10-05T04:26:51.5823419+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="104cc639-6020-4088-98eb-77adc2a04420" />
+    <UnitTestResult executionId="118fd840-5593-448c-962a-52feaa3eb64c" testId="a059483e-a72c-1a44-4e8a-e9049389c469" testName="Marrow.Services.Tests.Store.TokenLedgerTests.RolloutIdentity_TakesTheLaterUuidWhenTwoAreInTheName" computerName="2aa35d38bc5c" duration="00:00:00.0001501" startTime="2026-10-05T04:26:51.5034948+00:00" endTime="2026-10-05T04:26:51.5035345+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="118fd840-5593-448c-962a-52feaa3eb64c" />
+    <UnitTestResult executionId="dfa0cf3e-7f95-46f2-b835-b2d6d6a95727" testId="ab489829-126e-697c-f9da-9b533704f127" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume" computerName="2aa35d38bc5c" duration="00:00:00.0395531" startTime="2026-10-05T04:26:51.3492875+00:00" endTime="2026-10-05T04:26:51.3982208+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dfa0cf3e-7f95-46f2-b835-b2d6d6a95727" />
+    <UnitTestResult executionId="a9dfc825-3983-4b80-b6a5-f650339d52ff" testId="9534640f-4612-39a4-02ae-ab077d3d7754" testName="Marrow.Services.Tests.Store.TokenLedgerTests.UncertainTokensThisYear_IsZeroWithNoLegacyValues" computerName="2aa35d38bc5c" duration="00:00:00.0145013" startTime="2026-10-05T04:26:51.5463742+00:00" endTime="2026-10-05T04:26:51.5702606+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a9dfc825-3983-4b80-b6a5-f650339d52ff" />
+    <UnitTestResult executionId="13f507bd-fe9a-4908-bb1d-27fa5446a40c" testId="6097178e-3880-43b0-322c-9973879edb2d" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_PrunesFingerprintsForFilesNoLongerSeen" computerName="2aa35d38bc5c" duration="00:00:00.0008200" startTime="2026-10-05T04:26:51.4549745+00:00" endTime="2026-10-05T04:26:51.4574619+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="13f507bd-fe9a-4908-bb1d-27fa5446a40c" />
+    <UnitTestResult executionId="bc990309-69fb-46e5-9889-3875e5d3a1fa" testId="0920b20e-5bef-5b16-d358-85edf9404fca" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Spend_FirstCallSeedsFromMinOfTotalAndBefore_ThenReturnsPositiveDelta" computerName="2aa35d38bc5c" duration="00:00:00.0002527" startTime="2026-10-05T04:26:51.6421427+00:00" endTime="2026-10-05T04:26:51.6421836+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bc990309-69fb-46e5-9889-3875e5d3a1fa" />
+    <UnitTestResult executionId="0f2cff2d-f8d6-47f8-b398-413a82fdb027" testId="bb331ec7-3c9b-0543-7216-bbb376a245e3" testName="Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" computerName="2aa35d38bc5c" duration="00:00:00.3124422" startTime="2026-10-05T04:26:51.2511824+00:00" endTime="2026-10-05T04:26:51.5702198+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0f2cff2d-f8d6-47f8-b398-413a82fdb027" />
+    <UnitTestResult executionId="99207d93-4086-44e5-97d4-b33407c5317c" testId="f8f7f03f-31b1-fe5a-5966-7f563c56fa21" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults" computerName="2aa35d38bc5c" duration="00:00:00.0135268" startTime="2026-10-05T04:26:51.0542449+00:00" endTime="2026-10-05T04:26:51.0714853+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="99207d93-4086-44e5-97d4-b33407c5317c">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Single() Failure: The collection was empty</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 265
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="7e632804-c37c-439f-873d-4a7209738981" testId="0385f4aa-deda-1103-2d59-a43e19e139b1" testName="Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendStateStore_ReadsTheV1KeyOnceWhenTheV2FileIsAbsentAndNeverRewritesIt" computerName="2aa35d38bc5c" duration="00:00:00.0024968" startTime="2026-10-05T04:26:51.4527281+00:00" endTime="2026-10-05T04:26:51.4548324+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7e632804-c37c-439f-873d-4a7209738981" />
+    <UnitTestResult executionId="d3135047-01e4-47a9-8955-cf2bc007a4ff" testId="92c04d14-5c6c-965a-b43a-2a2b6bfb4680" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Build_DailyModePutsEachDaysOwnTotalInItsCellAndZeroElsewhere" computerName="2aa35d38bc5c" duration="00:00:00.0604862" startTime="2026-10-05T04:26:50.9476176+00:00" endTime="2026-10-05T04:26:51.0041626+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d3135047-01e4-47a9-8955-cf2bc007a4ff" />
+    <UnitTestResult executionId="4b57ed4c-4920-4812-89f0-d1da5bd11f0f" testId="7f89de56-510d-961c-a0cc-4a96081050b2" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory" computerName="2aa35d38bc5c" duration="00:00:00.0033082" startTime="2026-10-05T04:26:51.6952608+00:00" endTime="2026-10-05T04:26:51.7019652+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b57ed4c-4920-4812-89f0-d1da5bd11f0f">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 423
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ad43a33b-2489-4e5a-b4fa-dd05ab8b8fd8" testId="b72c019b-4be3-ad3c-4c0f-39fd1dc3a6dc" testName="Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_IsANoOpWithNothingPending" computerName="2aa35d38bc5c" duration="00:00:00.0046733" startTime="2026-10-05T04:26:51.5824263+00:00" endTime="2026-10-05T04:26:51.5899738+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ad43a33b-2489-4e5a-b4fa-dd05ab8b8fd8" />
+    <UnitTestResult executionId="670a5a95-02f4-45fe-aeec-306cf8db4b17" testId="47c10422-e58e-b62a-73b5-4d29c98f2a61" testName="Marrow.Services.Tests.Store.TokenLedgerTests.RecordCodexSpend_DropsAnEmptyRolloutIDAndLowercasesANonEmptyOne" computerName="2aa35d38bc5c" duration="00:00:00.0077649" startTime="2026-10-05T04:26:51.5731343+00:00" endTime="2026-10-05T04:26:51.5821577+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="670a5a95-02f4-45fe-aeec-306cf8db4b17" />
+    <UnitTestResult executionId="0b44067a-1631-4e3c-89b6-69435750713c" testId="c62ce310-7ad6-486d-7db1-b7aa70a3f7ae" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted" computerName="2aa35d38bc5c" duration="00:00:00.0170062" startTime="2026-10-05T04:26:50.8830459+00:00" endTime="2026-10-05T04:26:50.8979484+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0b44067a-1631-4e3c-89b6-69435750713c">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/285091752c954ba3a328dc868668a16d/root/token-activity-codex-v3.json'.</Message>
+          <StackTrace>   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 191
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="b405251b-c036-4040-9c77-13322e5ce9cf" testId="d815b22b-2d06-39d2-da97-7e17a115f1a4" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Build_CumulativeModeWritesARunningTotalIntoEveryCellIncludingOutOfYearOnes" computerName="2aa35d38bc5c" duration="00:00:00.0024507" startTime="2026-10-05T04:26:51.4743524+00:00" endTime="2026-10-05T04:26:51.4743932+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b405251b-c036-4040-9c77-13322e5ce9cf" />
+    <UnitTestResult executionId="04c1aab9-9066-4c09-a86e-3185f0380eed" testId="24ca2685-3fd2-2ed6-6846-1bebf4cc5a32" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_save_that_fails_is_silent_and_the_migrated_map_is_still_returned" computerName="2aa35d38bc5c" duration="00:00:00.0027676" startTime="2026-10-05T04:26:50.8829319+00:00" endTime="2026-10-05T04:26:50.8829663+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="04c1aab9-9066-4c09-a86e-3185f0380eed" />
+    <UnitTestResult executionId="28676b1f-4660-4fd3-bec0-7f95ef59a290" testId="dbb58ae3-5286-7390-8a31-1b4ea2faa437" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite" computerName="2aa35d38bc5c" duration="00:00:00.0247527" startTime="2026-10-05T04:26:50.7782943+00:00" endTime="2026-10-05T04:26:50.7988948+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="28676b1f-4660-4fd3-bec0-7f95ef59a290">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure
+Expected: True
+Actual:   False</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 250
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="25a7ec75-2cd1-4cc2-8bc2-93ce58b52d15" testId="e85eaacc-c213-c4d9-df18-bed656f7e24f" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.With_no_live_codex_spend_the_roll_forward_leaves_settled_provenance_as_it_was" computerName="2aa35d38bc5c" duration="00:00:00.0331781" startTime="2026-10-05T04:26:50.9641486+00:00" endTime="2026-10-05T04:26:50.9977257+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="25a7ec75-2cd1-4cc2-8bc2-93ce58b52d15" />
+    <UnitTestResult executionId="37d25041-72f2-4269-9d2b-aebe4a1fd9db" testId="70e17bdd-2d01-c0c1-f7bf-0ec82a823dc5" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_legacy_preference_value_that_is_not_a_dictionary_of_dictionaries_is_left_alone_and_nothing_is_saved" computerName="2aa35d38bc5c" duration="00:00:00.1066062" startTime="2026-10-05T04:26:50.5829847+00:00" endTime="2026-10-05T04:26:50.5842206+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="37d25041-72f2-4269-9d2b-aebe4a1fd9db" />
+    <UnitTestResult executionId="3ed7afc2-4cde-4e37-91c8-8104e814f895" testId="f461de7b-bde3-d635-7c22-8a805d46c9e8" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer" computerName="2aa35d38bc5c" duration="00:00:00.0478269" startTime="2026-10-05T04:26:51.3983582+00:00" endTime="2026-10-05T04:26:51.4480555+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3ed7afc2-4cde-4e37-91c8-8104e814f895" />
+    <UnitTestResult executionId="516e578f-7cb9-4a14-8e65-f8cb7b300340" testId="40f136fb-8485-21a8-3817-cd37442c544e" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile" computerName="2aa35d38bc5c" duration="00:00:00.0096558" startTime="2026-10-05T04:26:50.8833395+00:00" endTime="2026-10-05T04:26:50.9465033+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="516e578f-7cb9-4a14-8e65-f8cb7b300340">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 467
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="13e99209-aee5-410e-b74c-0cde2b93475e" testId="5d3776c2-efcb-60f4-a7e7-e90624cf085b" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan" computerName="2aa35d38bc5c" duration="00:00:00.1423595" startTime="2026-10-05T04:26:50.6636402+00:00" endTime="2026-10-05T04:26:50.7530158+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="13e99209-aee5-410e-b74c-0cde2b93475e">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-05-02' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 103
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="e8ba9b07-2047-4a5c-90ca-ae924c365e14" testId="df05432b-e18a-3fd4-ef6d-ae3ba9a69a50" testName="Marrow.Services.Tests.Store.TokenLedgerTests.SeedBaseline_SetsTheBaselineWithoutRecordingWhenUnseeded" computerName="2aa35d38bc5c" duration="00:00:00.0001839" startTime="2026-10-05T04:26:51.7023989+00:00" endTime="2026-10-05T04:26:51.7024409+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e8ba9b07-2047-4a5c-90ca-ae924c365e14" />
+    <UnitTestResult executionId="1a9c6c7e-6683-4d37-9d60-605edf1e3a53" testId="af4f952f-ffd3-959c-c27c-175afa4b752e" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: False, expectedTokens: 260)" computerName="2aa35d38bc5c" duration="00:00:00.1797606" startTime="2026-10-05T04:26:51.2765898+00:00" endTime="2026-10-05T04:26:51.4522679+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1a9c6c7e-6683-4d37-9d60-605edf1e3a53">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Boolean newlineInsideBudget, Int64 expectedTokens) in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 448
+   at InvokeStub_TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6341bf8e-7fbb-49c6-8529-572a3f8af746" testId="df90a9c3-e42f-2e1d-c2ff-bf9ab1f1665b" testName="Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer" computerName="2aa35d38bc5c" duration="00:00:00.0048365" startTime="2026-10-05T04:26:50.7994715+00:00" endTime="2026-10-05T04:26:50.8426033+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6341bf8e-7fbb-49c6-8529-572a3f8af746">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure
+Expected: True
+Actual:   False</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 267
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ed4fd92c-b3f9-4fae-8ef1-0b076bad7587" testId="ac05f119-1945-5ffa-9d50-34661752efca" testName="Marrow.Services.Tests.Store.TokenLedgerTests.TokenActivityMode_HasThreeCasesInDeclarationOrderWithFixedTitles" computerName="2aa35d38bc5c" duration="00:00:00.0194697" startTime="2026-10-05T04:26:51.6824516+00:00" endTime="2026-10-05T04:26:51.6951163+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ed4fd92c-b3f9-4fae-8ef1-0b076bad7587" />
+    <UnitTestResult executionId="18be502f-318a-4399-8a6b-00d6da74e174" testId="cfad3c2d-7cac-e0c1-7a8d-51ad33ec0b73" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance" computerName="2aa35d38bc5c" duration="00:00:00.0109712" startTime="2026-10-05T04:26:50.8826018+00:00" endTime="2026-10-05T04:26:50.8826370+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="18be502f-318a-4399-8a6b-00d6da74e174">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/1cebac6779694bbaa6b1225fc570e908/root/token-activity-live-v2.json'.</Message>
+          <StackTrace>   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Fixtures.TokenLedgerFiles.ReadMap(String path, String name) in /workspace/marrow-port/tests/Marrow.Services.Tests/Fixtures/TokenLedgerFiles.cs:line 39
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 76
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="774c1810-1096-4377-8d18-a2e9d238a5ff" testId="24bcfbe2-a39b-955c-5496-aa01c87eb52b" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch" computerName="2aa35d38bc5c" duration="00:00:00.0122279" startTime="2026-10-05T04:26:50.8818096+00:00" endTime="2026-10-05T04:26:50.8818457+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="774c1810-1096-4377-8d18-a2e9d238a5ff">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-02-01' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 498
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="57f5043f-7aae-40f9-95a2-6e1670eebf86" testId="0a170b99-681a-cf27-e63b-9d7ca963cb3a" testName="Marrow.Services.Tests.Port.Skills.Pipelines.PipelineDownloadTests.SK3_bridge_fetches_pinned_fixture_inputs_only_from_loopback_and_installs_offline" computerName="2aa35d38bc5c" duration="00:00:01.2046821" startTime="2026-10-05T04:26:50.5831565+00:00" endTime="2026-10-05T04:26:51.6699841+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="57f5043f-7aae-40f9-95a2-6e1670eebf86" />
+    <UnitTestResult executionId="5a8b21ee-9512-4d70-a819-2c58635d9ef3" testId="a3f0617a-1594-0c90-f9da-746d4f78bae3" testName="Marrow.Services.Tests.Store.TokenLedgerTests.RolloutIdentity_MatchesTheLastUuidInTheBaseNameCaseInsensitivelyAndLowercasesIt(path: &quot;C:\\home\\.codex\\sessions\\no-uuid-here.jsonl&quot;, expected: &quot;C:\\home\\.codex\\sessions\\no-uuid-here.jsonl&quot;)" computerName="2aa35d38bc5c" duration="00:00:00.0124341" startTime="2026-10-05T04:26:50.7683558+00:00" endTime="2026-10-05T04:26:50.7780807+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5a8b21ee-9512-4d70-a819-2c58635d9ef3" />
+    <UnitTestResult executionId="b4fac4a5-9d49-438f-b840-39e932564fbe" testId="2db1d6db-8407-36d5-f76a-bd1663b0b3d8" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString" computerName="2aa35d38bc5c" duration="00:00:00.0229802" startTime="2026-10-05T04:26:50.8823487+00:00" endTime="2026-10-05T04:26:50.8830790+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b4fac4a5-9d49-438f-b840-39e932564fbe">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 583
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c69fa7eb-87ec-44de-95c6-029f5c930e04" testId="cc9841bd-9256-840c-390d-4df9f23f0e62" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Build_TheThreeModesScaleTheSameDataDifferentlyAndMaxValueIsThePostScaleMaximum" computerName="2aa35d38bc5c" duration="00:00:00.0007651" startTime="2026-10-05T04:26:51.4576074+00:00" endTime="2026-10-05T04:26:51.4576488+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c69fa7eb-87ec-44de-95c6-029f5c930e04" />
+    <UnitTestResult executionId="c78cc052-a6e5-4df0-9591-634d1f8628c3" testId="1b4e4183-af5c-60dc-3da1-f974ac1ffe5b" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present" computerName="2aa35d38bc5c" duration="00:00:00.0139465" startTime="2026-10-05T04:26:50.8816629+00:00" endTime="2026-10-05T04:26:50.8823871+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c78cc052-a6e5-4df0-9591-634d1f8628c3">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.False() Failure
+Expected: False
+Actual:   True</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 233
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="9674b4df-41c5-41a6-b9ce-be05876191d8" testId="49f1b406-cea3-9800-4bdd-85a150548fb6" testName="Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically" computerName="2aa35d38bc5c" duration="00:00:00.0083194" startTime="2026-10-05T04:26:51.5901447+00:00" endTime="2026-10-05T04:26:51.5951816+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9674b4df-41c5-41a6-b9ce-be05876191d8">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/6430996478c9419ea49b28813e238f79/root/token-activity-live-v2.json'.</Message>
+          <StackTrace>   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 296
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="310ea1d3-b56b-46a9-a05d-93593f38ec52" testId="78fce494-3f38-150e-ebeb-193189ed9c9f" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor" computerName="2aa35d38bc5c" duration="00:00:00.0061746" startTime="2026-10-05T04:26:51.1744403+00:00" endTime="2026-10-05T04:26:51.1806802+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="310ea1d3-b56b-46a9-a05d-93593f38ec52">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-05-01' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 174
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="0b9d1236-b73a-4bfa-8cd7-b106a7844bf1" testId="56733f8b-45ec-7632-63e2-a37e281c9721" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing" computerName="2aa35d38bc5c" duration="00:00:00.0567751" startTime="2026-10-05T04:26:50.9468018+00:00" endTime="2026-10-05T04:26:50.9473826+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0b9d1236-b73a-4bfa-8cd7-b106a7844bf1">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/eea58fc068fe407fb22607105663471e/home/home-boolean-total/.codex/sessions/boolean-total-a1b2c3d4-1111-2222-3333-cccccccccccc.jsonl' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 623
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="d9d2ddcf-a524-4003-8a27-23facbe818da" testId="92a77510-b21e-2b69-cff3-f14265419d94" testName="Marrow.Services.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" computerName="2aa35d38bc5c" duration="00:00:00.1117915" startTime="2026-10-05T04:26:51.5704860+00:00" endTime="2026-10-05T04:26:51.6824942+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d9d2ddcf-a524-4003-8a27-23facbe818da" />
+    <UnitTestResult executionId="045717b9-fa6b-4193-9843-2db6e5ac09d2" testId="5af3d2da-e1a0-8dd2-daa5-55c474299ba5" testName="Marrow.Services.Tests.Store.TokenLedgerTests.RolloutIdentity_MatchesTheLastUuidInTheBaseNameCaseInsensitivelyAndLowercasesIt(path: &quot;C:\\home\\.codex\\sessions\\rollout-2026-01-01T00-&quot;···, expected: &quot;abcdef01-1111-2222-3333-444444444444&quot;)" computerName="2aa35d38bc5c" duration="00:00:00.0511162" startTime="2026-10-05T04:26:50.7024307+00:00" endTime="2026-10-05T04:26:50.7682758+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="045717b9-fa6b-4193-9843-2db6e5ac09d2" />
+    <UnitTestResult executionId="33a730b5-0b33-44e2-9198-719bee3fc363" testId="0af00b22-4b02-d19e-a06a-5c6dc9dae3f7" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file" computerName="2aa35d38bc5c" duration="00:00:00.0471025" startTime="2026-10-05T04:26:50.9978665+00:00" endTime="2026-10-05T04:26:51.0528546+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="33a730b5-0b33-44e2-9198-719bee3fc363">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+           ↓ (pos 0)
+Expected: ["C:\\v2\\b.jsonl"]
+Actual:   []</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 286
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="390f5d52-959a-4949-b586-ade6cde2ebe6" testId="b2a95e19-7e23-54a6-d3a1-4e83c5a3e67b" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written" computerName="2aa35d38bc5c" duration="00:00:00.0017892" startTime="2026-10-05T04:26:51.1726961+00:00" endTime="2026-10-05T04:26:51.1740477+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="390f5d52-959a-4949-b586-ade6cde2ebe6">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.False() Failure
+Expected: False
+Actual:   True</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 250
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="eced5a5b-3a17-491c-b823-15873a8dda06" testId="07fa6ad8-e4fc-4d72-ac29-ad0e1d416fec" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Spend_ADropReseedsSilentlyAndReturnsZero" computerName="2aa35d38bc5c" duration="00:00:00.0380792" startTime="2026-10-05T04:26:51.6019274+00:00" endTime="2026-10-05T04:26:51.6419733+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="eced5a5b-3a17-491c-b823-15873a8dda06" />
+    <UnitTestResult executionId="257e56b8-2c4f-442b-a7af-44d9a37e21ef" testId="70157454-a98f-0477-b940-5687b7d1cfd7" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3" computerName="2aa35d38bc5c" duration="00:00:00.0437114" startTime="2026-10-05T04:26:50.9470523+00:00" endTime="2026-10-05T04:26:50.9471295+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="257e56b8-2c4f-442b-a7af-44d9a37e21ef">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key 'C:\sessions\rollout-2026-03-04T10-00-00-AAAAAAAA-1111-2222-3333-444444444444.jsonl' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 303
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="f97e6526-5edb-4c8f-a5f2-b7fc98e5727c" testId="76223524-3fe0-5118-18c7-f8fe1215efe2" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Spend_NegativeTotalsClampToZeroAtBaselineAndAssignment" computerName="2aa35d38bc5c" duration="00:00:00.0372803" startTime="2026-10-05T04:26:50.8813341+00:00" endTime="2026-10-05T04:26:50.8817036+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f97e6526-5edb-4c8f-a5f2-b7fc98e5727c" />
+    <UnitTestResult executionId="a7a2e4ad-42b4-4db0-895f-efc1c9ef9307" testId="9dfd145d-6ac5-f5df-f602-4ac57d94524c" testName="Marrow.Services.Tests.Store.TokenLedgerTests.EventTimestamps_ParseFractionalSecondsFirstThenWholeSeconds" computerName="2aa35d38bc5c" duration="00:00:00.0055668" startTime="2026-10-05T04:26:51.5982225+00:00" endTime="2026-10-05T04:26:51.6017488+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a7a2e4ad-42b4-4db0-895f-efc1c9ef9307" />
+    <UnitTestResult executionId="2a6e34d4-bae9-4793-8a0a-c035890c0e55" testId="790a1e1d-aa97-cd9c-7818-b166e289f77f" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals" computerName="2aa35d38bc5c" duration="00:00:00.0190188" startTime="2026-10-05T04:26:50.9473466+00:00" endTime="2026-10-05T04:26:50.9637637+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2a6e34d4-bae9-4793-8a0a-c035890c0e55">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 112
+Actual:   12</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 126
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="a3b42b6c-d13a-417a-96b7-4cb332ffe03d" testId="e9427ac0-83a3-5b85-6369-1e56480119f4" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read" computerName="2aa35d38bc5c" duration="00:00:00.1015672" startTime="2026-10-05T04:26:51.0718128+00:00" endTime="2026-10-05T04:26:51.1721432+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a3b42b6c-d13a-417a-96b7-4cb332ffe03d">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/dce2e7a1e2be484993c37a59aa495f6f/root/token-activity-codex-v3.json'.</Message>
+          <StackTrace>   at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+   at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+   at System.IO.File.ReadAllBytes(String path)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 342
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="12fbc729-303e-40fb-862b-ea2ac9d3b503" testId="feff7a6e-8d19-15bb-6836-fff7724f9b68" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer" computerName="2aa35d38bc5c" duration="00:00:00.0633631" startTime="2026-10-05T04:26:51.3036969+00:00" endTime="2026-10-05T04:26:51.3491349+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="12fbc729-303e-40fb-862b-ea2ac9d3b503" />
+    <UnitTestResult executionId="ec3c6cf7-0202-436a-b48e-baee5ea5f8b0" testId="986dc907-ed13-da19-caed-09267430d7e6" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again" computerName="2aa35d38bc5c" duration="00:00:00.0100988" startTime="2026-10-05T04:26:50.9464467+00:00" endTime="2026-10-05T04:26:50.9468391+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ec3c6cf7-0202-436a-b48e-baee5ea5f8b0">
+      <Output>
+        <ErrorInfo>
+          <Message>System.Collections.Generic.KeyNotFoundException : The given key '2026-05-01' was not present in the dictionary.</Message>
+          <StackTrace>   at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 141
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="52570be0-dd4d-463c-823a-3f7659f26166" testId="2b6c2c67-6292-8f49-725b-61458e19cfcb" testName="Marrow.Services.Tests.Port.Skills.Pipelines.PipelineDownloadTests.SK3_bridge_without_a_bound_fake_fails_closed_and_produces_no_install" computerName="2aa35d38bc5c" duration="00:00:00.0168473" startTime="2026-10-05T04:26:51.6707926+00:00" endTime="2026-10-05T04:26:51.6862426+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="52570be0-dd4d-463c-823a-3f7659f26166" />
+    <UnitTestResult executionId="d19282fc-3319-4389-9c5c-7931eb585e56" testId="fbe2a518-adbf-74f2-7ad6-271579789c22" testName="Marrow.Services.Tests.Store.TokenLedgerTests.Build_CoversTheWholeYearInSundayFirstColumnsWithFutureDaysAsCells" computerName="2aa35d38bc5c" duration="00:00:00.0338626" startTime="2026-10-05T04:26:51.6422741+00:00" endTime="2026-10-05T04:26:51.6820539+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d19282fc-3319-4389-9c5c-7931eb585e56" />
+    <UnitTestResult executionId="99787d1d-6287-49f9-9c02-25485e7573ae" testId="2dd616c0-dbcb-08de-6990-e5e629a49dfc" testName="Marrow.Services.Tests.Store.TokenLedgerTests.UncertainTokensThisYear_SumsOnlyLegacyDaysInTheCurrentYear" computerName="2aa35d38bc5c" duration="00:00:00.0007973" startTime="2026-10-05T04:26:51.5956398+00:00" endTime="2026-10-05T04:26:51.5979644+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="99787d1d-6287-49f9-9c02-25485e7573ae" />
+    <UnitTestResult executionId="d57ba6d0-b13b-4f22-ac6d-d7b5f0188fc4" testId="aac473d8-283b-e8ab-8dc1-63136093c08d" testName="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load" computerName="2aa35d38bc5c" duration="00:00:00.0667696" startTime="2026-10-05T04:26:51.1811664+00:00" endTime="2026-10-05T04:26:51.2505546+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d57ba6d0-b13b-4f22-ac6d-d7b5f0188fc4">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 3
+Actual:   2</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs:line 39
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="f7589132-02a0-48dd-9066-e906490b516d" testId="87cc63e9-f692-9c16-4c9f-0c3821a54e23" testName="Marrow.Services.Tests.Port.Skills.Providers.ClaudeSkillsOfferDenialTests.S1_decline_reason_reaches_Claudes_control_response_byte_equal" computerName="2aa35d38bc5c" duration="00:00:00.2158257" startTime="2026-10-05T04:26:50.5691959+00:00" endTime="2026-10-05T04:26:50.6658548+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f7589132-02a0-48dd-9066-e906490b516d" />
+    <UnitTestResult executionId="76d41ffa-c967-488c-b236-c3cde11dcd2d" testId="674506ce-d815-d27f-8023-e9ed089689e0" testName="Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating" computerName="2aa35d38bc5c" duration="00:00:00.0133573" startTime="2026-10-05T04:26:51.4577340+00:00" endTime="2026-10-05T04:26:51.4738620+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="76d41ffa-c967-488c-b236-c3cde11dcd2d">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 8
+Actual:   5</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 215
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ff2281de-c51e-4800-9ddc-23b44eac7117" testId="daa5995d-e5ce-fb9c-b9ed-9f0f6355401f" testName="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff" computerName="2aa35d38bc5c" duration="00:00:00.0121366" startTime="2026-10-05T04:26:51.5703754+00:00" endTime="2026-10-05T04:26:51.5721495+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ff2281de-c51e-4800-9ddc-23b44eac7117">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Single() Failure: The collection was empty</Message>
+          <StackTrace>   at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff() in /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs:line 404
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ec97cbf6-e7af-40a9-a89a-c114671e4a23" testId="970a0654-ee08-acee-40f7-ee7889188909" testName="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path" computerName="2aa35d38bc5c" duration="00:00:00.8174612" startTime="2026-10-05T04:26:50.5830760+00:00" endTime="2026-10-05T04:26:51.2689208+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ec97cbf6-e7af-40a9-a89a-c114671e4a23" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.UncertainTokensThisYear_IsZeroWithNoLegacyValues" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="9534640f-4612-39a4-02ae-ab077d3d7754">
+      <Execution id="a9dfc825-3983-4b80-b6a5-f650339d52ff" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="UncertainTokensThisYear_IsZeroWithNoLegacyValues" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="1dfeeddd-3ac9-d141-9397-5c118588125a">
+      <Execution id="cdf3987f-ef43-4b09-aaaa-a8f78b66751c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.TraceabilityTests" name="Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="c2480a93-d8b8-9c67-bff8-278c04decb74">
+      <Execution id="3d630306-a515-472e-8228-f4a131f1dc1a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_save_that_fails_is_silent_and_the_migrated_map_is_still_returned" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="24ca2685-3fd2-2ed6-6846-1bebf4cc5a32">
+      <Execution id="04c1aab9-9066-4c09-a86e-3185f0380eed" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_save_that_fails_is_silent_and_the_migrated_map_is_still_returned" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: True, expectedTokens: 60)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="374f0146-b6d6-0091-bc0f-4e72fbace39c">
+      <Execution id="6edea157-3488-4fb3-bc4d-15f501d38d31" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Build_CoversTheWholeYearInSundayFirstColumnsWithFutureDaysAsCells" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="fbe2a518-adbf-74f2-7ad6-271579789c22">
+      <Execution id="d19282fc-3319-4389-9c5c-7931eb585e56" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Build_CoversTheWholeYearInSundayFirstColumnsWithFutureDaysAsCells" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.RolloutIdentity_TakesTheLaterUuidWhenTwoAreInTheName" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="a059483e-a72c-1a44-4e8a-e9049389c469">
+      <Execution id="118fd840-5593-448c-962a-52feaa3eb64c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="RolloutIdentity_TakesTheLaterUuidWhenTwoAreInTheName" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="7f89de56-510d-961c-a0cc-4a96081050b2">
+      <Execution id="4b57ed4c-4920-4812-89f0-d1da5bd11f0f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="986dc907-ed13-da19-caed-09267430d7e6">
+      <Execution id="ec3c6cf7-0202-436a-b48e-baee5ea5f8b0" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="Later_refreshes_in_the_same_process_scan_nothing_again" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_legacy_preference_value_that_is_not_a_dictionary_of_dictionaries_is_left_alone_and_nothing_is_saved" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="70e17bdd-2d01-c0c1-f7bf-0ec82a823dc5">
+      <Execution id="37d25041-72f2-4269-9d2b-aebe4a1fd9db" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_legacy_preference_value_that_is_not_a_dictionary_of_dictionaries_is_left_alone_and_nothing_is_saved" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Checked_download_is_installed_and_published_before_the_offer_can_resume" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="ab489829-126e-697c-f9da-9b533704f127">
+      <Execution id="dfa0cf3e-7f95-46f2-b835-b2d6d6a95727" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Checked_download_is_installed_and_published_before_the_offer_can_resume" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.With_no_live_codex_spend_the_roll_forward_leaves_settled_provenance_as_it_was" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="e85eaacc-c213-c4d9-df18-bed656f7e24f">
+      <Execution id="25a7ec75-2cd1-4cc2-8bc2-93ce58b52d15" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="With_no_live_codex_spend_the_roll_forward_leaves_settled_provenance_as_it_was" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.UncertainTokensThisYear_SumsOnlyLegacyDaysInTheCurrentYear" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="2dd616c0-dbcb-08de-6990-e5e629a49dfc">
+      <Execution id="99787d1d-6287-49f9-9c02-25485e7573ae" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="UncertainTokensThisYear_SumsOnlyLegacyDaysInTheCurrentYear" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="790a1e1d-aa97-cd9c-7818-b166e289f77f">
+      <Execution id="2a6e34d4-bae9-4793-8a0a-c035890c0e55" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.SeedBaseline_SetsTheBaselineWithoutRecordingWhenUnseeded" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="df05432b-e18a-3fd4-ef6d-ae3ba9a69a50">
+      <Execution id="e8ba9b07-2047-4a5c-90ca-ae924c365e14" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="SeedBaseline_SetsTheBaselineWithoutRecordingWhenUnseeded" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="bb331ec7-3c9b-0543-7216-bbb376a245e3">
+      <Execution id="0f2cff2d-f8d6-47f8-b398-413a82fdb027" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.TraceabilityTests" name="Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="40f136fb-8485-21a8-3817-cd37442c544e">
+      <Execution id="516e578f-7cb9-4a14-8e65-f8cb7b300340" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="5d3776c2-efcb-60f4-a7e7-e90624cf085b">
+      <Execution id="13e99209-aee5-410e-b74c-0cde2b93475e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="0af00b22-4b02-d19e-a06a-5c6dc9dae3f7">
+      <Execution id="33a730b5-0b33-44e2-9198-719bee3fc363" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_v3_file_that_does_not_decode_falls_through_to_the_v2_file" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Failed_routing_publication_never_returns_an_installed_path" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="970a0654-ee08-acee-40f7-ee7889188909">
+      <Execution id="ec97cbf6-e7af-40a9-a89a-c114671e4a23" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Failed_routing_publication_never_returns_an_installed_path" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="49f1b406-cea3-9800-4bdd-85a150548fb6">
+      <Execution id="9674b4df-41c5-41a6-b9ce-be05876191d8" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="LiveSpendState_PersistsExactlyFourNamedMapsAtomically" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Build_WeeklyModeSumsTheColumnIntoEveryRealCellAndLeavesOutOfYearCellsAtZero" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="ad448ede-a55a-3322-413c-e73d9bc48e51">
+      <Execution id="d00040bb-4060-4b5c-b8a9-b4c27f310f54" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Build_WeeklyModeSumsTheColumnIntoEveryRealCellAndLeavesOutOfYearCellsAtZero" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Build_MonthTicksAreTwelveFixedEnglishAbbreviationsAtEachMonthsFirstColumn" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="a1773336-e3f2-772a-8741-f761241f3936">
+      <Execution id="104cc639-6020-4088-98eb-77adc2a04420" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Build_MonthTicksAreTwelveFixedEnglishAbbreviationsAtEachMonthsFirstColumn" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Providers.ClaudeSkillsOfferDenialTests.S1_decline_reason_reaches_Claudes_control_response_byte_equal" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="87cc63e9-f692-9c16-4c9f-0c3821a54e23">
+      <Execution id="f7589132-02a0-48dd-9066-e906490b516d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Providers.ClaudeSkillsOfferDenialTests" name="S1_decline_reason_reaches_Claudes_control_response_byte_equal" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="aac473d8-283b-e8ab-8dc1-63136093c08d">
+      <Execution id="d57ba6d0-b13b-4f22-ac6d-d7b5f0188fc4" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="dbb58ae3-5286-7390-8a31-1b4ea2faa437">
+      <Execution id="28676b1f-4660-4fd3-bec0-7f95ef59a290" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="f8f7f03f-31b1-fe5a-5966-7f563c56fa21">
+      <Execution id="99207d93-4086-44e5-97d4-b33407c5317c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="674506ce-d815-d27f-8023-e9ed089689e0">
+      <Execution id="76d41ffa-c967-488c-b236-c3cde11dcd2d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Build_TheThreeModesScaleTheSameDataDifferentlyAndMaxValueIsThePostScaleMaximum" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="cc9841bd-9256-840c-390d-4df9f23f0e62">
+      <Execution id="c69fa7eb-87ec-44de-95c6-029f5c930e04" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Build_TheThreeModesScaleTheSameDataDifferentlyAndMaxValueIsThePostScaleMaximum" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="1b4e4183-af5c-60dc-3da1-f974ac1ffe5b">
+      <Execution id="c78cc052-a6e5-4df0-9591-634d1f8628c3" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Spend_FirstCallSeedsFromMinOfTotalAndBefore_ThenReturnsPositiveDelta" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="0920b20e-5bef-5b16-d358-85edf9404fca">
+      <Execution id="bc990309-69fb-46e5-9889-3875e5d3a1fa" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Spend_FirstCallSeedsFromMinOfTotalAndBefore_ThenReturnsPositiveDelta" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Unpinned_item_cannot_reach_a_download_plan_or_installer" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="feff7a6e-8d19-15bb-6836-fff7724f9b68">
+      <Execution id="12fbc729-303e-40fb-862b-ea2ac9d3b503" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Unpinned_item_cannot_reach_a_download_plan_or_installer" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Spend_ADropReseedsSilentlyAndReturnsZero" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="07fa6ad8-e4fc-4d72-ac29-ad0e1d416fec">
+      <Execution id="eced5a5b-3a17-491c-b823-15873a8dda06" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Spend_ADropReseedsSilentlyAndReturnsZero" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="cfad3c2d-7cac-e0c1-7a8d-51ad33ec0b73">
+      <Execution id="18be502f-318a-4399-8a6b-00d6da74e174" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Spend_NegativeTotalsClampToZeroAtBaselineAndAssignment" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="76223524-3fe0-5118-18c7-f8fe1215efe2">
+      <Execution id="f97e6526-5edb-4c8f-a5f2-b7fc98e5727c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Spend_NegativeTotalsClampToZeroAtBaselineAndAssignment" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="24bcfbe2-a39b-955c-5496-aa01c87eb52b">
+      <Execution id="774c1810-1096-4377-8d18-a2e9d238a5ff" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Pipelines.PipelineDownloadTests.SK3_bridge_without_a_bound_fake_fails_closed_and_produces_no_install" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="2b6c2c67-6292-8f49-725b-61458e19cfcb">
+      <Execution id="52570be0-dd4d-463c-823a-3f7659f26166" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Pipelines.PipelineDownloadTests" name="SK3_bridge_without_a_bound_fake_fails_closed_and_produces_no_install" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Build_DailyModePutsEachDaysOwnTotalInItsCellAndZeroElsewhere" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="92c04d14-5c6c-965a-b43a-2a2b6bfb4680">
+      <Execution id="d3135047-01e4-47a9-8955-cf2bc007a4ff" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Build_DailyModePutsEachDaysOwnTotalInItsCellAndZeroElsewhere" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendStateStore_ReadsTheV1KeyOnceWhenTheV2FileIsAbsentAndNeverRewritesIt" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="0385f4aa-deda-1103-2d59-a43e19e139b1">
+      <Execution id="7e632804-c37c-439f-873d-4a7209738981" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="LiveSpendStateStore_ReadsTheV1KeyOnceWhenTheV2FileIsAbsentAndNeverRewritesIt" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="daa5995d-e5ce-fb9c-b9ed-9f0f6355401f">
+      <Execution id="ff2281de-c51e-4800-9ddc-23b44eac7117" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="c8f8b9ca-6e93-ddab-3cea-0f9245054f30">
+      <Execution id="6c5b02ef-7321-4de6-a323-e3b07eaef6ee" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.EventTimestamps_ParseFractionalSecondsFirstThenWholeSeconds" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="9dfd145d-6ac5-f5df-f602-4ac57d94524c">
+      <Execution id="a7a2e4ad-42b4-4db0-895f-efc1c9ef9307" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="EventTimestamps_ParseFractionalSecondsFirstThenWholeSeconds" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="78fce494-3f38-150e-ebeb-193189ed9c9f">
+      <Execution id="310ea1d3-b56b-46a9-a05d-93593f38ec52" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Pipelines.PipelineDownloadTests.SK3_bridge_fetches_pinned_fixture_inputs_only_from_loopback_and_installs_offline" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="0a170b99-681a-cf27-e63b-9d7ca963cb3a">
+      <Execution id="57f5043f-7aae-40f9-95a2-6e1670eebf86" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Pipelines.PipelineDownloadTests" name="SK3_bridge_fetches_pinned_fixture_inputs_only_from_loopback_and_installs_offline" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.RolloutIdentity_MatchesTheLastUuidInTheBaseNameCaseInsensitivelyAndLowercasesIt(path: &quot;C:\\home\\.codex\\sessions\\no-uuid-here.jsonl&quot;, expected: &quot;C:\\home\\.codex\\sessions\\no-uuid-here.jsonl&quot;)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="a3f0617a-1594-0c90-f9da-746d4f78bae3">
+      <Execution id="5a8b21ee-9512-4d70-a819-2c58635d9ef3" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="RolloutIdentity_MatchesTheLastUuidInTheBaseNameCaseInsensitivelyAndLowercasesIt" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="92a77510-b21e-2b69-cff3-f14265419d94">
+      <Execution id="d9d2ddcf-a524-4003-8a27-23facbe818da" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.TraceabilityTests" name="Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_PrunesFingerprintsForFilesNoLongerSeen" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="6097178e-3880-43b0-322c-9973879edb2d">
+      <Execution id="13f507bd-fe9a-4908-bb1d-27fa5446a40c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_PrunesFingerprintsForFilesNoLongerSeen" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="e9427ac0-83a3-5b85-6369-1e56480119f4">
+      <Execution id="a3b42b6c-d13a-417a-96b7-4cb332ffe03d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Record_IgnoresNonPositiveSpendAndKeysByLocalDay" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="34ed5c58-7ad1-f171-cf17-7e2d0e0dbae6">
+      <Execution id="7282554e-254d-41a0-81fe-26fb3cade081" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Record_IgnoresNonPositiveSpendAndKeysByLocalDay" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="c62ce310-7ad6-486d-7db1-b7aa70a3f7ae">
+      <Execution id="0b44067a-1631-4e3c-89b6-69435750713c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="The_scan_saves_one_fingerprint_for_each_rollout_it_counted" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="2db1d6db-8407-36d5-f76a-bd1663b0b3d8">
+      <Execution id="b4fac4a5-9d49-438f-b840-39e932564fbe" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="b2a95e19-7e23-54a6-d3a1-4e83c5a3e67b">
+      <Execution id="390f5d52-959a-4949-b586-ade6cde2ebe6" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.TokenActivityMode_HasThreeCasesInDeclarationOrderWithFixedTitles" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="ac05f119-1945-5ffa-9d50-34661752efca">
+      <Execution id="ed4fd92c-b3f9-4fae-8ef1-0b076bad7587" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="TokenActivityMode_HasThreeCasesInDeclarationOrderWithFixedTitles" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.SeedBaseline_IsANoOpOnceAlreadySeeded" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="ce48e255-0872-9480-3b84-efcb384d8f32">
+      <Execution id="bdcbe690-7565-433a-ab13-b3a663f7bc4a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="SeedBaseline_IsANoOpOnceAlreadySeeded" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests.Cancelled_offer_cannot_reach_a_download_plan_or_installer" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="f461de7b-bde3-d635-7c22-8a805d46c9e8">
+      <Execution id="3ed7afc2-4cde-4e37-91c8-8104e814f895" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.Skills.Offers.SkillsOfferDownloadTests" name="Cancelled_offer_cannot_reach_a_download_plan_or_installer" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.RecordCodexSpend_DropsAnEmptyRolloutIDAndLowercasesANonEmptyOne" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="47c10422-e58e-b62a-73b5-4d29c98f2a61">
+      <Execution id="670a5a95-02f4-45fe-aeec-306cf8db4b17" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="RecordCodexSpend_DropsAnEmptyRolloutIDAndLowercasesANonEmptyOne" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: False, expectedTokens: 260)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="af4f952f-ffd3-959c-c27c-175afa4b752e">
+      <Execution id="1a9c6c7e-6683-4d37-9d60-605edf1e3a53" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="70157454-a98f-0477-b940-5687b7d1cfd7">
+      <Execution id="257e56b8-2c4f-442b-a7af-44d9a37e21ef" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerSecondTests.Building_the_ledger_scans_nothing" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="e8918da2-876f-6546-7b4a-85609358fece">
+      <Execution id="dd93c064-4f5a-4d00-a009-1298822778f1" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerSecondTests" name="Building_the_ledger_scans_nothing" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="df90a9c3-e42f-2e1d-c2ff-bf9ab1f1665b">
+      <Execution id="6341bf8e-7fbb-49c6-8529-572a3f8af746" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.RolloutIdentity_MatchesTheLastUuidInTheBaseNameCaseInsensitivelyAndLowercasesIt(path: &quot;C:\\home\\.codex\\sessions\\rollout-2026-01-01T00-&quot;···, expected: &quot;abcdef01-1111-2222-3333-444444444444&quot;)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="5af3d2da-e1a0-8dd2-daa5-55c474299ba5">
+      <Execution id="045717b9-fa6b-4193-9843-2db6e5ac09d2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="RolloutIdentity_MatchesTheLastUuidInTheBaseNameCaseInsensitivelyAndLowercasesIt" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.Build_CumulativeModeWritesARunningTotalIntoEveryCellIncludingOutOfYearOnes" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="d815b22b-2d06-39d2-da97-7e17a115f1a4">
+      <Execution id="b405251b-c036-4040-9c77-13322e5ce9cf" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="Build_CumulativeModeWritesARunningTotalIntoEveryCellIncludingOutOfYearOnes" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="56733f8b-45ec-7632-63e2-a37e281c9721">
+      <Execution id="0b9d1236-b73a-4bfa-8cd7-b106a7844bf1" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_IsANoOpWithNothingPending" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="b72c019b-4be3-ad3c-4c0f-39fd1dc3a6dc">
+      <Execution id="ad43a33b-2489-4e5a-b4fa-dd05ab8b8fd8" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Store.TokenLedgerTests" name="FlushLiveSpend_IsANoOpWithNothingPending" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="34ed5c58-7ad1-f171-cf17-7e2d0e0dbae6" executionId="7282554e-254d-41a0-81fe-26fb3cade081" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2480a93-d8b8-9c67-bff8-278c04decb74" executionId="3d630306-a515-472e-8228-f4a131f1dc1a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ce48e255-0872-9480-3b84-efcb384d8f32" executionId="bdcbe690-7565-433a-ab13-b3a663f7bc4a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="374f0146-b6d6-0091-bc0f-4e72fbace39c" executionId="6edea157-3488-4fb3-bc4d-15f501d38d31" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1dfeeddd-3ac9-d141-9397-5c118588125a" executionId="cdf3987f-ef43-4b09-aaaa-a8f78b66751c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e8918da2-876f-6546-7b4a-85609358fece" executionId="dd93c064-4f5a-4d00-a009-1298822778f1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ad448ede-a55a-3322-413c-e73d9bc48e51" executionId="d00040bb-4060-4b5c-b8a9-b4c27f310f54" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c8f8b9ca-6e93-ddab-3cea-0f9245054f30" executionId="6c5b02ef-7321-4de6-a323-e3b07eaef6ee" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a1773336-e3f2-772a-8741-f761241f3936" executionId="104cc639-6020-4088-98eb-77adc2a04420" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a059483e-a72c-1a44-4e8a-e9049389c469" executionId="118fd840-5593-448c-962a-52feaa3eb64c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ab489829-126e-697c-f9da-9b533704f127" executionId="dfa0cf3e-7f95-46f2-b835-b2d6d6a95727" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9534640f-4612-39a4-02ae-ab077d3d7754" executionId="a9dfc825-3983-4b80-b6a5-f650339d52ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6097178e-3880-43b0-322c-9973879edb2d" executionId="13f507bd-fe9a-4908-bb1d-27fa5446a40c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0920b20e-5bef-5b16-d358-85edf9404fca" executionId="bc990309-69fb-46e5-9889-3875e5d3a1fa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bb331ec7-3c9b-0543-7216-bbb376a245e3" executionId="0f2cff2d-f8d6-47f8-b398-413a82fdb027" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f8f7f03f-31b1-fe5a-5966-7f563c56fa21" executionId="99207d93-4086-44e5-97d4-b33407c5317c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0385f4aa-deda-1103-2d59-a43e19e139b1" executionId="7e632804-c37c-439f-873d-4a7209738981" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="92c04d14-5c6c-965a-b43a-2a2b6bfb4680" executionId="d3135047-01e4-47a9-8955-cf2bc007a4ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7f89de56-510d-961c-a0cc-4a96081050b2" executionId="4b57ed4c-4920-4812-89f0-d1da5bd11f0f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b72c019b-4be3-ad3c-4c0f-39fd1dc3a6dc" executionId="ad43a33b-2489-4e5a-b4fa-dd05ab8b8fd8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="47c10422-e58e-b62a-73b5-4d29c98f2a61" executionId="670a5a95-02f4-45fe-aeec-306cf8db4b17" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c62ce310-7ad6-486d-7db1-b7aa70a3f7ae" executionId="0b44067a-1631-4e3c-89b6-69435750713c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d815b22b-2d06-39d2-da97-7e17a115f1a4" executionId="b405251b-c036-4040-9c77-13322e5ce9cf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="24ca2685-3fd2-2ed6-6846-1bebf4cc5a32" executionId="04c1aab9-9066-4c09-a86e-3185f0380eed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dbb58ae3-5286-7390-8a31-1b4ea2faa437" executionId="28676b1f-4660-4fd3-bec0-7f95ef59a290" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e85eaacc-c213-c4d9-df18-bed656f7e24f" executionId="25a7ec75-2cd1-4cc2-8bc2-93ce58b52d15" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="70e17bdd-2d01-c0c1-f7bf-0ec82a823dc5" executionId="37d25041-72f2-4269-9d2b-aebe4a1fd9db" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f461de7b-bde3-d635-7c22-8a805d46c9e8" executionId="3ed7afc2-4cde-4e37-91c8-8104e814f895" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="40f136fb-8485-21a8-3817-cd37442c544e" executionId="516e578f-7cb9-4a14-8e65-f8cb7b300340" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5d3776c2-efcb-60f4-a7e7-e90624cf085b" executionId="13e99209-aee5-410e-b74c-0cde2b93475e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="df05432b-e18a-3fd4-ef6d-ae3ba9a69a50" executionId="e8ba9b07-2047-4a5c-90ca-ae924c365e14" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="af4f952f-ffd3-959c-c27c-175afa4b752e" executionId="1a9c6c7e-6683-4d37-9d60-605edf1e3a53" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="df90a9c3-e42f-2e1d-c2ff-bf9ab1f1665b" executionId="6341bf8e-7fbb-49c6-8529-572a3f8af746" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ac05f119-1945-5ffa-9d50-34661752efca" executionId="ed4fd92c-b3f9-4fae-8ef1-0b076bad7587" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cfad3c2d-7cac-e0c1-7a8d-51ad33ec0b73" executionId="18be502f-318a-4399-8a6b-00d6da74e174" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="24bcfbe2-a39b-955c-5496-aa01c87eb52b" executionId="774c1810-1096-4377-8d18-a2e9d238a5ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0a170b99-681a-cf27-e63b-9d7ca963cb3a" executionId="57f5043f-7aae-40f9-95a2-6e1670eebf86" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a3f0617a-1594-0c90-f9da-746d4f78bae3" executionId="5a8b21ee-9512-4d70-a819-2c58635d9ef3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2db1d6db-8407-36d5-f76a-bd1663b0b3d8" executionId="b4fac4a5-9d49-438f-b840-39e932564fbe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc9841bd-9256-840c-390d-4df9f23f0e62" executionId="c69fa7eb-87ec-44de-95c6-029f5c930e04" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1b4e4183-af5c-60dc-3da1-f974ac1ffe5b" executionId="c78cc052-a6e5-4df0-9591-634d1f8628c3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="49f1b406-cea3-9800-4bdd-85a150548fb6" executionId="9674b4df-41c5-41a6-b9ce-be05876191d8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="78fce494-3f38-150e-ebeb-193189ed9c9f" executionId="310ea1d3-b56b-46a9-a05d-93593f38ec52" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="56733f8b-45ec-7632-63e2-a37e281c9721" executionId="0b9d1236-b73a-4bfa-8cd7-b106a7844bf1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="92a77510-b21e-2b69-cff3-f14265419d94" executionId="d9d2ddcf-a524-4003-8a27-23facbe818da" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5af3d2da-e1a0-8dd2-daa5-55c474299ba5" executionId="045717b9-fa6b-4193-9843-2db6e5ac09d2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0af00b22-4b02-d19e-a06a-5c6dc9dae3f7" executionId="33a730b5-0b33-44e2-9198-719bee3fc363" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b2a95e19-7e23-54a6-d3a1-4e83c5a3e67b" executionId="390f5d52-959a-4949-b586-ade6cde2ebe6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="07fa6ad8-e4fc-4d72-ac29-ad0e1d416fec" executionId="eced5a5b-3a17-491c-b823-15873a8dda06" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="70157454-a98f-0477-b940-5687b7d1cfd7" executionId="257e56b8-2c4f-442b-a7af-44d9a37e21ef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="76223524-3fe0-5118-18c7-f8fe1215efe2" executionId="f97e6526-5edb-4c8f-a5f2-b7fc98e5727c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9dfd145d-6ac5-f5df-f602-4ac57d94524c" executionId="a7a2e4ad-42b4-4db0-895f-efc1c9ef9307" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="790a1e1d-aa97-cd9c-7818-b166e289f77f" executionId="2a6e34d4-bae9-4793-8a0a-c035890c0e55" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e9427ac0-83a3-5b85-6369-1e56480119f4" executionId="a3b42b6c-d13a-417a-96b7-4cb332ffe03d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="feff7a6e-8d19-15bb-6836-fff7724f9b68" executionId="12fbc729-303e-40fb-862b-ea2ac9d3b503" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="986dc907-ed13-da19-caed-09267430d7e6" executionId="ec3c6cf7-0202-436a-b48e-baee5ea5f8b0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2b6c2c67-6292-8f49-725b-61458e19cfcb" executionId="52570be0-dd4d-463c-823a-3f7659f26166" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fbe2a518-adbf-74f2-7ad6-271579789c22" executionId="d19282fc-3319-4389-9c5c-7931eb585e56" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2dd616c0-dbcb-08de-6990-e5e629a49dfc" executionId="99787d1d-6287-49f9-9c02-25485e7573ae" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="aac473d8-283b-e8ab-8dc1-63136093c08d" executionId="d57ba6d0-b13b-4f22-ac6d-d7b5f0188fc4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="87cc63e9-f692-9c16-4c9f-0c3821a54e23" executionId="f7589132-02a0-48dd-9066-e906490b516d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="674506ce-d815-d27f-8023-e9ed089689e0" executionId="76d41ffa-c967-488c-b236-c3cde11dcd2d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="daa5995d-e5ce-fb9c-b9ed-9f0f6355401f" executionId="ff2281de-c51e-4800-9ddc-23b44eac7117" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="970a0654-ee08-acee-40f7-ee7889188909" executionId="ec97cbf6-e7af-40a9-a89a-c114671e4a23" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="64" executed="64" passed="37" failed="27" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.01] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:01.14]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:04.30]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:04.40]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:04.82]       System.Collections.Generic.KeyNotFoundException : The given key '2026-05-02' was not present in the dictionary.
+[xUnit.net 00:00:04.82]       Stack Trace:
+[xUnit.net 00:00:04.82]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:04.82]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:04.82]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(103,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan()
+[xUnit.net 00:00:04.82]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.82]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.85]       Assert.True() Failure
+[xUnit.net 00:00:04.85]       Expected: True
+[xUnit.net 00:00:04.85]       Actual:   False
+[xUnit.net 00:00:04.85]       Stack Trace:
+[xUnit.net 00:00:04.85]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(250,0): at Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite()
+[xUnit.net 00:00:04.85]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.85]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.89]       Assert.True() Failure
+[xUnit.net 00:00:04.89]       Expected: True
+[xUnit.net 00:00:04.89]       Actual:   False
+[xUnit.net 00:00:04.89]       Stack Trace:
+[xUnit.net 00:00:04.89]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(267,0): at Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer()
+[xUnit.net 00:00:04.89]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.89]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.93]       System.Collections.Generic.KeyNotFoundException : The given key '2026-02-01' was not present in the dictionary.
+[xUnit.net 00:00:04.93]       Stack Trace:
+[xUnit.net 00:00:04.93]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:04.93]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:04.93]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(498,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch()
+[xUnit.net 00:00:04.93]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.93]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.93]       Assert.False() Failure
+[xUnit.net 00:00:04.93]       Expected: False
+[xUnit.net 00:00:04.93]       Actual:   True
+[xUnit.net 00:00:04.93]       Stack Trace:
+[xUnit.net 00:00:04.93]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(233,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present()
+[xUnit.net 00:00:04.93]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.93]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.93]       System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/1cebac6779694bbaa6b1225fc570e908/root/token-activity-live-v2.json'.
+[xUnit.net 00:00:04.93]       Stack Trace:
+[xUnit.net 00:00:04.93]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:04.93]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:04.93]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:04.93]            at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+[xUnit.net 00:00:04.93]            at System.IO.File.ReadAllBytes(String path)
+[xUnit.net 00:00:04.93]         /workspace/marrow-port/tests/Marrow.Services.Tests/Fixtures/TokenLedgerFiles.cs(39,0): at Marrow.Services.Tests.Fixtures.TokenLedgerFiles.ReadMap(String path, String name)
+[xUnit.net 00:00:04.93]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(76,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance()
+[xUnit.net 00:00:04.93]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.93]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.93]       System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+[xUnit.net 00:00:04.93]       Stack Trace:
+[xUnit.net 00:00:04.93]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:04.93]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:04.93]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(583,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString()
+[xUnit.net 00:00:04.93]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.93]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.95]       System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/285091752c954ba3a328dc868668a16d/root/token-activity-codex-v3.json'.
+[xUnit.net 00:00:04.95]       Stack Trace:
+[xUnit.net 00:00:04.95]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:04.95]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:04.95]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:04.95]            at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+[xUnit.net 00:00:04.95]            at System.IO.File.ReadAllBytes(String path)
+[xUnit.net 00:00:04.95]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(191,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted()
+[xUnit.net 00:00:04.95]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:04.95]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.00]       System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+[xUnit.net 00:00:05.00]       Stack Trace:
+[xUnit.net 00:00:05.00]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.00]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.00]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(467,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile()
+[xUnit.net 00:00:05.00]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.00]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.00]       System.Collections.Generic.KeyNotFoundException : The given key '2026-05-01' was not present in the dictionary.
+[xUnit.net 00:00:05.00]       Stack Trace:
+[xUnit.net 00:00:05.00]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.00]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.00]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(141,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again()
+[xUnit.net 00:00:05.00]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.00]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.00]       System.Collections.Generic.KeyNotFoundException : The given key 'C:\sessions\rollout-2026-03-04T10-00-00-AAAAAAAA-1111-2222-3333-444444444444.jsonl' was not present in the dictionary.
+[xUnit.net 00:00:05.00]       Stack Trace:
+[xUnit.net 00:00:05.00]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.00]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(303,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3()
+[xUnit.net 00:00:05.00]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.00]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.00]       System.Collections.Generic.KeyNotFoundException : The given key '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/eea58fc068fe407fb22607105663471e/home/home-boolean-total/.codex/sessions/boolean-total-a1b2c3d4-1111-2222-3333-cccccccccccc.jsonl' was not present in the dictionary.
+[xUnit.net 00:00:05.00]       Stack Trace:
+[xUnit.net 00:00:05.00]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.00]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(623,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing()
+[xUnit.net 00:00:05.00]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.00]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.01]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:05.01]       Expected: 112
+[xUnit.net 00:00:05.01]       Actual:   12
+[xUnit.net 00:00:05.01]       Stack Trace:
+[xUnit.net 00:00:05.01]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(126,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals()
+[xUnit.net 00:00:05.01]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.01]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.10]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:05.10]                  ↓ (pos 0)
+[xUnit.net 00:00:05.10]       Expected: ["C:\\v2\\b.jsonl"]
+[xUnit.net 00:00:05.10]       Actual:   []
+[xUnit.net 00:00:05.10]       Stack Trace:
+[xUnit.net 00:00:05.10]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(286,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file()
+[xUnit.net 00:00:05.10]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.10]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.12]       Assert.Single() Failure: The collection was empty
+[xUnit.net 00:00:05.12]       Stack Trace:
+[xUnit.net 00:00:05.12]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(265,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults()
+[xUnit.net 00:00:05.12]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.12]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.22]       System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/dce2e7a1e2be484993c37a59aa495f6f/root/token-activity-codex-v3.json'.
+[xUnit.net 00:00:05.22]       Stack Trace:
+[xUnit.net 00:00:05.22]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:05.22]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:05.22]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:05.22]            at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+[xUnit.net 00:00:05.22]            at System.IO.File.ReadAllBytes(String path)
+[xUnit.net 00:00:05.22]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(342,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read()
+[xUnit.net 00:00:05.22]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.22]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.23]       Assert.False() Failure
+[xUnit.net 00:00:05.23]       Expected: False
+[xUnit.net 00:00:05.23]       Actual:   True
+[xUnit.net 00:00:05.23]       Stack Trace:
+[xUnit.net 00:00:05.23]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(250,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written()
+[xUnit.net 00:00:05.23]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.23]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.23]       System.Collections.Generic.KeyNotFoundException : The given key '2026-05-01' was not present in the dictionary.
+[xUnit.net 00:00:05.23]       Stack Trace:
+[xUnit.net 00:00:05.23]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.23]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.23]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(174,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor()
+[xUnit.net 00:00:05.23]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.23]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.30]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:05.30]       Expected: 3
+[xUnit.net 00:00:05.30]       Actual:   2
+[xUnit.net 00:00:05.30]       Stack Trace:
+[xUnit.net 00:00:05.30]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerSecondTests.cs(39,0): at Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load()
+[xUnit.net 00:00:05.30]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.30]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.33]       System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+[xUnit.net 00:00:05.33]       Stack Trace:
+[xUnit.net 00:00:05.33]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.33]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.33]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(448,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Boolean newlineInsideBudget, Int64 expectedTokens)
+[xUnit.net 00:00:05.33]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.33]            at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:05.50]       System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+[xUnit.net 00:00:05.50]       Stack Trace:
+[xUnit.net 00:00:05.50]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.50]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.50]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(448,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Boolean newlineInsideBudget, Int64 expectedTokens)
+[xUnit.net 00:00:05.50]            at InvokeStub_TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(Object, Span`1)
+[xUnit.net 00:00:05.50]            at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.53]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:05.53]       Expected: 8
+[xUnit.net 00:00:05.53]       Actual:   5
+[xUnit.net 00:00:05.53]       Stack Trace:
+[xUnit.net 00:00:05.53]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(215,0): at Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating()
+[xUnit.net 00:00:05.53]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.53]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.54]       System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+[xUnit.net 00:00:05.54]       Stack Trace:
+[xUnit.net 00:00:05.54]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.54]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.54]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(603,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero()
+[xUnit.net 00:00:05.54]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.54]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.60]       System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+[xUnit.net 00:00:05.60]       Stack Trace:
+[xUnit.net 00:00:05.60]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.60]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.60]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(542,0): at Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative()
+[xUnit.net 00:00:05.60]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.60]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.62]       Assert.Single() Failure: The collection was empty
+[xUnit.net 00:00:05.62]       Stack Trace:
+[xUnit.net 00:00:05.62]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(404,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff()
+[xUnit.net 00:00:05.62]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.62]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.65]       System.IO.FileNotFoundException : Could not find file '/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/\tmp\sk12-data/StorageTests/6430996478c9419ea49b28813e238f79/root/token-activity-live-v2.json'.
+[xUnit.net 00:00:05.65]       Stack Trace:
+[xUnit.net 00:00:05.65]            at Interop.ThrowExceptionForIoErrno(ErrorInfo errorInfo, String path, Boolean isDirError)
+[xUnit.net 00:00:05.65]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String path, OpenFlags flags, Int32 mode, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:05.65]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, UnixFileMode openPermissions, Int64&amp; fileLength, UnixFileMode&amp; filePermissions, Boolean failForSymlink, Boolean&amp; wasSymlink, Func`4 createOpenException)
+[xUnit.net 00:00:05.65]            at System.IO.File.OpenHandle(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize)
+[xUnit.net 00:00:05.65]            at System.IO.File.ReadAllBytes(String path)
+[xUnit.net 00:00:05.65]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(296,0): at Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically()
+[xUnit.net 00:00:05.65]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.65]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.75]       System.Collections.Generic.KeyNotFoundException : The given key '2026-01-05' was not present in the dictionary.
+[xUnit.net 00:00:05.75]       Stack Trace:
+[xUnit.net 00:00:05.75]            at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.75]            at System.Collections.ObjectModel.ReadOnlyDictionary`2.get_Item(TKey key)
+[xUnit.net 00:00:05.75]         /workspace/marrow-port/tests/Marrow.Services.Tests/Store/TokenLedgerTests.cs(423,0): at Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory()
+[xUnit.net 00:00:05.75]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.75]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:06.09]   Finished:    Marrow.Services.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.7983057+00:00">
+        <Text>[xUnit.net 00:00:04.81]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.Spend_rolled_forward_on_load_is_subtracted_from_that_rollouts_growth_by_the_first_scan [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.8433965+00:00">
+        <Text>[xUnit.net 00:00:04.85]     Marrow.Services.Tests.Store.TokenLedgerTests.Record_DebouncesTheLiveSaveByTwoSecondsAndLandsOneWrite [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.8434681+00:00">
+        <Text>[xUnit.net 00:00:04.89]     Marrow.Services.Tests.Store.TokenLedgerTests.FlushLiveSpend_WritesImmediatelyAndCancelsThePendingTimer [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9695698+00:00">
+        <Text>[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9695959+00:00">
+        <Text>[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_is_deleted_without_being_migrated_even_when_the_v3_file_is_present [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9696237+00:00">
+        <Text>[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_launch_after_a_run_that_used_codex_moves_that_runs_spend_into_settled_provenance [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9696700+00:00">
+        <Text>[xUnit.net 00:00:04.93]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsANumericJsonString [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9696878+00:00">
+        <Text>[xUnit.net 00:00:04.95]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_scan_saves_one_fingerprint_for_each_rollout_it_counted [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9757113+00:00">
+        <Text>[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9757350+00:00">
+        <Text>[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.Later_refreshes_in_the_same_process_scan_nothing_again [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9757738+00:00">
+        <Text>[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v2_file_is_migrated_forward_filling_empty_identities_from_the_path_then_deleted_and_saved_as_v3 [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9757997+00:00">
+        <Text>[xUnit.net 00:00:05.00]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_RejectsATotalTokensGivenAsABooleanAndContributesNothing [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:50.9758109+00:00">
+        <Text>[xUnit.net 00:00:05.01]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_first_refresh_scans_rollouts_older_than_the_launch_moment_and_merges_history_live_and_legacy_totals [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.0619689+00:00">
+        <Text>[xUnit.net 00:00:05.10]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_that_does_not_decode_falls_through_to_the_v2_file [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.0821450+00:00">
+        <Text>[xUnit.net 00:00:05.12]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v3_file_is_used_when_it_decodes_and_fills_missing_tokens_day_and_identity_with_defaults [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.1739556+00:00">
+        <Text>[xUnit.net 00:00:05.22]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.The_legacy_preference_dictionary_is_removed_converted_and_saved_as_v3_dropping_records_it_cannot_read [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.1786810+00:00">
+        <Text>[xUnit.net 00:00:05.23]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_v1_file_alone_is_removed_and_yields_an_empty_map_with_no_v3_file_written [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.1813343+00:00">
+        <Text>[xUnit.net 00:00:05.23]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.A_second_call_made_while_the_first_scan_is_in_flight_returns_at_once_and_the_scan_leaves_the_main_actor [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.2560690+00:00">
+        <Text>[xUnit.net 00:00:05.30]     Marrow.Services.Tests.Store.TokenLedgerSecondTests.Live_codex_spend_recorded_by_an_earlier_process_is_added_into_settled_provenance_on_load [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.2754330+00:00">
+        <Text>[xUnit.net 00:00:05.33]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: True, expectedTokens: 60) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.4528078+00:00">
+        <Text>[xUnit.net 00:00:05.50]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(newlineInsideBudget: False, expectedTokens: 260) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.4753539+00:00">
+        <Text>[xUnit.net 00:00:05.52]     Marrow.Services.Tests.Store.TokenLedgerTests.MergedTotals_AddsLegacyLiveAndHistorySourcesRatherThanAccumulating [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.4951616+00:00">
+        <Text>[xUnit.net 00:00:05.54]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_AcceptsATailTotalTokensGivenAsAFractionalNumberTruncatedTowardZero [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.5565306+00:00">
+        <Text>[xUnit.net 00:00:05.60]     Marrow.Services.Tests.Store.TokenLedgerTests.Reconcile_ClearsSettledLiveSpendFromTheNewestDayFirstAndNeverGoesNegative [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.5732239+00:00">
+        <Text>[xUnit.net 00:00:05.62]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_OnlyCountsJsonlFilesWithinTheWindowAndBeforeLiveCutoff [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.5982952+00:00">
+        <Text>[xUnit.net 00:00:05.65]     Marrow.Services.Tests.Store.TokenLedgerTests.LiveSpendState_PersistsExactlyFourNamedMapsAtomically [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="2aa35d38bc5c" outcome="Error" timestamp="2026-10-05T04:26:51.7419533+00:00">
+        <Text>[xUnit.net 00:00:05.75]     Marrow.Services.Tests.Store.TokenLedgerTests.ScanCodexHistory_ContributesOnlyTheFilesOwnGrowthOverItsInheritedHistory [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

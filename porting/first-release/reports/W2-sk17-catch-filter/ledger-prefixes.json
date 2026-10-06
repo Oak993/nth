@@ -1,0 +1,16 @@
+[
+  {
+    "file": "engineering_decisions.md",
+    "beforeBytes": 1608465,
+    "prefixSha256": "4A2BAF0A6C5B24DF2F06B4C5F405F39F2FF1E210ED0B62F5B2D3C2AFB5102054",
+    "prefixMatches": true,
+    "appendedBytes": 1923
+  },
+  {
+    "file": "STATE.md",
+    "beforeBytes": 64261,
+    "prefixSha256": "43CB766FC9759C81CABE0F83D1B731B321A0BF6B1CBAC1AD4942C35F809BAF69",
+    "prefixMatches": true,
+    "appendedBytes": 1063
+  }
+]

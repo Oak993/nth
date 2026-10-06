@@ -124,6 +124,12 @@ public sealed class VoiceSession : IAudioCaptureSink
         }
     }
 
+    /// <summary>The error that ended the session in a note (VT-17: what the note's words are chosen from): a capture, load or engine exception; null when none was raised.</summary>
+    public Exception? FailureCause { get; private set; }
+
+    /// <summary>The last device event the capture reported while listening (V-4.4); null when none.</summary>
+    public CaptureDeviceEventKind? LastDeviceEvent { get; private set; }
+
     public event Action<VoiceSessionState, VoiceSessionState>? StateChanged;
 
     public event Action<TranscriptUpdate>? TranscriptChanged;
@@ -251,6 +257,7 @@ public sealed class VoiceSession : IAudioCaptureSink
     public void OnDeviceEvent(CaptureDeviceEventKind kind)
     {
         if (state != VoiceSessionState.Listening) return;
+        LastDeviceEvent = kind;
         if (kind == CaptureDeviceEventKind.InUse) Fail(VoiceNoteKind.CaptureFailed);
         else Stop(VoiceStopReason.DeviceEvent);
     }
@@ -295,6 +302,7 @@ public sealed class VoiceSession : IAudioCaptureSink
 
     private void StartListening(VoiceSessionSettings current, LanguageResolution resolved)
     {
+        LastDeviceEvent = null;
         Teardown();
         sendTimer?.Cancel();
         landingTimer?.Cancel();
@@ -319,6 +327,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         detectedLanguage = null;
         suppressSend = false;
         lastStop = null;
+        FailureCause = null;
         lastAddAt = null;
         label.Reset();
         pending.Clear();
@@ -334,9 +343,9 @@ public sealed class VoiceSession : IAudioCaptureSink
             format = seams.Capture.Start(this);
             captureRunning = true;
         }
-        catch (Exception)
+        catch (Exception error)
         {
-            Fail(VoiceNoteKind.CaptureFailed);
+            Fail(VoiceNoteKind.CaptureFailed, error);
             return;
         }
         loadWait = hub.EnsureLoaded(seams.Engine, model);
@@ -353,7 +362,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         var wait = loadWait;
         _ = MainActor.Spawn(async () =>
         {
-            if (!await wait && gen == generation && state is VoiceSessionState.Listening or VoiceSessionState.Processing) Fail(VoiceNoteKind.ModelLoadFailed);
+            if (!await wait && gen == generation && state is VoiceSessionState.Listening or VoiceSessionState.Processing) Fail(VoiceNoteKind.ModelLoadFailed, hub.LoadFailure);
         });
     }
 
@@ -454,9 +463,9 @@ public sealed class VoiceSession : IAudioCaptureSink
             catch (OperationCanceledException)
             {
             }
-            catch (Exception)
+            catch (Exception error)
             {
-                if (gen == generation && state == VoiceSessionState.Listening) Fail(VoiceNoteKind.EngineFailed);
+                if (gen == generation && state == VoiceSessionState.Listening) Fail(VoiceNoteKind.EngineFailed, error);
             }
             finally
             {
@@ -536,9 +545,9 @@ public sealed class VoiceSession : IAudioCaptureSink
             catch (OperationCanceledException)
             {
             }
-            catch (Exception)
+            catch (Exception error)
             {
-                if (gen == generation && state == VoiceSessionState.Processing) Fail(VoiceNoteKind.EngineFailed);
+                if (gen == generation && state == VoiceSessionState.Processing) Fail(VoiceNoteKind.EngineFailed, error);
             }
         });
     }
@@ -617,8 +626,9 @@ public sealed class VoiceSession : IAudioCaptureSink
         });
     }
 
-    private void Fail(VoiceNoteKind note)
+    private void Fail(VoiceNoteKind note, Exception? cause = null)
     {
+        FailureCause = cause;
         Teardown();
         StopCapture();
         shown = [];

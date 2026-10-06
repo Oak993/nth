@@ -391,6 +391,10 @@ public sealed class PiSessionTests
         // Both stdin lines must actually reach the real child process (its background reader is not on this
         // manual loop) before the clock advance can resolve get_commands' pending 30 second timeout.
         runtime.Loop.RunUntil(() => script.StdinLines().Count == 2, TimeSpan.FromSeconds(20));
+        // PendingReplies starts each timeout in a queued MainActor task. Seeing stdin alone does not
+        // establish that get_commands' timer has started; join both request timers before advancing.
+        runtime.Loop.RunUntil(() => runtime.Time.TimerDeadlines.Count(t => t == TimeSpan.FromSeconds(30)) == 2,
+            TimeSpan.FromSeconds(20));
         runtime.Advance(TimeSpan.FromSeconds(30));
         var id = runtime.Loop.Run(() => startTask!, TimeSpan.FromSeconds(30));
         Assert.Equal("", id); // get_state's data carried no session id

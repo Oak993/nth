@@ -1,0 +1,42 @@
+# FLAKE-1 — NOT READY
+
+Base: `claude/verify-terminal-20261001`, `889c9ebd523cbfedb39d9bf06e22ba7b9988ea46`.
+Delivery branch: `codex/flake-1`. No production files changed.
+
+Every selected case was attempted 50 times before and 50 times after, on Linux with .NET SDK 10.0.401, `-p:EnableWindowsTargeting=true`, and `FullyQualifiedName!~Native`. Four independent CPU-bound Python processes competed with the test hosts in a cgroup limited to four CPUs (`cpu.max: 400000 100000`). Results below are passes **per case**, not summed across theory rows. Failures remain failures; none were skipped or retried.
+
+| Requested test | Cause established or synchronization risk found | Fix | Before → after passes |
+| --- | --- | --- | --- |
+| WallpaperCardTests: indeterminate indicator | Reproduced: a 512-pixel image was used as a timing assumption; installation could finish before the in-flight assertions. | Inject a background-to-main completion gate, assert the full installing state, then release and assert completion. Main-thread view updates still run. | 11/50 → 50/50 |
+| ComposerWorkingDotsEaseTests | Flake not reproduced. A render tick/capture did not explicitly join the batch carrying the sampled animation state. | Join the compositor batch's `Rendered` task while retaining the injected animation clock and exact 0.32-second expectations. | 50/50 → 50/50, each of 8 cases |
+| AppModelTurnFinishedTests | Flake not reproduced. Concurrent manual main actors can share FinishChime's static lazy sound cache across test classes. | Give the chime/banner class an exclusive xUnit collection. Existing synchronous chime/banner assertions remain intact. | 50/50 → 50/50, each of 17 cases; usage-limit case 0/50 → 0/50 |
+| ThreadRuntimeProviderLoadTests | Fixture sequence allocation and file publication were protected only in gated mode; ordinary simultaneous provider launches could overwrite a call. Reproduced separately in the exact fixture source. | Always lock sequence allocation, temporary-file publication, and readers per fixture directory. The runtime tests retain all assertions. | 0/50 → 0/50, each of 5 cases (fixture setup blocked on Linux) |
+| ProviderRegistrySignInTests: successful login | Same record-publication race; `Task.Delay(300)` did not join forced limits completion. The old app-server fixture exited mid-protocol. | Locked records; fixed offline JSON-RPC replies for initialize, model listing and limits; join forced completion on the injected loop. Add an actual reloaded-model assertion. | 0/50 → 0/50 (fixture setup blocked on Linux) |
+| OrbRendererTests: every-state allocation | Flake not reproduced. The allocation window ran on the test runner's thread and reevaluated fixture state inside the measured loop. No application allocation defect was established. | Snapshot fixture state and measure only the same runtime frames on a dedicated thread; keep 20 warmup frames, 200 measured frames, and exact zero bytes. | 50/50 → 50/50, each of 4 states including hover |
+| ShellTests: stop/cancellation and RunTool timeout | Timer count could identify the still-active process deadline as the kill delay; equal counts do not identify readiness. Blind arming polls also hid launch exceptions for 60 seconds. | Join exact injected deadlines (120, 121, 1, or 7 seconds), and propagate completed launch failures while retaining the armed-handler assertion and exact termination assertions. | 0/50 → 0/50, each of 5 cases (Linux setup blocked) |
+| GitTests: GitLab merge and two shared-helper users | Global executable liveness could include another test's glab process; a 200-ms stable timer count could still select a process deadline. | Join this fixture's call count and exact injected retry deadline: 3, 5, 7, 9, 11, and 13 seconds. Preserve early-retry and cancellation assertions. | 0/50 → 0/50, each of 4 cases (native setup blocked) |
+| PiCLITests: silent timeout and RPC/stdin fixture | Two stdin records did not prove the detached timeout had registered its clock timer. Readers could open a published path while the writer still held its rename handle on Windows. | Join the exact 30-second timer before advancing 29,999 + 1 ms; lock the entire temporary-write/rename and all record reads with the same per-directory mutex. | 0/50 → 0/50, each of 2 cases (fixture setup blocked on Linux) |
+
+The separately compiled provider publication experiment launched 16 concurrent processes per iteration using the actual old/new fixture source. Old fixture: **0/50** iterations preserved all 16 argument records. Fixed fixture: **50/50**. This proves the fixture race and its fix, but does not substitute for the blocked runtime/sign-in tests.
+
+The build passed with zero warnings/errors. Four new helper tests passed: main-executor gate (2), distinct manual timer deadlines (1), allocation probe (1, proves measured allocations are counted). All 12 traceability checks across four projects passed; existing traits were retained, and new tests use `Rule=R-TEST-5`. Independent review found no remaining assertion weakening after correcting main-thread gate delivery and the Pi argv reader.
+
+## Why this is NOT READY
+
+The Linux failures occur before the relevant behavioral assertions. Provider and Pi fixtures search for source with Windows backslashes and use .NET Framework csc.exe; Git needs `kernel32.dll`; the AppModel usage-limit case needs `icu.dll`. Four Shell stop cases encounter duplicate case-insensitive `HTTP_PROXY` environment keys from Linux's upper/lower-case entries; RunTool cannot find Windows PowerShell. These tests need genuine Windows execution. No process fake was substituted for their real child-process behavior, and no unsupported production Linux port was introduced.
+
+Composer/chime/orb causes remain hypotheses until their reported baseline failures are reproduced. Passing both before and after demonstrates retained assertions under this load, not proof that those flakes are eliminated. No production race was confirmed or patched.
+
+The unchanged repository entrypoint `node porting/tools/verify.mjs --json` also reports NOT ACCEPTABLE: missing pinned Windows reference, existing production stubs and unimplemented gates, missing requirement-verification evidence, and its build invocation lacks Linux's Windows-targeting opt-in. Its output is retained. It is not being represented as passing or marked DONE.
+
+## Evidence and reproduction
+
+`counts.json` lists every exact case and both outcome counts. `tested-source-sha256.json` binds the runs to the changed source bytes; `engineering-prefix.json` records the original log's length/hash. `runs.zip` contains original TRX and console logs, build/helper/traceability/gate outputs, the actual runners, and the separate provider publication experiment.
+
+Original baseline Core stop runs used eight simultaneous test hosts to finish all 50 attempts despite their blind 60-second arming polls. The extra RunTool baseline used the same arrangement. Three other baseline groups and all after groups ran 50-iteration loops, with different project groups in parallel. Interrupted preliminary Core loops are not counted. Two additional Git helper users and RunTool received separate complete baseline loops because their code also changed. This is repetition for measurement, not retries within any test.
+
+To reproduce, install .NET 10.0.401, build the base and delivery source separately with `dotnet build Marrow.sln -p:EnableWindowsTargeting=true`, and adapt the archived runners' root/output/SDK paths to those checkouts. The baseline uses ordinary build output; the after build used a separate `--artifacts-path` to retain the baseline binaries. Set `MARROW_PORT_DATA_DIR` to throwaway data, run the four archived `load.py` CPU workers throughout, then execute each archived group/filter 50 times. Every invocation includes the Native exclusion. On Windows, keep fixture build output beneath its checkout so the existing fixture source lookup can find it; use the normal Windows environment and .NET Framework compiler.
+
+The engineering decision was appended as bytes. Its original prefix was verified identical to the base commit; no line endings in the existing content were rewritten.
+
+Historical evidence for `56a959fb9e18f44c1cd63b9b045d129bacea5800`. The independent review found an abandoned-lock defect and a missing Shell timer assertion; see [the review repair](../flake-1-review-repair/README.md) for corrections and current verification limits.

@@ -1,0 +1,16 @@
+[
+  {
+    "file": "porting/engineering_decisions.md",
+    "priorBytes": 1602424,
+    "currentBytes": 1605461,
+    "prefixByteExact": true,
+    "priorSha256": "F0630A4E5BEC06F46D84F138D63DA2E8C977E44B63403B818E29FE2B9F545668"
+  },
+  {
+    "file": "porting/STATE.md",
+    "priorBytes": 61025,
+    "currentBytes": 62479,
+    "prefixByteExact": true,
+    "priorSha256": "95F0500AACEE4B3CAEEA7B4E0808141604FB0F3D0B44414D446904E5B91B3ACC"
+  }
+]

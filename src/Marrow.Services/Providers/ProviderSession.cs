@@ -64,6 +64,10 @@ public sealed record SessionConfiguration
     /// </summary>
     public bool IsHydraHead { get; init; }                              // :43-45
     public bool AntiSlopEnabled { get; init; } = true;                  // :46
+    // PORT-ONLY: SK-17 / OD-0099 Q-SKILLS-8 A. The launch owner retains and disposes this immutable lease.
+    public Marrow.Services.Port.Skills.Generations.Generation? SkillGeneration { get; init; }
+    // PORT-ONLY SK-17: the app's private stdio relay entry point, never an executable supplied by downloaded skills.
+    public string? SkillMcpExecutable { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.
@@ -198,6 +202,9 @@ public interface ProviderSession // :137
     Task Interrupt(); // :144
 
     void ResolveApproval(string requestID, string optionID); // :145
+
+    // PORT-ONLY: SK-12 / R1. Protocols without a denial message retain their own response shape.
+    void ResolveApproval(string requestID, string optionID, string? reason) => ResolveApproval(requestID, optionID);
 
     void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers); // :146
 

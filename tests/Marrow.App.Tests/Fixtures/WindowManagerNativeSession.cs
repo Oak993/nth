@@ -23,6 +23,7 @@ public sealed class WindowManagerNativeSession : IDisposable
     private ExecutionContext? nativeContext;
     private Exception? loopFailure;
     private bool disposed;
+    private bool captureAt60;
 
     public WindowManagerNativeSession() { }
 
@@ -46,7 +47,8 @@ public sealed class WindowManagerNativeSession : IDisposable
         {
             if (Application.Current is not null)
                 throw new InvalidOperationException("The selected native child already initialized an Avalonia application.");
-            AppBuilder.Configure<Application>().UsePlatformDetect().WithSwiftFonts().WithPortControlThemes().SetupWithoutStarting();
+            var builder = AppBuilder.Configure<Application>().UsePlatformDetect().WithSwiftFonts().WithPortControlThemes();
+            builder.SetupWithoutStarting();
             MainActor.Bind(AvaloniaMainExecutor.Instance);
             using var harness = new AppModelHarness(withRuntime: false);
             ThreadId = WindowManagerNativeMethods.GetCurrentThreadId();
@@ -100,6 +102,7 @@ public sealed class WindowManagerNativeSession : IDisposable
         }
 
         var identity = WindowManagerNativeChildProtocol.EnterChild(fact);
+        captureAt60 = fact.StartsWith("Marrow.App.Tests.Window.Native.Aurora", StringComparison.Ordinal); // authenticated T10 captures only; never change the owner's monitor mode
         Exception? failure = null;
         var bodyPassed = false;
         var nativeThreadJoined = false;
@@ -131,6 +134,7 @@ public sealed class WindowManagerNativeSession : IDisposable
         try
         {
             subject = OnUi(() => new WindowManagerNativeSubject(this));
+            if (captureAt60) OnUi(AuroraNativeRenderClock.CaptureAt60);
             body(subject); // Driver stays OFF the STA, including waits and native mouse injection.
             subject.MainProbe.CheckCallbacks();
             subject.SettingsProbe.CheckCallbacks();

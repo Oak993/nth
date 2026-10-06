@@ -1767,6 +1767,9 @@ internal sealed class ComposerWorkingDotsSlot : Decorator
     // stopping a turn repaints the dots alone.
     public ComposerWorkingDotsSlot(ThreadRuntime runtime)
     {
+        // PORT-ONLY CZ-5 (customization-SPEC CZ-10.4, OD-0089): the dots' colour is the workingDots setting's for this thread's model; a change reaches the running dots eased (ComposerWorkingDots.Tint).
+        // Registered before the run flag's hook, so dots that arrive wear it from the start.
+        this.Track(() => Marrow.App.Port.Settings.WorkingDotsColor.For(AppEnvironment.GetAppModel(this), runtime.ThreadID), color => { tint = color; if (dots is not null) dots.Tint = color; });
         var panel = new Panel();
         var clip = new Border { Child = panel, ClipToBounds = true }.RoundedRectangle(22, RoundedCornerStyle.Continuous).CircularInBand(); // :671 `.clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))`: clipped to the shape (ED-181)
         Control? current = null;
@@ -1787,13 +1790,16 @@ internal sealed class ComposerWorkingDotsSlot : Decorator
     }
 
     // :666-672 the dots, their frame, clip and opacity transition (PR-COMPOSER-101).
-    private static Control Dots()
+    private Control Dots()
     {
-        var dots = new ComposerWorkingDots { VerticalAlignment = VerticalAlignment.Bottom }; // :667-669
+        var dots = this.dots = new ComposerWorkingDots { VerticalAlignment = VerticalAlignment.Bottom, Tint = tint }; // :667-669
         var geometry = new Grid { Children = { dots } }; // :666 GeometryReader
         geometry.SizeChanged += (_, e) => dots.Height = e.NewSize.Height * 0.4; // :668
         return geometry;
     }
+
+    private ComposerWorkingDots? dots;
+    private SwiftColor tint = Chrome.Accent;
 }
 
 /// <summary>:679-690 <c>private struct ModelEffortSlot: View</c>.</summary>

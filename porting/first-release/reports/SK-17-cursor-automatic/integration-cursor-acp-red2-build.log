@@ -1,0 +1,9 @@
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(53,33): error CS0030: Cannot convert type 'Marrow.Services.Providers.ACPSession' to 'Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime' [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+
+Build FAILED.
+
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(53,33): error CS0030: Cannot convert type 'Marrow.Services.Providers.ACPSession' to 'Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime' [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:02.09

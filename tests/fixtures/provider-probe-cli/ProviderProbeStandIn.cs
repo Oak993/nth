@@ -35,8 +35,6 @@ internal static class ProviderProbeStandIn
     {
         string dir = AppDomain.CurrentDomain.BaseDirectory;
 
-        int call = 0;
-        while (File.Exists(Path.Combine(dir, "call-" + call + ".args"))) call++;
         MemoryStream argv = new MemoryStream();
         foreach (string argument in args)
         {
@@ -44,30 +42,26 @@ internal static class ProviderProbeStandIn
             argv.Write(bytes, 0, bytes.Length);
             argv.WriteByte(0);
         }
-        string recorded = Path.Combine(dir, "call-" + call + ".args");
-        if (File.Exists(Path.Combine(dir, "wait-for-release.txt")))
+        // Every mode can overlap: a limits read and a catalog load are separate processes.
+        var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        string lockName;
+        using (var hash = System.Security.Cryptography.SHA256.Create())
+            lockName = "Local\\MarrowProviderProbe-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "");
+        int call;
+        using (var recording = new Mutex(false, lockName))
         {
-            // PORT-ONLY fixture synchronization (R-TEST-8): the listing and session warmup are separate
-            // processes. Allocate their call numbers and publish complete argv under one per-folder lock.
-            var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            string lockName;
-            using (var hash = System.Security.Cryptography.SHA256.Create())
-                lockName = "Local\\MarrowProviderProbe-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "");
-            using (var recording = new Mutex(false, lockName))
+            try { recording.WaitOne(); }
+            catch (AbandonedMutexException) { /* Ownership is acquired even though the previous publisher died. */ }
+            try
             {
-                recording.WaitOne();
-                try
-                {
-                    call = 0;
-                    while (File.Exists(Path.Combine(dir, "call-" + call + ".args"))) call++;
-                    recorded = Path.Combine(dir, "call-" + call + ".args");
-                    File.WriteAllBytes(recorded + ".tmp", argv.ToArray());
-                    File.Move(recorded + ".tmp", recorded);
-                }
-                finally { recording.ReleaseMutex(); }
+                call = 0;
+                while (File.Exists(Path.Combine(dir, "call-" + call + ".args"))) call++;
+                string recorded = Path.Combine(dir, "call-" + call + ".args");
+                File.WriteAllBytes(recorded + ".tmp", argv.ToArray());
+                File.Move(recorded + ".tmp", recorded);
             }
+            finally { recording.ReleaseMutex(); }
         }
-        else File.WriteAllBytes(recorded, argv.ToArray()); // Existing probe mode stays unchanged.
 
         string markerPath = Path.Combine(dir, "marker.txt");
         string marker = File.Exists(markerPath) ? File.ReadAllText(markerPath).Trim() : "";
@@ -80,6 +74,8 @@ internal static class ProviderProbeStandIn
 
         try
         {
+            if (args.Length == 1 && args[0] == "app-server" && File.Exists(Path.Combine(dir, "codex-rpc.txt")))
+                return CodexRPC();
             // Optional test-only gate for ComposerView.swift:205-215's delayed command listing. No fixed sleep
             // decides delivery: the test releases listings after asserting its focused panel is already open.
             // Claude's independent --help warmup is not a listing and must never wait on this gate.
@@ -131,5 +127,34 @@ internal static class ProviderProbeStandIn
             }
             if (marker.Length != 0 && File.Exists(marker)) File.Delete(marker);
         }
+    }
+
+    // The sign-in follow-ups need a functioning offline app-server, rather than one that exits
+    // mid-initialize. Only the fixed JSONRPCConnection request shapes are accepted here.
+    private static int CodexRPC()
+    {
+        var input = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false));
+        var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false));
+        output.AutoFlush = true;
+        string line;
+        while ((line = input.ReadLine()) != null)
+        {
+            const string marker = "\"id\":";
+            int start = line.IndexOf(marker, StringComparison.Ordinal);
+            if (start < 0) continue;
+            start += marker.Length;
+            int end = start;
+            while (end < line.Length && (char.IsDigit(line[end]) || line[end] == '-')) end++;
+            if (end == start) continue;
+            string result;
+            if (line.Contains("\"method\":\"initialize\"")) result = "{}";
+            else if (line.Contains("\"method\":\"model/list\""))
+                result = "{\"data\":[{\"id\":\"offline-model\",\"displayName\":\"Offline model\"}],\"nextCursor\":null}";
+            else if (line.Contains("\"method\":\"account/rateLimits/read\""))
+                result = "{\"rateLimits\":{\"planType\":\"plus\"}}";
+            else return 2;
+            output.WriteLine("{\"id\":" + line.Substring(start, end - start) + ",\"result\":" + result + "}");
+        }
+        return 0;
     }
 }

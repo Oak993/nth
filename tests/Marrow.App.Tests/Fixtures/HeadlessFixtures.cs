@@ -17,6 +17,7 @@ public sealed class TestApp : Application
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
         .UseSkia()
         .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, ShouldRenderOnUIThread = true })
+        .WithA11yLinuxFonts() // review support: bundled default/monospace families on Linux only
         .WithPortControlThemes() // the app shell's default control themes (PortControlThemes.cs)
         .WithSwiftFonts(); // ED-107 (5): the one font registration point, shared with the app shell's AppBuilder;
         // matches tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs, missing here until App.Views.Settings.TokenActivitySection's

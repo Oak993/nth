@@ -3,6 +3,7 @@
 // ones finer and paler, and the clouds themselves change shape only slowly. Calm, but never a flat gradient.
 // Palette: 0 the far ground, 1 to 4 the layers from far to near, 5 a faint light from above.
 // Options: x = motion (how far the camera drifts), y = depth (how far apart the layers sit).
+// Perspective: layers (each layer is shifted by tiltD from far to near).
 const float T = 90.0;
 
 vec3 wall(vec2 p, float t) {
@@ -16,7 +17,7 @@ vec3 wall(vec2 p, float t) {
     float f = float(i);
     float z = 0.25 + 0.55 * f * dp;
     float sc = 1.25 - 0.22 * f;
-    vec2 q = (p + cam * z) * sc + vec2(f * 3.1, f * 1.7);
+    vec2 q = (p + cam * z + tiltD((f - 1.5) / 1.5)) * sc + vec2(f * 3.1, f * 1.7);
     float n = gnoise(vec3(q * 0.9, f * 2.0) + vec3(orbit(a + f, 0.08 * m), 0.06 * m * sin(a + f)))
             + 0.45 * gnoise(vec3(q * 1.9, f * 5.0 + 1.0) + vec3(orbit(-a, 0.06 * m), 0.0));
     float soft = 0.08 + 0.07 * f;

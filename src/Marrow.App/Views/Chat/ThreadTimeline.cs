@@ -129,8 +129,8 @@ public sealed class ThreadTimeline : Decorator
             DrawPasses++;
             if (runtime.IsLoadingHistory)
             {
-                // :134-135; OD-0016 / ED-097. LoadingMark owns the 400 ms blank period and 0.2 s fade, and cancels its frames on detach.
-                if (branches.On is not LoadingMark) branches.Show(new LoadingMark { Width = 64, Height = 64, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, fadesIn: false);
+                // :134-135; OD-0113 / ED-097. Curtain Fold owns the 400 ms blank period and 0.2 s fade.
+                if (branches.On is not AuroraLoader) branches.Show(new AuroraLoader(AuroraLoaderKind.CurtainFold) { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, fadesIn: false);
                 return;
             }
             var model = AppEnvironment.GetAppModel(this);
@@ -243,7 +243,13 @@ public sealed class ThreadTimeline : Decorator
                 // the pill comes and goes in front of them, made again only when what it says changed (its count).
                 var body = drawnBody ??= new StackPanel(); var hidden = WindowStartIndex(blocks);
                 var sentinel = drawnSentinel as Border ?? new Border { Height = 1, Background = Brushes.Transparent }; // :402-409
-                if (body.Children.Count == 0) { body.Children.Add(rows); body.Children.Add(sentinel); }
+                if (body.Children.Count == 0)
+                {
+                    body.Children.Add(rows);
+                    // PORT-ONLY (SK-14, ED-384 item 16): Offer A is an inline card in the reply, so a chat with a skills offer flow draws its card, and the caption line it leaves, after the rows and before the end sentinel; both take no room while there is nothing to say.
+                    Marrow.App.Port.Skills.SkillsOfferRows.Append(body, runtime, TimelineMetrics.RowSpacing);
+                    body.Children.Add(sentinel);
+                }
                 Button? earlier = hidden == 0 ? null : drawnEarlier is Button shown && earlierHidden == hidden ? shown : EarlierPill(hidden, () => { LoadEarlier(drawnBlocks); Draw(); });
                 if (!ReferenceEquals(body.Children[0], rows) && !ReferenceEquals(body.Children[0], earlier)) body.Children.RemoveAt(0);
                 if (earlier is not null && !ReferenceEquals(body.Children[0], earlier)) body.Children.Insert(0, earlier);
@@ -589,8 +595,8 @@ public sealed class ThreadTimeline : Decorator
         {
             if (ReferenceEquals(On, next)) return;
             var previous = On; On = next;
-            if (previous is null || next is LoadingMark || stilled()) { Cut(next); return; }
-            if (previous is LoadingMark) { HandOverFrom(previous, next, fadesIn); return; }
+            if (previous is null || next is AuroraLoader || stilled()) { Cut(next); return; }
+            if (previous is AuroraLoader) { HandOverFrom(previous, next, fadesIn); return; }
             var back = Children.Contains(next); // a layer that was leaving, turned back
             Leave(previous);
             if (!back) { next.Opacity = fadesIn ? 0 : 1; Children.Add(next); }

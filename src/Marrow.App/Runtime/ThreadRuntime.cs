@@ -341,6 +341,46 @@ public sealed class ThreadRuntime : MainActorModel
     private bool isLoadingHistory = false;
     private long lastSavedRevision;
     private ValueList<FollowUpPrompt> followUps = ValueList<FollowUpPrompt>.Empty;
+    // PORT-ONLY: SK-12 / DL-13. UI unit SK-14 binds the card; the host supplies the checked installer.
+    public Marrow.App.Port.Skills.SkillsOfferFlow? SkillsOffers { get; private set; }
+    private readonly HashSet<Guid> skillsFollowUps = [];
+    private readonly AsyncLocal<bool> skillsContinuationTurn = new();
+    internal void AttachSkillsOffers(Marrow.App.Port.Skills.SkillsOfferFlow flow)
+    {
+        if (SkillsOffers is not null) throw new InvalidOperationException("A chat already owns its skills offer flow.");
+        SkillsOffers = flow;
+    }
+    internal long SkillsSessionEpoch => sessionEpoch;
+    internal void ResolveSkillsApproval(ApprovalRequest request, bool approved, string? reason, long epoch)
+    {
+        if (epoch != sessionEpoch || !Approvals.Any(a => a.Id == request.Id)) return;
+        var role = approved ? ApprovalRequest.Option.Role.Approve : ApprovalRequest.Option.Role.Decline;
+        if (request.Options.FirstOrDefault(o => o.OptionRole == role) is not { } option) return;
+        Approvals = new ValueList<ApprovalRequest>(Approvals.Where(a => a.Id != request.Id));
+        session?.ResolveApproval(request.Id, option.Id, reason);
+    }
+    internal void QueueSkillsContinuation(string text)
+    {
+        var prompt = new FollowUpPrompt { Text = text };
+        skillsFollowUps.Add(prompt.Id);
+        FollowUps = followUps.Appending(prompt);
+        saveRevision++;
+        ScheduleSave();
+        if (Phase == RuntimePhase.Idle) DrainFollowUps(TurnStatus.Completed);
+    }
+
+    private async Task StartSkillsTurn(string text, IReadOnlyList<Attachment> attachments)
+    {
+        var previous = skillsContinuationTurn.Value;
+        try
+        {
+            skillsContinuationTurn.Value = true;
+            await EnsureLoaded();
+            await StartTurn(text, attachments);
+        }
+        finally { skillsContinuationTurn.Value = previous; }
+    }
+
     private PendingSend? pendingSend; // :797
     private bool followUpFlushScheduled = false; // :1057
     private ValueList<HydraMergeRecord> hydraMerges = ValueList<HydraMergeRecord>.Empty;
@@ -411,6 +451,9 @@ public sealed class ThreadRuntime : MainActorModel
     private readonly Dictionary<ProviderKind, string> cliResendVersions = [];
     private readonly HashSet<string> hydraTouched = new(SwiftStringComparer.Instance);
     private ProviderSession? session;
+    // PORT-ONLY: SK-17. Per-candidate ownership also covers failed resumes and late startup completion.
+    private readonly Dictionary<ProviderSession, Marrow.Services.Port.Skills.Generations.Generation> sessionSkills = [];
+    private Task pendingSkillRelease = Task.CompletedTask;
     private TaskHandle? warmup;
     private string? unsentSessionID;
     private SessionSignature? sessionSignature;
@@ -1230,6 +1273,7 @@ public sealed class ThreadRuntime : MainActorModel
     public void SendFollowUpNow(Guid id) // ThreadRuntime.swift:954-990
     {
         if (isReverting) return;
+        if (phase != RuntimePhase.Idle && skillsFollowUps.Contains(id)) return;
         var index = IndexOfFollowUp(id);
         if (index < 0) return;
 
@@ -1280,6 +1324,7 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1013-1016.
     private bool DispatchQueuedHead(FollowUpPrompt prompt)
     {
+        if (skillsFollowUps.Contains(prompt.Id)) return false;
         if (appReference is null || !appReference.TryGetTarget(out var app)
             || (!app.Settings.HydraQueueHeads && !app.Settings.HydraAlwaysHeads)) return false;
         return DispatchHead(prompt, HydraHeadInfo.Origin.Queued);
@@ -1421,8 +1466,22 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1114-1139.
     private bool DrainFollowUps(TurnStatus status)
     {
-        if (status != TurnStatus.Completed || Phase != RuntimePhase.Idle || FollowUps.Count == 0) return false;
+        if (Phase != RuntimePhase.Idle || FollowUps.Count == 0) return false;
+        if (status != TurnStatus.Completed)
+        {
+            var index = followUps.ToList().FindIndex(p => skillsFollowUps.Contains(p.Id));
+            if (index < 0) return false;
+            var skill = followUps[index];
+            FollowUps = new ValueList<FollowUpPrompt>(followUps.Where(p => p.Id != skill.Id));
+            skillsFollowUps.Remove(skill.Id);
+            saveRevision++;
+            ScheduleSave();
+            AutoStartedTurnToken++;
+            _ = MainActor.Spawn(() => StartSkillsTurn(skill.Text, skill.Attachments));
+            return true;
+        }
 
+        var skillContinuation = skillsFollowUps.Remove(followUps[0].Id);
         var next = TakeBundle(0);
         saveRevision++;
         while (next.IsEmpty && FollowUps.Count != 0)
@@ -1445,7 +1504,8 @@ public sealed class ThreadRuntime : MainActorModel
         _ = MainActor.Spawn(async () =>
         {
             await EnsureLoaded();
-            await StartTurn(next.Text, next.Attachments);
+            if (skillContinuation) await StartSkillsTurn(next.Text, next.Attachments);
+            else await StartTurn(next.Text, next.Attachments);
         });
         return true;
     }
@@ -1537,6 +1597,10 @@ public sealed class ThreadRuntime : MainActorModel
             HydraHeads = hydraHeads is null ? null : new ValueList<long>(hydraHeads),
             HydraBrief = hydraBrief ? true : null,
         }));
+        if (skillsContinuationTurn.Value)
+        {
+            userItem = userItem with { TimelineItemContent = new TimelineItem.Content.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = text }) };
+        }
         turn = turn with { UserItemID = userItem.Id };
         Turns = Turns.Appending(turn);
         saveRevision++;
@@ -1905,7 +1969,18 @@ public sealed class ThreadRuntime : MainActorModel
 
         var hydra = KeepsHydraPolicyInSystemPrompt(thread.Provider) ? app.HydraLaunch(thread) : null;
         var signature = MakeSessionSignature(thread, directory, app.Settings.AntiSlopEnabled, hydra);
-        if (session is { IsRunning: true } && sessionSignature == signature) return session;
+        if (session is { IsRunning: true } && sessionSignature == signature)
+        {
+            var reused = session;
+            if (sessionSkills.TryGetValue(reused, out var skills))
+            {
+                var epoch = sessionEpoch;
+                var verified = await Task.Run(skills.Verify);
+                if (sessionEpoch != epoch || !ReferenceEquals(session, reused)) throw new CancellationError();
+                if (!verified) throw new ProviderError(new ProviderError.Case.Failed("The skill generation failed verification before the next turn."));
+            }
+            return reused;
+        }
 
         // Resolve the login environment before tearing down the current session.
         await LoginEnvironment.Load();
@@ -1996,45 +2071,57 @@ public sealed class ThreadRuntime : MainActorModel
         if (app.Providers.Executable(thread.Provider) is not { } executable)
             throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
 
-        ProviderSession MakeSession(string? resumeID)
+        async Task<ProviderSession> MakeSession(string? resumeID)
         {
-            var configuration = new SessionConfiguration
+            var launchEpoch = sessionEpoch;
+            if (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor) await pendingSkillRelease;
+            var skills = thread.Provider switch
             {
-                Provider = thread.Provider,
-                Executable = executable,
-                WorkingDirectory = SessionDirectoryUrl(directory),
-                Environment = app.Providers.Environment(thread.Provider),
-                ResumeID = resumeID,
-                ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
-                Model = thread.Model,
-                Effort = thread.Effort,
-                FastMode = thread.FastMode,
-                RuntimeMode = thread.RuntimeMode,
-                InteractionMode = thread.InteractionMode,
-                Hydra = hydra,
-                AntiSlopEnabled = signature.AntiSlopEnabled,
+                ProviderKind.Antigravity => await Marrow.App.Port.Skills.AntigravitySkills.Prepare.Current(ThreadID.ToString("N"), directory),
+                ProviderKind.Cursor => await Marrow.App.Port.Skills.CursorSkills.Prepare.Current(ThreadID.ToString("N"), directory),
+                _ => null,
             };
+            try
+            {
+                if (SwiftTask.IsCancelled || sessionEpoch != launchEpoch) throw new CancellationError();
+                var configuration = new SessionConfiguration
+                {
+                    Provider = thread.Provider,
+                    Executable = executable,
+                    WorkingDirectory = SessionDirectoryUrl(directory),
+                    Environment = app.Providers.Environment(thread.Provider),
+                    ResumeID = resumeID,
+                    ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
+                    Model = thread.Model,
+                    Effort = thread.Effort,
+                    FastMode = thread.FastMode,
+                    RuntimeMode = thread.RuntimeMode,
+                    InteractionMode = thread.InteractionMode,
+                    Hydra = hydra,
+                    AntiSlopEnabled = signature.AntiSlopEnabled,
+                    SkillGeneration = skills,
+                    SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
+                };
 
-            ProviderSession created = thread.Provider switch
-            {
-                ProviderKind.Codex => new CodexSession(configuration),
-                ProviderKind.Claude => new ClaudeSession(configuration),
-                ProviderKind.Antigravity => new AntigravitySession(configuration),
-                ProviderKind.Copilot => new CopilotSession(configuration),
-                ProviderKind.Commandcode => new CommandCodeSession(configuration), // :1554
-                ProviderKind.Pi => new PiSession(configuration), // :1555
-                ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Devin => new ACPSession(configuration),
-                ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1557
-                ProviderKind.Meta => new MetaSession(configuration),
-                ProviderKind.Zai => new ZaiSession(configuration),
-                ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
-                _ => throw new InvalidOperationException($"Unsupported provider session: {thread.Provider}."),
-            };
-            Observe(created);
-            return created;
+                ProviderSession created = CliSessionFactory.Current.Current(configuration);
+                if (skills is not null) sessionSkills.Add(created, skills);
+                Observe(created);
+                return created;
+            }
+            catch { skills?.Dispose(); throw; }
         }
 
-        var cliCandidate = MakeSession(thread.ProviderSessionID);
+        async Task<string> StartCliSession(ProviderSession candidate)
+        {
+            try { return await candidate.Start(); }
+            catch (Exception error) when (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor
+                && error is IOException or UnauthorizedAccessException)
+            {
+                throw new ProviderError(new ProviderError.Case.Failed(error.Message));
+            }
+        }
+
+        var cliCandidate = await MakeSession(thread.ProviderSessionID);
         session = cliCandidate;
         sessionSignature = signature;
         var cliStarted = false;
@@ -2044,7 +2131,7 @@ public sealed class ThreadRuntime : MainActorModel
             string sessionID;
             try
             {
-                sessionID = await cliCandidate.Start();
+                sessionID = await StartCliSession(cliCandidate);
             }
             catch (Exception error) when (allowNewSession
                 && ReferenceEquals(session, cliCandidate)
@@ -2059,10 +2146,10 @@ public sealed class ThreadRuntime : MainActorModel
                         AppendNotice(Notice.Level.Warning,
                             $"{thread.Provider.DisplayName} no longer has this conversation. It starts a new one here, without the messages above.");
                 }
-                cliCandidate = MakeSession(resumeID: null);
+                cliCandidate = await MakeSession(resumeID: null);
                 session = cliCandidate;
                 sessionSignature = signature;
-                sessionID = await cliCandidate.Start();
+                sessionID = await StartCliSession(cliCandidate);
             }
 
             if (!ReferenceEquals(session, cliCandidate) || SwiftTask.IsCancelled)
@@ -2078,7 +2165,11 @@ public sealed class ThreadRuntime : MainActorModel
             {
                 cliCandidate.OnEvent = null;
                 if (ReferenceEquals(session, cliCandidate)) ReleaseSession(stop: true);
-                else cliCandidate.Stop();
+                else
+                {
+                    try { cliCandidate.Stop(); }
+                    finally { ReleaseSessionSkills(cliCandidate); }
+                }
             }
         }
     }
@@ -2918,6 +3009,21 @@ public sealed class ThreadRuntime : MainActorModel
         sessionEpoch++;
         var epoch = sessionEpoch;
         var weakSelf = new WeakReference<ThreadRuntime>(this);
+        Action<Marrow.Core.Port.Skills.Detect.ToolEvent> skills = value =>
+        {
+            if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
+                runtime.SkillsOffers?.Observe(value);
+        };
+        switch (provider)
+        {
+            case ClaudeSession claude: claude.OnSkillEvent = skills; break;
+            case CodexSession codex: codex.OnToolEvent = skills; break;
+            case CopilotSession copilot: copilot.OnSkillsEvent = skills; break;
+            case ACPSession acp: acp.OnSkillsEvent = skills; break;
+            case PiSession pi: pi.ToolEvents = skills; break;
+            case CommandCodeSession command: command.ToolEvents = skills; break;
+            case OpenAICompatibleSession api: api.OnToolEvent = skills; break;
+        }
         provider.OnEvent = @event =>
         {
             if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
@@ -2935,12 +3041,28 @@ public sealed class ThreadRuntime : MainActorModel
         continuationSent = false;
         if (session is not { } old) return;
         session = null;
-        if (stop) old.Stop();
+        try { if (stop) old.Stop(); }
+        finally { ReleaseSessionSkills(old); }
         _ = MainActor.Spawn(() =>
         {
             old.OnEvent = null;
             return Task.CompletedTask;
         });
+    }
+
+    private void ReleaseSessionSkills(ProviderSession provider)
+    {
+        if (!sessionSkills.Remove(provider, out var skills)) return;
+        var exited = provider is Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime lifetime
+            ? lifetime.SkillReadersExited : Task.CompletedTask;
+        if (exited.IsCompleted) skills.Dispose();
+        else pendingSkillRelease = Task.WhenAll(pendingSkillRelease, ReleaseAfterExit());
+
+        async Task ReleaseAfterExit()
+        {
+            try { await exited; }
+            finally { skills.Dispose(); }
+        }
     }
 
     // ThreadRuntime.swift:2098-2115.
@@ -3819,6 +3941,7 @@ public sealed class ThreadRuntime : MainActorModel
                 UpsertTodos(value.Value);
                 break;
             case ProviderEvent.Approval value:
+                SkillsOffers?.BindApproval(value.Value);
                 Approvals = Approvals.Mutating(items =>
                 {
                     items.RemoveAll(item => item.Id == value.Value.Id);

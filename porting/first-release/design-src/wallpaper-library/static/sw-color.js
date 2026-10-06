@@ -56,6 +56,69 @@
     });
     return { dark, light };
   }
-  const api = { lch2hex, hex2lab, lab2lin, lin2lab, resolvePack, s2l, l2s };
+  // ---- the premium options: colour half (the data is in OPTIONS-FORMAT.md)
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  const wrap180 = (d) => { d = ((d % 360) + 540) % 360 - 180; return d; };
+  const lab2lch = (L, a, b) => [L, Math.hypot(a, b), (Math.atan2(b, a) * 180 / Math.PI + 360) % 360];
+  // OKLCH to OKLab, in gamut by chroma reduction, not quantised (the run-time twin of lch2hex)
+  function lch2lab(L, C, h) {
+    L = clamp(L, 0.001, 0.999);
+    const hr = h * Math.PI / 180, ca = Math.cos(hr), sa = Math.sin(hr);
+    let lo = 0, hi = Math.max(0, C);
+    if (!inG(lab2lin(L, hi * ca, hi * sa))) {
+      for (let i = 0; i < 22; i++) { const mid = (lo + hi) / 2; if (inG(lab2lin(L, mid * ca, mid * sa))) lo = mid; else hi = mid; }
+      hi = lo;
+    }
+    return [L, hi * ca, hi * sa];
+  }
+  // Dynamic: four looks on the clock. night 0:00, dawn 6:00, day 12:00, dusk 18:00, night 24:00; each leg eased (smoothstep),
+  // so a key look holds at its own hour. n is how night it is (1 night, 0 day) for u_dark.
+  const KEYN = ['night', 'dawn', 'day', 'dusk'], NIGHTNESS = { night: 1, dawn: .45, day: 0, dusk: .5 };
+  const ss = (t) => t * t * (3 - 2 * t);
+  function keyLook(k) { const l = k.light; return { l: k.l, c: k.c, h: k.h, lx: l ? l[0] : null, ly: l ? l[1] : null }; }
+  // the look at a clock hour, from the wallpaper's keys: {l, c, h, lx, ly, n}; keys without a light fall back to def
+  function lookAt(keys, hours, def) {
+    const t = ((hours % 24) + 24) % 24, i = Math.floor(t / 6) % 4, f = ss((t - i * 6) / 6);
+    const A = keys[KEYN[i]], B = keys[KEYN[(i + 1) % 4]];
+    const la = A.light || def, lb = B.light || def;
+    return { l: A.l + (B.l - A.l) * f, c: A.c + (B.c - A.c) * f, h: A.h + (B.h - A.h) * f, lx: la[0] + (lb[0] - la[0]) * f, ly: la[1] + (lb[1] - la[1]) * f,
+      n: NIGHTNESS[KEYN[i]] + (NIGHTNESS[KEYN[(i + 1) % 4]] - NIGHTNESS[KEYN[i]]) * f };
+  }
+  // the home look of a theme: day for light, night for dark (dark is 0 .. 1), so the authored palette shows exactly at home
+  function homeLook(keys, dark, def) {
+    const d = lookAt(keys, 12, def), n = lookAt(keys, 0, def);
+    return { l: d.l + (n.l - d.l) * dark, c: d.c + (n.c - d.c) * dark, h: d.h + (n.h - d.h) * dark, lx: d.lx + (n.lx - d.lx) * dark, ly: d.ly + (n.ly - d.ly) * dark, n: dark };
+  }
+  // the change a clock hour makes to a themed palette, scaled by k (0 off .. 1 on): {dl, cr, dh, dlx, dly, dn}
+  function dynDelta(keys, hours, dark, k, def) {
+    const a = lookAt(keys, hours, def), h = homeLook(keys, dark, def);
+    return { dl: (a.l - h.l) * k, cr: Math.pow(a.c / Math.max(.2, h.c), k), dh: (a.h - h.h) * k, dlx: (a.lx - h.lx) * k, dly: (a.ly - h.ly) * k, dn: (a.n - h.n) * k };
+  }
+  // applies that change to 6 OKLab colours (18 floats) into out
+  function shiftPal(pal, d, out) {
+    for (let i = 0; i < 6; i++) {
+      const c = lab2lch(pal[i * 3], pal[i * 3 + 1], pal[i * 3 + 2]);
+      const r = lch2lab(c[0] + d.dl, c[1] * d.cr, c[2] + d.dh);
+      out[i * 3] = r[0]; out[i * 3 + 1] = r[1]; out[i * 3 + 2] = r[2];
+    }
+    return out;
+  }
+  // Match accent: a pack spec for resolvePack from an accent colour (hex). base = the hues {d: [6], l: [6]} of the wallpaper's first pack
+  const ACCENTS = [['Blue', '#005FB8'], ['Violet', '#6B4FD8'], ['Pink', '#C2358C'], ['Red', '#C42B3A'], ['Orange', '#D4501A'], ['Gold', '#B88A00'], ['Green', '#2E8B3E'], ['Teal', '#00877C'], ['Cyan', '#0E86B0'], ['Graphite', '#5D6A7B']];
+  function accentSpec(roles, base, hex) {
+    const a = lab2lch.apply(null, hex2lab(hex)), La = a[0], Ca = a[1], Ha = a[2];
+    const cs = clamp(Ca / 0.16, 0.3, 1.15);
+    const side = (mode) => {
+      let m = 0, best = 9;
+      for (let i = 0; i < 5; i++) { const d = Math.abs(roles[i][mode * 2] - La); if (d < best) { best = d; m = i; } }
+      const hb = base ? base[mode ? 'l' : 'd'] : null;
+      return roles.map((r, i) => {
+        const o = hb ? clamp(wrap180(hb[i % hb.length] - hb[m % hb.length]) * 0.5, -60, 60) : (i - m) * 14;
+        return ((Ha + o) % 360 + 360) % 360;
+      });
+    };
+    return { n: 'Match accent', k: 'accent', h: side(0), hl: side(1), c: cs };
+  }
+  const api = { lch2hex, hex2lab, lab2lin, lin2lab, resolvePack, s2l, l2s, lab2lch, lch2lab, lookAt, homeLook, dynDelta, shiftPal, accentSpec, ACCENTS, KEYN, wrap180 };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.SWC = api;
 })(typeof window !== 'undefined' ? window : globalThis);

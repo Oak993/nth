@@ -420,7 +420,8 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     // ever asserted; here the pixels of the real popup are read. The glass material (OD-0005) draws a rim light and an inner shade at the edge of its shape
     // and tints the prominent one, so the ring just inside each button's capsule differs from the flat card behind it where the material is drawn and not
     // where it falls out of the composition tree (review/glass-material-placement 090e8b843). SwiftUI's `.focusEffectDisabled`-like look (:945) is that no
-    // ring surrounds the focused Archive button: the band just outside its capsule is the card.
+    // ring surrounds the focused Archive button (SidebarView.swift:935): the outer band does not change with focus.
+    // The g2 glass card can vary across that band, so compare the same screen pixels focused/unfocused.
     [Fact]
     [Trait("Req", "UI-SIDEBAR-031")] // SidebarView.swift:923-941 `.glass` and `.glassProminent` text buttons at `.controlSize(.small)`, :945 the Archive button holds the focus
     [Trait("Req", "UI-SIDEBAR-032")] // :927-940 Delete plain glass with a red label, Archive prominent glass
@@ -485,7 +486,7 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         var sinceOpen = Stopwatch.StartNew(); // from the first moment the popup is seen open
 
         // One reading of the screen under the popup: the ring just inside each button's capsule, and the band just outside the Archive button.
-        (bool Drawn, string Report, double DeleteRingMax, double DeleteRingMean, double ArchiveRingMean, double ArchiveOuterMax, bool Focused) Read(bool save)
+        (bool Drawn, string Report, double DeleteRingMax, double DeleteRingMean, double ArchiveRingMean, double ArchiveOuterMax, bool Focused, ScreenGrab Pixels, PixelRect ArchiveRect, PixelPoint Origin) Read(bool save, string tag = "focused")
         {
             var (deleteRect, archiveRect, focused) = native.OnUi(() =>
             {
@@ -514,7 +515,7 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
             var width = Math.Max(deleteRect.Right, archiveRect.Right) + margin - left;
             var height = Math.Max(deleteRect.Height, archiveRect.Height) + 2 * margin;
             var grab = ScreenGrab.Of(left, top, width, height);
-            var evidence = Path.Combine(Path.GetTempPath(), "archive-popover-native.png");
+            var evidence = Path.Combine(Path.GetTempPath(), $"archive-popover-native-{tag}.png");
             if (save) grab.SavePng(evidence);
             (byte R, byte G, byte B) card = grab.At(8, height / 2);
             double Distance((byte R, byte G, byte B) c) => Math.Sqrt(Math.Pow(c.R - card.R, 2) + Math.Pow(c.G - card.G, 2) + Math.Pow(c.B - card.B, 2));
@@ -542,7 +543,7 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
             var deleteOuter = Band(deleteRect, 2, 5);
             var report = $"card {card}; delete ring max {deleteRing.Max():F1} mean {deleteRing.Average():F1}; archive ring max {archiveRing.Max():F1} mean {archiveRing.Average():F1}; archive outer max {archiveOuter.Max():F1}; delete outer max {deleteOuter.Max():F1}; evidence {evidence}";
             var drawn = deleteRing.Max() >= 12 && archiveRing.Average() >= 20 && archiveRing.Average() > deleteRing.Average() + 10;
-            return (drawn, report, deleteRing.Max(), deleteRing.Average(), archiveRing.Average(), archiveOuter.Max(), focused);
+            return (drawn, report, deleteRing.Max(), deleteRing.Average(), archiveRing.Average(), archiveOuter.Max(), focused, grab, archiveRect, new PixelPoint(left,top));
         }
 
         // The material is composed a frame or so after the popup opens, not at the instant IsOpen turns true: read until both buttons show it, for up to 5 s.
@@ -560,10 +561,59 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         }
         reading = Read(save: true);
         Console.WriteLine($"TIME TO MATERIAL {toMaterial} ms after IsOpen was seen{(toMaterial > 300 ? " (SLOW: over 300 ms, a product question if the machine was quiet)" : "")}; {reading.Report}");
+        // The same actual popup, composed screen pixels, matching geometry: focus alone must add no outer ring.
+        native.OnUi(() => TopLevel.GetTopLevel(PopoverHost.Content(archive)!)!.FocusManager!.Focus(null));
+        Thread.Sleep(200);
+        var unfocused = Read(save: true, tag: "unfocused");
+        Assert.False(unfocused.Focused, "the paired capture actually clears Archive focus");
+        Assert.Equal(reading.ArchiveRect, unfocused.ArchiveRect);
+        Assert.Equal(reading.Origin, unfocused.Origin);
+        Assert.Equal((reading.Pixels.Width,reading.Pixels.Height),(unfocused.Pixels.Width,unfocused.Pixels.Height));
+        var focusDifferences = new List<double>();
+        var bounds = reading.ArchiveRect;
+        for (var y = 0; y < reading.Pixels.Height; y++)
+            for (var x = 0; x < reading.Pixels.Width; x++)
+            {
+                var sx = reading.Origin.X+x+0.5; var sy = reading.Origin.Y+y+0.5;
+                var radius = bounds.Height/2.0;
+                var along = Math.Clamp(sx,bounds.X+radius,bounds.Right-radius);
+                var distance = Math.Sqrt(Math.Pow(sx-along,2)+Math.Pow(sy-bounds.Y-radius,2))-radius;
+                if (distance < 2 || distance > 5) continue;
+                var before = reading.Pixels.At(x,y); var after = unfocused.Pixels.At(x,y);
+                focusDifferences.Add(Math.Sqrt(Math.Pow(before.R-after.R,2)+Math.Pow(before.G-after.G,2)+Math.Pow(before.B-after.B,2)));
+            }
+        var focusOuterMax = focusDifferences.Max();
+        Console.WriteLine($"FOCUS PAIR: focused absolute outer {reading.ArchiveOuterMax:F3}; unfocused absolute outer {unfocused.ArchiveOuterMax:F3}; paired focus outer difference {focusOuterMax:F3}");
         Assert.True(reading.Focused, "the Archive button holds the focus (:945)");
         Assert.True(reading.DeleteRingMax >= 12, "Delete (.glass) draws no material on the popup: " + reading.Report);
         Assert.True(reading.ArchiveRingMean >= 20, "Archive (.glassProminent) draws no tinted material on the popup: " + reading.Report);
         Assert.True(reading.ArchiveRingMean > reading.DeleteRingMean + 10, "Archive is not tinted beyond Delete: " + reading.Report);
-        Assert.True(reading.ArchiveOuterMax < 8, "a ring or adorner surrounds the focused Archive button: " + reading.Report);
+        Assert.True(focusOuterMax < 8, $"a ring or adorner changes the focused Archive outer band by {focusOuterMax:F3}: " + reading.Report);
+        // Swift's .focusEffectDisabled() also applies to keyboard focus, not only the programmatic onAppear focus.
+        native.OnUi(() =>
+        {
+            var content = PopoverHost.Content(archive)!;
+            var button = LogicalQuery.SelfAndDescendants<Button>(content).Single(b => LogicalQuery.SelfAndDescendants<TextBlock>(b).Any(label => label.Text == "Archive"));
+            Assert.True(button.Focus(Avalonia.Input.NavigationMethod.Tab));
+        });
+        Thread.Sleep(200);
+        var keyboard = Read(save: true, tag: "keyboard");
+        Assert.True(keyboard.Focused);
+        Assert.Equal(unfocused.ArchiveRect, keyboard.ArchiveRect);
+        Assert.Equal(unfocused.Origin, keyboard.Origin);
+        var keyboardOuterMax = 0.0;
+        for (var y = 0; y < keyboard.Pixels.Height; y++)
+            for (var x = 0; x < keyboard.Pixels.Width; x++)
+            {
+                var sx = keyboard.Origin.X+x+0.5; var sy = keyboard.Origin.Y+y+0.5;
+                var radius = bounds.Height/2.0;
+                var along = Math.Clamp(sx,bounds.X+radius,bounds.Right-radius);
+                var distance = Math.Sqrt(Math.Pow(sx-along,2)+Math.Pow(sy-bounds.Y-radius,2))-radius;
+                if (distance < 2 || distance > 5) continue;
+                var before = unfocused.Pixels.At(x,y); var after = keyboard.Pixels.At(x,y);
+                keyboardOuterMax = Math.Max(keyboardOuterMax,Math.Sqrt(Math.Pow(before.R-after.R,2)+Math.Pow(before.G-after.G,2)+Math.Pow(before.B-after.B,2)));
+            }
+        Console.WriteLine($"KEYBOARD FOCUS PAIR: outer difference {keyboardOuterMax:F3}");
+        Assert.True(keyboardOuterMax < 8, $"keyboard focus draws an outer ring with difference {keyboardOuterMax:F3}");
     }, factType: typeof(GlassWindowNativeTests));
 }

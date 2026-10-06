@@ -65,14 +65,16 @@ def make_pack(roles, name, hues, ck=1.0, lk=1.0, dh=None, x=None):
     return out
 
 
-MOTION = ('motion', 'Motion', 'Calm', 'Lively')
+import sys
+sys.path.insert(0, HERE)
+import wallpaper_kit  # noqa: E402
+from wallpaper_kit import dyn, KEYS  # noqa: E402
+
 W = []
 
 
-def wall(id, name, tier, period, desc, roles, packs, opt2, motion=0.5):
-    W.append(dict(id=id, name=name, tier=tier, period=period, desc=desc, roles=roles, packs=packs,
-                  options=[dict(zip(('id', 'label', 'lo', 'hi'), MOTION), default=motion),
-                           dict(zip(('id', 'label', 'lo', 'hi'), opt2[:4]), default=opt2[4])]))
+def wall(*a, **k):
+    W.append(wallpaper_kit.wall(*a, **k))
 
 
 # ================================================================ vibrant
@@ -321,6 +323,51 @@ wall('halo', 'Halo', 'minimal', 90,
      ('width', 'Width', 'Fine', 'Wide', .5), motion=.45)
 
 
+# ================================================================ the premium options of the first 24 (see OPTIONS-FORMAT.md)
+# dynamic: the looks through the day; layers: wall() shifts its layers by tiltD; sun: wall() adds u_sun to its light.
+OPT24 = {
+    'borealis': dict(dynamic=dyn('glow', 1.0)),
+    'molten': dict(dynamic=dyn('sky', .9)),
+    'velvet': dict(dynamic=dyn('sky', .9)),
+    'spectra': dict(dynamic=dyn('glow', 1.0)),
+    'bloom': dict(dynamic=dyn('sky', 1.0), perspective='layers'),
+    'nebula': dict(dynamic=dyn('glow', 1.0), perspective='layers'),
+    'lagoon': dict(dynamic=dyn('sky', .9)),
+    'iris': dict(dynamic=dyn('glow', 1.0)),
+    'dunes': dict(dynamic=dyn('warm', 1.0, sun='track'), perspective='layers'),
+    'tides': dict(dynamic=dyn('sky', 1.0), perspective='layers'),
+    'afterglow': dict(dynamic=dyn('warm', 1.0)),
+    'inkwell': dict(dynamic=dyn('sky', .8)),
+    'fluted': dict(dynamic=dyn('sky', .9), perspective='layers'),
+    'meridian': dict(dynamic=dyn('sky', .9)),
+    'nacre': dict(dynamic=dyn('sky', .8)),
+    'ribbon': dict(dynamic=dyn('sky', 1.0), perspective='layers'),
+    'mist': dict(dynamic=dyn('sky', .6), perspective='layers'),
+    'daybreak': dict(dynamic=dyn('warm', .6, sun='track')),
+    'stillwater': dict(dynamic=dyn('sky', .6)),
+    'linen': dict(dynamic=dyn('warm', .6)),
+    'fields': dict(dynamic=dyn('sky', .6)),
+    'lumen': dict(dynamic=dyn('warm', .6, sun='track')),
+    'drift': dict(dynamic=dyn('sky', .6), perspective='layers'),
+    'halo': dict(dynamic=dyn('sky', .6)),
+}
+for _w in W:
+    _w.update(OPT24[_w['id']])
+assert len(W) == 24 and set(OPT24) == {w['id'] for w in W}
+
+# the tier agents' catalogues: catalog_<tier>_2.py, each exporting WALLS = [wall(...), ...]
+import importlib.util  # noqa: E402
+TIER_FILES = []
+for _t in ('vibrant', 'balanced', 'minimal'):
+    _f = os.path.join(HERE, 'catalog_%s_2.py' % _t)
+    if os.path.exists(_f):
+        _spec = importlib.util.spec_from_file_location('catalog_%s_2' % _t, _f)
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        W.extend(_mod.WALLS)
+        TIER_FILES.append((_t, len(_mod.WALLS)))
+
+
 # ================================================================ the SkSL subset, checked
 BANNED = [
     (r'\btexture\w*\s*\(|\btexelFetch\b|\bsampler', 'no texture lookups'),
@@ -363,7 +410,12 @@ HOST = {
         {'name': 'u_dark', 'type': 'float', 'sksl': 'uniform float u_dark', 'meaning': '0 light .. 1 dark, eased with the same time constant'},
         {'name': 'u_opt', 'type': 'vec2', 'sksl': 'uniform float2 u_opt', 'meaning': 'x = Motion (0 calm .. 1 lively), y = the wallpaper’s second option (0..1), each eased (0.3 s)'},
         {'name': 'u_px', 'type': 'float', 'sksl': 'uniform float u_px', 'meaning': 'one device pixel in p units, 2 / resolution.y, for anti-aliased edges'},
+        {'name': 'u_tilt', 'type': 'vec2', 'sksl': 'uniform float2 u_tilt', 'meaning': 'Perspective: the pointer (the app: the window position on the screen) as -1..1 on each axis, eased with a 0.35 s time constant; (0, 0) when Perspective is off or under Reduce Motion. A wallpaper with layers shifts each by tiltD(depth) = u_tilt * 0.010 * depth, depth -1 far .. +1 near'},
+        {'name': 'u_pan', 'type': 'float', 'sksl': 'uniform float u_pan', 'meaning': 'host only: 0.012 for a flat wallpaper (perspective.mode "pan"), else 0; the host adds u_tilt * u_pan to p, a pan of at most 5 px at 800 px high'},
+        {'name': 'u_sun', 'type': 'vec2', 'sksl': 'uniform float2 u_sun', 'meaning': 'Dynamic: the light track’s offset for the time of day, in p units, added to the wallpaper’s own light position; (0, 0) when Dynamic is off or the wallpaper has no light; eased'},
+        {'name': 'u_focus', 'type': 'float', 'sksl': 'uniform float u_focus', 'meaning': 'Focus 0 sharp .. 1 dreamy, eased; the host blurs the picture with a Gaussian of sigma 0.035 * H * focus^1.4 pixels (a Skia blur in the app); edgePx() widens hard edges with it'},
     ],
+    'options': 'Each wallpaper also carries: roles (the six slots’ dark and light lightness and chroma), dynamic (two sets of four OKLCH looks, light and dark, keyed dawn 06:00, day 12:00, dusk 18:00, night 24:00, blended by smoothstep, plus a four-key light track), perspective (mode layers or pan, default on for layers), focus (default) and match (hue offsets from the system accent; the sixth pack is built at run time from the accent in OKLCH on the roles). The format is described in OPTIONS-FORMAT.md.',
     'dither': 'triangular, one 8-bit step, fixed in screen space: (ign(fc) + ign(fc + (37, 17)) - 1) / 255 with ign(v) = fract(52.9829189 * fract(dot(v, (0.06711056, 0.00583715))))',
     'subset': 'GLSL ES 3.00 written to the SkSL runtime-effect subset: math only, no textures, no derivatives, no preprocessor, '
               'for (int i = 0; i < N; i++) loops only, no bit operations or integer modulo, uniform arrays indexed by loop indices only. '
@@ -373,21 +425,138 @@ HOST = {
 
 
 # ================================================================ output
+def wrap180(d):
+    return (d + 180.0) % 360.0 - 180.0
+
+
+def derive_match(w):
+    """Match accent offsets from the first pack when the wallpaper gives none: the most chromatic slot is the hero; the
+    others keep the first pack's hue differences, compressed to analogous colours; near-neutral slots tint toward the accent."""
+    roles, hues = w['roles'], w['packs'][0][1]
+    chroma = [max(r[1], r[3]) for r in roles]
+    hero = max(range(6), key=lambda i: chroma[i])
+    off = []
+    for i in range(6):
+        d = wrap180(hues[i] - hues[hero])
+        if i == hero:
+            o = 0.0
+        elif chroma[i] < 0.08:
+            o = max(-12.0, min(12.0, d * 0.3))
+        else:
+            o = max(-60.0, min(60.0, d * 0.5))
+        off.append(round(o, 1))
+    return dict(off=off, hero=hero)
+
+
+# the engine rule that keeps a warm accent from giving a brown or olive dark ground (Match accent, dark palette only); a wallpaper may
+# override single fields in match['dark_warm']. Hue h in -180..180: w = smoothstep(band0, band1, h) * (1 - smoothstep(band2, band3, h));
+# ground slots (dark role lightness under ground_below) turn toward ground_hue by w, mid tones (under mid_below) toward mid_hue by
+# mid_amount * w, both with chroma x (1 + (kc - 1) w) and lightness + dl * w; bright slots keep the hue, with + bright_dl * w and
+# chroma x (1 + (bright_kc - 1) w). The light palette is never changed.
+DARK_WARM = dict(band=[-10, 15, 100, 120], ground_hue=330, mid_hue=355, ground_below=.32, mid_below=.62, mid_amount=1.0,
+                 kc=1.3, dl=.03, bright_dl=.06, bright_kc=1.15)
+
+
+def norm_match(w):
+    m = dict(w.get('match') or derive_match(w))
+    if 'off' not in m:
+        m.update(derive_match(w))
+    six = lambda v, d: [float(x) for x in v] if v is not None else [d] * 6
+    off = six(m['off'], 0.0)
+    hero = m.get('hero', max(range(6), key=lambda i: max(w['roles'][i][1], w['roles'][i][3])))
+    assert len(off) == 6 and abs(off[hero]) < 1e-9, (w['id'], 'match: six offsets, and 0 at the hero slot')
+    dw = dict(DARK_WARM)
+    dw.update(m.get('dark_warm') or {})
+    return dict(off=off, hero=int(hero), ck=float(m.get('ck', 1.0)), lk=float(m.get('lk', 1.0)), dark_warm=dw,
+                dl=six(m.get('dl'), 0.0), dc=six(m.get('dc'), 1.0), cm=six(m.get('cm'), 1.0))
+
+
+def check_dynamic(w, code):
+    d = w['dynamic']
+    assert set(d) == {'light', 'dark', 'sun'}, (w['id'], 'dynamic: light, dark, sun')
+    for th in ('light', 'dark'):
+        assert set(d[th]) == set(KEYS), (w['id'], 'dynamic: four keys')
+        for k in KEYS:
+            L = d[th][k]
+            assert all(len(L[f]) == 6 for f in ('dL', 'kC', 'dh')) and len(L['tint']) == 2, (w['id'], th, k)
+            assert all(abs(x) <= 0.2 for x in L['dL']) and all(0.5 <= x <= 1.6 for x in L['kC']) and all(abs(x) <= 60 for x in L['dh']) and 0 <= L['tint'][1] <= 0.6, (w['id'], th, k, 'a look out of range')
+    for k in KEYS:
+        assert len(d['sun'][k]) == 2 and all(abs(x) <= 0.8 for x in d['sun'][k]), (w['id'], 'sun track')
+    moves = any(abs(x) > 1e-9 for k in KEYS for x in d['sun'][k])
+    assert moves == ('u_sun' in code), (w['id'], 'a non-zero sun track needs u_sun in the shader, and u_sun needs a sun track')
+    return
+
+
+TIER_ORDER = ('vibrant', 'balanced', 'minimal')
+
+
+def name_clashes():
+    """Names must be unique across both collections. Returns (clashes of new wallpapers, clashes among the first 24 and the static
+    library, which cannot be renamed). Reads the static walls-*.js files next to this collection."""
+    sdir = os.path.join(HERE, '..', '..', 'static', 'src')
+    static = {}
+    if os.path.isdir(sdir):
+        for f in sorted(os.listdir(sdir)):
+            if re.match(r'walls-.*\.js$', f):
+                for m in re.finditer(r"name:\s*'([^']+)'", open(os.path.join(sdir, f), encoding='utf-8').read()):
+                    static.setdefault(m.group(1).strip().lower(), []).append(f)
+    first = set(OPT24)
+    new, old, seen = [], [], {}
+    for w in W:
+        k = w['name'].strip().lower()
+        if k in seen:
+            new.append('%s (%s) twice in the animated library' % (w['name'], w['id']))
+        seen[k] = w['id']
+        if k in static:
+            (old if w['id'] in first and not any(re.search(r'-2\.js$', f) for f in static[k]) else new).append('%s (animated %s) is also in static %s' % (w['name'], w['id'], ', '.join(static[k])))
+    return new, old
+
+
+
 def build():
     common = open(os.path.join(HERE, 'common.glsl'), encoding='utf-8').read()
     lint('common', common)
-    assert len(W) == 24 and all(sum(1 for w in W if w['tier'] == t) == 8 for t in ('vibrant', 'balanced', 'minimal'))
+    ids = [w['id'] for w in W]
+    new_clash, old_clash = name_clashes()
+    for c in new_clash:
+        print('NAME CLASH', c)
+    for c in old_clash:
+        print('name clash among the original wallpapers (cannot be renamed):', c)
+    assert len(set(ids)) == len(ids), 'ids must be unique'
+    assert all(w['tier'] in TIER_ORDER for w in W)
+    assert all(sum(1 for w in W if w['tier'] == t) <= 24 for t in TIER_ORDER)
     out = []
-    for w in W:
+    for w in sorted(W, key=lambda w: TIER_ORDER.index(w['tier'])):
         src = open(os.path.join(HERE, 'walls', w['id'] + '.glsl'), encoding='utf-8').read()
         lint(w['id'], src)
-        assert 20 <= w['period'] <= 90 and 4 <= len(w['packs']) <= 6
+        code = re.sub(r'//[^\n]*', '', src)
+        assert 20 <= w['period'] <= 90 and len(w['packs']) == 5, (w['id'], 'period 20..90 and five packs')
         m = re.search(r'const float T = ([0-9.]+);', src)
         assert m and abs(float(m.group(1)) - w['period']) < 1e-9, (w['id'], 'period in the shader differs')
+        # the premium options are reconciled with what the shader really reads, with a warning, so that a catalogue entry
+        # that forgot a keyword cannot ship an option that does nothing
+        w = dict(w)
+        w.setdefault('dynamic', None); w.setdefault('perspective', 'pan'); w.setdefault('focus', 0.0); w.setdefault('match', None)
+        if w['dynamic'] is None:
+            w['dynamic'] = dyn('sky')
+        uses_tilt, uses_sun = 'tiltD(' in code, 'u_sun' in code
+        if uses_tilt != (w['perspective'] == 'layers'):
+            print('WARNING', w['id'], 'perspective', w['perspective'], 'but tiltD( is', 'used' if uses_tilt else 'not used', ': set to', 'layers' if uses_tilt else 'pan')
+            w['perspective'] = 'layers' if uses_tilt else 'pan'
+        moves = any(abs(x) > 1e-9 for k in KEYS for x in w['dynamic']['sun'][k])
+        if moves != uses_sun:
+            print('WARNING', w['id'], 'sun track', 'moves' if moves else 'is empty', 'but u_sun is', 'used' if uses_sun else 'not used', ': set to', 'track' if uses_sun else 'none')
+            w['dynamic'] = dict(w['dynamic'], sun=dyn('sky', sun='track' if uses_sun else None)['sun'])
+        layers = w['perspective'] == 'layers'
+        assert 0.0 <= w['focus'] <= 0.6, (w['id'], 'focus default 0..0.6')
+        check_dynamic(w, code)
         packs = [make_pack(w['roles'], *p) for p in w['packs']]
         out.append(dict(id=w['id'], name=w['name'], tier=w['tier'], period=w['period'], desc=w['desc'],
-                        defaults=dict(pack=packs[0]['id'], speed=1.0, motion=w['options'][0]['default'], second=w['options'][1]['default']),
-                        options=w['options'], packs=packs, glsl=src))
+                        defaults=dict(pack=packs[0]['id'], speed=1.0, motion=w['options'][0]['default'], second=w['options'][1]['default'],
+                                      dynamic=False, perspective=layers, focus=w['focus']),
+                        options=w['options'], roles=[list(r) for r in w['roles']], packs=packs,
+                        dynamic=w['dynamic'], perspective=dict(mode=w['perspective'], default=layers), focus=dict(default=w['focus']),
+                        match=norm_match(w), glsl=src))
     return common, out
 
 

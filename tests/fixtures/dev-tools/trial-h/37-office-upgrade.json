@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "name": "37-office-upgrade",
+  "commandLine": "\"C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe\" /update user updatepromptuser=false forceappshutdown=false displaylevel=false",
+  "executable": "C:\\Program Files\\Common Files\\Microsoft Shared\\ClickToRun\\OfficeC2RClient.exe",
+  "arguments": [
+    "/update",
+    "user",
+    "updatepromptuser=false",
+    "forceappshutdown=false",
+    "displaylevel=false"
+  ],
+  "exitCode": 0,
+  "stdout": "",
+  "stderr": "",
+  "durationMs": 1667.7256,
+  "versionsBefore": "16.0.20430.20092",
+  "versionsAfter": "16.0.20430.20092",
+  "timestamp": "2026-10-05T15:31:25.3475818+00:00",
+  "finishedAt": "2026-10-05T15:31:27.0171267+00:00"
+}

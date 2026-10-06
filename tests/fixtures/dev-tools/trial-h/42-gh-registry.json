@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "42-gh-registry",
+  "commandLine": "powershell.exe -NoProfile -Command \"$roots = @(\\\"HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\\\", \\\"HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\\\", \\\"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\\\"); $found=@(Get-ItemProperty $roots -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq \\\"GitHub CLI\\\" } | Select-Object DisplayName,DisplayVersion,Publisher,InstallLocation); ConvertTo-Json -InputObject $found -Compress\"",
+  "executable": "powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-Command",
+    "$roots = @(\"HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\", \"HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\", \"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\"); $found=@(Get-ItemProperty $roots -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq \"GitHub CLI\" } | Select-Object DisplayName,DisplayVersion,Publisher,InstallLocation); ConvertTo-Json -InputObject $found -Compress"
+  ],
+  "exitCode": 0,
+  "stdout": "[]\r\n",
+  "stderr": "",
+  "durationMs": 806.4696,
+  "versionsBefore": null,
+  "versionsAfter": null,
+  "timestamp": "2026-10-05T15:31:49.0286848+00:00",
+  "finishedAt": "2026-10-05T15:31:49.8362815+00:00"
+}

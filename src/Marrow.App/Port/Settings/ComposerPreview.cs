@@ -16,6 +16,7 @@ using Avalonia.Media.TextFormatting;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Settings;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -36,7 +37,7 @@ internal sealed class ComposerPreview : Grid
     /// <summary>CZ-4.3: the frame, the attachment inside the composer (CZ-7b adds the other place): 472 wide, 12 from the stage's left and bottom.</summary>
     internal const double ComposerWidth = 472, ComposerLeft = 12, ComposerBottom = 12;
 
-    /// <summary>The plate's height once laid out: the real composer's 46 (ED-NEW-f-cz-3 item 2, CZ-T45). The page shows the Auto values of a composer of this size (CZ-6) before the preview has been measured.</summary>
+    /// <summary>The plate's height once laid out: the real composer's 46 (ED-335 item 2, CZ-T45). The page shows the Auto values of a composer of this size (CZ-6) before the preview has been measured.</summary>
     internal const double PillHeight = 46;
 
     private const double CaretPeriod = 1.06; // playground .caret: blink 1.06s ease-in-out infinite
@@ -47,6 +48,7 @@ internal sealed class ComposerPreview : Grid
     private readonly PreviewSendButton send = new();
     private readonly Action<TimeSpan> typingFrame;
     private ComposerLightSettings settings = ComposerLightSettings.Default;
+    private WorkingDotsSettings workingDots = WorkingDotsSettings.Default;
     private bool typing;
     private int typedCount;
     private ContinuousInstant typingStart;
@@ -78,6 +80,15 @@ internal sealed class ComposerPreview : Grid
         get => settings;
         set { settings = value; Light.Settings = value; }
     }
+
+    /// <summary>CZ-5 (CZ-10.4): the working dots' setting, the app's, handed in by the page; the dots wear its colour for the preview maker.</summary>
+    internal WorkingDotsSettings WorkingDots
+    {
+        get => workingDots;
+        set { workingDots = value; UpdateDots(); }
+    }
+
+    private void UpdateDots() => dots.Tint = WorkingDotsColor.Of(workingDots, session.Maker);
 
     internal ComposerPreview(PreviewSession session)
     {
@@ -183,6 +194,7 @@ internal sealed class ComposerPreview : Grid
             if (!first) Chip.Show(session.Maker);
             shownMaker = session.Maker;
             UpdatePalette();
+            UpdateDots();
         }
         var state = session.State;
         if (first || state != shownState)

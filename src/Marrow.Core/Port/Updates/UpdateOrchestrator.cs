@@ -58,17 +58,35 @@ public sealed class UpdateOrchestrator
         finally { End(); }
     }
 
-    private async Task Check(CancellationToken cancellation)
+    /// <summary>UE-3: re-read pending background versions without starting an updater or checking unrelated items.</summary>
+    public async Task RecheckBackground(CancellationToken cancellation = default)
+    {
+        cancellation.ThrowIfCancellationRequested();
+        if (Interlocked.CompareExchange(ref busy, 1, 0) != 0) return; // A foreground run owns the item model until it finishes.
+        try { await Check(cancellation, backgroundOnly: true); }
+        finally { End(); }
+    }
+
+    private async Task Check(CancellationToken cancellation, bool backgroundOnly = false)
     {
         foreach (var item in items)
         {
             cancellation.ThrowIfCancellationRequested();
+            var previous = Get(item.Id);
+            if (backgroundOnly && previous.State != UpdateRowState.UpdatingInBackground) continue;
             string? installed;
             try { installed = await item.InstalledVersion(cancellation); }
             catch (Exception error) when (error is not OperationCanceledException)
             {
+                if (previous.State == UpdateRowState.UpdatingInBackground) continue; // Keep the accepted request/baseline and check later.
                 Set(item.Id, r => r with { State = UpdateRowState.Failed, Installed = null, Latest = null, Progress = null, Message = error.Message });
                 continue;
+            }
+            if (previous.State == UpdateRowState.UpdatingInBackground)
+            {
+                if (installed is not null && !VersionText.Same(previous.Installed, installed))
+                    Set(item.Id, r => r with { State = UpdateRowState.Updated, Installed = installed, Latest = installed, Progress = null, Message = null });
+                continue; // Null/unchanged is not completion, absence, or permission to relaunch an updater.
             }
             if (installed is null)
             {
@@ -139,14 +157,23 @@ public sealed class UpdateOrchestrator
                 try { outcome = await item.Update(progress, cancellation); }
                 catch (Exception error) when (error is not OperationCanceledException) { outcome = new UpdateOutcome(false, null, false, false, error.Message); }
                 finished.Add(item.Id);
+                var background = outcome.Succeeded && outcome.UpdatingInBackground;
+                if (background)
+                    Set(item.Id, r => r with
+                    {
+                        State = UpdateRowState.UpdatingInBackground, Installed = outcome.NewVersion ?? r.Installed,
+                        Progress = null, Message = outcome.Message, RestartRequired = false,
+                    }); // An accepted external request survives cancellation of the version recheck below.
                 string? installed = outcome.NewVersion;
                 try { installed = await item.InstalledVersion(cancellation) ?? installed; }
                 catch (Exception error) when (error is not OperationCanceledException) { }
-                var state = !outcome.Succeeded ? UpdateRowState.Failed : outcome.Changed ? UpdateRowState.Updated : UpdateRowState.UpToDate;
+                var changedAfterRequest = background && installed is not null && outcome.NewVersion is not null && !VersionText.Same(installed, outcome.NewVersion);
+                var state = !outcome.Succeeded ? UpdateRowState.Failed : background && !changedAfterRequest ? UpdateRowState.UpdatingInBackground
+                    : outcome.Changed || changedAfterRequest ? UpdateRowState.Updated : UpdateRowState.UpToDate;
                 Set(item.Id, r => r with
                 {
-                    State = state, Installed = installed ?? r.Installed, Latest = outcome.Succeeded && state != UpdateRowState.UpToDate ? installed ?? r.Latest : r.Latest,
-                    Progress = null, Message = outcome.Message, RestartRequired = outcome.Succeeded && outcome.RestartRequired,
+                    State = state, Installed = installed ?? r.Installed, Latest = state == UpdateRowState.Updated ? installed ?? r.Latest : r.Latest,
+                    Progress = null, Message = changedAfterRequest ? null : outcome.Message, RestartRequired = outcome.Succeeded && outcome.RestartRequired,
                 });
             }
         }
