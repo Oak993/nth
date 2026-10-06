@@ -425,7 +425,9 @@ internal sealed class VoicePill : Panel
     private void UpdateClip(double width)
     {
         ContentClip = new RectangleGeometry(new Rect(0, 0, Math.Max(width, 0), PillHeight), PillHeight / 2, PillHeight / 2);
-        material.Clip = ContentClip;
+        // OD-0121 (2): the capsule's edge is antialiased once, by the shared glass's own distance field (and the rim's rounded rectangle). The material takes a
+        // plain rectangle (its own bounds), not a second antialiased capsule, which would square the edge pixels' coverage; only the label and cross take the capsule.
+        material.Clip = new RectangleGeometry(new Rect(0, 0, Math.Max(width, 0), PillHeight));
         contents.Clip = ContentClip;
         Clip = null;
     }
