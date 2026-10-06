@@ -18,7 +18,7 @@ public interface IAccountLimits
     /// <summary>The measured usage percent this thread spends per minute on the account, or null when there is no data yet.</summary>
     double? SpendPercentPerMinute(string accountId, Guid threadId);
 
-    /// <summary>The measured cost of one Handshake in percent of the account's window, or null when unmeasured.</summary>
+    /// <summary>The observed conservative Handshake cost in percent of the account's window (may include concurrent activity), or null when unmeasured.</summary>
     double? HandshakeCostPercent(string accountId);
 }
 

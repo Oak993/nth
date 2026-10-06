@@ -42,7 +42,11 @@ public sealed class MultiAccountRouting
             MainActor.Post(() =>
             {
                 if (epoch == pollingEpoch && connected.Values.Any(row => row.Key == snapshot.Account)
-                    && ReferenceEquals(scheduler.Snapshot(snapshot.Account), snapshot)) app.NotifyAccountReport();
+                    && ReferenceEquals(scheduler.Snapshot(snapshot.Account), snapshot))
+                {
+                    if (limits.ObserveHandshakeCosts(snapshot)) UpdateReportUse();
+                    app.NotifyAccountReport();
+                }
             });
         };
         app.Settings.Accounts.Changed += SettingsChanged;
@@ -88,7 +92,7 @@ public sealed class MultiAccountRouting
         foreach (var pair in connected)
         {
             var account = app.Settings.Accounts.Accounts.FirstOrDefault(row => row.Id == pair.Key);
-            scheduler.SetInUse(pair.Value.Key, account is { Enabled: true } && (reportObservers > 0 || active.Contains(pair.Key)));
+            scheduler.SetInUse(pair.Value.Key, account is { Enabled: true } && (reportObservers > 0 || active.Contains(pair.Key) || limits.HasPendingHandshakeCost(pair.Key)));
         }
     }
 
@@ -97,11 +101,31 @@ public sealed class MultiAccountRouting
         pollingEpoch++;
         timer?.Dispose();
         timer = null;
-        foreach (var row in connected.Values) scheduler.Pause(row.Key);
+        foreach (var pair in connected)
+        {
+            limits.CancelHandshakeCosts(pair.Key);
+            scheduler.Pause(pair.Value.Key);
+        }
         connected.Clear();
     }
     public HandshakeEvent? State(Guid thread) => app.ApiKeys.State(thread) ?? routes.GetValueOrDefault(thread)?.State;
     public AccountPlanLimitsSnapshot? Snapshot(Guid account) => limits.Snapshot(account);
+    internal HandshakeCostObservation? ObserveHandshakeCost(Guid account)
+    {
+        MainActor.AssumeIsolated();
+        var row = app.Settings.Accounts.Accounts.FirstOrDefault(row => row.Id == account);
+        if (row is not { Enabled: true } || !app.IsAccountConnected(row) || !connected.TryGetValue(account, out var connection)) return null;
+        var epoch = pollingEpoch;
+        var observation = limits.BeginHandshakeCost(account, () => MainActor.Post(() =>
+        {
+            if (epoch != pollingEpoch || !connected.TryGetValue(account, out var current) || current.Key != connection.Key) return;
+            UpdateReportUse();
+            if (limits.HasPendingHandshakeCost(account)) TrackPoll(scheduler.RequestRefreshAsync(connection.Key));
+        }));
+        if (observation is not null) scheduler.SetInUse(connection.Key, true);
+        return observation;
+    }
+
     internal bool CanUseAccount(Guid account) => limits.Usage(account.ToString("D"))?.IsExhaustedAt(clock.GetUtcNow()) != true && app.ApiKeys.CanUseAccount(account);
 
     private bool Eligible(ThreadRuntime runtime) => !app.Settings.Accounts.SaveBlocked && app.Thread(runtime.ThreadID) is { } thread
@@ -257,6 +281,7 @@ public sealed class MultiAccountRouting
         foreach (var id in connected.Keys.Except(available.Select(row => row.Id)).ToArray())
         {
             // Metadata may already be removed, so use the captured service/key instead of looking it up again.
+            limits.ForgetHandshakeCosts(id);
             scheduler.SignedOut(connected[id].Key);
             connected.Remove(id);
         }
@@ -270,10 +295,12 @@ public sealed class MultiAccountRouting
             }
             else if (plan.Plan != account.Plan)
             {
+                limits.ForgetHandshakeCosts(account.Id);
                 connected[account.Id] = (key, account.Plan);
                 TrackPoll(scheduler.PlanChangedAsync(key));
             }
-            scheduler.SetInUse(key, account.Enabled && (reportObservers > 0 || active.Contains(account.Id)));
+            if (!account.Enabled) limits.ForgetHandshakeCosts(account.Id);
+            scheduler.SetInUse(key, account.Enabled && (reportObservers > 0 || active.Contains(account.Id) || limits.HasPendingHandshakeCost(account.Id)));
             scheduler.SetHandshakePercent(key, app.Settings.Accounts.EffectiveHandshakePoint(account.Id).Percentage);
         }
         TrackPoll(scheduler.RefreshDueAsync());

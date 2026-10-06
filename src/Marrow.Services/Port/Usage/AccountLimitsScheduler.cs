@@ -99,7 +99,9 @@ public sealed class AccountLimitsScheduler : IDisposable
         }
     }
 
-    public Task LimitReachedAsync(UsageAccountKey account)
+    public Task LimitReachedAsync(UsageAccountKey account) => RequestRefreshAsync(account);
+
+    public Task RequestRefreshAsync(UsageAccountKey account)
     {
         lock (gate) Request(State(account));
         return RefreshAccountAsync(account);

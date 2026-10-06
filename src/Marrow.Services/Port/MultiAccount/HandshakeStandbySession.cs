@@ -13,6 +13,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     private readonly Dictionary<string, string> messages = new(StringComparer.Ordinal);
     private readonly List<string> messageOrder = [];
     private TaskCompletionSource<string?>? completion;
+    private Func<Task<HandshakeCostObservation?>>? observeUsage;
     private bool needsReadBack;
     private bool ready;
     private bool ownsSession = true;
@@ -30,14 +31,15 @@ public sealed class HandshakeStandbySession : IStandbySession
     public string SessionId { get; private set; } = "";
     public HandoffPackage? ReceivedPackage { get; private set; }
 
-    public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct, Func<bool>? canTransfer = null)
+    public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct, Func<bool>? canTransfer = null,
+        Func<Task<HandshakeCostObservation?>>? observeUsage = null)
     {
         // These providers enforce IsFinalReport before exposing tools or executing an action.
         // Claude additionally verifies its temporary agent, effective policy and actual init identity.
         if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local)
             && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
-        var standby = new HandshakeStandbySession(session, configuration);
+        var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage };
         if (session is ClaudeSession privateClaude) privateClaude.CanTransferContext = canTransfer;
         Task<string>? start = null;
         try
@@ -148,6 +150,7 @@ public sealed class HandshakeStandbySession : IStandbySession
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
             var result = completion.Task;
             // API/Local enforce IsFinalReport before any tool request. CLI factories must supply a verified restricted launch.
+            using var usage = observeUsage is null ? null : await observeUsage();
             await session.Send(new TurnInput
             {
                 Text = text, Images = ValueList<Attachment>.Empty, Model = model ?? Configuration.Model, Effort = model is null ? Configuration.Effort : null,
@@ -157,6 +160,7 @@ public sealed class HandshakeStandbySession : IStandbySession
             var answer = await result.WaitAsync(linked.Token);
             if (session is ClaudeSession claude) SessionId = claude.VerifiedHandshakeIdentity;
             ready = true;
+            usage?.Complete();
             return answer;
         }
         catch { if (ownsSession) Stop(); throw; }

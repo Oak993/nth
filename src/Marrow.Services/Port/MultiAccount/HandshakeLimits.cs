@@ -7,7 +7,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.MultiAccount;
 
-public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsScheduler scheduler, UsageRateEstimator rates, TimeProvider clock,
+public sealed partial class HandshakeLimits(AccountStore accounts, AccountLimitsScheduler scheduler, UsageRateEstimator rates, TimeProvider clock,
     Func<Guid, bool>? canUseAccount = null) : IAccountLimits
 {
     private readonly Dictionary<Guid, (string Window, DateTimeOffset? Reset, long? Duration, string? Plan, double Percent)> costs = [];
@@ -69,22 +69,6 @@ public sealed class HandshakeLimits(AccountStore accounts, AccountLimitsSchedule
     {
         if (!Guid.TryParse(accountId, out var id) || Binding(Snapshot(id)) is not { } window) return null;
         return rates.PercentPerMinute(threadId, Key(id), window.Id);
-    }
-
-    public double? HandshakeCostPercent(string accountId) => Guid.TryParse(accountId, out var id)
-        && costs.TryGetValue(id, out var cost) && Binding(Snapshot(id)) is { } window
-        && window.Id == cost.Window && window.ResetsAt == cost.Reset && window.DurationMinutes == cost.Duration
-        && Snapshot(id)?.Limits?.PlanName == cost.Plan ? cost.Percent : null;
-
-    // A reset, changed binding window or stale observation cannot manufacture a Handshake cost.
-    public void RecordHandshakeCost(Guid id, AccountPlanLimitsSnapshot before, AccountPlanLimitsSnapshot after)
-    {
-        if (before.Account != Key(id) || after.Account != Key(id) || after.ObservedAt <= before.ObservedAt) return;
-        var first = Binding(before);
-        var last = Binding(after);
-        if (first is null || last is null || first.Id != last.Id || first.DurationMinutes != last.DurationMinutes
-            || first.ResetsAt != last.ResetsAt || before.Limits?.PlanName != after.Limits?.PlanName || last.Percent < first.Percent) return;
-        costs[id] = (last.Id, last.ResetsAt, last.DurationMinutes, after.Limits?.PlanName, last.Percent - first.Percent);
     }
 
     private PlanLimits.Window? Binding(AccountPlanLimitsSnapshot? snapshot) => snapshot?.Limits?.Windows

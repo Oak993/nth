@@ -32,7 +32,8 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var generation = ++preparationGeneration;
         var candidate = create(runtime.CreateHandshakeConfiguration(target), Guid.Parse(target.Account.Id));
         app.ApiKeys.BindPrivate(candidate.Session, Guid.Parse(target.Account.Id));
-        var standby = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct);
+        var standby = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct,
+            observeUsage: () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(candidate.Configuration.AccountId!.Value)));
         if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
         {
             await standby.DisposeAsync();
@@ -52,7 +53,8 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var configuration = runtime.BuildHandshakeConfiguration(target, useComposerSettings: true);
         var candidate = create(configuration, account.Id);
         app.ApiKeys.BindPrivate(candidate.Session, account.Id);
-        await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct);
+        await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct,
+            observeUsage: () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(candidate.Configuration.AccountId!.Value)));
         return await privateSession.TextTurnAsync("[Marrow Handshake] Write a short briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use only this recorded context:\n" + summary.Text, ct);
     }
 
@@ -78,7 +80,8 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         if (!CanTransfer()) throw new InvalidOperationException("The incoming AI briefing is no longer authorized.");
         var candidate = create(original with { FastMode = false, Effort = null }, id);
         app.ApiKeys.BindPrivate(candidate.Session, id);
-        await using var light = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer);
+        await using var light = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer,
+            () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(id)));
         var answer = await light.WriteIncomingLightBriefingAsync(summary, ct);
         if (!CanTransfer()) throw new InvalidOperationException("The incoming AI briefing became stale.");
         return answer;
