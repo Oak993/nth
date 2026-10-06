@@ -335,25 +335,31 @@ public sealed class ApiKeyPool
             if (anchor is { } healthy && candidates.FirstOrDefault(candidate => candidate.Entry.Id == healthy.Id) is { Entry: not null } heldCandidate
                 && (pool.moves?.Setting(threadId) ?? KeyMoveSetting.Unset) != KeyMoveSetting.Allow)
                 return Choose(new(heldCandidate.Entry.Id, heldCandidate.Entry.Nickname, heldCandidate.Secret));
-            if (anchor is { } held && pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == held.Id) is { } entry
-                && entry.Allowed && pool.HasSecret(entry) && (pool.IsOut(held.Id, now) || pool.OverCap(entry, now)))
+            if (anchor is { } held)
             {
-                if (candidates.Count == 0)
+                // OD-0116 (lead decision 2026-10-06): leaving the key a live thread is on is a forced move whether it ran out, hit its cap,
+                // was turned off, lost its secret or was removed. The user's yes (remembered, or once) is needed first.
+                var entry = pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == held.Id);
+                var gone = entry is null || !entry.Allowed || !pool.HasSecret(entry);
+                if (gone || pool.IsOut(held.Id, now) || pool.OverCap(entry!, now))
                 {
-                    raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, held, null, null, pool.EarliestReturn(now), "All keys are out."));
+                    if (candidates.Count == 0)
+                    {
+                        raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, held, null, null, pool.EarliestReturn(now), "All keys are out."));
+                        return null;
+                    }
+                    var proposed = new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret);
+                    if (MoveAllowed(out var setting))
+                    {
+                        var moved = Choose(proposed);
+                        ContinuedOn = moved.Nickname;
+                        raised.Add(pool.Event(ApiKeyEventKind.Continued, threadId, held, moved, null, null, $"Continued on {moved.Nickname}"));
+                        return moved;
+                    }
+                    var why = gone ? $"{held.Nickname} is off." : pool.IsOut(held.Id, now) ? $"{held.Nickname} is out." : $"{held.Nickname} reached its monthly cap.";
+                    raised.Add(Withheld(setting, held, proposed, why, null));
                     return null;
                 }
-                var proposed = new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret);
-                if (MoveAllowed(out var setting))
-                {
-                    var moved = Choose(proposed);
-                    ContinuedOn = moved.Nickname;
-                    raised.Add(pool.Event(ApiKeyEventKind.Continued, threadId, held, moved, null, null, $"Continued on {moved.Nickname}"));
-                    return moved;
-                }
-                var why = pool.IsOut(held.Id, now) ? $"{held.Nickname} is out." : $"{held.Nickname} reached its monthly cap.";
-                raised.Add(Withheld(setting, held, proposed, why, null));
-                return null;
             }
 
             if (candidates.Count > 0) return Choose(new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret));

@@ -1,7 +1,7 @@
 namespace Marrow.Core.Tests.Accounts.Keys;
 
 // OD-0116 for API keys as an invariant: whatever the order mode, credits, caps, pins, answers and clock moves, a thread that is on a key
-// does not leave it for another unless the user agreed, pinned another, or took the key out of use.
+// does not leave it for another unless the user agreed or pinned another (a key turned off is a forced move too).
 [Trait("Rule", "R-TEST-4")]
 public sealed class ApiKeyConsentModelTests
 {

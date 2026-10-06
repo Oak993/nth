@@ -4,7 +4,7 @@ namespace Marrow.Core.Tests.Accounts.Keys;
 
 /// <summary>
 /// One seeded random life of a thread on a service's keys, judged by an independent model of OD-0116: a thread stays on the key it is on
-/// unless it is pinned to another by the user, moving was agreed (remembered, or once), or the user turned its key off or took its secret away.
+/// unless it is pinned to another by the user or moving was agreed (remembered, or once). A key turned off or without a secret is a forced move like out and cap.
 /// </summary>
 public sealed class ApiKeyConsentModel(int seed)
 {
@@ -25,9 +25,6 @@ public sealed class ApiKeyConsentModel(int seed)
     public string Describe => "seed " + seed + ": " + string.Join("; ", script);
 
     private ApiKeyEntry Entry(string id) => rig.Store.Keys(ApiKeyRig.Service).First(key => key.Id == id);
-
-    // The user took the key out of use: off, or no secret. Leaving it then is not a forced move.
-    private bool Abandoned(string id) => !Entry(id).Allowed || string.IsNullOrWhiteSpace(rig.Store.Secret(id));
 
     public void Run()
     {
@@ -92,10 +89,10 @@ public sealed class ApiKeyConsentModel(int seed)
         }
     }
 
-    private (KeyMoveSetting Setting, bool Once, string? Pin, bool AnchorAbandoned) Pending() =>
-        (rig.Moves.Setting(ApiKeyRig.Thread), once, pin, anchor is not null && Abandoned(anchor));
+    private (KeyMoveSetting Setting, bool Once, string? Pin) Pending() =>
+        (rig.Moves.Setting(ApiKeyRig.Thread), once, pin);
 
-    private void Judge(string call, KeyChoice? chosen, bool failure, (KeyMoveSetting Setting, bool Once, string? Pin, bool AnchorAbandoned)? before = null)
+    private void Judge(string call, KeyChoice? chosen, bool failure, (KeyMoveSetting Setting, bool Once, string? Pin)? before = null)
     {
         var state = before ?? Pending();
         if (chosen is null) { Refusals++; return; }
@@ -103,7 +100,7 @@ public sealed class ApiKeyConsentModel(int seed)
         string? why = null;
         if (state.Pin is { } held && chosen.Id != held) why = "the thread is pinned to " + held;
         else if (anchor is null) why = null;
-        else if (chosen.Id != anchor && state.Pin != chosen.Id && state.Setting != KeyMoveSetting.Allow && !state.Once && !state.AnchorAbandoned)
+        else if (chosen.Id != anchor && state.Pin != chosen.Id && state.Setting != KeyMoveSetting.Allow && !state.Once)
             why = "moved from " + anchor + " without agreement (setting " + state.Setting + ")";
         if (why is not null) Violations.Add(call + " " + why);
         if (anchor is not null && chosen.Id != anchor) Moves++;
