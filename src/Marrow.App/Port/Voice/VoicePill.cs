@@ -381,11 +381,11 @@ internal sealed class VoicePill : Panel
         var h = PillHeight;
         var width = Math.Max(widthValue.Value, h);
         var centre = style == VoiceListeningStyle.Float ? new Point(h / 2, h / 2) : new Point(width - h / 2, h / 2);
-        var mask = VoicePillRim.OrbMask(centre, h, width, style);
-        // Mask the shared glass and its rim together in the capsule's coordinates before the bounded edge filter.
-        // The material's custom visual has larger sampling bounds than its border; masking that visual separately shifts the cap.
-        // The label and cross retain the same capsule mask, without filtering their glyphs.
-        material.OpacityMask = mask;
+        var mask = VoicePillRim.OrbMask(centre, h, orbDiameter);
+        // OD-0121 (5): V-12.12's radial mask, centred on the orb: the shared glass and its rim together in the capsule's coordinates (the material's custom visual has
+        // larger sampling bounds than its border; masking that visual separately shifts the cap), and the label and cross with the same mask.
+        material.OpacityMask = VoicePillRim.OrbFade(centre, h, width, style);
+        filtered.OpacityMask = mask;
         contents.OpacityMask = mask;
         OpacityMask = null;
         body.OpacityMask = null;

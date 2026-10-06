@@ -114,8 +114,28 @@ internal sealed class VoicePillRim : Control
         }
     }
 
-    /// <summary>The clean-cap fade, zero on the exposed side and complete one cap radius toward the body.</summary>
-    public static IBrush OrbMask(Point centre, double pillHeight, double width, VoiceListeningStyle style)
+    /// <summary>
+    /// The clean-cap mask (V-12.12): <c>radial-gradient(circle at the orb's centre, transparent D/2 - 1, #000 H/2 + 1.5)</c>, transparent inside the ball's edge and
+    /// opaque from the cap's radius plus 1.5, a straight ramp between. A radial brush in the control's own coordinates (not a drawing resampled to the box).
+    /// </summary>
+    public static IBrush OrbMask(Point centre, double pillHeight, double orbDiameter)
+    {
+        var inner = Math.Max(orbDiameter / 2 - 1, 0);
+        var outer = Math.Max(pillHeight / 2 + 1.5, inner + 0.01);
+        var at = new RelativePoint(centre, RelativeUnit.Absolute);
+        return new ImmutableRadialGradientBrush(
+            [new ImmutableGradientStop(0, Colors.Transparent), new ImmutableGradientStop(inner / outer, Colors.Transparent), new ImmutableGradientStop(1, Colors.Black)],
+            center: at,
+            gradientOrigin: at,
+            radiusX: new RelativeScalar(outer, RelativeUnit.Absolute),
+            radiusY: new RelativeScalar(outer, RelativeUnit.Absolute));
+    }
+
+    /// <summary>
+    /// The side the orb sits on is cleared outright (OD-0121 5, V-T132): zero on the exposed side of the orb's centre and complete one cap radius toward the body. The radial
+    /// <see cref="OrbMask"/> (the page's) is multiplied by it, as the page's pill, where the orb's own glow covers the band the radial mask leaves, is not in the port's frame.
+    /// </summary>
+    public static IBrush OrbFade(Point centre, double pillHeight, double width, VoiceListeningStyle style)
     {
         var direction = style == VoiceListeningStyle.Float ? 1 : -1;
         var inward = new ImmutableLinearGradientBrush(
