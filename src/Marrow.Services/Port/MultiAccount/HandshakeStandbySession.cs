@@ -14,6 +14,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     private readonly List<string> messageOrder = [];
     private TaskCompletionSource<string?>? completion;
     private Func<Task<HandshakeCostObservation?>>? observeUsage;
+    private Func<bool>? canTransfer;
     private bool needsReadBack;
     private bool ready;
     private bool ownsSession = true;
@@ -39,8 +40,8 @@ public sealed class HandshakeStandbySession : IStandbySession
         if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local)
             && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
-        var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage };
-        if (session is ClaudeSession privateClaude) privateClaude.CanTransferContext = canTransfer;
+        var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage, canTransfer = canTransfer };
+        standby.BindTransferGuard(canTransfer);
         Task<string>? start = null;
         try
         {
@@ -127,6 +128,8 @@ public sealed class HandshakeStandbySession : IStandbySession
             throw new InvalidOperationException("Only a completed standby can be adopted.");
         if (session is ClaudeSession { HandshakeToolsRestored: false })
             throw new InvalidOperationException("The CLI tools must be restored before adoption.");
+        BindTransferGuard(null);
+        canTransfer = null;
         ownsSession = false;
         session.OnEvent = null;
         return session;
@@ -150,7 +153,9 @@ public sealed class HandshakeStandbySession : IStandbySession
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
             var result = completion.Task;
             // API/Local enforce IsFinalReport before any tool request. CLI factories must supply a verified restricted launch.
+            if (canTransfer?.Invoke() == false) throw new InvalidOperationException("Context transfer is no longer authorized.");
             using var usage = observeUsage is null ? null : await observeUsage();
+            if (canTransfer?.Invoke() == false) throw new InvalidOperationException("Context transfer is no longer authorized.");
             await session.Send(new TurnInput
             {
                 Text = text, Images = ValueList<Attachment>.Empty, Model = model ?? Configuration.Model, Effort = model is null ? Configuration.Effort : null,
@@ -217,11 +222,19 @@ public sealed class HandshakeStandbySession : IStandbySession
         Stop();
     }
 
+    private void BindTransferGuard(Func<bool>? guard)
+    {
+        if (session is ClaudeSession claude) claude.CanTransferContext = guard;
+        if (session is OpenAICompatibleSession api) api.CanTransferContext = guard;
+    }
+
     private void Stop()
     {
         if (stopped || !ownsSession) return;
         stopped = true;
         ready = false;
+        BindTransferGuard(null);
+        canTransfer = null;
         completion?.TrySetException(new InvalidOperationException("The standby was closed before context transfer completed."));
         session.OnEvent = null;
         session.Stop();

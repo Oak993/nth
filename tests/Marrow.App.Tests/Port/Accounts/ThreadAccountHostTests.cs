@@ -17,7 +17,8 @@ public sealed class ThreadAccountHostTests
     public void A_legacy_provider_conversation_keeps_its_original_account_after_the_priority_order_changes()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Deepseek,
-            configure: thread => thread with { ProviderSessionID = "legacy-native", ProviderAccountID = null });
+            configure: thread => thread with { ProviderSessionID = "legacy-native", ProviderAccountID = null },
+            settings: app => app.Settings.DeepseekAPIKeyInput = "offline-outgoing-briefing");
         var briefing = new ThreadRuntimeScriptedSession();
         rig.H.Main.Loop.Run(async () =>
         {
@@ -222,7 +223,8 @@ public sealed class ThreadAccountHostTests
     public void The_outgoing_briefing_uses_a_private_restricted_session_on_the_same_account_and_never_sends_on_the_live_reply()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Deepseek,
-            configure: thread => thread with { Model = "active-model", Effort = "active-effort", FastMode = true });
+            configure: thread => thread with { Model = "active-model", Effort = "active-effort", FastMode = true },
+            settings: app => app.Settings.DeepseekAPIKeyInput = "offline-outgoing-briefing");
         rig.Send("Live work continues.");
         var briefing = new ThreadRuntimeScriptedSession();
         Guid? used = null;

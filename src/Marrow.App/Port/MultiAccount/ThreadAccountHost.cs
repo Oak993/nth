@@ -30,9 +30,13 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var from = ActiveAccountId;
         var epoch = runtime.HandshakeStamp.Epoch;
         var generation = ++preparationGeneration;
-        var candidate = create(runtime.CreateHandshakeConfiguration(target), Guid.Parse(target.Account.Id));
+        var original = runtime.CreateHandshakeConfiguration(target);
+        var id = Guid.Parse(target.Account.Id);
+        bool CanTransfer() => SourceStillCurrent(from, epoch) && generation == preparationGeneration
+            && AccountAvailable(original.Provider, id) && SameTransferSettings(original, runtime.CreateHandshakeConfiguration(target));
+        var candidate = create(original, id);
         app.ApiKeys.BindPrivate(candidate.Session, Guid.Parse(target.Account.Id));
-        var standby = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct,
+        var standby = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer,
             observeUsage: () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(candidate.Configuration.AccountId!.Value)));
         if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
         {
@@ -48,12 +52,15 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     public async Task<string?> RequestBriefingAsync(HandoffSummary summary, CancellationToken ct)
     {
         var account = app.Settings.Accounts.Get(Guid.Parse(ActiveAccountId));
-        var source = app.Thread(runtime.ThreadID) ?? throw new InvalidOperationException("The conversation is unavailable.");
+        var from = ActiveAccountId;
+        var epoch = runtime.HandshakeStamp.Epoch;
         var target = new SwitchTarget(new(account.Id.ToString("D"), account.Service.Id, account.CustomName ?? app.Settings.Accounts.DefaultName(account.Id)));
         var configuration = runtime.BuildHandshakeConfiguration(target, useComposerSettings: true);
+        bool CanTransfer() => SourceStillCurrent(from, epoch) && AccountAvailable(configuration.Provider, account.Id)
+            && SameTransferSettings(configuration, runtime.BuildHandshakeConfiguration(target, useComposerSettings: true));
         var candidate = create(configuration, account.Id);
         app.ApiKeys.BindPrivate(candidate.Session, account.Id);
-        await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct,
+        await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer,
             observeUsage: () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(candidate.Configuration.AccountId!.Value)));
         return await privateSession.TextTurnAsync("[Marrow Handshake] Write a short briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use only this recorded context:\n" + summary.Text, ct);
     }
@@ -66,17 +73,8 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         if (original.Provider != ProviderKind.Claude)
             throw new NotSupportedException("This service has no verified light-model briefing capability.");
         var id = Guid.Parse(target.Account.Id);
-        bool CanTransfer()
-        {
-            if (CanCommit?.Invoke() == false || Pinned || app.Settings.Accounts.SaveBlocked || ActiveAccountId != from
-                || runtime.HandshakeStamp.Epoch != epoch || app.Settings.Accounts.Choose(original.Provider, id) is null
-                || !app.IsAccountConnected(app.Settings.Accounts.Get(id)) || !app.CanUseAccount(id)) return false;
-            var current = runtime.CreateHandshakeConfiguration(target);
-            return current.Model == original.Model && current.Effort == original.Effort && current.FastMode == original.FastMode
-                && current.RuntimeMode == original.RuntimeMode && current.InteractionMode == original.InteractionMode
-                && current.Hydra == original.Hydra && current.AntiSlopEnabled == original.AntiSlopEnabled
-                && current.WorkingDirectory == original.WorkingDirectory;
-        }
+        bool CanTransfer() => SourceStillCurrent(from, epoch) && AccountAvailable(original.Provider, id)
+            && SameTransferSettings(original, runtime.CreateHandshakeConfiguration(target));
         if (!CanTransfer()) throw new InvalidOperationException("The incoming AI briefing is no longer authorized.");
         var candidate = create(original with { FastMode = false, Effort = null }, id);
         app.ApiKeys.BindPrivate(candidate.Session, id);
@@ -154,6 +152,19 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             || !app.CanUseAccount(Guid.Parse(target.Account.Id)))
             throw new InvalidOperationException("The prepared switch is no longer safe or available.");
     }
+
+    private bool SourceStillCurrent(string from, long epoch) => CanCommit?.Invoke() != false && !Pinned
+        && !app.Settings.Accounts.SaveBlocked && runtime.TryHandshakeAccountId(out var current)
+        && current.ToString("D") == from && runtime.HandshakeStamp.Epoch == epoch;
+
+    private bool AccountAvailable(ProviderKind provider, Guid id) => app.Settings.Accounts.Choose(provider, id) is { } row
+        && app.IsAccountConnected(row) && app.CanUseAccount(id);
+
+    private static bool SameTransferSettings(SessionConfiguration original, SessionConfiguration current) =>
+        current.Model == original.Model && current.Effort == original.Effort && current.FastMode == original.FastMode
+        && current.RuntimeMode == original.RuntimeMode && current.InteractionMode == original.InteractionMode
+        && current.Hydra == original.Hydra && current.AntiSlopEnabled == original.AntiSlopEnabled
+        && current.WorkingDirectory == original.WorkingDirectory;
 
     private static Marrow.Core.Models.ProviderKind incomingProvider(SwitchTarget target) =>
         SwiftEnum<Marrow.Core.Models.ProviderKind>.FromRawValue(target.Account.Service)

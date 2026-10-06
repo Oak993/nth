@@ -405,8 +405,10 @@ public sealed class HandshakeMachine(
                 standby = await host.StartStandbyAsync(to, token);
             }
 
+            EnsureTransferAuthorized(from, to, why);
             SetPhase(HandshakePhase.Linking);
             summary ??= await summaries.BuildAsync(threadId, token);
+            EnsureTransferAuthorized(from, to, why);
 
             // The outgoing account writes the briefing only while it still has usage.
             var outHasUsage = !(limits.Usage(from)?.IsExhaustedAt(clock.GetUtcNow()) ?? false);
@@ -421,11 +423,7 @@ public sealed class HandshakeMachine(
 
             if (bring == Bring.AiSummary && string.IsNullOrWhiteSpace(briefing))
             {
-                if (!PolicyStillCurrent() || host.ActiveAccountId != from || host.Pinned
-                    || Find(to.Account.Id) is not { Enabled: true }
-                    || limits.Usage(to.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) == true
-                    || why == HandshakeReason.NearLimit && !CurrentOptions.Enabled)
-                    throw new InvalidOperationException("Permission for the AI briefing changed.");
+                EnsureTransferAuthorized(from, to, why);
                 if (host is not IIncomingBriefingHost incoming)
                     throw new NotSupportedException("The incoming service cannot provide a verified light-model briefing.");
                 briefing = await incoming.RequestIncomingBriefingAsync(to, summary, token);
@@ -433,6 +431,7 @@ public sealed class HandshakeMachine(
                     throw new InvalidOperationException("The incoming account did not provide an authorized AI briefing.");
             }
 
+            EnsureTransferAuthorized(from, to, why);
             string? readBack = null;
             if (!received)
             {
@@ -446,7 +445,9 @@ public sealed class HandshakeMachine(
                 if (!synced)
                 {
                     var gaps = summaries.FindGaps(summary, readBack ?? "");
+                    EnsureTransferAuthorized(from, to, why);
                     if (gaps.Count > 0) await standby.FillGapsAsync(gaps, token);
+                    EnsureTransferAuthorized(from, to, why);
                     synced = true;
                     Emit(HandshakeEventKind.InSyncReady, phase, phase, null, detail: gaps.Count == 0 ? "in sync" : gaps.Count == 1 ? "1 gap filled" : $"{gaps.Count} gaps filled");
                 }
@@ -477,6 +478,15 @@ public sealed class HandshakeMachine(
         }
 
         if (host.AtSafePoint) await SwitchNowAsync(ct);
+    }
+
+    private void EnsureTransferAuthorized(string from, SwitchTarget to, HandshakeReason why)
+    {
+        if (!PolicyStillCurrent() || host.ActiveAccountId != from || host.Pinned
+            || Find(to.Account.Id) is not { Enabled: true }
+            || limits.Usage(to.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) == true
+            || why == HandshakeReason.NearLimit && !CurrentOptions.Enabled)
+            throw new InvalidOperationException("Permission for context transfer changed.");
     }
 
     private async Task SwitchNowAsync(CancellationToken ct)

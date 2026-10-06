@@ -87,6 +87,8 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY: OD-0114. Called only after the full tool round is retained, before another request.
     // False transfers continuation ownership to the host; this retired loop emits no completion.
     public Func<CancellationToken, Task<bool>>? ContinueAfterAccountStep { get; set; }
+    // PORT-ONLY: ED-NEW-ma-ui. Private context permission is rechecked after encoding on every attempt.
+    internal Func<bool>? CanTransferContext { get; set; }
     public SessionConfiguration Configuration { get; private set; }   // :37
 
     // OD-0114: retain this request's payload; tool children use the selected account's environment.
@@ -950,6 +952,8 @@ public class OpenAICompatibleSession : ProviderSession
         if (OpenAICompatibleSessionConfig.RequiresAPIKey) request = request.SetValue($"Bearer {ApiKey}", "Authorization"); // :604; ED-NEW-ma-3
         request = request with { HttpBody = await Encode(payload) }; // :607
         if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :608
+        if (CanTransferContext?.Invoke() == false)
+            throw new ProviderError(new ProviderError.Case.Failed("Context transfer is no longer authorized."));
 
         var messageID = NextID("message"); // :610
         var thoughtID = NextID("thought"); // :611
