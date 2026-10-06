@@ -60,9 +60,24 @@ public interface IDecisionStore
     void ClearThread(Guid threadId);
 }
 
+/// <summary>
+/// PORT-ONLY: OD-0116, OD-0122, ED-NEW-ma-engine-7. How a prepared destination holds the context before the switch.
+/// Primed: a text-only model turn that reads it back (Claude, API, Local). Injected: the history is loaded without any model turn (Codex, Pi, OpenCode when the CLI proves it).
+/// Deferred: nothing is sent early; the context rides in front of the first real turn (a warm-started or never-started destination).
+/// </summary>
+public enum StandbyKind
+{
+    Primed,
+    Injected,
+    Deferred,
+}
+
 /// <summary>The incoming account's session, started in the background (hot standby).</summary>
 public interface IStandbySession : IAsyncDisposable
 {
+    /// <summary>How this standby holds the context. It can drop to <see cref="StandbyKind.Deferred"/> when a loaded history is discarded for safety.</summary>
+    StandbyKind Kind => StandbyKind.Primed;
+
     /// <summary>Gives the incoming account the package. With <paramref name="readBack"/> it answers with a few lines of what it understood; otherwise null.</summary>
     Task<string?> ReceiveAsync(HandoffPackage package, bool readBack, CancellationToken ct);
 

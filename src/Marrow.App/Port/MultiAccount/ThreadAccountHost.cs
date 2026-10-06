@@ -12,20 +12,51 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null, Func<bool>? manualSelection = null) : IThreadAccountHost, IAccountSwitchCommitGuard, IIncomingBriefingHost, IDeferredDeliveryHost
 {
     private readonly Func<SessionConfiguration, Guid, AccountSessionLaunch> create = launch ?? ((configuration, id) => AccountSessionFactory.Create(app.Providers, configuration, id, freshContext: true));
-    private HandshakeStandbySession? prepared;
+    private IAdoptableStandby? prepared;
     private string? preparedFrom;
     private long preparedEpoch;
     private long preparationGeneration;
     private SwitchTarget? preparedTarget;
     private DeferredStandby? deferredPrepared;
 
-    // OD-0116 (lead decision 2026-10-06): only Claude (after its gate) and the API/Local providers are primed in a verified text-only standby. No other CLI is ever started early.
-    private static bool HasVerifiableStandby(ProviderKind provider) => provider is ProviderKind.Claude or ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai
-        or ProviderKind.OpenRouter or ProviderKind.Local;
+    // OD-0116 (lead decision 2026-10-06), refined by ED-NEW-ma-engine-7: how each service holds the context before the switch.
+    // Primed: Claude (after its gate) and the API/Local providers read it in a verified text-only turn.
+    // Injected: Codex (and Pi) load it as history with no model turn at all, gated by a run-time check; Codex falls back to deferred delivery, Pi to a warm start.
+    // Warm: the process and session open early and receive nothing; the context goes as the first real turn. Deferred: Command Code, nothing to open early.
+    private enum StandbyPlan { Primed, InjectedThenDeferred, InjectedThenWarm, Warm, Deferred }
+
+    private static StandbyPlan PlanFor(ProviderKind provider) => provider switch
+    {
+        ProviderKind.Claude or ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local => StandbyPlan.Primed,
+        ProviderKind.Codex => StandbyPlan.InjectedThenDeferred,
+        ProviderKind.Pi => StandbyPlan.InjectedThenWarm,
+        ProviderKind.Copilot or ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin or ProviderKind.Antigravity or ProviderKind.Opencode or ProviderKind.OpencodeGo => StandbyPlan.Warm,
+        _ => StandbyPlan.Deferred,
+    };
+
+    private static bool HasVerifiableStandby(ProviderKind provider) => PlanFor(provider) == StandbyPlan.Primed;
 
     public bool DeliversDeferred(SwitchTarget target) =>
-        !HasVerifiableStandby(incomingProvider(target))
-        || deferredPrepared is not null && string.Equals(deferredPrepared.Configuration.AccountId?.ToString("D"), target.Account.Id, StringComparison.OrdinalIgnoreCase);
+        PlanFor(incomingProvider(target)) is StandbyPlan.Warm or StandbyPlan.Deferred
+        || deferredPrepared is not null && string.Equals(deferredPrepared.Configuration.AccountId?.ToString("D"), target.Account.Id, StringComparison.OrdinalIgnoreCase)
+        || prepared is { Kind: StandbyKind.Deferred } discarded && string.Equals(discarded.Configuration.AccountId?.ToString("D"), target.Account.Id, StringComparison.OrdinalIgnoreCase);
+
+    // The run-time check before the user is asked "finish the reply?": a CLI that cannot hold history will not continue a reply either (ED-NEW-ma-engine-7).
+    public async ValueTask<bool> ResolveDeliversDeferredAsync(SwitchTarget target, CancellationToken ct)
+    {
+        if (DeliversDeferred(target)) return true;
+        var provider = incomingProvider(target);
+        if (PlanFor(provider) is not (StandbyPlan.InjectedThenDeferred or StandbyPlan.InjectedThenWarm)) return false;
+        try
+        {
+            var candidate = create(runtime.CreateHandshakeConfiguration(target), Guid.Parse(target.Account.Id));
+            return candidate.Session is IStandbyInjectionSession injector && !await injector.SupportsStandbyInjection(ct);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
     public string ActiveAccountId => runtime.HandshakeAccountId.ToString("D");
     private PillResume? Relay => app.Thread(runtime.ThreadID)?.PillRelay is { } saved ? PillRelayResolver.Resolve(pills.Pills, saved) : null;
     public Pill? Pill => Relay?.Pill;
@@ -43,7 +74,10 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var id = Guid.Parse(target.Account.Id);
         bool CanTransfer() => SourceStillCurrent(from, epoch) && generation == preparationGeneration
             && AccountAvailable(original.Provider, id) && SameTransferSettings(original, runtime.CreateHandshakeConfiguration(target));
-        if (!HasVerifiableStandby(original.Provider)) return PrepareDeferred(original, target, from, epoch, generation);
+        var plan = PlanFor(original.Provider);
+        if (plan == StandbyPlan.Deferred || plan == StandbyPlan.Warm) return PrepareDeferred(original, target, from, epoch, generation);
+        if (plan is StandbyPlan.InjectedThenDeferred or StandbyPlan.InjectedThenWarm)
+            return await StartInjectedAsync(original, target, id, from, epoch, generation, CanTransfer, ct);
         var candidate = create(original, id);
         app.ApiKeys.BindPrivate(candidate.Session, Guid.Parse(target.Account.Id));
         HandshakeStandbySession standby;
@@ -55,6 +89,33 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         catch (Exception) when (original.Provider == ProviderKind.Claude && !ct.IsCancellationRequested)
         {
             // The Claude gate did not pass (old version, policy not enforced or reported, no acknowledged text-only init): the same deferred path.
+            return PrepareDeferred(original, target, from, epoch, generation);
+        }
+        if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
+        {
+            await standby.DisposeAsync();
+            throw new InvalidOperationException("The outgoing conversation changed while the standby was starting.");
+        }
+        prepared = standby;
+        deferredPrepared = null;
+        preparedFrom = from;
+        preparedEpoch = epoch;
+        preparedTarget = target;
+        return standby;
+    }
+
+    // ED-NEW-ma-engine-7: no model turn at all, so nothing can act. Any refusal, old CLI, exit or activity falls back to deferred delivery with the context intact.
+    private async Task<IStandbySession> StartInjectedAsync(SessionConfiguration original, SwitchTarget target, Guid id, string from, long epoch, long generation,
+        Func<bool> canTransfer, CancellationToken ct)
+    {
+        InjectedStandbySession standby;
+        try
+        {
+            var candidate = create(original, id);
+            standby = await InjectedStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, canTransfer);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
             return PrepareDeferred(original, target, from, epoch, generation);
         }
         if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
@@ -126,10 +187,15 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             await SwitchDeferredAsync(deferred, target, ct);
             return;
         }
-        if (standby is not HandshakeStandbySession incoming || !ReferenceEquals(prepared, incoming) || incoming.ReceivedPackage is not { } original)
+        if (standby is not IAdoptableStandby incoming || !ReferenceEquals(prepared, incoming) || incoming.ReceivedPackage is not { } original)
             throw new InvalidOperationException("The standby does not belong to this conversation or has not acknowledged its context.");
         for (var attempt = 0; attempt < 3; attempt++)
         {
+            if (incoming.Kind == StandbyKind.Deferred)
+            {
+                await FallBackToDeferredAsync(incoming, target, ct);
+                return;
+            }
             CheckCandidate(incoming, target);
             CheckSource(target);
             var final = await summaries.BuildAsync(runtime.ThreadID, ct);
@@ -137,6 +203,11 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             var fingerprint = await FingerprintAsync(final, ct);
             var needsReadBack = incoming.ReadBackRequested;
             var readBack = await incoming.ReceiveAsync(original with { Summary = final }, needsReadBack, ct);
+            if (incoming.Kind == StandbyKind.Deferred)
+            {
+                await FallBackToDeferredAsync(incoming, target, ct);
+                return;
+            }
             if (needsReadBack)
             {
                 var gaps = summaries.FindGaps(final, readBack ?? "");
@@ -146,6 +217,11 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             var proofFingerprint = await FingerprintAsync(proof, ct);
             if (stamp != runtime.HandshakeStamp || fingerprint != proofFingerprint) continue;
             ct.ThrowIfCancellationRequested();
+            if (incoming.Kind == StandbyKind.Deferred)
+            {
+                await FallBackToDeferredAsync(incoming, target, ct);
+                return;
+            }
             await incoming.PrepareForAdoptionAsync(ct);
             await MainActor.Run(() =>
             {
@@ -170,6 +246,18 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             return;
         }
         throw new InvalidOperationException("The outgoing conversation kept changing before its final context was acknowledged.");
+    }
+
+    // A loaded history that was discarded for safety (activity on the waiting thread, a refused inject, an exit): the same switch, deferred. Nothing the user said is lost.
+    private async Task FallBackToDeferredAsync(IAdoptableStandby incoming, SwitchTarget target, CancellationToken ct)
+    {
+        var package = incoming.ReceivedPackage ?? throw new InvalidOperationException("The standby has no context to hand over.");
+        var deferred = new DeferredStandby(incoming.Configuration);
+        await deferred.ReceiveAsync(package, false, ct);
+        await incoming.DisposeAsync();
+        prepared = null;
+        deferredPrepared = deferred;
+        await SwitchDeferredAsync(deferred, target, ct);
     }
 
     private async Task SwitchDeferredAsync(DeferredStandby standby, SwitchTarget target, CancellationToken ct)
@@ -223,7 +311,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         CheckSource(target);
     }
 
-    private void CheckCandidate(HandshakeStandbySession incoming, SwitchTarget target)
+    private void CheckCandidate(IAdoptableStandby incoming, SwitchTarget target)
     {
         if (!ReferenceEquals(prepared, incoming) || preparedTarget is not { } original
             || !string.Equals(original.Account.Id, target.Account.Id, StringComparison.OrdinalIgnoreCase)

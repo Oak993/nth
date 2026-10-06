@@ -7,4 +7,10 @@ namespace Marrow.Core.Accounts;
 public interface IDeferredDeliveryHost
 {
     bool DeliversDeferred(SwitchTarget target);
+
+    /// <summary>
+    /// PORT-ONLY: ED-NEW-ma-engine-7. The same answer, after the host has checked what the destination CLI can do at run time (a cached, offline check), so the engine does not ask
+    /// "finish the reply?" of a destination that will not continue it.
+    /// </summary>
+    ValueTask<bool> ResolveDeliversDeferredAsync(SwitchTarget target, CancellationToken ct) => ValueTask.FromResult(DeliversDeferred(target));
 }

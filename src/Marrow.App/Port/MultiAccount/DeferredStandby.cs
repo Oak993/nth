@@ -7,6 +7,7 @@ namespace Marrow.App.Runtime;
 public sealed class DeferredStandby(SessionConfiguration configuration) : IStandbySession
 {
     public SessionConfiguration Configuration { get; } = configuration;
+    public StandbyKind Kind => StandbyKind.Deferred;
     public HandoffPackage? ReceivedPackage { get; private set; }
 
     public Task<string?> ReceiveAsync(HandoffPackage package, bool readBack, CancellationToken ct)
