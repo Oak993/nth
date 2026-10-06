@@ -665,3 +665,10 @@ A connected eligible API account can be pinned for this conversation through the
 Claude text-only context transfer now has a version/effective-policy gate, empty main-agent tool pool, actual session/init proof, action denial, original settings/permission restoration in the same process and a bounded cleanup deadline. The App host awaits restoration and then reruns final atomic guards before releasing the outgoing session. Narrow Windows Services165/165; App account131/131 and rules3/3, zero skips/build warnings/errors. Exact new method failures reproduced alone twice; fixture compile errors and accidentally excluded method-name runs do not count. No real CLI/network/model ran.
 
 **Incomplete:** installed/native Claude policy verification and other CLI restrictions/restoration; private quota-cost estimate, optional incoming light-model summary, between-tool safe pause and manual CLI/Local selection. Helper Settings/capsule remain unmerged and their report leases await binding. Step1 NOT READY and unpushed. No native/DONE/release claim.
+
+
+## T11 incoming AI-summary fallback checkpoint, Codex, 2026-10-06
+
+An explicitly chosen AI summary now requests a real incoming light-model briefing when the outgoing one is unavailable and refuses absent output. The actual selected Claude account must report haiku; a separate restricted private session receives the complete archive, disables Fast/inherited effort, requires model selection acknowledgement and checks transfer permission at final dispatch. It never substitutes Marrow's mechanical summary, changes account defaults, releases the live source or enables automatic switching. Current narrow Windows Core267/267 Services165/165 App138/138, zero skips/build warnings/errors; new focused Core5/App4 cases and exact method reds alone twice.
+
+**Incomplete:** installed/native Claude verification and other CLI/light-model capability gates, private quota-cost measurement, between-tool safe pause, manual CLI/Local selection and helper view report binding. Step1 NOT READY/unpushed; Settings/capsule remain helper-owned/unmerged. No native/DONE/release claim.

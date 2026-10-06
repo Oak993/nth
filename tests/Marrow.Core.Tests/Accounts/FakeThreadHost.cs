@@ -3,7 +3,7 @@ using Marrow.Core.Accounts;
 namespace Marrow.Core.Tests.Accounts;
 
 /// <summary>A scripted <see cref="IThreadAccountHost"/>: no CLI, no model, no network. Every call lands in <see cref="Log"/>.</summary>
-public sealed class FakeThreadHost : IThreadAccountHost
+public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost
 {
     public List<string> Log { get; } = [];
 
@@ -15,6 +15,14 @@ public sealed class FakeThreadHost : IThreadAccountHost
     public bool ReplyInFlight { get; set; }
 
     public string? Briefing { get; set; } = "briefing";
+    public string? IncomingBriefing { get; set; } = "incoming-light-briefing";
+    public Exception? IncomingBriefingFails { get; set; }
+    public Task<string?> RequestIncomingBriefingAsync(SwitchTarget target, HandoffSummary summary, CancellationToken ct)
+    {
+        Log.Add("light-briefing:" + target.Account.Id);
+        if (IncomingBriefingFails is not null) throw IncomingBriefingFails;
+        return Task.FromResult(IncomingBriefing);
+    }
     public string ReadBack { get; set; } = "";
     public Exception? StandbyFails { get; set; }
     public Exception? BriefingFails { get; set; }

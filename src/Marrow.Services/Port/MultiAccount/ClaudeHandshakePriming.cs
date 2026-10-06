@@ -15,6 +15,7 @@ public sealed partial class ClaudeSession
     private JSONValue? handshakeSources;
     private JSONValue? handshakeNormalFlags;
     private bool handshakeFailed;
+    internal Func<bool>? CanTransferContext { get; set; }
     internal bool HandshakeToolsRestored { get; private set; }
     internal string VerifiedHandshakeIdentity => handshakeIdentity ?? throw new InvalidOperationException("The CLI did not acknowledge its text-only session.");
 
@@ -40,7 +41,7 @@ public sealed partial class ClaudeSession
     private string HandshakeLaunchSettings()
     {
         var flags = new Dictionary<string, JSONValue>();
-        if (configuration.FastMode) flags["fastMode"] = true;
+        if (configuration.FastMode || handshakeAgent is not null) flags["fastMode"] = configuration.FastMode;
         if (handshakeAgent is not null) { flags["agent"] = handshakeAgent; flags["disableAllHooks"] = true; }
         return new JSONValue.Object(new ValueMap<string, JSONValue>(flags)).CompactString;
     }

@@ -13,11 +13,15 @@ internal sealed class RuntimeClaudePrimingProcess : IClaudeProcess
         Arguments = arguments.ToArray(); Failure = failure;
         (Messages, output) = AsyncStream<JSONValue>.MakeStream();
         var settings = Array.IndexOf(Arguments, "--settings");
+        FastMode = settings >= 0 && JSONValue.Parse(Arguments[settings + 1])?["fastMode"]?.JSONValueBool == true;
         Agent = settings >= 0 ? JSONValue.Parse(Arguments[settings + 1])?["agent"]?.JSONValueString ?? "missing" : "missing";
     }
     public string[] Arguments { get; }
     public string Agent { get; }
+    public bool FastMode { get; }
     public string Failure { get; set; }
+    public Action? OnPolicyRead { get; set; }
+    public int PolicyReads { get; private set; }
     public List<JSONValue> Sent { get; } = [];
     public AsyncStream<JSONValue> Messages { get; }
     public bool IsRunning { get; private set; }
@@ -43,12 +47,14 @@ internal sealed class RuntimeClaudePrimingProcess : IClaudeProcess
         }
         var subtype = message["request"]?["subtype"]?.JSONValueString;
         if (subtype is null) return;
-        var reject = subtype == "apply_flag_settings" && Failure == "restore-rejected"
+        var reject = subtype == "set_model" && Failure == "light-model-rejected" || subtype == "apply_flag_settings" && Failure == "restore-rejected"
             || subtype == "set_permission_mode" && restored && Failure == "restore-mode-rejected";
-        JSONValue response = JSONValue.FromDictionaryLiteral();
+        JSONValue response = subtype == "initialize" ? JSONValue.FromDictionaryLiteral(("models",
+            Failure == "no-light" ? JSONValue.FromArrayLiteral() : JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("value", "haiku"), ("displayName", "Haiku"))))) : JSONValue.FromDictionaryLiteral();
         if (subtype == "apply_flag_settings" && !reject) restored = true;
         if (subtype == "get_settings")
         {
+            PolicyReads++; OnPolicyRead?.Invoke();
             var effective = JSONValue.FromDictionaryLiteral(
                 ("agent", restored ? (Failure == "restore-latched" ? Agent : Failure == "restore-wrong-agent" ? "another-agent" : "user-agent") : (Failure == "agent" ? "unrestricted" : Agent)),
                 ("disableAllHooks", restored ? new JSONValue.Bool(Failure == "restore-hook-latched") : new JSONValue.Bool(Failure != "hooks")));
@@ -56,8 +62,8 @@ internal sealed class RuntimeClaudePrimingProcess : IClaudeProcess
                 ("effective", effective), ("sources", JSONValue.FromDictionaryLiteral(
                     ("userSettings", JSONValue.FromDictionaryLiteral(("agent", "user-agent"))),
                     ("policySettings", Failure == "managed-hooks" ? JSONValue.FromDictionaryLiteral(("hooks", JSONValue.FromDictionaryLiteral(("UserPromptSubmit", JSONValue.FromArrayLiteral("must-not-run"))))) : JSONValue.FromDictionaryLiteral()),
-                    ("flagSettings", restored ? JSONValue.FromDictionaryLiteral(("fastMode", true))
-                        : JSONValue.FromDictionaryLiteral(("agent", Agent), ("disableAllHooks", true), ("fastMode", true))))));
+                    ("flagSettings", restored ? JSONValue.FromDictionaryLiteral(("fastMode", new JSONValue.Bool(FastMode)))
+                        : JSONValue.FromDictionaryLiteral(("agent", Agent), ("disableAllHooks", true), ("fastMode", new JSONValue.Bool(FastMode)))))));
         }
         Emit(JSONValue.FromDictionaryLiteral(("type", "control_response"), ("response", JSONValue.FromDictionaryLiteral(
             ("request_id", message["request_id"]!), ("subtype", reject ? "error" : "success"),

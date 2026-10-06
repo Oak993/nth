@@ -961,7 +961,10 @@ public sealed partial class ClaudeSession : ProviderSession
         if (!NullableModelEqual(input.Model, model)) // :222-226
         {
             var wire = input.Model is { } requestedModel && SwiftString.Equal(requestedModel, "default") ? null : input.Model;
-            _ = await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(wire)))));
+            if (handshakeAgent is not null)
+                await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(wire))));
+            else
+                _ = await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(wire)))));
             model = input.Model;
         }
         var content = new List<JSONValue>(); // :227
@@ -972,6 +975,8 @@ public sealed partial class ClaudeSession : ProviderSession
                 ("source", JSONValue.FromDictionaryLiteral(("type", "base64"), ("media_type", image.MimeType), ("data", base64)))));
         }
         content.Add(JSONValue.FromDictionaryLiteral(("type", "text"), ("text", input.Text))); // :234
+        if (handshakeAgent is not null && CanTransferContext?.Invoke() == false)
+            throw new InvalidOperationException("Permission to transfer this conversation changed.");
         WriteUserMessage(new JSONValue.Array(new ValueList<JSONValue>(content))); // :235
     }
 

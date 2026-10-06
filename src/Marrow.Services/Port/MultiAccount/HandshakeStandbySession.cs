@@ -17,6 +17,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     private bool ready;
     private bool ownsSession = true;
     private bool stopped;
+    private ValueList<ModelOption> reportedModels = ValueList<ModelOption>.Empty;
 
     private HandshakeStandbySession(ProviderSession session, SessionConfiguration configuration)
     {
@@ -29,7 +30,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     public string SessionId { get; private set; } = "";
     public HandoffPackage? ReceivedPackage { get; private set; }
 
-    public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct)
+    public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct, Func<bool>? canTransfer = null)
     {
         // These providers enforce IsFinalReport before exposing tools or executing an action.
         // Claude additionally verifies its temporary agent, effective policy and actual init identity.
@@ -37,6 +38,7 @@ public sealed class HandshakeStandbySession : IStandbySession
             && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
         var standby = new HandshakeStandbySession(session, configuration);
+        if (session is ClaudeSession privateClaude) privateClaude.CanTransferContext = canTransfer;
         Task<string>? start = null;
         try
         {
@@ -94,6 +96,16 @@ public sealed class HandshakeStandbySession : IStandbySession
 
     public Task<string?> TextTurnAsync(string prompt, CancellationToken ct) => RunTextTurnAsync(prompt, true, ct);
 
+    public async Task<string?> WriteIncomingLightBriefingAsync(HandoffSummary summary, CancellationToken ct)
+    {
+        // Haiku is the documented light Claude family. The running private account must actually report the alias.
+        if (session is not ClaudeSession || !reportedModels.Any(option => option.Id == "haiku"))
+            throw new NotSupportedException("This account did not report a supported light model for its AI briefing.");
+        if (summary.FilePath is not { } path) throw new InvalidOperationException("The full conversation archive is unavailable.");
+        var archive = await File.ReadAllTextAsync(path, ct);
+        return await RunTextTurnAsync("[Marrow Handshake] Write a compact briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use this complete recorded conversation:\n" + archive, true, ct, model: "haiku");
+    }
+
     public async Task PrepareForAdoptionAsync(CancellationToken ct)
     {
         await gate.WaitAsync(ct);
@@ -120,7 +132,7 @@ public sealed class HandshakeStandbySession : IStandbySession
 
     public ValueTask DisposeAsync() { if (ownsSession) Stop(); return ValueTask.CompletedTask; }
 
-    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct)
+    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct, string? model = null)
     {
         await gate.WaitAsync(ct);
         try
@@ -138,7 +150,7 @@ public sealed class HandshakeStandbySession : IStandbySession
             // API/Local enforce IsFinalReport before any tool request. CLI factories must supply a verified restricted launch.
             await session.Send(new TurnInput
             {
-                Text = text, Images = ValueList<Attachment>.Empty, Model = Configuration.Model, Effort = Configuration.Effort,
+                Text = text, Images = ValueList<Attachment>.Empty, Model = model ?? Configuration.Model, Effort = model is null ? Configuration.Effort : null,
                 FastMode = Configuration.FastMode, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build,
                 IsFinalReport = true,
             }).WaitAsync(linked.Token);
@@ -154,6 +166,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     private void Collect(ProviderEvent value)
     {
         if (stopped || !ownsSession) return;
+        if (value is ProviderEvent.Models catalog) { reportedModels = catalog.Value; return; }
         if (value is ProviderEvent.Exited exit) { Fail(exit.Error ?? "The standby exited."); return; }
         if (completion is null) return;
         switch (value)

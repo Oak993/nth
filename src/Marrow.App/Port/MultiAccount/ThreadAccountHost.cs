@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 namespace Marrow.App.Runtime;
 
 public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillStore pills, IHandoffSummary summaries,
-    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null) : IThreadAccountHost, IAccountSwitchCommitGuard
+    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null) : IThreadAccountHost, IAccountSwitchCommitGuard, IIncomingBriefingHost
 {
     private readonly Func<SessionConfiguration, Guid, AccountSessionLaunch> create = launch ?? ((configuration, id) => AccountSessionFactory.Create(app.Providers, configuration, id, freshContext: true));
     private HandshakeStandbySession? prepared;
@@ -54,6 +54,34 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         app.ApiKeys.BindPrivate(candidate.Session, account.Id);
         await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct);
         return await privateSession.TextTurnAsync("[Marrow Handshake] Write a short briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use only this recorded context:\n" + summary.Text, ct);
+    }
+
+    public async Task<string?> RequestIncomingBriefingAsync(SwitchTarget target, HandoffSummary summary, CancellationToken ct)
+    {
+        var from = ActiveAccountId;
+        var epoch = runtime.HandshakeStamp.Epoch;
+        var original = runtime.CreateHandshakeConfiguration(target);
+        if (original.Provider != ProviderKind.Claude)
+            throw new NotSupportedException("This service has no verified light-model briefing capability.");
+        var id = Guid.Parse(target.Account.Id);
+        bool CanTransfer()
+        {
+            if (CanCommit?.Invoke() == false || Pinned || app.Settings.Accounts.SaveBlocked || ActiveAccountId != from
+                || runtime.HandshakeStamp.Epoch != epoch || app.Settings.Accounts.Choose(original.Provider, id) is null
+                || !app.IsAccountConnected(app.Settings.Accounts.Get(id)) || !app.CanUseAccount(id)) return false;
+            var current = runtime.CreateHandshakeConfiguration(target);
+            return current.Model == original.Model && current.Effort == original.Effort && current.FastMode == original.FastMode
+                && current.RuntimeMode == original.RuntimeMode && current.InteractionMode == original.InteractionMode
+                && current.Hydra == original.Hydra && current.AntiSlopEnabled == original.AntiSlopEnabled
+                && current.WorkingDirectory == original.WorkingDirectory;
+        }
+        if (!CanTransfer()) throw new InvalidOperationException("The incoming AI briefing is no longer authorized.");
+        var candidate = create(original with { FastMode = false, Effort = null }, id);
+        app.ApiKeys.BindPrivate(candidate.Session, id);
+        await using var light = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer);
+        var answer = await light.WriteIncomingLightBriefingAsync(summary, ct);
+        if (!CanTransfer()) throw new InvalidOperationException("The incoming AI briefing became stale.");
+        return answer;
     }
 
     public async Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)

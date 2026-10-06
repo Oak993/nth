@@ -391,6 +391,9 @@ public sealed class HandshakeMachine(
         resume = resumeReply;
         waitUntil = null;
         CapturePolicy(why, to);
+        if (host is IAccountSwitchCommitGuard preparing)
+            preparing.CanCommit = () => !host.Pinned && PolicyStillCurrent() && host.ActiveAccountId == outgoing
+                && (reason != HandshakeReason.NearLimit || CurrentOptions.Enabled);
 
         linking = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var token = linking.Token;
@@ -414,6 +417,20 @@ public sealed class HandshakeMachine(
                 {
                     Emit(HandshakeEventKind.Degraded, phase, phase, null, detail: $"The briefing failed: {ex.Message}");
                 }
+            }
+
+            if (bring == Bring.AiSummary && string.IsNullOrWhiteSpace(briefing))
+            {
+                if (!PolicyStillCurrent() || host.ActiveAccountId != from || host.Pinned
+                    || Find(to.Account.Id) is not { Enabled: true }
+                    || limits.Usage(to.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) == true
+                    || why == HandshakeReason.NearLimit && !CurrentOptions.Enabled)
+                    throw new InvalidOperationException("Permission for the AI briefing changed.");
+                if (host is not IIncomingBriefingHost incoming)
+                    throw new NotSupportedException("The incoming service cannot provide a verified light-model briefing.");
+                briefing = await incoming.RequestIncomingBriefingAsync(to, summary, token);
+                if (string.IsNullOrWhiteSpace(briefing) || !PolicyStillCurrent())
+                    throw new InvalidOperationException("The incoming account did not provide an authorized AI briefing.");
             }
 
             string? readBack = null;
