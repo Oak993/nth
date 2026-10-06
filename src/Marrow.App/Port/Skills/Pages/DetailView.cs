@@ -18,6 +18,7 @@ internal sealed class DetailView : Decorator
     private readonly ActionArea action;
     private readonly CzFoldRow failure, removeWhy;
     private readonly CzFoldRow? terms;
+    private readonly ManualBlock manual;
     private readonly CzCrossfadeText failureText = new("") { FontSize = 12, Wrap = true };
     private readonly SwitchesBox switches;
     private readonly TermsBox? termsBox;
@@ -46,7 +47,8 @@ internal sealed class DetailView : Decorator
         why.Children.Add(warning);
         why.Children.Add(failureText);
         var warnPanel = LibraryUi.Panel(why, 10, 0.06, new Thickness(12, 9));
-        failure = new CzFoldRow(warnPanel, false);
+        manual = new ManualBlock(model, row.Id);
+        failure = new CzFoldRow(new StackPanel { Spacing = 8, Children = { warnPanel, manual } }, false);
 
         var removeText = LibraryUi.Text(LibraryWords.RemoveWhy, 12, secondary: true, wrap: true);
         removeWhy = new CzFoldRow(LibraryUi.Panel(removeText, 10, 0.06, new Thickness(12, 9)), false);
@@ -114,7 +116,8 @@ internal sealed class DetailView : Decorator
     {
         action.Apply(row, removeAsked);
         if (row.Failure is { } message) failureText.SetText(message);
-        failure.Open = row.State == ItemState.Failed;
+        manual.Apply(row);
+        failure.Open = row.State == ItemState.Failed || manual.Checking; // Checking… of the manual files stays in view (the design keeps the fold open while it checks)
         removeWhy.Open = removeAsked;
         termsBox?.Apply(row);
         switches.Apply(row);

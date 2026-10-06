@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "03-git-before",
+  "commandLine": "git --version",
+  "executable": "git",
+  "arguments": [
+    "--version"
+  ],
+  "exitCode": 0,
+  "stdout": "git version 2.54.0.windows.1\n",
+  "stderr": "",
+  "durationMs": 40.623,
+  "versionsBefore": "2.54.0.windows.1",
+  "versionsAfter": "2.54.0.windows.1",
+  "timestamp": "2026-10-05T15:24:59.0583833+00:00",
+  "finishedAt": "2026-10-05T15:24:59.1002967+00:00"
+}

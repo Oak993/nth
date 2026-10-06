@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "14-node-path",
+  "commandLine": "where.exe node",
+  "executable": "where.exe",
+  "arguments": [
+    "node"
+  ],
+  "exitCode": 0,
+  "stdout": "C:\\Program Files\\nodejs\\node.exe\r\n%USERPROFILE%\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe\r\n",
+  "stderr": "",
+  "durationMs": 133.3341,
+  "versionsBefore": "24.14.1",
+  "versionsAfter": "24.14.1",
+  "timestamp": "2026-10-05T15:26:28.4369956+00:00",
+  "finishedAt": "2026-10-05T15:26:28.6120834+00:00"
+}

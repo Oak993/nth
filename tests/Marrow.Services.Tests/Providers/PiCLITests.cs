@@ -366,7 +366,9 @@ public sealed class PiCLITests
         Task<ValueList<ModelOption>>? pending = null;
         runtime.OnMain(() => pending = PiCLI.ListModels(SwiftURL.Create("marrow-native-path:" + script.ExecutablePath.Replace('\\', '/'))!,
             Env((script.EnvironmentEntry.Key, script.EnvironmentEntry.Value), ("HOME", Scratch("silent-home")))));
-        runtime.Loop.RunUntil(() => script.StdinLines().Count == 2, Bound);
+        // Stdin can be delivered before the detached timeout body ever gets a pool thread.
+        runtime.Loop.RunUntil(() => script.StdinLines().Count == 2 &&
+            runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(30)), Bound);
         runtime.Advance(TimeSpan.FromMilliseconds(29_999));
         Assert.False(pending!.IsCompleted);
         runtime.Advance(TimeSpan.FromMilliseconds(1));

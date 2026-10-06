@@ -1,0 +1,31 @@
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlayLayoutTests.Explicit_only_skills_are_kept_out_of_automatic_discovery(provider: "agy", discovery: ".agents/skills") [447 ms]
+  Error Message:
+   System.IO.DirectoryNotFoundException : Could not find a part of the path 'C:\Users\omera\AppData\Local\Temp\one-19257\sk5 with spaces f95f31b5ec1d499b8f02e318389a0ce8\skills\views\agy\chat-chat\.agents\skills'.
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlayLayoutTests.Explicit_only_skills_are_kept_out_of_automatic_discovery(provider: "cursor", discovery: "skills") [115 ms]
+  Error Message:
+   System.IO.DirectoryNotFoundException : Could not find a part of the path 'C:\Users\omera\AppData\Local\Temp\one-19257\sk5 with spaces cc8c249575354a7c8d41c7bcd5829f01\skills\views\cursor\chat-chat\skills'.
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlayLayoutTests.Enabled_skills_use_the_live_proven_provider_layout(provider: "agy", relative: ".agents/skills/pdf/SKILL.md") [74 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlayLayoutTests.Enabled_skills_use_the_live_proven_provider_layout(provider: "cursor", relative: "skills/pdf/SKILL.md") [60 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null) [267 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: "prior-conversation") [58 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_with_an_older_cli_keeps_acp_working_without_a_plugin_flag [216 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_session_passes_its_plugin_before_acp_and_keeps_the_original_permission_mode [58 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments [2 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli [46 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+Failed!  - Failed:    10, Passed:     2, Skipped:     0, Total:    12, Duration: 1 s - Marrow.Services.Tests.dll (net10.0)

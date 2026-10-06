@@ -1,5 +1,6 @@
 // PORT-ONLY: first-release feature unit SK-16 (DL-19, skills-ONDEMAND-PLAN.md section 7: "Settings and offers share one download per item"). There is no Swift twin.
 using Marrow.Core.Port.Skills.Catalogue;
+using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Pages;
 using Marrow.Services.Port.Skills.Pipelines;
 
@@ -17,6 +18,13 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
     private readonly object gate = new();
     private readonly Dictionary<string, FetchFlight> flights = new(StringComparer.Ordinal);
     private readonly List<Action> watchers = [];
+
+    /// <summary>
+    /// ENGINEERING DECISION (review): downloads begin in the order they were asked for. The pipeline runs one operation at a time and its wait is first come first served, so the order in which flights reach it is the
+    /// order they are served in; starting each on the pool left that to chance (an item asked second could be served first, and a failing first item then waited behind a long one). This scheduler runs only the
+    /// short part of a flight that ends at its first real wait, one flight at a time in the order queued; the transfer itself runs wherever it runs.
+    /// </summary>
+    private readonly TaskScheduler starts = new ConcurrentExclusiveSchedulerPair().ExclusiveScheduler;
 
     /// <summary>True when the download and binding seams are bound, so a download can be tried at all (see <see cref="CanFetch"/> for one item).</summary>
     public bool Available => pipeline.FetchingBound;
@@ -40,6 +48,28 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
     }
 
     public bool IsRunning(string id) { lock (gate) return flights.ContainsKey(id); }
+
+    /// <summary>The persisted facts plus live downloads for offer detection only; this value is never written to state.json.</summary>
+    public AddonsState StateForDetection
+    {
+        get
+        {
+            // Read the pipeline before taking our gate: download commits can notify this host.
+            var state = pipeline.State;
+            string[] live;
+            lock (gate) live = flights.Keys.ToArray();
+            if (live.Length == 0) return state;
+            var records = state.Items.ToDictionary(record => record.Id, StringComparer.Ordinal);
+            foreach (var id in live)
+            {
+                var record = state.Get(id);
+                if (record.State is ItemState.Installed or ItemState.UpdateAvailable or ItemState.Removing) continue;
+                var item = catalogue.Items.Single(item => item.Id == id);
+                records[id] = new ItemRecord(id, ItemState.Downloading, record.InstalledPin, UpdateCheck.CataloguePin(item), null);
+            }
+            return AddonsState.Restore(records.Values, state.AcceptedTerms, state.Declined, state.Found);
+        }
+    }
 
     /// <summary>What a surface shows of a download running for the item, or null when none is.</summary>
     public FetchView? Running(string id)
@@ -98,10 +128,19 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
         return Join(item, progress, cancellation, part);
     }
 
+    /// <summary>Joins only a flight captured under the gate; losing it never starts a replacement download.</summary>
+    public Task<string> Attach(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation, Action<string, double>? part)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(progress);
+        cancellation.ThrowIfCancellationRequested();
+        return Join(item, progress, cancellation, part, existingOnly: true);
+    }
+
     /// <summary>The items a download of this one would fetch: the needs not installed (dependencies first) and the item; none when it is installed.</summary>
     public IReadOnlyList<CatalogueItem> Pending(CatalogueItem item) => pipeline.InstalledFolder(item.Id) is null ? Chain(item) : [];
 
-    private async Task<string> Join(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation, Action<string, double>? part = null)
+    private async Task<string> Join(CatalogueItem item, IProgress<double?> progress, CancellationToken cancellation, Action<string, double>? part = null, bool existingOnly = false)
     {
         FetchFlight flight;
         var start = false;
@@ -109,6 +148,7 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
         {
             if (!flights.TryGetValue(item.Id, out flight!))
             {
+                if (existingOnly) throw new InvalidOperationException("No existing download is bound.");
                 flights[item.Id] = flight = new FetchFlight(item.Id);
                 start = true;
             }
@@ -136,7 +176,7 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
         if (start)
         {
             Notify();
-            _ = Task.Run(() => Run(flight, item));
+            _ = Task.Factory.StartNew(() => Run(flight, item), CancellationToken.None, TaskCreationOptions.DenyChildAttach, starts).Unwrap(); // in the order asked, see starts
         }
         try { return await flight.Result.Task.WaitAsync(cancellation).ConfigureAwait(false); }
         finally { Leave(); }

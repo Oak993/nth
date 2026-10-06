@@ -34,7 +34,7 @@ public sealed class ThreadTimelineHandOverTests(HeadlessSession headless)
     {
         SetLoading(mount, true);
         mount.Advance(600); // the mark has shown (it draws nothing for its first 400 ms, ED-097)
-        var mark = Assert.Single(mount.View.GetVisualDescendants().OfType<LoadingMark>());
+        var mark = Assert.Single(mount.View.GetVisualDescendants().OfType<AuroraLoader>()); // OD-0113 supersedes the Comet icon
         mount.SetEntries(TimelineMount.Turns(3));
         SetLoading(mount, false);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
@@ -76,7 +76,7 @@ public sealed class ThreadTimelineHandOverTests(HeadlessSession headless)
         SetLoading(mount, false);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
         Frame(mount);
-        Assert.Empty(mount.View.GetVisualDescendants().OfType<LoadingMark>());
+        Assert.Empty(mount.View.GetVisualDescendants().OfType<AuroraLoader>());
         Assert.Equal(1, ((Control)mount.Scroll.GetVisualParent()!).Opacity);
     });
 

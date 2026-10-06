@@ -1,0 +1,14 @@
+{
+  "reviewBase": "3e3323c4e33b8d2ce41caaa6a77b350c683d4baf",
+  "files": {
+    "tests/Marrow.App.Tests/Fixtures/ProviderProbeStandIns.cs": "c87eb72c9284151877f0120f8a6bb14aae5c7d0d03a6703ec344844da0645b48",
+    "tests/Marrow.Core.Tests/Support/ShellTests.cs": "2697eb6f7c37aa42af8325c7fa552a15d327f09a58626c0e04aa8281f4dafe8a",
+    "tests/Marrow.Services.Tests/Fixtures/PiStandIns.cs": "d113d9936127bb9f562fa97890a46bc838eac1936818fe593ad873ecff845a20",
+    "tests/Marrow.Services.Tests/Fixtures/ProviderProbeStandIns.cs": "0dbd5e1d584b90860e31004d5c72374b1b4f01c596156cbf0269ed2038dbf696",
+    "tests/fixtures/pi-cli/PiStandIn.cs": "31dd8edd87b17a6ce397f9f56a535c0727a5fb7dd4eb09b6e480a1a445a52d7f",
+    "tests/fixtures/provider-probe-cli/ProviderProbeStandIn.cs": "f0832b87d804d2b4fc9770571467ebe5f43d1133f191fbfb442cc11b21543c9b",
+    "tests/Marrow.App.Tests/Fixtures/FixtureLockReaderTests.cs": "87675632b37210e7a206ab7bc48f15b6268b81e4fe7efe6773858175c0c9f814",
+    "tests/Marrow.Services.Tests/Fixtures/FixtureLockContentionTests.cs": "e631f0cdd46e226deb0a3527af1ae6a05bda1a62b0fbd6b997a65078007086b7",
+    "tests/Marrow.Services.Tests/Fixtures/REVIEW_FixtureLockTests.cs": "6cf633def7e462a823c4a51adb094f9a1497cbf35f609ff15cd56ce8c55aa0ad"
+  }
+}

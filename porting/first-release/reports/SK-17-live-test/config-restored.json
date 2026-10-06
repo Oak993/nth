@@ -1,0 +1,15 @@
+{
+  "restoredUtc": "2026-10-05T15:46:35.2822033Z",
+  "path": "C:\\Users\\omera\\.cursor\\cli-config.json",
+  "before": "49B64B4A6B8E48D50F21E8FA4B3B55AF02F19FCEA963645E00363B9774753CBF",
+  "cliAfter": "A6CF8849030F74E236D27DDBE721148572DC91FC7D99001A2B8528682488F92B",
+  "restored": "49B64B4A6B8E48D50F21E8FA4B3B55AF02F19FCEA963645E00363B9774753CBF",
+  "exactMatch": true,
+  "recoveredBy": "Removing only the four CLI-added model selection keys from the canonical JSON recovered the exact original hash. Current config hash was checked before writing.",
+  "removedKeys": [
+    "selectedModel",
+    "modelSelectionHistory",
+    "model",
+    "modelParameters"
+  ]
+}

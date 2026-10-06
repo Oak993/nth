@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "name": "28-python314-upgrade",
+  "commandLine": "winget upgrade --id Python.Python.3.14 -e --source winget --silent --accept-source-agreements --accept-package-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "upgrade",
+    "--id",
+    "Python.Python.3.14",
+    "-e",
+    "--source",
+    "winget",
+    "--silent",
+    "--accept-source-agreements",
+    "--accept-package-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Found Python 3.14 [Python.Python.3.14] Version 3.14.7\r\nThis application is licensed to you by its owner.\r\nMicrosoft is not responsible for, nor does it grant any licenses to, third-party packages.\r\nDownloading https://www.python.org/ftp/python/3.14.7/python-3.14.7-amd64.exe\r\nSuccessfully verified installer hash\r\nStarting package install...\r\nSuccessfully installed\r\n",
+  "stderr": "",
+  "durationMs": 92738.794,
+  "versionsBefore": {
+    "Python.Python.3.13": "3.13.14",
+    "Python.Python.3.14": "3.14.4"
+  },
+  "versionsAfter": {
+    "Python.Python.3.13": "3.13.15",
+    "Python.Python.3.14": "3.14.7"
+  },
+  "timestamp": "2026-10-05T15:27:44.6321454+00:00",
+  "finishedAt": "2026-10-05T15:29:17.3890041+00:00"
+}

@@ -16,8 +16,8 @@ namespace Marrow.App.Port.Skills.Pages;
 
 internal sealed class TermsBox : Decorator
 {
-    private readonly LibraryModel model;
-    private readonly string id;
+    private readonly Func<Task<string>> loadText;
+    private readonly Action acceptTerms;
     private readonly TextBlock body = LibraryUi.Text("", 11.5, secondary: true, wrap: true);
     private readonly TextBlock problem = LibraryUi.Text("", 11.5, wrap: true);
     private readonly Border box;
@@ -28,11 +28,17 @@ internal sealed class TermsBox : Decorator
     private bool loading, loaded, accepted;
 
     public TermsBox(LibraryModel model, LibraryRow row)
+        : this(row.TermsLabel ?? "", row.Licence, row.TermsOwed, () => model.Controller.LicenceText(row.Id), () => model.Controller.AcceptTerms(row.Id))
     {
-        this.model = model;
-        id = row.Id;
-        var title = LibraryUi.Text(row.TermsLabel ?? "", 12, weight: SwiftFont.Weight.Semibold);
-        var licence = LibraryUi.Text(row.Licence ?? "", 11.5, secondary: true, trim: true);
+    }
+
+    /// <summary>SK-14: the same box for any surface that owes the terms step (the in-chat offer card): its label, the licence's name, whether the terms are still owed, how the pinned licence's text is read and what the control does.</summary>
+    public TermsBox(string termsLabel, string? licenceName, bool owed, Func<Task<string>> loadText, Action acceptTerms)
+    {
+        this.loadText = loadText;
+        this.acceptTerms = acceptTerms;
+        var title = LibraryUi.Text(termsLabel, 12, weight: SwiftFont.Weight.Semibold);
+        var licence = LibraryUi.Text(licenceName ?? "", 11.5, secondary: true, trim: true);
         licence.HorizontalAlignment = HorizontalAlignment.Right;
         var heading = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 10, Margin = new Thickness(0, 0, 0, 6) };
         Grid.SetColumn(licence, 1);
@@ -61,7 +67,7 @@ internal sealed class TermsBox : Decorator
         var stack = new StackPanel { Spacing = 0, Children = { heading, text, problem, read } };
         box = LibraryUi.Panel(stack);
         Child = box;
-        Apply(row);
+        Apply(owed);
     }
 
     /// <summary>The licence text on show (empty until it loaded).</summary>
@@ -76,12 +82,14 @@ internal sealed class TermsBox : Decorator
     public Button ReadControl => read;
 
     /// <summary>The text is read from the item's pinned licence file the first time the box is shown for an item that owes its terms.</summary>
-    public void Apply(LibraryRow row)
+    public void Apply(LibraryRow row) => Apply(row.TermsOwed);
+
+    public void Apply(bool owed)
     {
-        accepted = !row.TermsOwed;
+        accepted = !owed;
         ticked.Set(accepted ? 1 : 0, LibraryUi.Ease(this, LibraryUi.Fade));
         read.IsEnabled = !accepted && loaded;
-        if (!loaded && !loading && row.TermsOwed) _ = Load();
+        if (!loaded && !loading && owed) _ = Load();
         if (accepted && !loaded && !loading) _ = Load();
     }
 
@@ -90,7 +98,7 @@ internal sealed class TermsBox : Decorator
         loading = true;
         try
         {
-            body.Text = await model.Controller.LicenceText(id);
+            body.Text = await loadText();
             loaded = true;
             problem.IsVisible = false;
         }
@@ -109,7 +117,7 @@ internal sealed class TermsBox : Decorator
     private void Accept()
     {
         if (accepted || !loaded) return;
-        try { model.Controller.AcceptTerms(id); }
+        try { acceptTerms(); }
         catch (InvalidOperationException error)
         {
             problem.Text = error.Message;

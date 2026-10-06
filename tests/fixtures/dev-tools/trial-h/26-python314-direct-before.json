@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "26-python314-direct-before",
+  "commandLine": "py -3.14 --version",
+  "executable": "py",
+  "arguments": [
+    "-3.14",
+    "--version"
+  ],
+  "exitCode": 0,
+  "stdout": "Python 3.14.4\r\n",
+  "stderr": "",
+  "durationMs": 42.6218,
+  "versionsBefore": {
+    "Python.Python.3.13": "3.13.14",
+    "Python.Python.3.14": "3.14.4"
+  },
+  "versionsAfter": {
+    "Python.Python.3.13": "3.13.15",
+    "Python.Python.3.14": "3.14.7"
+  },
+  "timestamp": "2026-10-05T15:27:42.4225140+00:00",
+  "finishedAt": "2026-10-05T15:27:42.4660312+00:00"
+}

@@ -127,4 +127,14 @@ public sealed class SkillsOfferInstallsTests
         Assert.Equal(["S1"], rig.Downloaded);
         Assert.Equal(rig.Host.Pipeline.InstalledFolder("S1"), paths["S1"]);
     }
+
+    [Fact]
+    public void The_offer_can_fetch_an_item_only_when_the_seams_are_bound_and_its_pin_is_complete()
+    {
+        using var bound = new FetchRig();
+        Assert.True(bound.Host.OfferDownloads.CanFetch(bound.Item("S1")));
+        Assert.False(bound.Host.OfferDownloads.CanFetch(bound.Item("U1")));
+        using var unbound = new FetchRig(bound: false);
+        Assert.False(unbound.Host.OfferDownloads.CanFetch(unbound.Item("S1")));
+    }
 }

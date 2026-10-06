@@ -1,0 +1,4 @@
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once [39 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+Failed!  - Failed:     1, Passed:    11, Skipped:     0, Total:    12, Duration: 1 s - Marrow.Services.Tests.dll (net10.0)

@@ -1,0 +1,7 @@
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.An_unavailable_host_refuses_the_launch_with_a_provider_error_before_any_child_starts [214 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.The_production_preparation_connects_the_bound_data_root_host_to_the_runtime_factory [35 ms]
+  Error Message:
+   Marrow.Core.Port.SwiftTrapException : SkillsSeams.Host is not bound: Marrow.App binds it at start-up (SkillsStartup.Bind); a test opens its own host on its own data root (R-TEST-9).
+Failed!  - Failed:     2, Passed:    11, Skipped:     0, Total:    13, Duration: 995 ms - Marrow.App.Tests.dll (net10.0)

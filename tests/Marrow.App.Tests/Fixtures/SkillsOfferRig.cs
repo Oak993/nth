@@ -1,4 +1,5 @@
 using Marrow.App.Port.Skills;
+using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Support;
 using Marrow.Core.Port;
@@ -16,7 +17,7 @@ public sealed class SkillsOfferRig : IDisposable
     public SkillsOfferFlow Flow { get; }
     public AddonsState State { get; private set; } = AddonsState.Empty;
     public string InstalledPath { get; }
-    public SkillsOfferRig()
+    public SkillsOfferRig(Func<ThreadRuntime, SkillsOfferFlow>? make = null)
     {
         shell = ((Ambient<Func<ShellInvocation, Task<ShellResult>>>)typeof(Shell).GetProperty("RunForTesting", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!).Override(call =>
         {
@@ -28,7 +29,7 @@ public sealed class SkillsOfferRig : IDisposable
         InstalledPath = Path.Combine(Turn.H.NewFolder("offer"), "fixture-soffice.exe");
         var catalogue = SkillsCatalogueLoader.LoadEmbedded();
         catalogue = catalogue with { Items = catalogue.Items.Select(i => i.Id == "A2" ? i with { Skills = i.Skills.Select(skill => skill.Folder == "docx" ? skill with { Needs = new[] { "T3" } } : skill).ToArray() } : i).ToArray() };
-        Flow = Turn.H.Main.OnMain(() => new SkillsOfferFlow(Turn.Runtime, catalogue, () => State, s => State = s, Download));
+        Flow = make is not null ? Turn.H.Main.OnMain(() => make(Turn.Runtime)) : Turn.H.Main.OnMain(() => new SkillsOfferFlow(Turn.Runtime, catalogue, () => State, s => State = s, Download));
     }
     public void SetState(AddonsState state) => Main(() => State = state);
     public void Main(Action action) => Turn.H.Main.OnMain(action);

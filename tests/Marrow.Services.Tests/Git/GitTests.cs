@@ -1567,13 +1567,13 @@ public sealed class GitTests
         int[] delays = [3, 5, 7, 9, 11];
         for (var attempt = 0; attempt < delays.Length; attempt++)
         {
-            WaitForRetrySleep(runtime, script, attempt + 1, "glab");
+            WaitForRetrySleep(runtime, script, attempt + 1, delays[attempt]);
             runtime.Advance(TimeSpan.FromSeconds(delays[attempt]) - TimeSpan.FromTicks(1));
             var seen = attempt + 1;
             Assert.False(SpinWait.SpinUntil(() => script.Count > seen, TimeSpan.FromMilliseconds(300)), "retried early");
             runtime.Advance(TimeSpan.FromTicks(1));
         }
-        WaitForRetrySleep(runtime, script, 6, "glab");
+        WaitForRetrySleep(runtime, script, 6, 13);
         // UPSTREAM DEFECT 76: the sixth failure still sleeps 3 + 5 * 2 seconds before the error is thrown.
         runtime.Advance(TimeSpan.FromSeconds(13) - TimeSpan.FromTicks(1));
         Assert.False(SpinWait.SpinUntil(() => merge.IsCompleted, TimeSpan.FromMilliseconds(300)), "threw before the last sleep ended");
@@ -1594,9 +1594,9 @@ public sealed class GitTests
         script.Reply(0, stderr: "405 Method Not Allowed\n", status: "1");
         script.Reply(1, stdout: "Merge NOT ALLOWED yet\n", status: "1");
         var merge = new GitValue(repository.Root).MergePullRequest(Link("https://gitlab.com/g/p/-/merge_requests/5"));
-        WaitForRetrySleep(runtime, script, 1, "glab");
+        WaitForRetrySleep(runtime, script, 1, 3);
         runtime.Advance(TimeSpan.FromSeconds(3));
-        WaitForRetrySleep(runtime, script, 2, "glab");
+        WaitForRetrySleep(runtime, script, 2, 5);
         runtime.Advance(TimeSpan.FromSeconds(5));
         await merge.WaitAsync(GitWaits.Bound);
         Assert.Equal(3, script.Count);
@@ -1611,7 +1611,7 @@ public sealed class GitTests
         var script = new ForgeScript(repository.Root);
         script.Reply(0, stdout: "code 40", stderr: "5", status: "1");
         var merge = new GitValue(repository.Root).MergePullRequest(Link("https://gitlab.com/g/p/-/merge_requests/5"));
-        WaitForRetrySleep(runtime, script, 1, "glab");
+        WaitForRetrySleep(runtime, script, 1, 3);
         runtime.Advance(TimeSpan.FromSeconds(3));
         await merge.WaitAsync(GitWaits.Bound);
         Assert.Equal(2, script.Count);
@@ -1659,7 +1659,7 @@ public sealed class GitTests
         var git = new GitValue(repository.Root);
         var link = Link("https://gitlab.com/g/p/-/merge_requests/5");
         var handle = TaskHandle.DetachedThrowing(async () => { await git.MergePullRequest(link); return true; });
-        WaitForRetrySleep(runtime, script, 1, "glab");
+        WaitForRetrySleep(runtime, script, 1, 3);
         handle.Cancel();
         await Assert.ThrowsAsync<CancellationError>(() => handle.Value.WaitAsync(GitWaits.Bound));
         Assert.Equal(1, script.Count);
@@ -1867,15 +1867,11 @@ public sealed class GitTests
         return tree;
     }
 
-    /// <summary>
-    /// Waits until run <paramref name="calls"/> of the stand-in has been recorded and has exited, and the only timer left
-    /// is the retry sleep; the condition must hold for 200 ms so a process deadline still being cancelled is not taken
-    /// for the sleep.
-    /// </summary>
-    private static void WaitForRetrySleep(TestRuntime runtime, ForgeScript script, int calls, string tool)
+    /// <summary>Joins this attempt's retry deadline, rather than a process deadline or another test's executable.</summary>
+    private static void WaitForRetrySleep(TestRuntime runtime, ForgeScript script, int calls, int seconds)
     {
-        bool Ready() => script.Count == calls && !ForgeStandIns.IsRunning(tool) && runtime.Time.ActiveTimers == 1;
-        Assert.True(GitWaits.Eventually(() => Ready() && !SpinWait.SpinUntil(() => !Ready(), TimeSpan.FromMilliseconds(200))),
+        var due = runtime.Time.Elapsed + TimeSpan.FromSeconds(seconds);
+        Assert.True(GitWaits.Eventually(() => script.Count == calls && runtime.Time.TimerDeadlines.Contains(due)),
             "attempt " + calls + " never reached its retry sleep");
     }
 

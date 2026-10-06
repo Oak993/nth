@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "07-git-upgrade",
+  "commandLine": "winget upgrade --id Git.Git -e --source winget --silent --accept-source-agreements --accept-package-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "upgrade",
+    "--id",
+    "Git.Git",
+    "-e",
+    "--source",
+    "winget",
+    "--silent",
+    "--accept-source-agreements",
+    "--accept-package-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": -1978335226,
+  "stdout": "Found Git [Git.Git] Version 2.55.0.5\r\nThis application is licensed to you by its owner.\r\nMicrosoft is not responsible for, nor does it grant any licenses to, third-party packages.\r\nDownloading https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.5/Git-2.55.0.5-64-bit.exe\r\nSuccessfully verified installer hash\r\nStarting package install...\r\nThe installer will request to run as administrator. Expect a prompt.\r\nInstaller failed with exit code: 1\r\nInstaller log is available at: %USERPROFILE%\\AppData\\Local\\Packages\\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\\LocalState\\DiagOutputDir\\Git.Git.2.55.0.5-26-10-05-18-25-26.log\r\n",
+  "stderr": "",
+  "durationMs": 14837.179,
+  "versionsBefore": "2.54.0.windows.1",
+  "versionsAfter": "2.54.0.windows.1",
+  "timestamp": "2026-10-05T15:25:21.0087074+00:00",
+  "finishedAt": "2026-10-05T15:25:35.8619152+00:00"
+}
