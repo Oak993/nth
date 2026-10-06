@@ -1,0 +1,437 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.46]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancelled_model_request_does_not_later_resume_it [FAIL]
+[xUnit.net 00:00:03.48]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Verified_result_must_include_every_requested_install_path [FAIL]
+[xUnit.net 00:00:03.48]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.One_offer_per_item_per_chat_and_second_item_joins_card [FAIL]
+[xUnit.net 00:00:03.49]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft [FAIL]
+[xUnit.net 00:00:03.50]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Repeated_accept_during_download_does_not_start_another_download [FAIL]
+[xUnit.net 00:00:03.50]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R4_returns_installed_path_in_same_turn_without_continuation [FAIL]
+[xUnit.net 00:00:03.53]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R4_decline_returns_declined_without_continuation [FAIL]
+[xUnit.net 00:00:03.54]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancel_returns_to_asked_and_late_completion_cannot_resume(stage: Downloading) [FAIL]
+[xUnit.net 00:00:03.55]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancel_returns_to_asked_and_late_completion_cannot_resume(stage: Checking) [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancelled_model_request_does_not_later_resume_it [479 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancelled_model_request_does_not_later_resume_it() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 118
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Verified_result_must_include_every_requested_install_path [15 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Verified_result_must_include_every_requested_install_path() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 134
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.One_offer_per_item_per_chat_and_second_item_joins_card [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.One_offer_per_item_per_chat_and_second_item_joins_card() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 92
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 42
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Repeated_accept_during_download_does_not_start_another_download [6 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Repeated_accept_during_download_does_not_start_another_download() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 141
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R4_returns_installed_path_in_same_turn_without_continuation [6 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R4_returns_installed_path_in_same_turn_without_continuation() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 58
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R4_decline_returns_declined_without_continuation [31 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R4_decline_returns_declined_without_continuation() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 66
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancel_returns_to_asked_and_late_completion_cannot_resume(stage: Downloading) [7 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancel_returns_to_asked_and_late_completion_cannot_resume(OfferStage stage) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 74
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancel_returns_to_asked_and_late_completion_cannot_resume(stage: Checking) [4 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Cancel_returns_to_asked_and_late_completion_cannot_resume(OfferStage stage) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 74
+   at InvokeStub_SkillsOfferFlowTests.Cancel_returns_to_asked_and_late_completion_cannot_resume(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:03.57]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R1_approves_held_command_only_after_verified_done [FAIL]
+[xUnit.net 00:00:03.57]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_and_R3_decline_send_nothing(running: False) [FAIL]
+[xUnit.net 00:00:03.58]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_and_R3_decline_send_nothing(running: True) [FAIL]
+[xUnit.net 00:00:03.59]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.S1_declared_skill_need_uses_same_offer_and_executable_message [FAIL]
+[xUnit.net 00:00:03.59]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again [FAIL]
+[xUnit.net 00:00:03.60]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done [FAIL]
+[xUnit.net 00:00:03.60]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Completed) [FAIL]
+[xUnit.net 00:00:03.61]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Failed) [FAIL]
+[xUnit.net 00:00:03.62]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Missing_offline_download_seam_fails_closed [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R1_approves_held_command_only_after_verified_done [18 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R1_approves_held_command_only_after_verified_done() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 15
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_and_R3_decline_send_nothing(running: False) [7 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_and_R3_decline_send_nothing(Boolean running) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 50
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_and_R3_decline_send_nothing(running: True) [6 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_and_R3_decline_send_nothing(Boolean running) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 50
+   at InvokeStub_SkillsOfferFlowTests.R2_and_R3_decline_send_nothing(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.S1_declared_skill_need_uses_same_offer_and_executable_message [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.S1_declared_skill_need_uses_same_offer_and_executable_message() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 126
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 84
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 100
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Completed) [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(TurnStatus status) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 33
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Failed) [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(TurnStatus status) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 33
+   at InvokeStub_SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Missing_offline_download_seam_fails_closed [5 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Missing_offline_download_seam_fails_closed() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 112
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:03.63]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Releasing_session_drops_stale_held_approval [FAIL]
+[xUnit.net 00:00:03.64]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R1_declines_with_S1_reason_and_never_downloads [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Releasing_session_drops_stale_held_approval [15 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Releasing_session_drops_stale_held_approval() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 159
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R1_declines_with_S1_reason_and_never_downloads [6 ms]
+  Error Message:
+   System.NotImplementedException : The method or operation is not implemented.
+  Stack Trace:
+     at Marrow.App.Port.Skills.SkillsOfferFlow..ctor(ThreadRuntime runtime, SkillsCatalogue catalogue, Func`1 read, Action`1 write, ISkillsOfferDownload download) in /workspace/marrow-port/src/Marrow.App/Port/Skills/SkillsOfferFlow.cs:line 12
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.<>c__DisplayClass17_0.<.ctor>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig..ctor() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 31
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R1_declines_with_S1_reason_and_never_downloads() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 25
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /tmp/sk12-results/sk12-red.trx
+
+Failed!  - Failed:    20, Passed:     0, Skipped:     0, Total:    20, Duration: 656 ms - Marrow.App.Tests.dll (net10.0)

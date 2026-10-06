@@ -76,6 +76,15 @@ public sealed class UpdatePillProjector
         if (running) return Running(rows, list);
         var failed = rows.FirstOrDefault(r => r.State == UpdateRowState.Failed);
         if (failed is not null) return Failed(rows, list, failed);
+        if (rows.Any(r => r.State == UpdateRowState.UpdatingInBackground))
+        {
+            var restart = rows.Any(r => r.RestartRequired);
+            var due = rows.Any(r => r.State is UpdateRowState.UpdateAvailable or UpdateRowState.ChecksWhenUpdated);
+            return new(UpdatePillPhase.Running, "Updating in the background", "Updating in the background",
+                NameList(rows.Where(r => r.State == UpdateRowState.UpdatingInBackground).Select(r => r.Title).ToList()) + ".",
+                restart ? "Restart Marrow" : due ? "Update everything" : "Check now", restart ? UpdatePillAction.RestartMarrow : due ? UpdatePillAction.UpdateEverything : UpdatePillAction.CheckNow,
+                true, 0, null, null, list);
+        }
         var available = rows.Where(r => r.State == UpdateRowState.UpdateAvailable).ToList();
         if (available.Count > 0) return Available(available, list);
         if (rows.Any(r => r.RestartRequired)) return Restart(rows, list);
@@ -137,6 +146,7 @@ public sealed class UpdatePillProjector
             UpdateRowState.ChecksWhenUpdated => "Checks when updated",
             UpdateRowState.Queued => "Waiting",
             UpdateRowState.Updating => "Updating…",
+            UpdateRowState.UpdatingInBackground => "Updating in the background",
             UpdateRowState.Updated => r.RestartRequired ? "Restart to finish" : "Updated",
             UpdateRowState.Failed => "Didn’t update",
             _ => "",

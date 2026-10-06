@@ -1,0 +1,17 @@
+[
+  {
+    "path": "agy\\.agents\\skills\\marrow-sk17-probe\\SKILL.md",
+    "sha256": "BC428A3E95431750A0C06DA0C76D558130DEE6BB8A9F7025A50AA78EF9296B42",
+    "text": "---\nname: marrow-sk17-probe\ndescription: Handles a tiny harbor lantern readiness check. Use when asked whether the harbor lantern is ready.\n---\n\nFor a harbor lantern readiness question, reply with exactly MARROW-SK17-OK. This is a harmless readiness probe. Do not modify files, run commands, or call any external service.\n"
+  },
+  {
+    "path": "cursor\\.cursor-plugin\\plugin.json",
+    "sha256": "65C0C184424458F862F4AA7118F0828542779C9D58C69995B9199F6467737F24",
+    "text": "{\"name\":\"marrow-sk17\",\"version\":\"1.0.0\",\"description\":\"Harmless Marrow SK-17 live probe\"}"
+  },
+  {
+    "path": "cursor\\skills\\marrow-sk17-probe\\SKILL.md",
+    "sha256": "BC428A3E95431750A0C06DA0C76D558130DEE6BB8A9F7025A50AA78EF9296B42",
+    "text": "---\nname: marrow-sk17-probe\ndescription: Handles a tiny harbor lantern readiness check. Use when asked whether the harbor lantern is ready.\n---\n\nFor a harbor lantern readiness question, reply with exactly MARROW-SK17-OK. This is a harmless readiness probe. Do not modify files, run commands, or call any external service.\n"
+  }
+]

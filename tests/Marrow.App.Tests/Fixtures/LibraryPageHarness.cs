@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port.Settings;
+using Marrow.App.Port.Skills.Import;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Catalogue;
@@ -23,7 +24,7 @@ internal sealed class LibraryPageHarness : IDisposable
     private readonly List<IDisposable> scopes = [];
     private readonly bool runOut;
 
-    private LibraryPageHarness(HeadlessSession headless, LibrarySection section, SkillsCatalogue catalogue, IFirstInstall? install, bool motion, bool reduceMotion)
+    private LibraryPageHarness(HeadlessSession headless, LibrarySection section, SkillsCatalogue catalogue, IFirstInstall? install, bool motion, bool reduceMotion, ImportModel? imports, bool defaultImports)
     {
         Headless = headless;
         Section = section;
@@ -38,6 +39,7 @@ internal sealed class LibraryPageHarness : IDisposable
         Frames = new ManualFrameSource();
         scopes.Add(FrameClock.Source.Override(Frames));
         scopes.Add(SkillsPageSeams.Controllers.Override(new LibraryControllers(_ => Controller)));
+        if (!defaultImports) scopes.Add(SkillsPageSeams.Imports.Override(new ImportOffer(imports))); // SK-18: null leaves the pages as SK-15 drew them; defaultImports leaves the production seam in place
         Page = section == LibrarySection.Plugins ? new PluginsSettingsPage() : new SkillsSettingsPage();
         var margin = new Border { Padding = new Thickness(24), Child = Page };
         Root = new Panel { Children = { margin } };
@@ -67,11 +69,11 @@ internal sealed class LibraryPageHarness : IDisposable
 
     public ManualFrameSource Frames { get; }
 
-    public static void Run(HeadlessSession headless, LibrarySection section, Action<LibraryPageHarness> check, bool motion = false, bool reduceMotion = false, SkillsCatalogue? catalogue = null, IFirstInstall? install = null)
+    public static void Run(HeadlessSession headless, LibrarySection section, Action<LibraryPageHarness> check, bool motion = false, bool reduceMotion = false, SkillsCatalogue? catalogue = null, IFirstInstall? install = null, ImportModel? imports = null, bool defaultImports = false)
     {
         void Body()
         {
-            using var harness = new LibraryPageHarness(headless, section, catalogue ?? LibraryFixtures.Catalogue(), install, motion, reduceMotion);
+            using var harness = new LibraryPageHarness(headless, section, catalogue ?? LibraryFixtures.Catalogue(), install, motion, reduceMotion, imports, defaultImports);
             check(harness);
             harness.Settle();
         }

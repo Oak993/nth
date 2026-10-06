@@ -22,7 +22,7 @@ public sealed class ApiKeyPool
     private readonly ApiKeyPoolOptions settings;
     private readonly IKeyMovePolicy? moves;
     private readonly Lock gate = new();
-    private readonly Dictionary<string, (DateTimeOffset Until, OutKind Kind)> outs = [];
+    private readonly Dictionary<string, (DateTimeOffset Until, OutKind Kind, DateTimeOffset At)> outs = [];
     private readonly Dictionary<string, int> uses = [];
     private readonly Dictionary<Guid, string> pins = [];
     private readonly Dictionary<Guid, Rotation> rotations = [];
@@ -41,11 +41,17 @@ public sealed class ApiKeyPool
 
     public event EventHandler<ApiKeyEvent>? Changed;
 
-    public IApiKeyRotation ForThread(Guid threadId)
+    public IApiKeyRotation ForThread(Guid threadId, string? initialKey = null)
     {
         lock (gate)
         {
-            if (!rotations.TryGetValue(threadId, out var rotation)) rotations[threadId] = rotation = new Rotation(this, threadId);
+            var entry = initialKey is null ? null : store.Keys(service).FirstOrDefault(key => key.Id == initialKey)
+                ?? throw new ArgumentException("The bound API account is unavailable.", nameof(initialKey));
+            if (!rotations.TryGetValue(threadId, out var rotation) || entry is not null && rotation.BoundKeyId != entry.Id)
+            {
+                rotation?.Retire();
+                rotations[threadId] = rotation = new Rotation(this, threadId, entry is null ? null : new(entry.Id, entry.Nickname, ""));
+            }
             return rotation;
         }
     }
@@ -60,6 +66,15 @@ public sealed class ApiKeyPool
         }
     }
 
+    public void Release(Guid threadId)
+    {
+        lock (gate)
+        {
+            pins.Remove(threadId);
+            if (rotations.Remove(threadId, out var rotation)) rotation.Retire();
+        }
+    }
+
     public PoolState State()
     {
         lock (gate)
@@ -68,6 +83,11 @@ public sealed class ApiKeyPool
             var available = Candidates(now, []).Count;
             return available > 0 ? new PoolState(false, null, available) : new PoolState(true, EarliestReturn(now), 0);
         }
+    }
+
+    public bool IsAvailable(string keyId)
+    {
+        lock (gate) return store.Keys(service).FirstOrDefault(key => key.Id == keyId) is { } entry && Usable(entry, clock.GetUtcNow());
     }
 
     // ---- under the gate ----
@@ -101,9 +121,13 @@ public sealed class ApiKeyPool
 
     private bool IsOut(string keyId, DateTimeOffset now)
     {
+        if (credits is IApiKeyCreditObservations { } reported && (reported.IsUsable(keyId) == false
+            || reported.CreditsLeft(keyId) is { } empty && double.IsFinite(empty) && empty == 0)) return true;
         if (!outs.TryGetValue(keyId, out var state)) return false;
-        // An out-of-credits key is back as soon as the service reports credits again.
-        if (state.Kind == OutKind.Credits && credits.CreditsLeft(keyId) is > 0) { outs.Remove(keyId); return false; }
+        // A positive report older than the actual 402 is not recovery. Legacy in-memory credit stores retain their undated seam.
+        if (state.Kind == OutKind.Credits && credits.CreditsLeft(keyId) is { } positive && double.IsFinite(positive) && positive > 0
+            && (credits is not IApiKeyCreditObservations dated || dated.ObservedAt(keyId) is { } at && at > state.At))
+        { outs.Remove(keyId); return false; }
         if (state.Until > now) return true;
         outs.Remove(keyId);
         return false;
@@ -147,13 +171,17 @@ public sealed class ApiKeyPool
 
     private void Raise(ApiKeyEvent e) => Changed?.Invoke(this, e);
 
-    private sealed class Rotation(ApiKeyPool pool, Guid threadId) : IApiKeyRotation
+    private sealed class Rotation(ApiKeyPool pool, Guid threadId, KeyChoice? initial) : IApiKeyRotation, IApiKeyContinuation
     {
         private readonly HashSet<string> tried = [];
         private KeyChoice? current;
         // The key the thread was last on: leaving it because it ran out or hit its cap is a forced move (OD-0116); leaving it because the user turned it off is not.
-        private KeyChoice? anchor;
+        private KeyChoice? anchor = initial;
+        private int? rejectedStatus;
         private bool moveOnce;
+        private bool retired;
+        public string? BoundKeyId => anchor?.Id;
+        public void Retire() => retired = true;
 
         public string? StopReason { get; private set; }
 
@@ -161,7 +189,7 @@ public sealed class ApiKeyPool
 
         public void AllowMoveOnce()
         {
-            lock (pool.gate) moveOnce = true;
+            lock (pool.gate) { if (!retired) moveOnce = true; }
         }
 
         public KeyChoice? Current()
@@ -170,10 +198,14 @@ public sealed class ApiKeyPool
             KeyChoice? choice;
             lock (pool.gate)
             {
+                if (retired) return null;
                 tried.Clear();
+                rejectedStatus = null;
                 StopReason = null;
                 ContinuedOn = null;
                 choice = Pick(raised);
+                // A completed request cannot carry unused consent into the next request.
+                moveOnce = false;
                 current = choice;
                 if (choice is not null) anchor = choice;
             }
@@ -193,9 +225,12 @@ public sealed class ApiKeyPool
                 var (until, kind) = status == 402
                     ? (now + pool.settings.CreditsRecheck, OutKind.Credits)
                     : (now + (retryAfter ?? pool.settings.RateLimitCooldown), OutKind.RateLimit);
-                pool.outs[failed.Id] = (until, kind);
+                pool.outs[failed.Id] = (until, kind, now);
                 tried.Add(failed.Id);
+                rejectedStatus = status;
                 current = null;
+                // The immutable request identity still owns its quota report after this thread was rebound.
+                if (retired) return null;
 
                 if (pool.pins.ContainsKey(threadId))
                 {
@@ -221,6 +256,32 @@ public sealed class ApiKeyPool
                         raised.Add(Withheld(setting, failed, proposed, $"{failed.Nickname} is out.", status));
                     }
                 }
+            }
+            foreach (var e in raised) pool.Raise(e);
+            return next;
+        }
+
+        public KeyChoice? ContinueRejectedRequest()
+        {
+            var raised = new List<ApiKeyEvent>();
+            KeyChoice? next = null;
+            lock (pool.gate)
+            {
+                if (retired || current is not null || rejectedStatus is not (402 or 429) || anchor is not { } failed) return null;
+                var now = pool.clock.GetUtcNow();
+                var candidates = pool.Candidates(now, tried);
+                if (pool.pins.ContainsKey(threadId) || candidates.Count == 0) return null;
+                var proposed = new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret);
+                if (MoveAllowed(out var setting))
+                {
+                    next = Choose(proposed);
+                    current = next;
+                    anchor = next;
+                    StopReason = null;
+                    ContinuedOn = next.Nickname;
+                    raised.Add(pool.Event(ApiKeyEventKind.Continued, threadId, failed, next, rejectedStatus, null, $"Continued on {next.Nickname}"));
+                }
+                else raised.Add(Withheld(setting, failed, proposed, $"{failed.Nickname} is out.", rejectedStatus));
             }
             foreach (var e in raised) pool.Raise(e);
             return next;
@@ -270,25 +331,35 @@ public sealed class ApiKeyPool
             if (pool.pins.TryGetValue(threadId, out var pin)) return PickPinned(pin, now, raised);
 
             var candidates = pool.Candidates(now, tried);
-            if (anchor is { } held && pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == held.Id) is { } entry
-                && entry.Allowed && pool.HasSecret(entry) && (pool.IsOut(held.Id, now) || pool.OverCap(entry, now)))
+            // Ranking a different key is also an automatic move for this existing thread.
+            if (anchor is { } healthy && candidates.FirstOrDefault(candidate => candidate.Entry.Id == healthy.Id) is { Entry: not null } heldCandidate
+                && (pool.moves?.Setting(threadId) ?? KeyMoveSetting.Unset) != KeyMoveSetting.Allow)
+                return Choose(new(heldCandidate.Entry.Id, heldCandidate.Entry.Nickname, heldCandidate.Secret));
+            if (anchor is { } held)
             {
-                if (candidates.Count == 0)
+                // OD-0116 (lead decision 2026-10-06): leaving the key a live thread is on is a forced move whether it ran out, hit its cap,
+                // was turned off, lost its secret or was removed. The user's yes (remembered, or once) is needed first.
+                var entry = pool.store.Keys(pool.service).FirstOrDefault(k => k.Id == held.Id);
+                var gone = entry is null || !entry.Allowed || !pool.HasSecret(entry);
+                if (gone || pool.IsOut(held.Id, now) || pool.OverCap(entry!, now))
                 {
-                    raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, held, null, null, pool.EarliestReturn(now), "All keys are out."));
+                    if (candidates.Count == 0)
+                    {
+                        raised.Add(pool.Event(ApiKeyEventKind.AllKeysOut, threadId, held, null, null, pool.EarliestReturn(now), "All keys are out."));
+                        return null;
+                    }
+                    var proposed = new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret);
+                    if (MoveAllowed(out var setting))
+                    {
+                        var moved = Choose(proposed);
+                        ContinuedOn = moved.Nickname;
+                        raised.Add(pool.Event(ApiKeyEventKind.Continued, threadId, held, moved, null, null, $"Continued on {moved.Nickname}"));
+                        return moved;
+                    }
+                    var why = gone ? $"{held.Nickname} is off." : pool.IsOut(held.Id, now) ? $"{held.Nickname} is out." : $"{held.Nickname} reached its monthly cap.";
+                    raised.Add(Withheld(setting, held, proposed, why, null));
                     return null;
                 }
-                var proposed = new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret);
-                if (MoveAllowed(out var setting))
-                {
-                    var moved = Choose(proposed);
-                    ContinuedOn = moved.Nickname;
-                    raised.Add(pool.Event(ApiKeyEventKind.Continued, threadId, held, moved, null, null, $"Continued on {moved.Nickname}"));
-                    return moved;
-                }
-                var why = pool.IsOut(held.Id, now) ? $"{held.Nickname} is out." : $"{held.Nickname} reached its monthly cap.";
-                raised.Add(Withheld(setting, held, proposed, why, null));
-                return null;
             }
 
             if (candidates.Count > 0) return Choose(new KeyChoice(candidates[0].Entry.Id, candidates[0].Entry.Nickname, candidates[0].Secret));

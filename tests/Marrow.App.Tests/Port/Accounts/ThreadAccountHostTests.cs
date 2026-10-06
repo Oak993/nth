@@ -17,7 +17,8 @@ public sealed class ThreadAccountHostTests
     public void A_legacy_provider_conversation_keeps_its_original_account_after_the_priority_order_changes()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Deepseek,
-            configure: thread => thread with { ProviderSessionID = "legacy-native", ProviderAccountID = null });
+            configure: thread => thread with { ProviderSessionID = "legacy-native", ProviderAccountID = null },
+            settings: app => app.Settings.DeepseekAPIKeyInput = "offline-outgoing-briefing");
         var briefing = new ThreadRuntimeScriptedSession();
         rig.H.Main.Loop.Run(async () =>
         {
@@ -46,7 +47,7 @@ public sealed class ThreadAccountHostTests
     [Fact]
     public void A_change_to_inherited_destination_defaults_during_readback_invalidates_the_prepared_session()
     {
-        using var rig = new ThreadRuntimeTurnRig();
+        using var rig = new ThreadRuntimeTurnRig(settings: app => app.Settings.DeepseekAPIKeyInput = "offline-host-destination");
         var incoming = new ThreadRuntimeScriptedSession();
         rig.H.Main.Loop.Run(async () =>
         {
@@ -75,7 +76,7 @@ public sealed class ThreadAccountHostTests
     [Fact]
     public void A_new_preparation_during_final_readback_invalidates_the_previous_owned_candidate()
     {
-        using var rig = new ThreadRuntimeTurnRig();
+        using var rig = new ThreadRuntimeTurnRig(settings: app => app.Settings.DeepseekAPIKeyInput = "offline-host-destination");
         var first = new ThreadRuntimeScriptedSession();
         var second = new ThreadRuntimeScriptedSession();
         IStandbySession? replacement = null;
@@ -108,7 +109,7 @@ public sealed class ThreadAccountHostTests
     [Fact]
     public void The_host_projects_the_persisted_pill_and_step_and_adopts_the_steps_exact_settings()
     {
-        using var rig = new ThreadRuntimeTurnRig();
+        using var rig = new ThreadRuntimeTurnRig(settings: app => app.Settings.DeepseekAPIKeyInput = "offline-host-destination");
         var pills = new PillStore();
         var incoming = new ThreadRuntimeScriptedSession();
         ThreadAccountHost host = null!;
@@ -153,7 +154,7 @@ public sealed class ThreadAccountHostTests
     [Fact]
     public void The_final_tail_is_read_and_acknowledged_before_adoption_and_a_second_source_change_is_refreshed_again()
     {
-        using var rig = new ThreadRuntimeTurnRig();
+        using var rig = new ThreadRuntimeTurnRig(settings: app => app.Settings.DeepseekAPIKeyInput = "offline-host-destination");
         rig.Send("Keep 17 and Café.");
         var incoming = new ThreadRuntimeScriptedSession();
         ThreadAccountHost host = null!;
@@ -193,7 +194,7 @@ public sealed class ThreadAccountHostTests
     [Fact]
     public void A_destination_disabled_during_the_final_readback_is_not_taken_or_adopted()
     {
-        using var rig = new ThreadRuntimeTurnRig();
+        using var rig = new ThreadRuntimeTurnRig(settings: app => app.Settings.DeepseekAPIKeyInput = "offline-host-destination");
         var incoming = new ThreadRuntimeScriptedSession();
         rig.H.Main.Loop.Run(async () =>
         {
@@ -222,7 +223,8 @@ public sealed class ThreadAccountHostTests
     public void The_outgoing_briefing_uses_a_private_restricted_session_on_the_same_account_and_never_sends_on_the_live_reply()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Deepseek,
-            configure: thread => thread with { Model = "active-model", Effort = "active-effort", FastMode = true });
+            configure: thread => thread with { Model = "active-model", Effort = "active-effort", FastMode = true },
+            settings: app => app.Settings.DeepseekAPIKeyInput = "offline-outgoing-briefing");
         rig.Send("Live work continues.");
         var briefing = new ThreadRuntimeScriptedSession();
         Guid? used = null;
@@ -256,7 +258,7 @@ public sealed class ThreadAccountHostTests
     [Fact]
     public void A_candidate_cannot_be_adopted_using_a_different_targets_availability()
     {
-        using var rig = new ThreadRuntimeTurnRig();
+        using var rig = new ThreadRuntimeTurnRig(settings: app => app.Settings.DeepseekAPIKeyInput = "offline-host-destination");
         var incoming = new ThreadRuntimeScriptedSession();
         rig.H.Main.Loop.Run(async () =>
         {
@@ -284,7 +286,7 @@ public sealed class ThreadAccountHostTests
     [Fact]
     public void Cancellation_while_the_final_commit_is_queued_preserves_the_source_and_standby_ownership()
     {
-        using var rig = new ThreadRuntimeTurnRig();
+        using var rig = new ThreadRuntimeTurnRig(settings: app => app.Settings.DeepseekAPIKeyInput = "offline-host-destination");
         using var cancellation = new CancellationTokenSource();
         var incoming = new ThreadRuntimeScriptedSession();
         var executor = new QueuedCancellationExecutor(rig.H.Main.Loop, cancellation);

@@ -8,11 +8,12 @@ namespace Marrow.App.Runtime;
 
 public sealed partial class ThreadRuntime
 {
-    private List<string>? pendingHandoffList;
-    // Made on first use: a runtime that is resolved before anything was captured (a card answered, a test's bare runtime) needs it without a constructor having run.
-    private List<string> pendingHandoffEvents => pendingHandoffList ??= [];
+    // Created on first use, so a runtime built without its field initializers (parity fixtures) still buffers.
+    private List<string>? pendingHandoffEventList;
+    private List<string> pendingHandoffEvents => pendingHandoffEventList ??= [];
     private long pendingHandoffBytes;
-    private readonly Dictionary<string, long> rawHandoffToolBytes = new(StringComparer.Ordinal);
+    private Dictionary<string, long>? rawHandoffToolBytesMap;
+    private Dictionary<string, long> rawHandoffToolBytes => rawHandoffToolBytesMap ??= new(StringComparer.Ordinal);
     private bool handoffJournalInitialized;
     private bool handoffMessageBoundary;
     private bool requestedHandoffJournal;
@@ -55,14 +56,7 @@ public sealed partial class ThreadRuntime
     {
         if (line is null) return;
         // Keep a sticky spool once a second account, an approval, display cleanup or clipping makes raw history necessary.
-        var needed = preserve || UsesHandoffJournal || line.Contains('—', StringComparison.Ordinal);
-        // An earlier session's spool also keeps it. Storage is asked only when that answer can still change the outcome, so a runtime that never spools never reads it.
-        if (!needed && !requestedHandoffJournal && !handoffJournalInitialized)
-        {
-            handoffJournalInitialized = true;
-            needed = File.Exists(HandoffJournal.PathIn(HandoffFolder));
-        }
-        requestedHandoffJournal |= needed;
+        requestedHandoffJournal |= preserve || UsesHandoffJournal || line.Contains('—', StringComparison.Ordinal);
         pendingHandoffEvents.Add(line);
         pendingHandoffBytes += Encoding.UTF8.GetByteCount(line) + 1L;
         if (pendingHandoffBytes >= 262_144)
@@ -72,14 +66,28 @@ public sealed partial class ThreadRuntime
         }
     }
 
+    // An earlier journal on disk keeps the spool sticky. Only a flush or a read needs to know, so a thread that never spools never touches the store.
+    private void ProbeHandoffJournal()
+    {
+        if (handoffJournalInitialized) return;
+        handoffJournalInitialized = true;
+        requestedHandoffJournal |= File.Exists(HandoffJournal.PathIn(HandoffFolder));
+    }
+
     private void FlushHandoffJournal(bool explicitCheckpoint = false)
     {
         requestedHandoffJournal |= explicitCheckpoint;
-        if (!UsesHandoffJournal || pendingHandoffEvents.Count == 0) return;
+        if (pendingHandoffEvents.Count == 0) return;
+        ProbeHandoffJournal();
+        if (!UsesHandoffJournal) return;
         HandoffJournal.AppendBatch(HandoffFolder, pendingHandoffEvents);
         pendingHandoffEvents.Clear();
         pendingHandoffBytes = 0;
     }
 
-    private string[] ReadHandoffJournal() => [.. HandoffJournal.Read(HandoffFolder), .. pendingHandoffEvents];
+    private string[] ReadHandoffJournal()
+    {
+        ProbeHandoffJournal();
+        return [.. HandoffJournal.Read(HandoffFolder), .. pendingHandoffEvents];
+    }
 }

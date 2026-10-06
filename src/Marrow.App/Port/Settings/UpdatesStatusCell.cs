@@ -2,6 +2,8 @@
 // rises and fades in after a short wait (the design's .st: opacity .22 s ease, translate .3 s ez, .05 s delay); a change of the word alone ("Downloading 41%" to "42%") is written in place.
 // The motion runs on the frame clock (CzMotion) and lands at once under Reduce Motion.
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -24,6 +26,7 @@ internal sealed class UpdatesStatusCell : Panel
         motion = new CzMotion(this);
         ClipToBounds = false;
         current = Add(new Face(this, status, text), shown: true);
+        AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Polite);
     }
 
     /// <summary>The status the cell shows (the incoming face).</summary>
@@ -48,9 +51,12 @@ internal sealed class UpdatesStatusCell : Panel
 
     public void SetStatus(RowStatus status, string text)
     {
+        var oldText = Text;
         if (status == current.Status)
         {
-            if (current.Text.Text != text) current.Text.Text = text;
+            if (oldText == text) return;
+            current.Text.Text = text;
+            Announce(oldText, text);
             return;
         }
         foreach (var face in Children.OfType<Face>().Where(f => !ReferenceEquals(f, current)).ToArray()) Remove(face);
@@ -59,6 +65,22 @@ internal sealed class UpdatesStatusCell : Panel
         previous = outgoing;
         outgoing.Hide();
         current.Show();
+        Announce(oldText, text);
+    }
+
+    private void Announce(string oldText, string text)
+    {
+        if (oldText != text)
+            ControlAutomationPeer.CreatePeerForElement(this)?.RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, oldText, text);
+    }
+
+    // A stable peer reads only the incoming face; outgoing animation text is never the announcement.
+    protected override AutomationPeer OnCreateAutomationPeer() => new StatusPeer(this);
+
+    private sealed class StatusPeer(UpdatesStatusCell owner) : ControlAutomationPeer(owner)
+    {
+        protected override string GetNameCore() => owner.Text;
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
     }
 
     private Face Add(Face face, bool shown)

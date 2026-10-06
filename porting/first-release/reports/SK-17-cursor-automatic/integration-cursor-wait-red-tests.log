@@ -1,0 +1,7 @@
+  Error Message:
+   Assert.Throws() Failure: No exception was thrown
+Expected: typeof(Marrow.Core.Port.CancellationError)
+  Error Message:
+   Assert.Throws() Failure: No exception was thrown
+Expected: typeof(System.IO.IOException)
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 1 s - Marrow.Services.Tests.dll (net10.0)

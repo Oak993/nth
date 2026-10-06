@@ -9,6 +9,7 @@ namespace Marrow.App.Tests;
 // App/AppModel.swift:1173-1216 turnFinished: the four gates that decide whether anything is heard or seen when a turn ends
 // (UI-RUNTIME-015), and the notification body and title it builds. The toast centre and the chime's sound output are
 // recorders (AppModelNotifyRig), so nothing is posted and no audio device is opened.
+[Collection(FinishChimeCollection.Name)]
 public sealed class AppModelTurnFinishedTests
 {
     private const string Title = "Fix the parser";

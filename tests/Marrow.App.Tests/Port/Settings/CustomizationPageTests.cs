@@ -97,9 +97,11 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
             ["Look", "Pace and strength", null, null, "Look", "Motion", "Brightness by moment", null, null, null, "Voice orb", "Working dots"],
             sections.Select(s => s.Title));
         Assert.Equal(sections, page.Beam!.Sections.Concat(page.Aura!.Sections).Append(page.Off!).Append(page.Voice!.Section).Append(page.Dots!.Section)); // CZ-5 adds the Working dots section at the end of the sticky container
-        // the points left to the units that come after (CZ-6, CZ-7, the Speech section): the sticky container and the rest after it exist and are empty of anything but the page's own parts
+        // the rest after the sticky container holds the capsule section and then the Speech section (CZ-8)
         Assert.NotNull(page.Rest);
-        Assert.IsType<Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection>(Assert.Single(page.Rest.Children)); // "Pill in the composer" (multi-account step 3a); the Speech section comes after it
+        Assert.Collection(page.Rest.Children, // "Pill in the composer" (multi-account step 3a), then the Speech section (CZ-8)
+            child => Assert.IsType<Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection>(child),
+            child => Assert.Same(page.Speech!.Section, child));
         // the stage sits 2 above the Style heading (CZ-3.4)
         Assert.Equal(2, page.Stage.Margin.Bottom);
         Assert.True(page.Stage.Bounds.Bottom + 2 <= kids[1].Bounds.Top + 0.5);

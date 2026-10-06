@@ -1,0 +1,57 @@
+[
+  {
+    "file": "green-App-launch-traceability.log",
+    "sha256": "6B50912F040D8F73AC1F9E9409A3A846DEA2A349620570FED6ADCF82E9EEE657",
+    "bytes": 121
+  },
+  {
+    "file": "green-build.log",
+    "sha256": "2EEA56097D4071FD5772D20D6D17939853CFB175EA60BDE022305355930003F3",
+    "bytes": 82
+  },
+  {
+    "file": "green-Services-composer-traceability.log",
+    "sha256": "9DDC1CF69B6A119F9FFAD180AF353561CB3BD13B751030D1CEEA134AEE534F67",
+    "bytes": 126
+  },
+  {
+    "file": "green.sh",
+    "sha256": "DC4B49A35E2D21A02F60F8B4E51B8109CEBA40DDA8370440B18472B763679F5A",
+    "bytes": 1426
+  },
+  {
+    "file": "ledger-prefixes.json",
+    "sha256": "77D919CC36B8505A69452C0AB1E284AC863BCEA10F1F113F490D7A17DF74559B",
+    "bytes": 437
+  },
+  {
+    "file": "red-Antigravity-1.log",
+    "sha256": "F33A4AFB2AA552D5889B0DD555F720ADA989217C5016B1CE008A7DEE3FB36BB5",
+    "bytes": 311
+  },
+  {
+    "file": "red-Antigravity-2.log",
+    "sha256": "D81FD7AD2DE34A612F804194F5B2C52A0F1A59BFFEB56AADDC69CE3B11233ED0",
+    "bytes": 310
+  },
+  {
+    "file": "red-build.log",
+    "sha256": "F99966DF78EB1B013A4BBFAA9DB73FFFFF965353B6600A5AA44CE651D65B4D13",
+    "bytes": 82
+  },
+  {
+    "file": "red-Cursor-1.log",
+    "sha256": "B514307E0AD1E70077848E7B9423AF90932CA1E04100FEE2C5FBCC52859B12F9",
+    "bytes": 311
+  },
+  {
+    "file": "red-Cursor-2.log",
+    "sha256": "B514307E0AD1E70077848E7B9423AF90932CA1E04100FEE2C5FBCC52859B12F9",
+    "bytes": 311
+  },
+  {
+    "file": "red.sh",
+    "sha256": "27BAD1A7788CA0A7DCEBC445DF9CF43DB5A2CC9F34736A5DBF7CEEDF60ADA0D2",
+    "bytes": 974
+  }
+]

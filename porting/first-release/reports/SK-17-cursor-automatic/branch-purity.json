@@ -1,0 +1,35 @@
+{
+  "base": "18bb508c7fe0f17a3682f8a52380d5db54846188",
+  "acceptedHead": "4b09cf5d36473b7000b79fb3bd343b0c6d5522aa",
+  "testFirstHead": "5394b62112c976ee5273e33ca835669e48d1ccf4",
+  "includesWorkingChanges": true,
+  "trialHead": "be9948f9827df4e8dba90b9739e33d862e88a37f",
+  "sharedPreservedHead": "777b2996e4e77b9120109dac4076955d2b53b5cb",
+  "trialCommitIsAncestor": false,
+  "accidentalCommitIsAncestor": false,
+  "trialUniqueFileCount": 79,
+  "sk17UniqueFileCount": 158,
+  "nonLedgerPathOverlap": [],
+  "uniqueCommitOverlap": [],
+  "sharedLedgerPaths": [
+    "porting/STATE.md",
+    "porting/engineering_decisions.md"
+  ],
+  "ledgerPrefixes": [
+    {
+      "file": "engineering_decisions.md",
+      "prefixBytes": 1605461,
+      "prefixSha256": "4B2326691718930B6B5ABC5F5876E0187608DCF4CB3B860E6739679214BFF9D1",
+      "prefixMatches": true,
+      "appendedBytes": 3004
+    },
+    {
+      "file": "STATE.md",
+      "prefixBytes": 62479,
+      "prefixSha256": "F6302956B4971B2D45D84365BAD9A4E3E1292BDC3001F911928656680FB0C2D3",
+      "prefixMatches": true,
+      "appendedBytes": 1782
+    }
+  ],
+  "ledgerAudit": "Only the SK-17 follow-up suffix was appended; accepted ledger prefix is byte-identical. No T13 content imported."
+}

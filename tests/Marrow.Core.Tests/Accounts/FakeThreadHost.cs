@@ -3,8 +3,12 @@ using Marrow.Core.Accounts;
 namespace Marrow.Core.Tests.Accounts;
 
 /// <summary>A scripted <see cref="IThreadAccountHost"/>: no CLI, no model, no network. Every call lands in <see cref="Log"/>.</summary>
-public sealed class FakeThreadHost : IThreadAccountHost
+public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost, IDeferredDeliveryHost
 {
+    public HashSet<string> DeferredAccounts { get; } = [];
+
+    public bool DeliversDeferred(SwitchTarget target) => DeferredAccounts.Contains(target.Account.Id);
+
     public List<string> Log { get; } = [];
 
     public string ActiveAccountId { get; set; } = "";
@@ -15,6 +19,14 @@ public sealed class FakeThreadHost : IThreadAccountHost
     public bool ReplyInFlight { get; set; }
 
     public string? Briefing { get; set; } = "briefing";
+    public string? IncomingBriefing { get; set; } = "incoming-light-briefing";
+    public Exception? IncomingBriefingFails { get; set; }
+    public Task<string?> RequestIncomingBriefingAsync(SwitchTarget target, HandoffSummary summary, CancellationToken ct)
+    {
+        Log.Add("light-briefing:" + target.Account.Id);
+        if (IncomingBriefingFails is not null) throw IncomingBriefingFails;
+        return Task.FromResult(IncomingBriefing);
+    }
     public string ReadBack { get; set; } = "";
     public Exception? StandbyFails { get; set; }
     public Exception? BriefingFails { get; set; }
@@ -41,13 +53,14 @@ public sealed class FakeThreadHost : IThreadAccountHost
         return Briefing;
     }
 
-    public Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)
+    public Task? SwitchGate { get; set; }
+    public async Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)
     {
+        if (SwitchGate is not null) await SwitchGate.WaitAsync(ct);
         Log.Add($"switch:{target.Account.Id}:{(resumeReply ? "resume" : "noresume")}:{(AtSafePoint ? "safe" : "UNSAFE")}");
         ActiveAccountId = target.Account.Id;
         StepIndex = target.StepIndex;
         ReplyInFlight = false;
-        return Task.CompletedTask;
     }
 
     private sealed class Standby(FakeThreadHost host) : IStandbySession

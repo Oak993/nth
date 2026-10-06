@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -134,7 +135,8 @@ public sealed class GettingReadyRowView
         Id = info.Step.Id;
         Label = info.Step.Name;
         State = FirstRunStepState.Waiting;
-        text = new TextBlock { Text = Label, VerticalAlignment = VerticalAlignment.Center, LineHeight = GettingReadyLook.LabelLine, ClipToBounds = true, TextWrapping = TextWrapping.NoWrap };
+        text = new LiveStatusText { Text = Label, VerticalAlignment = VerticalAlignment.Center, LineHeight = GettingReadyLook.LabelLine, ClipToBounds = true, TextWrapping = TextWrapping.NoWrap };
+        AutomationProperties.SetName(text, Label + ": Waiting");
         SwiftFont.System(GettingReadyLook.LabelSize, SwiftFont.Weight.Regular).Apply(text);
         text.Foreground = Chrome.PrimaryText.Brush(text);
         var glyph = new StepGlyph(Id) { VerticalAlignment = VerticalAlignment.Center };
@@ -207,6 +209,10 @@ public sealed class GettingReadyRowView
     internal void Apply(FirstRunStepState state, double fraction)
     {
         Share = state == FirstRunStepState.Done ? 1 : state == FirstRunStepState.Running ? fraction : 0;
+        var status = state == FirstRunStepState.Running
+            ? "Running " + Math.Floor(Math.Clamp(fraction, 0, 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%"
+            : state == FirstRunStepState.Done ? "Done" : "Waiting";
+        AutomationProperties.SetName(text, Label + ": " + status);
         if (state == State) return;
         State = state;
         var opacity = GettingReadyLook.Fade(0.25);

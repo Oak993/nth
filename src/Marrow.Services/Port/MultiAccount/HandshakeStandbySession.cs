@@ -13,10 +13,13 @@ public sealed class HandshakeStandbySession : IStandbySession
     private readonly Dictionary<string, string> messages = new(StringComparer.Ordinal);
     private readonly List<string> messageOrder = [];
     private TaskCompletionSource<string?>? completion;
+    private Func<Task<HandshakeCostObservation?>>? observeUsage;
+    private Func<bool>? canTransfer;
     private bool needsReadBack;
     private bool ready;
     private bool ownsSession = true;
     private bool stopped;
+    private ValueList<ModelOption> reportedModels = ValueList<ModelOption>.Empty;
 
     private HandshakeStandbySession(ProviderSession session, SessionConfiguration configuration)
     {
@@ -28,19 +31,23 @@ public sealed class HandshakeStandbySession : IStandbySession
     public SessionConfiguration Configuration { get; }
     public string SessionId { get; private set; } = "";
     public HandoffPackage? ReceivedPackage { get; private set; }
+    public bool ReadBackRequested { get; private set; }
 
-    public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct)
+    public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct, Func<bool>? canTransfer = null,
+        Func<Task<HandshakeCostObservation?>>? observeUsage = null)
     {
         // These providers enforce IsFinalReport before exposing tools or executing an action.
-        // A CLI needs its own verified restricted launch before it can be used for priming.
-        if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local))
+        // Claude additionally verifies its temporary agent, effective policy and actual init identity.
+        if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local)
+            && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
-        var standby = new HandshakeStandbySession(session, configuration);
+        var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage, canTransfer = canTransfer };
+        standby.BindTransferGuard(canTransfer);
         Task<string>? start = null;
         try
         {
             ct.ThrowIfCancellationRequested();
-            start = session.Start();
+            start = session is ClaudeSession claude ? claude.StartHandshakeAsync(ct) : session.Start();
             standby.SessionId = await start.WaitAsync(ct);
             if (string.IsNullOrWhiteSpace(standby.SessionId)) throw new InvalidOperationException("The standby did not report its session identity.");
             if (standby.stopped || !session.IsRunning) throw new InvalidOperationException("The standby exited while starting.");
@@ -84,6 +91,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     {
         var answer = await RunTextTurnAsync(prompt, readBack, ct);
         ReceivedPackage = package;
+        ReadBackRequested = readBack;
         return answer;
     }
 
@@ -93,10 +101,37 @@ public sealed class HandshakeStandbySession : IStandbySession
 
     public Task<string?> TextTurnAsync(string prompt, CancellationToken ct) => RunTextTurnAsync(prompt, true, ct);
 
+    public async Task<string?> WriteIncomingLightBriefingAsync(HandoffSummary summary, CancellationToken ct)
+    {
+        // Haiku is the documented light Claude family. The running private account must actually report the alias.
+        if (session is not ClaudeSession || !reportedModels.Any(option => option.Id == "haiku"))
+            throw new NotSupportedException("This account did not report a supported light model for its AI briefing.");
+        if (summary.FilePath is not { } path) throw new InvalidOperationException("The full conversation archive is unavailable.");
+        var archive = await File.ReadAllTextAsync(path, ct);
+        return await RunTextTurnAsync("[Marrow Handshake] Write a compact briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use this complete recorded conversation:\n" + archive, true, ct, model: "haiku");
+    }
+
+    public async Task PrepareForAdoptionAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (!ownsSession || stopped || !ready || completion is not null || !session.IsRunning)
+                throw new InvalidOperationException("Only a completed standby can be prepared for adoption.");
+            if (session is ClaudeSession claude) await claude.RestoreHandshakeToolsAsync(ct);
+        }
+        catch { if (ownsSession) Stop(); throw; }
+        finally { gate.Release(); }
+    }
+
     public ProviderSession TakeSession()
     {
         if (!ownsSession || stopped || !ready || completion is not null || gate.CurrentCount == 0 || !session.IsRunning)
             throw new InvalidOperationException("Only a completed standby can be adopted.");
+        if (session is ClaudeSession { HandshakeToolsRestored: false })
+            throw new InvalidOperationException("The CLI tools must be restored before adoption.");
+        BindTransferGuard(null);
+        canTransfer = null;
         ownsSession = false;
         session.OnEvent = null;
         return session;
@@ -104,12 +139,13 @@ public sealed class HandshakeStandbySession : IStandbySession
 
     public ValueTask DisposeAsync() { if (ownsSession) Stop(); return ValueTask.CompletedTask; }
 
-    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct)
+    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct, string? model = null)
     {
         await gate.WaitAsync(ct);
         try
         {
-            if (!ownsSession || stopped) throw new InvalidOperationException("The standby is unavailable.");
+            if (!ownsSession || stopped || session is ClaudeSession { HandshakeToolsRestored: true })
+                throw new InvalidOperationException("The standby is unavailable for text-only transfer.");
             ready = false;
             needsReadBack = readBack;
             messages.Clear();
@@ -119,14 +155,19 @@ public sealed class HandshakeStandbySession : IStandbySession
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
             var result = completion.Task;
             // API/Local enforce IsFinalReport before any tool request. CLI factories must supply a verified restricted launch.
+            if (canTransfer?.Invoke() == false) throw new InvalidOperationException("Context transfer is no longer authorized.");
+            using var usage = observeUsage is null ? null : await observeUsage();
+            if (canTransfer?.Invoke() == false) throw new InvalidOperationException("Context transfer is no longer authorized.");
             await session.Send(new TurnInput
             {
-                Text = text, Images = ValueList<Attachment>.Empty, Model = Configuration.Model, Effort = Configuration.Effort,
+                Text = text, Images = ValueList<Attachment>.Empty, Model = model ?? Configuration.Model, Effort = model is null ? Configuration.Effort : null,
                 FastMode = Configuration.FastMode, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build,
                 IsFinalReport = true,
             }).WaitAsync(linked.Token);
             var answer = await result.WaitAsync(linked.Token);
+            if (session is ClaudeSession claude) SessionId = claude.VerifiedHandshakeIdentity;
             ready = true;
+            usage?.Complete();
             return answer;
         }
         catch { if (ownsSession) Stop(); throw; }
@@ -136,6 +177,7 @@ public sealed class HandshakeStandbySession : IStandbySession
     private void Collect(ProviderEvent value)
     {
         if (stopped || !ownsSession) return;
+        if (value is ProviderEvent.Models catalog) { reportedModels = catalog.Value; return; }
         if (value is ProviderEvent.Exited exit) { Fail(exit.Error ?? "The standby exited."); return; }
         if (completion is null) return;
         switch (value)
@@ -182,11 +224,19 @@ public sealed class HandshakeStandbySession : IStandbySession
         Stop();
     }
 
+    private void BindTransferGuard(Func<bool>? guard)
+    {
+        if (session is ClaudeSession claude) claude.CanTransferContext = guard;
+        if (session is OpenAICompatibleSession api) api.CanTransferContext = guard;
+    }
+
     private void Stop()
     {
         if (stopped || !ownsSession) return;
         stopped = true;
         ready = false;
+        BindTransferGuard(null);
+        canTransfer = null;
         completion?.TrySetException(new InvalidOperationException("The standby was closed before context transfer completed."));
         session.OnEvent = null;
         session.Stop();

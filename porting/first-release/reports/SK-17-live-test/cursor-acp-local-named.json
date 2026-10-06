@@ -1,0 +1,74 @@
+{
+  "startedUtc": "2026-10-05T15:35:18.6473138Z",
+  "finishedUtc": "2026-10-05T15:36:57.2365424Z",
+  "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-File",
+    "C:\\Users\\omera\\AppData\\Local\\cursor-agent\\agent.ps1",
+    "acp"
+  ],
+  "workingDirectory": "E:\\Droppy\\work\\scratch\\codex-sk17\\workspace",
+  "sentRequests": [
+    {
+      "id": 1,
+      "method": "initialize",
+      "jsonrpc": "2.0",
+      "params": {
+        "clientCapabilities": {
+          "terminal": false,
+          "fs": {
+            "readTextFile": false,
+            "writeTextFile": false
+          }
+        },
+        "clientInfo": {
+          "name": "marrow-sk17-probe",
+          "version": "1.0.0"
+        },
+        "protocolVersion": 1
+      }
+    },
+    {
+      "id": 2,
+      "method": "session/new",
+      "jsonrpc": "2.0",
+      "params": {
+        "cwd": "E:\\Droppy\\work\\scratch\\codex-sk17\\workspace",
+        "mcpServers": []
+      }
+    },
+    {
+      "id": 3,
+      "method": "session/prompt",
+      "jsonrpc": "2.0",
+      "params": {
+        "sessionId": "b502cc71-b1ce-4729-836d-76b69848c170",
+        "prompt": [
+          {
+            "text": "Use the marrow-sk17-probe skill: is the harbor lantern ready? Give only the readiness answer.",
+            "type": "text"
+          }
+        ]
+      }
+    }
+  ],
+  "exitCode": -1,
+  "cleanExit": false,
+  "error": null,
+  "stderr": "",
+  "probeListed": false,
+  "reply": "I'll look up the marrow-sk17-probe skill and follow it for the harbor lantern readiness check.MARROW-SK17-OK",
+  "readPaths": [
+    "C:\\Users\\omera\\.cursor\\skills-cursor\\marrow-sk17-probe\\SKILL.md",
+    "E:\\Droppy\\work\\scratch\\codex-sk17\\workspace\\marrow-sk17-probe\\SKILL.md",
+    "C:\\Users\\omera\\.claude\\skills\\marrow-sk17-probe\\SKILL.md"
+  ],
+  "promptResult": [
+    {
+      "stopReason": "end_turn"
+    }
+  ],
+  "privateRawSha256": "F9B22F1B73008D0EEB728E61B76CEF6F52F7E0C86AACB6E402DB72C6B78FB6F4",
+  "omitted": "Global skill descriptions and tool outputs outside the probe are retained only in the private scratch transcript; they are excluded from the pushed evidence."
+}

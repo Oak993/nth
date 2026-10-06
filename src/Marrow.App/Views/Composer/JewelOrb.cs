@@ -586,6 +586,13 @@ internal sealed class JewelKnobRenderer
         return renderer;
     }
 
+    // Temporary warm-up contexts must release this thread's retained surfaces before the context is destroyed.
+    internal static void Retire(GRContext gpu)
+    {
+        if (pool is null) return;
+        foreach (var key in pool.Keys.Where(k => k.Context == gpu.Handle).ToArray()) { pool[key].Dispose(); pool.Remove(key); }
+    }
+
     private void Dispose() { foreach (var made in surfaces) made?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); liftGroup.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
 
     /// <summary>
@@ -963,7 +970,7 @@ internal sealed class JewelKnobOperation : ICustomDrawOperation
             Interlocked.Increment(ref cpuFrames);
             return;
         }
-        if (lease.GrContext is not null) GpuProgramCache.EnsureInstalled(lease.GrContext.Handle); // (once a context; the warm-up has normally done it)
+        if (lease.GrContext is not null) GpuProgramCache.ForContext(lease.GrContext); // (once a context; the warm-up has normally done it)
         var start = System.Diagnostics.Stopwatch.GetTimestamp();
         try { JewelKnobRenderer.For(lease.GrContext, (int)Values[0]).Draw(lease.SkCanvas, Values, box, opacity); }
         catch (Exception error) { LastError = error.GetType().Name + ": " + error.Message; throw; } // recorded for the native evidence run, not swallowed

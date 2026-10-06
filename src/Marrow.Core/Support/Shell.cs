@@ -59,6 +59,9 @@ public sealed class ShellError(string message) : SwiftError
 /// <summary>Shell.swift:31-134.</summary>
 public static class Shell
 {
+    // PORT-ONLY: ED-367, async-local offline process boundary.
+    internal static Ambient<Func<ShellInvocation, Task<ShellResult>>> RunForTesting { get; } = new((Func<ShellInvocation, Task<ShellResult>>)null!);
+
     /// <summary>
     /// :31-108 Runs a process to completion off the main actor and collects its output. With an
     /// <paramref name="outputLimit"/>, only that many bytes of each stream's tail are kept (a command a model runs can
@@ -70,6 +73,7 @@ public static class Shell
     {
         // PORT-ONLY (ED-207): a test's observer sees the call as its site made it; the app installs none.
         ShellObserver.Current?.Invoke(new ShellInvocation(executable, [.. arguments], @in, environment, input, timeout, outputLimit));
+        if (RunForTesting.Current is { } offline) return offline(new ShellInvocation(executable, [.. arguments], @in, environment, input, timeout, outputLimit));
         return Task.Run(() => RunBody(executable, arguments, @in, environment, input, timeout, outputLimit));
     }
 

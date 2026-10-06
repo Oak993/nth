@@ -1,0 +1,28 @@
+{
+  "startedUtc": "2026-10-05T15:18:03.9083493Z",
+  "provider": "cursor",
+  "invocation": "implicit",
+  "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-File",
+    "C:\\Users\\omera\\AppData\\Local\\cursor-agent\\agent.ps1",
+    "--print",
+    "--output-format",
+    "stream-json",
+    "--mode",
+    "ask",
+    "--workspace",
+    "E:\\Droppy\\work\\scratch\\codex-sk17\\workspace",
+    "--plugin-dir",
+    "E:\\Droppy\\work\\scratch\\codex-sk17\\plugin\\cursor",
+    "Is the harbor lantern ready? Give only the readiness answer."
+  ],
+  "workingDirectory": "E:\\Droppy\\work\\scratch\\codex-sk17\\workspace",
+  "timeoutSeconds": 120,
+  "exitCode": 1,
+  "timedOut": false,
+  "stdout": "",
+  "stderr": "\n⚠ Workspace Trust Required\n\n  Cursor Agent can execute code and access files in this directory.\n  Do you trust the contents of this directory?\n\n    E:\\Droppy\\work\\scratch\\codex-sk17\\workspace\n\n  To proceed, you can either:\n    • Run 'agent' interactively to decide\n    • Pass --trust, --yolo, or -f if you trust this directory\n",
+  "finishedUtc": "2026-10-05T15:18:04.8238617Z"
+}

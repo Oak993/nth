@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "30-python313-before",
+  "commandLine": "py -3.13 --version",
+  "executable": "py",
+  "arguments": [
+    "-3.13",
+    "--version"
+  ],
+  "exitCode": 0,
+  "stdout": "Python 3.13.14\r\n",
+  "stderr": "",
+  "durationMs": 139.0472,
+  "versionsBefore": {
+    "Python.Python.3.13": "3.13.14",
+    "Python.Python.3.14": "3.14.4"
+  },
+  "versionsAfter": {
+    "Python.Python.3.13": "3.13.15",
+    "Python.Python.3.14": "3.14.7"
+  },
+  "timestamp": "2026-10-05T15:29:42.7087988+00:00",
+  "finishedAt": "2026-10-05T15:29:42.8489125+00:00"
+}

@@ -18,7 +18,8 @@ public static partial class Traceability
 
     [GeneratedRegex(@"\AR-[A-Z]+-[0-9]+\z")] private static partial Regex RuleId();
 
-    [GeneratedRegex(@"\A(?:ED-[0-9]{3}|ED-NEW-ma-2)\z")] private static partial Regex DecisionId();
+    // Unnumbered first-release decisions use their append-only heading (ED-360) until the lead numbers them.
+    [GeneratedRegex(@"\AED-(?:[0-9]{3}|NEW-[a-z]+-[0-9]+)\z")] private static partial Regex DecisionId();
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 

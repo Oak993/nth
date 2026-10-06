@@ -24,6 +24,7 @@ public sealed class KeyRotationRig : IAsyncDisposable
     private readonly IDisposable storage;
     private readonly LoopbackHttpServer server = new();
     private readonly Queue<string> script;
+    private readonly double? reportedCost;
 
     public List<(string Bearer, string Body)> Requests { get; } = [];
     public List<ProviderEvent> Events { get; } = [];
@@ -36,19 +37,20 @@ public sealed class KeyRotationRig : IAsyncDisposable
     public InMemoryKeyMovePolicy Moves { get; } = new();
 
     /// <param name="answers">One entry per request the server will see: a status ("402", "429", "429:7" for a Retry-After of 7, "500") or <see cref="Ok"/>.</param>
-    public KeyRotationRig(IEnumerable<string> answers, bool rotate = true, bool autoMove = true)
+    public KeyRotationRig(IEnumerable<string> answers, bool rotate = true, bool autoMove = true, ProviderKind provider = ProviderKind.Deepseek, double? reportedCost = null)
     {
+        this.reportedCost = reportedCost;
         script = new Queue<string>(answers);
         Directory.CreateDirectory(directory);
         storage = Storage.Locations.Override(StorageLocations.Create(directory, directory));
-        foreach (var id in new[] { "a", "b", "c" }) Store.Add(new ApiKeyEntry(id, "deepseek", $"Key {id.ToUpperInvariant()}"), $"sk-{id}");
+        foreach (var id in new[] { "a", "b", "c" }) Store.Add(new ApiKeyEntry(id, provider.Id, $"Key {id.ToUpperInvariant()}"), $"sk-{id}");
         Moves.Default = autoMove ? KeyMoveSetting.Allow : KeyMoveSetting.Unset; // OD-0116
-        Pool = new ApiKeyPool("deepseek", Store, Credits, Spend, Clock, moves: Moves);
+        Pool = new ApiKeyPool(provider.Id, Store, Credits, Spend, Clock, moves: Moves);
 
         var config = new OpenAICompatibleSession.Config
         {
-            Kind = ProviderKind.Deepseek,
-            Title = "DeepSeek",
+            Kind = provider,
+            Title = provider.DisplayName,
             AgentIdentity = model => $"agent ({model})",
             DefaultModel = "deepseek-chat",
             ChatURL = server.Url("/v1/chat/completions"),
@@ -57,7 +59,7 @@ public sealed class KeyRotationRig : IAsyncDisposable
         };
         var configuration = new SessionConfiguration
         {
-            Provider = ProviderKind.Deepseek,
+            Provider = provider,
             WorkingDirectory = SwiftURL.Create("file:///C:/work")!,
             Environment = ValueMap<string, string>.Empty,
             RuntimeMode = RuntimeMode.FullAccess,
@@ -80,8 +82,9 @@ public sealed class KeyRotationRig : IAsyncDisposable
             Requests.Add((exchange.HeaderValues("Authorization").FirstOrDefault() ?? "", Encoding.UTF8.GetString(exchange.Body)));
             if (step == Ok)
             {
+                var cost = reportedCost is { } usd ? ",\"cost\":" + usd.ToString("R", System.Globalization.CultureInfo.InvariantCulture) : "";
                 var sse = "data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n" +
-                          "data: {\"usage\":{\"prompt_tokens\":60,\"completion_tokens\":40,\"total_tokens\":100}}\n\n" +
+                          "data: {\"usage\":{\"prompt_tokens\":60,\"completion_tokens\":40,\"total_tokens\":100" + cost + "}}\n\n" +
                           "data: [DONE]\n\n";
                 await exchange.Respond(200, "OK", Encoding.UTF8.GetBytes(sse), ("Content-Type", "text/event-stream"));
                 continue;
@@ -126,6 +129,8 @@ public sealed class KeyRotationRig : IAsyncDisposable
 
     public IEnumerable<string> Notices() =>
         Events.OfType<ProviderEvent.Notice>().Select(n => n.Value.Message);
+
+    public TestRuntime Runtime => runtime;
 
     public async ValueTask DisposeAsync()
     {

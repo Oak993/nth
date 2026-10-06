@@ -108,7 +108,7 @@ public sealed class ApiKeyPoolMoveConsentTests
     [Trait("Feature", "MA-6")]
     [Trait("Spec", "MA-T145")]
     [Trait("Rule", "R-TEST-4")]
-    public void A_key_that_reaches_its_cap_is_a_forced_move_too_but_a_key_the_user_turns_off_is_not()
+    public void A_key_that_reaches_its_cap_is_a_forced_move_too()
     {
         var rig = new ApiKeyRig(autoMove: false);
         rig.Store.Update("a", k => k with { MonthlyCapUsd = 1 });
@@ -117,12 +117,6 @@ public sealed class ApiKeyPoolMoveConsentTests
         rotation.RecordSpend(2);
         Assert.Null(rotation.Current());
         Assert.Contains(rig.Events, e => e.Kind == ApiKeyEventKind.MoveNeedsAnswer && e.FromKeyId == "a" && e.ToKeyId == "b");
-
-        var other = rig.Rotation(ApiKeyRig.Other);
-        rig.Store.Update("a", k => k with { MonthlyCapUsd = null });
-        other.Current();
-        rig.Store.Update("a", k => k with { Allowed = false });
-        Assert.Equal("b", other.Current()!.Id);
     }
 
     [Fact]

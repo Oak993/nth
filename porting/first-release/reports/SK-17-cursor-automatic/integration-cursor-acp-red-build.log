@@ -1,0 +1,13 @@
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(25,33): error CS0246: The type or namespace name 'TestRuntime' could not be found (are you missing a using directive or an assembly reference?) [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(63,33): error CS0246: The type or namespace name 'TestRuntime' could not be found (are you missing a using directive or an assembly reference?) [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(66,15): error CS0619: 'Assert.Throws<T>(Func<Task>)' is obsolete: 'You must call Assert.ThrowsAsync<T> (and await the result) when testing async code.' [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+
+Build FAILED.
+
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(25,33): error CS0246: The type or namespace name 'TestRuntime' could not be found (are you missing a using directive or an assembly reference?) [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(63,33): error CS0246: The type or namespace name 'TestRuntime' could not be found (are you missing a using directive or an assembly reference?) [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\CursorSkillsAcpTests.cs(66,15): error CS0619: 'Assert.Throws<T>(Func<Task>)' is obsolete: 'You must call Assert.ThrowsAsync<T> (and await the result) when testing async code.' [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+    0 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:02.02

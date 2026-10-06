@@ -26,9 +26,9 @@ internal enum ButtonLook
 
 internal static class LibraryButtons
 {
-    public static Button Make(string text, Action action, ButtonLook look, string id)
+    public static Button Make(string text, Action action, ButtonLook look, string id, double size = 12, double? height = null)
     {
-        var label = LibraryUi.Text(text, 12, weight: SwiftFont.Weight.Medium);
+        var label = LibraryUi.Text(text, size, weight: SwiftFont.Weight.Medium);
         var button = PlainControls.Button(label, action);
         if (look == ButtonLook.Primary) SwiftGlass.StyleAccentGlassButton(button, small: false);
         else
@@ -39,6 +39,7 @@ internal static class LibraryButtons
         }
         button.Focusable = true;
         button.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
+        if (height is { } fixedHeight) { button.Height = fixedHeight; button.MinHeight = 0; }
         button.Named(text, id);
         return button;
     }

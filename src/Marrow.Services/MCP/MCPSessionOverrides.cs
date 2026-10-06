@@ -10,37 +10,37 @@ namespace Marrow.Services.MCP;
 
 public static class MCPSessionOverrides
 {
-    // Testing support: allows overriding the claude.json path
-    private static string? testClaudeConfigPath;
+    // PORT-ONLY testing support: config overrides follow each fixture execution context (R-TEST-9); production values stay null.
+    private static readonly AsyncLocal<string?> testClaudeConfigPath = new();
 
     // Testing support: allows overriding the copilot config path
-    private static string? testCopilotConfigPath;
+    private static readonly AsyncLocal<string?> testCopilotConfigPath = new();
 
     internal static void SetClaudeConfigPathForTesting(string path)
     {
-        testClaudeConfigPath = path;
+        testClaudeConfigPath.Value = path;
     }
 
     internal static void ResetClaudeConfigPathForTesting()
     {
-        testClaudeConfigPath = null;
+        testClaudeConfigPath.Value = null;
     }
 
     internal static void SetCopilotConfigPathForTesting(string path)
     {
-        testCopilotConfigPath = path;
+        testCopilotConfigPath.Value = path;
     }
 
     internal static void ResetCopilotConfigPathForTesting()
     {
-        testCopilotConfigPath = null;
+        testCopilotConfigPath.Value = null;
     }
 
     // :4-12. PR-MCP-173. Extract server names from the user's MCP config, sorted.
     public static IReadOnlyList<string> CopilotUserServerNames()
     {
         // :5-6. ~/.copilot/mcp-config.json
-        var url = testCopilotConfigPath ?? BuildCopilotConfigPath();
+        var url = testCopilotConfigPath.Value ?? BuildCopilotConfigPath();
 
         // :7-10. Parse the JSON and extract mcpServers keys
         var data = SwiftTry.Optional(() => File.ReadAllBytes(url));
@@ -126,7 +126,7 @@ public static class MCPSessionOverrides
     // :32-71. PR-MCP-174. Build OpenCode environment from claude.json, with command as array.
     public static IReadOnlyDictionary<string, string> OpencodeEnvironment()
     {
-        var claudeConfigPath = testClaudeConfigPath ?? MCPPaths.ClaudeConfigURL;
+        var claudeConfigPath = testClaudeConfigPath.Value ?? MCPPaths.ClaudeConfigURL;
 
         // :33-36. Guard against missing, unparseable, or empty mcpServers
         var data = SwiftTry.Optional(() => File.ReadAllBytes(claudeConfigPath));

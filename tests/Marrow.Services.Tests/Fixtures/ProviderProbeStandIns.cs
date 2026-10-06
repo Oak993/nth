@@ -63,6 +63,13 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
     public string ExecutablePath { get; } = executablePath;
     public string Folder { get; } = folder;
 
+    /// <summary>Serve initialize, model/list and account/rateLimits/read over the offline app-server.</summary>
+    public ProviderProbeScript UseCodexRPC()
+    {
+        File.WriteAllBytes(Path.Combine(Folder, "codex-rpc.txt"), []);
+        return this;
+    }
+
     public ProviderProbeScript SetStdout(string text)
     {
         File.WriteAllBytes(Path.Combine(Folder, "stdout.txt"), new UTF8Encoding(false).GetBytes(text));
@@ -124,6 +131,19 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
 
     /// <summary>The argv (NUL-decoded) of every call so far, in call order (0-based, ClaudeStandIn.cs's shape).</summary>
     public IReadOnlyList<IReadOnlyList<string>> RecordedCalls()
+    {
+        var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(Folder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        string lockName;
+        using (var hash = System.Security.Cryptography.SHA256.Create())
+            lockName = "Local\\MarrowProviderProbe-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "", StringComparison.Ordinal);
+        using var recording = new Mutex(false, lockName);
+        try { recording.WaitOne(); }
+        catch (AbandonedMutexException) { /* The terminated owner left us holding the mutex. */ }
+        try { return ReadRecordedCalls(); }
+        finally { recording.ReleaseMutex(); }
+    }
+
+    private IReadOnlyList<IReadOnlyList<string>> ReadRecordedCalls()
     {
         var calls = new List<IReadOnlyList<string>>();
         var call = 0;

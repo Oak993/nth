@@ -1,0 +1,5 @@
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Expected: typeof(Marrow.Services.Providers.ProviderError)
+Actual:   typeof(System.IO.InvalidDataException)
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 95 ms - Marrow.App.Tests.dll (net10.0)

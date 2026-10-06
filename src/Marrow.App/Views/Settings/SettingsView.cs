@@ -426,6 +426,7 @@ internal sealed class SmallSwitch : Control
 
     private readonly Binding<bool> isOn;
     private bool pressed;
+    private bool keyboardFocus;
     private readonly AnimatedScalar position, tint, widen;
     private IBrush? offBrush, onBrush;
 
@@ -452,7 +453,7 @@ internal sealed class SmallSwitch : Control
         PointerPressed += (_, e) =>
         {
             if (!IsEffectivelyEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-            Focus();
+            Focus(NavigationMethod.Pointer);
             pressed = true;
             widen.Set(1, Press);
             e.Pointer.Capture(this);
@@ -494,6 +495,20 @@ internal sealed class SmallSwitch : Control
         public void Toggle() { if (owner.IsEffectivelyEnabled) owner.isOn.Value = !owner.isOn.Value; }
     }
 
+    protected override void OnGotFocus(FocusChangedEventArgs e)
+    {
+        base.OnGotFocus(e);
+        keyboardFocus = e.NavigationMethod != NavigationMethod.Pointer;
+        InvalidateVisual();
+    }
+
+    protected override void OnLostFocus(FocusChangedEventArgs e)
+    {
+        base.OnLostFocus(e);
+        keyboardFocus = false;
+        InvalidateVisual();
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
@@ -512,6 +527,9 @@ internal sealed class SmallSwitch : Control
         IBrush fill = lens == 0 ? Brushes.White : new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 - (255 - lensAlpha) * lens), 255, 255, 255));
         Pen? rim = lens == 0 ? null : new Pen(new SolidColorBrush(Color.FromArgb((byte)Math.Round(0x55 * lens), 255, 255, 255)), 1);
         context.DrawRectangle(fill, rim, knob, knob.Height / 2, knob.Height / 2);
+        // CZ-15: the existing CzButton/CzSlider 2 px accent ring, keyboard only; the Mac track/knob stay unchanged at rest.
+        if (keyboardFocus && IsEffectivelyEnabled)
+            context.DrawRectangle(null, new Pen(Marrow.UI.Port.Settings.CzTheme.Brush(Marrow.UI.Port.Settings.CzTheme.Accent(this)), 2), track.Inflate(2), TrackHeight / 2 + 2, TrackHeight / 2 + 2);
     }
 }
 

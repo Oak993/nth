@@ -3,8 +3,10 @@ using System.Text.RegularExpressions;
 using Marrow.Core.Accounts.Keys;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Skills.Detect;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
+using Marrow.Services.Port.Skills.Providers;
 
 namespace Marrow.Services.Providers;
 
@@ -70,6 +72,8 @@ public class OpenAICompatibleSession : ProviderSession
         public long? Input { get; init; }
         public long? Output { get; init; }
         public long? CachedInput { get; init; }
+        // PORT-ONLY: ED-NEW-ma-ui. OpenRouter's charged USD from the streamed usage report.
+        public double? ReportedCostUsd { get; init; }
 
         // :122
         public bool HasSpend => Total > 0 || (Input ?? 0) > 0 || (Output ?? 0) > 0;
@@ -80,7 +84,34 @@ public class OpenAICompatibleSession : ProviderSession
 
     public Config OpenAICompatibleSessionConfig { get; } // :34 Swift: config (R-NAME-3)
     public Action<ProviderEvent>? OnEvent { get; set; }  // :35
-    public SessionConfiguration Configuration { get; }   // :37
+    // PORT-ONLY: OD-0114. Called only after the full tool round is retained, before another request.
+    // False transfers continuation ownership to the host; this retired loop emits no completion.
+    public Func<CancellationToken, Task<bool>>? ContinueAfterAccountStep { get; set; }
+    // PORT-ONLY: ED-NEW-ma-ui. Private context permission is rechecked after encoding on every attempt.
+    internal Func<bool>? CanTransferContext { get; set; }
+    public SessionConfiguration Configuration { get; private set; }   // :37
+
+    // OD-0114: retain this request's payload; tool children use the selected account's environment.
+    public void RebindApiAccount(Guid id, ValueMap<string, string> environment, string? model, string? effort, bool fast, HydraLaunch? hydra)
+    {
+        MainActor.AssumeIsolated();
+        if (!Configuration.Provider.IsAPIKeyBased) throw new InvalidOperationException("This session has no API account.");
+        var switched = Configuration.AccountId != id;
+        if (switched) apiAccountRevision++;
+        Configuration = Configuration with
+        {
+            AccountId = id, Environment = environment, ApiKey = null,
+            Model = switched ? model : Configuration.Model, Effort = switched ? effort : Configuration.Effort,
+            FastMode = switched ? fast : Configuration.FastMode, Hydra = switched ? hydra : Configuration.Hydra,
+        };
+    }
+
+    // PORT-ONLY (SK-11f, ED-366 1): Marrow's own skill tools (the catalogue block, use_skill, request_tool). Null, the default, leaves every byte
+    // this session sends exactly as the Mac's.
+    public NativeSkillTools? SkillTools { get; set; }
+
+    // PORT-ONLY (SK-11f, DL-12): the normalized tool events (CommandHeld, CommandFinished, SkillUsed, ToolRequested) the missing-tool detector reads.
+    public Action<ToolEvent>? OnToolEvent { get; set; }
 
     private readonly NativeFileTools fileTools;           // :38
     private ProjectGuidance guidance;                      // :41
@@ -100,6 +131,9 @@ public class OpenAICompatibleSession : ProviderSession
     private readonly Dictionary<string, CheckedContinuation<bool>> pendingApprovals = []; // :58
     private List<MCPHub.Tool> mcpTools = [];                // :59
     private bool didLoadMCPTools;                            // :60
+
+    // PORT-ONLY (SK-11f): Marrow's own tools (use_skill, request_tool), empty unless SkillTools offers them, so the request is the Mac's byte for byte by default.
+    private IReadOnlyList<JSONValue> SkillToolDefinitions => SkillTools?.Definitions ?? [];
 
     // :61-65
     private IReadOnlyList<JSONValue> McpToolDefinitions => [.. mcpTools.Select(tool => JSONValue.FromDictionaryLiteral(
@@ -158,6 +192,8 @@ public class OpenAICompatibleSession : ProviderSession
     internal void SetInterruptedForTests(bool value) => interrupted = value;
     internal void RefreshSystemPromptForTests() => RefreshSystemPrompt();
     internal string SystemPromptForTests() => SystemPrompt();
+    internal Dictionary<string, JSONValue> RequestPayloadForTests(string model, string? effort = null, bool withTools = true) =>
+        RequestPayload(model, effort, withTools);
     internal bool RequiresApprovalForTests(ToolCall.Kind kind) => RequiresApproval(kind);
     internal void SetApproveAllRemainingForTests(bool value) => approveAllRemaining = value;
     // Test-only seam (InternalsVisibleTo Marrow.Services.Tests, PR-PROVAPI-162..175): drives the
@@ -196,6 +232,8 @@ public class OpenAICompatibleSession : ProviderSession
     public Func<ReportedTokenUsage, double?>? KeySpendEstimator { get; set; }
 
     private string? rotatedKey;
+    private long apiAccountRevision;
+    private long turnAccountRevision;
 
     // MARK: - Lifecycle
 
@@ -248,6 +286,7 @@ public class OpenAICompatibleSession : ProviderSession
         }
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
         if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-NEW-ma-3
+        turnAccountRevision = apiAccountRevision;
         runtimeMode = input.RuntimeMode;             // :288
         interactionMode = input.InteractionMode;     // :289
         if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-NEW-ma-3
@@ -384,6 +423,8 @@ public class OpenAICompatibleSession : ProviderSession
                     toolIndex += 1; // :402
                 }
                 if (!shouldContinue || interrupted) break; // :404
+                if (!Configuration.IsHydraHead && ContinueAfterAccountStep is { } boundary
+                    && !await boundary(SwiftTask.CancellationToken)) return;
             }
         }
         catch (CancellationError) // :406
@@ -489,6 +530,7 @@ public class OpenAICompatibleSession : ProviderSession
         foreach (var continuation in pendingApprovals.Values) continuation.Resume(false); // :479
         pendingApprovals.Clear(); // :480
         sessionID = null;    // :481
+        if (KeyRotation is IDisposable rotation) rotation.Dispose();
     }
 
     // :488-502. TokenLedger (Services/Store/TokenLedger.cs) has since landed in the tree, so both
@@ -496,7 +538,11 @@ public class OpenAICompatibleSession : ProviderSession
     protected virtual void ReportUsage(StreamRound round)
     {
         // PORT-ONLY (MA-6): the request's cost goes against the key it used.
-        if (KeyRotation is { } rotation && KeySpendEstimator is { } estimate && round.TokenUsage is { HasSpend: true } spent && estimate(spent) is { } usd) rotation.RecordSpend(usd);
+        if (KeyRotation is { } rotation && round.TokenUsage is { } spent)
+        {
+            var charged = spent.ReportedCostUsd ?? (spent.HasSpend ? KeySpendEstimator?.Invoke(spent) : null);
+            if (charged is { } usd && double.IsFinite(usd) && usd >= 0) rotation.RecordSpend(usd);
+        }
         if (round.Usage is { } usage) // :489
         {
             OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :490
@@ -648,8 +694,14 @@ public class OpenAICompatibleSession : ProviderSession
             mcpTools = [.. await MCPHub.Shared.Tools()];
             didLoadMCPTools = true;
         }
-        var payload = RequestPayload(model, effort, withTools); // :511
-        UseRotationKey(); // PORT-ONLY (MA-6)
+        await UseRotationKeyAsync(); // PORT-ONLY (MA-6)
+        if (apiAccountRevision != turnAccountRevision)
+        {
+            model = currentModel = ModelForInput(Configuration.Model ?? OpenAICompatibleSessionConfig.DefaultModel);
+            effort = Configuration.Effort;
+            RefreshSystemPrompt();
+        }
+        var payload = RequestPayload(model, effort, withTools); // :511. A refusal retries this same payload.
         var attempt = 0; // :516
         while (true) // :517
         {
@@ -665,7 +717,7 @@ public class OpenAICompatibleSession : ProviderSession
                 roundTask = null; // :528
                 SwiftTask.CheckCancellation(); // :529
                 if (interrupted || isStopping) throw new CancellationError(); // :530
-                if (ContinueOnNextKey(round)) continue; // PORT-ONLY (MA-6): the same request, on the next allowed key
+                if (await ContinueOnNextKeyAsync(round)) continue; // PORT-ONLY (MA-6): the same request, on the next allowed key
                 return round; // :531
             }
             catch (StreamAttemptFailure failure) // :532
@@ -701,10 +753,14 @@ public class OpenAICompatibleSession : ProviderSession
     }
 
     // PORT-ONLY (OD-0114, MA-6). A new request takes the rotation's current key; with none left the turn ends with the pool's all-keys-out message.
-    private void UseRotationKey()
+    private async Task UseRotationKeyAsync()
     {
         if (KeyRotation is not { } rotation) return;
-        if (rotation.Current() is { } choice)
+        var selected = rotation is IAsyncApiKeyRotation live
+            ? await live.CurrentAsync(SwiftTask.CancellationToken) : rotation.Current();
+        SwiftTask.CheckCancellation();
+        if (interrupted || isStopping) throw new CancellationError();
+        if (selected is { } choice)
         {
             rotatedKey = choice.Secret;
             if (rotation.ContinuedOn is { } name) OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {name}" }));
@@ -712,17 +768,25 @@ public class OpenAICompatibleSession : ProviderSession
         }
         var message = rotation.StopReason ?? $"All {OpenAICompatibleSessionConfig.Title} API keys are out.";
         OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = message }));
+        OnEvent?.Invoke(new ProviderEvent.UsageLimit(null));
         throw new ProviderError(new ProviderError.Case.Failed(message));
     }
 
     // PORT-ONLY (OD-0114, MA-6). A 402 (out of credits) or 429 (rate limited) with another allowed key left: nothing was shown yet (the answer was a refusal, not a stream),
     // so the same payload goes out again on that key and the reply carries on in the same turn. Returns false to hand the round back as before.
-    private bool ContinueOnNextKey(StreamRound round)
+    private async Task<bool> ContinueOnNextKeyAsync(StreamRound round)
     {
         if (KeyRotation is not { } rotation || round.StatusCode is not (402 or 429)) return false;
-        if (rotation.OnFailure(round.StatusCode, round.RetryAfter) is not { } next)
+        var selected = rotation is IAsyncApiKeyRotation live
+            ? await live.OnFailureAsync(round.StatusCode, round.RetryAfter, SwiftTask.CancellationToken)
+            : rotation.OnFailure(round.StatusCode, round.RetryAfter);
+        SwiftTask.CheckCancellation();
+        if (interrupted || isStopping) throw new CancellationError();
+        if (selected is not { } next)
         {
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = rotation.StopReason ?? $"All {OpenAICompatibleSessionConfig.Title} API keys are out." }));
+            var reset = round.StatusCode == 429 && round.RetryAfter is { } delay ? SwiftClock.Provider.Current.GetUtcNow() + delay : (DateTimeOffset?)null;
+            OnEvent?.Invoke(new ProviderEvent.UsageLimit(reset));
             return false;
         }
         rotatedKey = next.Secret;
@@ -842,7 +906,7 @@ public class OpenAICompatibleSession : ProviderSession
         };
         if (withTools) // :575
         {
-            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. McpToolDefinitions]); // :576
+            payload["tools"] = JSONValue.FromArrayLiteral([.. ToolDefinitions, .. SkillToolDefinitions, .. McpToolDefinitions]); // :576
             payload["tool_choice"] = "auto"; // :577
         }
         ApplyProviderPayload(payload, model, effort, withTools); // :579
@@ -888,6 +952,8 @@ public class OpenAICompatibleSession : ProviderSession
         if (OpenAICompatibleSessionConfig.RequiresAPIKey) request = request.SetValue($"Bearer {ApiKey}", "Authorization"); // :604; ED-NEW-ma-3
         request = request with { HttpBody = await Encode(payload) }; // :607
         if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :608
+        if (CanTransferContext?.Invoke() == false)
+            throw new ProviderError(new ProviderError.Case.Failed("Context transfer is no longer authorized."));
 
         var messageID = NextID("message"); // :610
         var thoughtID = NextID("thought"); // :611
@@ -933,7 +999,7 @@ public class OpenAICompatibleSession : ProviderSession
         var coalescer = new StreamCoalescer(continuation); // :651
         var drain = TaskHandle.Detached(async () => // :652-661
         {
-            try { await DrainSSE(bytes, coalescer, contextWindow); }
+            try { await DrainSSE(bytes, coalescer, contextWindow, OpenAICompatibleSessionConfig.Kind == ProviderKind.OpenRouter); }
             catch (CancellationError) { await coalescer.Finish(); }
         });
         sseDrain = TaskHandle.Detached(async () => // :663-666
@@ -1034,7 +1100,7 @@ public class OpenAICompatibleSession : ProviderSession
     // :740-790. Runs off the main actor: trims, parses and picks apart each SSE line, then feeds
     // chunks to the coalescer. A transport failure is delivered as a chunk; CancellationError is
     // rethrown for the stop path.
-    private static async Task DrainSSE(URLSession.AsyncBytes bytes, StreamCoalescer coalescer, int contextWindow)
+    private static async Task DrainSSE(URLSession.AsyncBytes bytes, StreamCoalescer coalescer, int contextWindow, bool costInUsd)
     {
         try
         {
@@ -1060,7 +1126,9 @@ public class OpenAICompatibleSession : ProviderSession
                         ?? u["prompt_cache_hit_tokens"]?.JSONValueInt;
                     long total = u["total_tokens"]?.JSONValueInt ?? ((input ?? 0) + (output ?? 0)); // :761
                     if (total > 0) await coalescer.EmitUsage(new ContextUsage { UsedTokens = total, WindowTokens = contextWindow }); // :762-763
-                    await coalescer.EmitTokenUsage(new ReportedTokenUsage { Total = total, Input = input, Output = output, CachedInput = cached }); // :765
+                    var cost = costInUsd && u["cost"]?.JSONValueDouble is { } charged
+                        && double.IsFinite(charged) && charged >= 0 ? charged : (double?)null;
+                    await coalescer.EmitTokenUsage(new ReportedTokenUsage { Total = total, Input = input, Output = output, CachedInput = cached, ReportedCostUsd = cost }); // :765
                 }
                 if (json["choices"]?.JSONValueArray is not { Count: > 0 } choices) continue; // :767
                 var delta = choices[0]["delta"] ?? new JSONValue.Null(); // :768
@@ -1146,7 +1214,7 @@ public class OpenAICompatibleSession : ProviderSession
             while (next < limit) // :876
             {
                 var index = next; // :877
-                group.AddTask(async () => (index, await ExecuteTool(tools[index]))); // :878
+                group.AddTask(async () => (index, await MainActor.Invoke(() => ExecuteTool(tools[index])))); // :878; Swift's call hops to the session's main actor.
                 next += 1; // :879
             }
             while (await group.Next() is (true, var result)) // :881
@@ -1156,7 +1224,7 @@ public class OpenAICompatibleSession : ProviderSession
                 if (next < tools.Count) // :884
                 {
                     var index = next; // :885
-                    group.AddTask(async () => (index, await ExecuteTool(tools[index]))); // :886
+                    group.AddTask(async () => (index, await MainActor.Invoke(() => ExecuteTool(tools[index])))); // :886
                     next += 1; // :887
                 }
             }
@@ -1356,6 +1424,8 @@ public class OpenAICompatibleSession : ProviderSession
                 var command = ToolTitles.UnwrapShell(args["command"]?.JSONValueString ?? ""); // :1012
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = command.Length == 0 ? "Run command" : command }; // :1013
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1014
+                // PORT-ONLY (SK-11f, DL-12): a command that is about to wait for the user is a held command; nothing else changes.
+                if (OnToolEvent is { } held && command.Trimmed().Length > 0 && !interrupted && RequiresApproval(ToolCall.Kind.Command)) held(new CommandHeld(command));
                 if (!await ApproveIfNeeded(ToolCall.Kind.Command, command, null, null)) // :1015-1017
                 {
                     return Declined(callID);
@@ -1363,6 +1433,7 @@ public class OpenAICompatibleSession : ProviderSession
                 var (output, exitCode) = await RunCommand(command); // :1018
                 // The user stopped the turn while the command ran: say no more about it. :1019-1020
                 if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+                OnToolEvent?.Invoke(new CommandFinished(command, exitCode, exitCode != 0, output)); // PORT-ONLY (SK-11f, DL-12)
                 var update = new ToolUpdate // :1021-1024
                 {
                     Output = output.Length == 0 ? "" : Summary(output, 12_000),
@@ -1374,12 +1445,38 @@ public class OpenAICompatibleSession : ProviderSession
             }
             default: // :1027
             {
+                if (SkillTools is { } skillTools && skillTools.Owns(tool.Name)) return await ExecuteSkillTool(skillTools, tool, args); // PORT-ONLY (SK-11f)
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = tool.Name }; // :1028
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(callID, call)); // :1029
                 OnEvent?.Invoke(new ProviderEvent.ToolUpdated(callID, new ToolUpdate { Output = "Unknown tool.", Status = ToolCall.Status.Failed })); // :1030
                 return $"Error: unknown tool {tool.Name}."; // :1031
             }
         }
+    }
+
+    // PORT-ONLY (SK-11f, WU-12, DL-14). Runs one of Marrow's own tools. A stopped turn answers "Stopped." as the built-in tools do; nothing it produced is said.
+    private async Task<string> ExecuteSkillTool(NativeSkillTools skillTools, PendingToolCall tool, JSONValue args)
+    {
+        OnEvent?.Invoke(new ProviderEvent.ToolStarted(tool.Id, new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = NativeSkillTools.Title(tool.Name, args) }));
+        NativeToolResult result;
+        try { result = await skillTools.Execute(tool.Name, args); }
+        catch (OperationCanceledException) when (SwiftTask.IsCancelled || interrupted) { return "Stopped."; }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+            // ED-366 7 (the per-site decision LocalizedDescription asks for): these tools are port code with no Swift twin, so an error that is not a Swift one speaks with its own message.
+            var description = error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
+            OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate { Output = description, Status = ToolCall.Status.Failed }));
+            return $"Error: {description}";
+        }
+        if (SwiftTask.IsCancelled || interrupted) return "Stopped.";
+        OnEvent?.Invoke(new ProviderEvent.ToolUpdated(tool.Id, new ToolUpdate
+        {
+            Output = Summary(result.Output, 4_000),
+            Status = result.Failed ? ToolCall.Status.Failed : ToolCall.Status.Completed,
+        }));
+        if (OnToolEvent is { } tap) foreach (var toolEvent in result.Events) tap(toolEvent);
+        return result.Output;
     }
 
     // :1035-1038. Used by the later part's approveIfNeeded/executeTool bodies; kept here because
@@ -1621,13 +1718,14 @@ public class OpenAICompatibleSession : ProviderSession
     // below), with -NoProfile -NonInteractive (ED-028 (1)). The 120 second timeout, the 24000 byte
     // cap, the tail-keeping truncation and both failure strings are portable and are reproduced as
     // written.
-    private async Task<(string Output, int ExitCode)> RunCommand(string command)
+    // PORT-ONLY (SK-11f): protected virtual, so a test can script a command result without a shell; the body is unchanged.
+    protected virtual async Task<(string Output, int ExitCode)> RunCommand(string command)
     {
         var trimmed = command.Trimmed(); // :1153
         if (trimmed.Length == 0) return ("Error: a command is required.", 1); // :1154
         var shell = WindowsShellForCommands.Resolve(); // :1155 DEVIATION OD-0008 C5
         async Task<ShellResult?> Attempt() => await Shell.Run(
-            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, Configuration.AccountId is not null ? Configuration.Environment : LoginEnvironment.Current, timeout: 120, outputLimit: 24_000); // :1157
+            shell, ["-NoProfile", "-NonInteractive", "-Command", trimmed], WorkingDirectory, ProviderChildEnvironment.Apply(Configuration.AccountId is not null ? Configuration.Environment : LoginEnvironment.Current), timeout: 120, outputLimit: 24_000); // :1157 DEVIATION ED-309 (SK-11f): addons\bin on PATH
         var result = await SwiftTry.OptionalAsync(Attempt);
         if (result is null) return ("The command could not start.", 1); // :1158-1159
         var output = (result.Output + (result.ErrorOutput.Length == 0 ? "" : "\n" + result.ErrorOutput)).Trimmed(); // :1160
@@ -1678,9 +1776,11 @@ public class OpenAICompatibleSession : ProviderSession
         }.Where(value => value is not null));
         // The project's own root guidelines come last, so the policy above stays higher
         // priority. They are re-read here only when the files changed. :1195-1197
+        // PORT-ONLY (SK-11f): the skills catalogue sits between the policy and the project's own guidelines; null (nothing to list) leaves the prompt as it was.
         var appendedPolicy = string.Join("\n\n", new[]
         {
             policy.Length == 0 ? null : policy,
+            SkillTools?.CatalogueBlock(),
             guidance.SystemPromptBlock(),
         }.Where(value => value is not null));
         // DEVIATION OD-0012 F1 (PR-PROVAPI-141): upstream :1200 reads

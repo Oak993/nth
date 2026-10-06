@@ -208,6 +208,7 @@ public sealed partial class AppModel : MainActorModel
         SyncChildCells(threads);
         threadIndex = new ThreadIndex(threads); // AppModel.swift:141
         AutoContinue = new AutoContinue(this); // AppModel.swift:142
+        InitializeAccountReports(); // OD-0114: start only after bootstrap has loaded credentials and provider statuses.
         if (Settings.LastProjectID is { } lastID && Project(lastID) is null) Settings.LastProjectID = null; // AppModel.swift:143-145
     }
 
@@ -292,16 +293,23 @@ public sealed partial class AppModel : MainActorModel
     // :275-282. Sweep C verified the inherited ninth step with blocked offline updaters; no behavior change needed.
     public async Task Bootstrap()
     {
-        var recent = threads
-            .Where(thread => !thread.IsArchived && !thread.IsInPanel)
-            .OrderByDescending(thread => thread.UpdatedAt)
-            .Take(12)
-            .Select(thread => thread.Id)
-            .ToList(); // AppModel.swift:240-243
-        WarmDocuments(recent);
+        using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: recent documents (UI scheduling)"))
+        {
+            var recent = threads
+                .Where(thread => !thread.IsArchived && !thread.IsInPanel)
+                .OrderByDescending(thread => thread.UpdatedAt)
+                .Take(12)
+                .Select(thread => thread.Id)
+                .ToList(); // AppModel.swift:240-243
+            WarmDocuments(recent);
+        }
+        using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: keychain (awaited worker)"))
         await Settings.LoadKeychainInBackground(); // AppModel.swift:244
+        using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: login environment"))
         await LoginEnvironment.Load(); // AppModel.swift:245
+        using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra copy sweep (UI)"))
         SweepHydraCopies(); // AppModel.swift:247
+        using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra merge resumption"))
         await ResumeHydraMerges(); // AppModel.swift:248-249
         hydraMergeSweepTask?.Cancel(); // AppModel.swift:254
         var weakSelf = new WeakReference<AppModel>(this);
@@ -314,7 +322,9 @@ public sealed partial class AppModel : MainActorModel
                 await model.ResumeHydraMerges(); // AppModel.swift:259
             }
         }); // AppModel.swift:255-261
+        using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: provider refresh"))
         await Providers.RefreshAll(); // AppModel.swift:263
+        StartAccountReports(); // OD-0114: Settings can read each connected account before a chat opens.
         await TaskGroup.Run(async group =>
         {
             foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.OpenRouter /* PORT-ONLY (ED-234) */ })
@@ -338,6 +348,7 @@ public sealed partial class AppModel : MainActorModel
         }); // AppModel.swift:275-282; un-awaited: bootstrap proceeds to the sweep below without waiting for it.
         // Last, once nothing the first click needs is waiting on the disk: the attachment files no
         // thread refers to any more go, a day after they were written.
+        using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: orphan attachments"))
         await Storage.SweepOrphanedAttachments(); // AppModel.swift:283-286; DEVIATION ED-001: capture guard dropped.
     }
 
@@ -481,7 +492,17 @@ public sealed partial class AppModel : MainActorModel
 
     // AppModel.swift:425-430. Swift: runtime(for:).
     public ThreadRuntime Runtime(Guid id) =>
-        runtimes.TryGetValue(id, out var runtime) ? runtime : runtimes[id] = new ThreadRuntime(id, this); // AppModel.swift:425-430
+        runtimes.TryGetValue(id, out var runtime) ? runtime : runtimes[id] = WithSkillsOffers(new ThreadRuntime(id, this)); // AppModel.swift:425-430
+
+    // PORT-ONLY (SK-14, ED-384): once the app's skills host is bound, a chat gets its offer flow; with none bound (tests, a host that could not open) the chat has none and the provider is never held.
+    private static ThreadRuntime WithSkillsOffers(ThreadRuntime runtime)
+    {
+        Marrow.Services.Port.Skills.Host.SkillsHost host;
+        try { host = Marrow.Services.Port.Skills.Host.SkillsSeams.Host.Current; }
+        catch (SwiftTrapException) { return runtime; }
+        Marrow.App.Port.Skills.SkillsOfferFlows.Create(runtime, host);
+        return runtime;
+    }
 
     // AppModel.swift:432-434. Swift: existingRuntime(for:).
     public ThreadRuntime? ExistingRuntime(Guid id) =>

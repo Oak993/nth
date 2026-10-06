@@ -172,7 +172,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     public void Ready_pages_are_present_in_the_sidebar_and_search() => SettingsViewRig.Run(headless, (view, model, sidebar) =>
     {
         Assert.Equal(ReadyTitles, SettingsViewRig.RowTitles(sidebar));
-        foreach (var query in new[] { "plugins", "skills", "install" })
+        foreach (var (query, title) in new[] { ("plugins", "Plugins"), ("skills", "Skills") }) // SK-15 made the two ready: each is found by its title
         {
             SettingsViewRig.Search(sidebar, query);
             var titles = SettingsViewRig.RowTitles(sidebar);
@@ -205,15 +205,6 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.Equal(SettingsPage.Hydra, SettingsViewRig.CurrentPage(view));
         }
     });
-
-    // Plugins directly above Skills, after MCP (OD-0099 Sections C); their units have made them ready (SK-15).
-    private static IEnumerable<string> WithPluginsAndSkills(IEnumerable<string> upstream, string plugins, string skills)
-    {
-        var list = upstream.ToList();
-        var at = list.FindIndex(item => item is "mcp" or "MCP") + 1;
-        list.InsertRange(at, [plugins, skills]);
-        return list;
-    }
 
     private static string RepoRoot()
     {

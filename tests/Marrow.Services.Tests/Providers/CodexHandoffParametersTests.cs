@@ -24,7 +24,8 @@ public sealed class CodexHandoffParametersTests
             RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build,
         };
         var session = new CodexSession(config);
-        var parameters = (Dictionary<string, JSONValue>)typeof(CodexSession).GetMethod("ResumeParameters", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(session, ["session-17"])!;
+        var threadParameters = (Dictionary<string, JSONValue>)typeof(CodexSession).GetProperty("ThreadParameters", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session)!;
+        var parameters = (Dictionary<string, JSONValue>)typeof(CodexSession).GetMethod("ResumeParameters", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(session, [threadParameters, "session-17"])!;
         Assert.Equal("session-17", parameters["threadId"].JSONValueString);
         Assert.True(parameters["excludeTurns"].JSONValueBool);
         Assert.Equal("user", parameters["approvalsReviewer"].JSONValueString);

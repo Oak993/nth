@@ -1112,3 +1112,30 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 
 - **Owner, verbatim:** "Also, pills section in settings will be visible to users who have single accounts connected as well, just the options will be disabled with a message letting them know what this feature is and what would enable its functionality (multiple accounts)"
 - **Effect:** amends the notes' "Pills only once 2+ accounts or services are connected". Settings › Pills always shows in the sidebar. With fewer than two accounts or services connected, its controls are present but disabled (dimmed, not focusable as actions), under one short plain message that says what Pills are (a chain of accounts and models that Marrow moves through when one runs out) and what turns them on (connecting a second account or service, with a button to Settings › Models). Everything enables live, with a transition, the moment a second account or service is connected.
+
+## OD-0118 Import skills from other apps on the PC (2026-10-05)
+
+- **Owner, verbatim:** "Also, can we have an option to import skills from other apps and llms on the pc in skills settings?" then "It goes in this release"
+- **Effect:** a new first-release unit SK-18 in Settings › Skills: an "Import skills" action scans the places other AI tools on this PC keep skills (Claude Code's skills and plugins folders, Codex's skills, Antigravity's, Cursor's rules, and any folder the user picks), lists what it found grouped by app (name, one-line description, source), and imports the ticked ones either as a Copy (Marrow's own) or a Link (kept in sync with the original). Nothing in the other apps is moved or changed; duplicates offer keep both / replace / skip; imported skills carry a quiet "from <app>" tag and can be removed; they then work wherever Marrow gives skills. Design follows the existing Skills pages (SK-15) and goes to the owner only if a new layout is needed.
+
+## OD-0119 Multi-account checklist conflicts settled (2026-10-05)
+
+- **Owner, verbatim (Hindi, as spoken):** "हैंडशेक स्विच ऑन बाय डिफॉल्ट हाँ तो ऑफ करके डिफॉल्ट में रखो ना और ऐप पहली बार पूछेगी तो फिर ऑन होगा" · "द बिल्डर मस्ट पिक वन स्मार्टली जो सही लग रहा है वो पिक कर लो" · "मैंने और स्टाइल्स मांगे थे तो वो अपडेट हो गया बारह स्टाइल्स हैं अब".
+- **Effect:**
+  - Pills visibility: OD-0117 stands (the section is always in Settings; disabled below two connected accounts, with a note saying it turns on once two are connected and what the feature does). The page's 2+ gate is outdated.
+  - Switching and the Handshake into another account: off by default; on only after the user agrees when the app asks the first time (OD-0116). The page's `hs: true` default is outdated.
+  - Per-account Handshake point: the builder picks. Lead pick: the account's ⋯ menu "Handshake at…", plus a small quiet note on that account's row only when its point differs from the default (NOTES:56, matches the page's Settings footer).
+  - Pill-in-composer styles: the page's twelve styles are current; the NOTES list of four is outdated.
+
+## OD-0120 Confirm before sending a conversation to another service (2026-10-06)
+
+- **Owner, verbatim:** "Ask for confirmation and have the option to check "Don't ask again" for the user to select it."
+- **Effect:** Link-up and "Ask others" ask for confirmation before the conversation goes to another service. The confirmation has a "Don't ask again" checkbox, unchecked by default; only the user can check it. Replaces the planned quiet notice line (ma-3b5-plan Q2).
+
+## OD-0121 Voice pill: design-exact, both rims; Handshake sound included (2026-10-06)
+
+- **Owner, verbatim (answers on the Voice Pill Decision page):** "Rim: C" · "Fix: Fix it anyway you want it, I've let you known what design I want" · "Sound: include it"
+- **Effect:**
+  - VT-12: the voice pill follows the approved design page (voice-composer.html) exactly: no added blurs on the body, cross or glow; the capsule edge antialiased once; CSS blur radii converted to sigma; no glass refraction inside the pill; the radial clean-cap mask. Rim choice C: the shared glass rim and shade stay, with the page's rim stack on top.
+  - The lead chooses the implementation. Tests, tolerances, references and the speck metric stay unchanged (standing rule); any spot that still fails comes back to the owner with its exact location.
+  - Multi-account: the Handshake's soft sound ships in this release, using the locked design's recipe (link-up: sine 523.25 Hz 1.1 s and 783.99 Hz 1.3 s at +0.08 s; in-sync tick: 1318.5 Hz 0.18 s). Replaces ma-3b5-plan Q1's default of leaving it out.

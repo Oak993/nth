@@ -63,15 +63,18 @@ internal static class AcpStandIn
         while ((line = Console.In.ReadLine()) != null)
         {
             if (line.Length == 0) continue;
+            File.AppendAllText(Path.Combine(dir, "requests-" + call + ".jsonl"), line + "\n", new UTF8Encoding(false));
             string method = TopLevel(line, "method");
             string id = TopLevel(line, "id");
             if (method == null || id == null) continue; // a notification, or a reply to nothing we asked
             string reply;
             if (method == "initialize")
             {
-                reply = "{\"jsonrpc\":\"2.0\",\"id\":" + id + ",\"result\":{\"protocolVersion\":1,\"agentCapabilities\":{}}}";
+                string initFile = Path.Combine(dir, "initialize.json");
+                string init = File.Exists(initFile) ? File.ReadAllText(initFile, Encoding.UTF8) : "{\"protocolVersion\":1,\"agentCapabilities\":{}}";
+                reply = "{\"jsonrpc\":\"2.0\",\"id\":" + id + ",\"result\":" + init + "}";
             }
-            else if (method == "session/new")
+            else if (method == "session/new" || method == "session/load")
             {
                 string delayPath = Path.Combine(dir, "delay-ms.txt");
                 int delay = 0;

@@ -1,0 +1,4 @@
+  Error Message:
+   System.IO.DirectoryNotFoundException : The folder of the state file does not exist and is not created here: C:\Users\omera\AppData\Local\Temp\one-19310\sk5 with spaces 33ef3b9053994834bd0388c3d0eebc3f\addons
+     at Marrow.Core.Port.Skills.State.AddonsStateStore.Save(String path, AddonsState state) in E:\Droppy\wt\cx\sk-17-live\src\Marrow.Core\Port\Skills\State\AddonsStateStore.cs:line 50
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 38 ms - Marrow.Services.Tests.dll (net10.0)

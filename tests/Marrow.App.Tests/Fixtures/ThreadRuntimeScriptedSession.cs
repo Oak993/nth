@@ -32,13 +32,14 @@ public sealed class ThreadRuntimeScriptedSession : ProviderSession
     public int InterruptCalls { get; private set; }
     public Exception? SendFailure { get; set; }
     public Func<TurnInput, Task>? SendScript { get; set; }
+    public Func<Task<string>>? StartScript { get; set; }
     public Func<Task>? InterruptScript { get; set; }
     public Func<Task>? CompactScript { get; set; }
 
     public Task<string> Start()
     {
         StartCalls++;
-        return Task.FromResult("scripted-session");
+        return StartScript?.Invoke() ?? Task.FromResult("scripted-session");
     }
 
     public async Task Send(TurnInput input)
@@ -54,7 +55,9 @@ public sealed class ThreadRuntimeScriptedSession : ProviderSession
         return InterruptScript?.Invoke() ?? Task.CompletedTask;
     }
 
-    public void ResolveApproval(string requestID, string optionID) { }
+    public List<(string Id, string Option, string? Reason)> ApprovalAnswers { get; } = [];
+    public void ResolveApproval(string requestID, string optionID) => ApprovalAnswers.Add((requestID, optionID, null));
+    public void ResolveApproval(string requestID, string optionID, string? reason) => ApprovalAnswers.Add((requestID, optionID, reason));
     public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) { }
     public Task Compact() => CompactScript?.Invoke() ?? Task.CompletedTask;
 

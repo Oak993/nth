@@ -1,0 +1,192 @@
+{
+  "status": "NOT READY",
+  "iterationsPerCase": 50,
+  "tests": {
+    "Marrow.App.Tests.Fixtures.FixtureLockReaderTests.A_live_publication_owner_blocks_the_provider_reader_until_the_record_is_published": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Fixtures.FixtureLockReaderTests.An_abandoned_publication_lock_still_delivers_the_complete_provider_record": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_message_beginning_with_a_slash_command_loads_that_providers_command_list": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_message_with_no_slash_command_loads_no_command_list": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_pair_whose_heads_run_on_another_provider_loads_that_providers_catalog_when_the_session_is_ensured": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.A_pair_whose_heads_run_on_the_leads_own_provider_loads_no_other_catalog": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.App.Tests.Runtime.ThreadRuntimeProviderLoadTests.With_hydra_off_for_the_chat_the_heads_catalog_is_not_loaded": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.A_child_that_ignores_the_stop_request_is_killed_exactly_one_second_later_and_a_failed_result_returns": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.At_the_default_120_second_timeout_the_child_is_asked_to_stop_and_a_cooperating_one_exits": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.Cancelling_a_child_that_ignores_the_stop_request_kills_it_one_second_later_and_throws": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.Cancelling_after_the_launch_stops_the_child_and_throws_CancellationError_instead_of_a_result": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Core.Tests.Support.ShellTests.RunTool_forwards_its_timeout_to_the_deadline": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Fixtures.FixtureLockContentionTests.A_live_publication_owner_blocks_a_reader_until_the_owner_releases(fixture: \"pi\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.Services.Tests.Fixtures.FixtureLockContentionTests.A_live_publication_owner_blocks_a_reader_until_the_owner_releases(fixture: \"provider\")": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.Services.Tests.Fixtures.REVIEW_FixtureLockTests.REVIEW_reading_pi_records_survives_a_stand_in_that_died_holding_the_lock": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.Services.Tests.Fixtures.REVIEW_FixtureLockTests.REVIEW_reading_provider_probe_records_survives_a_stand_in_that_died_holding_the_lock": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "Marrow.Services.Tests.Providers.PiCLITests.A_probe_that_never_answers_is_terminated_after_thirty_seconds_and_lists_no_models": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Providers.PiCLITests.The_probe_launches_eight_tokens_in_home_asks_state_and_models_and_stops_once_both_arrive": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    },
+    "Marrow.Services.Tests.Providers.ProviderRegistrySignInTests.a_successful_login_runs_the_login_arguments_then_rechecks_the_provider_and_reloads_its_catalog": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Failed": 50
+      }
+    }
+  },
+  "standaloneWriters": {
+    "pi abandoned": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "pi live": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "provider abandoned": {
+      "before": {
+        "Failed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    },
+    "provider live": {
+      "before": {
+        "Passed": 50
+      },
+      "after": {
+        "Passed": 50
+      }
+    }
+  }
+}

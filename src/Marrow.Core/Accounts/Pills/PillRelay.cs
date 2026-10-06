@@ -27,10 +27,10 @@ public static class PillRelayResolver
     {
         if (pills.FirstOrDefault(p => p.Id == saved.PillId) is not { } pill) return new PillResume(null, null, PillResumeReason.PillGone);
         if (pill.Steps.Count == 0) return new PillResume(pill, null, PillResumeReason.Empty);
-        if (saved.StepIndex >= 0 && saved.StepIndex < pill.Steps.Count && pill.Steps[saved.StepIndex].AccountId == saved.AccountId)
+        if (saved.StepIndex >= 0 && saved.StepIndex < pill.Steps.Count && string.Equals(pill.Steps[saved.StepIndex].AccountIdentity, saved.AccountId, StringComparison.OrdinalIgnoreCase))
             return new PillResume(pill, saved.StepIndex, PillResumeReason.Exact);
 
-        var same = Enumerable.Range(0, pill.Steps.Count).Where(i => pill.Steps[i].AccountId == saved.AccountId).ToList();
+        var same = Enumerable.Range(0, pill.Steps.Count).Where(i => string.Equals(pill.Steps[i].AccountIdentity, saved.AccountId, StringComparison.OrdinalIgnoreCase)).ToList();
         if (same.Count > 0)
         {
             // The nearest to where it was; a tie goes to the later step.

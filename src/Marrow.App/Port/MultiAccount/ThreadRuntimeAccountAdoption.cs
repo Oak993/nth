@@ -13,8 +13,48 @@ public sealed partial class ThreadRuntime
     public long HandshakeRevision => saveRevision;
     public bool HandshakeReplyInterrupted => limitedReplyTurnID is not null;
 
+    internal async Task<bool> TryResumeAfterAccountWaitAsync(Guid account, long epoch, Guid interrupted, string? originalSessionId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsAccountSwitchSafe || !TryHandshakeAccountId(out var active) || active != account
+            || limitedReplyTurnID != interrupted || Turns.LastOrDefault()?.Id != interrupted
+            || session is { IsRunning: true } && sessionEpoch != epoch
+            || session is not { IsRunning: true } && Thread?.ProviderSessionID != originalSessionId)
+            return false;
+        var source = Thread!;
+        var row = App!.Settings.Accounts.Get(account);
+        if (!row.Enabled || !App.IsAccountConnected(row)) return false;
+        var configuration = CreateHandshakeConfiguration(new(new(account.ToString("D"), row.Service.Id, row.CustomName ?? App.Settings.Accounts.DefaultName(account))))
+            with { Model = source.Model, Effort = source.Effort, FastMode = source.FastMode };
+        bool StillOwnsRestart() => IsAccountWorkSettled && (!isStartingSession
+            || guardedStartingSession is not null && ReferenceEquals(session, guardedStartingSession)) && limitedReplyTurnID == interrupted
+            && Turns.LastOrDefault()?.Id == interrupted && Thread is { } current
+            && current.ProviderSessionID == originalSessionId && current.ProviderAccountID == source.ProviderAccountID
+            && current.Provider == source.Provider && current.Model == source.Model && current.Effort == source.Effort
+            && current.FastMode == source.FastMode && current.RuntimeMode == source.RuntimeMode
+            && current.InteractionMode == source.InteractionMode && current.WorktreePath == source.WorktreePath
+            && current.ProjectID == source.ProjectID && TryHandshakeAccountId(out var currentAccount) && currentAccount == account;
+        ProviderSession candidate;
+        try
+        {
+            candidate = session is { IsRunning: true } existing ? existing
+                : await EnsureSessionOwned(configuration.WorkingDirectory.Path, allowNewSession: false, ct, StillOwnsRestart);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception error)
+        {
+            if (!ct.IsCancellationRequested && StillOwnsRestart()) AppendNotice(Notice.Level.Error, error.Message);
+            return false;
+        }
+        ct.ThrowIfCancellationRequested();
+        if (!IsAccountSwitchSafe || limitedReplyTurnID != interrupted || Turns.LastOrDefault()?.Id != interrupted
+            || !TryHandshakeAccountId(out active) || active != account || !ReferenceEquals(session, candidate)) return false;
+        ResumeHandshakeReply(candidate, configuration, Turns.First(turn => turn.Id == interrupted));
+        return true;
+    }
+
     public void AdoptHandshakeSession(ProviderSession candidate, string sessionId, SessionConfiguration configuration,
-        PillThreadState? relay = null, bool resumeReply = false)
+        PillThreadState? relay = null, bool resumeReply = false, bool pinAccount = false)
     {
         var app = App ?? throw new InvalidOperationException("The conversation is unavailable.");
         var source = Thread ?? throw new InvalidOperationException("The conversation is unavailable.");
@@ -30,20 +70,24 @@ public sealed partial class ThreadRuntime
         var local = configuration.Provider == ProviderKind.Local ? app.Providers.Local.Resolve(configuration.Model) : null;
         if (configuration.Provider == ProviderKind.Local && local is null)
             throw new InvalidOperationException("The local server or model is unavailable.");
-        var limited = resumeReply ? Turns.FirstOrDefault(turn => turn.Id == limitedReplyTurnID && turn.Status != TurnStatus.Running) : null;
+        var pausedReply = OwnsAccountStepPause ? Turns.FirstOrDefault(turn => turn.Id == currentTurnID && turn.Status == TurnStatus.Running) : null;
+        if (pausedReply is not null && !resumeReply) throw new InvalidOperationException("A paused reply must retain its continuation ownership.");
+        var limited = resumeReply ? pausedReply ?? Turns.FirstOrDefault(turn => turn.Id == limitedReplyTurnID && turn.Status != TurnStatus.Running) : null;
         if (resumeReply && limited is null) throw new InvalidOperationException("There is no settled interrupted reply to continue.");
         if (!IsAccountSwitchSafe || Thread != source || app.Settings.Accounts.Choose(configuration.Provider, accountId) is null)
             throw new InvalidOperationException("The prepared switch became stale.");
 
         app.AutoContinue.TakeLimitOwnership(ThreadID);
         ReleaseSession(stop: true);
-        app.ApplyHandshakeAccount(ThreadID, configuration, sessionId, relay);
+        deferredHandoff = null;
+        app.ApplyHandshakeAccount(ThreadID, configuration, sessionId, relay, pinAccount);
         var destination = Thread!;
         session = candidate;
         var hydra = KeepsHydraPolicyInSystemPrompt(destination.Provider) ? app.HydraLaunch(destination) : null;
-        sessionSignature = MakeSessionSignature(destination, directory, app.Settings.AntiSlopEnabled, hydra);
-        sessionOrigin = new SessionOrigin(destination.ProviderAccountID, local?.Server.Id, local is null ? null : app.Providers.Local.Revision);
+        sessionSignature = MakeSessionSignature(destination, directory, app.Settings.AntiSlopEnabled, hydra)
+            with { LocalServerId = local?.Server.Id, LocalCatalogRevision = local is null ? null : app.Providers.Local.Revision };
         Observe(candidate);
+        BindLiveApiKeys(candidate, accountId);
         if (limited is not null) ResumeHandshakeReply(candidate, configuration, limited);
         else
         {
@@ -98,7 +142,7 @@ public sealed partial class ThreadRuntime
 
     private void InstallHandshakeBridge(ProviderSession candidate, HandshakeReplyBridge bridge)
     {
-        var observe = candidate.OnEvent!;
+        var observe = observedSessionEvent ?? throw new InvalidOperationException("The live account observer is unavailable.");
         var epoch = sessionEpoch;
         candidate.OnEvent = value =>
         {

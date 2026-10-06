@@ -1,4 +1,7 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using SkiaSharp;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -42,8 +45,9 @@ internal static class GpuProgramCache
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nint GetBlob(nint key, nint keySize, nint value, nint valueSize);
 
     // kept alive for the process: ANGLE calls them on the render thread whenever it links a program
-    private static readonly SetBlob setBlob = Put;
-    private static readonly GetBlob getBlob = Take;
+    private static readonly ConcurrentDictionary<string, GpuProgramBlobStore> stores = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConditionalWeakTable<GRContext, GpuProgramCacheInstall> contexts = new();
+    private static readonly object installation = new();
     private static nint installedFor; // the GPU context it was last installed for (render thread)
     private static string? folder;
     private static volatile string? machine;
@@ -81,8 +85,25 @@ internal static class GpuProgramCache
     {
         if (context == installedFor) return;
         installedFor = context;
+        using var work = Marrow.UI.Port.AuroraBootTrace.Begin("cache: install");
         try { State = Installer(); }
         catch (Exception error) { State = "failed: " + error.GetType().Name + ": " + error.Message; }
+    }
+
+    // The production path tracks the managed context, never a native pointer that may later be reused.
+    // Installer and its diagnostics are serialized only for this small binding operation; callbacks remain concurrent.
+    internal static GpuProgramCacheInstall ForContext(GRContext context)
+    {
+        lock (installation)
+        {
+            if (contexts.TryGetValue(context, out var found)) return found;
+            using var work = Marrow.UI.Port.AuroraBootTrace.Begin("cache: install");
+            try { State = Installer(); }
+            catch (Exception error) { State = "failed: " + error.GetType().Name + ": " + error.Message; }
+            var result = new GpuProgramCacheInstall(State, State is null ? folder : null);
+            if (State is null) contexts.Add(context, result); // a failed/off install can retry after storage/device recovery
+            return result;
+        }
     }
 
     /// <summary>The cache's root folder: the test's, or the app's (null when the storage paths are not bound).</summary>
@@ -144,7 +165,18 @@ internal static class GpuProgramCache
 
     /// <summary>Reads the drawing adapter's identity ahead (a pool thread, at the start of each warm-up pass), so the render
     /// thread's install does not, and an install on a new GPU context names the adapter as it is then.</summary>
-    internal static void Prepare() => machine = Machine();
+    internal static void Prepare()
+    {
+        machine = Machine();
+        if (Root() is not { } root || !Directory.Exists(root)) return;
+        foreach (var path in Directory.EnumerateDirectories(root))
+            stores.GetOrAdd(path, static p => new GpuProgramBlobStore(p)).Load();
+    }
+
+    internal static Task Drain(string keyFolder) => stores.TryGetValue(keyFolder, out var store) ? store.Drain() : Task.CompletedTask;
+
+    // A temporary worker context is disposed after its synchronous current-context scope has ended.
+    internal static void Retire(GRContext context) { lock (installation) contexts.Remove(context); }
 
     /// <summary>The identity the last <see cref="Prepare"/> read, an install's key names (tests, the native record).</summary>
     internal static string? Prepared => machine;
@@ -298,29 +330,32 @@ internal static class GpuProgramCache
         // the GPU and its driver (ANGLE's renderer string names both), the GL version, and this build of the app
         var key = Hex(SHA256.HashData(Encoding.UTF8.GetBytes(renderer + "\n" + version + "\n" + build)))[..24];
         var made = Path.Combine(root, key);
-        Directory.CreateDirectory(made);
-        // the key written beside and moved over: another instance's clean-up never reads half of it
-        ReplaceWhole(Path.Combine(made, "key.txt"), Encoding.UTF8.GetBytes(renderer + "\n" + version + "\n" + build + "\n" + (machine ??= Machine() ?? "") + "\n"));
-        folder = made; // only now: entries go where the key is
-        Marshal.GetDelegateForFunctionPointer<SetBlobCacheFuncs>(setFuncs)(display,
-            Marshal.GetFunctionPointerForDelegate(setBlob), Marshal.GetFunctionPointerForDelegate(getBlob));
+        var store = stores.GetOrAdd(made, static p => new GpuProgramBlobStore(p));
+        store.Keep("key.txt", Encoding.UTF8.GetBytes(renderer + "\n" + version + "\n" + build + "\n" + (machine ?? "") + "\n"), false);
+        folder = made;
+        store.Install(display, setFuncs);
         return null;
     }
 
-    /// <summary>Writes <paramref name="file"/> whole: beside it, then moved over it, so a reader never sees half a file; when
-    /// the write or the move fails, nothing is left beside it and the failure is thrown.</summary>
+    private static readonly ConcurrentDictionary<string, object> replacements = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Writes the file whole beside it, then atomically replaces it. Per-file serialization and unique
+    /// temporary names keep concurrent displays safe; failures leave no temporary file.</summary>
     internal static void ReplaceWhole(string file, byte[] bytes)
     {
-        var part = file + "." + Environment.ProcessId + ".part";
-        try
+        lock (replacements.GetOrAdd(file, static _ => new object()))
         {
-            File.WriteAllBytes(part, bytes);
-            File.Move(part, file, overwrite: true);
-        }
-        catch (Exception)
-        {
-            try { File.Delete(part); } catch (Exception) { }
-            throw;
+            var part = file + "." + Environment.ProcessId + "." + Guid.NewGuid().ToString("N") + ".part";
+            try
+            {
+                File.WriteAllBytes(part, bytes);
+                File.Move(part, file, overwrite: true);
+            }
+            catch (Exception)
+            {
+                try { File.Delete(part); } catch (Exception) { }
+                throw;
+            }
         }
     }
 
@@ -337,6 +372,7 @@ internal static class GpuProgramCache
     // set: keep the entry (written whole: a failed write or move leaves no part)
     private static void Put(nint key, nint keySize, nint value, nint valueSize)
     {
+        using var work = Marrow.UI.Port.AuroraBootTrace.Begin("cache: Put");
         try
         {
             if (FileFor(key, keySize) is not { } file || value == 0 || valueSize <= 0) return;
@@ -351,6 +387,7 @@ internal static class GpuProgramCache
     // get: the entry's size, copied when the buffer is large enough (ANGLE asks once for the size, then with a buffer)
     private static nint Take(nint key, nint keySize, nint value, nint valueSize)
     {
+        using var work = Marrow.UI.Port.AuroraBootTrace.Begin("cache: Take");
         try
         {
             if (FileFor(key, keySize) is not { } file || !File.Exists(file)) { Interlocked.Increment(ref Misses); return 0; }

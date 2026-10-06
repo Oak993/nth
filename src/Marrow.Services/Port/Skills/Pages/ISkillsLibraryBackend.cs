@@ -2,6 +2,7 @@
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
+using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Terms;
 
 namespace Marrow.Services.Port.Skills.Pages;
@@ -31,6 +32,27 @@ public interface ISkillsLibraryBackend
     void AcceptTerms(string itemId);
 
     IFirstInstall Installs { get; }
+
+    /// <summary>SK-16 (DL-19): a download running for the item that this page did not start (an in-chat offer's), or null: the row shows it and a press joins it.</summary>
+    FetchView? Fetching(string itemId) => null;
+
+    /// <summary>SK-16: calls <paramref name="changed"/> whenever a download starts, reports or ends, from any surface. Null when the backend has none to tell of.</summary>
+    IDisposable? WatchFetching(Action changed) => null;
+
+    /// <summary>SK-14 ("Download it yourself"): the folder the user puts a hand-downloaded file in. Empty when the backend has none.</summary>
+    string ManualFolder => "";
+
+    /// <summary>SK-14: checks the files in <see cref="ManualFolder"/> against the item's pinned inputs and keeps the ones that match for the install; how many matched.</summary>
+    int PlaceManualFiles(CatalogueItem item) => 0;
+
+    /// <summary>SK-14: opens the vendor's download page in the browser.</summary>
+    void OpenManualPage(Uri page) { }
+
+    /// <summary>SK-14: opens <see cref="ManualFolder"/> (made first) in the file manager.</summary>
+    void OpenManualFolder() { }
+
+    /// <summary>SK-16: stops the download running for the item, for everyone who asked for it (the page's Cancel).</summary>
+    void CancelFetching(string itemId) { }
 
     Task UpdateAsync(string itemId, IProgress<double?> progress, CancellationToken cancellation);
 

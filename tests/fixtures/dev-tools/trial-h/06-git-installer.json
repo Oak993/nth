@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "06-git-installer",
+  "commandLine": "powershell.exe -NoProfile -Command \"$keys = @(\\\"HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Git_is1\\\", \\\"HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Git_is1\\\", \\\"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Git_is1\\\"); foreach($k in $keys){ if(Test-Path $k){ Get-ItemProperty $k | Select-Object DisplayName,DisplayVersion,InstallLocation,Publisher,UninstallString,WindowsInstaller | ConvertTo-Json -Compress }}\"",
+  "executable": "powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-Command",
+    "$keys = @(\"HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Git_is1\", \"HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Git_is1\", \"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Git_is1\"); foreach($k in $keys){ if(Test-Path $k){ Get-ItemProperty $k | Select-Object DisplayName,DisplayVersion,InstallLocation,Publisher,UninstallString,WindowsInstaller | ConvertTo-Json -Compress }}"
+  ],
+  "exitCode": 0,
+  "stdout": "{\"DisplayName\":\"Git\",\"DisplayVersion\":\"2.54.0\",\"InstallLocation\":\"C:\\\\Program Files\\\\Git\\\\\",\"Publisher\":\"The Git Development Community\",\"UninstallString\":\"\\\"C:\\\\Program Files\\\\Git\\\\unins000.exe\\\"\",\"WindowsInstaller\":null}\r\n",
+  "stderr": "",
+  "durationMs": 305.6806,
+  "versionsBefore": "2.54.0.windows.1",
+  "versionsAfter": "2.54.0.windows.1",
+  "timestamp": "2026-10-05T15:25:20.2089513+00:00",
+  "finishedAt": "2026-10-05T15:25:20.5174879+00:00"
+}

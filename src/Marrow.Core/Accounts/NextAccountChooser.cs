@@ -40,14 +40,15 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
         return sameService.Any(a => a.Enabled) ? new ChooserResult.WaitFor(earliest) : new ChooserResult.NoAccounts();
     }
 
-    /// <summary>The highest-ranked available account ranked above the current one (pill step order, else priority order within the service), or null.</summary>
-    public SwitchTarget? EarlierBack(string currentAccountId, Pill? pill, int? stepIndex)
+    /// <summary>The highest-ranked available account ranked above the current one (pill step order, else priority order within the service), or null. <paramref name="isBack"/> is the caller's say on whether an available account has really come back.</summary>
+    public SwitchTarget? EarlierBack(string currentAccountId, Pill? pill, int? stepIndex, Func<SwitchTarget, bool>? isBack = null)
     {
         if (pill is { Steps.Count: > 0 })
         {
             var at = CurrentStep(currentAccountId, pill, stepIndex);
             for (var i = 0; i < at; i++)
-                if (Find(pill.Steps[i].AccountId) is { } account && IsAvailable(account)) return new SwitchTarget(account, i, pill.Steps[i]);
+                if (PillStepAccountResolver.Resolve(store, pill.Steps[i]) is { } account && IsAvailable(account)
+                    && new SwitchTarget(account, i, pill.Effective(i)) is var target && isBack?.Invoke(target) != false) return target;
             return null;
         }
 
@@ -55,31 +56,29 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
         var current = accounts.FirstOrDefault(a => a.Id == currentAccountId);
         if (current is null) return null;
         foreach (var account in accounts.TakeWhile(a => a.Id != currentAccountId))
-            if (account.Service == current.Service && IsAvailable(account)) return new SwitchTarget(account);
+            if (account.Service == current.Service && IsAvailable(account) && new SwitchTarget(account) is var target && isBack?.Invoke(target) != false) return target;
         return null;
     }
 
     private ChooserResult NextInPill(string currentAccountId, Pill pill, int? stepIndex)
     {
         var at = CurrentStep(currentAccountId, pill, stepIndex);
-        var steps = pill.Steps.Select((step, i) => (Step: step, Index: i, Account: Find(step.AccountId)))
+        var steps = pill.Steps.Select((step, i) => (Step: step, Index: i, Account: PillStepAccountResolver.Resolve(store, step)))
             .Where(x => x.Account is { Enabled: true }).ToList();
         var ready = steps.Where(x => x.Index != at && IsAvailable(x.Account!)).ToList();
         // After the current step first; otherwise the loop: the highest-ranked step that is available again.
         var pick = ready.FirstOrDefault(x => x.Index > at);
         if (pick.Account is null) pick = ready.FirstOrDefault();
-        if (pick.Account is not null) return new ChooserResult.Move(new SwitchTarget(pick.Account, pick.Index, pick.Step));
+        if (pick.Account is not null) return new ChooserResult.Move(new SwitchTarget(pick.Account, pick.Index, pill.Effective(pick.Index)));
         return steps.Count == 0 ? new ChooserResult.NoAccounts() : new ChooserResult.WaitFor(EarliestReset(steps.Select(x => x.Account!)));
     }
 
     private static int CurrentStep(string currentAccountId, Pill pill, int? stepIndex)
     {
         if (stepIndex is { } index && index >= 0 && index < pill.Steps.Count) return index;
-        var found = pill.Steps.ToList().FindIndex(s => s.AccountId == currentAccountId);
+        var found = pill.Steps.ToList().FindIndex(s => string.Equals(s.AccountIdentity, currentAccountId, StringComparison.OrdinalIgnoreCase));
         return found;
     }
-
-    private AccountInfo? Find(string id) => store.Accounts.FirstOrDefault(a => a.Id == id);
 
     private bool IsAvailable(AccountInfo account) =>
         account.Enabled && !(limits.Usage(account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false);

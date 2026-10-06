@@ -149,6 +149,12 @@ public sealed class PillStorage(
                 skipped++;
                 continue;
             }
+            // An absent key means the account's own sign-in. A malformed present identity cannot grant that fallback.
+            if (so.TryGetPropertyValue("key", out var storedKey) && ReadString(storedKey)?.Trim() is not { Length: > 0 })
+            {
+                skipped++;
+                continue;
+            }
             steps.Add(new PillStep(
                 account,
                 ReadString(so["model"]),

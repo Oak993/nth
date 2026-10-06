@@ -19,13 +19,13 @@ public sealed class HandshakeRig : IAsyncDisposable
     public List<HandshakeEvent> Events { get; } = [];
     public CancellationToken Ct => CancellationToken.None;
 
-    public HandshakeRig(IEnumerable<AccountInfo>? accounts = null, HandshakeOptions? options = null, string active = "c1")
+    public HandshakeRig(IEnumerable<AccountInfo>? accounts = null, HandshakeOptions? options = null, string active = "c1", Func<HandshakeOptions>? optionsSource = null)
     {
         Store = new InMemoryAccountStore(accounts ?? DefaultAccounts());
         Decisions = new DecisionPolicy(DecisionStore);
         Host.ActiveAccountId = active;
         foreach (var a in Store.Accounts) Limits.SetUsage(a.Id, new AccountUsage(10, null));
-        Machine = new HandshakeMachine(Thread, Store, Limits, Summaries, Decisions, Host, Clock, options ?? new HandshakeOptions());
+        Machine = new HandshakeMachine(Thread, Store, Limits, Summaries, Decisions, Host, Clock, options ?? new HandshakeOptions(), optionsSource);
         Machine.Changed += (_, e) => Events.Add(e);
     }
 
