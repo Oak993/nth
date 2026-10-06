@@ -1139,3 +1139,8 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - VT-12: the voice pill follows the approved design page (voice-composer.html) exactly: no added blurs on the body, cross or glow; the capsule edge antialiased once; CSS blur radii converted to sigma; no glass refraction inside the pill; the radial clean-cap mask. Rim choice C: the shared glass rim and shade stay, with the page's rim stack on top.
   - The lead chooses the implementation. Tests, tolerances, references and the speck metric stay unchanged (standing rule); any spot that still fails comes back to the owner with its exact location.
   - Multi-account: the Handshake's soft sound ships in this release, using the locked design's recipe (link-up: sine 523.25 Hz 1.1 s and 783.99 Hz 1.3 s at +0.08 s; in-sync tick: 1318.5 Hz 0.18 s). Replaces ma-3b5-plan Q1's default of leaving it out.
+
+## OD-0122 Handshake readiness for Codex and Pi (2026-10-06)
+
+- **Owner, verbatim:** "Same tick as Claude" · "You can run it once but I think I'm out of codex usage, maybe luna might work."
+- **Effect:** where the app loads the conversation into a waiting Codex or Pi account without a model turn (history injection, research claude-cli-standby-research.md), the composer capsule shows the same in-sync tick as Claude once the history is loaded. The lead may run ONE local Codex check with the owner's signed-in Codex (a model the owner suggested: Luna) to confirm that injection makes no model call: inject a short test history into a throwaway thread, read the log, delete the thread; no message is sent to the AI.
