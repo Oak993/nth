@@ -40,14 +40,15 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
         return sameService.Any(a => a.Enabled) ? new ChooserResult.WaitFor(earliest) : new ChooserResult.NoAccounts();
     }
 
-    /// <summary>The highest-ranked available account ranked above the current one (pill step order, else priority order within the service), or null.</summary>
-    public SwitchTarget? EarlierBack(string currentAccountId, Pill? pill, int? stepIndex)
+    /// <summary>The highest-ranked available account ranked above the current one (pill step order, else priority order within the service), or null. <paramref name="isBack"/> is the caller's say on whether an available account has really come back.</summary>
+    public SwitchTarget? EarlierBack(string currentAccountId, Pill? pill, int? stepIndex, Func<SwitchTarget, bool>? isBack = null)
     {
         if (pill is { Steps.Count: > 0 })
         {
             var at = CurrentStep(currentAccountId, pill, stepIndex);
             for (var i = 0; i < at; i++)
-                if (PillStepAccountResolver.Resolve(store, pill.Steps[i]) is { } account && IsAvailable(account)) return new SwitchTarget(account, i, pill.Effective(i));
+                if (PillStepAccountResolver.Resolve(store, pill.Steps[i]) is { } account && IsAvailable(account)
+                    && new SwitchTarget(account, i, pill.Effective(i)) is var target && isBack?.Invoke(target) != false) return target;
             return null;
         }
 
@@ -55,7 +56,7 @@ public sealed class NextAccountChooser(IAccountStore store, IAccountLimits limit
         var current = accounts.FirstOrDefault(a => a.Id == currentAccountId);
         if (current is null) return null;
         foreach (var account in accounts.TakeWhile(a => a.Id != currentAccountId))
-            if (account.Service == current.Service && IsAvailable(account)) return new SwitchTarget(account);
+            if (account.Service == current.Service && IsAvailable(account) && new SwitchTarget(account) is var target && isBack?.Invoke(target) != false) return target;
         return null;
     }
 

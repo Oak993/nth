@@ -204,9 +204,14 @@ public sealed class HandshakeMachine(
 
         if (exhausted) await HardLimitAsync(active, usage.ResetsAt, ct);
         else if (!host.Pinned && CurrentOptions.Enabled && usage.PercentUsed >= threshold) await NearLimitAsync(active, ct);
-        else if (!host.Pinned && chooser.EarlierBack(active, host.Pill, host.StepIndex) is { } back && !declined.Contains(back.Account.Id))
+        else if (!host.Pinned && chooser.EarlierBack(active, host.Pill, host.StepIndex, HasComeBack) is { } back && !declined.Contains(back.Account.Id))
             await EarlierAsync(back, ct);
     }
+
+    // PORT-ONLY: ED-NEW-ma-engine-1. An earlier account that is still near its own Handshake point has not come back: going to it would start the next Handshake at once.
+    private bool HasComeBack(SwitchTarget candidate) =>
+        limits.Usage(candidate.Account.Id) is not { } usage
+        || usage.PercentUsed < HandshakeTiming.StartPercent(candidate.Account, candidate.Step, CurrentOptions, limits, threadId);
 
     private async Task NearLimitAsync(string active, CancellationToken ct)
     {
