@@ -100,6 +100,8 @@ internal static class VoicePillDiagnostics
         var labelVisibility = pill.Labels.Select(label => label.IsVisible).ToArray();
         var edgeFilter = filtered.Effect;
         var materialClip = material.Clip;
+        var bodyEffect = SwiftGlass.GetEffect(pill.Body);
+        var bodyBackground = pill.Body.Background;
         var uniforms = orb.Handler!.Scene!.Runtime(orb.Kind)!.Values.ToArray();
         void Save(string name)
         {
@@ -165,6 +167,21 @@ internal static class VoicePillDiagnostics
             pill.Body.IsVisible = visibility[5]; rim.IsVisible = false;
             Layers("body", true, false, false, false);
             Layers("mask-body", true, false, false, true);
+            // A geometry/coverage witness: same capsule, mask, filter and measured body colour, with no glass shader.
+            // It is a counterfactual capture, not a reference picture or a production candidate.
+            using (var painted = SKBitmap.Decode(Path.Combine(directory, "bisect-mask-body-" + tag + ".png")))
+            {
+                var position = pill.TranslatePoint(new Point(pill.Bounds.Width / 2, pill.Bounds.Height / 2), scene.Window)!.Value;
+                var colour = painted.GetPixel((int)(position.X * scale), (int)(position.Y * scale));
+                SwiftGlass.SetEffect(pill.Body, null);
+                pill.Body.Background = new SolidColorBrush(Color.FromArgb(colour.Alpha, colour.Red, colour.Green, colour.Blue));
+                Layers("flat-capsule-no-glass", true, false, false, true);
+                filtered.Effect = null;
+                Layers("flat-capsule-no-glass-unfiltered", true, false, false, true);
+                filtered.Effect = edgeFilter;
+                pill.Body.Background = bodyBackground;
+                SwiftGlass.SetEffect(pill.Body, bodyEffect);
+            }
             rim.IsVisible = visibility[6]; filtered.Effect = null;
             Layers("mask-glass-unfiltered", true, false, false, true);
             // Counterfactuals distinguish the pill's extra capsule coverage from the shared material's own SDF edge.
@@ -180,6 +197,8 @@ internal static class VoicePillDiagnostics
         }
         finally
         {
+            pill.Body.Background = bodyBackground;
+            SwiftGlass.SetEffect(pill.Body, bodyEffect);
             pill.IsVisible = visibility[0]; filtered.IsVisible = visibility[1]; contents.IsVisible = visibility[2]; orb.IsVisible = visibility[3]; pill.Cross.IsVisible = visibility[4];
             pill.Body.IsVisible = visibility[5]; rim.IsVisible = visibility[6]; filtered.Effect = edgeFilter; material.Clip = materialClip;
             for (var k = 0; k < pill.Labels.Count; k++) pill.Labels[k].IsVisible = labelVisibility[k];
