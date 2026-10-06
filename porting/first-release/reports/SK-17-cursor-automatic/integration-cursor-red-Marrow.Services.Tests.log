@@ -1,0 +1,19 @@
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_MCP_contract_exposes_read_only_discovery_and_pinned_skill_reads [107 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Unknown_names_and_paths_outside_the_pinned_tree_are_refused(name: "pdf", path: "../SKILL.md") [41 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Unknown_names_and_paths_outside_the_pinned_tree_are_refused(name: "../other", path: "SKILL.md") [31 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Unknown_names_and_paths_outside_the_pinned_tree_are_refused(name: "pdf", path: "C:/owner/private.txt") [30 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop [32 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Damage_blocks_both_discovery_and_read_and_disposal_stops_new_reads [27 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+Failed!  - Failed:     6, Passed:     2, Skipped:     0, Total:     8, Duration: 281 ms - Marrow.Services.Tests.dll (net10.0)

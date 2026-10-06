@@ -437,7 +437,10 @@ internal static class ComposerLightShaders
         """;
 
     private static Lazy<SKRuntimeEffect> Compile(string source, string what) => new(() =>
-        SKRuntimeEffect.CreateShader(source, out var error) ?? throw new InvalidOperationException("The composer light's " + what + " shader did not compile: " + error));
+    {
+        using var work = AuroraBootTrace.Begin("SkSL: " + what);
+        return SKRuntimeEffect.CreateShader(source, out var error) ?? throw new InvalidOperationException("The composer light's " + what + " shader did not compile: " + error);
+    });
 
     private static readonly Lazy<SKRuntimeEffect> rotateBake = Compile(RotateBakeSource, "Border beam bake");
     private static readonly Lazy<SKRuntimeEffect> rotate = Compile(RotateSource, "Border beam (rotate)");
@@ -456,6 +459,7 @@ internal static class ComposerLightShaders
 
     private static SKImage BuildProfiles()
     {
+        using var work = AuroraBootTrace.Begin("CPU: composer profiles");
         var rowsData = new[] { Marrow.Core.Models.ComposerLights.BorderBeamMath.WindowW1, Marrow.Core.Models.ComposerLights.BorderBeamMath.WindowW2,
             Marrow.Core.Models.ComposerLights.BorderBeamMath.HighlightDark, Marrow.Core.Models.ComposerLights.BorderBeamMath.HighlightLight,
             Marrow.Core.Models.ComposerLights.BorderBeamMath.BloomDark, Marrow.Core.Models.ComposerLights.BorderBeamMath.BloomLight };

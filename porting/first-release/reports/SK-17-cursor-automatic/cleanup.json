@@ -1,0 +1,28 @@
+{
+  "removed": [
+    {
+      "file": "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\skills-A\\marrow-harbor-readiness\\SKILL.md",
+      "sha256": "ab4564b99419e902e2df99f5800889d444bd620eba8b0232330b4de52ac5d609"
+    }
+  ],
+  "skillsAbsent": true,
+  "workspaceAbsent": true,
+  "configHashes": [
+    {
+      "file": "C:\\Users\\omera\\.cursor\\cli-config.json",
+      "before": "49b64b4a6b8e48d50f21e8fa4b3b55af02f19fcea963645e00363b9774753cbf",
+      "observedAfter": "0a82247109481ef8e03846a9c8f91243bd482205b22973504acf9b830120296c",
+      "restored": "49b64b4a6b8e48d50f21e8fa4b3b55af02f19fcea963645e00363b9774753cbf",
+      "matches": true,
+      "final": "49b64b4a6b8e48d50f21e8fa4b3b55af02f19fcea963645e00363b9774753cbf"
+    },
+    {
+      "file": "C:\\Users\\omera\\.gemini\\antigravity-cli\\settings.json",
+      "before": "61366b0a4528865384d530c4ca014ec35f73db4d192ca68cc58d8f60563cd4ae",
+      "observedAfter": "61366b0a4528865384d530c4ca014ec35f73db4d192ca68cc58d8f60563cd4ae",
+      "restored": "61366b0a4528865384d530c4ca014ec35f73db4d192ca68cc58d8f60563cd4ae",
+      "matches": true,
+      "final": "61366b0a4528865384d530c4ca014ec35f73db4d192ca68cc58d8f60563cd4ae"
+    }
+  ]
+}

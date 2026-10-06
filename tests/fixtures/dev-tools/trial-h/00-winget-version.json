@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "00-winget-version",
+  "commandLine": "winget --version",
+  "executable": "winget",
+  "arguments": [
+    "--version"
+  ],
+  "exitCode": 0,
+  "stdout": "v1.29.380\r\n",
+  "stderr": "",
+  "durationMs": 151.162,
+  "versionsBefore": "1.29.380",
+  "versionsAfter": "1.29.380",
+  "timestamp": "2026-10-05T15:24:32.1510702+00:00",
+  "finishedAt": "2026-10-05T15:24:32.3279461+00:00"
+}

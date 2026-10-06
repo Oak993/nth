@@ -1,0 +1,9 @@
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\AntigravitySkillsComposerTests.cs(48,9): error CA1307: 'Xunit.Assert.Contains(string, string?)' has a method overload that takes a 'StringComparison' parameter. Replace this call in 'Marrow.Services.Tests.Port.Skills.Providers.AntigravitySkillsComposerTests.The_host_composes_installed_pins_current_switches_defaults_and_user_clashes()' with a call to 'Xunit.Assert.Contains(string, string?, System.StringComparison)' for clarity of intent. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1307) [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+
+Build FAILED.
+
+E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Port\Skills\Providers\AntigravitySkillsComposerTests.cs(48,9): error CA1307: 'Xunit.Assert.Contains(string, string?)' has a method overload that takes a 'StringComparison' parameter. Replace this call in 'Marrow.Services.Tests.Port.Skills.Providers.AntigravitySkillsComposerTests.The_host_composes_installed_pins_current_switches_defaults_and_user_clashes()' with a call to 'Xunit.Assert.Contains(string, string?, System.StringComparison)' for clarity of intent. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1307) [E:\Droppy\wt\cx\sk-17-live\tests\Marrow.Services.Tests\Marrow.Services.Tests.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:10.24

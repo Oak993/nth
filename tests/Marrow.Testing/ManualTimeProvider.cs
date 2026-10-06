@@ -41,6 +41,19 @@ public sealed class ManualTimeProvider(DateTimeOffset start) : TimeProvider
         get { lock (gate) return timers.Count(t => t.Due is not null); }
     }
 
+    /// <summary>
+    /// Absolute deadlines on this clock, in elapsed time. Tests join the timer they need before
+    /// advancing time; a process deadline and a later kill/retry timer can have the same count.
+    /// </summary>
+    public IReadOnlyList<TimeSpan> TimerDeadlines
+    {
+        get
+        {
+            lock (gate) return timers.Where(t => t.Due is not null)
+                .Select(t => TimeSpan.FromTicks(t.Due!.Value)).Order().ToArray();
+        }
+    }
+
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
         var timer = new ManualTimer(this, callback, state, ExecutionContext.Capture());

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "name": "25-python314-show",
+  "commandLine": "winget show --id Python.Python.3.14 -e --source winget --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "show",
+    "--id",
+    "Python.Python.3.14",
+    "-e",
+    "--source",
+    "winget",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Found Python 3.14 [Python.Python.3.14]\r\nVersion: 3.14.7\r\nPublisher: Python Software Foundation\r\nPublisher Url: https://www.python.org/\r\nPublisher Support Url: https://www.python.org/about/help/\r\nAuthor: Python Software Foundation\r\nMoniker: python3\r\nDescription: A programming language that lets you work more quickly and integrate your systems more effectively.\r\nHomepage: https://www.python.org/\r\nLicense: PSF-2.0\r\nLicense Url: https://docs.python.org/3/license.html\r\nPrivacy Url: https://www.python.org/privacy/\r\nCopyright: Copyright © 2001-2026 Python Software Foundation. All Rights Reserved.\r\nCopyright © 2000 BeOpen.com. All Rights Reserved.\r\nCopyright © 1995-2001 Corporation for National Research Initiatives. All Rights Reserved.\r\nCopyright © 1991-1995 Stichting Mathematisch Centrum, Amsterdam. All Rights Reserved.\r\nCopyright Url: https://www.python.org/about/legal/\r\nRelease Notes Url: https://docs.python.org/release/3.14.7/whatsnew/changelog.html\r\nDocumentation:\r\n  Documentation: https://www.python.org/doc/\r\nTags:\r\n  9pnrbtzxmb4z\r\n  idna\r\n  language\r\n  pip3\r\n  programming\r\n  programming-language\r\n  python\r\n  python3\r\n  requirescmd\r\n  script\r\nInstaller:\r\n  Installer Type: burn\r\n  Installer Url: https://www.python.org/ftp/python/3.14.7/python-3.14.7-amd64.exe\r\n  Installer SHA256: 9d9eb2709ef81bf5cd30db3c2096bdbc4ea10087c22e62f27d356b36f6ae9649\r\n  Release Date: 2026-08-05\r\n  Offline Distribution Supported: true\r\n",
+  "stderr": "",
+  "durationMs": 305.974,
+  "versionsBefore": {
+    "Python.Python.3.13": "3.13.14",
+    "Python.Python.3.14": "3.14.4"
+  },
+  "versionsAfter": {
+    "Python.Python.3.13": "3.13.15",
+    "Python.Python.3.14": "3.14.7"
+  },
+  "timestamp": "2026-10-05T15:27:42.0490270+00:00",
+  "finishedAt": "2026-10-05T15:27:42.3732602+00:00"
+}

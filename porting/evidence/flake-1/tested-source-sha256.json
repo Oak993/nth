@@ -1,0 +1,25 @@
+{
+  "base": "889c9ebd523cbfedb39d9bf06e22ba7b9988ea46",
+  "files": {
+    "tests/Marrow.App.Tests/AppModelTurnFinishedTests.cs": "affd3297e489e6e4e1c108235421047d82eb80543b39cd5cf5a44cdf6b1f8487",
+    "tests/Marrow.App.Tests/Fixtures/ProviderProbeStandIns.cs": "0cbc43578d39a5aa8f9618ba00a784da807fea5d36c0eeda32a7c0f265b9f50d",
+    "tests/Marrow.App.Tests/Views/Composer/ComposerWorkingDotsEaseTests.cs": "0b3564841fa6d212a3abfa4e731dd7ead6310b696d31c507e80da7a98d13e24d",
+    "tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs": "6e86f246acf3aa5d63b842720849e73181bbd219f84c430a4dd55ff9c64ae867",
+    "tests/Marrow.Core.Tests/Support/ShellTests.cs": "b0d96b559f391ec4df867552e4de4c3480b2e341935f74be09310bb15b351e18",
+    "tests/Marrow.Services.Tests/Fixtures/PiStandIns.cs": "91fab85289edb49d683221c6cb6aae76ae7b8c652aa33dbdb91bd40c116aa337",
+    "tests/Marrow.Services.Tests/Fixtures/ProviderProbeStandIns.cs": "1d9bf24ceecdadd234497fd3968457618e2b6ad19f529cab4e11b08022673455",
+    "tests/Marrow.Services.Tests/Git/GitTests.cs": "bd04d2b416430e56eba62cadce68930bdb5eceecb62ff83c66d290ae9f57d61a",
+    "tests/Marrow.Services.Tests/Providers/PiCLITests.cs": "0b11cf2002c188e5c98f586727792a87af72b4f1ffdb6d03bece117ff3b8efdf",
+    "tests/Marrow.Services.Tests/Providers/ProviderRegistrySignInTests.cs": "8b7bb51cc501b2c510290a37a412207840a0b0b4a67752645f01188087c4e86d",
+    "tests/Marrow.Testing/ManualTimeProvider.cs": "d3133806e1188809e84e766f42e1ae624cce11de60391b719fc204adf93d7509",
+    "tests/Marrow.UI.Tests/Port/Voice/OrbRendererTests.cs": "d665e98ce92e228a5ff42cd6cbcc35cf407b198fd08704cb475093f12807c8c2",
+    "tests/fixtures/pi-cli/PiStandIn.cs": "9b97527387f99e977eae36c4d8f90a6933a9a9398ec7d60f6e857f480f90fc9c",
+    "tests/fixtures/provider-probe-cli/ProviderProbeStandIn.cs": "d58b7ba618fb45d42892f544b950eebc97b896fc787de733925f92901cc041f8",
+    "tests/Marrow.App.Tests/Fixtures/FinishChimeCollection.cs": "ada4fb0a789aa87b957738d93bcaf8c24f923eb4f6aa9f0078de065116f50fd0",
+    "tests/Marrow.Core.Tests/Port/AllocationProbeTests.cs": "02da33f2b72c6105d58d96717fc4d426a4137142887374277a4f06bfa774c2d6",
+    "tests/Marrow.Core.Tests/Port/MainExecutorGateTests.cs": "fa510d71c27718f3626bcd01d9d6b710794b0533aebb5dcc6b7cfa91955aa5b0",
+    "tests/Marrow.Core.Tests/Port/ManualTimerDeadlineTests.cs": "cd6e5a806bf7a63994f116f4b40d74e47421699dbce6e96c116b87f79be0b73f",
+    "tests/Marrow.Testing/AllocationProbe.cs": "28b416c22cadf0234810c68b2d96a4e11fd7e0fc209d59e3bb8e47901475e90f",
+    "tests/Marrow.Testing/MainExecutorGate.cs": "257c912a4766a57b8f0baab7a44e52e62dd76b49696b90b782087913964a065f"
+  }
+}

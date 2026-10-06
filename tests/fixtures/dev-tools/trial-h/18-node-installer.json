@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "18-node-installer",
+  "commandLine": "powershell.exe -NoProfile -Command \"$roots = @(\\\"HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\\\", \\\"HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\\\", \\\"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\\\"); Get-ItemProperty $roots -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like \\\"Node.js*\\\" } | Select-Object DisplayName,DisplayVersion,InstallLocation,Publisher,WindowsInstaller | ConvertTo-Json -Compress\"",
+  "executable": "powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-Command",
+    "$roots = @(\"HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\", \"HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\", \"HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\"); Get-ItemProperty $roots -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like \"Node.js*\" } | Select-Object DisplayName,DisplayVersion,InstallLocation,Publisher,WindowsInstaller | ConvertTo-Json -Compress"
+  ],
+  "exitCode": 0,
+  "stdout": "{\"DisplayName\":\"Node.js\",\"DisplayVersion\":\"24.14.1\",\"InstallLocation\":\"\",\"Publisher\":\"Node.js Foundation\",\"WindowsInstaller\":1}\r\n",
+  "stderr": "",
+  "durationMs": 644.6162,
+  "versionsBefore": "24.14.1",
+  "versionsAfter": "24.14.1",
+  "timestamp": "2026-10-05T15:27:04.4607184+00:00",
+  "finishedAt": "2026-10-05T15:27:05.1089744+00:00"
+}

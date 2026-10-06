@@ -1126,3 +1126,16 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - Switching and the Handshake into another account: off by default; on only after the user agrees when the app asks the first time (OD-0116). The page's `hs: true` default is outdated.
   - Per-account Handshake point: the builder picks. Lead pick: the account's ⋯ menu "Handshake at…", plus a small quiet note on that account's row only when its point differs from the default (NOTES:56, matches the page's Settings footer).
   - Pill-in-composer styles: the page's twelve styles are current; the NOTES list of four is outdated.
+
+## OD-0120 Confirm before sending a conversation to another service (2026-10-06)
+
+- **Owner, verbatim:** "Ask for confirmation and have the option to check "Don't ask again" for the user to select it."
+- **Effect:** Link-up and "Ask others" ask for confirmation before the conversation goes to another service. The confirmation has a "Don't ask again" checkbox, unchecked by default; only the user can check it. Replaces the planned quiet notice line (ma-3b5-plan Q2).
+
+## OD-0121 Voice pill: design-exact, both rims; Handshake sound included (2026-10-06)
+
+- **Owner, verbatim (answers on the Voice Pill Decision page):** "Rim: C" · "Fix: Fix it anyway you want it, I've let you known what design I want" · "Sound: include it"
+- **Effect:**
+  - VT-12: the voice pill follows the approved design page (voice-composer.html) exactly: no added blurs on the body, cross or glow; the capsule edge antialiased once; CSS blur radii converted to sigma; no glass refraction inside the pill; the radial clean-cap mask. Rim choice C: the shared glass rim and shade stay, with the page's rim stack on top.
+  - The lead chooses the implementation. Tests, tolerances, references and the speck metric stay unchanged (standing rule); any spot that still fails comes back to the owner with its exact location.
+  - Multi-account: the Handshake's soft sound ships in this release, using the locked design's recipe (link-up: sine 523.25 Hz 1.1 s and 783.99 Hz 1.3 s at +0.08 s; in-sync tick: 1318.5 Hz 0.18 s). Replaces ma-3b5-plan Q1's default of leaving it out.

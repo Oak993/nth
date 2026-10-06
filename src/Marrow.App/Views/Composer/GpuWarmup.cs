@@ -500,15 +500,18 @@ public static class GpuWarmup
                 again = false;
                 // the SkSL compile and the identity of the adapter drawn with (DXGI), on a pool thread, each pass (a pass
                 // after a new GPU context installs the cache on it naming the adapter as it is then)
-                await Task.Run(() => { JewelKnobShader.Prepare(); GpuProgramCache.Prepare(); }, cancellation);
+                await Task.Run(() => { JewelKnobShader.Prepare(); ComposerLightRenderer.Prepare(); GpuProgramCache.Prepare(); }, cancellation);
                 // GR-1: the registry as it is as the pass begins; the idle fallback draws only (a work step is a first run's)
                 var items = Registered.Where(p => !idle || !p.IsWork).ToArray();
                 var drawn = items.Count(p => !p.IsWork);
                 var scaling = top.RenderScaling;
+                if (!idle && top is Avalonia.Controls.Window { Content: AuroraBootStage })
+                    await GpuBootPreparation.Run(items, scaling, cancellation);
                 var entries = GpuProgramCache.Entries;
                 var since = DateTime.UtcNow; // the cap counts from the warm-up's start: once it ran out, one step a frame
                 var restarted = false;
                 var gpuLess = false;
+                string? passFolder = null;
                 for (var step = 0; step < items.Length; step++)
                 {
                     var item = items[step];
@@ -545,6 +548,7 @@ public static class GpuWarmup
                     // drawn on a new GPU context: the programs made so far are on the old one, so the run starts again
                     if (answer.NewContext) { restarted = again = true; break; }
                     if (!answer.Gpu) { gpuLess = true; continue; }
+                    passFolder = answer.CacheFolder ?? (PretendGpu ? GpuProgramCache.Folder : null);
                     var report = new GpuWarmupStep(step, items.Length, item.Name, answer.Ms, forced, item.Step.Id);
                     Record(report);
                     progress?.Report(report);
@@ -560,8 +564,12 @@ public static class GpuWarmup
                 // (the marker and the clean-up of other builds' folders on a pool thread, the UI thread's frames untouched), and
                 // every registered step of other work has been done (an idle pass never runs one: it leaves the machine unprepared
                 // for a first run to do it)
-                if (!restarted && GpuProgramCache.Folder is { } cached && GpuProgramCache.Entries - entries >= drawn && WorkIsDone())
-                    await Task.Run(() => GpuProgramCache.MarkWarm(cached), CancellationToken.None);
+                if (!restarted && passFolder is { } cached)
+                {
+                    await GpuProgramCache.Drain(cached); // persistence completes before Entries is assessed, also in idle/non-Boot passes
+                    if (GpuProgramCache.Entries - entries >= drawn && WorkIsDone())
+                        await Task.Run(() => GpuProgramCache.MarkWarm(cached), CancellationToken.None);
+                }
             }
             while (again);
         }
@@ -890,7 +898,7 @@ public static class GpuWarmup
 
     // a step's answer: its time on the render thread, whether a GPU context drew it, and whether that context was new (the
     // step then compiled nothing and its run starts again)
-    private readonly record struct StepAnswer(double Ms, bool Gpu, bool NewContext = false);
+    private readonly record struct StepAnswer(double Ms, bool Gpu, bool NewContext = false, string? CacheFolder = null);
 
     // one step asked of the render thread; withdrawn when its driver stopped waiting for it
     private sealed class StepRequest(GpuProgram program, double scaling)
@@ -956,13 +964,14 @@ public static class GpuWarmup
                 return;
             }
             if (gpu is null && !PretendGpu) { request.Answer.TrySetResult(new StepAnswer(0, false)); return; }
-            if (gpu is not null) GpuProgramCache.EnsureInstalled(gpu.Handle); // before the knob's programs are first linked: a later launch finds them made
+            using var whole = AuroraBootTrace.Begin("warmup: " + request.Program.Name);
+            var binding = gpu is not null ? GpuProgramCache.ForContext(gpu) : null; // before the knob's programs are first linked: a later launch finds them made
             var start = System.Diagnostics.Stopwatch.GetTimestamp();
             Interlocked.CompareExchange(ref FirstStepTicks, Environment.TickCount64, 0);
             try
             {
-                request.Program.Drawing(new GpuWarmContext(gpu, request.Scaling));
-                gpu?.Flush(); // the compile happens here, in this frame (one with nothing animating, for the idle fallback)
+                using (AuroraBootTrace.Begin("draw: " + request.Program.Name)) request.Program.Drawing(new GpuWarmContext(gpu, request.Scaling));
+                using (AuroraBootTrace.Begin("GPU flush: " + request.Program.Name)) gpu?.Flush(); // the compile happens here, in this frame (one with nothing animating, for the idle fallback)
             }
             catch (Exception error)
             {
@@ -972,7 +981,7 @@ public static class GpuWarmup
             }
             var ms = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
             Interlocked.Increment(ref stepsDone);
-            request.Answer.TrySetResult(new StepAnswer(ms, true));
+            request.Answer.TrySetResult(new StepAnswer(ms, true, CacheFolder: binding?.Folder));
         }
     }
 }

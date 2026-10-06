@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using Avalonia.Rendering.Composition;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -32,7 +33,14 @@ public sealed class ComposerWorkingDotsEaseTests(HeadlessSession headless)
     private static void Render(Avalonia.Controls.Window window)
     {
         Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        var compositor = ElementComposition.GetElementVisual(window)!.Compositor;
+        // A tick/capture alone can return an earlier batch while a commit is still queued. Join
+        // the batch carrying this sample without advancing the injected animation clock.
+        var rendered = compositor.RequestCompositionBatchCommitAsync().Rendered;
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        HeadlessSession.RunDispatcherUntil(rendered, TimeSpan.FromSeconds(20));
+        rendered.GetAwaiter().GetResult();
         using var pixels = window.CaptureRenderedFrame();
     }
 

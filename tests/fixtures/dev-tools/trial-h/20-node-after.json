@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "20-node-after",
+  "commandLine": "node --version",
+  "executable": "node",
+  "arguments": [
+    "--version"
+  ],
+  "exitCode": 0,
+  "stdout": "v24.14.1\r\n",
+  "stderr": "",
+  "durationMs": 33.28,
+  "versionsBefore": "24.14.1",
+  "versionsAfter": "24.14.1",
+  "timestamp": "2026-10-05T15:27:05.6436486+00:00",
+  "finishedAt": "2026-10-05T15:27:05.6773662+00:00"
+}

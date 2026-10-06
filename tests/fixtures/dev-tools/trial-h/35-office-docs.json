@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "35-office-docs",
+  "commandLine": "powershell.exe -NoProfile -Command \"$u=\\\"https://learn.microsoft.com/en-us/answers/questions/902651/office-not-updating-automatically\\\"; $r=Invoke-WebRequest -UseBasicParsing $u; [pscustomobject]@{Url=$u;StatusCode=[int]$r.StatusCode;Options=([regex]::Matches($r.Content,\\\"OfficeC2RClient\\.exe.{0,160}\\\") | ForEach-Object { $_.Value })} | ConvertTo-Json -Compress\"",
+  "executable": "powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-Command",
+    "$u=\"https://learn.microsoft.com/en-us/answers/questions/902651/office-not-updating-automatically\"; $r=Invoke-WebRequest -UseBasicParsing $u; [pscustomobject]@{Url=$u;StatusCode=[int]$r.StatusCode;Options=([regex]::Matches($r.Content,\"OfficeC2RClient\\.exe.{0,160}\") | ForEach-Object { $_.Value })} | ConvertTo-Json -Compress"
+  ],
+  "exitCode": 0,
+  "stdout": "{\"Url\":\"https://learn.microsoft.com/en-us/answers/questions/902651/office-not-updating-automatically\",\"StatusCode\":200,\"Options\":[\"OfficeC2RClient.exe /update user updatepromptuser=false forceappshutdown=true displaylevel=false    \\\\u003c/p\\\\u003e\\\\n\\\\u003cp\\\\u003eGUI:    \\\\u003cbr /\\\\u003e\\\\nC:\\\\\\\\Program Files\\\\\\\\Commo\",\"OfficeC2RClient.exe /update user updatepromptuser=false forceappshutdown=false displaylevel=true    \\\\u003c/p\\\\u003e\\\\n\\\\u003cp\\\\u003eBoth work when run manually by users (as they have\",\"OfficeC2RClient.exe /update user updatepromptuser=false forceappshutdown=true displaylevel=false    \\u003c/p\\u003e\",\"OfficeC2RClient.exe /update user updatepromptuser=false forceappshutdown=false displaylevel=true    \\u003c/p\\u003e\"]}\r\n",
+  "stderr": "",
+  "durationMs": 2331.7616,
+  "versionsBefore": "16.0.20430.20092",
+  "versionsAfter": "16.0.20430.20092",
+  "timestamp": "2026-10-05T15:30:33.3671178+00:00",
+  "finishedAt": "2026-10-05T15:30:35.7237022+00:00"
+}

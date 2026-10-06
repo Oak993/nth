@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "name": "41-python-list-after",
+  "commandLine": "winget list --name Python --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "list",
+    "--name",
+    "Python",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Name                                              Id                  Version        Available      Source\r\n-----------------------------------------------------------------------------------------------------------\r\nMiniconda3 py310_25.1.1-2 (Python 3.10.16 64-bit) Anaconda.Miniconda3 py310_25.1.1-2 py314_26.7.1-1 winget\r\nPython 3.13.15 (64-bit)                           Python.Python.3.13  3.13.15                       winget\r\nPython 3.14.7 (64-bit)                            Python.Python.3.14  3.14.7                        winget\r\nPython Install Manager                            9NQ7512CXL7T        26.3.240.0                    msstore\r\nPython Launcher                                   Python.Launcher     3.14.7                        winget\r\n",
+  "stderr": "",
+  "durationMs": 1319.1781,
+  "versionsBefore": {
+    "Python.Python.3.13": "3.13.14",
+    "Python.Python.3.14": "3.14.4"
+  },
+  "versionsAfter": {
+    "Python.Python.3.13": "3.13.15",
+    "Python.Python.3.14": "3.14.7"
+  },
+  "timestamp": "2026-10-05T15:31:47.6990204+00:00",
+  "finishedAt": "2026-10-05T15:31:49.0199426+00:00"
+}

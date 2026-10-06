@@ -86,6 +86,9 @@ internal sealed class BakedRoundRect : IDisposable
 /// <summary>Draws a <see cref="ComposerLightAnimator"/>'s current frame.</summary>
 public sealed class ComposerLightRenderer : IDisposable
 {
+    /// <summary>CPU SkSL and profile preparation before GPU linking (no graphics context required).</summary>
+    public static void Prepare() { _ = ComposerLightShaders.RotateBake; _ = ComposerLightShaders.Rotate; _ = ComposerLightShaders.Moving; _ = ComposerLightShaders.Aura; _ = ComposerLightShaders.Profiles; }
+
     private const int Max = EllipseBuffer.Capacity;
 
     // Large and Small's blob fields, baked at device scale (1 px of margin): the inner blobs and the stroke's.
