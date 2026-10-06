@@ -131,6 +131,21 @@ public sealed class AccountCapsuleTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "MA-9")]
     [Trait("Rule", "R-TEST-4")]
+    public void Reduce_Motion_turned_on_while_the_light_eases_lands_it_at_once_and_leaves_no_frame_waiting() => Run("1", (h, capsule) =>
+    {
+        capsule.Apply(Pill(use: 0.3), animate: false);
+        h.Settle();
+        capsule.Apply(Pill(use: 0.8), animate: true);
+        h.Step(100);
+        Assert.True(h.Frames.Pending > 0, "the ease waits for a frame");
+        Marrow.UI.Port.EnvironmentValues.SetAccessibilityReduceMotion(h.Window, true);
+        Assert.Equal(0, h.Frames.Pending);
+        Assert.Equal(Text(UsageLight.Color(0.2, dark: false)), Text(capsule.LightNow));
+    }, motion: true);
+
+    [Fact]
+    [Trait("Feature", "MA-9")]
+    [Trait("Rule", "R-TEST-4")]
     public void Under_Reduce_Motion_the_light_lands_at_once() => Run("1", (h, capsule) =>
     {
         capsule.Apply(Pill(use: 0.3), animate: false);

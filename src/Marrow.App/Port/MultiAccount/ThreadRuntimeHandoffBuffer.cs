@@ -8,7 +8,9 @@ namespace Marrow.App.Runtime;
 
 public sealed partial class ThreadRuntime
 {
-    private readonly List<string> pendingHandoffEvents = [];
+    private List<string>? pendingHandoffList;
+    // Made on first use: a runtime that is resolved before anything was captured (a card answered, a test's bare runtime) needs it without a constructor having run.
+    private List<string> pendingHandoffEvents => pendingHandoffList ??= [];
     private long pendingHandoffBytes;
     private readonly Dictionary<string, long> rawHandoffToolBytes = new(StringComparer.Ordinal);
     private bool handoffJournalInitialized;
@@ -52,13 +54,15 @@ public sealed partial class ThreadRuntime
     private void BufferHandoff(string? line, bool preserve = false)
     {
         if (line is null) return;
-        if (!handoffJournalInitialized)
+        // Keep a sticky spool once a second account, an approval, display cleanup or clipping makes raw history necessary.
+        var needed = preserve || UsesHandoffJournal || line.Contains('—', StringComparison.Ordinal);
+        // An earlier session's spool also keeps it. Storage is asked only when that answer can still change the outcome, so a runtime that never spools never reads it.
+        if (!needed && !requestedHandoffJournal && !handoffJournalInitialized)
         {
             handoffJournalInitialized = true;
-            requestedHandoffJournal |= File.Exists(HandoffJournal.PathIn(HandoffFolder));
+            needed = File.Exists(HandoffJournal.PathIn(HandoffFolder));
         }
-        // Keep a sticky spool once a second account, an approval, display cleanup or clipping makes raw history necessary.
-        requestedHandoffJournal |= preserve || UsesHandoffJournal || line.Contains('—', StringComparison.Ordinal);
+        requestedHandoffJournal |= needed;
         pendingHandoffEvents.Add(line);
         pendingHandoffBytes += Encoding.UTF8.GetByteCount(line) + 1L;
         if (pendingHandoffBytes >= 262_144)

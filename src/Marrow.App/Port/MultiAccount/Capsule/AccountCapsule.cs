@@ -93,7 +93,11 @@ internal sealed class AccountCapsule : Panel
         };
         PropertyChanged += (_, e) =>
         {
-            if (e.Property == EnvironmentValues.AccessibilityReduceMotionProperty) { UpdateGlow(false); EnsureLoop(); Repaint(); }
+            if (e.Property == EnvironmentValues.AccessibilityReduceMotionProperty)
+            {
+                if (ReduceMotion) foreach (var running in new[] { colour, fill, arc, pop, glowBlur, glowOpacity, press }) running.Finish(); // a run that began before it is not left to finish by frames (OD-0076)
+                UpdateGlow(false); EnsureLoop(); Repaint();
+            }
         };
     }
 

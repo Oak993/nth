@@ -243,7 +243,6 @@ public sealed partial class ThreadRuntime : MainActorModel
     private sealed record SessionSignature
     {
         public required ProviderKind Provider { get; init; }          // :511
-        public Guid? AccountId { get; init; } // PORT-ONLY: OD-0114 / ED-NEW-ma-1; process identity.
         public required string Directory { get; init; }               // :512
         public RuntimeMode? LaunchRuntimeMode { get; init; }          // :513
         public string? LaunchEffort { get; init; }                    // :514
@@ -252,9 +251,12 @@ public sealed partial class ThreadRuntime : MainActorModel
         public InteractionMode? LaunchInteraction { get; init; }      // :519
         public HydraLaunch? Hydra { get; init; }                      // :522
         public required bool AntiSlopEnabled { get; init; }           // :525
-        public string? LocalServerId { get; init; } // PORT-ONLY (ED-NEW-ma-3): changing server restarts the session
-        public long? LocalCatalogRevision { get; init; } // ED-NEW-ma-3: refreshed capabilities/models replace the bound snapshot
     }
+
+    // PORT-ONLY: kept apart from SessionSignature, which stays the nine ordered fields of ThreadRuntime.swift:510-526 (PR-RUNTIME-021).
+    // OD-0114 / ED-NEW-ma-1: the account the process runs as. ED-NEW-ma-3: the Local server (changing it restarts the session) and the catalogue
+    // revision (refreshed capabilities and models replace the bound snapshot). The default (all null) is a session with none of these.
+    private readonly record struct SessionOrigin(Guid? AccountId, string? LocalServerId, long? LocalCatalogRevision);
 
     // :528-533
     public enum DeltaKind
@@ -419,6 +421,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     private TaskHandle? warmup;
     private string? unsentSessionID;
     private SessionSignature? sessionSignature;
+    private SessionOrigin sessionOrigin;
     private bool antiSlopFallbackSent;
     private bool continuationSent;
     private long sessionEpoch;
@@ -1729,7 +1732,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             if (unsentSessionID is { } pendingSessionID)
             {
                 unsentSessionID = null;
-                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = pendingSessionID, ProviderAccountID = sessionSignature?.AccountId ?? current.ProviderAccountID });
+                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = pendingSessionID, ProviderAccountID = sessionOrigin.AccountId ?? current.ProviderAccountID });
             }
             if (command is not null) app.Providers.RecordCommand(command.Name, thread.Provider);
         }
@@ -1882,7 +1885,6 @@ public sealed partial class ThreadRuntime : MainActorModel
         return new SessionSignature
         {
             Provider = thread.Provider,
-            AccountId = thread.ProviderAccountID,
             Directory = directory,
             LaunchRuntimeMode = thread.Provider is ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin or ProviderKind.Antigravity
                 ? thread.RuntimeMode
@@ -1927,9 +1929,9 @@ public sealed partial class ThreadRuntime : MainActorModel
             localTarget = app.Providers.Local.Resolve(thread.Model)
                 ?? throw new ProviderError(new ProviderError.Case.Failed("That local server or model is unavailable. Refresh the model list and select it again."));
         }
-        var signature = MakeSessionSignature(launchThread, directory, app.Settings.AntiSlopEnabled, hydra)
-            with { LocalServerId = localTarget?.Server.Id, LocalCatalogRevision = localTarget is null ? null : app.Providers.Local.Revision };
-        if (session is { IsRunning: true } && sessionSignature == signature) return session;
+        var signature = MakeSessionSignature(launchThread, directory, app.Settings.AntiSlopEnabled, hydra);
+        var origin = new SessionOrigin(launchThread.ProviderAccountID, localTarget?.Server.Id, localTarget is null ? null : app.Providers.Local.Revision);
+        if (session is { IsRunning: true } && sessionSignature == signature && sessionOrigin == origin) return session;
 
         // Resolve the login environment before tearing down the current session.
         await LoginEnvironment.Load();
@@ -1983,6 +1985,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             ProviderSession candidate = MakeApiSession(thread.ProviderSessionID);
             session = candidate;
             sessionSignature = signature;
+            sessionOrigin = origin;
             var started = false;
             try
             {
@@ -2001,6 +2004,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     candidate = MakeApiSession(resumeID: null);
                     session = candidate;
                     sessionSignature = signature;
+                    sessionOrigin = origin;
                     sessionID = await candidate.Start();
                 }
 
@@ -2068,6 +2072,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         var cliCandidate = MakeSession(thread.ProviderSessionID);
         session = cliCandidate;
         sessionSignature = signature;
+        sessionOrigin = origin;
         var cliStarted = false;
         isStartingSession = true;
         try
@@ -2093,6 +2098,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 cliCandidate = MakeSession(resumeID: null);
                 session = cliCandidate;
                 sessionSignature = signature;
+                sessionOrigin = origin;
                 sessionID = await cliCandidate.Start();
             }
 
@@ -2933,7 +2939,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
         else
         {
-            app.UpdateThread(ThreadID, thread => thread with { ProviderSessionID = sessionID, ProviderAccountID = sessionSignature?.AccountId ?? thread.ProviderAccountID });
+            app.UpdateThread(ThreadID, thread => thread with { ProviderSessionID = sessionID, ProviderAccountID = sessionOrigin.AccountId ?? thread.ProviderAccountID });
         }
     }
 
@@ -2979,6 +2985,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     {
         sessionEpoch++;
         sessionSignature = null;
+        sessionOrigin = default;
         unsentSessionID = null;
         antiSlopFallbackSent = false;
         continuationSent = false;

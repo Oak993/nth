@@ -13,18 +13,10 @@ namespace Marrow.App.Tests.Views.Composer.MultiAccount;
 [Collection("Headless")]
 public sealed class ComposerCapsuleSlotTests(HeadlessSession headless)
 {
-    private sealed class Scene
-    {
-        public required AccountsRig Rig { get; init; }
-        public required CapsuleStyleSetting Style { get; init; }
-        public CapsuleSubject? Subject { get; set; }
-        public ComposerCapsuleSlot? Slot { get; set; }
-    }
-
-    private void Run(Action<MultiAccountHarness, Scene> check, Action<Scene>? setup = null, bool reduceMotion = false, bool motion = false)
+    private void Run(Action<MultiAccountHarness, CapsuleSlotScene> check, Action<CapsuleSlotScene>? setup = null, bool reduceMotion = false, bool motion = false)
     {
         var rig = new AccountsRig();
-        var scene = new Scene { Rig = rig, Style = new CapsuleStyleSetting(rig.Settings) };
+        var scene = new CapsuleSlotScene { Rig = rig, Style = new CapsuleStyleSetting(rig.Settings) };
         setup?.Invoke(scene);
         MultiAccountHarness.Run(headless, rig, () =>
         {

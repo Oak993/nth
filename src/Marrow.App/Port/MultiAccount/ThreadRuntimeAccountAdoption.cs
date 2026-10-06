@@ -41,8 +41,8 @@ public sealed partial class ThreadRuntime
         var destination = Thread!;
         session = candidate;
         var hydra = KeepsHydraPolicyInSystemPrompt(destination.Provider) ? app.HydraLaunch(destination) : null;
-        sessionSignature = MakeSessionSignature(destination, directory, app.Settings.AntiSlopEnabled, hydra)
-            with { LocalServerId = local?.Server.Id, LocalCatalogRevision = local is null ? null : app.Providers.Local.Revision };
+        sessionSignature = MakeSessionSignature(destination, directory, app.Settings.AntiSlopEnabled, hydra);
+        sessionOrigin = new SessionOrigin(destination.ProviderAccountID, local?.Server.Id, local is null ? null : app.Providers.Local.Revision);
         Observe(candidate);
         if (limited is not null) ResumeHandshakeReply(candidate, configuration, limited);
         else

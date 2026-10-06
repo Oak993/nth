@@ -221,7 +221,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Existing fixtures can retain the provider-only contract.
         var configuredAccounts = accounts ?? (settings as AccountProviderSettings)?.Accounts;
         accountStore = configuredAccounts is { SaveBlocked: false } ? configuredAccounts : null;
-        accountEnvironment = accountStore is null ? null : new AccountEnvironment(accountDataRoot ?? Marrow.Services.Store.Storage.Root);
+        accountEnvironment = accountStore is null ? null : new AccountEnvironment(accountDataRoot is { } dataRoot ? () => dataRoot : () => Marrow.Services.Store.Storage.Root);
         InitializeLocal(local); // PORT-ONLY (ED-NEW-ma-3)
 
         // :164
