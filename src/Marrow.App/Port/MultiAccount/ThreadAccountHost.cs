@@ -74,6 +74,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             var proofFingerprint = await FingerprintAsync(proof, ct);
             if (stamp != runtime.HandshakeStamp || fingerprint != proofFingerprint) continue;
             ct.ThrowIfCancellationRequested();
+            await incoming.PrepareForAdoptionAsync(ct);
             await MainActor.Run(() =>
             {
                 ct.ThrowIfCancellationRequested();

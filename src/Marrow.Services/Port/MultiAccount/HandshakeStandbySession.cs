@@ -32,15 +32,16 @@ public sealed class HandshakeStandbySession : IStandbySession
     public static async Task<HandshakeStandbySession> StartAsync(ProviderSession session, SessionConfiguration configuration, CancellationToken ct)
     {
         // These providers enforce IsFinalReport before exposing tools or executing an action.
-        // A CLI needs its own verified restricted launch before it can be used for priming.
-        if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local))
+        // Claude additionally verifies its temporary agent, effective policy and actual init identity.
+        if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local)
+            && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
         var standby = new HandshakeStandbySession(session, configuration);
         Task<string>? start = null;
         try
         {
             ct.ThrowIfCancellationRequested();
-            start = session.Start();
+            start = session is ClaudeSession claude ? claude.StartHandshakeAsync(ct) : session.Start();
             standby.SessionId = await start.WaitAsync(ct);
             if (string.IsNullOrWhiteSpace(standby.SessionId)) throw new InvalidOperationException("The standby did not report its session identity.");
             if (standby.stopped || !session.IsRunning) throw new InvalidOperationException("The standby exited while starting.");
@@ -93,10 +94,25 @@ public sealed class HandshakeStandbySession : IStandbySession
 
     public Task<string?> TextTurnAsync(string prompt, CancellationToken ct) => RunTextTurnAsync(prompt, true, ct);
 
+    public async Task PrepareForAdoptionAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (!ownsSession || stopped || !ready || completion is not null || !session.IsRunning)
+                throw new InvalidOperationException("Only a completed standby can be prepared for adoption.");
+            if (session is ClaudeSession claude) await claude.RestoreHandshakeToolsAsync(ct);
+        }
+        catch { if (ownsSession) Stop(); throw; }
+        finally { gate.Release(); }
+    }
+
     public ProviderSession TakeSession()
     {
         if (!ownsSession || stopped || !ready || completion is not null || gate.CurrentCount == 0 || !session.IsRunning)
             throw new InvalidOperationException("Only a completed standby can be adopted.");
+        if (session is ClaudeSession { HandshakeToolsRestored: false })
+            throw new InvalidOperationException("The CLI tools must be restored before adoption.");
         ownsSession = false;
         session.OnEvent = null;
         return session;
@@ -109,7 +125,8 @@ public sealed class HandshakeStandbySession : IStandbySession
         await gate.WaitAsync(ct);
         try
         {
-            if (!ownsSession || stopped) throw new InvalidOperationException("The standby is unavailable.");
+            if (!ownsSession || stopped || session is ClaudeSession { HandshakeToolsRestored: true })
+                throw new InvalidOperationException("The standby is unavailable for text-only transfer.");
             ready = false;
             needsReadBack = readBack;
             messages.Clear();
@@ -126,6 +143,7 @@ public sealed class HandshakeStandbySession : IStandbySession
                 IsFinalReport = true,
             }).WaitAsync(linked.Token);
             var answer = await result.WaitAsync(linked.Token);
+            if (session is ClaudeSession claude) SessionId = claude.VerifiedHandshakeIdentity;
             ready = true;
             return answer;
         }

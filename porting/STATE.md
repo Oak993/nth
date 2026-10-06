@@ -658,3 +658,10 @@ The shared report scheduler now accepts overlapping visible-view leases without 
 A connected eligible API account can be pinned for this conversation through the public App operation; the next request retains the real session/context, uses its chosen key/defaults and persists the independent pin. Off/capped/missing/foreign accounts are rejected and Back to order preserves automatic-switching OFF. Focused Windows6/6 and App account/traceability132/132, zero skips/build warnings/errors; exact methods alone twice.
 
 **Incomplete:** selecting another CLI/Local account via the guarded handoff; verified CLI restricted priming/restoration; private cost/light-summary/between-tool safe-pause joins; report leases still await helper view binding. Step1 NOT READY/unpushed; Settings/capsule remain helper-owned/unmerged. No native/DONE/release claim.
+
+
+## T11 Claude private priming/restoration checkpoint, Codex, 2026-10-06
+
+Claude text-only context transfer now has a version/effective-policy gate, empty main-agent tool pool, actual session/init proof, action denial, original settings/permission restoration in the same process and a bounded cleanup deadline. The App host awaits restoration and then reruns final atomic guards before releasing the outgoing session. Narrow Windows Services165/165; App account131/131 and rules3/3, zero skips/build warnings/errors. Exact new method failures reproduced alone twice; fixture compile errors and accidentally excluded method-name runs do not count. No real CLI/network/model ran.
+
+**Incomplete:** installed/native Claude policy verification and other CLI restrictions/restoration; private quota-cost estimate, optional incoming light-model summary, between-tool safe pause and manual CLI/Local selection. Helper Settings/capsule remain unmerged and their report leases await binding. Step1 NOT READY and unpushed. No native/DONE/release claim.
