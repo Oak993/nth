@@ -79,6 +79,7 @@ public sealed partial class ThreadRuntime
 
         app.AutoContinue.TakeLimitOwnership(ThreadID);
         ReleaseSession(stop: true);
+        deferredHandoff = null;
         app.ApplyHandshakeAccount(ThreadID, configuration, sessionId, relay, pinAccount);
         var destination = Thread!;
         session = candidate;

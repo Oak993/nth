@@ -3,8 +3,12 @@ using Marrow.Core.Accounts;
 namespace Marrow.Core.Tests.Accounts;
 
 /// <summary>A scripted <see cref="IThreadAccountHost"/>: no CLI, no model, no network. Every call lands in <see cref="Log"/>.</summary>
-public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost
+public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost, IDeferredDeliveryHost
 {
+    public HashSet<string> DeferredAccounts { get; } = [];
+
+    public bool DeliversDeferred(SwitchTarget target) => DeferredAccounts.Contains(target.Account.Id);
+
     public List<string> Log { get; } = [];
 
     public string ActiveAccountId { get; set; } = "";

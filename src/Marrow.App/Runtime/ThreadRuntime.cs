@@ -1764,6 +1764,15 @@ public sealed partial class ThreadRuntime : MainActorModel
                 injectedContinuation = true;
             }
 
+            // PORT-ONLY (OD-0116, ED-NEW-ma-engine-4): the context an account without a standby was handed travels with its first real turn.
+            var injectedHandoff = false;
+            var handoffEpoch = sessionEpoch;
+            if (deferredHandoff is { } handoff && commandName is null)
+            {
+                prompt = handoff + "\n\n" + prompt;
+                injectedHandoff = true;
+            }
+
             var (nextHydraBudget, dropNotice) = hydraBudget.TakeDropNotice();
             hydraBudget = nextHydraBudget;
             if (dropNotice is not null) prompt = dropNotice + prompt;
@@ -1787,6 +1796,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
             if (injectedAntiSlopPolicy && sessionEpoch == antiSlopEpoch) antiSlopFallbackSent = true;
             if (injectedContinuation && sessionEpoch == continuationEpoch) continuationSent = true;
+            if (injectedHandoff && sessionEpoch == handoffEpoch) deferredHandoff = null;
             if (unsentSessionID is { } pendingSessionID)
             {
                 unsentSessionID = null;

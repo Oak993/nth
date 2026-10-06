@@ -410,6 +410,10 @@ public sealed class HandshakeMachine(
                 standby = await host.StartStandbyAsync(to, token);
             }
 
+            // A deferred destination (no verified standby) never continues the reply: its first real turn carries the context.
+            var deferred = Deferred(to);
+            if (deferred) resume = false;
+
             EnsureTransferAuthorized(from, to, why);
             SetPhase(HandshakePhase.Linking);
             summary ??= await summaries.BuildAsync(threadId, token);
@@ -440,11 +444,11 @@ public sealed class HandshakeMachine(
             string? readBack = null;
             if (!received)
             {
-                readBack = await standby.ReceiveAsync(new HandoffPackage(bring, summary, briefing), CurrentOptions.Enabled, token);
+                readBack = await standby.ReceiveAsync(new HandoffPackage(bring, summary, briefing), CurrentOptions.Enabled && !deferred, token);
                 received = true;
             }
 
-            if (CurrentOptions.Enabled)
+            if (CurrentOptions.Enabled && !deferred)
             {
                 SetPhase(HandshakePhase.InSync);
                 if (!synced)
@@ -485,6 +489,8 @@ public sealed class HandshakeMachine(
         if (host.AtSafePoint) await SwitchNowAsync(ct);
     }
 
+    private bool Deferred(SwitchTarget to) => host is IDeferredDeliveryHost deferred && deferred.DeliversDeferred(to);
+
     private void EnsureTransferAuthorized(string from, SwitchTarget to, HandshakeReason why)
     {
         if (!PolicyStillCurrent() || host.ActiveAccountId != from || host.Pinned
@@ -513,7 +519,8 @@ public sealed class HandshakeMachine(
         // grants continuation; Stop/unset keep working until the natural reply end (or hard limit).
         if (reason is HandshakeReason.NearLimit or HandshakeReason.EarlierAccountBack && host.ReplyInFlight)
         {
-            if (Get(DecisionKind.MidReply).Value != DecisionValues.Finish) return;
+            // A deferred destination cannot continue a reply: the source reply ends first, whatever was chosen.
+            if (Deferred(target) || Get(DecisionKind.MidReply).Value != DecisionValues.Finish) return;
             resume = true;
         }
         SetPhase(HandshakePhase.Switch);

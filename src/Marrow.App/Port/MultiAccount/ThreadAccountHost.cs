@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 namespace Marrow.App.Runtime;
 
 public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillStore pills, IHandoffSummary summaries,
-    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null, Func<bool>? manualSelection = null) : IThreadAccountHost, IAccountSwitchCommitGuard, IIncomingBriefingHost
+    Func<SessionConfiguration, Guid, AccountSessionLaunch>? launch = null, Func<bool>? manualSelection = null) : IThreadAccountHost, IAccountSwitchCommitGuard, IIncomingBriefingHost, IDeferredDeliveryHost
 {
     private readonly Func<SessionConfiguration, Guid, AccountSessionLaunch> create = launch ?? ((configuration, id) => AccountSessionFactory.Create(app.Providers, configuration, id, freshContext: true));
     private HandshakeStandbySession? prepared;
@@ -17,6 +17,15 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     private long preparedEpoch;
     private long preparationGeneration;
     private SwitchTarget? preparedTarget;
+    private DeferredStandby? deferredPrepared;
+
+    // OD-0116 (lead decision 2026-10-06): only Claude (after its gate) and the API/Local providers are primed in a verified text-only standby. No other CLI is ever started early.
+    private static bool HasVerifiableStandby(ProviderKind provider) => provider is ProviderKind.Claude or ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai
+        or ProviderKind.OpenRouter or ProviderKind.Local;
+
+    public bool DeliversDeferred(SwitchTarget target) =>
+        !HasVerifiableStandby(incomingProvider(target))
+        || deferredPrepared is not null && string.Equals(deferredPrepared.Configuration.AccountId?.ToString("D"), target.Account.Id, StringComparison.OrdinalIgnoreCase);
     public string ActiveAccountId => runtime.HandshakeAccountId.ToString("D");
     private PillResume? Relay => app.Thread(runtime.ThreadID)?.PillRelay is { } saved ? PillRelayResolver.Resolve(pills.Pills, saved) : null;
     public Pill? Pill => Relay?.Pill;
@@ -34,16 +43,40 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         var id = Guid.Parse(target.Account.Id);
         bool CanTransfer() => SourceStillCurrent(from, epoch) && generation == preparationGeneration
             && AccountAvailable(original.Provider, id) && SameTransferSettings(original, runtime.CreateHandshakeConfiguration(target));
+        if (!HasVerifiableStandby(original.Provider)) return PrepareDeferred(original, target, from, epoch, generation);
         var candidate = create(original, id);
         app.ApiKeys.BindPrivate(candidate.Session, Guid.Parse(target.Account.Id));
-        var standby = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer,
-            observeUsage: () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(candidate.Configuration.AccountId!.Value)));
+        HandshakeStandbySession standby;
+        try
+        {
+            standby = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer,
+                observeUsage: () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(candidate.Configuration.AccountId!.Value)));
+        }
+        catch (Exception) when (original.Provider == ProviderKind.Claude && !ct.IsCancellationRequested)
+        {
+            // The Claude gate did not pass (old version, policy not enforced or reported, no acknowledged text-only init): the same deferred path.
+            return PrepareDeferred(original, target, from, epoch, generation);
+        }
         if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
         {
             await standby.DisposeAsync();
             throw new InvalidOperationException("The outgoing conversation changed while the standby was starting.");
         }
         prepared = standby;
+        deferredPrepared = null;
+        preparedFrom = from;
+        preparedEpoch = epoch;
+        preparedTarget = target;
+        return standby;
+    }
+
+    private IStandbySession PrepareDeferred(SessionConfiguration original, SwitchTarget target, string from, long epoch, long generation)
+    {
+        if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
+            throw new InvalidOperationException("The outgoing conversation changed while the destination was being prepared.");
+        var standby = new DeferredStandby(original);
+        prepared = null;
+        deferredPrepared = standby;
         preparedFrom = from;
         preparedEpoch = epoch;
         preparedTarget = target;
@@ -52,6 +85,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     public async Task<string?> RequestBriefingAsync(HandoffSummary summary, CancellationToken ct)
     {
         var account = app.Settings.Accounts.Get(Guid.Parse(ActiveAccountId));
+        if (!HasVerifiableStandby(account.Service)) return null;
         var from = ActiveAccountId;
         var epoch = runtime.HandshakeStamp.Epoch;
         var target = new SwitchTarget(new(account.Id.ToString("D"), account.Service.Id, account.CustomName ?? app.Settings.Accounts.DefaultName(account.Id)));
@@ -87,6 +121,11 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
 
     public async Task SwitchAsync(IStandbySession standby, SwitchTarget target, bool resumeReply, CancellationToken ct)
     {
+        if (standby is DeferredStandby deferred)
+        {
+            await SwitchDeferredAsync(deferred, target, ct);
+            return;
+        }
         if (standby is not HandshakeStandbySession incoming || !ReferenceEquals(prepared, incoming) || incoming.ReceivedPackage is not { } original)
             throw new InvalidOperationException("The standby does not belong to this conversation or has not acknowledged its context.");
         for (var attempt = 0; attempt < 3; attempt++)
@@ -131,6 +170,57 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             return;
         }
         throw new InvalidOperationException("The outgoing conversation kept changing before its final context was acknowledged.");
+    }
+
+    private async Task SwitchDeferredAsync(DeferredStandby standby, SwitchTarget target, CancellationToken ct)
+    {
+        if (!ReferenceEquals(deferredPrepared, standby) || standby.ReceivedPackage is not { } package || preparedTarget is not { } original
+            || !string.Equals(original.Account.Id, target.Account.Id, StringComparison.OrdinalIgnoreCase) || original.StepIndex != target.StepIndex || original.Step != target.Step
+            || standby.Configuration.AccountId != Guid.Parse(target.Account.Id))
+            throw new InvalidOperationException("The prepared destination does not belong to this conversation or has not received its context.");
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            CheckDeferred(standby, target);
+            var stamp = runtime.HandshakeStamp;
+            var final = await summaries.BuildAsync(runtime.ThreadID, ct);
+            var context = package.Bring switch
+            {
+                Bring.Full => await File.ReadAllTextAsync(final.FilePath ?? throw new InvalidOperationException("The complete conversation archive is unavailable."), ct),
+                Bring.AiSummary => package.Briefing + "\nRecorded context:\n" + final.Text,
+                _ => final.Text,
+            };
+            if (package.Bring != Bring.AiSummary && !string.IsNullOrWhiteSpace(package.Briefing)) context += "\nOutgoing account briefing:\n" + package.Briefing;
+            var preamble = "[Marrow Handshake] This conversation was handed over from another account. Treat the recorded context below as what was said so far; "
+                + "answer only the message that follows it.\n" + context;
+            ct.ThrowIfCancellationRequested();
+            var done = await MainActor.Run(() =>
+            {
+                ct.ThrowIfCancellationRequested();
+                CheckDeferred(standby, target);
+                if (stamp != runtime.HandshakeStamp) return false;
+                PillThreadState? relay = null;
+                if (target.StepIndex is { } index)
+                {
+                    var pill = Pill ?? throw new InvalidOperationException("The pill was removed while the Handshake was preparing.");
+                    if (index < 0 || index >= pill.Steps.Count || pill.Effective(index) != target.Step)
+                        throw new InvalidOperationException("The pill step changed while the Handshake was preparing.");
+                    relay = new(pill.Id, index, target.Account.Id);
+                }
+                runtime.AdoptDeferredAccount(standby.Configuration, preamble, relay, pinAccount: manualSelection is not null);
+                deferredPrepared = null;
+                preparedTarget = null;
+                return true;
+            });
+            if (done) return;
+        }
+        throw new InvalidOperationException("The outgoing conversation kept changing before its context could be handed over.");
+    }
+
+    private void CheckDeferred(DeferredStandby standby, SwitchTarget target)
+    {
+        if (!ReferenceEquals(deferredPrepared, standby) || !SameTransferSettings(standby.Configuration, runtime.CreateHandshakeConfiguration(target)))
+            throw new InvalidOperationException("The destination settings changed while the Handshake was preparing.");
+        CheckSource(target);
     }
 
     private void CheckCandidate(HandshakeStandbySession incoming, SwitchTarget target)
