@@ -99,6 +99,7 @@ internal static class VoicePillDiagnostics
         var visibility = new[] { pill.IsVisible, filtered.IsVisible, contents.IsVisible, orb.IsVisible, pill.Cross.IsVisible, pill.Body.IsVisible, rim.IsVisible };
         var labelVisibility = pill.Labels.Select(label => label.IsVisible).ToArray();
         var edgeFilter = filtered.Effect;
+        var materialClip = material.Clip;
         var uniforms = orb.Handler!.Scene!.Runtime(orb.Kind)!.Values.ToArray();
         void Save(string name)
         {
@@ -166,11 +167,21 @@ internal static class VoicePillDiagnostics
             Layers("mask-body", true, false, false, true);
             rim.IsVisible = visibility[6]; filtered.Effect = null;
             Layers("mask-glass-unfiltered", true, false, false, true);
+            // Counterfactuals distinguish the pill's extra capsule coverage from the shared material's own SDF edge.
+            filtered.Effect = edgeFilter;
+            material.Clip = null;
+            Layers("mask-glass-no-clip", true, false, false, true);
+            rim.IsVisible = false;
+            Layers("mask-body-no-clip", true, false, false, true);
+            filtered.Effect = null;
+            Layers("mask-body-no-clip-unfiltered", true, false, false, true);
+            rim.IsVisible = visibility[6];
+            Layers("mask-glass-no-clip-unfiltered", true, false, false, true);
         }
         finally
         {
             pill.IsVisible = visibility[0]; filtered.IsVisible = visibility[1]; contents.IsVisible = visibility[2]; orb.IsVisible = visibility[3]; pill.Cross.IsVisible = visibility[4];
-            pill.Body.IsVisible = visibility[5]; rim.IsVisible = visibility[6]; filtered.Effect = edgeFilter;
+            pill.Body.IsVisible = visibility[5]; rim.IsVisible = visibility[6]; filtered.Effect = edgeFilter; material.Clip = materialClip;
             for (var k = 0; k < pill.Labels.Count; k++) pill.Labels[k].IsVisible = labelVisibility[k];
             material.OpacityMask = materialMask; contents.OpacityMask = contentMask; orb.OpacityMask = orbMask;
             Save("restored");
