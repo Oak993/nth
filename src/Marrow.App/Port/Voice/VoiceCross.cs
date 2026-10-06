@@ -23,7 +23,6 @@ internal enum VoiceCrossLook { Disc, Beside }
 internal sealed class VoiceCross : Button
 {
     private static readonly FuncControlTemplate<Button> PlainTemplate = new((owner, scope) => new Border { Background = Brushes.Transparent });
-    private static readonly BlurEffect DiscEdgeFilter = new() { Radius = (1.6 - 0.5) / 0.288675 };
     private static readonly Geometry Strokes = StreamGeometry.Parse("M3.2,3.2 L8.8,8.8 M8.8,3.2 L3.2,8.8"); // viewBox 12
 
     private readonly LookMotion motion;
@@ -113,7 +112,7 @@ internal sealed class VoiceCross : Button
         var amount = hover.Value;
         if (Look == VoiceCrossLook.Disc)
         {
-            using (context.PushEffect(DiscEdgeFilter, bounds.Inflate(5))) DrawDisc(context, tokens, bounds, round, amount);
+            DrawDisc(context, tokens, bounds, round, amount);
             DrawIcon(context, bounds, Mix(tokens.PgX, tokens.PgXHover, amount), 11, 1.5);
         }
         else DrawBeside(context, tokens, bounds, round, amount);

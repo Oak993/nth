@@ -42,7 +42,7 @@ internal sealed class VoicePill : Panel
     private readonly Border body;
     private readonly VoicePillRim rim = new();
     private readonly Panel material = new() { IsHitTestVisible = false, Background = Brushes.Transparent };
-    private readonly Border filtered = new() { IsHitTestVisible = false, Effect = new BlurEffect { Radius = (1.6 - 0.5) / 0.288675 } };
+    private readonly Border filtered = new() { IsHitTestVisible = false };
     private readonly Panel contents = new() { Background = Brushes.Transparent };
     private readonly ScaleTransform crossTransform = new(0.6, 0.6);
     private VoiceListeningStyle style = VoiceListeningStyle.Pill;
