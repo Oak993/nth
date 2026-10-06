@@ -33,6 +33,8 @@ public sealed class ConsentModel
 
     public int Seed { get; }
 
+    public int Switches => host.Log.Count(entry => entry.StartsWith("switch:", StringComparison.Ordinal));
+
     public List<string> Violations { get; } = [];
 
     public string Describe => "seed " + Seed + ": " + string.Join("; ", script) + " | calls " + string.Join(",", host.Log);
