@@ -1265,9 +1265,9 @@ internal static class GlassMaterial
                 ($"flags{i}", [(float)r.Shape.Kind, r.Shape.Style == RoundedCornerStyle.Continuous ? (r.Shape.CircularInBand ? 2f : 1f) : 0f,
                     (float)Math.Sqrt(Math.Abs(r.Transform.M11 * r.Transform.M22 - r.Transform.M12 * r.Transform.M21)), (float)r.Opacity]),
                 ($"pointer{i}", [(float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f]),
-                ($"plain{i}", [r.NoRefraction ? 1f : 0f]),
             };
             foreach (var (name, value) in values) uniforms[name] = value;
+            uniforms[$"plain{i}"] = r.NoRefraction ? 1f : 0f;
         }
         var children = new SKRuntimeEffectChildren(effect) { ["backdrop"] = backdrop };
         using var maskShader = effect.ToShader(uniforms, children);
