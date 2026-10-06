@@ -371,9 +371,9 @@ internal sealed class VoicePill : Panel
     private void ApplyTint()
     {
         var tokens = VoicePillTokens.For(ActualThemeVariant);
-        // V-12.4: the shared material in a capsule, tinted pgBg; the glass's own frost and refraction are the app's
+        // V-12.4: the shared material in a capsule, tinted pgBg. OD-0121: no refraction (the page's pill is backdrop-filter blur saturate only); the glass's own frost, rim light and shade stay
         var tint = new SwiftColor(tokens.PgBg.R / 255.0, tokens.PgBg.G / 255.0, tokens.PgBg.B / 255.0, 1);
-        SwiftGlass.SetEffect(body, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Circular)).Tint(tint, tokens.PgBg.A / 255.0));
+        SwiftGlass.SetEffect(body, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Circular)).Tint(tint, tokens.PgBg.A / 255.0).WithoutRefraction());
     }
 
     private void ApplyMask()
