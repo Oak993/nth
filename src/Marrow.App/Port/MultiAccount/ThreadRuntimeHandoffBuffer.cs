@@ -8,9 +8,12 @@ namespace Marrow.App.Runtime;
 
 public sealed partial class ThreadRuntime
 {
-    private readonly List<string> pendingHandoffEvents = [];
+    // Created on first use, so a runtime built without its field initializers (parity fixtures) still buffers.
+    private List<string>? pendingHandoffEventList;
+    private List<string> pendingHandoffEvents => pendingHandoffEventList ??= [];
     private long pendingHandoffBytes;
-    private readonly Dictionary<string, long> rawHandoffToolBytes = new(StringComparer.Ordinal);
+    private Dictionary<string, long>? rawHandoffToolBytesMap;
+    private Dictionary<string, long> rawHandoffToolBytes => rawHandoffToolBytesMap ??= new(StringComparer.Ordinal);
     private bool handoffJournalInitialized;
     private bool handoffMessageBoundary;
     private bool requestedHandoffJournal;
@@ -52,11 +55,6 @@ public sealed partial class ThreadRuntime
     private void BufferHandoff(string? line, bool preserve = false)
     {
         if (line is null) return;
-        if (!handoffJournalInitialized)
-        {
-            handoffJournalInitialized = true;
-            requestedHandoffJournal |= File.Exists(HandoffJournal.PathIn(HandoffFolder));
-        }
         // Keep a sticky spool once a second account, an approval, display cleanup or clipping makes raw history necessary.
         requestedHandoffJournal |= preserve || UsesHandoffJournal || line.Contains('—', StringComparison.Ordinal);
         pendingHandoffEvents.Add(line);
@@ -68,14 +66,28 @@ public sealed partial class ThreadRuntime
         }
     }
 
+    // An earlier journal on disk keeps the spool sticky. Only a flush or a read needs to know, so a thread that never spools never touches the store.
+    private void ProbeHandoffJournal()
+    {
+        if (handoffJournalInitialized) return;
+        handoffJournalInitialized = true;
+        requestedHandoffJournal |= File.Exists(HandoffJournal.PathIn(HandoffFolder));
+    }
+
     private void FlushHandoffJournal(bool explicitCheckpoint = false)
     {
         requestedHandoffJournal |= explicitCheckpoint;
-        if (!UsesHandoffJournal || pendingHandoffEvents.Count == 0) return;
+        if (pendingHandoffEvents.Count == 0) return;
+        ProbeHandoffJournal();
+        if (!UsesHandoffJournal) return;
         HandoffJournal.AppendBatch(HandoffFolder, pendingHandoffEvents);
         pendingHandoffEvents.Clear();
         pendingHandoffBytes = 0;
     }
 
-    private string[] ReadHandoffJournal() => [.. HandoffJournal.Read(HandoffFolder), .. pendingHandoffEvents];
+    private string[] ReadHandoffJournal()
+    {
+        ProbeHandoffJournal();
+        return [.. HandoffJournal.Read(HandoffFolder), .. pendingHandoffEvents];
+    }
 }

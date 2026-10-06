@@ -222,7 +222,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         var configuredAccounts = accounts ?? (settings as AccountProviderSettings)?.Accounts;
         accountStore = configuredAccounts is { SaveBlocked: false } ? configuredAccounts : null;
         recoveredAccounts = configuredAccounts is { SaveBlocked: true } ? configuredAccounts : null;
-        accountEnvironment = accountStore is null ? null : new AccountEnvironment(accountDataRoot ?? Marrow.Services.Store.Storage.Root);
+        accountEnvironmentSource = accountStore is null ? null : new(() => new AccountEnvironment(accountDataRoot ?? Marrow.Services.Store.Storage.Root));
         InitializeLocal(local); // PORT-ONLY (ED-NEW-ma-3)
 
         // :164

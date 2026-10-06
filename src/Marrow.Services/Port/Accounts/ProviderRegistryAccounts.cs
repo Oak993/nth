@@ -11,7 +11,9 @@ public sealed partial class ProviderRegistry
 {
     private readonly AccountStore? accountStore;
     private readonly AccountStore? recoveredAccounts;
-    private readonly AccountEnvironment? accountEnvironment;
+    // The data root is read when an account folder is first needed, never while a registry is only being built (parity fixtures build one with no Storage bound).
+    private Lazy<AccountEnvironment>? accountEnvironmentSource;
+    private AccountEnvironment? accountEnvironment => accountEnvironmentSource?.Value;
     private readonly Dictionary<Guid, Task<string?>> accountSignIns = [];
     private readonly object accountSignInGate = new();
 
