@@ -4116,3 +4116,7 @@ Tests first: missing bold names failed alone twice, rich-title text regression r
 ## ED-NEW-ma-wave2-8
 MA-3b-14: the test-first shared card chassis already renders the model's verbatim mid-reply title, explanation and Finish now/Stop buttons. No additional renderer or duplicate policy is needed. Two new keyboard/pending-answer cases validate both actions, exact 12px/17px explanation styling and disabled overlapping input while the fake port holds the answer. They passed against the existing chassis; no fabricated red or existing assertion edits.
 Build 0 warnings/errors, new cases 2/2; native mid-reply appearance remains required.
+
+## ED-NEW-ma-wave1-6
+- MA-3b-6 App: locked page :4795-4871, OD-0115 opinions B and OD-0120. New button/list/chips/confirmation views; one optional ComposerView Install seam mounts beside attachment within its text column. W owns the real send gate and per-sent-message note attachment; Sent(note, round) supplies that association.
+- ENGINEERING DECISION: the page predates OD-0120 and supplies no confirmation action words. Use Cancel and Ask others (Link for the shared link confirmation), disclosure verbatim from the other-service card, and an unchecked plain checkbox. Unbound seam draws no new composer UI. Existing T16 views are reused without edits.
