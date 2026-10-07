@@ -35,9 +35,17 @@ internal static class PreviewMakers
         throw new ArgumentOutOfRangeException(nameof(id), id, "Not a maker of the preview's list.");
     }
 
-    /// <summary>CZ-4.5.5: the composer light's palette for the maker, by the composer slot's rule on the maker's dark and light stops.</summary>
+    // OD-0089 and the GAP-2 owner ruling: Customization previews the real slot, not the mock-up's High swatches.
+    // Purple has no maker (CZ-4.5.3); it must not shadow the Claude fallback.
+    private static readonly IReadOnlyDictionary<string, EffortBrand> ComposerBrands = Enum.GetValues<EffortBrand>()
+        .Where(brand => brand != EffortBrand.Purple).ToDictionary(brand => JewelPalettes.For(brand).Maker);
+
+    /// <summary>The real composer slot's palette for a locked maker, retaining the preview's current accents.</summary>
     internal static ComposerLightPalette Palette(string id, string accentDark, string accentLight)
     {
+        if (ComposerBrands.TryGetValue(id, out var brand))
+            return ComposerLightSlot.PaletteFor(brand) with { AccentDark = accentDark, AccentLight = accentLight };
+        // The remaining gallery makers have no fixed provider slot: keep the same pair rule on their own stops.
         var m = MakerLiquids.For(id);
         return ComposerLightPalettes.FromStops((m["dark.deep"], m["dark.mid"], m["dark.light"]), (m["light.deep"], m["light.mid"], m["light.light"]), accentDark, accentLight);
     }

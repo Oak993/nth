@@ -12,6 +12,7 @@ namespace Marrow.App.Tests.Port.Settings;
 
 // customization-SPEC CZ-4.5: the preview's makers, the stepping, the palette rule and the chip's text. The expected values come from stage.json,
 // which tests/fixtures/customization/stage.generate.cjs measures from the locked cz.js, never from the port.
+// GAP-2 light-pair cases instead freeze the approved real-slot maker stops; see the numeric InlineData source citations.
 [Collection("Headless")]
 public sealed class PreviewMakersTests(HeadlessSession headless)
 {
@@ -96,16 +97,67 @@ public sealed class PreviewMakersTests(HeadlessSession headless)
         }
     });
 
-    [Fact]
-    [Trait("Decision", "ED-251")] // customization-SPEC CZ-4.5.5: a maker's palette from liquid-palettes.json's own dark and light stops, by that rule
+    [Theory]
+    [Trait("Decision", "ED-251")]
     [Trait("Spec", "CZ-T31")]
-    public void A_makers_palette_is_its_dark_mid_and_light_and_its_light_deep_and_mid_with_the_accent()
+    // GAP-2 ruling: keep the real composer unchanged. OD-0089 maker pair (logic.js:483-484),
+    // with the approved 14-maker stops (effort-liquid-approved-v15.dc.html:360-373).
+    // gen.py:462 embeds logic.js; its literal four-model table is not a 14-maker oracle.
+    [InlineData("OpenAI", true, "#EEF0F5", "#D9DBE3")] // approved canvas:360
+    [InlineData("OpenAI", false, "#FFFFFF", "#EEF0F5")] // approved canvas:360
+    [InlineData("Claude", true, "#CC6B47", "#E0875F")] // approved canvas:361
+    [InlineData("Claude", false, "#B85A38", "#CC6B47")] // approved canvas:361
+    [InlineData("DeepSeek", true, "#3D5CFA", "#6A82FF")] // approved canvas:362
+    [InlineData("DeepSeek", false, "#2A45E0", "#3D5CFA")] // approved canvas:362
+    [InlineData("Meta", true, "#0070EC", "#2B95FF")] // approved canvas:363
+    [InlineData("Meta", false, "#0054C4", "#0070EC")] // approved canvas:363
+    [InlineData("Gemini", true, "#9C73CC", "#D96670")] // approved canvas:364
+    [InlineData("Gemini", false, "#4285F5", "#9C73CC")] // approved canvas:364
+    [InlineData("Cursor", true, "#F54E00", "#FF8040")] // approved canvas:365
+    [InlineData("Cursor", false, "#D93F00", "#F54E00")] // approved canvas:365
+    [InlineData("Grok", true, "#121218", "#26262E")] // approved canvas:366
+    [InlineData("Grok", false, "#030304", "#121218")] // approved canvas:366
+    [InlineData("OpenCode", true, "#25B34F", "#45DC6C")] // approved canvas:367
+    [InlineData("OpenCode", false, "#168A3A", "#25B34F")] // approved canvas:367
+    [InlineData("OpenCodeGo", true, "#00A4CD", "#3CCBEC")] // approved canvas:368
+    [InlineData("OpenCodeGo", false, "#007EA3", "#00A4CD")] // approved canvas:368
+    [InlineData("Zai", true, "#14306E", "#2F6BFF")] // approved canvas:369
+    [InlineData("Zai", false, "#0A1630", "#14306E")] // approved canvas:369
+    [InlineData("Devin", true, "#3CBC9B", "#6FDCBF")] // approved canvas:370
+    [InlineData("Devin", false, "#239377", "#3CBC9B")] // approved canvas:370
+    [InlineData("Copilot", true, "#D25AB4", "#F4A876")] // approved canvas:371
+    [InlineData("Copilot", false, "#8534F3", "#D25AB4")] // approved canvas:371
+    [InlineData("CommandCode", true, "#2E1B9C", "#6145DC")] // approved canvas:372
+    [InlineData("CommandCode", false, "#24157E", "#2E1B9C")] // approved canvas:372
+    [InlineData("Pi", true, "#C8102E", "#EC5560")] // approved canvas:373
+    [InlineData("Pi", false, "#A30C25", "#C8102E")] // approved canvas:373
+    public void Every_locked_makers_preview_and_real_slot_have_the_exact_approved_pair_in_each_appearance(string maker, bool dark, string c1, string c2) => headless.OnUiThread(() =>
     {
-        foreach (var maker in MakerLiquids.All)
-        {
-            var palette = PreviewMakers.Palette(maker["id"], "#4B9FFC", "#0067C0");
-            Assert.Equal(new ComposerLightPalette(maker["dark.mid"], maker["dark.light"], maker["light.deep"], maker["light.mid"], "#4B9FFC", "#0067C0"), palette);
-        }
-        Assert.Equal(("#B95D3A", "#D47E58", "#A14827", "#B95D3A"), (PreviewMakers.Palette("Claude", "#000000", "#000000").MakerHeartDark, PreviewMakers.Palette("Claude", "#000000", "#000000").MakerSecondDark, PreviewMakers.Palette("Claude", "#000000", "#000000").MakerHeartLight, PreviewMakers.Palette("Claude", "#000000", "#000000").MakerSecondLight));
+        static (string, string) Pair(ComposerLightPalette palette, bool isDark) => isDark
+            ? (palette.MakerHeartDark, palette.MakerSecondDark) : (palette.MakerHeartLight, palette.MakerSecondLight);
+        var expected = (c1, c2);
+        var preview = PreviewMakers.Palette(maker, "#4B9FFC", "#0067C0");
+        Assert.Equal(expected, Pair(preview, dark));
+        Assert.Equal(("#4B9FFC", "#0067C0"), (preview.AccentDark, preview.AccentLight));
+        var brand = Enum.GetValues<EffortBrand>().Single(b => b != EffortBrand.Purple && JewelPalettes.For(b).Maker == maker);
+        Assert.Equal(expected, Pair(ComposerLightSlot.PaletteFor(brand), dark));
+        using var rig = new CustomizationPageRig(light: !dark);
+        rig.Do(() => rig.Page.Session!.Pick(maker));
+        rig.Advance(1500);
+        Assert.Equal(dark ? ThemeVariant.Dark : ThemeVariant.Light, rig.Get(() => rig.Window.ActualThemeVariant));
+        Assert.Equal(expected, Pair(rig.Get(() => rig.Page.Stage!.Preview.Light.Palette), dark));
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-251")]
+    public void Gallery_makers_without_a_fixed_composer_brand_keep_the_existing_pair_rule_and_accents()
+    {
+        var locked = Enum.GetValues<EffortBrand>().Where(b => b != EffortBrand.Purple).Select(b => JewelPalettes.For(b).Maker).ToHashSet();
+        Assert.Equal(14, locked.Count);
+        var gallery = MakerLiquids.All.Where(m => !locked.Contains(m["id"])).ToArray();
+        Assert.Equal(16, gallery.Length);
+        foreach (var maker in gallery)
+            Assert.Equal(new ComposerLightPalette(maker["dark.mid"], maker["dark.light"], maker["light.deep"], maker["light.mid"], "#4B9FFC", "#0067C0"),
+                PreviewMakers.Palette(maker["id"], "#4B9FFC", "#0067C0"));
     }
 }
