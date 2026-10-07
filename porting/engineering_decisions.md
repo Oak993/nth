@@ -4065,3 +4065,7 @@ Multi-account steps 3b-5, job 0: the contract seams, their fakes and the two sha
 ## ED-NEW-ma-wave1-1
 
 ENGINEERING DECISION: MA-3b-1 popover model binds IThreadAccountPort and AccountStore; models, local-server subtitle and total connected-account count are supplied functions because job-0 rows do not carry these. Unknown usage remains unknown, never fabricated zero. Reorder preserves disconnected store slots (Settings precedent). Page AccountPanel :2674-2797 defines words, footer, bars and aria; OD-0117 gates Create a pill at two connected accounts across services. Display text is plain, with account identities retained in row data for rich styling by job 2. Events are unsubscribed on Dispose. No shared UI seam modified; job W supplies live inputs.
+
+## ED-NEW-ma-wave1-2
+
+ENGINEERING DECISION: MA-3b-8 UsagePanelModel reads current and other service IThreadAccountPorts, grouping unique accounts and counting all connected rows (including off/out). A supplied credits reader provides OpenRouter balances missing from job-0 ThreadAccount. Unknown balances/usage display no invented amount or bar. Next is the first enabled account with room in this service, as page B; disposal releases seam subscriptions. Page :4297-4350 and money :2102 supply display words. Two-page presentation belongs to job 9; no shared UsagePanel modified.
