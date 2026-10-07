@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Marrow.App.Port.Skills.Pages;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
+using Marrow.UI.Port;
 namespace Marrow.App.Port.MultiAccount.Opinions;
 internal sealed class ConsentCheckBox : CheckBox
 {
@@ -18,7 +19,7 @@ internal sealed class ConsentCheckBox : CheckBox
             check.PropertyChanged += (_, e) => { if (e.Property == IsCheckedProperty) tick.Text = check.IsChecked == true ? "✓" : ""; };
             return new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, Children =
             {
-                new Border { Width = 14, Height = 14, CornerRadius = new CornerRadius(3), BorderThickness = new Thickness(1), BorderBrush = ChromeTokens.SecondaryText.Brush(check), Child = tick },
+                new Border { Width = 14, Height = 14, BorderThickness = new Thickness(1), BorderBrush = ChromeTokens.SecondaryText.Brush(check), Child = tick }.RoundedRectangle(3, RoundedCornerStyle.Continuous),
                 LibraryUi.Text(label, 12),
             } };
         });

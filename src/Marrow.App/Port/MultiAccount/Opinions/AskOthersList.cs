@@ -38,7 +38,11 @@ internal sealed class AskOthersList : Decorator
             }
             button.IsEnabled = row.CanAsk && !model.Busy && model.Confirmation is null;
             button.Named(row.Text + (row.Selected ? ", selected" : ""), "ask-others-" + row.Account.Id.ToString("N"));
-            if (button.Content is Grid grid && grid.Children.Last() is TextBlock tick) tick.Text = row.Selected ? "✓" : "";
+            if (button.Content is Grid grid)
+            {
+                if (grid.Children[0] is StackPanel words) { ((TextBlock)words.Children[0]).Text = row.Account.Mono + "  " + row.Account.Name; ((TextBlock)words.Children[1]).Text = row.Model; }
+                if (grid.Children.Last() is TextBlock tick) tick.Text = row.Selected ? "\u2713" : "";
+            }
             rows.Children.Move(rows.Children.IndexOf(button), index++);
         }
         all.IsEnabled = !model.Busy && model.Confirmation is null && model.Rows.Any(r => r.CanAsk);

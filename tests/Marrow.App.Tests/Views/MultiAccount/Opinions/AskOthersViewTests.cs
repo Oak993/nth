@@ -12,6 +12,31 @@ namespace Marrow.App.Tests.Views.MultiAccount.Opinions;
 public sealed class AskOthersViewTests(HeadlessSession headless)
 {
     [Fact, Trait("Rule", "R-TEST-4")]
+    public void Open_list_updates_visible_account_name_and_model_after_the_port_changes()
+    {
+        var rig = new OpinionViewRig(); using var model = rig.Model(); AskOthersView? view = null;
+        MultiAccountHarness.Run(headless, rig.Accounts, () => view = new(model), h =>
+        {
+            SettingsProviderPopupLayers.Install(h.Window); h.Settle(); h.Press("ask-others-button");
+            rig.Accounts.Accounts.Rename(rig.Other, "Checker");
+            rig.Accounts.Accounts.SetDefaults(rig.Other, new() { Model = "Sonnet 5.5" }); rig.Current.Refresh(); h.Settle();
+            Assert.Contains(h.Words(view!.List), t => t.Contains("Checker", StringComparison.Ordinal));
+            Assert.Contains("Sonnet 5.5", h.Words(view.List));
+            Assert.DoesNotContain("Opus 5.5", h.Words(view.List));
+        });
+    }
+    [Fact, Trait("Rule", "R-TEST-4")]
+    public void Chips_render_each_selected_monogram_as_its_own_mark_with_the_page_separator()
+    {
+        var rig = new OpinionViewRig(); using var model = rig.Model(); AskOthersView? view = null;
+        MultiAccountHarness.Run(headless, rig.Accounts, () => view = new(model), h =>
+        {
+            model.Toggle(rig.Other); model.Toggle(rig.Cross); h.Settle();
+            Assert.Equal(new[] { "Ask also: ", "M2", "·", "C1" }, h.Words(view!.Chips));
+            Assert.Equal("Ask also: M2·C1", view.Chips.TextShown);
+        });
+    }
+    [Fact, Trait("Rule", "R-TEST-4")]
     public void Composer_seam_mounts_button_and_chips_in_the_actual_compose_box()
     {
         headless.OnUiThread(() =>
