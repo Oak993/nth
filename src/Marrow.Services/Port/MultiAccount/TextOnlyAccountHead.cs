@@ -1,13 +1,13 @@
 // PORT-ONLY: MA-3b-E1 / OD-0115. Checking/opinion heads can return text only; injection/warm-start capability does not grant tool-safe model turns.
 using Marrow.Core.Models;
+using Marrow.Core.Port.MultiAccount;
 using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.MultiAccount;
 
 public static class TextOnlyAccountHead
 {
-    public static bool Supports(ProviderKind service) => service is ProviderKind.Claude or ProviderKind.Deepseek
-        or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local or ProviderKind.Pi;
+    public static bool Supports(ProviderKind service) => ConversationHeadCapabilities.Supports(service);
 
     public static async Task<string> RunAsync(ProviderSession session, SessionConfiguration configuration, string prompt,
         Action<string> text, Func<bool> permitted, CancellationToken ct)
