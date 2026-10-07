@@ -121,7 +121,7 @@ internal sealed class VoiceCross : Button
     // `.vpill .px`: radial-gradient(80% 60% at 50% 0%, pgHi, transparent 75%) over pgXBg, inset 0 0 0 .5px pgXRim, the fringe, 0 1px 2px rgba(0,0,0,.12); hover filter brightness(1.12)
     private static void DrawDisc(DrawingContext context, VoicePillTokens tokens, Rect bounds, RoundedRect round, double amount)
     {
-        var shadow = new BoxShadows(new BoxShadow { OffsetY = 1, Blur = 2, Color = Color.FromArgb(0x1F, 0, 0, 0) });
+        var shadow = new BoxShadows(new BoxShadow { OffsetY = 1, Blur = SwiftShadow.Blur(1), Color = Color.FromArgb(0x1F, 0, 0, 0) });
         context.DrawRectangle(new SolidColorBrush(tokens.PgXBg), null, round, shadow);
         using (context.PushClip(round))
         {
@@ -129,13 +129,10 @@ internal sealed class VoiceCross : Button
                 context.DrawRectangle(HighlightBrush(tokens.PgHi), null, new Rect(-1.25, -0.1, 2.5, 1.2));
             if (amount > 0) context.DrawRectangle(new SolidColorBrush(Color.FromArgb((byte)Math.Round(0x1F * amount), 255, 255, 255)), null, round); // brightness(1.12): the disc lifts
         }
-        var inner = new BoxShadows(
-            new BoxShadow { IsInset = true, Spread = 0.5, Color = tokens.PgXRim },
-            [
-                new BoxShadow { IsInset = true, OffsetX = 0.5, Blur = 0.6, Spread = -0.1, Color = Color.FromArgb(0x4D, 255, 96, 150) },
-                new BoxShadow { IsInset = true, OffsetX = -0.5, Blur = 0.6, Spread = -0.1, Color = Color.FromArgb(0x52, 96, 176, 255) },
-            ]);
-        context.DrawRectangle(null, null, round, inner);
+        // CSS lists the topmost inset first: blue, pink, then the .5 px ring. Blur .6 means sigma .3.
+        context.Custom(new VoiceInsetFringe(bounds, Color.FromArgb(0x52, 96, 176, 255), -0.5,
+            Color.FromArgb(0x4D, 255, 96, 150), 0.5, 0.3f));
+        context.Custom(new VoiceInsetRing(bounds, 0.5, tokens.PgXRim, clipOuterDisc: true));
     }
 
     // `.xbtn`: hoverfill, inset 0 0 0 1px winedge, icon wink3, hover pressfill and wink
@@ -151,7 +148,7 @@ internal sealed class VoiceCross : Button
         var scale = size / 12;
         var origin = new Point((bounds.Width - size) / 2, (bounds.Height - size) / 2);
         using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(origin.X, origin.Y)))
-            context.DrawGeometry(null, new Pen(new SolidColorBrush(color), stroke / scale, lineCap: PenLineCap.Round), Strokes);
+            context.DrawGeometry(null, new Pen(new SolidColorBrush(color), stroke, lineCap: PenLineCap.Round), Strokes);
     }
 
     // radial-gradient(80% 60% at 50% 0%, hi, transparent 75%), drawn in a unit space the caller scales to 80 % by 60 % of the box

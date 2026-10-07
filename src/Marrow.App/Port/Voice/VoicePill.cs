@@ -81,6 +81,8 @@ internal sealed class VoicePill : Panel
         material.Children.Add(rim);
         filtered.Child = material;
         Children.Add(filtered);
+        // CSS element opacity fades the composed cross and each label, including overlapping paints.
+        RenderOptions.SetRequiresFullOpacityHandling(contents, true);
         Children.Add(contents);
         for (var k = 0; k < 3; k++)
         {
@@ -427,7 +429,8 @@ internal sealed class VoicePill : Panel
         ContentClip = new RectangleGeometry(new Rect(0, 0, Math.Max(width, 0), PillHeight), PillHeight / 2, PillHeight / 2);
         // OD-0121 (2): the capsule's edge is antialiased once, by the shared glass's own distance field (and the rim's rounded rectangle). The material takes a
         // plain rectangle (its own bounds), not a second antialiased capsule, which would square the edge pixels' coverage; only the label and cross take the capsule.
-        material.Clip = new RectangleGeometry(new Rect(0, 0, Math.Max(width, 0), PillHeight));
+        material.Clip = null;
+        material.ClipToBounds = true;
         contents.Clip = ContentClip;
         Clip = null;
     }
