@@ -21,7 +21,7 @@ internal sealed class AccountUsageBar : Control
     internal void Apply(PopoverUsageBar bar)
     {
         Target = bar.Fraction; Hot = bar.Hot; Out = bar.Out; Percent = bar.Percent;
-        shown.Set(bar.Fraction ?? 0, FrameClock.IsBound && !CapsuleMotion.Reduce(this) ? Animation.TimingCurve(.22, 1, .36, 1, .6) : null);
+        shown.Set(bar.Fraction ?? 0, FrameClock.IsBound && !CapsuleMotion.Reduce(this) ? Animation.TimingCurve(.32, .72, 0, 1, .6) : null);
         InvalidateVisual(); Applied?.Invoke();
     }
     public override void Render(DrawingContext context)

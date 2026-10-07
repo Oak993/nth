@@ -41,6 +41,7 @@ internal sealed class AccountPopoverRowControl : Decorator
     private readonly TextBlock name;
     private readonly TextBlock chip;
     private readonly TextBlock number;
+    private readonly Border numberPill, grip;
     private readonly TextBlock hs;
     private readonly TextBlock note;
     private readonly StackPanel main;
@@ -91,7 +92,7 @@ internal sealed class AccountPopoverRowControl : Decorator
         line.Children.Add(configButton); hs = MultiAccountText.Text(row.HandshakeText, 10.5, secondary: true); hs.Named(row.HandshakeAria, "popover-handshake-" + AccountId.ToString("N")); Grid.SetColumn(hs, 1); line.Children.Add(hs); main.Children.Add(line);
         note = MultiAccountText.Text("", 10.5, secondary: true); note.IsVisible = false; main.Children.Add(note);
         var body = new Grid { ColumnDefinitions = new ColumnDefinitions("22,20,26,*,26,22"), Margin = new Thickness(2, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
-        var grip = new Border { Width = 22, Height = 22, Background = Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText), Cursor = new Cursor(StandardCursorType.SizeAll) };
+        grip = new Border { Width = 16, Height = 24, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Background = Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText), Cursor = new Cursor(StandardCursorType.SizeAll) };
         grip.Named("Drag to set the order", "popover-grip-" + AccountId.ToString("N"));
         grip.PointerPressed += (_, e) =>
         {
@@ -147,7 +148,11 @@ internal sealed class AccountPopoverRowControl : Decorator
             foreach (var row in dragRows) row.SettleDrag(row.dragOffset.Value, row == this);
         };
         body.Children.Add(grip);
-        number = MultiAccountText.Text(row.Account.Number.ToString(CultureInfo.InvariantCulture), 12, secondary: true); number.Opacity = main.Opacity; Grid.SetColumn(number, 1); body.Children.Add(number);
+        number = MultiAccountText.Text(row.Account.Number.ToString(CultureInfo.InvariantCulture), 10.5, secondary: true, weight: SwiftFont.Weight.Semibold);
+        number.HorizontalAlignment = HorizontalAlignment.Center; number.VerticalAlignment = VerticalAlignment.Center;
+        numberPill = new Border { MinWidth = 18, Height = 18, Padding = new Thickness(5, 0), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Child = number, Opacity = main.Opacity,
+            Background = SwiftColor.Dynamic(SwiftColor.Black.Opacity(.055), SwiftColor.White.Opacity(.06)).Brush(this) }.RoundedRectangle(9, RoundedCornerStyle.Circular);
+        Grid.SetColumn(numberPill, 1); body.Children.Add(numberPill);
         mono = MultiAccountText.Text(row.Account.Mono, 10, weight: SwiftFont.Weight.Semibold);
         mono.HorizontalAlignment = HorizontalAlignment.Center; mono.VerticalAlignment = VerticalAlignment.Center;
         var hue = AccountMarkColors.Of(row.Account);
@@ -213,7 +218,7 @@ internal sealed class AccountPopoverRowControl : Decorator
             LinkButton.Named("Link " + row.Account.Name + " to check this thread’s work", "link-account-" + AccountId.ToString("N"));
         }
         name.Text = row.Account.Name; mono.Text = row.Account.Mono; chip.Text = row.Chip ?? ""; dot.IsVisible = row.Active; reset.Text = row.ResetText;
-        number.Text = row.Account.Number.ToString(CultureInfo.InvariantCulture); main.Opacity = row.Account.Enabled ? row.Dimmed ? .5 : 1 : .42; number.Opacity = main.Opacity;
+        number.Text = row.Account.Number.ToString(CultureInfo.InvariantCulture); main.Opacity = row.Account.Enabled ? row.Dimmed ? .5 : 1 : .42; numberPill.Opacity = main.Opacity; grip.Opacity = row.Account.Enabled ? .8 : .42;
         FiveHour.Apply(row.FiveHour); Week.Apply(row.Week); config.Apply(row.Config); hs.Text = row.HandshakeText;
         noFive.IsVisible = row.LocalText is null && row.NoFiveHourText is not null; fiveMeter.IsVisible = row.LocalText is null && row.NoFiveHourText is null; weekMeter.IsVisible = row.LocalText is null; localWords.IsVisible = row.LocalText is not null;
         FiveHour.IsVisible = fiveMeter.IsVisible; Week.IsVisible = weekMeter.IsVisible;
@@ -259,6 +264,6 @@ internal sealed class AccountPopoverRowControl : Decorator
     {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("30,*,26") };
         row.Children.Add(MultiAccountText.Text(label, 10.5, secondary: true)); Grid.SetColumn(bar, 1); bar.VerticalAlignment = VerticalAlignment.Center; row.Children.Add(bar);
-        var percent = MultiAccountText.Text(bar.Percent, 10, secondary: true); bar.Applied += () => percent.Text = bar.Percent; percent.FontFamily = new FontFamily("Cascadia Mono,Consolas"); percent.TextAlignment = TextAlignment.Right; Grid.SetColumn(percent, 2); row.Children.Add(percent); return row;
+        var percent = MultiAccountText.Text(bar.Percent, 10, secondary: true, weight: SwiftFont.Weight.Medium); bar.Applied += () => percent.Text = bar.Percent; percent.TextAlignment = TextAlignment.Right; Grid.SetColumn(percent, 2); row.Children.Add(percent); return row;
     }
 }
