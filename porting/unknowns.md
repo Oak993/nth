@@ -22,7 +22,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-22:** RESOLVED by OD-0002 (the build ships as Marrow) and OD-0008 C7 (install and data identity "Marrow Code").
 
-- **Status:** RESOLVED by OD-0002 / OD-0008 C7 / OD-0072. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER. Does not block reading, specification, or implementation.
+  Blocks the final packaging identity and Gate E artifact naming only.
 - **Why it cannot be resolved from source:** the pinned source names the product "Droppy Code",
   bundle id `iordv.droppycode`, and ships `TRADEMARK.md` with separate rules for names and marks;
   `LICENSE` section 7 adds attribution and origin terms. Whether this Windows build may ship under
@@ -64,7 +65,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-22:** RESOLVED by OD-0005 (Acrylic over the desktop, SKSL shader over app content), a named deviation; OD-0014 keeps the clear default.
 
-- **Status:** RESOLVED by OD-0005 / OD-0014. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER for acceptance of the deviation. Does not block reading, spec, or
+  the stack evaluation; it is a primary **input** to the stack evaluation.
 - **Evidence:** see `porting/platform_adaptations.md` PA-0001. The app renders every surface with
   macOS 26 Liquid Glass (19 `.glassEffect` sites, 3 `GlassEffectContainer` sites) and contains no
   `NSVisualEffectView` or SwiftUI `Material` fallback anywhere, so there is no alternative path in
@@ -84,7 +86,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-22:** RESOLVED by OD-0008 C5: PowerShell 7 when installed, otherwise Windows PowerShell.
 
-- **Status:** RESOLVED by OD-0008 C5. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** OPEN, INVESTIGATING. Blocks PA-0009 and PA-0011 decisions and any requirement that
+  depends on running a command the model produced.
 - **What source establishes (SOURCE FACT):** the macOS build captures the user login shell
   environment once at launch and augments PATH with Unix package-manager directories
   (`Core/Support/Shell.swift:325-457`); it classifies model-issued command text with a Unix-tool
@@ -126,7 +129,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-23 correction:** Cascadia Mono is not an inbox font: it resolves by name only while Windows Terminal is installed (probe P9 RESULT.md section 2). The port ships the unmodified static Cascadia Mono files of Microsoft's official release inside the app (ED-107), once the owner confirms the download.
 
-- **Status:** RESOLVED by OD-0009 / OD-0010 / ED-107. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER for the substitution decision. Does not block reading or
+  specification. Blocks any claim of visual parity for icons and text metrics.
 - **Evidence:** `porting/platform_adaptations.md` PA-0012 and PA-0013;
   `porting/evidence/sf_symbols_used.txt`.
 - **The facts:** the app uses 70 distinct SF Symbols across 206 sites, and resolves body and control
@@ -154,7 +158,7 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-22:** RESOLVED by OD-0008 C6: "Check failed" until the owner has a Windows feed; named deviation.
 
-- **Status:** BLOCKED_ON_ACCESS for live release/update evidence only. Feed identity is resolved by OD-0062 / OD-0100; no release was published in T39 (ED-608).
+- **Status:** BLOCKED_ON_OWNER / BLOCKED_ON_ACCESS. Blocks live end-to-end update verification only.
 - **Evidence:** `porting/platform_adaptations.md` PA-0014. `App/UpdateChecker.swift` selects the newest
   stable release that ships a disk image, from `https://gitlab.com/api/v4/projects/86415974/releases`.
   Published releases carry macOS disk images.
@@ -176,7 +180,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-22:** RESOLVED by OD-0012 F1: every remaining product-name occurrence becomes Marrow, except droppy-code.json and DROPPY_CODE_PROJECT_ROOT.
 
-- **Status:** RESOLVED by OD-0012 / OD-0015 / OD-0112. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER. Raised by OD-0002 (the build ships as Marrow). Blocks packaging
+  identity and the icon asset set; blocks nothing upstream of that.
 - **What the source ships:** `DroppyCode/Resources/AppIcon.icon/` (an Icon Composer document with
   `icon.json` plus layered assets: an SVG, `mascot (3).png`, `mascot dark.png`, `shadow dark.png`,
   `shadow def.png`), the `droppy-logo` imageset at 1x/2x, `docs/icon.png`, `docs/droppy-logo.png`,
@@ -194,7 +199,8 @@ carries that dependency in `porting/parity_matrix.json`.
 
 - **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
-- **Status:** RESOLVED by OD-0008 / BLK-0001. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER. Raised under contract section 8, which requires escalation rather
+  than silent reproduction when faithfully copying a behavior would destroy data.
 - **The behavior, verified directly in source:**
   - `App/Views/Settings/MCPSettingsPage.swift:564-566`: the custom-server ellipsis menu's
     `PopoverItem("Delete", symbol: "trash", isDestructive: true)` calls
@@ -277,7 +283,8 @@ Both remain open options for the owner alone.
 
 - **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
-- **Status:** RESOLVED by OD-0008 / BLK-0002. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
+  amendment AM-0001. Quarantined as BLK-0002 in `porting/blocked_requirements.json`.
 - **Consequence criteria met:** C4.
 - **Source evidence:** DroppyCode/Core/Models/MCPCustom.swift:15-19, :36-48; DroppyCode/Services/MCP/MCPStore.swift:245-248
 - **Upstream defect entry:** 17 in `porting/upstream_defects.md`.
@@ -295,7 +302,8 @@ Both remain open options for the owner alone.
 
 - **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
-- **Status:** RESOLVED by OD-0008 / BLK-0003. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
+  amendment AM-0001. Quarantined as BLK-0003 in `porting/blocked_requirements.json`.
 - **Consequence criteria met:** C1, C4.
 - **Source evidence:** DroppyCode/Services/Git/WorkingTreeWatch.swift:271 and :159-170, against Git.swift:445-462
 - **Upstream defect entry:** 81 in `porting/upstream_defects.md`.
@@ -314,7 +322,8 @@ Both remain open options for the owner alone.
 
 - **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
-- **Status:** RESOLVED by OD-0008 / BLK-0004. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 by the defect re-triage required by
+  amendment AM-0001. Quarantined as BLK-0004 in `porting/blocked_requirements.json`.
 - **Consequence criteria met:** C1, C4.
 - **Source evidence:** DroppyCode/Services/Git/Git.swift:586-590 (with :603-619 and :43)
 - **Upstream defect entry:** 84 in `porting/upstream_defects.md`.
@@ -334,7 +343,8 @@ Both remain open options for the owner alone.
 
 - **2026-09-22:** RESOLVED by OD-0008 (see the matching BLK entry in porting/blocked_requirements.json).
 
-- **Status:** RESOLVED by OD-0008 / BLK-0005. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** BLOCKED_ON_OWNER. Raised 2026-09-20 during Gate B specification. Quarantined as
+  BLK-0005.
 - **This is not a parity question.** Upstream the literal and AppInfo.name agree, because
   CFBundleDisplayName is "Droppy Code", so the inconsistency is latent and harmless there. The
   hazard is created by OD-0002, the approved rename to Marrow.
@@ -357,7 +367,8 @@ Both remain open options for the owner alone.
 
 - **2026-09-22:** RESOLVED by OD-0014: keep upstream's clear window (parity).
 
-- **Status:** RESOLVED by OD-0014. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** OPEN. Follows from OD-0005. Does not block the stack choice or implementation of
+  anything else; it decides how often the richer material is visible.
 - **The facts:** `UI/Chrome/WindowChrome.swift:116-117` sets `isOpaque = false` and
   `backgroundColor = .clear`; `UI/Theme/Wallpaper.swift` makes the app wallpaper optional and it
   is unset by default. So upstream, out of the box, the glass sits over the desktop.
@@ -373,7 +384,8 @@ Both remain open options for the owner alone.
 
 - **2026-09-22:** RESOLVED by OD-0008 C7: the port installs and stores data as "Marrow Code" (%LOCALAPPDATA%\Marrow Code).
 
-- **Status:** RESOLVED by OD-0008 C7 / OD-0072. ED-608 normalizes the status; dated discussion below is historical, not an outstanding owner question.
+- **Status:** OPEN for the shipping default. **Mitigated immediately for development** by the isolation
+  rule below, so it blocks nothing today.
 - **The collision, from two independent records:**
   - Engineering decision ED (STORE Q171): the port's store root is `%LOCALAPPDATA%\<display name>`.
     Under OD-0002 the display name is `Marrow`, so the root is `%LOCALAPPDATA%\Marrow`.

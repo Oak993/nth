@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\Directory.Release.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\Marrow.Core\Marrow.Core.csproj" />
@@ -22,7 +21,6 @@
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <!-- OD-0112: icon D Aurora, generated from the locked Canvas source by porting/tools/generate_app_icon_d.py. -->
     <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
-    <AssemblyTitle>Marrow</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>

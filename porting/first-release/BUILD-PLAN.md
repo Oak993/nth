@@ -1,7 +1,7 @@
 # First-release build plan: the owner-approved additions (OD-0103)
 
-Date: 2026-10-04. Historical planning snapshot at `7876e80da`; implementation has since advanced.
-Current tracking: [T39 inventory](reviews/T39-current-inventory.md), corrected under ED-608; unit details below retain their original date.
+Date: 2026-10-04. Status: plan only. Staging `claude/verify-terminal-20261001` at `7876e80da`. Nothing in this plan
+has been built.
 
 Authority: `porting/PORT_CONTRACT.md` > amendments > `porting/owner_decisions.md` > the specs' EDs. Every unit follows
 `porting/IMPLEMENTING.md`: tests first, adversarial review, then code, in its own worktree under `E:\Droppy\wt\u\`.

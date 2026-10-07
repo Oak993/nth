@@ -39,12 +39,12 @@
   mismatched or unrecognised notes fail before any commands or outputs. -ValidateReleaseNotesOnly checks this without
   packaging or writing files. scripts/extract-release-notes.ps1 extracts a standalone release notes file.
 
-  Prerequisite: run scripts/restore-dependencies.ps1 to restore the locked dependencies and local vpk tool.
-  global.json and scripts/release-toolchain.json pin the SDK and packaging toolchain.
+  Prerequisite: the vpk tool at the same version as the Velopack package in Directory.Packages.props:
+    dotnet tool install -g vpk --version <that version>
 
 .EXAMPLE
   pwsh scripts/package-windows.ps1
-  pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1   (pinned PowerShell 7; Bypass applies to this one process only)
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1   (this PC blocks unsigned scripts by policy; Bypass applies to this one process only)
 #>
 [CmdletBinding()]
 param(
@@ -93,21 +93,16 @@ if ($ValidateReleaseNotesOnly) {
 }
 
 # vpk must match the Velopack library the app was built with (Directory.Packages.props).
-& (Join-Path $PSScriptRoot 'verify-toolchain.ps1') -PackagingOnly
-function vpk {
-    Push-Location $root
-    try { & dotnet tool run vpk -- @args } finally { Pop-Location }
-}
 $packages = Get-Content -LiteralPath (Join-Path $root 'Directory.Packages.props') -Raw
 $libraryMatch = [regex]::Match($packages, '<PackageVersion Include="Velopack" Version="([^"]+)"')
 if (-not $libraryMatch.Success) { throw 'The Velopack package is not pinned in Directory.Packages.props.' }
 $libraryVersion = $libraryMatch.Groups[1].Value
 if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
-    throw "vpk is not installed. Run: dotnet tool restore"
+    throw "vpk is not installed. Run: dotnet tool install -g vpk --version $libraryVersion"
 }
 $toolVersion = ((& vpk --help | Select-Object -First 3) -join ' ')
 if ($toolVersion -notmatch [regex]::Escape($libraryVersion)) {
-    throw "vpk does not report version $libraryVersion (it says: $toolVersion). Restore the pinned local tool."
+    throw "vpk does not report version $libraryVersion (it says: $toolVersion). Run: dotnet tool update -g vpk --version $libraryVersion"
 }
 
 Write-Host "Marrow $version (build $build) -> Velopack package $PackId, local only."
@@ -137,7 +132,6 @@ Invoke-Native 'vpk pack' {
         --packAuthors $PackAuthors `
         --icon $icon `
         --runtime $Runtime `
-        --framework vcredist143-x64 `
         --shortcuts StartMenu `
         --outputDir $releasesDir `
         @notesArgs

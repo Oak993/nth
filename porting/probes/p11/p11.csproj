@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <!-- Same version as the local vpk tool in dotnet-tools.json. -->
-    <PackageVersion Update="Velopack" Version="1.2.158" />
+    <PackageVersion Include="Velopack" Version="1.2.158" />
     <PackageReference Include="Velopack" />
   </ItemGroup>
 

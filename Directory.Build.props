@@ -10,10 +10,6 @@
     <!-- "No new warnings" is a done-condition for every task. Enforced by the compiler, not by trust. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
-    <!-- RR-35: exact SDK and full restore graph, including the shipping RID. -->
-    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <RestoreLockedMode>true</RestoreLockedMode>
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- ED-074: Swift arithmetic and narrowing conversions trap; C# would wrap silently. -->
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
