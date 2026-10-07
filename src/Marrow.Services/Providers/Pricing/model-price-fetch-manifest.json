@@ -1,225 +1,812 @@
 {
-  "schemaVersion": 1,
-  "state": "unfilled",
-  "generatedAt": "2026-10-07T07:56:16.011249+00:00",
-  "fetchDateUtc": "2026-10-07",
-  "baseCommit": "ca9a531cb63c2ed3efaaa54d51cce5d1c56d891a",
-  "generator": "porting/tools/generate-model-prices.py",
-  "generatorSha256": "3dac88fd2ca239dba8ab93a9b3a26eba9bb2d6c6ee13d235099e0a8e0b21ff5d",
-  "mapping": "src/Marrow.Services/Providers/Pricing/model-price-extraction.json",
+  "schemaVersion": 2,
+  "filledCount": 0,
+  "unfilledCount": 9,
   "sources": [
     {
       "service": "deepseek",
       "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
-      "retrievedAt": "2026-10-07T07:51:52.528664+00:00",
-      "retrievedAtBasis": "HTTP capture write time; generator saved HTML before table parsing failed",
+      "retrievedAt": "2026-10-07T08:18:41.083053Z",
+      "status": "fetched",
+      "byteLength": 23982,
       "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
-      "bytes": 23982,
-      "result": "unfilled",
-      "reason": "ValueError: Spanned pricing cells require explicit reviewed mapping",
-      "localCapture": "E:\\Droppy\\work\\scratch\\codex-RR50-prices\\captures-deepseek\\210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2.html"
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
     },
     {
       "service": "meta",
-      "sourceUrl": "https://dev.meta.ai/docs/pricing",
-      "retrievedAt": "2026-10-07T07:52:51.265585+00:00",
-      "sourceSha256": "a2f90a0327fb0c589cfc19b55624352ad175560bc6766ac45be646062197cd34",
-      "captureManifest": "captures/meta-2026-10-07.tables.json",
-      "result": "unfilled",
-      "reason": "No tables recognized by the current HTML extractor",
-      "initialRedirect": {
-        "sourceUrl": "https://dev.meta.ai/docs/pricing/",
-        "checkedAt": "2026-10-07T07:52:33.146266+00:00",
-        "status": 308,
-        "redirectLocation": "/docs/pricing",
-        "followed": false
-      }
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T08:18:41.188350Z",
+      "status": "fetched",
+      "byteLength": 386036,
+      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
     },
     {
       "service": "zai",
       "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
-      "retrievedAt": "2026-10-07T07:51:54.047122+00:00",
+      "retrievedAt": "2026-10-07T08:18:42.482907Z",
+      "status": "fetched",
+      "byteLength": 290339,
       "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
-      "captureManifest": "captures/zai-2026-10-07.tables.json",
-      "result": "unfilled",
-      "reason": "Exact model cell mismatch and missing tokenOnlyQuote; no missing field defaulted"
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "retrievedAt": "2026-10-07T08:18:43.208420Z",
+      "status": "unavailable",
+      "byteLength": 224346,
+      "sourceSha256": "bb88025d35cca6b12b68dc0fd1b708dc42e57266d2141fbbddfce918f768f686",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": [],
+      "reason": "Missing/changed supplemental exact billing quote"
+    },
+    {
+      "service": "deepseek",
+      "sourceUrl": "https://api-docs.deepseek.com/news/news0802/",
+      "retrievedAt": "2026-10-07T08:18:44.175772Z",
+      "status": "fetched",
+      "byteLength": 26475,
+      "sourceSha256": "03d9f25cde2e33fe642dde832e02d72638908d2b1918f084130c47da76f6c003",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": [
+        "The service has no additional fees beyond the $0."
+      ]
     }
   ],
-  "unfilledModels": [
+  "models": [
     {
       "service": "deepseek",
       "model": "deepseek-flash",
-      "reason": "Generic extractor rejects merged pricing cells; page uses peak/off-peak billing. No reviewed mapping."
+      "identity": {
+        "service": "deepseek",
+        "model": "deepseek-flash",
+        "displayText": "deepseek-flash(1)",
+        "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+      "retrievedAt": "2026-10-07T08:18:41.083053Z",
+      "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
+      "billingConditionQuotes": [
+        "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                16,
+                3
+              ],
+              "text": "$0.15"
+            },
+            {
+              "cell": [
+                0,
+                17,
+                3
+              ],
+              "text": "$0.3"
+            }
+          ],
+          "highestCell": [
+            0,
+            17,
+            3
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                18,
+                3
+              ],
+              "text": "$0.6"
+            },
+            {
+              "cell": [
+                0,
+                19,
+                3
+              ],
+              "text": "$1.2"
+            }
+          ],
+          "highestCell": [
+            0,
+            19,
+            3
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                14,
+                3
+              ],
+              "text": "$0.003"
+            },
+            {
+              "cell": [
+                0,
+                15,
+                3
+              ],
+              "text": "$0.006"
+            }
+          ],
+          "highestCell": [
+            0,
+            15,
+            3
+          ]
+        }
+      }
     },
     {
       "service": "deepseek",
       "model": "deepseek-v4-pro",
-      "reason": "Generic extractor rejects merged pricing cells; page uses peak/off-peak billing. No reviewed mapping."
-    },
-    {
-      "service": "meta",
-      "model": "muse-spark-1.3",
-      "reason": "Official HTML capture has zero tables recognized by this extractor; no reviewed mapping."
+      "identity": {
+        "service": "deepseek",
+        "model": "deepseek-v4-pro",
+        "displayText": "deepseek-v4-pro",
+        "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+      "retrievedAt": "2026-10-07T08:18:41.083053Z",
+      "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
+      "billingConditionQuotes": [
+        "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                16,
+                4
+              ],
+              "text": "$0.66"
+            },
+            {
+              "cell": [
+                0,
+                17,
+                4
+              ],
+              "text": "$1.32"
+            }
+          ],
+          "highestCell": [
+            0,
+            17,
+            4
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                18,
+                4
+              ],
+              "text": "$1.98"
+            },
+            {
+              "cell": [
+                0,
+                19,
+                4
+              ],
+              "text": "$3.96"
+            }
+          ],
+          "highestCell": [
+            0,
+            19,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                14,
+                4
+              ],
+              "text": "$0.022"
+            },
+            {
+              "cell": [
+                0,
+                15,
+                4
+              ],
+              "text": "$0.044"
+            }
+          ],
+          "highestCell": [
+            0,
+            15,
+            4
+          ]
+        }
+      }
     },
     {
       "service": "meta",
       "model": "muse-spark-1.3-contributor",
-      "reason": "Official HTML capture has zero tables recognized by this extractor; no reviewed mapping."
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.3-contributor",
+        "displayText": "muse-spark-1.3-contributor",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T08:18:41.188350Z",
+      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "billingConditionQuotes": [
+        "Used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                2
+              ],
+              "text": "$0.10"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                4
+              ],
+              "text": "$0.20"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                3
+              ],
+              "text": "$0.002"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.3",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.3",
+        "displayText": "muse-spark-1.3",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T08:18:41.188350Z",
+      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "billingConditionQuotes": [
+        "Not used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                2,
+                2
+              ],
+              "text": "$1.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            2,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                2,
+                4
+              ],
+              "text": "$4.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            2,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                2,
+                3
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            2,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.2-contributor",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.2-contributor",
+        "displayText": "muse-spark-1.2-contributor",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T08:18:41.188350Z",
+      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "billingConditionQuotes": [
+        "Used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                2
+              ],
+              "text": "$0.10"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                4
+              ],
+              "text": "$0.20"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                3
+              ],
+              "text": "$0.002"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            3
+          ]
+        }
+      }
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.2",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.2",
+        "displayText": "muse-spark-1.2",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T08:18:41.188350Z",
+      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "billingConditionQuotes": [
+        "Not used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                4,
+                2
+              ],
+              "text": "$1.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            4,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                4,
+                4
+              ],
+              "text": "$4.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            4,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                4,
+                3
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            4,
+            3
+          ]
+        }
+      }
     },
     {
       "service": "meta",
       "model": "muse-spark-1.1",
-      "reason": "Official HTML capture has zero tables recognized by this extractor; no reviewed mapping."
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.1",
+        "displayText": "muse-spark-1.1",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T08:18:41.188350Z",
+      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "billingConditionQuotes": [
+        "Not used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                5,
+                2
+              ],
+              "text": "$1.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            5,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                5,
+                4
+              ],
+              "text": "$4.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            5,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                5,
+                3
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            5,
+            3
+          ]
+        }
+      }
     },
     {
       "service": "zai",
       "model": "glm-5.3",
-      "reason": "Exact API identifier differs from displayed table cell; no explicit no-request-fees quote and no exact limits. No reviewed mapping."
+      "identity": {
+        "service": "zai",
+        "model": "glm-5.3",
+        "displayText": "GLM-5.3",
+        "sourceUrl": "https://docs.z.ai/guides/overview/pricing"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
+      "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "retrievedAt": "2026-10-07T08:18:42.482907Z",
+      "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+      "billingConditionQuotes": [
+        "Limited-time Free"
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                1
+              ],
+              "text": "$1.4"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            1
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                4
+              ],
+              "text": "$4.4"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                2
+              ],
+              "text": "$0.26"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            2
+          ]
+        },
+        "storageCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                3
+              ],
+              "text": "Limited-time Free"
+            }
+          ],
+          "highestCell": null
+        }
+      },
+      "storageCondition": "Limited-time Free"
     },
     {
       "service": "zai",
       "model": "glm-5.3-flash",
-      "reason": "Exact API identifier differs from displayed table cell; no explicit no-request-fees quote and no exact limits. No reviewed mapping."
-    }
-  ],
-  "additionalModels": "All other IDs remain unfilled because no production price row was published; provider catalogs can be dynamic.",
-  "rejectedExtractions": [
-    {
-      "check": "exact-api-id",
-      "model": "glm-5.3",
-      "exitCode": 1,
-      "reason": "ValueError: Model identifier did not match its cited cell exactly"
-    },
-    {
-      "check": "source-display-name",
-      "model": "GLM-5.3",
-      "exitCode": 1,
-      "reason": "ValueError: Missing/changed exact source quote: tokenOnlyQuote"
-    }
-  ],
-  "manualCrossChecks": [
-    {
+      "identity": {
+        "service": "zai",
+        "model": "glm-5.3-flash",
+        "displayText": "GLM-5.3-Flash",
+        "sourceUrl": "https://docs.z.ai/guides/overview/pricing"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+      ],
       "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "retrievedAt": "2026-10-07T08:18:42.482907Z",
       "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
-      "model": "GLM-5.3-Flash",
-      "modelCell": [
-        0,
-        1,
-        0
+      "billingConditionQuotes": [
+        "Limited-time Free"
       ],
-      "inputCell": [
-        0,
-        1,
-        1
-      ],
-      "cachedInputCell": [
-        0,
-        1,
-        2
-      ],
-      "outputCell": [
-        0,
-        1,
-        4
-      ],
-      "capturedCells": [
-        "GLM-5.3-Flash",
-        "$0.15",
-        "$0.03",
-        "Limited-time Free",
-        "$0.50"
-      ],
-      "review": "Manually matched against the same official page in web view on 2026-10-07. Documentation evidence only; not a published model price."
-    },
-    {
-      "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
-      "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
-      "model": "GLM-5.3",
-      "modelCell": [
-        0,
-        3,
-        0
-      ],
-      "inputCell": [
-        0,
-        3,
-        1
-      ],
-      "cachedInputCell": [
-        0,
-        3,
-        2
-      ],
-      "outputCell": [
-        0,
-        3,
-        4
-      ],
-      "capturedCells": [
-        "GLM-5.3",
-        "$1.4",
-        "$0.26",
-        "Limited-time Free",
-        "$4.4"
-      ],
-      "review": "Manually matched against the same official page in web view on 2026-10-07. Documentation evidence only; not a published model price."
-    },
-    {
-      "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
-      "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
-      "model": "GLM-4.7",
-      "modelCell": [
-        1,
-        3,
-        0
-      ],
-      "inputCell": [
-        1,
-        3,
-        1
-      ],
-      "cachedInputCell": [
-        1,
-        3,
-        2
-      ],
-      "outputCell": [
-        1,
-        3,
-        4
-      ],
-      "capturedCells": [
-        "GLM-4.7",
-        "$0.6",
-        "$0.11",
-        "Limited-time Free",
-        "$2.2"
-      ],
-      "review": "Manually matched against the same official page in web view on 2026-10-07. Documentation evidence only; not a published model price."
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                1
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            1
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                4
+              ],
+              "text": "$0.50"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                2
+              ],
+              "text": "$0.03"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            2
+          ]
+        },
+        "storageCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                3
+              ],
+              "text": "Limited-time Free"
+            }
+          ],
+          "highestCell": null
+        }
+      },
+      "storageCondition": "Limited-time Free"
     }
   ],
-  "productionOutputs": [
-    {
-      "path": "src/Marrow.Services/Providers/Pricing/model-prices.json",
-      "sha256": "015dda700bb13bbb9ab7b3530ae6e5fdbdb8ebec9abd781af3f864641ef83439",
-      "unchangedFromBase": true
-    },
-    {
-      "path": "src/Marrow.Services/Providers/ModelPriceData.cs",
-      "sha256": "cd593b348f0c497a84c62d2e163ca2f1b9668a7af52344a2673f223cf9b0c2d2",
-      "unchangedFromBase": true
-    }
-  ],
-  "generationResult": {
-    "exitCode": 1,
-    "reason": "Price table is UNFILLED: inspect official captures and supply reviewed mappings",
-    "rowsPublished": 0
-  },
-  "constraints": [
-    "No rate typed or hand-edited",
-    "No source host allow-list or parser guard relaxed",
-    "No model messages or authenticated provider API requests",
-    "No CLI settings/config changes",
-    "No production data overwrite on failure"
-  ]
+  "note": "Observed raw cells are audit evidence only. Only prices passing every original quote/numeric/bounds guard enter model-prices.json."
 }

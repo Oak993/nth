@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "scope": "All nine known text chat IDs offered by DeepSeekAPI, MetaAPI and ZaiAPI. Unmapped dynamic IDs remain unavailable; non-text models and unavailable coding-plan models are excluded.",
+  "models": [
+    {
+      "service": "deepseek",
+      "model": "deepseek-flash",
+      "displayText": "deepseek-flash(1)",
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    {
+      "service": "deepseek",
+      "model": "deepseek-v4-pro",
+      "displayText": "deepseek-v4-pro",
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.3-contributor",
+      "displayText": "muse-spark-1.3-contributor",
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.3",
+      "displayText": "muse-spark-1.3",
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.2-contributor",
+      "displayText": "muse-spark-1.2-contributor",
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.2",
+      "displayText": "muse-spark-1.2",
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.1",
+      "displayText": "muse-spark-1.1",
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+    },
+    {
+      "service": "zai",
+      "model": "glm-5.3",
+      "displayText": "GLM-5.3",
+      "sourceUrl": "https://docs.z.ai/guides/overview/pricing"
+    },
+    {
+      "service": "zai",
+      "model": "glm-5.3-flash",
+      "displayText": "GLM-5.3-Flash",
+      "sourceUrl": "https://docs.z.ai/guides/overview/pricing"
+    }
+  ]
+}
