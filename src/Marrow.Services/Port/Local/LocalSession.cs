@@ -6,7 +6,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.Local;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-3. Reuses the real SSE/tool/approval loop. Never accepts or transmits an API key.
+// PORT-ONLY: OD-0114 / ED-410. Reuses the real SSE/tool/approval loop. Never accepts or transmits an API key.
 public sealed class LocalSession : OpenAICompatibleSession
 {
     private readonly LocalTarget target;

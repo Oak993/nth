@@ -1,0 +1,9 @@
+Independent source review by /root/source_review, 2026-10-07
+
+Accepts IMPLEMENTED closure for PR-LAUNCH-071, PR-SETTINGS-249, UI-SIDEBAR-031 and UI-SIDEBAR-032. No missing production behavior or remaining actionable test finding found. Review findings concerning frozen animation time, consent assertions and launch-window cleanup were resolved. Existing assertions and tolerances remain unchanged.
+
+Launch: clean-library states, unchanged tour persistence, absent extra setup cards, no voice download without consent and the 700 ms tour delay; preserve OD-0096/OD-0098 and OD-0113 hidden Boot B preparation. Licenses: exact blocks/order/titles/480x440/spacing/typography/selection/cache/fallback; new About presentation and independent corrupt UTF-8 fallback. Sidebar: question geometry/truncation/focus/keys/glass roles; exact tooltips/small metrics/monitor detach. Delete: deferred teardown/subsequent actor turn/removeWorktree=false/real file bytes. The deletion test simulates Popup.Closed operations.
+
+Reviewer inspected source and tests, but did not independently execute the lead's reported 9/9 run. Linux ICU76 forwarding is supplemental evidence only. NOT READY for Windows acceptance: Boot B/cloaking/first-run visuals, native popup material/focus/placement, Windows ICU, provider bootstrap and installed/update-package documents remain unverified.
+
+Final closure audit: the independent reviewer also confirmed exactly four JSON record changes plus parity status counts, byte-exact ED/STATE appends, accepted source/test subtree identities, and every compressed receipt hash/length. The reviewer inspected result tails (build 0 warnings/0 errors, affected 24/1, focused five repeats 9/0/0, Core and UI aborted, Services failures/skips, Gate B 8 passes) without rerunning tests. The flagged license-path and empty-package wording were corrected before commit.

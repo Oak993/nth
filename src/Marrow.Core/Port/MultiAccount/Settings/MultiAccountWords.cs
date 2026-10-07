@@ -1,6 +1,6 @@
 // PORT-ONLY: T11 step 2 (OD-0114..OD-0117). The words of Settings > Models (accounts, "When an account runs out", Handshake) and Settings > Pills, exactly as the owner-approved page
 // porting/first-release/design-src/multi-account/multi-account.html writes them. The three strings of the disabled Pills page (OD-0117) are the only ones the page does not have: ENGINEERING DECISION
-// (ED-NEW-cloud-ma-settings), written in the page's voice from the owner's description.
+// (ED-449), written in the page's voice from the owner's description.
 namespace Marrow.Core.Port.MultiAccount.Settings;
 
 public static class MultiAccountWords
@@ -31,7 +31,7 @@ public static class MultiAccountWords
     public static string OutUntil(string reset) => "out until " + reset;
     public static string WeekText(int percent, string reset) => "Week " + percent + "% · resets " + reset;
 
-    // ---- Models: OpenRouter keys and the Local block (page strings where the page has them; the rest lead-proposed, ED-NEW-cloud-ma-settings)
+    // ---- Models: OpenRouter keys and the Local block (page strings where the page has them; the rest lead-proposed, ED-449)
     public const string KeysAndOrder = "Keys and order";
     public static string Keys(int count, double? credits) => count + (count == 1 ? " key" : " keys") + (credits is { } left ? " \u00b7 $" + left.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " of credits left" : "");
     public const string LocalTitle = "Local";
@@ -43,7 +43,9 @@ public static class MultiAccountWords
     public const string LocalConnect = "Connect";
     public const string LocalLooking = "Looking for a server\u2026";
     public const string LocalNote = "Local models run on your PC: nothing leaves it, and there are no limits. They are slower than the big cloud models, and less able at long tasks.";
-    public static string LocalFoundOn(string where, int models) => "Found a server on " + where + " \u00b7 " + models + (models == 1 ? " model" : " models") + " added";
+    public static string LocalFoundOn(string where, int models, Marrow.Core.Port.Local.LocalServerKind kind = Marrow.Core.Port.Local.LocalServerKind.Unknown) =>
+        "Found " + (kind switch { Marrow.Core.Port.Local.LocalServerKind.Ollama => "Ollama", Marrow.Core.Port.Local.LocalServerKind.LMStudio => "LM Studio", _ => "a server" })
+        + " on " + where + " \u00b7 " + models + (models == 1 ? " model" : " models") + " added";
     public static string LocalNotFound(string where) => "No server found at " + where + ". Check the address and that the server is running.";
     public const string LocalBadAddress = "Use an address like http://localhost:1234";
 

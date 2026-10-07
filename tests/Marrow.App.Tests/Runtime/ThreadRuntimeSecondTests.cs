@@ -122,7 +122,7 @@ public sealed class ThreadRuntimeSecondTests
             ProviderKind.Meta,
             ProviderKind.Zai,
             ProviderKind.OpenRouter, // ED-234: an API-key provider like the three above
-            ProviderKind.Local, // ED-NEW-ma-3: keyless native session
+            ProviderKind.Local, // ED-410: keyless native session
         };
 
         foreach (var provider in Enum.GetValues<ProviderKind>())

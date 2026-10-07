@@ -42,7 +42,7 @@ public class OpenAICompatibleSession : ProviderSession
         public required Uri ChatURL { get; init; }                         // :22
         public required int ContextWindow { get; init; }                   // :23
         public int? MaxOutputTokens { get; init; }                         // :25
-        // PORT-ONLY (ED-NEW-ma-3): defaults preserve all existing key-based providers.
+        // PORT-ONLY (ED-410): defaults preserve all existing key-based providers.
         public bool RequiresAPIKey { get; init; } = true;
         public bool FollowRedirects { get; init; } = true;
         public bool UseCookies { get; init; } = true;
@@ -72,7 +72,7 @@ public class OpenAICompatibleSession : ProviderSession
         public long? Input { get; init; }
         public long? Output { get; init; }
         public long? CachedInput { get; init; }
-        // PORT-ONLY: ED-NEW-ma-ui. OpenRouter's charged USD from the streamed usage report.
+        // PORT-ONLY: ED-403. OpenRouter's charged USD from the streamed usage report.
         public double? ReportedCostUsd { get; init; }
 
         // :122
@@ -87,7 +87,7 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY: OD-0114. Called only after the full tool round is retained, before another request.
     // False transfers continuation ownership to the host; this retired loop emits no completion.
     public Func<CancellationToken, Task<bool>>? ContinueAfterAccountStep { get; set; }
-    // PORT-ONLY: ED-NEW-ma-ui. Private context permission is rechecked after encoding on every attempt.
+    // PORT-ONLY: ED-403. Private context permission is rechecked after encoding on every attempt.
     internal Func<bool>? CanTransferContext { get; set; }
     public SessionConfiguration Configuration { get; private set; }   // :37
 
@@ -240,7 +240,7 @@ public class OpenAICompatibleSession : ProviderSession
     // :247-265. PR-PROVAPI-089, PR-PROVAPI-090, PR-PROVAPI-091, PR-PROVAPI-092.
     public Task<string> Start()
     {
-        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :248; ED-NEW-ma-3
+        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :248; ED-410
         var id = Configuration.ResumeID ?? SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())); // :249
         sessionID = id;       // :250
         interrupted = false;  // :251
@@ -285,11 +285,11 @@ public class OpenAICompatibleSession : ProviderSession
             return;
         }
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
-        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-NEW-ma-3
+        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-410
         turnAccountRevision = apiAccountRevision;
         runtimeMode = input.RuntimeMode;             // :288
         interactionMode = input.InteractionMode;     // :289
-        if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-NEW-ma-3
+        if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-410
         interrupted = false;         // :291
         approveAllRemaining = false; // :292
         // A turn that resumes after AGENTS.md or CLAUDE.md changed gets the new rules; the files
@@ -354,7 +354,7 @@ public class OpenAICompatibleSession : ProviderSession
                 if (OpenAICompatibleSessionConfig.RequiresAPIKey && (round.StatusCode == 401 ||
                     (round.RawError is { } rawError401 &&
                      SwiftString.LocalizedCaseInsensitiveContains(rawError401, "invalid") &&
-                     SwiftString.LocalizedCaseInsensitiveContains(rawError401, "key")))) // :343-344 PR-PROVAPI-101; ED-NEW-ma-3
+                     SwiftString.LocalizedCaseInsensitiveContains(rawError401, "key")))) // :343-344 PR-PROVAPI-101; ED-410
                 {
                     throw new ProviderError(new ProviderError.Case.Failed(
                         $"{OpenAICompatibleSessionConfig.Title} rejected the API key. Check it in Settings \U00002192 Providers \U00002192 {OpenAICompatibleSessionConfig.Title}.")); // :345, U+2192 RIGHTWARDS ARROW
@@ -917,7 +917,7 @@ public class OpenAICompatibleSession : ProviderSession
     // subclass knows each model's own (OpenRouter lists a context length per model).
     protected virtual int ContextWindowFor(string model) => OpenAICompatibleSessionConfig.ContextWindow;
 
-    // PORT-ONLY (ED-NEW-ma-3): Local selections include endpoint identity; the model sent on the wire does not.
+    // PORT-ONLY (ED-410): Local selections include endpoint identity; the model sent on the wire does not.
     protected virtual string ModelForInput(string model) => model;
 
     // :588-590. DeepSeek turns thinking on and maps the effort; Meta takes a top-level
@@ -946,10 +946,10 @@ public class OpenAICompatibleSession : ProviderSession
     private async Task<StreamRound> PerformStream(Dictionary<string, JSONValue> payload)
     {
         var request = new URLRequest(OpenAICompatibleSessionConfig.ChatURL, timeoutInterval: 300)
-            { HttpMethod = "POST", FollowRedirects = OpenAICompatibleSessionConfig.FollowRedirects, UseCookies = OpenAICompatibleSessionConfig.UseCookies } // :601-602; ED-NEW-ma-3
+            { HttpMethod = "POST", FollowRedirects = OpenAICompatibleSessionConfig.FollowRedirects, UseCookies = OpenAICompatibleSessionConfig.UseCookies } // :601-602; ED-410
             .SetValue("application/json", "Content-Type")   // :603
             .SetValue("application/json", "Accept");        // :605
-        if (OpenAICompatibleSessionConfig.RequiresAPIKey) request = request.SetValue($"Bearer {ApiKey}", "Authorization"); // :604; ED-NEW-ma-3
+        if (OpenAICompatibleSessionConfig.RequiresAPIKey) request = request.SetValue($"Bearer {ApiKey}", "Authorization"); // :604; ED-410
         request = request with { HttpBody = await Encode(payload) }; // :607
         if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :608
         if (CanTransferContext?.Invoke() == false)

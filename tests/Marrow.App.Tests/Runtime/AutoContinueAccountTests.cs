@@ -9,7 +9,7 @@ namespace Marrow.App.Tests.Runtime;
 public sealed class AutoContinueAccountTests
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void Unknown_reset_reads_the_account_that_hit_the_limit_and_never_the_default_reader()
     {
         using var h = new AppModelHarness();
@@ -33,7 +33,7 @@ public sealed class AutoContinueAccountTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void A_changed_account_during_the_wait_prevents_auto_continue_on_the_successor()
     {
         using var h = new AppModelHarness();
@@ -61,7 +61,7 @@ public sealed class AutoContinueAccountTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void Session_events_keep_the_observed_account_and_old_sessions_cannot_replace_it()
     {
         using var h = new AppModelHarness();
@@ -87,7 +87,7 @@ public sealed class AutoContinueAccountTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void An_explicit_reader_failure_is_an_unknown_reset_instead_of_an_unhandled_task_error()
     {
         using var h = new AppModelHarness();
@@ -107,7 +107,7 @@ public sealed class AutoContinueAccountTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void A_provider_change_before_turn_finish_never_reads_the_successors_default_quota()
     {
         using var h = new AppModelHarness();
@@ -129,7 +129,7 @@ public sealed class AutoContinueAccountTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void A_provider_change_during_the_wait_cannot_resume_from_a_stale_session_identity()
     {
         using var h = new AppModelHarness();
@@ -152,7 +152,7 @@ public sealed class AutoContinueAccountTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task A_composed_scheduler_also_owns_the_default_accounts_unknown_reset_read()
     {
         using var h = new AppModelHarness();
@@ -181,7 +181,7 @@ public sealed class AutoContinueAccountTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void An_unknown_time_from_a_different_account_does_not_keep_the_previous_accounts_reset()
     {
         using var h = new AppModelHarness();

@@ -2,6 +2,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Marrow.App.Port.MultiAccount.Shared;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port.MultiAccount.Popover;
@@ -25,10 +26,10 @@ internal sealed class AccountPopover : Decorator
     internal AccountPopover(AccountPopoverModel model, AccountPopoverContext? context = null)
     {
         this.model = model; this.context = context; Width = 340;
-        var panel = new StackPanel { Spacing = 2, Margin = new Thickness(8) };
+        var panel = new StackPanel { Spacing = 2, Margin = new Thickness(6) };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 6, 8, 4) };
-        header.Children.Add(LibraryUi.Text(model.Header, 12, secondary: true, weight: SwiftFont.Weight.Semibold));
-        var hint = LibraryUi.Text(model.OrderHint, 11, secondary: true); Grid.SetColumn(hint, 1); header.Children.Add(hint); panel.Children.Add(header);
+        header.Children.Add(MultiAccountText.Text(model.Header, 12, secondary: true, weight: SwiftFont.Weight.Semibold));
+        var hint = MultiAccountText.Text(model.OrderHint, 11, secondary: true); hint.Foreground = MultiAccountPalette.Faint.Brush(hint); Grid.SetColumn(hint, 1); header.Children.Add(hint); panel.Children.Add(header);
         pill = Button(model.CreatePillText, "popover-create-pill", () => CreatePillRequested?.Invoke());
         panel.Children.Add(pinSlot); panel.Children.Add(list); panel.Children.Add(footerSlot); panel.Children.Add(pill); panel.Children.Add(rememberSlot); Child = panel; Refresh();
         AttachedToVisualTree += (_, _) => { model.Changed += OnChanged; Refresh(); };
@@ -45,7 +46,7 @@ internal sealed class AccountPopover : Decorator
     private void Refresh()
     {
         var pin = model.PinnedText;
-        TextSlot(pinSlot, pin ?? model.Subtitle, () => pin is null ? LibraryUi.Text(model.Subtitle, 12, secondary: true)
+        TextSlot(pinSlot, pin ?? model.Subtitle, () => pin is null ? MultiAccountText.Text(model.Subtitle, 12, secondary: true)
             : Line(pin.Replace(" · Back to order", "", StringComparison.Ordinal), "Back to order", "popover-back-to-order", model.BackToOrder));
         var values = model.Rows;
         foreach (var id in kept.Keys.Where(id => !values.Any(r => r.Account.Id == id)).ToArray()) { list.Children.Remove(kept[id]); kept.Remove(id); }
@@ -53,19 +54,30 @@ internal sealed class AccountPopover : Decorator
         for (var index = 0; index < values.Count; index++)
         {
             var value = values[index];
-            if (!kept.TryGetValue(value.Account.Id, out var row)) { row = new AccountPopoverRowControl(value, Pin, Move, index, values.Count, context); kept.Add(value.Account.Id, row); list.Children.Add(row); }
+            if (!kept.TryGetValue(value.Account.Id, out var row)) { row = new AccountPopoverRowControl(value, Pin, Move, index, values.Count, context, Navigate, model.BackToOrder, () => Rows); kept.Add(value.Account.Id, row); list.Children.Add(row); }
             else row.Apply(value, index, values.Count);
             var old = list.Children.IndexOf(row); if (old != index) list.Children.Move(old, index); wanted.Add(row);
         }
-        Rows = wanted; TextSlot(footerSlot, model.Footer, () => LibraryUi.Text(model.Footer, 11.5, secondary: true, wrap: true)); pill.IsVisible = model.CanCreatePill;
+        Rows = wanted; TextSlot(footerSlot, model.Footer, () => Footer(model.Footer)); pill.IsVisible = model.CanCreatePill;
         TextSlot(rememberSlot, model.RememberText, () => model.RememberText.EndsWith(" · Use Settings", StringComparison.Ordinal)
             ? Line(model.RememberText.Replace(" · Use Settings", "", StringComparison.Ordinal), "Use Settings", "popover-use-settings", model.UseSettings)
-            : LibraryUi.Text(model.RememberText, 12, secondary: true));
+            : MultiAccountText.Text(model.RememberText, 12, secondary: true));
         if (focusAccount is { } focusedId) Avalonia.Threading.Dispatcher.UIThread.Post(() => Rows.FirstOrDefault(r => r.AccountId == focusedId)?.FocusPin());
+    }
+    private Control Footer(string value)
+    {
+        var text = MultiAccountText.Text(value, 11.5, secondary: true, wrap: true); text.LineHeight = 16;
+        return new Border { Padding = new Thickness(8, 8, 8, 6), Margin = new Thickness(0, 4, 0, 0), BorderThickness = new Thickness(0, 1, 0, 0),
+            BorderBrush = SwiftColor.Dynamic(SwiftColor.Black.Opacity(.1), SwiftColor.White.Opacity(.12)).Brush(this), Child = text };
     }
     private void TextSlot(CrossfadeSlot slot, string value, Func<Control> make)
     {
         if (shown.GetValueOrDefault(slot) == value) return; shown[slot] = value; slot.Show(make(), FrameClock.IsBound ? Animation.EaseOut(duration: .25) : null);
+    }
+    private void Navigate(Guid id, int direction)
+    {
+        var at = Rows.ToList().FindIndex(row => row.AccountId == id);
+        if (at >= 0) Rows[Math.Clamp(at + direction, 0, Rows.Count - 1)].FocusPin();
     }
     private void Move(Guid id, int target)
     {
@@ -82,10 +94,10 @@ internal sealed class AccountPopover : Decorator
     }
     private static Control Line(string text, string action, string id, Action click) => new StackPanel
     {
-        Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6, Children = { LibraryUi.Text(text, 12), Button(action, id, click) },
+        Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6, Children = { MultiAccountText.Text(text, 12), Button(action, id, click) },
     };
     private static Button Button(string text, string id, Action click)
     {
-        var button = PlainControls.Button(LibraryUi.Text(text, 12), click); button.Focusable = true; button.Named(text, id); return button;
+        var button = PlainControls.Button(MultiAccountText.Text(text, 12), click); button.Focusable = true; button.Named(text, id); return button;
     }
 }

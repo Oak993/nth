@@ -96,6 +96,7 @@ public static class Program
         var localAppData = DevDataRoot.LocalApplicationData();
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));
         UserDefaults.Standard.SetProcessDefault(settings);
+        Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.SetProcessDefault(new(settings));
         AppDomain.CurrentDomain.UnhandledException += (_, _) => settings.Synchronize();
         // Storage.swift:19-48's roots (OD-0008 C7: %LOCALAPPDATA%\Marrow Code; OD-0012 F1: %USERPROFILE%\.marrow)
         // and StoragePaths.swift's roots (ED-195: split out of Storage.swift at B3), the sibling Ambient
@@ -138,7 +139,6 @@ public static class Program
 
         lifetime.Startup += (_, _) =>
         {
-            Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
             shell.FinishLaunching();
             skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
             DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation

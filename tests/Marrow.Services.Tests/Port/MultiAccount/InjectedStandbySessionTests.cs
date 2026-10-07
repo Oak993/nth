@@ -7,7 +7,7 @@ using Marrow.Services.Tests.Fixtures;
 
 namespace Marrow.Services.Tests.Port.MultiAccount;
 
-// OD-0116, OD-0122, ED-NEW-ma-engine-7: a standby that loads history without any model turn (Codex, Pi), over a scripted fake session.
+// OD-0116, OD-0122, ED-439: a standby that loads history without any model turn (Codex, Pi), over a scripted fake session.
 [Trait("Rule", "R-TEST-4")]
 public sealed class InjectedStandbySessionTests
 {

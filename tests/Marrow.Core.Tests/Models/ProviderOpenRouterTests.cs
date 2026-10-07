@@ -17,7 +17,7 @@ public sealed class ProviderOpenRouterTests
     public void The_new_case_comes_after_the_fourteen_source_cases_with_the_raw_value_openrouter()
     {
         var cases = SwiftEnum<ProviderKind>.AllCases;
-        // OD-0114 / ED-NEW-ma-3 appends Local; OpenRouter and the source cases keep their original indices.
+        // OD-0114 / ED-410 appends Local; OpenRouter and the source cases keep their original indices.
         Assert.Equal(OpenRouter, cases[14]);
         Assert.Equal(ProviderKind.Pi, cases[13]); // the fourteen of Provider.swift:3-18 keep their places
         Assert.Equal("openrouter", SwiftEnum<ProviderKind>.RawValue(OpenRouter));

@@ -357,7 +357,7 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
 
             // Provider.swift:4-17 case order, :22-37 display names; then OpenRouter, the port's API-key provider declared after
             // Pi (OD-0049, ED-234), which the checklist lists like DeepSeek, Meta and Z.ai.
-            string[] names = ["Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "DeepSeek", "Meta", "Z.ai", "Devin", "Antigravity", "Copilot", "Command Code", "Pi", "OpenRouter", "Local"]; // ED-NEW-ma-3
+            string[] names = ["Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "DeepSeek", "Meta", "Z.ai", "Devin", "Antigravity", "Copilot", "Command Code", "Pi", "OpenRouter", "Local"]; // ED-410
             var rows = RootViewRig.All<ProviderStatusRow>(checklist);
             var dividers = RootViewRig.All<ChromeRowDivider>(checklist);
             Assert.Equal(names.Length, rows.Length);

@@ -12,10 +12,14 @@ public sealed class HandshakeMotionModel : IDisposable
     private readonly Func<bool> reduce;
     private readonly Func<HandshakeEvent,HandshakeReadiness> readiness;
     private readonly List<HandshakeStage> stages=[];
-    private readonly List<HandshakeTone> sounds=[];
+    private readonly List<HandshakeTone> sounds=new(3);
+    private static readonly HandshakeTone LinkLow=new(523.25,1.1,.03,0,.04,.0001,.05), LinkHigh=new(783.99,1.3,.022,.08,.04,.0001,.05), SyncTick=new(1318.5,.18,.025,0,.04,.0001,.05);
     private string? from;
     private string? to;
     private bool closed;
+    private double outgoingLeft = 1, incomingLeft = 1;
+    private string standbyText = "", linkingText = "", syncText = "", injectedText = "", completeText = "", deferredText = "";
+    private const string PauseText = "Safe pause · the switch waits for the edit to finish";
     public HandshakeMotionModel(Guid thread,ICardPort port,Func<IReadOnlyList<ThreadAccount>> accounts,TimeProvider clock,
         Func<bool>? reduceMotion=null,Func<HandshakeEvent,HandshakeReadiness>? readiness=null)
     {
@@ -27,7 +31,7 @@ public sealed class HandshakeMotionModel : IDisposable
     public event Action? Changed;
     public void Dispose()=>port.Changed-=Observe;
     private static int Rank(HandshakePhase p)=>p switch {HandshakePhase.Standby=>1,HandshakePhase.Linking=>2,HandshakePhase.InSync=>3,HandshakePhase.Switch=>4,_=>0};
-    private static double Minimum(HandshakePhase p)=>p switch {HandshakePhase.Standby=>600,HandshakePhase.Linking=>1000,HandshakePhase.InSync=>800,_=>620};
+    private static double Minimum(HandshakePhase p)=>p switch {HandshakePhase.Standby=>1000,HandshakePhase.Linking=>1000,HandshakePhase.InSync=>1400,_=>620};
     private void Observe(object? sender,HandshakeEvent e)
     {
         if(e.ThreadId!=thread)return;
@@ -37,6 +41,7 @@ public sealed class HandshakeMotionModel : IDisposable
         var last=stages.LastOrDefault();var rank=Rank(e.To);
         if(last is not null&&rank<Rank(last.Phase))return;
         from=e.OutgoingAccountId??from;to=e.IncomingAccountId??to;
+        RefreshAccounts();
         if(last?.Phase==e.To)
         {
             last.Ready|=e.Kind==HandshakeEventKind.InSyncReady;last.Readiness=readiness(e);Changed?.Invoke();return;
@@ -53,35 +58,58 @@ public sealed class HandshakeMotionModel : IDisposable
             if(!stage.Entered)
             {
                 stage.Entered=true;
-                if(SoundEnabled&&stage.Phase==HandshakePhase.Linking) {sounds.Add(new(523.25,1.1,.03,0,.04,.0001,.05));sounds.Add(new(783.99,1.3,.022,.08,.04,.0001,.05));}
+                if(SoundEnabled&&stage.Phase==HandshakePhase.Linking) {sounds.Add(LinkLow);sounds.Add(LinkHigh);}
             }
             if(stage.Ready&&stage.Readiness!=HandshakeReadiness.Deferred&&!stage.TickPlayed)
             {
-                stage.TickPlayed=true;if(SoundEnabled)sounds.Add(new(1318.5,.18,.025,0,.04,.0001,.05));
+                stage.TickPlayed=true;if(SoundEnabled)sounds.Add(SyncTick);
             }
         }
         return shown;
     }
     public IReadOnlyList<HandshakeTone> TakeSounds(){Pump();var result=sounds.ToArray();sounds.Clear();return result;}
-    public HandshakeMotionPlan Plan(double width,double height,bool dark)
+    /// <summary>Call at account/usage changes, never from the painter frame loop. Handshake events refresh automatically.</summary>
+    public void RefreshAccounts()
     {
-        var stage=Pump();var elapsed=stage is null?0:Math.Max(0,(clock.GetUtcNow()-stage.Starts).TotalMilliseconds);
-        var phase=stage?.Phase??HandshakePhase.Idle;
-        var t=phase switch {HandshakePhase.Standby=>1000+Math.Min(999,elapsed),HandshakePhase.Linking=>2000+Math.Min(1000,elapsed),HandshakePhase.InSync=>3000+Math.Min(1399,elapsed),HandshakePhase.Switch=>4400+Math.Min(1300,elapsed),_=>0};
-        var rows=accounts();var outgoing=rows.FirstOrDefault(a=>a.Id.ToString("D")==from);var incoming=rows.FirstOrDefault(a=>a.Id.ToString("D")==to);
-        double Left(ThreadAccount? a)=>a is null||a.NoLimit?1:Math.Clamp(1-(a.NoFiveHour?a.Usage?.Week:a.Usage?.FiveHour??a.Usage?.Week??0).GetValueOrDefault(),0,1);
-        var c1=UsageLight.Color(Left(outgoing),dark);var c2=UsageLight.Color(Left(incoming),dark);var name=incoming?.Name??"";var old=outgoing?.Name??"";
-        var deferred=stage?.Readiness==HandshakeReadiness.Deferred;
-        var tick=stages.Any(s=>s.Starts<=clock.GetUtcNow()&&s.Ready&&s.Readiness!=HandshakeReadiness.Deferred)&&!(phase==HandshakePhase.Switch&&elapsed>=1820);
-        var status=deferred&&phase is HandshakePhase.InSync or HandshakePhase.Switch?"Continued on "+name+" · What was handed over":phase switch
+        ThreadAccount? outgoing = null, incoming = null;
+        Guid.TryParse(from, out var fromId); Guid.TryParse(to, out var toId);
+        foreach (var row in accounts()) { if (row.Id == fromId) outgoing = row; if (row.Id == toId) incoming = row; }
+        outgoingLeft = Left(outgoing); incomingLeft = Left(incoming);
+        var name = incoming?.Name ?? ""; var old = outgoing?.Name ?? "";
+        standbyText = "Standby · " + name + " warms up in the background";
+        linkingText = "Linking · " + old + " briefs " + name;
+        syncText = "In sync · " + name + " read the plan back; Marrow checked it";
+        injectedText = "In sync · " + name;
+        completeText = "Handshake complete · " + name + " is in sync";
+        deferredText = "Continued on " + name + " · What was handed over";
+    }
+    private static double Left(ThreadAccount? a) => a is null || a.NoLimit ? 1 : Math.Clamp(1 - (a.NoFiveHour ? a.Usage?.Week : a.Usage?.FiveHour ?? a.Usage?.Week ?? 0).GetValueOrDefault(), 0, 1);
+    /// <summary>Allocation-free steady frame sampling: no accounts callback, strings, LINQ, geometry or reference snapshot.</summary>
+    public HandshakeFrameSnapshot ReadFrame(bool dark)
+    {
+        var stage = Pump(); var now = clock.GetUtcNow();
+        var elapsed = stage is null ? 0 : Math.Max(0, (now - stage.Starts).TotalMilliseconds);
+        var phase = stage?.Phase ?? HandshakePhase.Idle;
+        var t = phase switch { HandshakePhase.Standby => 1000 + Math.Min(999, elapsed), HandshakePhase.Linking => 2000 + Math.Min(1000, elapsed), HandshakePhase.InSync => 3000 + Math.Min(1399, elapsed), HandshakePhase.Switch => 4400 + Math.Min(1300, elapsed), _ => 0 };
+        var tick = false;
+        foreach (var s in stages) if (s.Starts <= now && s.Ready && s.Readiness != HandshakeReadiness.Deferred) { tick = true; break; }
+        tick &= !(phase == HandshakePhase.Switch && elapsed >= 1820);
+        var status = stage?.Readiness == HandshakeReadiness.Deferred && phase is HandshakePhase.InSync or HandshakePhase.Switch ? deferredText : phase switch
         {
-            HandshakePhase.Standby=>"Standby · "+name+" warms up in the background",
-            HandshakePhase.Linking=>"Linking · "+old+" briefs "+name,
-            HandshakePhase.InSync when elapsed>=800=>"Safe pause · the switch waits for the edit to finish",
-            HandshakePhase.InSync=>"In sync · "+name+(stage?.Readiness==HandshakeReadiness.Injected?"":" read the plan back; Marrow checked it"),
-            HandshakePhase.Switch=>elapsed>=620?"Handshake complete · "+name+" is in sync":"Safe pause · the switch waits for the edit to finish",
-            _=>"",
+            HandshakePhase.Standby => standbyText,
+            HandshakePhase.Linking => linkingText,
+            HandshakePhase.InSync when elapsed >= 800 => PauseText,
+            HandshakePhase.InSync => stage?.Readiness == HandshakeReadiness.Injected ? injectedText : syncText,
+            HandshakePhase.Switch => elapsed >= 620 ? completeText : PauseText,
+            _ => "",
         };
-        return new(phase,t,Math.Clamp((t-1000)/4020,0,1),status,tick,reduce(),c1,c2,HandshakeGeometry.Draw(width,height,t,dark,reduce(),c1,c2));
+        return new(phase, t, Math.Clamp((t - 1000) / 4020, 0, 1), status, tick, reduce(), UsageLight.Color(outgoingLeft, dark), UsageLight.Color(incomingLeft, dark));
+    }
+    public HandshakeMotionPlan Plan(double width, double height, bool dark)
+    {
+        RefreshAccounts(); // compatible inspection/geometry API; the frame renderer uses ReadFrame instead.
+        var f = ReadFrame(dark);
+        return new(f.Phase, f.VirtualMilliseconds, f.Progress, f.Status, f.ShowTick, f.UseCrossfade, f.OutgoingColor, f.IncomingColor,
+            HandshakeGeometry.Draw(width, height, f.VirtualMilliseconds, dark, f.UseCrossfade, f.OutgoingColor, f.IncomingColor));
     }
 }

@@ -7,13 +7,4 @@ namespace Marrow.App.Port.MultiAccount.Thread;
 internal static class ThreadPortSeams
 {
     public static Ambient<ThreadPorts> Offer { get; } = new(ThreadPorts.None);
-    internal static void Bind(AppModel app)
-    {
-        var owner = app.LiveAccountPorts;
-        Offer.SetProcessDefault(owner.Ports);
-        Usage.MultiAccountUsageSeams.Offer.SetProcessDefault(owner.Usage);
-        Cards.MultiAccountCardSeams.Offer.SetProcessDefault(thread => new(
-            () => app.AccountRouting.SwitchNowAsync(thread),
-            () => app.ExistingRuntime(thread)?.AccountHandoff));
-    }
 }

@@ -1,4 +1,4 @@
-// PORT-ONLY: MA-3b-E1, OD-0120. Wording beyond the owner's checkbox is proposed in ED-NEW-ma-e1-3.
+// PORT-ONLY: MA-3b-E1, OD-0120. Wording beyond the owner's checkbox is proposed in ED-456.
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;

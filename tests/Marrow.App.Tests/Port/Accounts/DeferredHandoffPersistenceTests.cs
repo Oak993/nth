@@ -10,7 +10,7 @@ using Marrow.Services.Store;
 
 namespace Marrow.App.Tests.Port.Accounts;
 
-// OD-0116, ED-NEW-ma-engine-7: the context an account without a standby is handed survives an app restart before the first turn (it is kept in the thread's own folder, like the
+// OD-0116, ED-439: the context an account without a standby is handed survives an app restart before the first turn (it is kept in the thread's own folder, like the
 // rest of the handoff state) and is delivered once.
 [Trait("Rule", "R-TEST-4")]
 public sealed class DeferredHandoffPersistenceTests

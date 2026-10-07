@@ -3,7 +3,7 @@ using Marrow.Core.Port.MultiAccount;
 
 namespace Marrow.Services.Port.MultiAccount;
 
-// PORT-ONLY: OD-0114; ED-NEW-ma-4. Immutable checkpoints in the thread's own folder.
+// PORT-ONLY: OD-0114; ED-407. Immutable checkpoints in the thread's own folder.
 public static class HandoffStore
 {
     public static HandoffSummary Save(HandoffContext context, string threadFolder, HandoffOptions? options = null)

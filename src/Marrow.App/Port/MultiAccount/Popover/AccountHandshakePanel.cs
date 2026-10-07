@@ -18,13 +18,15 @@ internal sealed class AccountHandshakePanel : Decorator
     private readonly ModelPulse pulse = new(_ => { });
     private readonly CzCrossfadeText hint = new("") { FontSize = 11, Secondary = true };
     private readonly CzCrossfadeText scope = new("") { FontSize = 11, Secondary = true };
+    private readonly Button reset;
     internal AccountHandshakePanel(AccountStore store, Guid id, string name, ProviderKind service)
     {
-        this.store = store; this.id = id; Width = 330;
+        this.store = store; this.id = id; Width = 248;
         Slider = new HandshakeSliderControl(() => store.Get(id).Defaults.HandshakePoint ?? store.GeneralHandshakePoint, SetPoint,
-            "Start the Handshake at this share of the limit", EffortBrand.Create(service), pulse);
-        Slider.Slider.Named("Start the Handshake at this share of the limit", "account-handshake-slider");
-        var reset = PlainControls.Button(LibraryUi.Text("Use the default", 11.5), UseDefault); reset.Focusable = true; reset.Named("Use the default", "account-handshake-default");
+            "Handshake point for this account", EffortBrand.Create(service), pulse);
+        Slider.ShowPrefix = false;
+        Slider.Slider.Named("Handshake point for this account", "account-handshake-slider");
+        reset = PlainControls.Button(LibraryUi.Text("Use the default", 11.5), UseDefault); reset.Focusable = true; reset.Named("Use the default", "account-handshake-default");
         Child = new Border { Padding = new Thickness(12), Child = new StackPanel { Spacing = 8, Children =
         { LibraryUi.Text("Handshake point", 13, weight: SwiftFont.Weight.Semibold), LibraryUi.Text(name, 11.5, secondary: true), Slider, hint, scope, reset } } };
         this.Named("Handshake point", "account-handshake-dialog");
@@ -38,6 +40,7 @@ internal sealed class AccountHandshakePanel : Decorator
     {
         pulse.Bump(); var account = store.Get(id); var point = account.Defaults.HandshakePoint ?? store.GeneralHandshakePoint;
         hint.SetText(point.Percentage is null ? HandshakeStops.NearText(account.Plan) : "At " + point.Percentage.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "%");
+        reset.IsVisible = account.Defaults.HandshakePoint is not null;
         scope.SetText(account.Defaults.HandshakePoint is null ? "Like all accounts" : "This account only");
     }
 }

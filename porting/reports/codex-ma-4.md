@@ -1,6 +1,6 @@
 # MA-4: Marrow's own handoff summary
 
-READY for the requested foundation. Base: `claude/verify-terminal-20261001`, `7a4cfad3ef57459faf2f593368412fd44d54de06`. Branch: `codex/ma-4`. No UI, model call or account-selection policy was added. The decision is recorded under the byte-exact heading `## ED-NEW-ma-4`; all earlier bytes of the decision ledger were preserved.
+READY for the requested foundation. Base: `claude/verify-terminal-20261001`, `7a4cfad3ef57459faf2f593368412fd44d54de06`. Branch: `codex/ma-4`. No UI, model call or account-selection policy was added. The decision is recorded under the byte-exact heading `## ED-407`; all earlier bytes of the decision ledger were preserved.
 
 The Core builder preserves all user/assistant text and recorded task/plan/todo state, file edits and the supplied full current diff, command status and exit code, last error, approvals and recent turns. Only older bulky output is shortened; every shortened item points to an immutable full-conversation archive. The report counts the exact UTF-8 bytes of the archive and summary. ThreadRuntime.SaveHandoff uses the complete history, restores original assistant wording and tool output from a durable journal, and refuses a non-quiescent thread. The caller supplies the current diff; the builder does not invoke git or guess worktree contents.
 

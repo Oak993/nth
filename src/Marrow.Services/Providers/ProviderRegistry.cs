@@ -46,7 +46,7 @@ public sealed record ProviderStatus
     public Auth ProviderStatusAuth { get; init; } = new Auth.Unknown(); // :12 Swift: auth (R-NAME-3)
     public bool IsChecking { get; init; }                              // :13
     public bool ApiKeyConfigured { get; init; }                        // :15
-    // PORT-ONLY (ED-NEW-ma-3): availability without a credential or executable.
+    // PORT-ONLY (ED-410): availability without a credential or executable.
     public bool LocalServerAvailable { get; init; }
     public string? LocalSummary { get; init; }
 
@@ -62,7 +62,7 @@ public sealed record ProviderStatus
         get
         {
             if (!IsInstalled) return "Not installed"; // :20
-            if (LocalServerAvailable && LocalSummary is { } localSummary) return localSummary; // ED-NEW-ma-3
+            if (LocalServerAvailable && LocalSummary is { } localSummary) return localSummary; // ED-410
             return ProviderStatusAuth switch
             {
                 Auth.SignedIn signedIn => signedIn.Account is { } account ? $"Signed in as {account}" : "Signed in", // :22
@@ -218,12 +218,12 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     public ProviderRegistry(ProviderSettings settings, AccountStore? accounts = null, string? accountDataRoot = null, Marrow.Services.Port.Local.LocalDiscovery? local = null)
     {
         this.settings = settings; // :163
-        // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Existing fixtures can retain the provider-only contract.
+        // PORT-ONLY: OD-0114 / ED-404. Existing fixtures can retain the provider-only contract.
         var configuredAccounts = accounts ?? (settings as AccountProviderSettings)?.Accounts;
         accountStore = configuredAccounts is { SaveBlocked: false } ? configuredAccounts : null;
         recoveredAccounts = configuredAccounts is { SaveBlocked: true } ? configuredAccounts : null;
         accountEnvironmentSource = accountStore is null ? null : new(() => new AccountEnvironment(accountDataRoot ?? Marrow.Services.Store.Storage.Root));
-        InitializeLocal(local); // PORT-ONLY (ED-NEW-ma-3)
+        InitializeLocal(local); // PORT-ONLY (ED-410)
 
         // :164
         if (UserDefaults.Standard.Current.Dictionary("recentSlashCommands") is { } storedRecent)
@@ -331,7 +331,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
 
     // :202-208. ED-001: the CaptureRun-only comment context does not change this member; ported as written.
     public bool CountsAsInstalled(ProviderKind provider) =>
-        statuses.TryGetValue(provider, out var status) ? status.IsInstalled : provider != ProviderKind.Local; // :207; ED-NEW-ma-3: only show Local when found
+        statuses.TryGetValue(provider, out var status) ? status.IsInstalled : provider != ProviderKind.Local; // :207; ED-410: only show Local when found
 
     // :210-217. ED-001: the CaptureRun branch (:213-215) is dead in a shipped launch and not ported.
     public ProviderStatus Status(ProviderKind provider) =>
@@ -356,7 +356,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // URL round trip to find the executable's directory.
     private string? ResolveExecutable(ProviderKind provider)
     {
-        if (provider.IsAPIKeyBased || provider == ProviderKind.Local) return null; // :220; ED-NEW-ma-3
+        if (provider.IsAPIKeyBased || provider == ProviderKind.Local) return null; // :220; ED-410
         var custom = settings.BinaryPath(provider); // :221
         if (custom.Length == 0 && provider.ExecutableName.Length == 0) return null; // :222
         var primary = custom.Length == 0 ? provider.ExecutableName : custom;
@@ -615,7 +615,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
             Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() });
             return;
         }
-        if (provider == ProviderKind.Local) { await RefreshLocal(); return; } // ED-NEW-ma-3
+        if (provider == ProviderKind.Local) { await RefreshLocal(); return; } // ED-410
         var status = statuses.TryGetValue(provider, out var existing) ? existing : new ProviderStatus(); // :359
         status = status with { IsChecking = true }; // :360
         Statuses = statuses.Mutating(d => d[provider] = status); // :369
@@ -1141,8 +1141,8 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // gate, the seeded/stale test, the nine-arm dispatch table, and the OpenCode sibling delivery.
     public async Task LoadCatalog(ProviderKind provider, bool force = false)
     {
-        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
-        if (provider == ProviderKind.Local) { await RefreshLocal(); return; } // ED-NEW-ma-3
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-404: Off accounts cannot be probed.
+        if (provider == ProviderKind.Local) { await RefreshLocal(); return; } // ED-410
         if (loadingCatalogs.Contains(provider)) return; // :460
         if (!force && attemptedCatalogs.Contains(provider)) return; // :461
         if (provider.IsAPIKeyBased) // :462-464
@@ -1336,7 +1336,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // :606-641
     public void RefreshPlanLimits(ProviderKind provider, bool force = false)
     {
-        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-404: Off accounts cannot be probed.
         if (!PlanLimitsReader.ExposesLimits(provider)) return; // :607, PR-PROVREG-163
         if (loadingLimits.Contains(provider)) // :608
         {
@@ -1472,7 +1472,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // unlike RefreshPlanLimits' forcedLimitReads (PR-PROVREG-164).
     public void RefreshCredits(ProviderKind provider, bool force = false)
     {
-        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-404: Off accounts cannot be probed.
         if (!CreditsReader.ExposesCredits(provider) || loadingCredits.Contains(provider)) return; // :682
         // :683-686. Command Code's key is the CLI's own login unless Settings holds one.
         var apiKey = provider == ProviderKind.Commandcode
@@ -1638,7 +1638,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // oldest-entry eviction of the command cache itself).
     public async Task LoadCommands(ProviderKind provider, string directory, bool force = false)
     {
-        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-NEW-ma-1: Off accounts cannot be probed.
+        if (!HasEnabledAccount(provider)) return; // OD-0114 / ED-404: Off accounts cannot be probed.
         if (provider != ProviderKind.Codex && provider != ProviderKind.Claude) return; // :763
         var key = CommandKey(provider, directory); // :764
         if (commandLoads.TryGetValue(key, out var inFlight)) // :765

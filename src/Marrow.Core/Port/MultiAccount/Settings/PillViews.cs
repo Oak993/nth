@@ -33,6 +33,8 @@ public sealed record StepView(
     bool Fast,
     Marrow.Core.Accounts.HandshakePoint HandshakeAt,
     bool HandshakeLocked,
-    bool NeverRunsOut);
+    bool NeverRunsOut,
+    string Mono = "",
+    uint MarkHue = 0x8A94A6);
 
 public sealed record AvailableStep(string AccountId, string Label, ProviderKind Service);

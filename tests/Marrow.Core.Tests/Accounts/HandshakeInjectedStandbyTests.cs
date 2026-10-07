@@ -2,7 +2,7 @@ using Marrow.Core.Accounts;
 
 namespace Marrow.Core.Tests.Accounts;
 
-// OD-0116 (deferred delivery), OD-0122 (an injected history shows the same in-sync tick), ED-NEW-ma-engine-7.
+// OD-0116 (deferred delivery), OD-0122 (an injected history shows the same in-sync tick), ED-439.
 [Trait("Rule", "R-TEST-4")]
 public sealed class HandshakeInjectedStandbyTests
 {

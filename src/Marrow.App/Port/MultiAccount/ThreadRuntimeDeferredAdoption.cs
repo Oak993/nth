@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0116, lead decision 2026-10-06 (ED-NEW-ma-engine-4). Adoption of an account whose session is not started: the thread is bound to it and its first real turn carries the context.
+// PORT-ONLY: OD-0116, lead decision 2026-10-06 (ED-436). Adoption of an account whose session is not started: the thread is bound to it and its first real turn carries the context.
 using Marrow.Core.Accounts.Pills;
 using Marrow.Core.Models;
 using Marrow.Services.Providers;
@@ -7,7 +7,7 @@ namespace Marrow.App.Runtime;
 
 public sealed partial class ThreadRuntime
 {
-    // Held until the destination's first real turn is sent. ED-NEW-ma-engine-7: it is also kept in the thread's own folder (the account it belongs to on the first line),
+    // Held until the destination's first real turn is sent. ED-439: it is also kept in the thread's own folder (the account it belongs to on the first line),
     // so a restart before that first turn does not lose it.
     private string? deferredHandoff;
     private bool deferredHandoffChecked;

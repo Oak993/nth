@@ -5,7 +5,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Owner scope: OD-0114, multi-account-NOTES Local/no-cap items, FEASIBILITY section 5; ED-NEW-ma-3.
+// Owner scope: OD-0114, multi-account-NOTES Local/no-cap items, FEASIBILITY section 5; ED-410.
 [Trait("Rule", "R-TEST-10")]
 [Trait("Feature", "MA-3")]
 public sealed class LocalDiscoveryTests

@@ -8,7 +8,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.MultiAccount;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-4. Capture before ToolCall's existing 60 KB output cap.
+// PORT-ONLY: OD-0114 / ED-407. Capture before ToolCall's existing 60 KB output cap.
 // A separate append-only journal preserves the parity storage schema and survives runtime eviction/restart.
 public static class HandoffJournal
 {

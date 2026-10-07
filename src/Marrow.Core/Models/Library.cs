@@ -280,7 +280,7 @@ public sealed record ChatThread
     public string? WorktreePath { get; init; }                               // :135
     public string? Branch { get; init; }                                      // :136
     public string? ProviderSessionID { get; init; }                             // :137
-    // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Null binds pre-MA-1 native sessions to legacy Account 1 in place.
+    // PORT-ONLY: OD-0114 / ED-404. Null binds pre-MA-1 native sessions to legacy Account 1 in place.
     public Guid? ProviderAccountID { get; init; }
     // PORT-ONLY: OD-0114. An account pin is independent of sidebar IsPinned; null follows the order.
     public Guid? ProviderAccountPinID { get; init; }

@@ -126,7 +126,8 @@ public sealed class AccountsListModelTests
         Assert.Contains("Handshake at 99%", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);
         Assert.Equal(MultiAccountWords.WhenAt(99), rig.Model.Blocks[0].Rows[0].HandshakeLabel);
         rig.Model.SetHandshake(a.Id, HandshakePoint.Smart);
-        Assert.Contains("Handshake automatically", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);
+        // Retired equal-default note assertion: ED-516 / OD-0119.
+        // MAUI-041 pins absence when the explicit point equals the general point.
         rig.Model.SetHandshake(a.Id, null);
         Assert.Null(rig.Accounts.Get(a.Id).Defaults.HandshakePoint);
         Assert.DoesNotContain("Handshake", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);

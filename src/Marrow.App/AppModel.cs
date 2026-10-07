@@ -691,7 +691,7 @@ public sealed partial class AppModel : MainActorModel
             .FirstOrDefault(); // AppModel.swift:576-581
         if (unused is not null)
         {
-            var fresh = ApplyNewThreadPill(MakeThread(project, null)); // OD-0114 / ED-NEW-ma-ui; AppModel.swift:582-585
+            var fresh = ApplyNewThreadPill(MakeThread(project, null)); // OD-0114 / ED-403; AppModel.swift:582-585
             UpdateThreadValue(unused.Id, thread =>
             {
                 if (thread.Provider != fresh.Provider || thread.ProviderAccountID != fresh.ProviderAccountID)
@@ -730,7 +730,7 @@ public sealed partial class AppModel : MainActorModel
             ChooseProjectFolder(); // AppModel.swift:606-609
             return null;
         }
-        var thread = ApplyNewThreadPill(MakeThread(destination, SelectedThread)); // OD-0114 / ED-NEW-ma-ui; AppModel.swift:610
+        var thread = ApplyNewThreadPill(MakeThread(destination, SelectedThread)); // OD-0114 / ED-403; AppModel.swift:610
         Threads = Threads.Appending(thread); // AppModel.swift:611
         UpdateProject(destination.Id, existing => existing with { IsExpanded = true }); // AppModel.swift:612
         RememberLastProject(destination.Id); // AppModel.swift:613
@@ -829,7 +829,7 @@ public sealed partial class AppModel : MainActorModel
         if (!threadIndex.Positions.TryGetValue(id, out var position)) return; // AppModel.swift:705-708
         var index = checked((int)position);
         var changed = change(threads[index]); // AppModel.swift:709-710
-        // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Account bindings belong to one service.
+        // PORT-ONLY: OD-0114 / ED-404. Account bindings belong to one service.
         if (changed.Provider != threads[index].Provider && !accountSwitch) changed = changed with { ProviderAccountID = null };
         if (changed == threads[index]) return; // AppModel.swift:711: nothing changed, nothing assigned or saved
         Threads = threads.SetItem(index, changed); // AppModel.swift:712
@@ -1462,7 +1462,6 @@ public sealed partial class AppModel : MainActorModel
             var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1332-1334
             DiskWriter.Shared.WriteSynchronously(library, Storage.LibraryURL); // AppModel.swift:1335
         }
-        DisposeThreadPorts();
         foreach (var runtime in runtimes.Values)
         {
             runtime.CancelPersistence(); // AppModel.swift:1336-1337

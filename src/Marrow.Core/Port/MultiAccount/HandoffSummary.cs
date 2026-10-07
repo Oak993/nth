@@ -7,7 +7,7 @@ using Marrow.Core.Models;
 
 namespace Marrow.Core.Port.MultiAccount;
 
-// PORT-ONLY: OD-0114, multi-account-NOTES "Marrow's own digest" / "Nothing missed"; ED-NEW-ma-4.
+// PORT-ONLY: OD-0114, multi-account-NOTES "Marrow's own digest" / "Nothing missed"; ED-407.
 // This is mechanical selection, never AI summarization. All recorded information remains in the archive.
 public sealed record HandoffApproval(string Id, string Title, string Outcome, string? Detail = null);
 

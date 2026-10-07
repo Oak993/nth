@@ -215,7 +215,7 @@ public static class PiCLI
     }
 
     /// <summary>
-    /// PORT-ONLY: OD-0116, OD-0122, ED-NEW-ma-engine-7. The app's own second extension, loaded only into a waiting standby: `/droppy-load <file>` stores the file's text in the session
+    /// PORT-ONLY: OD-0116, OD-0122, ED-439. The app's own second extension, loaded only into a waiting standby: `/droppy-load <file>` stores the file's text in the session
     /// history as a custom message with `triggerTurn: false`, so no model turn runs. It is separate from the gate extension, whose source is pinned.
     /// </summary>
     public static SwiftURL InstallLoadExtension() => InstallLoadExtension(LocalApplicationData());

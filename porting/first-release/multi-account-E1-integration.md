@@ -1,6 +1,6 @@
 # MA-3b-E1 engine integration
 
-E1 supplies `LinkEngine : ILinkPort`, `OpinionsEngine : IOpinionsPort`, the concrete `AccountConversationHeadHost`, persistent `ConversationTransferConsent`, and an Avalonia `ConversationTransferPrompt`. The job-0 `ThreadPortSeams` default remains unbound; job W owns live app/view integration. These are PORT-ONLY surfaces governed by OD-0115, OD-0116 and OD-0120, with safe choices recorded in ED-NEW-ma-e1-1 through ED-NEW-ma-e1-4.
+E1 supplies `LinkEngine : ILinkPort`, `OpinionsEngine : IOpinionsPort`, the concrete `AccountConversationHeadHost`, persistent `ConversationTransferConsent`, and an Avalonia `ConversationTransferPrompt`. The job-0 `ThreadPortSeams` default remains unbound; job W owns live app/view integration. These are PORT-ONLY surfaces governed by OD-0115, OD-0116 and OD-0120, with safe choices recorded in ED-454 through ED-457.
 
 ## Required live boundaries
 

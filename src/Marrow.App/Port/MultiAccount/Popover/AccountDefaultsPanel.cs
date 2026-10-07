@@ -26,7 +26,7 @@ internal sealed class AccountDefaultsPanel : Decorator
     private string? shownModel;
     internal AccountDefaultsPanel(AccountStore store, Guid id, string name, IReadOnlyList<ModelOption> models)
     {
-        this.store = store; this.id = id; this.models = models; Width = 346;
+        this.store = store; this.id = id; this.models = models; Width = 330;
         var picker = MenuPopover.Value("Model", "account-default-model", modelText,
             () => models.Select(m => new MenuOption(m.Id, m.ChipName, false, m.Id == Current.Model)).ToArray(), SelectModel);
         var modelRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; modelRow.Children.Add(LibraryUi.Text("Model", 12.5)); Grid.SetColumn(picker, 1); modelRow.Children.Add(picker);

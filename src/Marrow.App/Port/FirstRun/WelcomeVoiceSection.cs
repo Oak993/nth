@@ -28,15 +28,21 @@ public sealed class WelcomeVoiceSection : Decorator
     private readonly Border host;
     private AnimatedScalar? height;
     private VoiceQuestionState shown;
+    private readonly bool atOrb;
 
-    public WelcomeVoiceSection(VoiceSpeedQuestion question)
+    public WelcomeVoiceSection(VoiceSpeedQuestion question, bool atOrb = false)
     {
         this.question = question;
+        this.atOrb = atOrb;
         host = new Border { Child = layers, ClipToBounds = true, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var section = new ChromeSection(WelcomeVoiceWords.Title, () => new ChromeCard(() => host));
-        section.MaxWidth = 480; // Welcome's sections are capped at 480 (RootView.swift:337)
-        Child = section;
-        shown = question.State;
+        if (atOrb) Child = host; // The PopoverCard already supplies the chrome; the host has exactly one parent.
+        else
+        {
+            var section = new ChromeSection(WelcomeVoiceWords.Title, () => new ChromeCard(() => host));
+            section.MaxWidth = 480; // Welcome's sections are capped at 480 (RootView.swift:337)
+            Child = section;
+        }
+        shown = CurrentState;
         if (Body(shown) is { } first) layers.Children.Add(first);
         else if (shown != VoiceQuestionState.Gone) _ = question.ProbeAsync(); // the words name the model's size: read the PC (fetches nothing) when it is not known yet
         question.Changed += OnChanged;
@@ -56,7 +62,7 @@ public sealed class WelcomeVoiceSection : Decorator
     internal Task Choose(int index) => shown switch
     {
         VoiceQuestionState.Ask when index == 0 => Done(question.No),
-        VoiceQuestionState.Ask when index == 1 => Guarded(() => question.YesAsync(null, CancellationToken.None)),
+        VoiceQuestionState.Ask when index == 1 => Guarded(() => atOrb ? question.AtOrbAsync(null, CancellationToken.None) : question.YesAsync(null, CancellationToken.None)),
         VoiceQuestionState.Slow when index is 0 or 1 => Guarded(() => question.AnswerAsync(index == 0 ? LiveWordsChoice.Live : LiveWordsChoice.Accurate, CancellationToken.None)),
         _ => Task.CompletedTask,
     };
@@ -86,7 +92,7 @@ public sealed class WelcomeVoiceSection : Decorator
 
     private void Show()
     {
-        var state = question.State;
+        var state = CurrentState;
         if (state == shown && layers.Children.Count > 0) return; // already drawn; a state whose words wait for a size is drawn when it comes
         shown = state;
         var oldHeight = host.Bounds.Height;
@@ -165,6 +171,11 @@ public sealed class WelcomeVoiceSection : Decorator
         }
         return new Border { Padding = new Thickness(16, 11), Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch };
     }
+
+    // A completed setup shown at the orb uses Ready; a failed setup returns to the existing V2 Ask choices for retry.
+    private VoiceQuestionState CurrentState => atOrb && question.State == VoiceQuestionState.Gone
+        ? question.Error is null ? VoiceQuestionState.Ready : VoiceQuestionState.Ask
+        : question.State;
 
     private static TextBlock Secondary(string text, SwiftFont.TextStyle style)
     {

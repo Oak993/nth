@@ -42,7 +42,7 @@ public sealed class AutoContinue : MainActorModel
     private readonly Dictionary<Guid, UsageAccountKey> notedAccounts = [];
     private readonly Dictionary<Guid, UsageAccountKey> waitingAccounts = [];
 
-    // DEVIATION OD-0114 / ED-NEW-ma-2: account-store composition; absent explicit readers fail closed.
+    // DEVIATION OD-0114 / ED-406: account-store composition; absent explicit readers fail closed.
     public Func<UsageAccountKey, Task<PlanLimits?>>? ReadAccountLimits { get; set; }
     public AccountLimitsScheduler? UsageLimits { get; set; }
     internal Func<DateTimeOffset, string>? FormatForTesting { get; set; }
@@ -135,7 +135,7 @@ public sealed class AutoContinue : MainActorModel
         UpdateOutcomes();
     }
 
-    // ED-NEW-ma-ui: a first-time card and a switch have one limit owner, including migrated/default accounts.
+    // ED-403: a first-time card and a switch have one limit owner, including migrated/default accounts.
     public void TakeLimitOwnership(Guid threadID)
     {
         Cancel(threadID);

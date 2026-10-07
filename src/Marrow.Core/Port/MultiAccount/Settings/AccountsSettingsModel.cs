@@ -88,7 +88,7 @@ public sealed class AccountsSettingsModel
         else
         {
             subtitle = plan;
-            if (point is not null) subtitle += " · " + MultiAccountWords.HandshakeText(PointLabel(point).ToLowerInvariant());
+            if (point is not null && point != accounts.GeneralHandshakePoint) subtitle += " · " + MultiAccountWords.HandshakeText(PointLabel(point).ToLowerInvariant());
             if (account.CustomName is not null) subtitle += " · " + MultiAccountWords.CustomName;
             if (out5 && (line?.FiveHourReset ?? line?.WeekReset) is { } until) subtitle += " · " + MultiAccountWords.OutUntil(ResetText(until));
         }
@@ -228,7 +228,7 @@ public sealed class AccountsSettingsModel
         Changed?.Invoke();
         return result.Outcome switch
         {
-            LocalConnectOutcome.Found => MultiAccountWords.LocalFoundOn(result.Where, result.Models),
+            LocalConnectOutcome.Found => MultiAccountWords.LocalFoundOn(result.Where, result.Models, result.Kind),
             LocalConnectOutcome.NotFound => MultiAccountWords.LocalNotFound(result.Where),
             _ => MultiAccountWords.LocalBadAddress,
         };

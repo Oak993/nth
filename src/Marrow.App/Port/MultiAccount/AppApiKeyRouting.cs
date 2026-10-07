@@ -74,10 +74,8 @@ public sealed class AppApiKeyRouting(AppModel app) : IKeyMovePolicy, IApiKeyCred
         MainActor.AssumeIsolated();
         if (live.GetValueOrDefault(thread) is not { Request: not null } rotation) return false;
         if (!Enum.IsDefined(scope)) throw new ArgumentOutOfRangeException(nameof(scope));
-        if (choices.Count != 1 || choices[0].Kind != DecisionKind.OnLimit
-            || choices[0].Value is not (DecisionValues.Switch or DecisionValues.Wait or DecisionValues.Ask)
-            || choices[0].Value == DecisionValues.Ask && rotation.Request?.FirstTime != true)
-            throw new ArgumentException("The API key card needs an offered limit choice.", nameof(choices));
+        if (choices.Count != 1 || choices[0].Kind != DecisionKind.OnLimit || choices[0].Value is not (DecisionValues.Switch or DecisionValues.Wait))
+            throw new ArgumentException("The API key card needs one switch or wait choice.", nameof(choices));
         var request = rotation.BeginAnswer();
         try
         {
@@ -90,11 +88,6 @@ public sealed class AppApiKeyRouting(AppModel app) : IKeyMovePolicy, IApiKeyCred
             };
             decisions.Record(thread, choices, scope);
             rotation.ValidatePending(request);
-            if (choices[0].Value == DecisionValues.Ask)
-            {
-                rotation.AskEachTime();
-                return true;
-            }
             var allow = choices[0].Value == DecisionValues.Switch && Policy(thread) == expected;
             if (allow && request.FirstTime) app.Settings.AccountHandshakeEnabled = true;
             rotation.ValidatePending(request);

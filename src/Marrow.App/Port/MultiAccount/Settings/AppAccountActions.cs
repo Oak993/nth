@@ -1,4 +1,4 @@
-// PORT-ONLY: T11 step 2 (ENGINEERING DECISION, ED-NEW-cloud-ma-settings). The Models page's "Add another account" and "Sign out", over the provider registry's account sign-in (ProviderRegistry.SignIn(Guid)). A sign-in that fails leaves no
+// PORT-ONLY: T11 step 2 (ENGINEERING DECISION, ED-449). The Models page's "Add another account" and "Sign out", over the provider registry's account sign-in (ProviderRegistry.SignIn(Guid)). A sign-in that fails leaves no
 // half-made account behind. Signing out of an account Marrow made removes it and the private folder Marrow made for it (that is where its sign-in is kept); the original account's sign-in belongs to the CLI and is never touched here.
 using Marrow.Core.Accounts;
 using Marrow.Core.Models;
@@ -36,7 +36,7 @@ internal sealed class AppAccountActions(AppModel model) : IAccountActions
         var found = entries.FirstOrDefault(entry => entry.Server.Id == server.Id);
         if (found is null || found.Models.Count == 0) return new LocalConnectResult(LocalConnectOutcome.NotFound, 0, where);
         Services.Port.MultiAccount.LocalAccountCatalog.Synchronize(model.Settings.Accounts, entries);
-        return new LocalConnectResult(LocalConnectOutcome.Found, found.Models.Count, where);
+        return new LocalConnectResult(LocalConnectOutcome.Found, found.Models.Count, where, found.Kind);
     }
 
     public Task SignOutAsync(Guid accountId)

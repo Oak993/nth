@@ -7,11 +7,11 @@ internal sealed class HandshakeDrawResources
     private readonly double width, height;
     private readonly (byte R, byte G, byte B) outgoing, incoming;
     internal HandshakePainter Painter { get; }
-    internal HandshakeDrawResources(double width, double height, HandshakeMotionPlan frame)
+    internal HandshakeDrawResources(double width, double height, HandshakeFrameSnapshot frame)
     {
         this.width = width; this.height = height; outgoing = frame.OutgoingColor; incoming = frame.IncomingColor; Painter = new HandshakePainter(width, height, outgoing, incoming);
     }
-    internal bool Matches(double w, double h, HandshakeMotionPlan frame) => width == w && height == h && outgoing == frame.OutgoingColor && incoming == frame.IncomingColor;
+    internal bool Matches(double w, double h, HandshakeFrameSnapshot frame) => width == w && height == h && outgoing == frame.OutgoingColor && incoming == frame.IncomingColor;
     internal void Acquire() => Interlocked.Increment(ref references);
     internal void Release() { if (Interlocked.Decrement(ref references) == 0) Painter.Dispose(); }
 }

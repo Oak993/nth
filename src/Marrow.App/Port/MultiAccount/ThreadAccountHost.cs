@@ -19,7 +19,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     private SwitchTarget? preparedTarget;
     private DeferredStandby? deferredPrepared;
 
-    // OD-0116 (lead decision 2026-10-06), refined by ED-NEW-ma-engine-7: how each service holds the context before the switch.
+    // OD-0116 (lead decision 2026-10-06), refined by ED-439: how each service holds the context before the switch.
     // Primed: Claude (after its gate) and the API/Local providers read it in a verified text-only turn.
     // Injected: Codex, Pi and OpenCode load it as history with no model turn at all, each gated by a run-time check; Codex falls back to deferred delivery, Pi and OpenCode to a warm start.
     // Warm: the process and session open early and receive nothing; the context goes as the first real turn. Deferred: Command Code, nothing to open early.
@@ -41,7 +41,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         || deferredPrepared is not null && string.Equals(deferredPrepared.Configuration.AccountId?.ToString("D"), target.Account.Id, StringComparison.OrdinalIgnoreCase)
         || prepared is { Kind: StandbyKind.Deferred } discarded && string.Equals(discarded.Configuration.AccountId?.ToString("D"), target.Account.Id, StringComparison.OrdinalIgnoreCase);
 
-    // The run-time check before the user is asked "finish the reply?": a CLI that cannot hold history will not continue a reply either (ED-NEW-ma-engine-7).
+    // The run-time check before the user is asked "finish the reply?": a CLI that cannot hold history will not continue a reply either (ED-439).
     public async ValueTask<bool> ResolveDeliversDeferredAsync(SwitchTarget target, CancellationToken ct)
     {
         if (DeliversDeferred(target)) return true;
@@ -111,7 +111,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
             ? new OpenCodeInjectionSession(candidate.Configuration, configuration => AccountSessionFactory.Constructor.Current(configuration))
             : candidate.Session;
 
-    // ED-NEW-ma-engine-7: no model turn at all, so nothing can act. Any refusal, old CLI, exit or activity falls back to deferred delivery with the context intact.
+    // ED-439: no model turn at all, so nothing can act. Any refusal, old CLI, exit or activity falls back to deferred delivery with the context intact.
     private async Task<IStandbySession> StartInjectedAsync(SessionConfiguration original, SwitchTarget target, Guid id, string from, long epoch, long generation,
         Func<bool> canTransfer, bool warmFallback, CancellationToken ct)
     {
@@ -138,7 +138,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         return standby;
     }
 
-    // ED-NEW-ma-engine-7: the destination's process and session open early with no context and no prompt; if it cannot, or does anything on its own, the context goes the plain deferred way.
+    // ED-439: the destination's process and session open early with no context and no prompt; if it cannot, or does anything on its own, the context goes the plain deferred way.
     private async Task<IStandbySession> PrepareWarmAsync(SessionConfiguration original, SwitchTarget target, Guid id, string from, long epoch, long generation, CancellationToken ct)
     {
         WarmStandby? warm = null;
@@ -273,8 +273,6 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                 var candidate = incoming.TakeSession();
                 try { runtime.AdoptHandshakeSession(candidate, incoming.SessionId, incoming.Configuration, relay, resumeReply, pinAccount: manualSelection is not null); }
                 catch { candidate.OnEvent = null; candidate.Stop(); throw; }
-                runtime.RecordAccountHandoff(final, original, target.Account.Name,
-                    ready: incoming.Kind == StandbyKind.Injected || incoming.ReadBackRequested);
                 prepared = null;
                 preparedTarget = null;
             });
@@ -341,7 +339,6 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                     standby.Warm?.Stop();
                     runtime.AdoptDeferredAccount(standby.Configuration, preamble, relay, pinAccount: manualSelection is not null);
                 }
-                runtime.RecordAccountHandoff(final, package, target.Account.Name, ready: false);
                 deferredPrepared = null;
                 preparedTarget = null;
                 return true;

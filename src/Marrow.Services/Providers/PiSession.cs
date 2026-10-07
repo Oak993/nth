@@ -72,7 +72,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession
     private readonly PendingReplies<JSONValue> pendingResponses = new(); // :57
     private int requestCounter; // :58
 
-    // PORT-ONLY: OD-0116, OD-0122, ED-NEW-ma-engine-7. A waiting standby loads context through the app's load extension with no turn; any agent or tool activity is a violation.
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. A waiting standby loads context through the app's load extension with no turn; any agent or tool activity is a violation.
     private bool standbyActive;
     private bool standbyDiscarding;
     private bool loadCommandAvailable;
@@ -127,7 +127,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession
         Directory.CreateDirectory(WindowsPath(gateDirectory));
         var gateFileURL = gateDirectory.Appending(SwiftUUID.UuidString(Guid.NewGuid()) + ".json");
         gateURL = WindowsPath(gateFileURL);
-        WriteGate(finalReport: standbyActive); // PORT-ONLY (ED-NEW-ma-engine-7): a waiting standby blocks every tool
+        WriteGate(finalReport: standbyActive); // PORT-ONLY (ED-439): a waiting standby blocks every tool
 
         // :93-94
         var arguments = LiveArguments(WindowsPath(extensionURL), runtimeMode, model, effort, sessionID);
@@ -296,7 +296,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession
 
     public Task<bool> StopAgent(string id) => Task.FromResult(false); // :225
 
-    // PORT-ONLY: OD-0116, OD-0122, ED-NEW-ma-engine-7. Standby by injection through the app's load extension (`pi.sendMessage(..., { triggerTurn: false })`): no model turn.
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. Standby by injection through the app's load extension (`pi.sendMessage(..., { triggerTurn: false })`): no model turn.
     public Task<bool> SupportsStandbyInjection(CancellationToken ct) =>
         Task.FromResult(configuration.Executable is { } executable && !PiHistoryInjection.IsUnavailable(executable));
 
@@ -458,7 +458,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession
     /// process (see the file header note).</summary>
     internal void Handle(JSONValue message) // :286-326
     {
-        // PORT-ONLY (ED-NEW-ma-engine-7): fail closed. Only replies to the app's own requests pass; any agent or tool activity on a waiting session stops and discards it.
+        // PORT-ONLY (ED-439): fail closed. Only replies to the app's own requests pass; any agent or tool activity on a waiting session stops and discards it.
         if ((standbyActive || standbyDiscarding) && message["type"]?.JSONValueString is { } waitingKind && waitingKind != "response")
         {
             if (standbyActive && (waitingKind is "agent_start" or "turn_start" or "tool_execution_start" or "extension_ui_request"

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Marrow.Core.Port.Accounts;
 
-// PORT-ONLY: OD-0114, OD-0116; ED-NEW-ma-ui. Metadata shares MA-1 identities; secrets stay in the vault.
+// PORT-ONLY: OD-0114, OD-0116; ED-403. Metadata shares MA-1 identities; secrets stay in the vault.
 public sealed class AccountKeyStore : IApiKeyStore, IApiKeySpend
 {
     public const string SettingsKey = "multiAccountApiKeys";

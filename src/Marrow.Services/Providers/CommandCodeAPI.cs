@@ -178,7 +178,7 @@ public static partial class CommandCodeAPI
             windows.Add(new PlanLimits.Window // :91-96
             {
                 Id = key, // :92
-                DurationMinutes = reportedWindowsOnly ? key == "fiveHour" ? 300 : 10_080 : null, // OD-0114 / ED-NEW-ma-2
+                DurationMinutes = reportedWindowsOnly ? key == "fiveHour" ? 300 : 10_080 : null, // OD-0114 / ED-406
                 Title = title + " \U000000B7 " + MoneyFormatter.Current(cap, "USD"), // :93 U+00B7 MIDDLE DOT
                 Percent = percent < 100 ? percent : 100, // :94
                 ResetsAt = resetAt, // :95

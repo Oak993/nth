@@ -1789,7 +1789,7 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
             ProviderKind[] supporting =
             [
                 ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Copilot, ProviderKind.Deepseek, ProviderKind.Meta,
-                ProviderKind.Zai, ProviderKind.Pi, ProviderKind.OpenRouter, ProviderKind.Local, // ED-234, ED-NEW-ma-3
+                ProviderKind.Zai, ProviderKind.Pi, ProviderKind.OpenRouter, ProviderKind.Local, // ED-234, ED-410
             ];
             foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
             {

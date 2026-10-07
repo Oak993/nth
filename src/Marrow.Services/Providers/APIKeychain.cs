@@ -59,7 +59,7 @@ public static class APIKeychain
         return Set(key, account);
     }
 
-    // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Migrated identities keep the old protected target in place.
+    // PORT-ONLY: OD-0114 / ED-404. Migrated identities keep the old protected target in place.
     public static string Key(Marrow.Core.Port.Accounts.Account account, string fallback) =>
         CredentialAccount(account) is { } target ? Read(target) ?? fallback : fallback;
 

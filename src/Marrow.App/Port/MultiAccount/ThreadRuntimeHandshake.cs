@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0114; ED-NEW-ma-ui. Streaming checkpoints are read-only unless the provider owns a paused step.
+// PORT-ONLY: OD-0114; ED-403. Streaming checkpoints are read-only unless the provider owns a paused step.
 using Marrow.Core.Models;
 using Marrow.Core.Port.MultiAccount;
 using Marrow.Services.Port.MultiAccount;

@@ -73,7 +73,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
     private readonly Dictionary<string, string> headTurns = new(StringComparer.Ordinal); // :47
     private readonly Dictionary<string, TokenSpendTracker> headSpend = new(StringComparer.Ordinal); // :48
     private readonly Dictionary<string, string> headModels = new(StringComparer.Ordinal); // :51
-    // PORT-ONLY: OD-0116, OD-0122, ED-NEW-ma-engine-7. While the standby waits, no turn, item, hook or approval may appear on its thread.
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. While the standby waits, no turn, item, hook or approval may appear on its thread.
     private bool standbyActive;
     private bool standbyDiscarding;
     private Action<ProviderEvent>? leadSinkField; // :53 backs the lazily created LeadSink below
@@ -226,7 +226,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
             throw new ProviderError(new ProviderError.Case.NotRunning());
         }
 
-        // PORT-ONLY (ED-NEW-ma-engine-7): a waiting standby runs no model turn; the handover ends the standby first.
+        // PORT-ONLY (ED-439): a waiting standby runs no model turn; the handover ends the standby first.
         if (standbyActive || standbyDiscarding)
         {
             throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
@@ -298,7 +298,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
         }
     }
 
-    // PORT-ONLY: OD-0116, OD-0122, ED-NEW-ma-engine-7. Standby by history injection (`thread/inject_items`): no model turn, so nothing can act.
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. Standby by history injection (`thread/inject_items`): no model turn, so nothing can act.
     public string? StandbyViolation { get; private set; }
     public Action<string>? OnStandbyViolation { get; set; }
 
@@ -943,7 +943,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
                     {
                         Id = $"{snapshot["limitId"]?.JSONValueString ?? "codex"}-{key}", // :425
                         Title = title,                                                    // :426
-                        DurationMinutes = window["windowDurationMins"]?.JSONValueInt, // OD-0114 / ED-NEW-ma-2
+                        DurationMinutes = window["windowDurationMins"]?.JSONValueInt, // OD-0114 / ED-406
                         Percent = percent,                                                // :427
                         ResetsAt = window["resetsAt"]?.JSONValueDouble is { } resets ? SwiftDate.From1970Seconds(resets) : null, // :428
                     });
@@ -1155,7 +1155,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
     // "item/started" or "item/completed" notification, so the switch reaches those cases only in a later part.
     private void HandleNotification(string method, JSONValue parameters)
     {
-        // PORT-ONLY (ED-NEW-ma-engine-7): fail closed. Activity on a waiting thread stops and discards it; nothing of it reaches the conversation.
+        // PORT-ONLY (ED-439): fail closed. Activity on a waiting thread stops and discards it; nothing of it reaches the conversation.
         if (standbyActive || standbyDiscarding)
         {
             if (standbyActive && method is "turn/started" or "item/started" or "item/completed" or "hook/started") StandbyActivity(method);
@@ -1714,7 +1714,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
     // :929-996. PR-PROVCLI-124, 125, 126, 127, 128, 129.
     private void HandleRequest(RPCID id, string method, JSONValue parameters)
     {
-        // PORT-ONLY (ED-NEW-ma-engine-7): a server request (approval, question, tool) on a waiting thread means something ran. It is never answered.
+        // PORT-ONLY (ED-439): a server request (approval, question, tool) on a waiting thread means something ran. It is never answered.
         if (standbyActive || standbyDiscarding)
         {
             if (standbyActive) StandbyActivity(method);

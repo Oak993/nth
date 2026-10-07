@@ -19,6 +19,6 @@ internal static class HandshakeGpuProgram
         using var surface = context.Gpu is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
         if (surface is null) throw new InvalidOperationException("Handshake warm-up could not create its offscreen surface.");
         using var painter = new HandshakePainter(256, 144, (240, 105, 90), (58, 214, 168)); surface.Canvas.Scale((float)context.Scaling);
-        painter.Draw(surface.Canvas, HandshakeGeometry.Draw(256, 144, 3500, true, false), 3500, true, false); surface.Canvas.Flush(); context.Gpu?.Flush();
+        painter.Draw(surface.Canvas, new HandshakeFrameSnapshot(Marrow.Core.Accounts.HandshakePhase.InSync, 3500, .5, "", false, false, (240, 105, 90), (58, 214, 168)), true); surface.Canvas.Flush(); context.Gpu?.Flush();
     }
 }

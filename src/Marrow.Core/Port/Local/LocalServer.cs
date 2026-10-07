@@ -6,7 +6,7 @@ using Marrow.Core.Models;
 
 namespace Marrow.Core.Port.Local;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-3. A keyless server is an independent entry, with no hosted subscription quota.
+// PORT-ONLY: OD-0114 / ED-410. A keyless server is an independent entry, with no hosted subscription quota.
 public sealed record LocalServer
 {
     public LocalServer(string address)
@@ -56,5 +56,5 @@ public sealed record LocalModel(LocalServer Server, string Id, string Name, Loca
         + " · " + Capabilities.ContextWindow + (Capabilities.ContextReported ? " context" : " context fallback"));
 }
 
-public sealed record LocalEntry(LocalServer Server, IReadOnlyList<LocalModel> Models);
+public sealed record LocalEntry(LocalServer Server, IReadOnlyList<LocalModel> Models, LocalServerKind Kind = LocalServerKind.Unknown);
 public sealed record LocalTarget(LocalServer Server, LocalModel Model, IReadOnlyList<LocalModel> Models);

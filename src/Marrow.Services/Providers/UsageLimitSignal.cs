@@ -6,7 +6,7 @@ namespace Marrow.Services.Providers;
 // Source: DroppyCode/Services/Providers/UsageLimitSignal.swift (B2 1fbf81e), :1-54.
 public static partial class UsageLimitSignal
 {
-    // DEVIATION OD-0114 / ED-NEW-ma-2: attribution is supplied by the session owner, not parsed from text.
+    // DEVIATION OD-0114 / ED-406: attribution is supplied by the session owner, not parsed from text.
     public sealed record AccountLimit(UsageAccountKey Account, DateTimeOffset? ResetsAt);
 
     public static AccountLimit? Detect(string text, UsageAccountKey account, DateTimeOffset? now = null) =>

@@ -160,7 +160,7 @@ public static class PiPlanLimits
         return new PlanLimits.Window // :94-99
         {
             Id = id,
-            DurationMinutes = windowSeconds / 60, // OD-0114 / ED-NEW-ma-2
+            DurationMinutes = windowSeconds / 60, // OD-0114 / ED-406
             Title = "Codex \U000000B7 " + PlanLimitsReader.WindowTitle(windowSeconds / 60), // U+00B7 MIDDLE DOT; integer division (:96)
             Percent = percent,
             ResetsAt = resetsAt,

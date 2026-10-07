@@ -9,7 +9,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.App.Tests.Port.Accounts;
 
-// OD-0116, OD-0122, ED-NEW-ma-engine-7, research section 3: OpenCode (and OpenCode Go) wait with the context stored by a no-reply message when the running server offers it, else a warm start.
+// OD-0116, OD-0122, ED-439, research section 3: OpenCode (and OpenCode Go) wait with the context stored by a no-reply message when the running server offers it, else a warm start.
 [Trait("Rule", "R-TEST-4")]
 public sealed class OpenCodeStandbyHostTests
 {

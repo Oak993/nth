@@ -10,7 +10,7 @@ namespace Marrow.Services.Tests.Port.Usage;
 public sealed class AccountPlanLimitsTests
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Explicit_Claude_roots_use_only_their_own_credentials_and_never_global_login()
     {
         var root = Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!, Guid.NewGuid().ToString("N"));
@@ -34,7 +34,7 @@ public sealed class AccountPlanLimitsTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Explicit_accounts_without_scoped_credentials_return_unshared_without_a_global_read()
     {
         var executable = SwiftURL.Create("marrow-native-path:/missing-ma2-cli")!;
@@ -45,7 +45,7 @@ public sealed class AccountPlanLimitsTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void Service_windows_and_credits_are_preserved_without_inventing_plan_windows()
     {
         var account = new UsageAccountKey(ProviderKind.Claude, "A");
@@ -64,7 +64,7 @@ public sealed class AccountPlanLimitsTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void Usage_limit_signals_keep_the_account_and_existing_reset_parser()
     {
         var account = new UsageAccountKey(ProviderKind.Claude, "B");
@@ -75,7 +75,7 @@ public sealed class AccountPlanLimitsTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Valid_account_reads_use_selected_tokens_and_keys_in_process_with_distinct_service_reports()
     {
         using var runtime = new TestRuntime();
@@ -103,7 +103,7 @@ public sealed class AccountPlanLimitsTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Account_API_throttle_reaches_the_scheduler_and_unknown_durations_are_not_guessed()
     {
         using var runtime = new TestRuntime();
@@ -120,7 +120,7 @@ public sealed class AccountPlanLimitsTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Command_code_account_metadata_does_not_change_the_legacy_single_account_result()
     {
         using var runtime = new TestRuntime();

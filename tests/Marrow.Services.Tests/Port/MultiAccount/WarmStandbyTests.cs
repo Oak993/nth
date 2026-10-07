@@ -6,7 +6,7 @@ using Marrow.Services.Tests.Fixtures;
 
 namespace Marrow.Services.Tests.Port.MultiAccount;
 
-// OD-0116, ED-NEW-ma-engine-7, research section 4: a warm start opens the destination's process and session early and sends nothing; the context goes as the first real turn.
+// OD-0116, ED-439, research section 4: a warm start opens the destination's process and session early and sends nothing; the context goes as the first real turn.
 [Trait("Rule", "R-TEST-4")]
 public sealed class WarmStandbyTests
 {

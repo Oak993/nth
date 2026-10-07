@@ -319,7 +319,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             image.IsEnabled = false; Sync(); Assert.Equal(before, Draw(image)); image.IsEnabled = true;
             Close(section, h); Assert.Same(image, Nodes<SwiftImage>(icon).Single()); Assert.Equal(before, Draw(image));
         }
-        Assert.Equal(15, seen.Distinct().Count()); // source marks, OpenRouter (ED-234), Local (ED-NEW-ma-3)
+        Assert.Equal(15, seen.Distinct().Count()); // source marks, OpenRouter (ED-234), Local (ED-410)
     });
 
     [Fact]
@@ -411,7 +411,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         {
             var section = Section(view, provider); HeaderMetrics(section); Open(section, h); var toggle = Assert.Single(Nodes<SmallSwitch>(section)); Assert.Empty(Text(Assert.Single(Nodes<SettingsSwitch>(section)))); Assert.True(toggle.Focusable);
             var peer = Assert.IsAssignableFrom<IToggleProvider>(ControlAutomationPeer.CreatePeerForElement(toggle)); Assert.Equal(ToggleState.On, peer.ToggleState);
-            var raw = SwiftEnum<ProviderKind>.RawValue(provider); Assert.DoesNotContain(raw, model.Settings.DisabledProviders); if (provider == ProviderKind.Local) Assert.DoesNotContain(provider, model.Providers.AvailableProviders); else Assert.Contains(provider, model.Providers.AvailableProviders); // ED-NEW-ma-3: Local is available only when discovered
+            var raw = SwiftEnum<ProviderKind>.RawValue(provider); Assert.DoesNotContain(raw, model.Settings.DisabledProviders); if (provider == ProviderKind.Local) Assert.DoesNotContain(provider, model.Providers.AvailableProviders); else Assert.Contains(provider, model.Providers.AvailableProviders); // ED-410: Local is available only when discovered
             var before = Draw(toggle); using var png = SKBitmap.Decode(before); var expected = Chrome.AccentNSColor.Resolve(toggle.ActualThemeVariant); var pixel = png.GetPixel(5, 8); Assert.Equal(expected.R, pixel.Red); Assert.Equal(expected.G, pixel.Green); Assert.Equal(expected.B, pixel.Blue);
             PointerClick(toggle); Sync(); Assert.Equal(ToggleState.Off, peer.ToggleState); Assert.Contains(raw, model.Settings.DisabledProviders); Assert.Contains("disabledProviders", h.Defaults.Writes); Assert.DoesNotContain(provider, model.Providers.AvailableProviders);
             Key(toggle, Avalonia.Input.Key.Space); Sync(); Assert.Equal(ToggleState.On, peer.ToggleState); Assert.DoesNotContain(raw, model.Settings.DisabledProviders);
@@ -429,7 +429,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var commands = new[] { "codex login", "claude auth login", "cursor-agent login", "opencode auth login", "opencode auth login", "grok login", "devin auth login", "agy", "copilot login", "cmd login", "pi" };
         var launches = new List<(string, string[], string?, bool)>(); using var workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend { Home = @"C:\fixture home", Which = name => name == "pwsh.exe" ? @"C:\fixture\pwsh.exe" : name == "wt.exe" ? @"C:\fixture\wt.exe" : null, Launch = (exe, args, cwd, console) => launches.Add((exe, args.ToArray(), cwd, console)) });
         string? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(value => { opened = value.AbsoluteString; return true; });
-        var cli = SwiftEnum<ProviderKind>.AllCases.Where(x => !x.IsAPIKeyBased && x != ProviderKind.Local).ToArray(); // ED-NEW-ma-3: Local has no CLI
+        var cli = SwiftEnum<ProviderKind>.AllCases.Where(x => !x.IsAPIKeyBased && x != ProviderKind.Local).ToArray(); // ED-410: Local has no CLI
         for (var i = 0; i < cli.Length; i++)
         {
             var provider = cli[i]; var section = Section(view, provider); Collapsed(section, true); Open(section, h);

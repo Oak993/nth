@@ -239,7 +239,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         public ValueList<HydraReport> Reports { get; init; } = ValueList<HydraReport>.Empty; // :356
     }
 
-    // PORT-ONLY: OD-0114 / ED-NEW-ma-1, ED-NEW-ma-3. The identity the port adds to a launch lives in a base so the Swift signature (below) keeps its nine ordered fields.
+    // PORT-ONLY: OD-0114 / ED-404, ED-410. The identity the port adds to a launch lives in a base so the Swift signature (below) keeps its nine ordered fields.
     private abstract record SessionSignatureAccount
     {
         public Guid? AccountId { get; init; } // process identity
@@ -1772,7 +1772,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 injectedContinuation = true;
             }
 
-            // PORT-ONLY (OD-0116, ED-NEW-ma-engine-4): the context an account without a standby was handed travels with its first real turn.
+            // PORT-ONLY (OD-0116, ED-436): the context an account without a standby was handed travels with its first real turn.
             var injectedHandoff = false;
             var handoffEpoch = sessionEpoch;
             if (commandName is null && PendingDeferredHandoff() is { } handoff)
@@ -1949,7 +1949,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1388-1390; PR-HYDRA-060. Native Hydra providers plus API-key providers.
     private static bool KeepsHydraPolicyInSystemPrompt(ProviderKind provider) =>
         provider is ProviderKind.Claude or ProviderKind.Codex or ProviderKind.Copilot
-        || provider.IsAPIKeyBased || provider == ProviderKind.Local; // ED-NEW-ma-3
+        || provider.IsAPIKeyBased || provider == ProviderKind.Local; // ED-410
 
     private static SessionSignature MakeSessionSignature(
         ChatThread thread, string directory, bool antiSlopEnabled, HydraLaunch? hydra)
@@ -2006,7 +2006,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
 
         var hydra = KeepsHydraPolicyInSystemPrompt(thread.Provider) ? app.HydraLaunch(thread) : null;
-        // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Existing native IDs belong to the unmoved legacy root.
+        // PORT-ONLY: OD-0114 / ED-404. Existing native IDs belong to the unmoved legacy root.
         var accounts = app.Settings.Accounts;
         var boundID = thread.ProviderAccountID;
         if (boundID is null && thread.ProviderSessionID is not null)
@@ -2444,7 +2444,6 @@ public sealed partial class ThreadRuntime : MainActorModel
                 TurnStartedAt = null;
                 SaveNow();
                 SettleForegroundHeads(status);
-                var answerAuthor = status == TurnStatus.Completed && TryHandshakeAccountId(out var author) ? (Guid?)author : null;
 
                 if (Thread?.IsArchived == true)
                 {
@@ -2501,7 +2500,6 @@ public sealed partial class ThreadRuntime : MainActorModel
                 }
 
                 App?.TurnFinished(ThreadID, status, continues);
-                if (answerAuthor is { } completedAuthor) CheckCompletedAccountAnswer(turnID, completedAuthor);
 
                 // ThreadRuntime.swift:2493-2503: once the entire job has settled, hand its
                 // work to the existing merge coordinator, which rechecks readiness after waiting.
@@ -2586,7 +2584,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     // :1721-1731. Swift: resolve(_:option:).
     public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
     {
-        // DEVIATION OD-0114 / ED-NEW-ma-4: retain the request, chosen answer and scope after it leaves Approvals.
+        // DEVIATION OD-0114 / ED-407: retain the request, chosen answer and scope after it leaves Approvals.
         BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Option = option }), preserve: true);
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         if (request.RequestKind == ApprovalRequest.Kind.Plan
@@ -3086,7 +3084,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
     public void Observe(ProviderSession provider) => Observe(provider, CurrentUsageAccount());
 
-    // PORT-ONLY: ED-NEW-ma-ui. Observe freezes the actual source identity, including explicit account GUIDs.
+    // PORT-ONLY: ED-403. Observe freezes the actual source identity, including explicit account GUIDs.
     private UsageAccountKey? CurrentUsageAccount() => Thread is not { } thread ? null
         : thread.ProviderAccountID is { } id
             && App?.Settings.Accounts.Accounts.FirstOrDefault(account => account.Id == id)?.UsesLegacyCredentials != true
@@ -3976,7 +3974,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         };
     }
 
-    // DEVIATION OD-0114 / ED-NEW-ma-4: no UI, no ApiTranscript clipping, no AI call.
+    // DEVIATION OD-0114 / ED-407: no UI, no ApiTranscript clipping, no AI call.
     private string HandoffFolder => System.IO.Path.Combine(Storage.ThreadsDirectory, SwiftUUID.UuidString(ThreadID));
 
     public HandoffSummary SaveHandoff(string currentDiff)

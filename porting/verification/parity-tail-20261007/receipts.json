@@ -1,0 +1,287 @@
+{
+  "base_commit": "1291606cbac734da0b2afe125ad9c01227eed83b",
+  "accepted_commit": "5e5df33078d112af6eb9ab029643e8d4b213fe24",
+  "accepted_source_tree": "7e9a2d1fe92de8eee3c6c861172f3033484a5e68",
+  "accepted_test_tree": "decc125760c68e0b4345da0a1d98850b5ef05255",
+  "app_test_assembly_sha256": "00b28d1c1b536e4b8efd695645ad75f8a71940dee5110536c59925ed60f3db6f",
+  "runtime": ".NET SDK 10.0.100, runtime 10.0.0; Linux x64; Avalonia 12.1.2",
+  "logs": [
+    {
+      "file": "parity-tail-affected-final.log.gz",
+      "uncompressed_sha256": "dc2d942232b52ae34e345a366d0cbfa96c767d38dca410feb95847cc26670b78",
+      "uncompressed_bytes": 7050,
+      "origin": "/workspace/scratch/parity-tail-affected-final.log"
+    },
+    {
+      "file": "parity-tail-app-build.log.gz",
+      "uncompressed_sha256": "6b7ca1fff1b2f21ebee8acb054270890ee5948e5b4b066ecd336c05c05b207d3",
+      "uncompressed_bytes": 2635,
+      "origin": "/workspace/scratch/parity-tail-app-build.log"
+    },
+    {
+      "file": "parity-tail-build-final.log.gz",
+      "uncompressed_sha256": "ed542728635cc9b857a3ea7c758aec55e98f629b0970eeecb95bc1cc33f41ac9",
+      "uncompressed_bytes": 203,
+      "origin": "/workspace/scratch/parity-tail-build-final.log"
+    },
+    {
+      "file": "parity-tail-core.log.gz",
+      "uncompressed_sha256": "202fcff7687f1caa5278be01a78415ec2342150369348bbf5782265c171aeaf7",
+      "uncompressed_bytes": 678743,
+      "origin": "/workspace/scratch/parity-tail-core.log"
+    },
+    {
+      "file": "parity-tail-final.log.gz",
+      "uncompressed_sha256": "c8974044ff50c826b76d34bf8a18ac5d9e0cbbcd992594f4de22d9ac61788037",
+      "uncompressed_bytes": 8236,
+      "origin": "/workspace/scratch/parity-tail-final.log"
+    },
+    {
+      "file": "parity-tail-focused-icu-final.log.gz",
+      "uncompressed_sha256": "a83a5b1baff13bcd44cd7abb2da6b7030883c62fda0ded93ecea7872a00e9c87",
+      "uncompressed_bytes": 36662,
+      "origin": "/workspace/scratch/parity-tail-focused-icu-final.log"
+    },
+    {
+      "file": "parity-tail-focused-icu-fixtures.log.gz",
+      "uncompressed_sha256": "8de98137b634dc7ca5d878f61509474bec8bcd93187dc12156364b17769c0f3d",
+      "uncompressed_bytes": 1674,
+      "origin": "/workspace/scratch/parity-tail-focused-icu-fixtures.log"
+    },
+    {
+      "file": "parity-tail-focused-icu.log.gz",
+      "uncompressed_sha256": "a2ad9a789bf111da05503ddf160624995069e8bd942b78c6848af0ccd79c6760",
+      "uncompressed_bytes": 19595,
+      "origin": "/workspace/scratch/parity-tail-focused-icu.log"
+    },
+    {
+      "file": "parity-tail-focused.log.gz",
+      "uncompressed_sha256": "0812fb1259cacaa66031e754fe1c3626078e854289e3120803e6597b7e12afa8",
+      "uncompressed_bytes": 29077,
+      "origin": "/workspace/scratch/parity-tail-focused.log"
+    },
+    {
+      "file": "parity-tail-gate-a.log.gz",
+      "uncompressed_sha256": "d5680a0514d5fcee01145b30b9ec6f50e889d258d005ded63364e06e826d0d90",
+      "uncompressed_bytes": 2347,
+      "origin": "/workspace/scratch/parity-tail-gate-a.log"
+    },
+    {
+      "file": "parity-tail-gate-b.log.gz",
+      "uncompressed_sha256": "d438ffbf40b3d464bce128abb6905a99f1c5e4b6438980dd081855d92852e63b",
+      "uncompressed_bytes": 1079,
+      "origin": "/workspace/scratch/parity-tail-gate-b.log"
+    },
+    {
+      "file": "parity-tail-nine-baseline.log.gz",
+      "uncompressed_sha256": "54f97c768c0c7f47ebd416e68c0bd4d971df63b06133ab09c25cee20369ee80f",
+      "uncompressed_bytes": 15993,
+      "origin": "/workspace/scratch/parity-tail-nine-baseline.log"
+    },
+    {
+      "file": "parity-tail-nine.log.gz",
+      "uncompressed_sha256": "2ad29d880ab67da2e0544aae8b1e6c08d251ff659416fbca8302dd8dc9311120",
+      "uncompressed_bytes": 463,
+      "origin": "/workspace/scratch/parity-tail-nine.log"
+    },
+    {
+      "file": "parity-tail-proofs.log.gz",
+      "uncompressed_sha256": "cd66409c9872b33d1418264784058ceda6902d105f29239161dfa3fcece855e7",
+      "uncompressed_bytes": 1660,
+      "origin": "/workspace/scratch/parity-tail-proofs.log"
+    },
+    {
+      "file": "parity-tail-protected-before.log.gz",
+      "uncompressed_sha256": "d62f0564a57739d9d975d6014de99589b16b3eff8f71965b23fad6dd2774d3d8",
+      "uncompressed_bytes": 334,
+      "origin": "/workspace/scratch/parity-tail-protected-before.log"
+    },
+    {
+      "file": "parity-tail-repeat-1.log.gz",
+      "uncompressed_sha256": "97c2476242db4bc3343d0ac5af05145a042d8fad261bd3772d2cefc6e6bc96d6",
+      "uncompressed_bytes": 467,
+      "origin": "/workspace/scratch/parity-tail-repeat-1.log"
+    },
+    {
+      "file": "parity-tail-repeat-2.log.gz",
+      "uncompressed_sha256": "6023b05c1ab9455e1f14d771c7a4bc7ae532203b1b743464a50d95a73bb4127d",
+      "uncompressed_bytes": 467,
+      "origin": "/workspace/scratch/parity-tail-repeat-2.log"
+    },
+    {
+      "file": "parity-tail-repeat-3.log.gz",
+      "uncompressed_sha256": "7b2a313e79993caf120e09a1340f00c893d4d672eadfd4b5be6c6133b64329c5",
+      "uncompressed_bytes": 467,
+      "origin": "/workspace/scratch/parity-tail-repeat-3.log"
+    },
+    {
+      "file": "parity-tail-repeat-4.log.gz",
+      "uncompressed_sha256": "a574d5529a0f87f9ed80aed654a97d52e9b0531b40845eedc134a85efcaadf72",
+      "uncompressed_bytes": 467,
+      "origin": "/workspace/scratch/parity-tail-repeat-4.log"
+    },
+    {
+      "file": "parity-tail-repeat-5.log.gz",
+      "uncompressed_sha256": "794b2f871661dc25365530e6d593d7b67e1641317c419fe87a5a61f2039cae2b",
+      "uncompressed_bytes": 467,
+      "origin": "/workspace/scratch/parity-tail-repeat-5.log"
+    },
+    {
+      "file": "parity-tail-reviewed.log.gz",
+      "uncompressed_sha256": "fa6b040f2def9a0b38d71da0998cb7fe688e4000b8449347480f2bed5f3013e7",
+      "uncompressed_bytes": 8569,
+      "origin": "/workspace/scratch/parity-tail-reviewed.log"
+    },
+    {
+      "file": "parity-tail-services.log.gz",
+      "uncompressed_sha256": "880936f8d47f8bfd9cb3658d9c4906a33e0f6ceb0cd9eb2e7b601be91dac5165",
+      "uncompressed_bytes": 2852367,
+      "origin": "/workspace/scratch/parity-tail-services.log"
+    },
+    {
+      "file": "parity-tail-ui.log.gz",
+      "uncompressed_sha256": "ff1fa744ec5397ec30005a9b94e53824f41016a55ca14578474045298a6f14d1",
+      "uncompressed_bytes": 1340045,
+      "origin": "/workspace/scratch/parity-tail-ui.log"
+    },
+    {
+      "file": "parity-tail-affected-final.trx.gz",
+      "uncompressed_sha256": "ee1857ab55e14bb87b4084369155c66088e88fa6f5ec92d87bae210d503c7e6a",
+      "uncompressed_bytes": 54032,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-affected-final.trx"
+    },
+    {
+      "file": "parity-tail-final.trx.gz",
+      "uncompressed_sha256": "ff2276f1510235b3542f7a4e6579de218b542c85c473da5665e16b1c255f8fc7",
+      "uncompressed_bytes": 52502,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-final.trx"
+    },
+    {
+      "file": "parity-tail-focused-icu-final.trx.gz",
+      "uncompressed_sha256": "3a1ba8890dd88f99f14e5e086e5ed629340a945cf49f7b8731ef821e2e4391ec",
+      "uncompressed_bytes": 93455,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-focused-icu-final.trx"
+    },
+    {
+      "file": "parity-tail-focused-icu-fixtures.trx.gz",
+      "uncompressed_sha256": "5f980696b19a6327be94fb789605adaa3caafedff5db81a794958c2a1a415153",
+      "uncompressed_bytes": 13925,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-focused-icu-fixtures.trx"
+    },
+    {
+      "file": "parity-tail-focused-icu.trx.gz",
+      "uncompressed_sha256": "5280d92cf48e2932cd1dfaea30dda2e0df69c2ef476d6c9ded4e83c5301cb12d",
+      "uncompressed_bytes": 55721,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-focused-icu.trx"
+    },
+    {
+      "file": "parity-tail-nine-baseline.trx.gz",
+      "uncompressed_sha256": "05874e2cdacf0810470cb10c7493e9afdd97ca2bee1496b4467f680bb0f33580",
+      "uncompressed_bytes": 49742,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-nine-baseline.trx"
+    },
+    {
+      "file": "parity-tail-nine.trx.gz",
+      "uncompressed_sha256": "6f12d96c5344966f74b19c8a4ca47ed5fd8a5811b1375fac5a3f8d0e18faa9a8",
+      "uncompressed_bytes": 15455,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-nine.trx"
+    },
+    {
+      "file": "parity-tail-proofs.trx.gz",
+      "uncompressed_sha256": "be718b95d6f01322bfaddf6fd07fcc10c03333e930e524fa79806aeaeda0aad9",
+      "uncompressed_bytes": 13925,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-proofs.trx"
+    },
+    {
+      "file": "parity-tail-repeat-1.trx.gz",
+      "uncompressed_sha256": "185fc6fd6ab60152fbda7ea8c0163cf7637335ed07f57561bfc6b41efc57704a",
+      "uncompressed_bytes": 15455,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-repeat-1.trx"
+    },
+    {
+      "file": "parity-tail-repeat-2.trx.gz",
+      "uncompressed_sha256": "596d6b4744b347e8e9e18a4097b3d8076d4b7be534199f9f32e2e56541c17201",
+      "uncompressed_bytes": 15455,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-repeat-2.trx"
+    },
+    {
+      "file": "parity-tail-repeat-3.trx.gz",
+      "uncompressed_sha256": "776fab083ae5eaf078e10206d59f4ee8814173637e701de90ee0fc9417aa15fd",
+      "uncompressed_bytes": 15455,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-repeat-3.trx"
+    },
+    {
+      "file": "parity-tail-repeat-4.trx.gz",
+      "uncompressed_sha256": "e18b592c804263b4165a2a8adefd0909a4d3c517dece9150002e28c7904914fe",
+      "uncompressed_bytes": 15455,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-repeat-4.trx"
+    },
+    {
+      "file": "parity-tail-repeat-5.trx.gz",
+      "uncompressed_sha256": "93527404c30cdfcae669e73a393446330d1e2ab8ea89e7d04dfbcc49088d9630",
+      "uncompressed_bytes": 15455,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-repeat-5.trx"
+    },
+    {
+      "file": "parity-tail-reviewed.trx.gz",
+      "uncompressed_sha256": "0dd8c723f1cd559ec9d4f300253c22b8d1f4b8a4de6f327733be4e03ab7d31d2",
+      "uncompressed_bytes": 53226,
+      "origin": "/workspace/scratch/parity-tail-results/parity-tail-reviewed.trx"
+    },
+    {
+      "file": "parity-tail-gate-b-final.log.gz",
+      "uncompressed_sha256": "d438ffbf40b3d464bce128abb6905a99f1c5e4b6438980dd081855d92852e63b",
+      "uncompressed_bytes": 1079,
+      "origin": "/workspace/scratch/parity-tail-gate-b-final.log"
+    },
+    {
+      "file": "parity-tail-protected-final.log.gz",
+      "uncompressed_sha256": "6300379c9cce3e530d6bd1a1ae0270311227006a3e75dc4f622626e27914c781",
+      "uncompressed_bytes": 655,
+      "origin": "/workspace/scratch/parity-tail-protected-final.log"
+    }
+  ],
+  "results": {
+    "new_focused_supplemental": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "repeats": [
+        9,
+        9,
+        9,
+        9,
+        9
+      ]
+    },
+    "new_focused_without_icu_alias": {
+      "passed": 7,
+      "failed": 2,
+      "skipped": 0
+    },
+    "affected_supplemental": {
+      "passed": 24,
+      "failed": 1,
+      "skipped": 0
+    },
+    "Core_nonNative": {
+      "passed": 2844,
+      "failed": 344,
+      "skipped": 0,
+      "state": "ABORTED: unhandled kernel32.dll DllNotFoundException"
+    },
+    "Services_nonNative": {
+      "passed": 3856,
+      "failed": 1266,
+      "skipped": 52,
+      "state": "completed with failures and skips"
+    },
+    "UI_nonNative": {
+      "passed": 2047,
+      "failed": 298,
+      "skipped": 0,
+      "state": "ABORTED: lead terminated stalled testhost with SIGTERM after approximately ten minutes; counts are executed subset only"
+    }
+  },
+  "scope": "IMPLEMENTED only; not VERIFIED and not Windows release acceptance"
+}

@@ -229,6 +229,7 @@ public sealed class SettingsView : Decorator
         frame = new SwiftShapeBorder { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }; frame.ClipToBounds = true;
         Child = frame;
         this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => backdrop.Update(value, null));
+        this.Track(() => Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.Current.Selection, value => backdrop.UpdateLibrary(value));
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127
         {
             if (requested is not { } page) return;
