@@ -5,6 +5,8 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Marrow.App.Port.MultiAccount.Capsule;
+using Marrow.App.Port.MultiAccount.Shared;
 using Avalonia.Media;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Settings;
@@ -35,6 +37,8 @@ internal sealed class AccountRowControl : Decorator
     private readonly TextBlock nameText;
     private readonly StackPanel usageBox;
     private readonly Action openHandshake;
+    private readonly SettingsSwitch toggle;
+    private readonly OpacityTransition dragFade;
     private AccountRowView view;
     private double dragStart;
     private bool dragging;
@@ -47,6 +51,7 @@ internal sealed class AccountRowControl : Decorator
         this.dragged = dragged;
         id = first.Id;
         view = first;
+        dragFade = new OpacityTransition(this, 1, value => Opacity = value);
 
         grip = new Border { Width = 22, Height = 22, Background = Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText, SwiftFont.Weight.Medium) };
         ((Control)((Border)grip).Child!).HorizontalAlignment = HorizontalAlignment.Center;
@@ -54,8 +59,8 @@ internal sealed class AccountRowControl : Decorator
         grip.Opacity = 0.7;
         grip.Cursor = new Cursor(StandardCursorType.SizeAll);
         grip.Named("Drag to reorder", "account-grip-" + id.ToString("N"));
-        grip.PointerPressed += (_, e) => { dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
-        grip.PointerMoved += (_, e) => { if (dragging) { RenderTransform = new TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; } };
+        grip.PointerPressed += (_, e) => { if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return; dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
+        grip.PointerMoved += (_, e) => { if (dragging) { if (CapsuleMotion.Reduce(this)) { RenderTransform = null; dragFade.Set(.7, FrameClock.IsBound ? Animation.EaseOut(duration: .3) : null); } else RenderTransform = new TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; } };
         grip.PointerReleased += (_, e) => EndDrag(e.GetPosition(null).Y - dragStart);
         grip.PointerCaptureLost += (_, _) => { if (dragging) EndDrag(0); };
 
@@ -71,8 +76,8 @@ internal sealed class AccountRowControl : Decorator
         nameSlot.Show(nameButton, null);
 
         usageBox = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { bar, usage } };
-        var toggle = new SettingsSwitch(new Binding<bool>(() => { _ = pulse.Revision; return view.Enabled; }, on => model.SetEnabled(id, on)));
-        toggle.Named(MultiAccountWords.Rename, "account-switch-" + id.ToString("N"));
+        toggle = new SettingsSwitch(new Binding<bool>(() => { _ = pulse.Revision; return view.Enabled; }, on => model.SetEnabled(id, on)));
+        toggle.Named("Use " + first.Name, "account-switch-" + id.ToString("N"));
         toggle.VerticalAlignment = VerticalAlignment.Center;
         var moreButton = MenuPopover.More("More", "account-more-" + id.ToString("N"), () => model.Menu(id), Pick);
         var (handshakeHost, openHandshake) = MenuPopover.Anchored(moreButton, () => model.HandshakeMenu(id), PickHandshake);
@@ -120,6 +125,7 @@ internal sealed class AccountRowControl : Decorator
         numberText.Text = next.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (!renaming) nameText.Text = next.Name;
         AutomationProperties.SetName(nameButton, next.Name);
+        AutomationProperties.SetName(toggle, "Use " + next.Name);
         subtitle.SetText(next.Subtitle);
         usageBox.IsVisible = next.UsageText.Length > 0 || next.WeekFraction is not null;
         usage.SetText(next.UsageText);
@@ -149,7 +155,9 @@ internal sealed class AccountRowControl : Decorator
 
     private void EndDrag(double dy)
     {
+        if (!dragging) return;
         dragging = false;
+        dragFade.Set(1, FrameClock.IsBound ? Animation.EaseOut(duration: .3) : null);
         RenderTransform = null;
         ZIndex = 0;
         var target = DragTarget(view.Number - 1, dy, RowHeight, int.MaxValue);

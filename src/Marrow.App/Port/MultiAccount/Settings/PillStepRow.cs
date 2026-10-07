@@ -6,6 +6,8 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Marrow.App.Port.MultiAccount.Capsule;
+using Marrow.App.Port.MultiAccount.Shared;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
@@ -41,6 +43,7 @@ internal sealed class PillStepRow : Decorator
     private StepView step;
     private readonly Button configButton;
     private readonly ProviderIcon icon = new() { Size = 16, Width = 16, Height = 16 };
+    private readonly OpacityTransition dragFade;
     private bool dragging;
     private double dragStart;
 
@@ -50,6 +53,7 @@ internal sealed class PillStepRow : Decorator
         this.pulse = pulse;
         this.models = models;
         step = first;
+        dragFade = new OpacityTransition(this, 1, value => Opacity = value);
         var key = first.AccountId;
         var grip = new Border { Width = 22, Height = 22, Background = Avalonia.Media.Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText, SwiftFont.Weight.Medium) };
         ((Control)grip.Child!).HorizontalAlignment = HorizontalAlignment.Center;
@@ -57,8 +61,8 @@ internal sealed class PillStepRow : Decorator
         grip.Opacity = 0.7;
         grip.Cursor = new Cursor(StandardCursorType.SizeAll);
         grip.Named("Drag to reorder", "step-grip-" + key);
-        grip.PointerPressed += (_, e) => { dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
-        grip.PointerMoved += (_, e) => { if (dragging) { RenderTransform = new Avalonia.Media.TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; } };
+        grip.PointerPressed += (_, e) => { if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return; dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
+        grip.PointerMoved += (_, e) => { if (dragging) { if (CapsuleMotion.Reduce(this)) { RenderTransform = null; dragFade.Set(.7, FrameClock.IsBound ? Animation.EaseOut(duration: .3) : null); } else RenderTransform = new Avalonia.Media.TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; } };
         grip.PointerReleased += (_, e) => EndDrag(e.GetPosition(null).Y - dragStart);
         grip.PointerCaptureLost += (_, _) => { if (dragging) EndDrag(0); };
 
@@ -187,7 +191,9 @@ internal sealed class PillStepRow : Decorator
 
     private void EndDrag(double dy)
     {
+        if (!dragging) return;
         dragging = false;
+        dragFade.Set(1, FrameClock.IsBound ? Animation.EaseOut(duration: .3) : null);
         RenderTransform = null;
         ZIndex = 0;
         var target = AccountRowControl.DragTarget(step.Index, dy, RowHeight, editor.Steps.Count);

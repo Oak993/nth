@@ -4137,3 +4137,32 @@ Tests first absent APIs red; functional capsule/status/click/sound cases 3/3, re
 ## ED-NEW-ma-wave2-11
 MA-4-2/3 allocation follow-up: merge T15 ecbac6101 and bind the live host/canvas/operation to HandshakeFrameSnapshot and ReadFrame. Legacy Plan remains an explicitly allocating inspection oracle only. Account strings/usage refresh on the account ports' Changed events and Handshake events; the frame loop never enumerates provider accounts. Direct Skia drawing emits the Core oracle's Arc/Normal/Smooth/Ease values into retained paths, and the ghost uses an allocation-free value calculation checked against the unchanged Core geometry. The gradient palette now caches every rounded RGB blend interval/boundary rather than quantizing the fraction; endpoint glow precedes strands as locked drawA :3098-3160 specifies. No shared seam changes in this follow-up.
 Tests: the initial Core Plan allocation probe failed alone twice at 32,352 B/frame; T15 supplied the new designated live API, so the probe calls ReadFrame with its 0-byte expectation unchanged. Four theme/motion cases compare the direct painter pixel-for-pixel against the existing Core geometry projection at twelve times, and measure 0 B/120 warmed draws. Two ghost cases compare thirteen times and measure 0 B/120 reads. Final App build 0 warnings/errors; related non-native slice 331/331. This measures frame sampling, painter and ghost math, not allocations in the entire Avalonia UI framework. Native frame revalidation and lead-owned scale/theme composition checks are recorded in the T16 handoff.
+
+## ED-NEW-ma-wave1-8
+- MA-3b-5 Link A: optional LinkComposerSeams offer wraps the existing capsule/popover host via one ComposerView seam replacement. Runtime augmentation adds the 26px link column to retained row grids and joins plain-capsule marks inside its expanded shared glass/outline; original face/input and eased usage remain retained. No T16 or base capsule file is edited. Screen coordinate conversion reaches the global owner overlay across popup roots; native stacking/appearance remains a lead check.
+- Exact 22px flight starts at the account number, 560ms cubic-bezier(.45,0,.2,1); opacity stays 1 through the midpoint then falls to .4. RM crossfades 260ms. Link is recorded after landing; stale/unavailable flights cancel by account ID, cannot cancel a newer request, and detach releases frames. Unlink restores the original capsule layers. OD-0120 uses the shared unchecked confirmation and Link-purpose consent only. W supplies real offers/adapters.
+- Ask App completion: separate hue-backed monogram chips and live retained-row account/model updates; post-await refresh dispatches to UI. All own borders use the existing continuous-shape helper, including the plain checkbox; no census-table or existing assertion edit. Initial red and twice-alone repro evidence is in the T15 handoff.
+
+## ED-NEW-ma-wave1-9
+- MA-5-1 (brief alias MA-3b-5-1): audit acceptance exercises actual popover, usage B, Settings accounts, account defaults, Pill editor and capsule aria over real in-memory stores and job-0 fakes. Fast on/off is a yellow bolt only; spoken Fast mode remains allowed. Report-driven No 5-hour claims cover Claude/Codex/OpenRouter/Local, unknown usage, plan changes and live flag changes.
+- Eleven cases passed initially against the existing implementation; no fabricated red and no production changes required for this audit. No claims are made for the separately owned cloud opinion/Combine views or native appearance.
+
+
+## ED-NEW-ma-wave1-10
+
+MAUI-018/042/060/061: both Settings reorder handlers accept only the primary button and use a 300ms opacity transition instead of translation under Reduce Motion (locked HTML 467/1993/2024). The use switch names the live account, not Rename (3846). No engine, test or oracle changes.
+
+
+## ED-NEW-ma-wave1-11
+
+MAUI-025: the existing Handshake EffortSlider now handles unmodified arrows, Home and End through the same point binding; locked sliders remain outside keyboard/pointer actions. HTML 2613-2617. No tests changed.
+
+
+## ED-NEW-ma-wave1-12
+
+MAUI P1 001/002/019/020/057/065: retained popover rows own their Link action (disabled until its port/model is bound), reused by the existing Link confirmation/fly host. Keyboard arrows focus adjacent rows and Shift+F10/ContextMenu opens the existing menu. A multi-account-only button template paints card faces and the inset focus ring without changing the source-faithful PlainControls template. Ask others uses supplied job-0 thread ports when no explicit view-model offer exists; view-owned observation suspends/resumes with its lifetime. Opacity transitions for 018/060 remain animated under Reduce Motion instead of using AnimatedScalar's spatial-motion stilling rule. Locked HTML 229/2687/2715/375-378/4804-4811 and OD-0076/0115/0120. No tests, assertions or tolerances changed.
+
+
+## ED-NEW-ma-wave1-13
+
+MAUI P2 popover/layout: 003/006/007/010/012/013/014/058/059 now use the locked row menu, auto/min-68 layout with 7px vertical padding, live monogram, 7px green active dot/halo, .42 off content, pinned/hover tint, config chevron and exact text tokens. Dialogs 021/022/024/026 use 330px/248px widths, account-specific aria and the existing effort renderer in optional compact 18px/12px Handshake geometry; default 48px/34px effort geometry is untouched. 023 hides reset with no own value (HTML 2642); its new test is contradictory because Harness.Find filters visible controls before Assert.False(IsEffectivelyVisible). Old account-dialog tests still expect the generic aria replaced by HTML 2635. All tests remain byte-exact for lead disposition.
