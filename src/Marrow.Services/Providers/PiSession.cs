@@ -273,6 +273,8 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession
 
     public async Task Compact() // :208-211
     {
+        if (standbyActive || standbyDiscarding)
+            throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning());
         child.Send(Obj(("type", "compact")));
         await Task.CompletedTask;

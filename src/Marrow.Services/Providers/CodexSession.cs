@@ -227,7 +227,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
         }
 
         // PORT-ONLY (ED-NEW-ma-engine-7): a waiting standby runs no model turn; the handover ends the standby first.
-        if (standbyActive)
+        if (standbyActive || standbyDiscarding)
         {
             throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         }
@@ -473,6 +473,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
     // :172-175
     public async Task Compact()
     {
+        if (standbyActive || standbyDiscarding)
+            throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         if (connection is not { } connected || threadID is not { } currentThreadID) // :173
         {
             throw new ProviderError(new ProviderError.Case.NotRunning());
