@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="7254e51b-eb3a-492a-a503-07ec438a34ee" name="@a39ab932e15a 2026-10-07 15:50:36" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T15:50:36.9648961+00:00" queuing="2026-10-07T15:50:36.9648962+00:00" start="2026-10-07T15:50:35.0133097+00:00" finish="2026-10-07T15:50:36.9718440+00:00" />
+  <TestSettings name="default" id="bb0d32c2-ae98-4dee-b350-53a3f53c58b9">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_15_50_36" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="7df45f12-6090-4b8b-8378-40d80dbd7751" testId="f11cafb5-3d28-738e-53c7-2d757551f72f" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step" computerName="a39ab932e15a" duration="00:00:00.3142699" startTime="2026-10-07T15:50:36.5295956+00:00" endTime="2026-10-07T15:50:36.8557353+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7df45f12-6090-4b8b-8378-40d80dbd7751">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.InRange() Failure: Value not in range
+Range:  (0 - 9.9999999999999995E-07)
+Actual: 4.1723251342773438E-06</Message>
+          <StackTrace>   at Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteInkTests.cs:line 22
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="f11cafb5-3d28-738e-53c7-2d757551f72f">
+      <Execution id="7df45f12-6090-4b8b-8378-40d80dbd7751" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests" name="The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f11cafb5-3d28-738e-53c7-2d757551f72f" executionId="7df45f12-6090-4b8b-8378-40d80dbd7751" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.14]   Discovering: Marrow.Core.Tests
+[xUnit.net 00:00:01.02]   Discovered:  Marrow.Core.Tests
+[xUnit.net 00:00:01.07]   Starting:    Marrow.Core.Tests
+[xUnit.net 00:00:01.42]       Assert.InRange() Failure: Value not in range
+[xUnit.net 00:00:01.43]       Range:  (0 - 9.9999999999999995E-07)
+[xUnit.net 00:00:01.43]       Actual: 4.1723251342773438E-06
+[xUnit.net 00:00:01.43]       Stack Trace:
+[xUnit.net 00:00:01.43]         /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteInkTests.cs(22,0): at Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step()
+[xUnit.net 00:00:01.43]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:01.43]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.46]   Finished:    Marrow.Core.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T15:50:36.8596879+00:00">
+        <Text>[xUnit.net 00:00:01.42]     Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

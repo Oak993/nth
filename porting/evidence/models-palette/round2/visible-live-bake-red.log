@@ -1,0 +1,8 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteLiveBakeTests.cs(14,47): error CS0103: The name 'PaletteLiveBake' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteLiveBakeTests.cs(27,60): error CS0103: The name 'PaletteLiveBake' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]

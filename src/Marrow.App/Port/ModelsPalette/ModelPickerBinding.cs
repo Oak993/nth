@@ -17,6 +17,7 @@ public static class ModelPickerBinding
         if(thread.Provider!=ProviderKind.OpenRouter)return null;
         var selected=entries.FirstOrDefault(e=>e.Provider==thread.Provider&&e.Option.Id==thread.Model);
         var picker=ModelPickerSeam.Create(entries,selected,hasHistory,choose,back,LockedColour,thread.Provider,pairs.Any(p=>model.LeadsWithHydraPair(p,thread)));
+        PalettePickerColours.Attach(picker,model.PaletteShades);
         if(previous is not null&&((previous as OpenRouterPicker)??previous.GetLogicalDescendants().OfType<OpenRouterPicker>().FirstOrDefault()) is {} old)picker.Search.Text=old.Search.Text;
         if(pairs.Count==0)return picker;
         var rows=new StackPanel{Spacing=1};rows.Children.Add(new PopoverSectionHeader("Pairs"){Height=22});

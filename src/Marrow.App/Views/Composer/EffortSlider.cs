@@ -202,6 +202,10 @@ public sealed class ModelEffortButton : Decorator
                 row.Children.Add(new TruncationFill(name) { Margin = new Thickness(5, 0, 0, 0), Child = nameCell });
                 CrossFade(nameCell, oldName, name); shownName = name;
                 if (effortCell is not null && effort is not null) { CrossFade(effortCell, oldEffort, effort); shownEffort = effort; }
+                Marrow.App.Port.ModelsPalette.PaletteSurfaceBinding.Attach(name,model,currentThread.Id,target=>
+                {if(target.Track is not {} palette)return;var brush=Marrow.App.Port.ModelsPalette.PaletteVisibleProjection.Brush(palette.TitleStops);
+                    if(EnvironmentValues.GetAccessibilityReduceMotion(name))EffortView.SetBrush(name,b=>name.Foreground=b,brush);else EffortView.AnimateBrush(name,()=>name.Foreground,b=>name.Foreground=b,brush,Animation.Linear(1.2));
+                    if(effort is not null){if(EnvironmentValues.GetAccessibilityReduceMotion(effort))EffortView.SetBrush(effort,b=>effort.Foreground=b,brush);else EffortView.AnimateBrush(effort,()=>effort.Foreground,b=>effort.Foreground=b,brush,Animation.Linear(1.2));}});
             }
             var parts = new System.Collections.Generic.List<string> { current?.ShortName ?? currentThread.Model ?? currentThread.Provider.DisplayName };
             if (current is { Efforts.Count: > 0 }) parts.Add(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""));
@@ -539,7 +543,7 @@ public sealed record EffortPairLook
 }
 
 /// <summary>:506-657 <c>struct EffortSliderCard: View</c>.</summary>
-public sealed class EffortSliderCard : Decorator
+public sealed partial class EffortSliderCard : Decorator
 {
     /// <param name="modelName">:507 <c>let modelName: String</c>.</param>
     /// <param name="provider">:508 <c>let provider: ProviderKind?</c>.</param>
@@ -1178,6 +1182,7 @@ public sealed partial class EffortSlider : Decorator
             foreach (var child in effects.Children) if (child is TrackEffect fading) fading.Redraw();
         }
         else Material = material;
+        Material = PaletteMaterial(Material); // ED-NEW-models-palette-17: snapshot material on the retained knob.
         LayoutTrack();
         // Main posts geometry and appearance only when an intent or a spring changes them.
         // The retained knob resolves the signal and flowing gem where it is drawn.
@@ -1224,6 +1229,7 @@ public sealed partial class EffortSlider : Decorator
                 s.Dark ? new SKColor(0x14, 0x1d, 0x27) : new SKColor(0xe6, 0xeb, 0xf1),
                 s.Dark ? new SKColor(0x11, 0x18, 0x20) : new SKColor(0xd1, 0xd8, 0xde), s.Along);
             Uniforms.Lift = s.Lift;
+            ApplyPaletteJewel(Uniforms.Values,date); // snapshot RGB on this existing knob frame/clock.
             if (!ReferenceEquals(into, Uniforms.Values)) Array.Copy(Uniforms.Values, into, into.Length);
         }
     }
@@ -1232,6 +1238,7 @@ public sealed partial class EffortSlider : Decorator
     // the liquid since OD-0075); made again only when the look or the theme changes
     private SKColor[] FillColours()
     {
+        if(PaletteFillColours() is {} snapshotColours)return snapshotColours;
         var look = Look;
         var theme = ActualThemeVariant;
         if (fillColours is { } kept && fillFor is { } key && Equals(key.Look, look) && key.Theme == theme) return kept;
@@ -1900,7 +1907,7 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
         }); // SPEC B-09 / P:1391-1434: a retained tube shown again waits for a clean frame.
         // ED-248 review: the liquid's surfaces live as long as the track is in a window; leaving it hands them to the render
         // thread to dispose
-        DetachedFromVisualTree += (_, _) => { if(ownsLayers) layers?.Retire(); layers = null; scene = null; };
+        DetachedFromVisualTree += (_, _) => { ReleasePaletteView();if(ownsLayers) layers?.Retire(); layers = null; scene = null; };
     }
 
     // :1024-1026 pair kind changes preserve this view's clock and trait cache.
@@ -2146,6 +2153,7 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
             {
                 var normal=Math.Clamp((int)Strike.Round(s.Track/32),4,24); var nucleation=(int)Strike.Round(normal/3d);
                 mixLanes = new StrikeBubbleLanes(bubbleSeed.ToString(System.Globalization.CultureInfo.InvariantCulture) + $",{normal},{nucleation},1", s.Track, s.Size.Height);
+                PreparePaletteBubbleLanes(t,mixLanes);
                 mixContacts = new StrikeContacts(s.Seed, mixLanes, mixClock); mixLaneWidth = s.Track; mixLaneHeight = s.Size.Height;
             }
             var flowTime = s.Still ? 0 : mixClock.ClockC(t);

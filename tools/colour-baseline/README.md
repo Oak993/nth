@@ -38,3 +38,17 @@ The shipped source-only baseline has no trustworthy captured catalogue Date/Age 
 official binary placeholder artifacts. Its market boundary is explicitly absent;
 it is not represented as the first real release bake. T9 must produce/inspect that
 bake with official artifacts before granting production palette acceptance.
+
+## Authentic owner-local release capture
+
+From a Windows machine with access to the official public hosts:
+
+```powershell
+powershell -NoProfile -File tools/colour-baseline/bake-release.ps1
+```
+
+The single command builds the app and runs its `--colour-bake-live` path before any desktop or account initialization. It probes the official Google favicon service for the two placeholder identities, then uses the app's bounded public OpenRouter → pinned TOC → Hugging Face → favicon source chain and Skia decoder. Every actual response is kept under `responses/` with URL, fetched UTC, server Date/Age, status, type, size and SHA-256 in `capture.json`; `SHA256SUMS` covers the pack and captured files. The pack contains exact pinned provenance or decoded 64×64 RGBA evidence, append-only seed epochs, the captured public market boundary and snapshot 0. Transiently unreachable makers stay Pending, rather than becoming invented colours. The command refuses a reused output directory, and changes the embedded pack only after successful validation. It does not commit or push.
+
+For a later append-only bake, supply `-PreviousPack <previous-pack.json.gz>`. Review the generated pack, its Pending list and capture evidence, commit them on `codex/models-palette`, rebuild, and run the palette pack tests. Do not edit palette data by hand. The filename of the embedded resource remains `pack.v1.json.gz`; the validated document's version advances with the supplied predecessor.
+
+`PaletteLiveBakeTests` tests the same capture/engine/export/read path with an in-process models API and synthetic images. Those fixture bytes are test data and are never installed as a release pack. This Linux environment's CONNECT proxy returned 403 for the official OpenRouter and Hugging Face endpoints; the receipt is `porting/evidence/models-palette/round2/official-source-access.json`.

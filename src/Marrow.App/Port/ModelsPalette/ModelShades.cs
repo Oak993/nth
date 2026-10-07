@@ -1,11 +1,11 @@
 // PORT-ONLY: AC-3 C18; immutable table reads and one shared 10Hz dispatcher post;
-// ED-NEW-models-palette-6. W1/W2 have not opened the UI gate.
+// ED-NEW-models-palette-6. Visible renderer authorised after the standing merge (ED-NEW-models-palette-17).
 using Marrow.Core.Port;
 using Marrow.Services.Port.ModelsPalette;
 namespace Marrow.App.Port.ModelsPalette;
 public sealed class ModelShades : IDisposable
 {
-    public const bool ApplyToUi=false;
+    public const bool ApplyToUi=true;
     private readonly PaletteEngine engine;
     private readonly Action<Action> post;
     private readonly TimeProvider time;

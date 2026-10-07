@@ -20,7 +20,7 @@ public sealed class ModelShadesTests
         var calls=fake.Http.Received.Count;var a=facade.Resolve("acme/nova-1","high",false);
         Assert.Same(engine.Current.Resolve("acme/nova-1","high",false),a);
         for(var i=0;i<10000;i++)Assert.Same(a,facade.Resolve("acme/nova-1","high",false));
-        Assert.Equal(calls,fake.Http.Received.Count);Assert.False(ModelShades.ApplyToUi);
+        Assert.Equal(calls,fake.Http.Received.Count);Assert.True(ModelShades.ApplyToUi);
         Assert.Equal(PaletteRefreshPhase.Done,facade.Progress?.Phase);
     }
 }

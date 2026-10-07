@@ -906,6 +906,7 @@ public static partial class LiquidTrack
         private SKShader? previousShader;
         private readonly Dictionary<SKRuntimeEffect, PassUniforms> passes = [];
         private readonly float[] bubbleA = new float[MaxBubbles * 4], bubbleB = new float[MaxBubbles * 4], oneA = new float[4], oneB = new float[4];
+        private readonly Marrow.App.Port.ModelsPalette.PaletteLoadingPaint paletteLoading=new();
         private readonly SKPaint glassPaint = new() { IsAntialias = true };
         private readonly StrikePainter painter = new();
         private StrikeRaster? mixRaster;
@@ -1045,6 +1046,8 @@ public static partial class LiquidTrack
             var oilMask = basePass.OilMask;
             try { Paint(target, basePass, rect, SKBlendMode.SrcOver); }
             finally { basePass.SetChild("grad", 0); SkiaShaders.Release(mixedGradient); }
+            frame.Palette?.Ink?.Draw(target,rect,1-(float)(frame.Palette?.SolidMix??0));
+            if(frame.Palette?.Loading==true)paletteLoading.Draw(target,rect,frame.Palette.LoadingPhase,frame.MixStill); // v22: the worker's retained density picture under the currents/glass.
             if (hasOil && oilMask > 0.5f) Paint(target, Filled(OilEffect), rect, SKBlendMode.Screen); // a blend's oil goes under its currents
             Paint(target, Filled(StrandsEffect), rect, SKBlendMode.SoftLight);
             Paint(target, Filled(SlowEffect), rect, SKBlendMode.SoftLight);
@@ -1162,7 +1165,7 @@ public static partial class LiquidTrack
             previousShader?.Dispose(); previousImage?.Dispose(); previousShader = null; previousImage = null; previousRow = null;
             foreach (var pass in passes.Values) pass.Dispose();
             passes.Clear();
-            glassPaint.Dispose(); painter.Dispose();
+            paletteLoading.Dispose(); glassPaint.Dispose(); painter.Dispose();
             mixRaster?.Dispose(); mixRaster = null; mixRings.Dispose();
         }
     }

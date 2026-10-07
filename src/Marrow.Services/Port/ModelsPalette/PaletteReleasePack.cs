@@ -6,8 +6,8 @@ using System.Text.Json;
 using Marrow.Core.Port;
 using Marrow.Core.Port.ModelsPalette;
 namespace Marrow.Services.Port.ModelsPalette;
-public sealed record PaletteSeedEvidence(string Source,string Sha256,byte[] Rgba64,DateTimeOffset? FetchedAt=null,long? ByteLength=null);
-public sealed record PalettePackSeed(string Maker,ColourSeed Seed,PaletteSeedEvidence[] Evidence,bool Owner=false,int Epoch=0);
+public sealed record PaletteSeedEvidence(string Source,string Sha256,byte[] Rgba64,DateTimeOffset? FetchedAt=null,long? ByteLength=null,int? Status=null,string? Type=null);
+public sealed record PalettePackSeed(string Maker,ColourSeed Seed,PaletteSeedEvidence[] Evidence,bool Owner=false,int Epoch=0,string? PinnedName=null,string? PinnedOrg=null);
 public sealed record PalettePlaceholderEvidence(string Kind,string Source,string Sha256,DateTimeOffset FetchedAt,long ByteLength);
 public sealed record PalettePackMarket(long Boundary,long Date,int Age);
 public sealed record PaletteTombstone(ModelPaletteFact Fact,DateTimeOffset WithdrawnAt);
@@ -57,7 +57,7 @@ public sealed class PaletteReleasePack
         var epoch=seeds.Values.Select(s=>s.Epoch).DefaultIfEmpty(0).Max();
         foreach(var seed in additions.OrderBy(s=>s.Maker,StringComparer.Ordinal))
         {
-            Validate(seed);
+            Validate(seed,placeholders??previous?.PlaceholderHashes.ToDictionary()??[]);
             if(source.AuthoritativeForMaker(seed.Maker)!=source.Neutral)throw new InvalidDataException("Locked brands cannot be re-derived.");
             if(seeds.ContainsKey(seed.Maker))throw new InvalidDataException("Bake epochs and seeds are append-only.");
             var derived=PaletteDeriver.Derive(seed.Seed,frozen);
@@ -82,12 +82,15 @@ public sealed class PaletteReleasePack
     private static void ValidateMarket(PalettePackMarket? market)
     {if(market is {} m&&(m.Boundary<0||m.Age<0||m.Date-m.Age<m.Boundary*21600||m.Date/21600!=m.Boundary))throw new InvalidDataException("Invalid pack catalogue boundary.");}
     private static bool HashValid(string? hash)=>hash is {Length:64}&&hash.All(char.IsAsciiHexDigit);
-    private static void Validate(PalettePackSeed seed)
+    private static void Validate(PalettePackSeed seed,IReadOnlyDictionary<string,string[]> placeholders)
     {
         if(seed.Maker.Length==0||seed.Evidence.Length==0||seed.Seed.Hue is <0 or >=360||seed.Seed.Lightness is <0 or >200||seed.Seed.Chroma is <0 or >90)throw new InvalidDataException("Invalid seed.");
         foreach(var e in seed.Evidence)
             if(!HashValid(e.Sha256)||!Uri.TryCreate(e.Source,UriKind.Absolute,out var url)||url.Scheme!="https"||e.Rgba64.Length is not(0 or 16384))throw new InvalidDataException("Invalid source evidence.");
-        if(!seed.Owner&&!seed.Evidence.Any(e=>e.Rgba64.Length==16384&&DominantColour.Extract(new(64,64,e.Rgba64)).Seed==seed.Seed))throw new InvalidDataException("Baked image seed must equal its evidence resample.");
+        var pinned=seed.Evidence.Any(e=>e.Source==PinnedSeedColours.SourceUrl&&e.Sha256==PinnedSeedColours.Digest)&&PinnedSeedColours.Find(seed.Maker,seed.PinnedName,seed.PinnedOrg)==seed.Seed;
+        bool Placeholder(PaletteSeedEvidence e)=>placeholders.Values.Any(h=>h.Contains(e.Sha256,StringComparer.Ordinal));
+        var negative=seed.Seed.Mono&&seed.Evidence.All(e=>e.Rgba64.Length==16384||e.Status is 404 or 410||e.Type=="text/html"||Placeholder(e))&&seed.Evidence.Any(e=>Placeholder(e)||e.Status is 404 or 410||e.Type=="text/html"||e.Rgba64.Length==16384&&!DominantColour.Extract(new(64,64,e.Rgba64)).Decisive);
+        if(!seed.Owner&&!pinned&&!negative&&!seed.Evidence.Any(e=>e.Rgba64.Length==16384&&DominantColour.Extract(new(64,64,e.Rgba64)).Seed==seed.Seed))throw new InvalidDataException("Baked seed must equal its pinned input or captured evidence.");
     }
     public byte[] Encode()
     {
@@ -106,7 +109,7 @@ public sealed class PaletteReleasePack
             var d=data.Deserialize<Document>()??throw new InvalidDataException("Missing pack.");
             if(d.version<=0||d.minimumEngine!="AC-3"||d.seedVersion!="S2"||d.deriveVersion!="D3"||d.toc!=Resource("Marrow.Core.ModelsPalette.Toc.json")||d.psl!=Resource("Marrow.Core.ModelsPalette.PslIcann.txt"))throw new InvalidDataException("Incompatible pack rules.");
             ValidateMarket(d.market);
-            foreach(var seed in d.seeds)Validate(seed);
+            foreach(var seed in d.seeds)Validate(seed,d.placeholders);
             if(d.seeds.Select(s=>s.Epoch).Distinct().Count()!=d.seeds.Length||d.seeds.Any(s=>s.Epoch<=0)||d.placeholders.Values.Any(h=>h.Any(v=>!HashValid(v))))throw new InvalidDataException("Invalid pack authority.");
             return new(PaletteSourcePack.Import(d.source),d.version,d.seeds,d.baked.Select(FromAnchor),d.frozen.Select(FromAnchor),d.placeholders,d.domains,PaletteSnapshotCodec.Import(d.snapshot),d.tombstones??[],d.aliases??[],d.placeholderEvidence??[],d.market);
         }

@@ -26,25 +26,14 @@ internal sealed class PaletteComposerBinding
     private void Update()
     {
         if(!attached||model.Thread(threadId) is not {} thread)return;
-        var workers=new List<PaletteProviderRenderSelection>();
-        PaletteProviderRenderSelection? Selection(ProviderKind provider,string? id,string? effort)
-        {var option=model.Providers.Model(id,provider)??(id is null?model.Providers.DefaultModel(provider):null);return (option?.Id??id) is {} resolved?new(provider.Id,resolved,option?.Name??resolved,effort):null;}
-        var heads=model.HydraIsOn(thread)?model.HydraHeads(threadId):ValueList<ChatThread>.Empty;
-        foreach(var head in heads)if(Selection(head.Provider,head.Model,head.Effort) is {} selected)workers.Add(selected);
-        // An unstarted pair uses its actual launch selections, following AppModel+Hydra's routing/default rules.
-        if(workers.Count==0&&model.HydraIsOn(thread)&&model.HydraLaunch(thread) is {} launch)
-        {
-            if(launch.HeadProfiles.Count==0){var p=launch.HeadsProvider;if(Selection(p,launch.WorkerModel??(p==thread.Provider?thread.Model:null),launch.WorkerEffort??(p==thread.Provider?thread.Effort:null)) is {} selected)workers.Add(selected);}
-            else foreach(var profile in launch.HeadProfiles){var p=profile.Provider??launch.HeadsProvider;if(Selection(p,profile.Model??launch.WorkerModel??(p==thread.Provider?thread.Model:null),profile.Effort??launch.WorkerEffort??(p==thread.Provider?thread.Effort:null)) is {} selected)workers.Add(selected);}
-        }
-        var leads=Selection(thread.Provider,thread.Model,thread.Effort) is {} lead?new[]{lead}:Array.Empty<PaletteProviderRenderSelection>();
+        var (workers,leads)=PaletteSurfaceBinding.Selections(model,thread);
         var light=card.ActualThemeVariant==ThemeVariant.Light;
-        var fingerprint=facade.Current.Digest+"|"+light+"|"+string.Join('|',workers.Concat(leads));if(fingerprint==last)return;last=fingerprint;
-        var generation=++intent;PendingRender=Apply(workers.ToArray(),leads,light,generation);
+        var fingerprint=facade.Current.Digest+"|"+thread.FastMode+"|"+light+"|"+string.Join('|',workers.Concat(leads));if(fingerprint==last)return;last=fingerprint;
+        var generation=++intent;PendingRender=Apply(workers,leads,light,generation);
     }
     private async Task Apply(PaletteProviderRenderSelection[] workers,PaletteProviderRenderSelection[] leads,bool light,long generation)
     {
         var target=await engine.PrepareProviderRender(workers,leads,light,(snapshot,w,l,composite)=>composite is null?null:PaletteTrackTarget.Create(snapshot,w,l,light,composite)).ConfigureAwait(false);
-        await MainActor.Run(()=>{if(!attached||generation!=intent)return;card.GetLogicalDescendants().OfType<EffortSlider>().FirstOrDefault()?.SetPalette(target);}).ConfigureAwait(false);
+        await MainActor.Run(()=>{if(!attached||generation!=intent)return;card.SetPalette(target);}).ConfigureAwait(false);
     }
 }

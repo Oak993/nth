@@ -4,6 +4,7 @@ using System.Text.Json;
 namespace Marrow.Core.Port.ModelsPalette;
 public static class PinnedSeedColours
 {
+    public const string SourceUrl="https://unpkg.com/@lobehub/icons@5.22.0/es/toc.json";
     private static readonly (string[] Keys,ColourSeed Seed)[] entries;
     public static string Digest { get; }
     static PinnedSeedColours()

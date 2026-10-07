@@ -55,6 +55,7 @@ public static class Program
     {
         // ED-NEW-models-palette-11: offline, owner-local pack generator precedes all desktop/data bindings.
         if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
+        if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
             return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();

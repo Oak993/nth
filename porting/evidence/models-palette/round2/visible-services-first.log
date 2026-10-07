@@ -1,0 +1,34 @@
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.78]     Marrow.Services.Tests.Port.ModelsPalette.PaletteLiveBakeTests.Capture_uses_the_real_pipeline_and_preserves_each_raw_response_date_url_and_digest [FAIL]
+  Failed Marrow.Services.Tests.Port.ModelsPalette.PaletteLiveBakeTests.Capture_uses_the_real_pipeline_and_preserves_each_raw_response_date_url_and_digest [314 ms]
+  Error Message:
+   Assert.StartsWith() Failure: String start does not match
+String:         "https://cdn-avatars.huggingface.co/v1/acm"···
+Expected start: "https://huggingface.co/"
+  Stack Trace:
+     at Marrow.Services.Tests.Port.ModelsPalette.PaletteLiveBakeTests.Capture_uses_the_real_pipeline_and_preserves_each_raw_response_date_url_and_digest() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteLiveBakeTests.cs:line 18
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:04.60]     Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [FAIL]
+  Failed Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [110 ms]
+  Error Message:
+   Assert.Empty() Failure: Collection was not empty
+Collection: ["PaletteLiveBakeTests: nested type CaptureFixture"]
+  Stack Trace:
+     at Marrow.Testing.Traceability.AssertShapesReqVerifyCanRead(Assembly tests) in /workspace/marrow-port/tests/Marrow.Testing/Traceability.cs:line 111
+   at Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read() in /workspace/marrow-port/tests/Marrow.Services.Tests/TraceabilityTests.cs:line 18
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.79]     Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [FAIL]
+  Failed Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [104 ms]
+  Error Message:
+   Assert.Empty() Failure: Collection was not empty
+Collection: ["PaletteLiveBakeTests.cs:30: `class/record CaptureF"···]
+  Stack Trace:
+     at Marrow.Testing.Traceability.AssertSourceLayout(Assembly tests, String projectDirectory) in /workspace/marrow-port/tests/Marrow.Testing/Traceability.cs:line 150
+   at Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords() in /workspace/marrow-port/tests/Marrow.Services.Tests/TraceabilityTests.cs:line 23
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/visible-services-first.trx
+
+Failed!  - Failed:     3, Passed:    65, Skipped:     0, Total:    68, Duration: 4 s - Marrow.Services.Tests.dll (net10.0)

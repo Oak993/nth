@@ -133,6 +133,8 @@ public static class JewelColor
 /// <summary>liquidOf: a maker's liquid as the materials read it (its stops in OKLCH, its hue along the tube, its chroma).</summary>
 public sealed class JewelLiquid
 {
+    // OD-0087/0063: the selected IR-3 liquid; the three-stop adapter repeats its light highlight.
+    public static JewelLiquid FromStops(string maker,IReadOnlyList<string> stops) => new(maker,[stops[0],stops[1],stops[2],stops.Count>3?stops[3]:stops[2]]);
     private readonly (double L, double C, double H) deep, mid, light, highlight;
 
     private JewelLiquid(string maker, IReadOnlyList<string> stops)

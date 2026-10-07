@@ -31,7 +31,7 @@ public sealed class PaletteTrackBindingTests(HeadlessSession headless)
             Assert.Equal(3,first.Spec.Segments.Count);Assert.Equal(5/18d,first.Spec.Segments[0].Weight/first.Spec.Segments.Sum(s=>s.Weight),12);Assert.Equal(256,first.Gradient.Length);
             for(var n=0;n<256;n++)Assert.Equal(new SkiaSharp.SKColor(target.Composite.Shade.GradientRow[n*4],target.Composite.Shade.GradientRow[n*4+1],target.Composite.Shade.GradientRow[n*4+2]),first.Gradient[n]);
             Assert.NotNull(first.Palette);foreach(var pair in target.Composite.Shade.Motion)Assert.Equal(pair.Value,first.Palette!.Motion.Get(pair.Key,0),12);
-            Assert.NotNull(effect.Layers);Assert.False(ModelShades.ApplyToUi);
+            Assert.NotNull(effect.Layers);Assert.True(ModelShades.ApplyToUi);
             using var bitmap=new SkiaSharp.SKBitmap(300,34);using var canvas=new SkiaSharp.SKCanvas(bitmap);effect.Layers!.Draw(canvas,null,1,first);
             Assert.NotEqual(SkiaSharp.SKColors.Transparent,bitmap.GetPixel(150,17));
         });

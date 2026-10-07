@@ -28,15 +28,14 @@ public sealed class PaletteComposerBindingTests(HeadlessSession headless)
             typeof(AppModel).GetField("paletteEngine",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.SetValue(model,engine);
             HydraCookbookResolveFixture.SetModels(model.Providers,ProviderKind.OpenRouter,new ModelOption(thread.Model!,"Acme: Nova 1"){Efforts=new(["low","medium","high"]),DefaultEffort="medium"});
             var card=new EffortSliderCard("Nova 1",ProviderKind.OpenRouter,new(["low","medium","high"]),"medium",false,new Binding<string?>(()=>model.Thread(thread.Id)!.Effort,x=>model.UpdateThread(thread.Id,t=>t with {Effort=x})),new Binding<bool>(()=>false,_=>{}),()=>{});
-            Assert.Null(PaletteComposerBinding.Attach(model,thread.Id,card));
-            var binding=Assert.IsType<PaletteComposerBinding>(PaletteComposerBinding.Attach(model,thread.Id,card,true));
+            var binding=Assert.IsType<PaletteComposerBinding>(PaletteComposerBinding.Attach(model,thread.Id,card));
             var window=new Avalonia.Controls.Window{Width=340,Height=220,Content=card};window.Show();Dispatcher.UIThread.RunJobs();
             try
             {
                 HeadlessSession.RunDispatcherUntil(binding.PendingRender,TimeSpan.FromSeconds(5));
                 var effect=Assert.Single(card.GetVisualDescendants().OfType<TrackEffect>());effect.PrepareScene(new Avalonia.Size(300,34));Assert.True(((LiquidTrack.ILiveSource)effect).TryFrame(out var first));Assert.NotNull(first.Palette);Assert.Equal("acme/nova-1",Assert.Single(effect.PaletteArrangement!.Spans).ModelId);
                 var at=effect.TimeAt(SwiftDate.Now);model.UpdateThread(thread.Id,t=>t with {Effort="low"});Dispatcher.UIThread.RunJobs();HeadlessSession.RunDispatcherUntil(binding.PendingRender,TimeSpan.FromSeconds(5));
-                Assert.Same(effect,Assert.Single(card.GetVisualDescendants().OfType<TrackEffect>()));Assert.Equal(at,effect.TimeAt(SwiftDate.Now));Assert.False(ModelShades.ApplyToUi);
+                Assert.Same(effect,Assert.Single(card.GetVisualDescendants().OfType<TrackEffect>()));Assert.Equal(at,effect.TimeAt(SwiftDate.Now));Assert.True(ModelShades.ApplyToUi);
             }
             finally{window.Close();model.PaletteShades.Dispose();}
         });

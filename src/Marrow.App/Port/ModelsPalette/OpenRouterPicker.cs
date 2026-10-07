@@ -25,6 +25,7 @@ public sealed class OpenRouterPicker : Decorator
     private static readonly Animation Ez = Animation.TimingCurve(.32, .72, 0, 1, .24);
     private readonly List<PickerRow> rows = [];
     private readonly List<(string Maker, PickerFold Fold)> groups = [];
+    private readonly Dictionary<string,Marrow.UI.Port.Settings.CzColor> makerDots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PickerCount> counts = new(StringComparer.Ordinal);
     private readonly ScrollViewer scroll;
     private readonly AnimatedScalar scrollOffset;
@@ -93,7 +94,8 @@ public sealed class OpenRouterPicker : Decorator
         foreach (var group in models.GroupBy(m=>m.Maker,StringComparer.Ordinal))
         {
             var section = new StackPanel { Orientation=Avalonia.Layout.Orientation.Horizontal, Spacing=7, Height=24, Margin=new Thickness(10,0) };
-            section.Children.Add(Dot(group.First().Color,7)); section.Children.Add(Label(group.Key,11,.55));
+            var makerDot=(Border)Dot(group.First().Color,7);section.Children.Add(makerDot);section.Children.Add(Label(group.Key,11,.55));
+            var makerBrush=(SolidColorBrush)makerDot.Background!;makerDots.Add(group.Key,new(new Marrow.UI.Port.Settings.CzMotion(makerDot),makerBrush.Color,c=>makerBrush.Color=c));
             var fold = new PickerFold(section,true); groups.Add((group.Key,fold)); list.Children.Add(fold);
             foreach (var model in group)
             {
@@ -188,10 +190,15 @@ public sealed class OpenRouterPicker : Decorator
     internal static TextBlock Label(string text,double size,double alpha)=>new() { Text=text, FontSize=size, Foreground=Brush(.957,.965,.984,alpha), VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center, TextTrimming=TextTrimming.CharacterEllipsis };
     internal static SolidColorBrush Brush(double r,double g,double b,double a)=>new(Color.FromArgb((byte)Math.Round(a*255),(byte)Math.Round(r*255),(byte)Math.Round(g*255),(byte)Math.Round(b*255)));
     internal static Control Dot(string color,double size)=>new Border { Width=size, Height=size, CornerRadius=new CornerRadius(size/2), HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Center, Background=new SolidColorBrush(Color.Parse(color)), BorderThickness=new Thickness(1), BorderBrush=Brush(1,1,1,.28), VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center };
+    internal void UpdateMakerDots(){foreach(var group in rows.GroupBy(r=>r.Model.Maker,StringComparer.Ordinal))makerDots[group.Key].To(group.First().TargetColour,Animation.Smooth(1.2));}
 }
 
 public sealed class PickerRow : PickerFold
 {
+    private readonly Marrow.UI.Port.Settings.CzColor colour;
+    public Color Colour=>colour.Value;
+    internal Color TargetColour=>colour.Target;
+    internal void SetColour(string hex)=>colour.To(Color.Parse(hex),Animation.Smooth(1.2));
     private readonly AnimatedScalar checkOpacity, checkScale;
     private readonly AnimatedScalar background,pressedScale;
     private bool hovered,active,keyed,pressed;
@@ -202,7 +209,8 @@ public sealed class PickerRow : PickerFold
     {
         Model=model;
         var grid=new Grid { ColumnDefinitions=new ColumnDefinitions("18,*,14"), ColumnSpacing=10 };
-        grid.Children.Add(OpenRouterPicker.Dot(model.Color,10));
+        var dot=(Border)OpenRouterPicker.Dot(model.Color,10);grid.Children.Add(dot);var brush=(SolidColorBrush)dot.Background!;
+        colour=new(new Marrow.UI.Port.Settings.CzMotion(dot),brush.Color,c=>brush.Color=c);
         var labels=new StackPanel { Spacing=1, VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center };
         labels.Children.Add(OpenRouterPicker.Label(model.Name,14,1)); labels.Children.Add(OpenRouterPicker.Label(model.Detail??model.Id+" · OpenRouter",12,.55)); Grid.SetColumn(labels,1); grid.Children.Add(labels);
         var check=new PickerGlyph("check"); Grid.SetColumn(check,2); grid.Children.Add(check);
