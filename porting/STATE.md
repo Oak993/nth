@@ -870,3 +870,10 @@ Revert only ma-gaps merge ed0820d7 after two unchanged E1 pricing cases failed t
 
 
 [INTEGRATION T9] 2026-10-07: W c23e031b/d49e21d7 admission-held for its missing production Link UI model and timeline opinion bindings; withdraw only that merge, retain both READY waves and historical ED-519/520. Raw candidate Windows focused gates pass; full Core4902/Services5603/UI4696 pass, App9990pass7fail with all seven unchanged methods passing twice alone. A fixture pass is not proof of an unbound production view. No production/test repair on integration.
+
+
+## T25 W production-binding finish-up (2026-10-07)
+
+READY for T9's Windows run of W + opinions together. Terminal 228f56b55 and opinions 18dcbc9f3 are ancestors of codex/ma-wire. Held source restored with later engine/design fixes retained. Startup now binds LinkComposerSeams (real Link model and mounted-host lifetime), AskOthersComposerSeams (real composer send), and OpinionTimelineSeams (actual sent/combined entry IDs, real head errors, immutable historical account metadata and posted byline). No production ports remain on fakes. Default-off/ask-first, unchecked cross-service consent and the existing shared readiness tick remain.
+
+Test-first null offers failed 2/2 before binding. Final App functional regression 44/44 passes, plus one traceability check; the two incoming T31 HeldCombine test-layout checks remain red, unchanged, and will also fail on Windows. Core MA/accounts/traceability 519 pass; portable Services MA/traceability 173 pass. Full Core/Services !Native attempts abort on platform dependencies; all failures/results retained. No existing tests/assertions/references/tolerances changed. Not a release or full-suite-green claim. ED-NEW-ma-wire-finish-1; report porting/reports/ma-wire-finish.md and evidence porting/evidence/ma-wire-finish/. Commits a13922253, 320282adf, 19d9ffe3d, 1c45aea9c; only codex/ma-wire is authorized to be pushed.

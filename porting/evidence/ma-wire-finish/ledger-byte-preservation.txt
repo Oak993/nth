@@ -1,0 +1,2 @@
+engineering_decisions.md: exact original W prefix retained; every incoming terminal block retained byte-exact; 1 additional byte-distinct blocks appended in documentation step.
+STATE.md: exact original W prefix retained; every incoming terminal block retained byte-exact; 0 additional byte-distinct blocks appended in documentation step.
