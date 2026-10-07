@@ -2,7 +2,7 @@
 
 Marrow Windows release notes. Each packaged version needs its own `## [version]` entry and at least one populated section using the headings below. Version numbers come from `src/Marrow.App/AssemblyInfo.cs`. These are repository notes for the Windows port; they do not record a published release.
 
-## [1.7.0] - 2026-10-05
+## [1.0.0] - 2026-10-08
 
 ### New features
 

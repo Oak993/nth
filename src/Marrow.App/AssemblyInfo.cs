@@ -6,8 +6,8 @@ using System.Reflection;
 #else
 [assembly: AssemblyMetadata("CFBundleDisplayName", "Marrow")]
 #endif
-[assembly: AssemblyMetadata("CFBundleShortVersionString", "1.7.0")]
-[assembly: AssemblyMetadata("CFBundleVersion", "21")]
+[assembly: AssemblyMetadata("CFBundleShortVersionString", "1.0.0")]
+[assembly: AssemblyMetadata("CFBundleVersion", "1")]
 
 // PR-UPDATE-113: project.yml:46 INFOPLIST_KEY_NSHumanReadableCopyright, byte for byte (R-STR-9). AssemblyCopyright
 // maps to the executable's version resource LegalCopyright field, File Explorer's Windows analogue of Finder's Get
