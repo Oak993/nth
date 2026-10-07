@@ -2,6 +2,7 @@
 // Unlike the Round-1 geometry helper, the source explicitly reverses BOTH lists before drawing.
 namespace Marrow.Core.Port.ModelsPalette;
 public sealed record PaletteSelection(string Id,bool IsLead,ValueList<string> ShadeStops);
+public readonly record struct PaletteRenderSelection(string Id,string? Effort);
 public readonly record struct PaletteGradientStop(double Position,string Color);
 public sealed record PaletteArrangement(ValueList<SelectedModelSpan> Spans,ValueList<PaletteGradientStop> Stops)
 {

@@ -6,7 +6,7 @@ public static class Makers
 {
     public static string Alias(string slug)=>slug.ToLowerInvariant().TrimStart('~') switch
     {"meta-llama"=>"meta","zai"=>"z-ai","xai"=>"x-ai","mistral"=>"mistralai","moonshot"=>"moonshotai","bytedance"=>"bytedance-seed",var s=>s};
-    public static MakerIdentity Resolve(string provider,string id,IReadOnlyList<ModelPaletteFact> boundary)
+    public static MakerIdentity Resolve(string provider,string id,IReadOnlyList<ModelPaletteFact> boundary,string? name=null,IReadOnlyDictionary<string,string>? boundaryNames=null)
     {
         var p=provider.ToLowerInvariant();var x=Regex.Replace(id.ToLowerInvariant().TrimStart('~'),@"\[.*?\]","",RegexOptions.CultureInvariant).Split(':')[0];
         if(x.StartsWith("opencode-go/",StringComparison.Ordinal))x=x[12..];
@@ -15,10 +15,17 @@ public static class Makers
         {var slug=x.Split('/')[0];return slug=="openrouter"?new("openrouter",true):new(Alias(slug));}
         var own=p switch {"claude"=>"anthropic","codex"=>"openai","antigravity"=>"google","deepseek"=>"deepseek","meta"=>"meta","zai"=>"z-ai","grok"=>"x-ai",_=>null};
         if(own is not null)return new(own);
-        var c=LineupRanker.Canonical(x);var match=boundary.Where(f=>LineupRanker.Canonical(f.Id)==c).OrderBy(f=>f.Maker,StringComparer.Ordinal).FirstOrDefault();
+        var c=LineupRanker.Canonical(x);var match=boundary.Where(f=>LineupRanker.Canonical(f.Id)==c||name is not null&&boundaryNames?.TryGetValue(f.Id,out var publicName)==true&&string.Equals(publicName,name,StringComparison.OrdinalIgnoreCase)).OrderBy(f=>f.Maker,StringComparer.Ordinal).FirstOrDefault();
         if(match is not null)return new(Alias(match.Maker));
         var family=Regex.Match(x,@"^(claude|gpt|o\d+|codex|gemini|gemma|grok|glm|kimi|muse|llama|deepseek|qwen|qwq|mistral|codestral|devstral|minimax|nemotron|granite|sonar|command|aya)(?=\b|\d)",RegexOptions.CultureInvariant).Value;
         var maker=family switch {"claude"=>"anthropic","gpt" or "codex"=>"openai","gemini" or "gemma"=>"google","grok"=>"x-ai","glm"=>"z-ai","kimi"=>"moonshotai","muse" or "llama"=>"meta","deepseek"=>"deepseek","qwen" or "qwq"=>"qwen","mistral" or "codestral" or "devstral"=>"mistralai","minimax"=>"minimax","nemotron"=>"nvidia","granite"=>"ibm-granite","sonar"=>"perplexity","command" or "aya"=>"cohere",_=>family.StartsWith('o')&&family.Length>1&&char.IsAsciiDigit(family[1])?"openai":p};
-        return new(maker,ProviderOwn:maker==p);
+        if(maker!=p)return new(maker);
+        if(name is not null)
+        {
+            var prefix=name.Split(": ",2,StringSplitOptions.None)[0];
+            foreach(var known in PaletteRuleData.Value.GetProperty("SEED_MAKER").EnumerateObject())
+                if(string.Equals(prefix,known.Name,StringComparison.OrdinalIgnoreCase))return new(Alias(known.Value.GetString()!));
+        }
+        return new(p,ProviderOwn:true);
     }
 }

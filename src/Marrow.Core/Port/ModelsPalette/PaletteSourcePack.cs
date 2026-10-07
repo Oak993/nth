@@ -26,6 +26,12 @@ public sealed class PaletteSourcePack
     { Version=source.Version;Palettes=source.Palettes;MakerPalette=source.MakerPalette;Baseline=baseline; }
     /// <summary>An explicit immutable data pack, used by isolated tests and pack-upgrade verification.</summary>
     public PaletteSourcePack WithBaseline(IReadOnlyList<ModelPaletteFact> baseline)=>new(this,new(baseline));
+    public static PaletteSourcePack Import(JsonElement root)
+    {if(!root.TryGetProperty("rules",out var rules)||!JsonElement.DeepEquals(rules,PaletteRuleData.Value))throw new InvalidDataException("Incompatible palette rule tables.");return new(root);}
+    public JsonElement Export()=>JsonSerializer.SerializeToElement(new {
+        version=Version, palettes=Palettes.OrderBy(p=>p.Key,StringComparer.Ordinal).ToDictionary(p=>p.Key,p=>p.Value.Stops.ToArray()),
+        titles=Palettes.Where(p=>p.Value.Title is not null).OrderBy(p=>p.Key,StringComparer.Ordinal).ToDictionary(p=>p.Key,p=>p.Value.Title),
+        makerPalette=MakerPalette.OrderBy(p=>p.Key,StringComparer.Ordinal).ToDictionary(), rules=PaletteRuleData.Value, baseline=Baseline.Select(f=>new {id=f.Id,maker=f.Maker,price=f.Price,created=f.Created,context=f.Context,eligible=f.Eligible,builtin=f.Builtin}) });
     public PaletteAnchor ForMaker(string maker)=>MakerPalette.TryGetValue(maker,out var key)?Palettes[key]:Neutral;
     /// <summary>IR-3's DERIVED swatches are reference examples, not evidence-bearing baked seeds.</summary>
     public PaletteAnchor AuthoritativeForMaker(string maker)

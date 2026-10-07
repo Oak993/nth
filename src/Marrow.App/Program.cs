@@ -53,6 +53,8 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // ED-NEW-models-palette-11: offline, owner-local pack generator precedes all desktop/data bindings.
+        if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
             return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
@@ -106,6 +108,7 @@ public static class Program
         // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
         var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
+        Marrow.App.Port.ModelsPalette.PaletteStartup.Prepare(); // ED-NEW-models-palette-11: verified tables, off UI, before any window/model.
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
@@ -141,7 +144,7 @@ public static class Program
             reopen.Listen(() => shell.Reopen(lifetime.Windows));
         };
         lifetime.ShutdownRequested += (_, e) => shell.ShutdownRequested(e);
-        lifetime.Exit += (_, _) => shell.WillTerminate();
+        lifetime.Exit += (_, _) => {shell.Delegate.Model?.StopPaletteChecks();shell.WillTerminate();};
         return lifetime.Start(args);
     }
 }

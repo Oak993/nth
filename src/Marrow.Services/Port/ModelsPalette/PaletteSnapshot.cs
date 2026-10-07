@@ -18,7 +18,11 @@ public sealed record PaletteShade(ValueList<string> Stops,string Title,string Gl
 public sealed record PaletteSnapshot(string Digest,long Boundary,FrozenDictionary<string,PaletteModel> Models,FrozenDictionary<PaletteShadeKey,PaletteShade> Shades)
 {
     public FrozenDictionary<string,PaletteMaker> Makers {get;init;}=FrozenDictionary<string,PaletteMaker>.Empty;
-    public PaletteShade? Resolve(string modelId,string? effort,bool light)=>Shades.GetValueOrDefault(new(modelId,PaletteIntensity.Word(effort),light));
+    public PaletteShade? Resolve(string modelId,string? effort,bool light)
+    {
+        var word=PaletteIntensity.Word(effort);word=word switch {null or "off" or "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max"=>word,_=>"medium"};
+        return Shades.GetValueOrDefault(new(modelId,word,light));
+    }
     internal static PaletteSnapshot Create(long boundary,IEnumerable<PaletteModel> models,string packVersion="source1")
     {
         var map=models.OrderBy(m=>m.Id,StringComparer.Ordinal).ToFrozenDictionary(m=>m.Id,StringComparer.Ordinal);

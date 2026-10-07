@@ -3,25 +3,30 @@
 using System.Globalization;
 using System.Net;
 namespace Marrow.Services.Port.ModelsPalette;
-internal sealed record PaletteHttpReply(int Status,string Type,byte[] Body,Uri Url,DateTimeOffset? Date,int Age,string? RetryAfter);
+internal sealed record PaletteHttpReply(int Status,string Type,byte[] Body,Uri Url,DateTimeOffset? Date,int Age,string? RetryAfter)
+{public string? RateLimit {get;init;} public string? Remaining {get;init;} public string? Reset {get;init;}}
 internal sealed class PaletteHttp : IDisposable
 {
     private readonly HttpClient client;
     private readonly TimeProvider time;
+    private readonly SemaphoreSlim requests=new(4,4);
     public PaletteHttp(HttpMessageHandler handler,TimeProvider time)
     {client=new(handler,disposeHandler:false){Timeout=Timeout.InfiniteTimeSpan};this.time=time;}
     public async Task<PaletteHttpReply?> Get(Uri original,int cap,int timeout,bool refresh,CancellationToken ct)
     {
+        if(original.Scheme!="https"||original.Host is not("openrouter.ai" or "huggingface.co" or "cdn-avatars.huggingface.co" or "t0.gstatic.com"))return null;
+        var acquired=false;
         try
         {
             using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(timeout),time);
             using var cancelled=CancellationTokenSource.CreateLinkedTokenSource(ct,deadline.Token);
+            await requests.WaitAsync(cancelled.Token);acquired=true;
             var url=original;
             for(var redirects=0;redirects<=3;redirects++)
             {
                 using var request=new HttpRequestMessage(HttpMethod.Get,url);
                 request.Headers.UserAgent.ParseAdd("MarrowColourEngine/AC-3");
-                request.Headers.Accept.ParseAdd(original.Host=="openrouter.ai"||original.AbsolutePath.EndsWith("/overview",StringComparison.Ordinal)?"application/json":"image/png,image/*;q=0.5");
+                request.Headers.Accept.ParseAdd(original.Host=="openrouter.ai"||original.AbsolutePath.EndsWith("/overview",StringComparison.Ordinal)?"application/json":original.Host=="huggingface.co"&&!original.AbsolutePath.StartsWith("/api/",StringComparison.Ordinal)&&!original.AbsolutePath.Contains('.',StringComparison.Ordinal)?"text/html":"image/png,image/*;q=0.5");
                 if(refresh)request.Headers.CacheControl=new(){NoCache=true};
                 using var response=await client.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,cancelled.Token);
                 var status=(int)response.StatusCode;
@@ -38,11 +43,14 @@ internal sealed class PaletteHttp : IDisposable
                 while((read=await stream.ReadAsync(buffer,cancelled.Token))!=0)
                 {if(bytes.Length+read>cap)return null;bytes.Write(buffer,0,read);}
                 return new(status,response.Content.Headers.ContentType?.MediaType??"",bytes.ToArray(),url,response.Headers.Date,
-                    response.Headers.Age is {} age?(int)Math.Clamp(age.TotalSeconds,0,int.MaxValue):0,response.Headers.RetryAfter?.ToString());
+                    response.Headers.Age is {} age?(int)Math.Clamp(age.TotalSeconds,0,int.MaxValue):0,response.Headers.RetryAfter?.ToString())
+                {RateLimit=Header("RateLimit"),Remaining=Header("RateLimit-Remaining"),Reset=Header("RateLimit-Reset")};
+                string? Header(string name)=>response.Headers.TryGetValues(name,out var values)?string.Join(',',values):null;
             }
             return null;
         }
         catch(HttpRequestException){return null;}catch(OperationCanceledException){return null;}catch(IOException){return null;}
+        finally{if(acquired)requests.Release();}
     }
     private static bool AllowedFinal(Uri original,Uri final)=>string.Equals(original.IdnHost,final.IdnHost,StringComparison.OrdinalIgnoreCase)||
         original.IdnHost=="huggingface.co"&&!original.AbsolutePath.EndsWith("/overview",StringComparison.Ordinal)&&final.IdnHost=="cdn-avatars.huggingface.co";

@@ -7,14 +7,16 @@ public sealed class PaletteGlide
 {
     private readonly double[] fromRow=new double[1024],toRow=new double[1024];
     private readonly double[] fromTitle=new double[3],toTitle=new double[3],fromGlow=new double[3],toGlow=new double[3];
-    private readonly double[] fromMotion,toMotion;
+    private double[] fromMotion,toMotion;
     private double began;
     private bool active;
     private PaletteShade? waiting;
-    public IReadOnlyList<string> MotionKeys {get;}
+    private PaletteShade targetShade;
+    public IReadOnlyList<string> MotionKeys {get;private set;}
     public int MotionCount=>MotionKeys.Count;
     public PaletteGlide(PaletteShade initial)
     {
+        targetShade=initial;
         MotionKeys=Array.AsReadOnly(initial.Motion.Keys.Order(StringComparer.Ordinal).ToArray());
         fromMotion=new double[MotionCount];toMotion=new double[MotionCount];Load(initial);
         Array.Copy(toRow,fromRow,1024);Array.Copy(toTitle,fromTitle,3);Array.Copy(toGlow,fromGlow,3);Array.Copy(toMotion,fromMotion,MotionCount);
@@ -22,7 +24,15 @@ public sealed class PaletteGlide
     public void Retarget(PaletteShade target,double now,bool arrivalRunning=false)
     {
         if(arrivalRunning){waiting=target;return;}
+        waiting=null;
+        if(targetShade.Equals(target))return;targetShade=target;
         var t=Progress(now);BlendInto(fromRow,toRow,t);BlendInto(fromTitle,toTitle,t);BlendInto(fromGlow,toGlow,t);BlendInto(fromMotion,toMotion,t);
+        var keys=MotionKeys.Union(target.Motion.Keys,StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        if(keys.Length!=MotionCount)
+        {
+            var displayed=MotionKeys.Select((key,index)=>(key,fromMotion[index])).ToDictionary(x=>x.key,x=>x.Item2,StringComparer.Ordinal);
+            fromMotion=keys.Select(key=>displayed.GetValueOrDefault(key)).ToArray();toMotion=new double[keys.Length];MotionKeys=Array.AsReadOnly(keys);
+        }
         Load(target);began=now;active=true;
     }
     public void ArrivalFinished(double now){if(waiting is {} target){waiting=null;Retarget(target,now);}}

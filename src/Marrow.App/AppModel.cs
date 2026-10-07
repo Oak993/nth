@@ -209,6 +209,7 @@ public sealed partial class AppModel : MainActorModel
         threadIndex = new ThreadIndex(threads); // AppModel.swift:141
         AutoContinue = new AutoContinue(this); // AppModel.swift:142
         if (Settings.LastProjectID is { } lastID && Project(lastID) is null) Settings.LastProjectID = null; // AppModel.swift:143-145
+        InitializePalette(); // OD-0064, ED-NEW-models-palette-11: pack snapshot 0 before any window, cached Prime on the actor.
     }
 
     private static List<(ObservedValue<TValue?> Cell, TValue? Value)> Sync<TValue>(
@@ -348,6 +349,7 @@ public sealed partial class AppModel : MainActorModel
         // thread refers to any more go, a day after they were written.
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: orphan attachments"))
         await Storage.SweepOrphanedAttachments(); // AppModel.swift:283-286; DEVIATION ED-001: capture guard dropped.
+        StartPaletteChecks(); // OD-0064: loaded catalogues only; automatic network checks begin after bootstrap.
     }
 
     // MARK: - Lookup

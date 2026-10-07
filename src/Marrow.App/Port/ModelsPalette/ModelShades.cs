@@ -14,6 +14,7 @@ public sealed class ModelShades : IDisposable
     private PaletteRefreshProgress? progress;
     private ITimer? timer;
     private bool queued,disposed;
+    private readonly HashSet<string> coldModels=new(StringComparer.Ordinal);
     public PaletteSnapshot Current=>current;
     public PaletteRefreshProgress? Progress {get;private set;}
     public event Action? Changed;
@@ -23,7 +24,12 @@ public sealed class ModelShades : IDisposable
         current=latest=previous=engine.Current;engine.Changed+=SnapshotChanged;engine.Progress+=ProgressChanged;
     }
     /// <summary>No I/O, colour math or allocation on a warm lookup. Strike consumes this seam after its merge.</summary>
-    public PaletteShade? Resolve(string canonicalModelId,string? effort,bool light)=>current.Resolve(canonicalModelId,effort,light)??previous.Resolve(canonicalModelId,effort,light);
+    public PaletteShade? Resolve(string canonicalModelId,string? effort,bool light)
+    {
+        if(current.Resolve(canonicalModelId,effort,light) is {} warm)return warm;
+        lock(gate)if(!disposed&&coldModels.Add(canonicalModelId))_ =engine.Observe([canonicalModelId]);
+        return previous.Resolve(canonicalModelId,effort,light);
+    }
     public Task Observe(IReadOnlyList<string> canonicalModelIds)=>engine.Observe(canonicalModelIds);
     private void SnapshotChanged(PaletteSnapshot snapshot){lock(gate){latest=snapshot;Schedule();}}
     private void ProgressChanged(PaletteRefreshProgress value){lock(gate){progress=value;Schedule();}}

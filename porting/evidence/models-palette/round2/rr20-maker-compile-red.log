@@ -1,0 +1,6 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+/workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteMakerNameTests.cs(11,33): error CS1501: No overload for method 'Resolve' takes 5 arguments [/workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteMakerNameTests.cs(12,38): error CS1501: No overload for method 'Resolve' takes 4 arguments [/workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteMakerNameTests.cs(13,41): error CS1501: No overload for method 'Resolve' takes 4 arguments [/workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteMakerNameTests.cs(14,28): error CS1501: No overload for method 'Resolve' takes 4 arguments [/workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj]
