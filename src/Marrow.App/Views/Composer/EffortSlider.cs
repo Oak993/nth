@@ -329,7 +329,7 @@ public sealed class ModelEffortPanel : Decorator
         var brand = EffortBrand.Create(thread.Provider);
         var fadeFrom = shownBrand is { } shown && shown != brand ? shown : (EffortBrand?)null;
         shownBrand = brand;
-        return new EffortSliderCard(option?.ShortName ?? thread.Model ?? thread.Provider.DisplayName, thread.Provider,
+        var card = new EffortSliderCard(option?.ShortName ?? thread.Model ?? thread.Provider.DisplayName, thread.Provider,
             option?.Efforts ?? ValueList<string>.Empty, option?.DefaultEffort, option?.SupportsFast ?? false,
             new Binding<string?>(() => model.Thread(thread.Id)?.Effort, effort => { model.UpdateThread(thread.Id, current => current with { Effort = effort }); Remember(thread.Id); }),
             new Binding<bool>(() => model.Thread(thread.Id)?.FastMode ?? false, fast => { model.UpdateThread(thread.Id, current => current with { FastMode = fast }); Remember(thread.Id); }),
@@ -340,6 +340,8 @@ public sealed class ModelEffortPanel : Decorator
                 var leadEffort = leading?.OrchestratorEffort is { } effort && option?.Efforts.Contains(effort) == true ? effort : null;
                 model.UpdateThread(thread.Id, current => current with { Effort = leadEffort, FastMode = false }); Remember(thread.Id);
             }, pairLook, () => state.ShowsModels = true, fadeFrom);
+        Marrow.App.Port.ModelsPalette.PaletteComposerBinding.Attach(model, thread.Id, card); // guarded by the unchanged UI gate.
+        return card;
     }
 
     // :235-239
@@ -854,7 +856,7 @@ public sealed class RoundIconButton : Decorator
 }
 
 /// <summary>:711-837 <c>struct EffortSlider: View</c>.</summary>
-public sealed class EffortSlider : Decorator
+public sealed partial class EffortSlider : Decorator
 {
     // :712 static let trackHeight: CGFloat = 34
     public const double TrackHeight = 34;
@@ -1328,6 +1330,7 @@ public sealed class EffortSlider : Decorator
             }
         }
         else if (currentEffect is not null) currentEffect.SetLook(look);
+        BindPaletteEffect(currentEffect); // ED-NEW-models-palette-14: retain the effect selected by the existing identity rule.
         foreach (var child in effects.Children) if (child is TrackEffect effect) effect.TrackWidth = width; // OD-0051: the liquid keeps the track's scale
         drawnLook = look;
     }
@@ -1852,7 +1855,7 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
 }
 
 /// <summary>:1039-1347 <c>struct TrackEffect: View</c>.</summary>
-public sealed class TrackEffect : Decorator, LiquidTrack.ILiveSource
+public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
 {
     private TrackLook look = null!;
     private readonly DateTimeOffset startedAt = SwiftDate.Now;
@@ -2150,6 +2153,7 @@ public sealed class TrackEffect : Decorator, LiquidTrack.ILiveSource
             if (!s.Still) { mixContacts!.Process(s.Geometry, mixStorm.Plans, resolved, t, reentry.Offset, ink.Amount); mixContacts.ResolveLight(s.Geometry, resolved, t); }
             frame = new LiquidTrack.Frame(s.Size, s.Track, s.Still ? 0 : t, s.Gradient, s.Spec, null, false, s.Strands, flow, null, ink.Amount, Layers: s.Layers, PreviousGradient: mix < 1 ? s.FromGradient : null, GradientMix: mix,
                 Mix: resolved, MixGeometry: s.Geometry, MixInk: ink, MixLanes: mixLanes, FastClock: mixClock, MixContacts: mixContacts, MixStill: s.Still, MixSeed: s.Seed);
+            frame = ApplyPalette(frame, t); // ED-NEW-models-palette-14: precomputed tables on this retained effect/clock.
             resolvedScene = s; resolvedPageTime = t; cachedFrame = frame;
             return true;
         }

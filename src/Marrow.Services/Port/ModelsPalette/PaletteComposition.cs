@@ -20,6 +20,12 @@ public static class PaletteComposition
 }
 public sealed partial class PaletteEngine
 {
+    // The app adapter is invoked on the same actor as composition: no colour conversion on the UI thread.
+    public Task<T> PrepareRender<T>(IReadOnlyList<PaletteRenderSelection> workers,IReadOnlyList<PaletteRenderSelection> leads,bool light,Func<PaletteSnapshot,PaletteComposite?,T> prepare)
+    {
+        var capturedWorkers=workers.ToArray();var capturedLeads=leads.ToArray();
+        return Isolated(()=>{PrimeOnActor();return prepare(Current,PaletteComposition.Create(Current,capturedWorkers,capturedLeads,light));});
+    }
     public Task<PaletteComposite?> Compose(IReadOnlyList<PaletteRenderSelection> workers,IReadOnlyList<PaletteRenderSelection> leads,bool light)
     {
         var capturedWorkers=workers.ToArray();var capturedLeads=leads.ToArray();
