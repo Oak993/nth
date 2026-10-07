@@ -296,6 +296,7 @@ public sealed class RootView : Decorator
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.HoldsTrafficLights, _ => UpdateChrome()); // :65
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsDragging, _ => UpdateChrome()); // :65
         this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, _ => UpdateBackdrop()); // :64
+        this.Track(() => Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.Current.Selection, value => backdrop.UpdateLibrary(value));
         this.Track(() => WallpaperStore.Shared.Current.Image, _ => UpdateBackdrop()); // :64
         this.Track(() => AppEnvironment.GetAppModel(this).IsCommandPalettePresented, _ => UpdatePalette()); // :72-76
         this.Track(() => AppEnvironment.GetAppModel(this).Alert, _ => UpdateAlert()); // :80-91
@@ -756,6 +757,8 @@ public sealed class DetailView : Decorator
         AppModel model;
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }
+
+        voiceQuestion ??= Marrow.App.Port.Voice.VoiceFirstRun.Find(model.Settings)?.Question; // WV-1: the same question every composer reads
 
         // :130 `if let threadID = model.selectedThreadID, model.thread(threadID) != nil`
         if (model.SelectedThreadID is { } threadID && model.Thread(threadID) is not null)

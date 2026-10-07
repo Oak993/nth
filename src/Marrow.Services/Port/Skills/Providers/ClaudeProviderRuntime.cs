@@ -7,6 +7,8 @@ internal static class ClaudeProviderRuntime
 {
     internal static Ambient<Func<string, IReadOnlyList<string>, string, IReadOnlyDictionary<string, string>, IClaudeProcess>> Process { get; } =
         new((executable, arguments, directory, environment) => new ClaudeProcess(executable, arguments, directory, environment));
+    internal static Ambient<Func<SwiftURL, IReadOnlyDictionary<string, string>, Task<ShellResult>>> Version { get; } =
+        new((executable, environment) => Shell.Run(executable.Path, ["--version"], environment: environment, timeout: 20));
     internal static Ambient<Func<SwiftURL, IReadOnlyDictionary<string, string>, Task<ShellResult>>> Help { get; } =
         new((executable, environment) => Shell.Run(executable.Path, ["--help"], environment: environment, timeout: 20));
 }

@@ -1,0 +1,418 @@
+Source: /tmp/marrow-t35-evidence/core-full.log
+This is an explicit excerpt, not the complete runner output. Trailing whitespace is trimmed for display.
+
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:04.77]     Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "   ", expected: True) [FAIL]
+[xUnit.net 00:00:04.77]     Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "hi", expected: False) [FAIL]
+[xUnit.net 00:00:04.77]     Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "  x", expected: False) [FAIL]
+[xUnit.net 00:00:04.77]     Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: " ", expected: True) [FAIL]
+[xUnit.net 00:00:04.77]     Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "\n\t", expected: True) [FAIL]
+  Failed Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "   ", expected: True) [2 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.Core.Models.FollowUpPrompt.<>c.<get_IsEmpty>b__23_0(String character) in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.Core.Models.FollowUpPrompt.get_IsEmpty() in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(String text, Boolean expected) in /workspace/marrow-port/tests/Marrow.Core.Tests/Models/TimelineTests.cs:line 530
+   at InvokeStub_TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "hi", expected: False) [< 1 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.Core.Models.FollowUpPrompt.<>c.<get_IsEmpty>b__23_0(String character) in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.Core.Models.FollowUpPrompt.get_IsEmpty() in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(String text, Boolean expected) in /workspace/marrow-port/tests/Marrow.Core.Tests/Models/TimelineTests.cs:line 530
+   at InvokeStub_TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "  x", expected: False) [< 1 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.Core.Models.FollowUpPrompt.<>c.<get_IsEmpty>b__23_0(String character) in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.Core.Models.FollowUpPrompt.get_IsEmpty() in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(String text, Boolean expected) in /workspace/marrow-port/tests/Marrow.Core.Tests/Models/TimelineTests.cs:line 530
+   at InvokeStub_TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: " ", expected: True) [< 1 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.Core.Models.FollowUpPrompt.<>c.<get_IsEmpty>b__23_0(String character) in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.Core.Models.FollowUpPrompt.get_IsEmpty() in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(String text, Boolean expected) in /workspace/marrow-port/tests/Marrow.Core.Tests/Models/TimelineTests.cs:line 530
+   at InvokeStub_TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "\n\t", expected: True) [< 1 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.Core.Models.FollowUpPrompt.<>c.<get_IsEmpty>b__23_0(String character) in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.Core.Models.FollowUpPrompt.get_IsEmpty() in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(String text, Boolean expected) in /workspace/marrow-port/tests/Marrow.Core.Tests/Models/TimelineTests.cs:line 530
+   at InvokeStub_TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+
+Reported failing cases:
+  Marrow.Core.Tests.Models.ProviderStubsTests.Alphabetical_fallback_uses_Unicode_scalar_order_instead_of_UTF16_or_culture_order
+  Marrow.Core.Tests.Models.ProviderStubsTests.Canonically_equal_names_deduplicate_match_and_share_the_recent_rank
+  Marrow.Core.Tests.Models.ProviderStubsTests.Substring_matching_compares_whole_Swift_characters_canonically(name: "é", query: "e", matches: False)
+  Marrow.Core.Tests.Models.ProviderStubsTests.Substring_matching_compares_whole_Swift_characters_canonically(name: "xéy", query: "é", matches: True)
+  Marrow.Core.Tests.Models.ProviderStubsTests.Substring_matching_compares_whole_Swift_characters_canonically(name: "👩‍💻", query: "👩", matches: False)
+  Marrow.Core.Tests.Models.ProviderTests.CodexInput_accepts_a_dollar_opener_too_because_name_in_recognizes_both
+  Marrow.Core.Tests.Models.ProviderTests.CodexInput_appends_a_skill_part_naming_the_command_and_its_path
+  Marrow.Core.Tests.Models.ProviderTests.CodexInput_drops_exactly_one_character_so_a_lone_slash_becomes_a_dollar_sign
+  Marrow.Core.Tests.Models.ProviderTests.CodexInput_rewrites_the_leading_slash_to_a_dollar_sign_when_the_skill_matches
+  Marrow.Core.Tests.Models.ProviderTests.ModelOption_chipName_applies_the_non_hyphen_separators
+  Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "   ", expected: True)
+  Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "  x", expected: False)
+  Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "\n\t", expected: True)
+  Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: "hi", expected: False)
+  Marrow.Core.Tests.Models.TimelineTests.A_prompt_with_no_attachment_is_empty_exactly_when_every_character_is_whitespace(text: " ", expected: True)
+  Marrow.Core.Tests.Models.TimelineTests.An_image_past_2000_pixels_on_its_longest_side_is_sent_as_a_downscaled_JPEG
+  Marrow.Core.Tests.Port.FileOpsTests.A_cancelled_task_does_not_cut_a_retry_short_because_the_Swift_write_ignores_cancellation
+  Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released
+  Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_over_a_read_only_file_still_blocked_after_every_retry_keeps_it_read_only
+  Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_over_a_read_only_file_succeeds_as_a_POSIX_rename_does
+  Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_still_blocked_after_every_retry_throws_the_real_error_and_keeps_the_old_file
+  Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_tries_again_after_the_last_wait_and_lands_when_released_just_before_it
+  Marrow.Core.Tests.Port.FileOpsTests.Moving_a_file_held_open_retries_and_moves_it_once_released
+  Marrow.Core.Tests.Port.FileOpsTests.Moving_tries_again_after_the_last_wait_and_moves_when_released_just_before_it
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_a_file_held_open_retries_and_deletes_it_once_released
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_a_file_still_held_after_every_retry_throws_the_real_error_and_keeps_it
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_a_folder_removes_a_junction_inside_it_and_nothing_it_points_at
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_a_folder_removes_everything_in_it_including_read_only_files
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_a_folder_with_a_file_held_open_retries_and_removes_it_once_released
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_a_junction_removes_only_the_link
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_a_read_only_file_clears_the_attribute_and_deletes_it
+  Marrow.Core.Tests.Port.FileOpsTests.Removing_tries_again_after_the_last_wait_and_deletes_when_released_just_before_it
+  Marrow.Core.Tests.Port.FileOpsTests.Replacing_an_item_held_open_retries_and_completes_once_released
+  Marrow.Core.Tests.Port.FileOpsTests.Replacing_tries_again_after_the_last_wait_and_completes_when_released_just_before_it
+  Marrow.Core.Tests.Port.HttpTransportSeamTests.A_transport_failure_raised_by_the_handler_becomes_the_URLError_with_that_exception_behind_it
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_CTRL_BREAK_sent_to_the_group_of_a_starting_helpers_pid_reaches_no_process
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_cooperating_child_still_receives_CTRL_BREAK_and_its_helper_ends_by_itself
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_helper_sent_to_a_child_that_has_already_exited_ends_by_itself
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_helper_sent_to_a_child_that_ignores_CTRL_BREAK_ends_by_itself_and_the_child_lives_on
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_helper_that_does_not_end_by_itself_is_ended_at_its_lifetime
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_helper_whose_child_is_killed_while_the_helper_starts_ends_by_itself
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_helper_whose_creator_ends_before_its_launch_completes_ends_with_the_creators_handles
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.A_launched_helper_still_finishes_its_call_when_its_creator_lets_go_of_it
+  Marrow.Core.Tests.Port.ProcessLauncherCtrlBreakHelperTests.The_target_pid_stays_the_exited_childs_until_its_helper_is_let_go
+  Marrow.Core.Tests.Port.ProcessLauncherTests.A_JSON_token_whose_quoted_command_line_is_32766_characters_is_spawned_whole
+  Marrow.Core.Tests.Port.ProcessLauncherTests.A_byte_copy_of_the_interpreter_placed_outside_the_system_folder_is_still_recognised
+  Marrow.Core.Tests.Port.ProcessLauncherTests.A_command_line_of_32766_characters_is_spawned_whole
+  Marrow.Core.Tests.Port.ProcessLauncherTests.An_empty_argument_is_kept_as_its_own_empty_token
+  Marrow.Core.Tests.Port.ProcessLauncherTests.Another_Microsoft_program_named_cmd_outside_the_system_folder_is_accepted
+  Marrow.Core.Tests.Port.ProcessLauncherTests.Every_argument_round_trips_byte_identically_through_CommandLineToArgvW
+  Marrow.Core.Tests.Port.ProcessLauncherTests.The_32_bit_interpreter_in_SysWOW64_is_recognised_too
+  Marrow.Core.Tests.Port.ProcessLauncherTests.The_canonical_path_is_recognised_in_any_letter_case
+  Marrow.Core.Tests.Port.ProcessLauncherTests.The_limit_counts_UTF16_code_units_not_UTF8_bytes_so_32766_accented_letters_still_spawn
+  Marrow.Core.Tests.Port.ProcessLauncherTests.The_system_command_interpreter_is_recognised_so_Command_Code_is_not_reported_installed
+  Marrow.Core.Tests.Port.ProcessLauncherTests.Which_appends_the_PATHEXT_extensions_after_expanding_the_tilde
+  Marrow.Core.Tests.Port.ProcessLauncherTests.Which_expands_a_leading_tilde_backslash_exactly_as_it_expands_a_leading_tilde_slash
+  Marrow.Core.Tests.Port.ProcessLauncherTests.Which_takes_a_drive_qualified_or_UNC_name_as_a_path_and_never_searches_PATH_for_it
+  Marrow.Core.Tests.Port.ProcessLauncherTests.Which_takes_an_absolute_or_separator_bearing_name_as_a_path_and_never_searches_PATH_for_it
+  Marrow.Core.Tests.Port.StdioProcessJobTests.A_StdioProcess_childs_grandchild_survives_KillProcess_at_stop_but_dies_when_KillTree_runs_at_quit
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.A_negative_input_only_reaches_Hydra_duration_and_signs_only_the_first_field
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.A_zero_minute_field_drops_even_when_hours_and_seconds_both_survive
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 0, expected: "0s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 1, expected: "1s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 119, expected: "1m 59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 120, expected: "2m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 3599, expected: "59m 59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 3600, expected: "60m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 3601, expected: "60m 1s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 3659, expected: "60m 59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 3660, expected: "61m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 3661, expected: "61m 1s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 3725, expected: "62m 5s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 45, expected: "45s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 59, expected: "59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 60, expected: "1m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 60000, expected: "1,000m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 61, expected: "1m 1s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 7200, expected: "120m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 7260, expected: "121m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 86399, expected: "1,439m 59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 90, expected: "1m 30s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(seconds: 90000, expected: "1,500m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 0, expected: "0s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 119, expected: "1m 59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 120, expected: "2m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 3599, expected: "59m 59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 3600, expected: "1h")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 3601, expected: "1h 1s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 3659, expected: "1h 59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 3660, expected: "1h 1m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 3661, expected: "1h 1m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 3725, expected: "1h 2m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 45, expected: "45s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 59, expected: "59s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 60, expected: "1m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 60000, expected: "16h 40m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 61, expected: "1m 1s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 7200, expected: "2h")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 7260, expected: "2h 1m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 86399, expected: "23h 59m")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 90, expected: "1m 30s")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(seconds: 90000, expected: "25h")
+  Marrow.Core.Tests.Port.SwiftFormattersSecondTests.Three_nonzero_units_collapse_to_the_two_largest_recomputed_from_the_total
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Gigabytes_show_up_to_two_fraction_digits_trimmed_and_round_half_even(bytes: 1234567890, expected: "1.23 GB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Gigabytes_show_up_to_two_fraction_digits_trimmed_and_round_half_even(bytes: 999949999, expected: "1 GB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Gigabytes_show_up_to_two_fraction_digits_trimmed_and_round_half_even(bytes: 999950000, expected: "1 GB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Gigabytes_show_up_to_two_fraction_digits_trimmed_and_round_half_even(bytes: 999994999998, expected: "999.99 GB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Kilobytes_have_no_fraction_digits_and_round_half_even(bytes: 1000, expected: "1 kB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Kilobytes_have_no_fraction_digits_and_round_half_even(bytes: 1024, expected: "1 kB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Kilobytes_have_no_fraction_digits_and_round_half_even(bytes: 1500, expected: "2 kB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Kilobytes_have_no_fraction_digits_and_round_half_even(bytes: 2500, expected: "2 kB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Kilobytes_have_no_fraction_digits_and_round_half_even(bytes: 999, expected: "1 kB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Kilobytes_have_no_fraction_digits_and_round_half_even(bytes: 999498, expected: "999 kB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Megabytes_show_up_to_one_fraction_digit_trimmed_and_round_half_even(bytes: 1100000, expected: "1.1 MB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Megabytes_show_up_to_one_fraction_digit_trimmed_and_round_half_even(bytes: 1250000, expected: "1.2 MB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Megabytes_show_up_to_one_fraction_digit_trimmed_and_round_half_even(bytes: 1350000, expected: "1.4 MB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Megabytes_show_up_to_one_fraction_digit_trimmed_and_round_half_even(bytes: 999499, expected: "1 MB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Megabytes_show_up_to_one_fraction_digit_trimmed_and_round_half_even(bytes: 999949998, expected: "999.9 MB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Terabytes_and_petabytes_follow_the_same_precision_and_round_half_even(bytes: 10000000000000000, expected: "10 PB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Terabytes_and_petabytes_follow_the_same_precision_and_round_half_even(bytes: 999994999999, expected: "1 TB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Terabytes_and_petabytes_follow_the_same_precision_and_round_half_even(bytes: 999994999999998, expected: "999.99 TB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Terabytes_and_petabytes_follow_the_same_precision_and_round_half_even(bytes: 999994999999999, expected: "1 PB")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.The_byte_unit_uses_its_full_name_and_ICUs_plural_rule(bytes: 1, expected: "1 byte")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.The_byte_unit_uses_its_full_name_and_ICUs_plural_rule(bytes: 998, expected: "998 bytes")
+  Marrow.Core.Tests.Port.SwiftFormattersThirdTests.Zero_is_spelled_out_with_the_kilobyte_unit
+  Marrow.Core.Tests.Port.SwiftPathTests.ExpandingTildeInPath_expands_a_tilde_followed_by_either_separator(path: "~/a/b.txt")
+  Marrow.Core.Tests.Port.SwiftPathTests.ExpandingTildeInPath_expands_a_tilde_followed_by_either_separator(path: "~\\a\\b.txt")
+  Marrow.Core.Tests.Port.SwiftPathTests.ExpandingTildeInPath_turns_a_lone_tilde_into_USERPROFILE
+  Marrow.Core.Tests.Port.SwiftPathTests.OrdinalIgnoreCase_calls_final_sigma_and_capital_sigma_equal
+  Marrow.Core.Tests.Port.SwiftPathTests.Path_Combine_lets_a_bare_backslash_escape_the_root
+  Marrow.Core.Tests.Port.SwiftPathTests.Path_GetDirectoryName_differs_from_Foundation_at_roots_and_trailing_separators
+  Marrow.Core.Tests.Port.SwiftPathTests.Path_GetFullPath_escapes_the_root_and_strips_a_trailing_dot
+  Marrow.Core.Tests.Port.SwiftPathTests.Path_IsPathRooted_calls_a_bare_backslash_rooted
+  Marrow.Core.Tests.Port.SwiftPathTests.StandardizingPath_expands_a_leading_tilde
+  Marrow.Core.Tests.Port.SwiftPathTests.StandardizingPath_is_lexical_on_a_real_folder
+  Marrow.Core.Tests.Port.SwiftPathTests.TailUnder_and_SamePath_keep_final_sigma_apart_from_capital_sigma
+  Marrow.Core.Tests.Port.SwiftPathTests.TailUnder_keeps_micro_sign_and_titlecase_dz_apart
+  Marrow.Core.Tests.Port.SwiftStringTests.Case_mapping_is_full_and_locale_independent
+  Marrow.Core.Tests.Port.SwiftStringTests.Character_properties_follow_Unicode_not_dotnet_categories
+  Marrow.Core.Tests.Port.SwiftStringTests.Lowercase_maps_each_scalar_alone_so_no_final_sigma_applies
+  Marrow.Core.Tests.Port.SwiftURLTests.A_non_ASCII_host_is_IDNA_encoded_in_the_absolute_string
+  Marrow.Core.Tests.Port.SwiftURLTests.A_non_ASCII_host_reads_back_as_IDNA_text_and_host_component_percent_encodes_the_decoded_name
+  Marrow.Core.Tests.Port.URLComponentsTests.A_parsed_string_gives_its_scheme_user_password_host_port_decoded_path_and_encoded_query
+  Marrow.Core.Tests.Port.URLComponentsTests.Clearing_user_and_password_gives_the_url_without_credentials
+  Marrow.Core.Tests.Port.URLComponentsTests.The_host_keeps_ip_literal_brackets_and_its_case
+  Marrow.Core.Tests.Support.HangWatchdogTests.A_failed_report_write_is_silent_and_the_written_to_line_is_logged_anyway
+  Marrow.Core.Tests.Support.HangWatchdogTests.A_four_second_stall_writes_one_report_and_two_log_lines_and_the_next_stall_gets_its_own
+  Marrow.Core.Tests.Support.HangWatchdogTests.Capture_failure_bodies_follow_the_header_and_missing_bundle_values_print_a_question_mark
+  Marrow.Core.Tests.Support.HangWatchdogTests.Each_written_report_is_followed_by_a_trim_to_the_ten_newest
+  Marrow.Core.Tests.Support.HangWatchdogTests.Pings_go_to_main_every_half_second_and_the_pong_is_stamped_when_main_runs_it
+  Marrow.Core.Tests.Support.HangWatchdogTests.Pong_is_timed_when_main_runs_and_unlocks_one_report_for_the_next_stall
+  Marrow.Core.Tests.Support.HangWatchdogTests.Report_path_and_utf8_header_preserve_the_approved_windows_identity_and_line_order
+  Marrow.Core.Tests.Support.HangWatchdogTests.Report_trim_keeps_ten_newest_matching_names_and_leaves_other_files
+  Marrow.Core.Tests.Support.ShellCommandKindTests.A_command_reads_only_when_every_part_reads_and_one_writing_part_makes_it_a_writer
+  Marrow.Core.Tests.Support.ShellCommandKindTests.A_greater_than_sign_a_dollar_parenthesis_or_a_backtick_anywhere_makes_a_writer
+  Marrow.Core.Tests.Support.ShellCommandKindTests.A_separator_inside_quotes_still_splits_so_the_quoted_command_is_a_writer
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Awk_gawk_and_mawk_read_unless_the_part_holds_system_open_parenthesis
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "blame")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "branch")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "cat-file")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "config")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "count-objects")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "describe")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "diff")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "for-each-ref")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "grep")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "help")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "log")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "ls-files")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "ls-tree")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "reflog")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "remote")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "rev-list")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "rev-parse")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "shortlog")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "show")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "status")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "symbolic-ref")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "tag")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "var")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "version")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_25_git_subcommands_reads_on_its_own(subcommand: "whatchanged")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "basename")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "bat")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "cat")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "cd")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "cksum")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "cmp")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "column")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "command")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "cut")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "date")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "df")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "diff")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "dirname")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "du")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "echo")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "egrep")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "false")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "fgrep")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "file")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "grep")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "head")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "hostname")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "jq")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "ls")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "man")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "md5")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "nl")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "od")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "popd")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "printenv")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "printf")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "ps")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "pushd")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "pwd")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "readlink")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "realpath")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "rg")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "shasum")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "sleep")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "stat")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "tail")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "tr")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "tree")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "true")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "type")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "uname")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "uniq")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "wc")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "which")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "whoami")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "xxd")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_52_readers_reads_with_or_without_arguments(tool: "yq")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_seven_search_actions_makes_find_and_fd_writers(action: "-X")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_seven_search_actions_makes_find_and_fd_writers(action: "-delete")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_seven_search_actions_makes_find_and_fd_writers(action: "-exec")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_seven_search_actions_makes_find_and_fd_writers(action: "-execdir")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_seven_search_actions_makes_find_and_fd_writers(action: "-ok")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_seven_search_actions_makes_find_and_fd_writers(action: "-okdir")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Each_of_the_seven_search_actions_makes_find_and_fd_writers(action: "-x")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Env_reads_only_when_every_argument_starts_with_a_dash
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Find_also_writes_with_fprint_fprint0_fprintf_or_fls_and_fd_with_exec_or_exec_batch
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Find_and_fd_read_unless_a_whole_argument_equals_a_search_action
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Git_config_writes_unless_every_argument_is_a_read_form
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Git_remote_writes_for_its_nine_writing_subcommands_and_reads_otherwise
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Git_tag_writes_unless_it_only_lists
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Other_interpreter_names_are_not_in_the_case_and_fall_to_the_reader_table
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Sed_reads_only_with_a_short_flag_holding_n_and_no_in_place_flag
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Sort_also_writes_with_an_argument_that_is_output_or_starts_with_output_equals
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Sort_writes_when_an_argument_starts_with_dash_o
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_git_subcommand_is_the_first_argument_that_does_not_start_with_a_dash
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_line_splits_on_the_six_separators_and_trims_and_drops_empty_parts
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_six_interpreters_read_only_when_the_whole_argument_list_is_one_version_flag(tool: "node")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_six_interpreters_read_only_when_the_whole_argument_list_is_one_version_flag(tool: "npm")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_six_interpreters_read_only_when_the_whole_argument_list_is_one_version_flag(tool: "python")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_six_interpreters_read_only_when_the_whole_argument_list_is_one_version_flag(tool: "python3")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_six_interpreters_read_only_when_the_whole_argument_list_is_one_version_flag(tool: "swift")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_six_interpreters_read_only_when_the_whole_argument_list_is_one_version_flag(tool: "swiftc")
+  Marrow.Core.Tests.Support.ShellCommandKindTests.The_tool_is_the_last_path_component_of_the_first_token_compared_exactly
+  Marrow.Core.Tests.Support.ShellCommandKindTests.Xcodebuild_writes_unless_an_argument_is_exactly_one_of_its_four_reporting_flags
+  Marrow.Core.Tests.Support.StdioFramerMCPTests.Every_split_preserves_CRLF_JSON_and_the_unterminated_EOF_frame_dropping_empty_and_invalid_lines
+  Marrow.Core.Tests.Support.StdioFramerMCPTests.Stderr_retains_64000_at_the_boundary_and_exactly_the_last_16000_one_byte_over
+  Marrow.Core.Tests.Support.StdioProcessDeadChildWriteTests.Writing_to_a_child_that_has_exited_is_absorbed_and_the_child_ending_reaches_the_reader
+  Marrow.Core.Tests.Support.StdioProcessTests.Back_to_back_sends_each_get_their_reply_in_order_over_fifty_rounds
+  Marrow.Core.Tests.Support.StdioProcessTests.Exit_resumes_waiters_before_the_one_second_forced_stream_finish
+  Marrow.Core.Tests.Support.StdioProcessTests.ProcessControl_KillTree_reaches_a_grandchild_that_the_ED_126_ladder_would_spare
+  Marrow.Core.Tests.Support.StdioProcessTests.ProcessIdentifier_is_the_pid_the_child_itself_reports
+  Marrow.Core.Tests.Support.StdioProcessTests.Send_and_raw_write_keep_order_and_close_input_after_the_bytes
+  Marrow.Core.Tests.Support.StdioProcessTests.Send_emits_the_exact_frame_bytes(framing: ContentLength)
+  Marrow.Core.Tests.Support.StdioProcessTests.Send_emits_the_exact_frame_bytes(framing: Lines)
+  Marrow.Core.Tests.Support.StdioProcessTests.Spawn_failure_finishes_messages_and_rethrows
+  Marrow.Core.Tests.Support.StdioProcessTests.Stderr_tail_is_last_4000_bytes_after_64000_byte_buffer_trims_to_16000
+  Marrow.Core.Tests.Support.StdioProcessTests.Stdout_drops_noise_and_flushes_a_final_json_frame_while_stderr_stays_raw
+  Marrow.Core.Tests.Support.StdioProcessTests.Terminate_closes_input_and_stops_the_child
+  Marrow.Core.Tests.Support.StoragePathsTests.Directory_CreatesTheNamedFolderUnderRootAndIsNeverCached
+  Marrow.Core.Tests.Support.StoragePathsTests.WallpaperDirectory_IsCreatedUnderTheRootAndCached
+  Marrow.Core.Tests.Support.TestDataDirectoryTests.An_MSYS_drive_path_becomes_its_Windows_form
+  Marrow.Core.Tests.Support.TestDataDirectoryTests.An_MSYS_drive_root_alone_becomes_the_drive_root
+  Marrow.Core.Tests.Support.TestDataDirectoryTests.An_already_Windows_style_path_is_unchanged
+  Marrow.Core.Tests.Support.TestDataDirectoryTests.An_uppercase_MSYS_drive_letter_is_accepted_the_same_way
+
+Terminal output:
+  Failed Marrow.Core.Tests.Port.ProcessLauncherTests.Every_argument_round_trips_byte_identically_through_CommandLineToArgvW [27 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'shell32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/shell32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libshell32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/shell32.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libshell32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Tests.Fixtures.WindowsCommandLine.CommandLineToArgv(String commandLine, Int32& count)
+   at Marrow.Core.Tests.Fixtures.WindowsCommandLine.Parse(String commandLine) in /workspace/marrow-port/tests/Marrow.Core.Tests/Fixtures/ProcessSamples.cs:line 401
+   at Marrow.Core.Tests.Port.ProcessLauncherTests.Every_argument_round_trips_byte_identically_through_CommandLineToArgvW() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ProcessLauncherTests.cs:line 85
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+The active test run was aborted. Reason: Test host process crashed : Unhandled exception. System.DllNotFoundException: Unable to load shared library 'kernel32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/kernel32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libkernel32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/kernel32.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libkernel32.dll: cannot open shared object file: No such file or directory
+   at Marrow.Core.Port.ProcessNative.CreateFile(String name, UInt32 access, UInt32 share, IntPtr attributes, UInt32 disposition, UInt32 flags, IntPtr template)
+   at Marrow.Core.Port.ProcessNative.OpenNullDevice() in /workspace/marrow-port/src/Marrow.Core/Port/ProcessLauncher.cs:line 902
+   at Marrow.Core.Port.ProcessLauncher.<Spawn>g__NullDevice|73_0(<>c__DisplayClass73_0&, <>c__DisplayClass73_2&) in /workspace/marrow-port/src/Marrow.Core/Port/ProcessLauncher.cs:line 613
+   at Marrow.Core.Port.ProcessLauncher.Spawn(String executable, String commandLine) in /workspace/marrow-port/src/Marrow.Core/Port/ProcessLauncher.cs:line 629
+   at Marrow.Core.Port.ProcessLauncher.Run() in /workspace/marrow-port/src/Marrow.Core/Port/ProcessLauncher.cs:line 442
+   at Marrow.Core.Tests.Port.ProcessLauncherSpawnTests.<>c__DisplayClass4_0.<The_termination_handler_runs_once_after_exit_outside_any_task_with_the_final_status>b__1() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ProcessLauncherSpawnTests.cs:line 158
+   at Marrow.Core.Port.TaskHandle.Run(CancellationToken token, Func`1 body, TaskCompletionSource source, Boolean throwing) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 197
+   at System.Threading.Tasks.Task.<>c.<ThrowAsync>b__124_1(Object state)
+   at System.Threading.QueueUserWorkItemCallback.Execute()
+   at System.Threading.ThreadPoolWorkQueue.Dispatch()
+   at System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart()
+   at System.Threading.Thread.StartCallback()
+
+
+Failed!  - Failed:   281, Passed:  2128, Skipped:     0, Total:  2409, Duration: 5 s - Marrow.Core.Tests.dll (net10.0)
+Test Run Aborted.

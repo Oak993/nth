@@ -2,10 +2,12 @@ using Avalonia.Controls;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Port.MultiAccount;
 using Marrow.Core.Support;
 using Marrow.Services.Git;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
+using Marrow.Services.Port.MultiAccount;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -228,7 +230,7 @@ public enum RuntimePhase
 }
 
 // :165-3661 and the rehearsal extension :3696-3758. @MainActor @Observable -> MainActorModel (R-OBS-6).
-public sealed class ThreadRuntime : MainActorModel
+public sealed partial class ThreadRuntime : MainActorModel
 {
     // :354-357
     private sealed record HydraBatch
@@ -237,8 +239,16 @@ public sealed class ThreadRuntime : MainActorModel
         public ValueList<HydraReport> Reports { get; init; } = ValueList<HydraReport>.Empty; // :356
     }
 
+    // PORT-ONLY: OD-0114 / ED-404, ED-410. The identity the port adds to a launch lives in a base so the Swift signature (below) keeps its nine ordered fields.
+    private abstract record SessionSignatureAccount
+    {
+        public Guid? AccountId { get; init; } // process identity
+        public string? LocalServerId { get; init; } // changing server restarts the session
+        public long? LocalCatalogRevision { get; init; } // refreshed capabilities/models replace the bound snapshot
+    }
+
     // :510-526
-    private sealed record SessionSignature
+    private sealed record SessionSignature : SessionSignatureAccount
     {
         public required ProviderKind Provider { get; init; }          // :511
         public required string Directory { get; init; }               // :512
@@ -1604,6 +1614,7 @@ public sealed class ThreadRuntime : MainActorModel
         turn = turn with { UserItemID = userItem.Id };
         Turns = Turns.Appending(turn);
         saveRevision++;
+        limitedReplyTurnID = null;
         currentTurnID = turn.Id;
         currentProviderDiff = null;
         currentProviderAnchor = null;
@@ -1761,6 +1772,15 @@ public sealed class ThreadRuntime : MainActorModel
                 injectedContinuation = true;
             }
 
+            // PORT-ONLY (OD-0116, ED-436): the context an account without a standby was handed travels with its first real turn.
+            var injectedHandoff = false;
+            var handoffEpoch = sessionEpoch;
+            if (commandName is null && PendingDeferredHandoff() is { } handoff)
+            {
+                prompt = handoff + "\n\n" + prompt;
+                injectedHandoff = true;
+            }
+
             var (nextHydraBudget, dropNotice) = hydraBudget.TakeDropNotice();
             hydraBudget = nextHydraBudget;
             if (dropNotice is not null) prompt = dropNotice + prompt;
@@ -1784,10 +1804,11 @@ public sealed class ThreadRuntime : MainActorModel
 
             if (injectedAntiSlopPolicy && sessionEpoch == antiSlopEpoch) antiSlopFallbackSent = true;
             if (injectedContinuation && sessionEpoch == continuationEpoch) continuationSent = true;
+            if (injectedHandoff && sessionEpoch == handoffEpoch) HoldDeferredHandoff(null);
             if (unsentSessionID is { } pendingSessionID)
             {
                 unsentSessionID = null;
-                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = pendingSessionID });
+                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = pendingSessionID, ProviderAccountID = sessionSignature?.AccountId ?? current.ProviderAccountID });
             }
             if (command is not null) app.Providers.RecordCommand(command.Name, thread.Provider);
         }
@@ -1928,7 +1949,7 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1388-1390; PR-HYDRA-060. Native Hydra providers plus API-key providers.
     private static bool KeepsHydraPolicyInSystemPrompt(ProviderKind provider) =>
         provider is ProviderKind.Claude or ProviderKind.Codex or ProviderKind.Copilot
-        || provider.IsAPIKeyBased;
+        || provider.IsAPIKeyBased || provider == ProviderKind.Local; // ED-410
 
     private static SessionSignature MakeSessionSignature(
         ChatThread thread, string directory, bool antiSlopEnabled, HydraLaunch? hydra)
@@ -1940,6 +1961,7 @@ public sealed class ThreadRuntime : MainActorModel
         return new SessionSignature
         {
             Provider = thread.Provider,
+            AccountId = thread.ProviderAccountID,
             Directory = directory,
             LaunchRuntimeMode = thread.Provider is ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin or ProviderKind.Antigravity
                 ? thread.RuntimeMode
@@ -1954,9 +1976,25 @@ public sealed class ThreadRuntime : MainActorModel
     }
 
     // :1430-1604. Build the session signature after resolving any routed worker catalogue.
-    private async Task<ProviderSession> EnsureSession(string directory, bool allowNewSession = true)
+    private Task<ProviderSession> EnsureSession(string directory, bool allowNewSession = true) =>
+        EnsureSessionOwned(directory, allowNewSession, CancellationToken.None, null);
+
+    // A reset-driven restart keeps its original resume identity and may commit only while its route owns it.
+    private ProviderSession? guardedStartingSession;
+    private async Task<ProviderSession> EnsureSessionOwned(string directory, bool allowNewSession,
+        CancellationToken startCancellation, Func<bool>? canCommit)
     {
+        void CheckStart()
+        {
+            startCancellation.ThrowIfCancellationRequested();
+            if (canCommit?.Invoke() == false) throw new CancellationError();
+        }
+        CheckStart();
         if (App is not { } app || app.Thread(ThreadID) is not { } thread)
+            throw new ProviderError(new ProviderError.Case.NotRunning());
+
+        if (canCommit is not null && !thread.Provider.IsAPIKeyBased && thread.Provider != ProviderKind.Local
+            && string.IsNullOrWhiteSpace(thread.ProviderSessionID))
             throw new ProviderError(new ProviderError.Case.NotRunning());
 
         // :1430-1450. The worker model appears in the lead brief, so load its catalogue first.
@@ -1968,7 +2006,25 @@ public sealed class ThreadRuntime : MainActorModel
         }
 
         var hydra = KeepsHydraPolicyInSystemPrompt(thread.Provider) ? app.HydraLaunch(thread) : null;
-        var signature = MakeSessionSignature(thread, directory, app.Settings.AntiSlopEnabled, hydra);
+        // PORT-ONLY: OD-0114 / ED-404. Existing native IDs belong to the unmoved legacy root.
+        var accounts = app.Settings.Accounts;
+        var boundID = thread.ProviderAccountID;
+        if (boundID is null && thread.ProviderSessionID is not null)
+            boundID = accounts.ForService(thread.Provider).FirstOrDefault(a => a.UsesLegacyCredentials)?.Id
+                ?? throw new InvalidOperationException("The original account for this conversation is unavailable.");
+        var account = accounts.Choose(thread.Provider, boundID)
+            ?? throw new InvalidOperationException("No enabled account is available for this conversation.");
+        app.AccountRouting.Attach(this);
+        var launchThread = account.UsesLegacyCredentials ? thread : thread with { ProviderAccountID = account.Id };
+        var localTarget = thread.Provider == ProviderKind.Local ? app.Providers.Local.Resolve(thread.Model) : null;
+        if (thread.Provider == ProviderKind.Local && localTarget is null)
+        {
+            await app.Providers.LoadCatalog(ProviderKind.Local);
+            localTarget = app.Providers.Local.Resolve(thread.Model)
+                ?? throw new ProviderError(new ProviderError.Case.Failed("That local server or model is unavailable. Refresh the model list and select it again."));
+        }
+        var signature = MakeSessionSignature(launchThread, directory, app.Settings.AntiSlopEnabled, hydra)
+            with { LocalServerId = localTarget?.Server.Id, LocalCatalogRevision = localTarget is null ? null : app.Providers.Local.Revision };
         if (session is { IsRunning: true } && sessionSignature == signature)
         {
             var reused = session;
@@ -1984,81 +2040,97 @@ public sealed class ThreadRuntime : MainActorModel
 
         // Resolve the login environment before tearing down the current session.
         await LoginEnvironment.Load();
+        CheckStart();
         ReleaseSession(stop: true);
         StopNativeHeads();
 
-        if (thread.Provider.IsAPIKeyBased)
+        if (thread.Provider.IsAPIKeyBased || thread.Provider == ProviderKind.Local)
         {
-            var apiKey = app.Settings.ApiKey(thread.Provider);
-            if (apiKey.Length == 0)
+            var apiKey = thread.Provider == ProviderKind.Local ? null : app.Providers.ApiKey(account.Id);
+            if (thread.Provider.IsAPIKeyBased && string.IsNullOrEmpty(apiKey))
                 throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
 
-            ProviderSession MakeApiSession(string? resumeID)
+            async Task<ProviderSession> MakeApiSession(string? resumeID)
             {
-                var configuration = new SessionConfiguration
+                var launchEpoch = sessionEpoch;
+                await pendingSkillRelease;
+                var environment = app.Providers.Environment(account.Id);
+                var skills = await Marrow.App.Port.Skills.ProviderSkills.Prepare.Current(thread.Provider, ThreadID.ToString("N"), directory, environment);
+                try
                 {
-                    Provider = thread.Provider,
-                    Executable = null,
-                    WorkingDirectory = SessionDirectoryUrl(directory),
-                    Environment = app.Providers.Environment(thread.Provider),
-                    ResumeID = resumeID,
-                    ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
-                    Model = thread.Model,
-                    Effort = thread.Effort,
-                    FastMode = thread.FastMode,
-                    RuntimeMode = thread.RuntimeMode,
-                    InteractionMode = thread.InteractionMode,
-                    ApiKey = apiKey,
-                    Hydra = hydra,
-                    Transcript = ApiTranscript(),
-                    IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
-                    AntiSlopEnabled = signature.AntiSlopEnabled,
-                };
+                    if (SwiftTask.IsCancelled || sessionEpoch != launchEpoch) throw new CancellationError();
+                    var configuration = new SessionConfiguration
+                    {
+                        Provider = thread.Provider,
+                        Executable = null,
+                        WorkingDirectory = SessionDirectoryUrl(directory),
+                        AccountId = account.Id,
+                        Environment = environment,
+                        ResumeID = resumeID,
+                        ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
+                        Model = thread.Model,
+                        Effort = thread.Effort,
+                        FastMode = thread.FastMode,
+                        RuntimeMode = thread.RuntimeMode,
+                        InteractionMode = thread.InteractionMode,
+                        ApiKey = apiKey,
+                        Hydra = hydra,
+                        Transcript = ApiTranscript(),
+                        IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
+                        AntiSlopEnabled = signature.AntiSlopEnabled,
+                        SkillGeneration = skills,
+                        SkillDataRoot = Storage.Root,
+                        SkillHome = LoginEnvironment.HomeDirectory,
+                        SkillToolOffer = SkillsOffers,
+                    };
 
-                ProviderSession created = thread.Provider switch
-                {
-                    ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1490
-                    ProviderKind.Meta => new MetaSession(configuration),
-                    ProviderKind.Zai => new ZaiSession(configuration),
-                    ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
-                    _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
-                };
-                Observe(created);
-                return created;
+                    var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
+                    if (created is OpenAICompatibleSession api) api.SkillTools = Marrow.Services.Port.Skills.Providers.SkillSessionFactory.NativeTools(configuration);
+                    if (skills is not null) sessionSkills.Add(created, skills);
+                    Observe(created, account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, account.Id.ToString("D")));
+                    return created;
+                }
+                catch { skills?.Dispose(); throw; }
             }
 
-            ProviderSession candidate = MakeApiSession(thread.ProviderSessionID);
+            ProviderSession candidate = await MakeApiSession(thread.ProviderSessionID);
             session = candidate;
             sessionSignature = signature;
+            if (canCommit is not null) guardedStartingSession = candidate;
             var started = false;
             try
             {
                 string sessionID;
                 try
                 {
-                    sessionID = await candidate.Start();
+                    sessionID = await StartOwnedSessionAsync(candidate, startCancellation);
                 }
                 catch (Exception) when (thread.ProviderSessionID is not null
                     && thread.ProviderResumeAt is null
                     && allowNewSession
                     && ReferenceEquals(session, candidate)
+                    && !startCancellation.IsCancellationRequested
+                    && canCommit?.Invoke() != false
                     && !SwiftTask.IsCancelled)
                 {
                     ReleaseSession(stop: true);
-                    candidate = MakeApiSession(resumeID: null);
+                    candidate = await MakeApiSession(resumeID: null);
                     session = candidate;
                     sessionSignature = signature;
-                    sessionID = await candidate.Start();
+                    sessionID = await StartOwnedSessionAsync(candidate, startCancellation);
                 }
 
+                CheckStart();
                 if (!ReferenceEquals(session, candidate) || SwiftTask.IsCancelled)
                     throw new CancellationError();
+                BindLiveApiKeys(candidate, account.Id);
                 started = true;
-                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = sessionID });
+                app.UpdateThread(ThreadID, current => current with { ProviderSessionID = sessionID, ProviderAccountID = launchThread.ProviderAccountID });
                 return candidate;
             }
             finally
             {
+                if (ReferenceEquals(guardedStartingSession, candidate)) guardedStartingSession = null;
                 if (!started)
                 {
                     candidate.OnEvent = null;
@@ -2074,12 +2146,14 @@ public sealed class ThreadRuntime : MainActorModel
         async Task<ProviderSession> MakeSession(string? resumeID)
         {
             var launchEpoch = sessionEpoch;
-            if (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor) await pendingSkillRelease;
+            await pendingSkillRelease;
+            var environment = app.Providers.Environment(account.Id);
             var skills = thread.Provider switch
             {
                 ProviderKind.Antigravity => await Marrow.App.Port.Skills.AntigravitySkills.Prepare.Current(ThreadID.ToString("N"), directory),
                 ProviderKind.Cursor => await Marrow.App.Port.Skills.CursorSkills.Prepare.Current(ThreadID.ToString("N"), directory),
-                _ => null,
+                ProviderKind.Devin => null, // explicit invocation only until its discovery route is proven
+                _ => await Marrow.App.Port.Skills.ProviderSkills.Prepare.Current(thread.Provider, ThreadID.ToString("N"), directory, environment),
             };
             try
             {
@@ -2089,7 +2163,8 @@ public sealed class ThreadRuntime : MainActorModel
                     Provider = thread.Provider,
                     Executable = executable,
                     WorkingDirectory = SessionDirectoryUrl(directory),
-                    Environment = app.Providers.Environment(thread.Provider),
+                    AccountId = account.Id,
+                    Environment = environment,
                     ResumeID = resumeID,
                     ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
                     Model = thread.Model,
@@ -2100,12 +2175,15 @@ public sealed class ThreadRuntime : MainActorModel
                     Hydra = hydra,
                     AntiSlopEnabled = signature.AntiSlopEnabled,
                     SkillGeneration = skills,
+                    SkillDataRoot = Storage.Root,
+                    SkillHome = environment.TryGetValue("HOME", out var skillHome) ? skillHome : LoginEnvironment.HomeDirectory,
+                    SkillToolOffer = SkillsOffers,
                     SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
                 };
 
-                ProviderSession created = CliSessionFactory.Current.Current(configuration);
+                var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
                 if (skills is not null) sessionSkills.Add(created, skills);
-                Observe(created);
+                Observe(created, account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, account.Id.ToString("D")));
                 return created;
             }
             catch { skills?.Dispose(); throw; }
@@ -2113,7 +2191,7 @@ public sealed class ThreadRuntime : MainActorModel
 
         async Task<string> StartCliSession(ProviderSession candidate)
         {
-            try { return await candidate.Start(); }
+            try { return await StartOwnedSessionAsync(candidate, startCancellation); }
             catch (Exception error) when (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor
                 && error is IOException or UnauthorizedAccessException)
             {
@@ -2124,6 +2202,7 @@ public sealed class ThreadRuntime : MainActorModel
         var cliCandidate = await MakeSession(thread.ProviderSessionID);
         session = cliCandidate;
         sessionSignature = signature;
+        if (canCommit is not null) guardedStartingSession = cliCandidate;
         var cliStarted = false;
         isStartingSession = true;
         try
@@ -2135,6 +2214,8 @@ public sealed class ThreadRuntime : MainActorModel
             }
             catch (Exception error) when (allowNewSession
                 && ReferenceEquals(session, cliCandidate)
+                && !startCancellation.IsCancellationRequested
+                && canCommit?.Invoke() != false
                 && !SwiftTask.IsCancelled
                 && StartsOver(error, thread))
             {
@@ -2152,14 +2233,22 @@ public sealed class ThreadRuntime : MainActorModel
                 sessionID = await StartCliSession(cliCandidate);
             }
 
+            CheckStart();
             if (!ReferenceEquals(session, cliCandidate) || SwiftTask.IsCancelled)
                 throw new CancellationError();
+            if (canCommit is not null && thread.ProviderSessionID is { } resumed
+                && !SameResumeIdentity(thread.Provider, resumed, sessionID))
+                throw new ProviderError(new ProviderError.Case.NotRunning());
             cliStarted = true;
+            if (ReferenceEquals(guardedStartingSession, cliCandidate)) guardedStartingSession = null;
+            if (launchThread.ProviderAccountID is not null)
+                app.UpdateThread(ThreadID, current => current with { ProviderAccountID = launchThread.ProviderAccountID });
             RecordSessionID(sessionID);
             return cliCandidate;
         }
         finally
         {
+            if (ReferenceEquals(guardedStartingSession, cliCandidate)) guardedStartingSession = null;
             isStartingSession = false;
             if (!cliStarted)
             {
@@ -2370,6 +2459,7 @@ public sealed class ThreadRuntime : MainActorModel
                 };
                 Append(new TimelineItem(turnID, new TimelineItem.Content.TurnEnd(summary)));
 
+                if (status == TurnStatus.Completed && limitedReplyTurnID == turnID) limitedReplyTurnID = null;
                 Phase = RuntimePhase.Idle;
                 TurnStartedAt = null;
                 SaveNow();
@@ -2444,6 +2534,7 @@ public sealed class ThreadRuntime : MainActorModel
         finally
         {
             finishingTurnID = null;
+            App?.TickAccountRouting(ThreadID);
         }
     }
 
@@ -2513,6 +2604,8 @@ public sealed class ThreadRuntime : MainActorModel
     // :1721-1731. Swift: resolve(_:option:).
     public void Resolve(ApprovalRequest request, ApprovalRequest.Option option)
     {
+        // DEVIATION OD-0114 / ED-407: retain the request, chosen answer and scope after it leaves Approvals.
+        BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Option = option }), preserve: true);
         Approvals = Approvals.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         if (request.RequestKind == ApprovalRequest.Kind.Plan
             && request.ToolItemID is { } itemID
@@ -2535,6 +2628,7 @@ public sealed class ThreadRuntime : MainActorModel
     // :1733-1736. Swift: answer(_:answers:); the map is ProviderSession.AnswerQuestion's.
     public void Answer(QuestionRequest request, ValueMap<string, ValueList<string>> answers)
     {
+        BufferHandoff(HandoffJournal.EncodeResolution(request.Id, new { Request = request, Answers = answers }), preserve: true);
         Questions = Questions.Mutating(items => items.RemoveAll(item => item.Id == request.Id));
         session?.AnswerQuestion(request.Id, answers);
     }
@@ -2980,6 +3074,7 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1610-1617.
     private void RecordSessionID(string sessionID)
     {
+        if (guardedStartingSession is not null && ReferenceEquals(session, guardedStartingSession)) return;
         if (App is not { } app) return;
         if (app.Thread(ThreadID)?.ProviderSessionID is null)
         {
@@ -2987,7 +3082,7 @@ public sealed class ThreadRuntime : MainActorModel
         }
         else
         {
-            app.UpdateThread(ThreadID, thread => thread with { ProviderSessionID = sessionID });
+            app.UpdateThread(ThreadID, thread => thread with { ProviderSessionID = sessionID, ProviderAccountID = sessionSignature?.AccountId ?? thread.ProviderAccountID });
         }
     }
 
@@ -3004,8 +3099,21 @@ public sealed class ThreadRuntime : MainActorModel
     }
 
     // ThreadRuntime.swift:2070-2077.
-    public void Observe(ProviderSession provider)
+    public UsageAccountKey? UsageAccount { get; private set; }
+    private Action<ProviderEvent>? observedSessionEvent;
+
+    public void Observe(ProviderSession provider) => Observe(provider, CurrentUsageAccount());
+
+    // PORT-ONLY: ED-403. Observe freezes the actual source identity, including explicit account GUIDs.
+    private UsageAccountKey? CurrentUsageAccount() => Thread is not { } thread ? null
+        : thread.ProviderAccountID is { } id
+            && App?.Settings.Accounts.Accounts.FirstOrDefault(account => account.Id == id)?.UsesLegacyCredentials != true
+            ? new UsageAccountKey(thread.Provider, id.ToString("D")) : UsageAccountKey.Default(thread.Provider);
+
+    // OD-0114: freeze the source at emission. Live API selection advances UsageAccount before its request; epoch guards reject retired sessions.
+    public void Observe(ProviderSession provider, UsageAccountKey? account)
     {
+        UsageAccount = account;
         sessionEpoch++;
         var epoch = sessionEpoch;
         var weakSelf = new WeakReference<ThreadRuntime>(this);
@@ -3022,12 +3130,18 @@ public sealed class ThreadRuntime : MainActorModel
             case ACPSession acp: acp.OnSkillsEvent = skills; break;
             case PiSession pi: pi.ToolEvents = skills; break;
             case CommandCodeSession command: command.ToolEvents = skills; break;
-            case OpenAICompatibleSession api: api.OnToolEvent = skills; break;
+            case OpenAICompatibleSession api:
+                api.OnToolEvent = skills;
+                api.ContinueAfterAccountStep = ct => weakSelf.TryGetTarget(out var owner) && owner.sessionEpoch == epoch
+                    ? owner.ContinueAfterAccountStepAsync(api, epoch, ct) : Task.FromResult(false);
+                break;
         }
-        provider.OnEvent = @event =>
+        provider.OnEvent = observedSessionEvent = @event =>
         {
             if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
-                runtime.Handle(@event);
+                runtime.Handle(@event is ProviderEvent.UsageLimit limit
+                    ? limit with { Account = provider is OpenAICompatibleSession { KeyRotation: AppApiKeyRotation } ? runtime.UsageAccount : account }
+                    : @event);
         };
     }
 
@@ -3068,6 +3182,7 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:2098-2115.
     public void StopSession()
     {
+        App?.DetachAccountRouting(ThreadID);
         ReleaseSession(stop: true);
         StopNativeHeads();
         if (Phase == RuntimePhase.Idle) return;
@@ -3833,6 +3948,7 @@ public sealed class ThreadRuntime : MainActorModel
         saveTask?.Cancel();
         saveTask = null;
         if (!persistenceEnabled || IsLoadingHistory) return; // :3612
+        FlushHandoffJournal();
         if (saveRevision == lastSavedRevision) return; // :3617
         lastSavedRevision = saveRevision; // :3618
         DiskWriter.Shared.EncodeAndWrite(SnapshotForPersistence(), Storage.ThreadURL(ThreadID)); // :3619
@@ -3854,6 +3970,8 @@ public sealed class ThreadRuntime : MainActorModel
     // :3642-3648
     public void CancelPersistence()
     {
+        App?.DetachAccountRouting(ThreadID);
+        FlushHandoffJournal();
         persistenceEnabled = false;
         saveTask?.Cancel();
         saveTask = null;
@@ -3876,10 +3994,32 @@ public sealed class ThreadRuntime : MainActorModel
         };
     }
 
+    // DEVIATION OD-0114 / ED-407: no UI, no ApiTranscript clipping, no AI call.
+    private string HandoffFolder => System.IO.Path.Combine(Storage.ThreadsDirectory, SwiftUUID.UuidString(ThreadID));
+
+    public HandoffSummary SaveHandoff(string currentDiff)
+    {
+        if (!IsAccountSwitchSafe && !IsHandshakeCheckpointSafe)
+            throw new InvalidOperationException("A handoff requires a quiet boundary with no pending tools, approvals or head results.");
+        FlushHandoffJournal(explicitCheckpoint: true);
+        var journal = ReadHandoffJournal();
+        var context = new HandoffContext(HandoffJournal.Restore(SnapshotForPersistence(), journal), Thread?.Title ?? "", currentDiff)
+        {
+            EventJournal = journal,
+            IsQuiescent = IsAccountSwitchSafe,
+        };
+        return HandoffStore.Save(context, HandoffFolder);
+    }
+
     // :2119-2251. The provider event union is handled with explicit cases and no fallback arm.
     // Swift's pinned implementation contains two .tokenSpend arms; the first is selected for every such event.
     private void Handle(ProviderEvent @event)
     {
+        if (@event is ProviderEvent.MessageCompleted) handoffMessageBoundary = true;
+        else if (@event is ProviderEvent.MessageDelta or ProviderEvent.TurnStarted or ProviderEvent.ToolStarted
+            or ProviderEvent.Approval or ProviderEvent.Question) handoffMessageBoundary = false;
+        CaptureHandoff(@event);
+        if (@event is ProviderEvent.TurnCompleted or ProviderEvent.Exited) FlushHandoffJournal();
         switch (@event)
         {
             case ProviderEvent.SessionReady value:
@@ -3986,7 +4126,10 @@ public sealed class ThreadRuntime : MainActorModel
                 AppendNotice(value.Value.NoticeLevel, value.Value.Message);
                 break;
             case ProviderEvent.UsageLimit value:
-                App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt);
+                limitedReplyTurnID = currentTurnID;
+                if (App?.AccountRouting.NoteLimit(this, value.Account, value.ResetsAt) == true) break;
+                if (value.Account is { } limitedAccount) App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt, limitedAccount);
+                else App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt);
                 break;
             case ProviderEvent.ModeChanged value:
                 App?.UpdateThread(ThreadID, thread => thread with { InteractionMode = value.Value });

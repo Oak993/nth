@@ -1,0 +1,20 @@
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.45]     Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: False) [FAIL]
+[xUnit.net 00:00:03.45]     Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: True) [FAIL]
+[xUnit.net 00:00:05.46]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop [FAIL]
+[xUnit.net 00:00:05.46]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once [FAIL]
+[xUnit.net 00:00:05.47]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes [FAIL]
+[xUnit.net 00:00:07.58]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null) [FAIL]
+[xUnit.net 00:00:07.58]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: "prior-conversation") [FAIL]
+[xUnit.net 00:00:07.58]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments [FAIL]
+[xUnit.net 00:00:07.59]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli [FAIL]
+[xUnit.net 00:00:07.60]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments [FAIL]
+[xUnit.net 00:00:07.61]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts [FAIL]
+[xUnit.net 00:00:07.62]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: "session/new") [FAIL]
+[xUnit.net 00:00:07.63]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: "saved", method: "session/load") [FAIL]
+[xUnit.net 00:00:07.63]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: True) [FAIL]
+[xUnit.net 00:00:07.63]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: False) [FAIL]
+[xUnit.net 00:00:10.85]     Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown [FAIL]
+
+Failed!  - Failed:    16, Passed:   948, Skipped:    48, Total:  1012, Duration: 9 s - Marrow.Services.Tests.dll (net10.0)

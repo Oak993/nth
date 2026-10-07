@@ -132,8 +132,6 @@ public sealed class WindowManager
     /// reopen (ED-002) and session-end hook (ED-004); null before.</summary>
     internal AvaloniaWindow? MainWindow => mainWindow;
 
-    internal AvaloniaWindow? SettingsWindow => settingsWindow;
-
     // The implicit init of the Swift singleton (module-internal in Swift): `model` (:13) is made here.
     internal WindowManager() => Model = new AppModel();
 

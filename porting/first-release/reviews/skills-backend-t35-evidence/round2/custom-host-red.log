@@ -1,0 +1,78 @@
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.18]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:01.35]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:01.39]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:01.59]     Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "native", loadsPlugins: False) [FAIL]
+[xUnit.net 00:00:01.59]       Assert.Single() Failure: The collection was empty
+[xUnit.net 00:00:01.59]       Stack Trace:
+[xUnit.net 00:00:01.59]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs(58,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins)
+[xUnit.net 00:00:01.59]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.60]     Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "grok", loadsPlugins: True) [FAIL]
+[xUnit.net 00:00:01.60]       Assert.Single() Failure: The collection was empty
+[xUnit.net 00:00:01.60]       Stack Trace:
+[xUnit.net 00:00:01.60]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs(58,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins)
+[xUnit.net 00:00:01.60]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.60]     Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "codex", loadsPlugins: False) [FAIL]
+[xUnit.net 00:00:01.60]       Assert.Single() Failure: The collection was empty
+[xUnit.net 00:00:01.60]       Stack Trace:
+[xUnit.net 00:00:01.60]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs(58,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins)
+[xUnit.net 00:00:01.60]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.60]     Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "claude", loadsPlugins: True) [FAIL]
+[xUnit.net 00:00:01.60]       Assert.Single() Failure: The collection was empty
+[xUnit.net 00:00:01.60]       Stack Trace:
+[xUnit.net 00:00:01.60]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs(58,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins)
+[xUnit.net 00:00:01.60]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.61]     Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Committed_custom_commands_join_child_PATH_after_existing_PC_tools_and_without_changing_parent [FAIL]
+[xUnit.net 00:00:01.61]       Assert.Contains() Failure: Item not found in collection
+[xUnit.net 00:00:01.61]       Collection: ["existing-pc-tool", "/tmp/marrow-t35-data/sk13 host dd4de648bc004602bff"···]
+[xUnit.net 00:00:01.61]       Not found:  "/tmp/marrow-t35-data/sk13 host dd4de648bc004602bff"···
+[xUnit.net 00:00:01.61]       Stack Trace:
+[xUnit.net 00:00:01.61]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs(28,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Committed_custom_commands_join_child_PATH_after_existing_PC_tools_and_without_changing_parent()
+[xUnit.net 00:00:01.61]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.62]   Finished:    Marrow.Services.Tests
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "native", loadsPlugins: False) [151 ms]
+  Error Message:
+   Assert.Single() Failure: The collection was empty
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs:line 58
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "grok", loadsPlugins: True) [7 ms]
+  Error Message:
+   Assert.Single() Failure: The collection was empty
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs:line 58
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "codex", loadsPlugins: False) [3 ms]
+  Error Message:
+   Assert.Single() Failure: The collection was empty
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs:line 58
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(provider: "claude", loadsPlugins: True) [2 ms]
+  Error Message:
+   Assert.Single() Failure: The collection was empty
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Custom_plugin_skills_and_hooks_are_composed_into_verified_provider_generations(String provider, Boolean loadsPlugins) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs:line 58
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Committed_custom_commands_join_child_PATH_after_existing_PC_tools_and_without_changing_parent [9 ms]
+  Error Message:
+   Assert.Contains() Failure: Item not found in collection
+Collection: ["existing-pc-tool", "/tmp/marrow-t35-data/sk13 host dd4de648bc004602bff"···]
+Not found:  "/tmp/marrow-t35-data/sk13 host dd4de648bc004602bff"···
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomHostBindingTests.Committed_custom_commands_join_child_PATH_after_existing_PC_tools_and_without_changing_parent() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomHostBindingTests.cs:line 28
+--- End of stack trace from previous location ---
+
+Test Run Failed.
+Total tests: 5
+     Failed: 5
+ Total time: 2.0670 Seconds
+       _VSTestConsole:
+         MSB4181: The "VSTestTask" task returned false but did not log an error.
+     1>Done Building Project "/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj" (VSTest target(s)) -- FAILED.
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:26.18

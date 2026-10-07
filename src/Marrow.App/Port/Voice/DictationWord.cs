@@ -25,7 +25,7 @@ internal sealed class DictationWord
     /// <summary>When a leaving word is gone.</summary>
     public ContinuousInstant GoneAt { get; internal set; }
 
-    /// <summary>True when the current word has drawable pieces. Every wrapped piece is held by the layer's full-context picture.</summary>
+    /// <summary>True when the layout puts the word in one piece (one hit-test rectangle): only such a word can be drawn on its own while it moves.</summary>
     public bool Separable { get; internal set; } = true;
 
     /// <summary>Where the word is drawn: its place in the layout, reached by FLIP.</summary>

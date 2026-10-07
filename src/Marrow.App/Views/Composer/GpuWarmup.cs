@@ -645,7 +645,7 @@ public static class GpuWarmup
         // the slider liquid (OD-0051, OD-0075): every pass of the tube, Grok's oil and the bubbles
         yield return GpuProgram.Draw("liquid", FirstRunSteps.Liquid, context => DrawLiquid(context, strike: false));
         // the fast mode's lightning (OD-0073): the strike over the liquid and the glass that lights with it
-        yield return GpuProgram.Draw("strike", FirstRunSteps.Strike, context => DrawLiquid(context, strike: true));
+        yield return StrikeWarmup.Program;
     }
 
     /// <summary>The composer lights a warm-up draws (tests read what each draws).</summary>
@@ -714,7 +714,7 @@ public static class GpuWarmup
 
     // the liquid's own public entry point, LiquidTrack.Draw, into a target on the window's GPU context (WarmTarget): its custom
     // operation runs at once, here on the render thread, and makes its surfaces and compiles its shaders on that context
-    private static void DrawLiquid(GpuWarmContext context, bool strike)
+    internal static void DrawLiquid(GpuWarmContext context, bool strike)
     {
         var scale = Math.Max(1, context.Scaling);
         var scene = Scene(strike, scale);

@@ -1,0 +1,424 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:07.43]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value [FAIL]
+[xUnit.net 00:00:07.44]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent [FAIL]
+[xUnit.net 00:00:07.44]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt [FAIL]
+[xUnit.net 00:00:07.54]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value [41 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [0, 1]
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 62
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent [7 ms]
+  Error Message:
+   1 accent colour(s)
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 45
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt [25 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [WallpaperFidelityCase { Collection = "static", File = "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "default",
+      "dark": true,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.30028507113456726,
+          0.0657091811299324,
+          -0.11156591773033142,
+          0.3810754120349884,
+          0.14518064260482788,
+          -0.06721386313438416,
+          0.46895885467529297,
+          0.17704425752162933,
+          0.031164195388555527,
+          0.5694557428359985,
+          0.13680315017700195,
+          0.11488118767738342,
+          0.6711209416389465,
+          0.049165382981300354,
+          0.13662110269069672,
+          0.16957025229930878,
+          0.018088005483150482,
+          -0.04673636704683304
+        ],
+        "dark": 1,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad97fa07b2511d21.png",
+      "sha256": "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad97fa07b2511d21",
+      "rgbaSha256": "eb6682cdfac48db4b5e4d7e8c3a2fb27cf1e7d07fa879194131d5f26f84ce112",
+      "bytes": 20666
+    }, Label = "static/riptide/default/Coral/dark/t=0/clock=18/acc"···, Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f7"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "default",
+      "dark": false,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.8598729372024536,
+          0.03583149239420891,
+          -0.060923803597688675,
+          0.7988707423210144,
+          0.09069092571735382,
+          -0.042225684970617294,
+          0.7397013902664185,
+          0.12831157445907593,
+          0.022424640133976936,
+          0.6900910139083862,
+          0.11446339637041092,
+          0.09597154706716537,
+          0.6395909190177917,
+          0.048671890050172806,
+          0.1301828771829605,
+          0.960276186466217,
+          0.006546240299940109,
+          -0.01892107166349888
+        ],
+        "dark": 0,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582.png",
+      "sha256": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582",
+      "rgbaSha256": "c2379edb9ae8127f6934aedf0ef0e1bac9aecfe10cdfdaf36a9e0f4d56042a48",
+      "bytes": 20788
+    }, Label = "static/riptide/default/Coral/light/t=0/clock=18/ac"···, Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c8"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "quiet",
+      "dark": true,
+      "packIndex": 4,
+      "packId": "Sage",
+      "packName": "Sage",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.2995327413082123,
+          -0.027629541233181953,
+          -0.04688705876469612,
+          0.38158178329467773,
+          -0.057221680879592896,
+          -0.032795995473861694,
+          0.4711624085903168,
+          -0.07608678191900253,
+          0.007665572222322226,
+          0.5693129301071167,
+          -0.06082473695278168,
+          0.042404498904943466,
+          0.6709330081939697,
+          0.04921216890215874,
+          -0.04380999132990837,
+          0.16996437311172485,
+          -0.012786468490958214,
+          -0.016593828797340393
+        ],
+        "dark": 1,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c86c03891baea2db.png",
+      "sha256": "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c86c03891baea2db",
+      "rgbaSha256": "83961b1a6b0fca5cad7e555c1a60a8cb6a20764ac6e84731d054176f9f6625d3",
+      "bytes": 19050
+    }, Label = "static/riptide/quiet/Sage/dark/t=0/clock=18/accent"···, Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f7"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "rich",
+      "dark": false,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.8598729372024536,
+          0.03583149239420891,
+          -0.060923803597688675,
+          0.7988707423210144,
+          0.09069092571735382,
+          -0.042225684970617294,
+          0.7397013902664185,
+          0.12831157445907593,
+          0.022424640133976936,
+          0.6900910139083862,
+          0.11446339637041092,
+          0.09597154706716537,
+          0.6395909190177917,
+          0.048671890050172806,
+          0.1301828771829605,
+          0.960276186466217,
+          0.006546240299940109,
+          -0.01892107166349888
+        ],
+        "dark": 0,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582.png",
+      "sha256": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582",
+      "rgbaSha256": "c2379edb9ae8127f6934aedf0ef0e1bac9aecfe10cdfdaf36a9e0f4d56042a48",
+      "bytes": 20788
+    }, Label = "static/riptide/rich/Coral/light/t=0/clock=18/accen"···, Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "dynamic-dusk",
+      "dark": true,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": true,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.39528506994247437,
+          0.13779683411121368,
+          -0.12583953142166138,
+          0.4760754108428955,
+          0.19533488154411316,
+          -0.02655816450715065,
+          0.5639588832855225,
+          0.20468935370445251,
+          0.10466916859149933,
+          0.664455771446228,
+          0.08716673403978348,
+          0.13485299050807953,
+          0.766120970249176,
+          0.007358238101005554,
+          0.1564888060092926,
+          0.2645702660083771,
+          0.044723089784383774,
+          -0.056715622544288635
+        ],
+        "dark": 0.5,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          0.15000000000000002,
+          0.09999999999999998
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67f3a3b47dc34b0b.png",
+      "sha256": "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67f3a3b47dc34b0b",
+      "rgbaSha256": "01dfa18957e67f352a097cb4466afd41a1e289aa1bcb2133744f3915d0e11576",
+      "bytes": 21517
+    }, Label = "static/riptide/dynamic-dusk/Coral/dark/t=0/clock=1"···, Premium = True, ··· }, ···]
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 35
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks [4 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [18]
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 53
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:13.45]     Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget [6 s]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 1169
+Actual:   3045
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Pngs_are_lossless_hash_bound_opaque_and_within_the_fixture_budget() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs:line 98
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:13.45]     Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference [4 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+                  ↓ (pos 7)
+Expected: "ED-NEW-wl-reconcile"
+Actual:   "ED-NEW-codex-wl-5"
+                  ↑ (pos 7)
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.WallpaperReferenceIntegrityTests.Approved_inventory_and_every_required_compact_look_have_an_offline_reference() in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperReferenceIntegrityTests.cs:line 16
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/matrix-coverage-red.trx
+
+Failed!  - Failed:     6, Passed:     3, Skipped:     0, Total:     9, Duration: 6 s - Marrow.App.Tests.dll (net10.0)

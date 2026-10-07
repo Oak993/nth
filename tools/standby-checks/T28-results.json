@@ -1,0 +1,117 @@
+{
+  "task": "T28",
+  "verdict": "NOT READY",
+  "date": "2026-10-07",
+  "baseline": "52bc7926097cd622d08d6294e0d8b08a48c7516e",
+  "startingCommit": "7b910406886137947a101c742e35e94a527ec871",
+  "evidenceClassification": "Real CLI facts below; Codex repair verified with offline fake reproducing actual userAgent; no second live run.",
+  "codex": {
+    "status": "FIXED",
+    "version": "0.159.3",
+    "userAgent": "Codex Desktop/0.159.3 (Windows 10.0.26300; x86_64) dumb (marrow; 1.7.0)",
+    "threadId": "01a114f1-cf63-7082-807f-95e706b11753",
+    "schemaFilename": "ClientRequest.json",
+    "schemaListedInjection": true,
+    "historyHash": "0a82d0799e153d59908bae3c404af89e45ee4ff9572e1d14753eb17e38292067",
+    "readBackMatches": 1,
+    "noTurnEvents": true,
+    "modelActivityRecords": 0,
+    "stderrActivityLines": 0,
+    "turnsBefore": 0,
+    "turnsAfter": 0,
+    "deleteResult": {},
+    "rolloutDeleted": true,
+    "readAfterDelete": "{\"code\":-32600,\"message\":\"thread not loaded: 01a114f1-cf63-7082-807f-95e706b11753\"}",
+    "sharedUsageCounters": "Not sampled; no token-count record in disposable rollout."
+  },
+  "cursor": {
+    "status": "PASS",
+    "sessionId": "74d43f17-e518-4050-8cc8-7ea86adf4ae7",
+    "prompts": 0,
+    "activityEvents": 0,
+    "stderrActivityLines": 0,
+    "persistedFiles": [
+      "meta.json"
+    ],
+    "deleted": true
+  },
+  "opencode": {
+    "status": "BLOCKED",
+    "version": "2.0.24",
+    "reason": "Port /doc OpenAPI gate unavailable; no history sent",
+    "docStatus": 200,
+    "noReplySent": false,
+    "httpHistoryLoadedByAcp": false,
+    "warmSessionId": "ses_eeb0a5fa3ffeiBYBKOWnfNnjf2",
+    "warmQuiet": true,
+    "warmMessages": 0,
+    "warmCost": 0,
+    "warmTokens": {
+      "input": 0,
+      "output": 0,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "deleted": true,
+    "readAfterDelete": "Session not found: ses_eeb0a5fa3ffeiBYBKOWnfNnjf2"
+  },
+  "claude": {
+    "status": "BLOCKED",
+    "version": "2.1.288 (Claude Code)",
+    "versionGate": true,
+    "reason": "Priming requires --settings and session.Send(model prompt); forbidden by T28. No session opened.",
+    "sessionOpened": false
+  },
+  "notInstalled": [
+    "pi",
+    "copilot",
+    "grok",
+    "devin",
+    "antigravity",
+    "commandcode"
+  ],
+  "tests": {
+    "initialCompileError": "Missing required fields in added fake SessionConfiguration, corrected before meaningful regression run.",
+    "original": {
+      "failed": 3,
+      "passed": 2,
+      "skipped": 0
+    },
+    "parserOnly": {
+      "failed": 1,
+      "passed": 4,
+      "skipped": 0
+    },
+    "finalFocused": {
+      "failed": 0,
+      "passed": 85,
+      "skipped": 0
+    },
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "gates": {
+      "A": "PASS",
+      "B": "PASS",
+      "D": "NOT RUN"
+    },
+    "markT28": "Refused: no task T28 in the queue (exit 2)"
+  },
+  "ledgerPrefix": {
+    "path": "E:/Droppy/wt/cx/cli-checks/porting/engineering_decisions.md",
+    "prefixBytes": 1919069,
+    "prefixSha256": "230161cf5d0dbaacbad22a3949e63b5d5c9a7e2289d4084cce5791c2b65ab4af",
+    "retainedPrefixSha256": "230161cf5d0dbaacbad22a3949e63b5d5c9a7e2289d4084cce5791c2b65ab4af",
+    "prefixPreserved": true,
+    "appendedBytes": 2170
+  },
+  "deliveredFileSha256": {
+    "src/Marrow.Services/Providers/CodexHistoryInjection.cs": "23871ed092d534ef2bc244d87b6dd1375dea64f5b3314bcaa790b09f847680a9",
+    "tests/Marrow.Services.Tests/Providers/CodexDesktopStandbyGateTests.cs": "30cf301e72f57e46e33cd477d95ad8c383c35b0f1605d81c12263741d25fad97",
+    "tools/standby-checks/check.mjs": "45364ce2814b7f02f69253148ae1377c9f64ddebaf953762aedbc740b815ca36",
+    "tools/standby-checks/cleanup-cursor.mjs": "e38beb470b77a5c9951cf54d08dad87fc0e3e883dca838bcec9a286403bba7fa",
+    "tools/standby-checks/cleanup-opencode.mjs": "ed4ad8ea7b1c39b6fb7080d27ad2a0c8d801415309b5c18642d8bc423822e07e"
+  }
+}

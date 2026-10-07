@@ -16,7 +16,10 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- OD-0015: the Marrow icon, carried over from the owner's Marrow app (its resources/icon.svg and build/icon.ico). -->
+    <!-- ST-0 / ED-248: the test host has its own runtimeconfig. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <!-- OD-0112: icon D Aurora, generated from the locked Canvas source by porting/tools/generate_app_icon_d.py. -->
     <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
   </PropertyGroup>
 

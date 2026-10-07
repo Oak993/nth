@@ -324,6 +324,7 @@ public sealed class WallpaperStore : MainActorModel
         if (fileURL is { } previous) SwiftTry.Ignore(() => FileOps.RemoveItem(previous));
         fileURL = file;
         UserDefaults.Standard.Current.Set(Key.File, SwiftPath.LastPathComponent(file));
+        Wallpapers.WallpaperLibraryStore.CustomImageInstalled(); // OD-0110: a successful custom pick replaces the built-in.
         Transaction.WithAnimation(Animation.Spring(duration: 0.45, bounce: 0.2), () => Image = picture.Image);
         IsInstalling = false;
     }

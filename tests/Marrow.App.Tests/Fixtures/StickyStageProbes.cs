@@ -23,6 +23,7 @@ internal sealed class StickyStageProbes : IDisposable
         Rig.Do(() =>
         {
             Rig.Page.Sticky.Children.Add(WorkingDots);
+            Rig.Page.Rest.Children.Clear(); // the stand-in geometry is the Speech probe's alone: the pill section (step 3a) is not part of what the sticky tests measure
             Rig.Page.Rest.Children.Add(Speech);
         });
     }

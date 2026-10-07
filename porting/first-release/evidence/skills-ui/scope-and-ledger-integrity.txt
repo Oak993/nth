@@ -1,0 +1,3 @@
+porting/engineering_decisions.md: original 1786423 bytes preserved; CRLF=10; LF=3728
+porting/STATE.md: original 83771 bytes preserved; CRLF=445; LF=635
+No modified baseline tests or services/core/runtime files.

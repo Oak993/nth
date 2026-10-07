@@ -2,6 +2,7 @@
 using Avalonia.Threading;
 using Marrow.Core.Port;
 using Marrow.Services.Port.Skills.Pages;
+using Marrow.Core.Port.Skills.Pages;
 
 namespace Marrow.App.Port.Skills.Pages;
 
@@ -14,21 +15,44 @@ internal sealed class LibraryModel : MainActorModel
 {
     private int revision;
     private bool posted;
+    private bool dialogHidden;
 
-    public LibraryModel(LibraryController controller)
+    public LibraryModel(LibraryController controller, bool tools = false)
     {
         Controller = controller;
+        Tools = tools;
         controller.Changed += OnChanged;
         revision = controller.Revision;
     }
 
     public LibraryController Controller { get; }
 
+    /// <summary>Optional tools reuse the controller's run mechanics through a presentation adapter; the service always gets the original item.</summary>
+    public bool Tools { get; }
+
+    public string Noun => Tools ? "tools" : Controller.Section.Noun();
+
+    public RunView Dialog
+    {
+        get
+        {
+            var view = Controller.Dialog;
+            if (!Tools) return view;
+            return view with
+            {
+                Title = view.Phase switch { RunPhase.Confirm => "Download all tools?", RunPhase.Downloading => "Downloading all tools", _ => view.Title },
+                Foot = view.Phase == RunPhase.Done ? "Tools are used when a step needs them." : view.Foot,
+            };
+        }
+    }
+
+    public string DownloadAllLabel => Tools ? Controller.DownloadAllLabel.Replace("skills", "tools", StringComparison.Ordinal) : Controller.DownloadAllLabel;
+
     /// <summary>Grows after every change of the controller, on the UI thread.</summary>
     public int Revision { get => Read(revision); private set => Set(ref revision, value); }
 
     /// <summary>Whether the dialog of a run that goes on is hidden by the user (Hide, Escape): a change does not open it again, the Download all button does.</summary>
-    public bool DialogHidden { get; set; }
+    public bool DialogHidden { get => Read(dialogHidden); set => Set(ref dialogHidden, value); }
 
     private void OnChanged()
     {

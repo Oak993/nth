@@ -4,6 +4,9 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- ST-0 / ED-248: the test host has its own runtimeconfig. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -29,6 +32,11 @@
     <!-- Marrow.Services.Tests.Fixtures.ForgeFixtures (ForgeStandIns/ForgeScript): the scripted, offline glab/gh/tea
          stand-in used by L4c's own-branch merge regression test (PR-HYDRAMERGE-127/-128). -->
     <ProjectReference Include="..\Marrow.Services.Tests\Marrow.Services.Tests.csproj" />
+  </ItemGroup>
+
+  <!-- WL-5: checked-in, offline source-oracle fixtures. No generator runs during build or test. -->
+  <ItemGroup>
+    <None Include="..\fixtures\wallpapers\reference\**\*" Link="fixtures\wallpapers\reference\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

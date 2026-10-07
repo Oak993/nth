@@ -1,0 +1,15 @@
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.94]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.A_subtree_file_must_match_the_pinned_listing_size [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Only_the_selected_subtree_is_fetched_and_installed_with_persisted_provenance(location: "https://github.com/fixture/repository/skills/one") [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Only_the_selected_subtree_is_fetched_and_installed_with_persisted_provenance(location: "fixture/repository/skills/one") [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Only_the_selected_subtree_is_fetched_and_installed_with_persisted_provenance(location: "fixture/repository/skills\\one") [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Server_paths_links_submodules_and_case_collisions_cannot_escape_the_selected_folder(listing: "[{\"type\":\"file\",\"path\":\"skills/one/A\",\"si"···) [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Server_paths_links_submodules_and_case_collisions_cannot_escape_the_selected_folder(listing: "[{\"type\":\"symlink\",\"path\":\"skills/one/link\"···) [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Server_paths_links_submodules_and_case_collisions_cannot_escape_the_selected_folder(listing: "[{\"type\":\"file\",\"path\":\"skills/one/mod\",\""···) [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Server_paths_links_submodules_and_case_collisions_cannot_escape_the_selected_folder(listing: "[{\"type\":\"dir\",\"path\":\"skills/one/nested/es"···) [FAIL]
+[xUnit.net 00:00:00.96]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Server_paths_links_submodules_and_case_collisions_cannot_escape_the_selected_folder(listing: "[{\"type\":\"file\",\"path\":\"other/SKILL.md\",\""···) [FAIL]
+[xUnit.net 00:00:00.98]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Server_paths_links_submodules_and_case_collisions_cannot_escape_the_selected_folder(listing: "{\"type\":\"file\",\"path\":\"skills/one\",\"size\"···) [FAIL]
+[xUnit.net 00:00:00.99]     Marrow.Services.Tests.Port.Skills.Custom.CustomGitHubSubtreeTests.Unsafe_subtree_paths_fail_before_any_HTTP_request(location: "https://github.com/fixture/repository/../escape") [FAIL]
+
+Failed!  - Failed:    11, Passed:     9, Skipped:     0, Total:    20, Duration: 68 ms - Marrow.Services.Tests.dll (net10.0)

@@ -219,7 +219,7 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         var opacity = effect.Opacity;
         Assert.InRange(opacity, 0.01, 0.99); // the bolt partly faded in
         var still = new KnobSignal();
-        still.Read(effect.StrikeGeometryFor(effect.Bounds.Size), effect.StrikeSeed, Strike.StillTime(effect.StrikeSeed), 0);
+        still.ReadMix(effect.StrikeGeometryFor(effect.Bounds.Size),new StrikePlans(effect.StrikeSeed),StrikeMix.Timing(1,effect.StrikeSeed).At+0.035,0); // SPEC A-21/B-04/K-173
         Assert.Equal(1, still.RawCharge);
         Assert.True(still.RawFlare > 0);
         Assert.True(Math.Abs(still.RawCharge * opacity - rig.Slider.Signal.RawCharge) < 1e-12, $"the bolt at {opacity}: the knob's charge {rig.Slider.Signal.RawCharge}, not {still.RawCharge * opacity}");
@@ -233,7 +233,7 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
     private static double StillFlare(TrackEffect effect)
     {
         var still = new KnobSignal();
-        still.Read(effect.StrikeGeometryFor(effect.Bounds.Size), effect.StrikeSeed, Strike.StillTime(effect.StrikeSeed), 0);
+        still.ReadMix(effect.StrikeGeometryFor(effect.Bounds.Size),new StrikePlans(effect.StrikeSeed),StrikeMix.Timing(1,effect.StrikeSeed).At+0.035,0); // SPEC A-21/B-04/K-173
         Assert.Equal(1, still.RawCharge);
         Assert.True(still.RawFlare > 0.1, $"the still moment's flare is {still.RawFlare}");
         return still.RawFlare;

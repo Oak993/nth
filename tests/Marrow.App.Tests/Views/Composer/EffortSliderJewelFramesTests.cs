@@ -70,8 +70,10 @@ public sealed class EffortSliderJewelFramesTests(HeadlessSession headless)
                     var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().First();
                     var seed = effect.StrikeSeed;
                     // like the page's shots (shoot.cjs): charging, its raw charge past half; or the strike's swell at its peak
-                    var leader = Strike.StrikeAt(2, seed) - Strike.Lead;
-                    var target = state == "charge" ? leader - KnobSignal.ChargeOf(2, seed) * 0.3 : Strike.StrikeAt(2, seed);
+                    var at=effect.StrikeFrameTime; var first=(int)Math.Floor(at/2.4)-1;
+                    var plan=Enumerable.Range(first,12).Select(k=>StrikeMix.Timing(k,seed)).First(p=>p.At-p.Lead-p.Charge>at&&p.Charge>0);
+                    var leader = plan.At-plan.Lead;
+                    var target = (state == "charge" ? leader-plan.Charge*0.3 : plan.At)-effect.StrikeOffset; // SPEC A-21/B-09
                     while (effect.TimeAt(SwiftDate.Now) < target - 1.0 / 60) rig.Frame();
                     rig.Frame(Math.Max(0, target - effect.TimeAt(SwiftDate.Now)));
                     if (state == "charge") Assert.True(rig.Slider.Signal.Phase == KnobPhase.Charge && rig.Slider.Signal.RawCharge > 0.5, $"charge {rig.Slider.Signal.RawCharge}");

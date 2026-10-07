@@ -1,0 +1,117 @@
+{
+  "round1_base": "e14cf8c7f5360453ecf23ef9a1b8c6aa2c1b5923",
+  "original_base": "285b6b7a99b39e0e517f34c8d34a1860c945f83f",
+  "pre_existing_round1_test_files_compared": 2935,
+  "round1_test_files_changed": [],
+  "original_test_files_compared": 2927,
+  "original_test_files_changed": [],
+  "immutable_checks": {
+    "porting/engineering_decisions.md": {
+      "valid": true,
+      "base_length": 1792512,
+      "base_sha256": "086202ca974cb5731d7492b15817eef4716dfbb043fb65a726c20f47c9f0c208",
+      "check": "byte-exact prefix",
+      "current_length": 1802490,
+      "current_sha256": "a329e79d1c941be60f0a87abad241f221b81e39e6f492357b7a546dcbd5be62d"
+    },
+    "porting/owner_decisions.md": {
+      "valid": true,
+      "base_length": 199088,
+      "base_sha256": "c08e93fcc1d5c1a509557be6129a9b5d7500c3032e104b60881c40615b0f09a4",
+      "check": "byte-identical",
+      "current_length": 199088,
+      "current_sha256": "c08e93fcc1d5c1a509557be6129a9b5d7500c3032e104b60881c40615b0f09a4"
+    },
+    "porting/first-release/reviews/skills-backend-t35.md": {
+      "valid": true,
+      "base_length": 6458,
+      "base_sha256": "01fd48651c5f8f8e72d850f05fb703cdcf3e1b663f5ed70e13e955dff4642c2b",
+      "check": "byte-exact prefix",
+      "current_length": 19628,
+      "current_sha256": "e748fa579d81110de87976954016bdc817697f3268e1541d5974f5311e531f1e"
+    },
+    "src/Marrow.Core/Port/Skills/Catalogue/catalogue.json": {
+      "valid": true,
+      "base_length": 39414,
+      "base_sha256": "2d9d3efbe22a306ae29b9595d5d61096fb87807205c7c17503994c9b162a8df9",
+      "check": "byte-identical",
+      "current_length": 39414,
+      "current_sha256": "2d9d3efbe22a306ae29b9595d5d61096fb87807205c7c17503994c9b162a8df9"
+    }
+  },
+  "baseline_skills_failures": [
+    "Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: \"saved\", method: \"session/load\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: \"session/new\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: True)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: \"prior-conversation\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null)",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: True)"
+  ],
+  "final_skills_failures": [
+    "Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: \"saved\", method: \"session/load\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: \"session/new\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: True)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: \"prior-conversation\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null)",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: True)"
+  ],
+  "new_skills_failures": [],
+  "summaries": {
+    "round2-custom-final": [
+      "Passed!  - Failed:     0, Passed:    57, Skipped:     0, Total:    57, Duration: 447 ms - Marrow.Services.Tests.dll (net10.0)"
+    ],
+    "round2-core-final": [
+      "Passed!  - Failed:     0, Passed:   482, Skipped:     0, Total:   482, Duration: 14 s - Marrow.Core.Tests.dll (net10.0)"
+    ],
+    "round2-services-final": [
+      "Failed!  - Failed:    16, Passed:   948, Skipped:    48, Total:  1012, Duration: 9 s - Marrow.Services.Tests.dll (net10.0)"
+    ],
+    "round2-app-final": [
+      "Passed!  - Failed:     0, Passed:    63, Skipped:     0, Total:    63, Duration: 830 ms - Marrow.App.Tests.dll (net10.0)"
+    ],
+    "round2-pins-final": [
+      "\u2139 tests 19",
+      "\u2139 suites 0",
+      "\u2139 pass 19",
+      "\u2139 fail 0",
+      "\u2139 cancelled 0",
+      "\u2139 skipped 0",
+      "\u2139 todo 0",
+      "\u2139 duration_ms 177.202965"
+    ]
+  },
+  "validated_services_core_app_code_commit": "a62b4deb0caef682ca870f69276f3b691f7a41f1",
+  "pin_generator_commit": "286ef087",
+  "recipe_and_report_commit": "this commit",
+  "pin_generator_real_source_run": false,
+  "t36_notification": {
+    "pushed_backend_commit": "a62b4deb",
+    "chat_queue": "failed: no rollout found",
+    "open_pr_search": "none",
+    "commit_comment": "failed: Forbidden",
+    "delivered": false,
+    "handoff": "porting/first-release/reviews/skills-backend-t35/T36-handoff-round2.md"
+  },
+  "final_immutable_verification": true,
+  "tracked_terminal_logs": "Text transcriptions preserve assertions/output; only trailing renderer padding removed. Raw captures retained in /tmp/marrow-t35-evidence."
+}

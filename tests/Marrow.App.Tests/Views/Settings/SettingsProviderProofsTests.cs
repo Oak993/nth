@@ -239,7 +239,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var shape = Nodes<Border>(providerRow).Single(x => x.Height == 28); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
         var title = Assert.Single(Nodes<TextBlock>(providerRow)); Assert.Equal(13, title.FontSize); Assert.Equal(FontWeight.Normal, title.FontWeight);
         Assert.Equal("cpu", Assert.Single(Nodes<SwiftImage>(providerRow)).SymbolName); Assert.Equal(8, Nodes<StackPanel>(providerRow).Single().Spacing);
-        PointerClick(Nodes<Button>(providerRow).Single()); Sync(); Assert.Single(Nodes<ProvidersSettingsPage>(view)); Assert.Equal(15, Nodes<ProviderSettingsSection>(view).Length);
+        PointerClick(Nodes<Button>(providerRow).Single()); Sync(); Assert.Single(Nodes<ProvidersSettingsPage>(view)); Assert.Equal(16, Nodes<ProviderSettingsSection>(view).Length);
         var selected = Nodes<SidebarRow>(sidebar).Single(row => Text(row).Contains("Providers")); Assert.Equal(FontWeight.Medium, Nodes<TextBlock>(selected).Single().FontWeight);
     });
 
@@ -252,7 +252,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Layout(view); Assert.Empty(model.Providers.Statuses);
         var codex = Section(view, ProviderKind.Codex); Open(codex, h); var keptField = Nodes<TextBox>(codex).Single(); keptField.Text = Path.Combine(h.Scratch, "scroll-preserved-cli.exe"); Sync();
         var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).First(); /* the page's own; the rounded-border fields carry one each (their PART_ScrollViewer) */ var scrollWindow = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(scroll)); Layout(scroll); using var scrollFrame = scrollWindow.CaptureRenderedFrame();
-        var wheelPoint = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), scrollWindow)!.Value; Assert.NotNull(scrollWindow.InputHitTest(wheelPoint)); scrollWindow.MouseMove(wheelPoint); scrollWindow.MouseWheel(wheelPoint, new Vector(0, -3)); Layout(view); Assert.True(scroll.Offset.Y > 0, $"Wheel hit {scrollWindow.InputHitTest(wheelPoint)?.GetType().Name}; extent={scroll.Extent}, viewport={scroll.Viewport}, presenter={scroll.GetVisualDescendants().OfType<ScrollContentPresenter>().First().Offset}."); Assert.Equal(15, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
+        var wheelPoint = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), scrollWindow)!.Value; Assert.NotNull(scrollWindow.InputHitTest(wheelPoint)); scrollWindow.MouseMove(wheelPoint); scrollWindow.MouseWheel(wheelPoint, new Vector(0, -3)); Layout(view); Assert.True(scroll.Offset.Y > 0, $"Wheel hit {scrollWindow.InputHitTest(wheelPoint)?.GetType().Name}; extent={scroll.Extent}, viewport={scroll.Viewport}, presenter={scroll.GetVisualDescendants().OfType<ScrollContentPresenter>().First().Offset}."); Assert.Equal(16, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
         Assert.Same(codex, Section(view, ProviderKind.Codex)); Assert.Same(keptField, Nodes<TextBox>(codex).Single()); Assert.Equal(Path.Combine(h.Scratch, "scroll-preserved-cli.exe"), keptField.Text);
         var refresh = Assert.Single(Nodes<ProvidersRefreshButton>(view)); Assert.Single(Nodes<ChromeCapsule>(refresh)); Assert.Single(Nodes<ChromeIconButton>(refresh)); Assert.Empty(Text(refresh));
         var symbol = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.Equal("arrow.clockwise", symbol.SymbolName); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol));
@@ -268,7 +268,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Assert.True(model.Providers.IsRefreshing); Assert.True(duplicate!.IsCompletedSuccessfully);
         Sync(); button = Assert.Single(Nodes<Button>(refresh)); Assert.False(button.IsEnabled); Assert.Equal("Checking providers…", ToolTip.GetTip(button));
         var disabledIcon = Assert.Single(Nodes<SwiftImage>(refresh)); ColorIs(disabledIcon, disabledIcon.Foreground, SwiftColor.LabelColor.Opacity(0.32)); // Chrome.swift:355
-        Wait(() => { h.Main.RunUntilIdle(); return !model.Providers.IsRefreshing; }); Assert.Equal(15, model.Providers.Statuses.Count); Assert.True(Assert.Single(Nodes<Button>(refresh)).IsEnabled);
+        Wait(() => { h.Main.RunUntilIdle(); return !model.Providers.IsRefreshing; }); Assert.Equal(16, model.Providers.Statuses.Count); Assert.True(Assert.Single(Nodes<Button>(refresh)).IsEnabled);
     });
 
     [Theory]
@@ -279,8 +279,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     {
         using var reduceMotion = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduce });
         var stack = Assert.IsType<StackPanel>(((ProvidersSettingsPage)view).Child); Assert.Equal(20, stack.Spacing);
-        var all = Nodes<ProviderSettingsSection>(view); Assert.Equal(15, all.Length); Assert.All(all, section => Leading(section, stack));
-        Assert.Equal(new[] { "Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "DeepSeek", "Meta", "Z.ai", "Devin", "Antigravity", "Copilot", "Command Code", "Pi", "OpenRouter" }, all.Select(section => AutomationProperties.GetName(Header(section))));
+        var all = Nodes<ProviderSettingsSection>(view); Assert.Equal(16, all.Length); Assert.All(all, section => Leading(section, stack));
+        Assert.Equal(new[] { "Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "DeepSeek", "Meta", "Z.ai", "Devin", "Antigravity", "Copilot", "Command Code", "Pi", "OpenRouter", "Local" }, all.Select(section => AutomationProperties.GetName(Header(section))));
         foreach (var section in all)
         {
             var group = Assert.IsType<StackPanel>(section.Child); Assert.Equal(10, group.Spacing); Assert.IsType<CollapsibleProviderHeader>(group.Children[0]); Assert.IsType<ChromeRevealLayout>(group.Children[1]); Assert.All(group.Children, child => Leading(child, group)); Assert.Equal(22, Header(section).Height); Collapsed(section, true); Assert.Equal(32, section.Bounds.Height);
@@ -302,7 +302,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     [Trait("Req", "UI-PROVREG-004")] // App/Views/Settings/SettingsView.swift:651-653; UI/Common/Components.swift:4-14; Core/Models/Provider.swift:59-60
     public void Status_marks_are_eighteen_in_a_twenty_two_frame_with_thirteen_assets_and_no_state_variant() => WithView(() => new ProvidersSettingsPage(), (view, _, h) =>
     {
-        var assets = new[] { "provider-codex", "provider-claude", "provider-cursor", "provider-opencode", "provider-opencode", "provider-grok", "provider-deepseek", "provider-meta", "provider-zai", "provider-devin", "provider-antigravity", "provider-copilot", "provider-commandcode", "provider-pi", "provider-openrouter" };
+        var assets = new[] { "provider-codex", "provider-claude", "provider-cursor", "provider-opencode", "provider-opencode", "provider-grok", "provider-deepseek", "provider-meta", "provider-zai", "provider-devin", "provider-antigravity", "provider-copilot", "provider-commandcode", "provider-pi", "provider-openrouter", "provider-local" };
         var sections = Nodes<ProviderSettingsSection>(view); var seen = new List<string>();
         for (var i = 0; i < sections.Length; i++)
         {
@@ -319,7 +319,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             image.IsEnabled = false; Sync(); Assert.Equal(before, Draw(image)); image.IsEnabled = true;
             Close(section, h); Assert.Same(image, Nodes<SwiftImage>(icon).Single()); Assert.Equal(before, Draw(image));
         }
-        Assert.Equal(14, seen.Distinct().Count()); // the thirteen source marks and OpenRouter's (ED-234)
+        Assert.Equal(15, seen.Distinct().Count()); // source marks, OpenRouter (ED-234), Local (ED-410)
     });
 
     [Fact]
@@ -411,7 +411,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         {
             var section = Section(view, provider); HeaderMetrics(section); Open(section, h); var toggle = Assert.Single(Nodes<SmallSwitch>(section)); Assert.Empty(Text(Assert.Single(Nodes<SettingsSwitch>(section)))); Assert.True(toggle.Focusable);
             var peer = Assert.IsAssignableFrom<IToggleProvider>(ControlAutomationPeer.CreatePeerForElement(toggle)); Assert.Equal(ToggleState.On, peer.ToggleState);
-            var raw = SwiftEnum<ProviderKind>.RawValue(provider); Assert.DoesNotContain(raw, model.Settings.DisabledProviders); Assert.Contains(provider, model.Providers.AvailableProviders);
+            var raw = SwiftEnum<ProviderKind>.RawValue(provider); Assert.DoesNotContain(raw, model.Settings.DisabledProviders); if (provider == ProviderKind.Local) Assert.DoesNotContain(provider, model.Providers.AvailableProviders); else Assert.Contains(provider, model.Providers.AvailableProviders); // ED-410: Local is available only when discovered
             var before = Draw(toggle); using var png = SKBitmap.Decode(before); var expected = Chrome.AccentNSColor.Resolve(toggle.ActualThemeVariant); var pixel = png.GetPixel(5, 8); Assert.Equal(expected.R, pixel.Red); Assert.Equal(expected.G, pixel.Green); Assert.Equal(expected.B, pixel.Blue);
             PointerClick(toggle); Sync(); Assert.Equal(ToggleState.Off, peer.ToggleState); Assert.Contains(raw, model.Settings.DisabledProviders); Assert.Contains("disabledProviders", h.Defaults.Writes); Assert.DoesNotContain(provider, model.Providers.AvailableProviders);
             Key(toggle, Avalonia.Input.Key.Space); Sync(); Assert.Equal(ToggleState.On, peer.ToggleState); Assert.DoesNotContain(raw, model.Settings.DisabledProviders);
@@ -429,7 +429,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var commands = new[] { "codex login", "claude auth login", "cursor-agent login", "opencode auth login", "opencode auth login", "grok login", "devin auth login", "agy", "copilot login", "cmd login", "pi" };
         var launches = new List<(string, string[], string?, bool)>(); using var workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend { Home = @"C:\fixture home", Which = name => name == "pwsh.exe" ? @"C:\fixture\pwsh.exe" : name == "wt.exe" ? @"C:\fixture\wt.exe" : null, Launch = (exe, args, cwd, console) => launches.Add((exe, args.ToArray(), cwd, console)) });
         string? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(value => { opened = value.AbsoluteString; return true; });
-        var cli = SwiftEnum<ProviderKind>.AllCases.Where(x => !x.IsAPIKeyBased).ToArray();
+        var cli = SwiftEnum<ProviderKind>.AllCases.Where(x => !x.IsAPIKeyBased && x != ProviderKind.Local).ToArray(); // ED-410: Local has no CLI
         for (var i = 0; i < cli.Length; i++)
         {
             var provider = cli[i]; var section = Section(view, provider); Collapsed(section, true); Open(section, h);
