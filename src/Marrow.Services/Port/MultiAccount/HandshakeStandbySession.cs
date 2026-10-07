@@ -16,6 +16,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     private Func<Task<HandshakeCostObservation?>>? observeUsage;
     private Func<bool>? canTransfer;
     private bool needsReadBack;
+    private Action<string>? textProgress;
     private bool ready;
     private bool ownsSession = true;
     private bool stopped;
@@ -39,7 +40,8 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         // These providers enforce IsFinalReport before exposing tools or executing an action.
         // Claude additionally verifies its temporary agent, effective policy and actual init identity.
         if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local)
-            && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession))
+            && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession)
+            && !(configuration.Provider == ProviderKind.Pi && session is PiSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
         var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage, canTransfer = canTransfer };
         standby.BindTransferGuard(canTransfer);
@@ -47,7 +49,8 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         try
         {
             ct.ThrowIfCancellationRequested();
-            start = session is ClaudeSession claude ? claude.StartHandshakeAsync(ct) : session.Start();
+            start = session is ClaudeSession claude ? claude.StartHandshakeAsync(ct)
+                : session is PiSession pi ? pi.StartTextOnlyHeadAsync(ct) : session.Start();
             standby.SessionId = await start.WaitAsync(ct);
             if (string.IsNullOrWhiteSpace(standby.SessionId)) throw new InvalidOperationException("The standby did not report its session identity.");
             if (standby.stopped || !session.IsRunning) throw new InvalidOperationException("The standby exited while starting.");
@@ -99,7 +102,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         _ = await RunTextTurnAsync("[Marrow Handshake] These recorded facts were missing from your read-back. Retain them without taking actions:\n"
             + string.Join("\n", gaps), true, ct);
 
-    public Task<string?> TextTurnAsync(string prompt, CancellationToken ct) => RunTextTurnAsync(prompt, true, ct);
+    public Task<string?> TextTurnAsync(string prompt, CancellationToken ct, Action<string>? progress = null) => RunTextTurnAsync(prompt, true, ct, progress: progress);
 
     public async Task<string?> WriteIncomingLightBriefingAsync(HandoffSummary summary, CancellationToken ct)
     {
@@ -119,6 +122,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             if (!ownsSession || stopped || !ready || completion is not null || !session.IsRunning)
                 throw new InvalidOperationException("Only a completed standby can be prepared for adoption.");
             if (session is ClaudeSession claude) await claude.RestoreHandshakeToolsAsync(ct);
+            if (session is PiSession) throw new NotSupportedException("A private Pi text head cannot become a working session.");
         }
         catch { if (ownsSession) Stop(); throw; }
         finally { gate.Release(); }
@@ -130,6 +134,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             throw new InvalidOperationException("Only a completed standby can be adopted.");
         if (session is ClaudeSession { HandshakeToolsRestored: false })
             throw new InvalidOperationException("The CLI tools must be restored before adoption.");
+        if (session is PiSession) throw new NotSupportedException("A private Pi text head cannot become a working session.");
         BindTransferGuard(null);
         canTransfer = null;
         ownsSession = false;
@@ -139,7 +144,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
 
     public ValueTask DisposeAsync() { if (ownsSession) Stop(); return ValueTask.CompletedTask; }
 
-    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct, string? model = null)
+    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct, string? model = null, Action<string>? progress = null)
     {
         await gate.WaitAsync(ct);
         try
@@ -148,6 +153,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
                 throw new InvalidOperationException("The standby is unavailable for text-only transfer.");
             ready = false;
             needsReadBack = readBack;
+            textProgress = progress;
             messages.Clear();
             messageOrder.Clear();
             completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -171,7 +177,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             return answer;
         }
         catch { if (ownsSession) Stop(); throw; }
-        finally { completion = null; gate.Release(); }
+        finally { completion = null; textProgress = null; gate.Release(); }
     }
 
     private void Collect(ProviderEvent value)
@@ -179,6 +185,11 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         if (stopped || !ownsSession) return;
         if (value is ProviderEvent.Models catalog) { reportedModels = catalog.Value; return; }
         if (value is ProviderEvent.Exited exit) { Fail(exit.Error ?? "The standby exited."); return; }
+        // A restricted head must also refuse an action during startup or between completed turns.
+        if (value is ProviderEvent.ToolStarted or ProviderEvent.ToolOutput or ProviderEvent.ToolUpdated
+            or ProviderEvent.Approval or ProviderEvent.Question or ProviderEvent.AgentStarted or ProviderEvent.AgentEvent
+            or ProviderEvent.AgentProgress or ProviderEvent.AgentFinished)
+        { Fail("The standby attempted an action during text-only context transfer."); return; }
         if (completion is null) return;
         switch (value)
         {
@@ -216,6 +227,8 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     {
         if (!messages.ContainsKey(id)) messageOrder.Add(id);
         messages[id] = append ? messages.GetValueOrDefault(id, "") + text : text;
+        try { textProgress?.Invoke(string.Join("\n", messageOrder.Select(key => messages[key]).Where(part => part.Length > 0))); }
+        catch (Exception error) { Fail(error.Message); }
     }
 
     private void Fail(string reason)
