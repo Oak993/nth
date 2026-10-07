@@ -47,12 +47,11 @@ internal sealed class SkillsProgressPill : Decorator
     private readonly LibraryModel model;
     private readonly Action<LibrarySection> open;
     private readonly ViewState state = new();
-    private readonly CrossfadeSlot slot = new();
-    private readonly CrossfadeSlot mark = new();
+    private readonly Panel mark = new();
     private readonly CzCrossfadeText words = new("") { FontSize = 12.5, FontWeight = FontWeight.Medium };
     private readonly ProgressRing ring = new() { Width = 20, Height = 20 };
-    private readonly AnimatedScalar progress;
-    private readonly AnimatedScalar reveal;
+    private readonly SkillsMotionNumber progress, reveal, opacity;
+    private readonly SkillsLeadFace ringLead, pauseLead, checkLead, warningLead;
     private readonly Control face;
     private RunPhase lastPhase;
     private bool shown;
@@ -63,19 +62,37 @@ internal sealed class SkillsProgressPill : Decorator
         this.model = model;
         this.open = open;
         mark.Width = mark.Height = 20;
+        ringLead = new SkillsLeadFace(ring);
+        pauseLead = new SkillsLeadFace(LibraryUi.Glyph("pause", 12, ChromeTokens.SecondaryText));
+        checkLead = new SkillsLeadFace(LibraryUi.Glyph("checkmark.circle.fill", 20, SwiftColor.Rgb(0x34C759)));
+        warningLead = new SkillsLeadFace(LibraryUi.Glyph("exclamationmark.triangle.fill", 12, ChromeTokens.Warning)) { Width = 12, Height = 12 };
+        warningLead.WithWarningPosition();
+        mark.Children.Add(ringLead); mark.Children.Add(pauseLead); mark.Children.Add(checkLead); mark.Children.Add(warningLead);
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { mark, words }, VerticalAlignment = VerticalAlignment.Center };
         Button = PlainControls.Button(row, () => state.Presented = !state.Presented).KeyboardFocus();
         Button.Height = 34;
         Button.Padding = new Thickness(9, 0, 14, 0);
         face = Button.ChromeGlassCapsule();
         face.HorizontalAlignment = HorizontalAlignment.Left;
+        face.IsHitTestVisible = false;
+        Button.IsEnabled = false;
         face.RenderTransformOrigin = new RelativePoint(0, 1, RelativeUnit.Relative);
         Popover = PlainControls.Popover(Button, new Binding<bool>(() => state.Presented, value => state.Presented = value), BuildPopover,
             PlacementMode.TopEdgeAlignedLeft, buildBeforeOpen: !nested);
-        Child = new Panel { Children = { slot, Popover } };
-        progress = new AnimatedScalar(ring, 0, value => ring.Value = value);
-        reveal = new AnimatedScalar(face, 0, value => face.RenderTransform = new TransformGroup { Children = { new ScaleTransform(.92 + .08 * value, .92 + .08 * value), new TranslateTransform(0, (1 - value) * 10) } });
-        slot.Show(new Border { Height = 0 }, null);
+        Popover.SetValue(Presentation.MotionProperty, new SkillsPopoverMotion(this));
+        Child = new Panel { Children = { face, Popover } };
+        progress = new SkillsMotionNumber(ring, 0, value => ring.Value = value);
+        opacity = new SkillsMotionNumber(face, 0, value => face.Opacity = value);
+        var scale = new ScaleTransform(.92, .92);
+        var shift = new TranslateTransform(0, 10);
+        var transform = new TransformGroup { Children = { scale, shift } };
+        reveal = new SkillsMotionNumber(face, 0, value =>
+        {
+            scale.ScaleX = scale.ScaleY = .92 + .08 * value;
+            shift.Y = (1 - value) * 10;
+            face.RenderTransform = LibraryUi.Still(this) ? null : transform;
+            InvalidateMeasure();
+        });
         this.Track(() => (model.Revision, model.DialogHidden), _ => Refresh());
     }
 
@@ -83,10 +100,11 @@ internal sealed class SkillsProgressPill : Decorator
     internal Popup Popover { get; }
     internal bool IsShown => shown;
     internal double Revealed => reveal.Value;
+    internal Control Face => face;
+    internal Control RingLead => ringLead;
+    internal Control CheckLead => checkLead;
     internal string LabelText => words.Text;
     internal SkillsProgressPopover BuildPopover() => new(model, () => { state.Presented = false; model.DialogHidden = false; open(model.Controller.Section); });
-
-    private Animation? Motion(double seconds, bool movement = false) => !FrameClock.IsBound ? null : LibraryUi.Still(this) ? Animation.EaseOut(.01) : movement ? CzMotion.Ez(seconds) : CzMotion.Ease(seconds);
 
     private void Refresh()
     {
@@ -96,8 +114,11 @@ internal sealed class SkillsProgressPill : Decorator
         if (shown != nextShown)
         {
             shown = nextShown;
-            slot.Show(shown ? face : new Border { Height = 0 }, primed ? Motion(.4, movement: true) : null);
-            reveal.Set(shown ? 1 : 0, primed ? Motion(.4, movement: true) : null);
+            face.IsHitTestVisible = shown;
+            Button.IsEnabled = shown;
+            var delay = shown ? .12 : 0;
+            opacity.Set(shown ? 1 : 0, .3, delay: delay, animate: primed);
+            reveal.Set(shown ? 1 : 0, .4, movement: true, delay: delay, animate: primed);
         }
         primed = true;
         if (!shown) return;
@@ -112,20 +133,28 @@ internal sealed class SkillsProgressPill : Decorator
         };
         words.SetText(label);
         Button.Named(label, "skills-progress-pill-" + (model.Tools ? "Tools" : model.Controller.Section.ToString()));
-        progress.Set(view.Overall, Motion(.35, movement: true));
+        progress.Set(view.Overall, .35, movement: true);
         if (lastPhase != view.Phase)
         {
             lastPhase = view.Phase;
-            if (ring.Parent is Panel previousParent) previousParent.Children.Remove(ring);
-            Control lead = view.Phase switch
-            {
-                RunPhase.Paused => LibraryUi.Glyph("pause", 12, ChromeTokens.SecondaryText),
-                RunPhase.Done => LibraryUi.Glyph("checkmark.circle.fill", 20, SwiftColor.Rgb(0x34C759)),
-                RunPhase.Partial => new Panel { Children = { ring, LibraryUi.Glyph("exclamationmark.triangle.fill", 12, ChromeTokens.Warning).WithWarningPosition() } },
-                _ => ring,
-            };
-            mark.Show(lead, Motion(.25));
+            var donePhase = view.Phase == RunPhase.Done;
+            ringLead.Show(view.Phase is RunPhase.Downloading or RunPhase.Partial, animate: true, delay: donePhase ? .45 : 0, completedRing: donePhase);
+            pauseLead.Show(view.Phase == RunPhase.Paused, animate: true);
+            checkLead.Show(donePhase, animate: true, delay: donePhase ? .45 : 0);
+            warningLead.Show(view.Phase == RunPhase.Partial, animate: true);
         }
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var measured = base.MeasureOverride(availableSize);
+        return new Size(measured.Width, measured.Height * reveal.Value);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        base.ArrangeOverride(new Size(finalSize.Width, face.DesiredSize.Height));
+        return finalSize;
     }
 }
 
