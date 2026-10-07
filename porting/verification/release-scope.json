@@ -1,0 +1,1366 @@
+{
+  "schema": "marrow/release-scope/1",
+  "note": "Acceptance obligations only; mechanically reconciled to the committed build plan, multi-account checklist and later owner rulings.",
+  "records": [
+    {
+      "id": "FR-SA-1",
+      "kind": "release-unit",
+      "title": "Settings pages and keys",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:233"
+      ]
+    },
+    {
+      "id": "FR-VT-0",
+      "kind": "release-unit",
+      "title": "Pins, natives, assets, notices (V0)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:239"
+      ]
+    },
+    {
+      "id": "FR-VT-1",
+      "kind": "release-unit",
+      "title": "Core settings, catalogue, recommender",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:240"
+      ]
+    },
+    {
+      "id": "FR-VT-2",
+      "kind": "release-unit",
+      "title": "Core signal path",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:241"
+      ]
+    },
+    {
+      "id": "FR-VT-3",
+      "kind": "release-unit",
+      "title": "Core recognition and session",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:242"
+      ]
+    },
+    {
+      "id": "FR-VT-4",
+      "kind": "release-unit",
+      "title": "Core orb and glow drivers",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:243"
+      ]
+    },
+    {
+      "id": "FR-VT-5",
+      "kind": "release-unit",
+      "title": "Capture (Windows)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:244"
+      ]
+    },
+    {
+      "id": "FR-VT-6",
+      "kind": "release-unit",
+      "title": "Engine, VAD, hardware probe",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:245"
+      ]
+    },
+    {
+      "id": "FR-VT-7",
+      "kind": "release-unit",
+      "title": "Model store and downloads",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:246"
+      ]
+    },
+    {
+      "id": "FR-VT-8",
+      "kind": "release-unit",
+      "title": "Orb renderer",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:247"
+      ]
+    },
+    {
+      "id": "FR-VT-9",
+      "kind": "release-unit",
+      "title": "Glow renderer and the light while you speak",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:248"
+      ]
+    },
+    {
+      "id": "FR-VT-10",
+      "kind": "release-unit",
+      "title": "Composer A: slot, attachment, notes",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:249"
+      ]
+    },
+    {
+      "id": "FR-VT-11",
+      "kind": "release-unit",
+      "title": "Composer B: live words",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:250"
+      ]
+    },
+    {
+      "id": "FR-VT-12",
+      "kind": "release-unit",
+      "title": "Composer C: pill, cross, float, question",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:251"
+      ]
+    },
+    {
+      "id": "FR-VT-13",
+      "kind": "release-unit",
+      "title": "Voice typing page A",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:252"
+      ]
+    },
+    {
+      "id": "FR-VT-14",
+      "kind": "release-unit",
+      "title": "Voice typing page B: Speech model",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:253"
+      ]
+    },
+    {
+      "id": "FR-VT-15",
+      "kind": "release-unit",
+      "title": "First run and switch-on",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:254"
+      ]
+    },
+    {
+      "id": "FR-VT-16",
+      "kind": "release-unit",
+      "title": "OpenAI cloud engine",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:255"
+      ]
+    },
+    {
+      "id": "FR-D-VN",
+      "kind": "release-unit",
+      "title": "\"Voice notes\" variants page (design, not code)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:256"
+      ]
+    },
+    {
+      "id": "FR-VT-17",
+      "kind": "release-unit",
+      "title": "Voice notes, countdown, CUDA offer",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:257"
+      ]
+    },
+    {
+      "id": "FR-GR-1",
+      "kind": "release-unit",
+      "title": "First-run preparation service",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:263"
+      ]
+    },
+    {
+      "id": "FR-GR-2",
+      "kind": "release-unit",
+      "title": "Getting Ready sheet",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:264"
+      ]
+    },
+    {
+      "id": "FR-WV-1",
+      "kind": "release-unit",
+      "title": "Welcome voice question",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:265"
+      ]
+    },
+    {
+      "id": "FR-CZ-1",
+      "kind": "release-unit",
+      "title": "Controls and text",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:271"
+      ]
+    },
+    {
+      "id": "FR-CZ-2",
+      "kind": "release-unit",
+      "title": "Glass colour picker (Q-CZ-3 B)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:272"
+      ]
+    },
+    {
+      "id": "FR-CZ-3",
+      "kind": "release-unit",
+      "title": "Stage and preview composer",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:273"
+      ]
+    },
+    {
+      "id": "FR-CZ-4",
+      "kind": "release-unit",
+      "title": "Page and light sections (C1)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:274"
+      ]
+    },
+    {
+      "id": "FR-CZ-6",
+      "kind": "release-unit",
+      "title": "Sticky stage (C3)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:275"
+      ]
+    },
+    {
+      "id": "FR-CZ-5",
+      "kind": "release-unit",
+      "title": "Working dots (C2)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:276"
+      ]
+    },
+    {
+      "id": "FR-CZ-7a",
+      "kind": "release-unit",
+      "title": "Voice orb rows (C4, page part)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:277"
+      ]
+    },
+    {
+      "id": "FR-CZ-7b",
+      "kind": "release-unit",
+      "title": "Voice preview (C4, stage part)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:278"
+      ]
+    },
+    {
+      "id": "FR-CZ-8",
+      "kind": "release-unit",
+      "title": "Speech section (C5)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:279"
+      ]
+    },
+    {
+      "id": "FR-UE-1",
+      "kind": "release-unit",
+      "title": "Velopack self-update",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:285"
+      ]
+    },
+    {
+      "id": "FR-UE-2",
+      "kind": "release-unit",
+      "title": "Update orchestrator",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:286"
+      ]
+    },
+    {
+      "id": "FR-UE-3",
+      "kind": "release-unit",
+      "title": "Your dev tools",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:287"
+      ]
+    },
+    {
+      "id": "FR-UE-4",
+      "kind": "release-unit",
+      "title": "Updates page (place A)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:288"
+      ]
+    },
+    {
+      "id": "FR-UE-5",
+      "kind": "release-unit",
+      "title": "Update pill (place D)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:289"
+      ]
+    },
+    {
+      "id": "FR-SK-0",
+      "kind": "release-unit",
+      "title": "Fake download server and network guard (DL-0)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:298"
+      ]
+    },
+    {
+      "id": "FR-SK-1",
+      "kind": "release-unit",
+      "title": "Catalogue schema, embedded catalogue, gate (DL-1)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:299"
+      ]
+    },
+    {
+      "id": "FR-SK-2",
+      "kind": "release-unit",
+      "title": "Catalogue builder and change report (DL-2)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:300"
+      ]
+    },
+    {
+      "id": "FR-SK-3",
+      "kind": "release-unit",
+      "title": "Shared downloader (DL-3)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:301"
+      ]
+    },
+    {
+      "id": "FR-SK-4",
+      "kind": "release-unit",
+      "title": "Installers by kind (DL-4)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:302"
+      ]
+    },
+    {
+      "id": "FR-SK-5",
+      "kind": "release-unit",
+      "title": "Store, lock, verify, GC (DL-5)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:303"
+      ]
+    },
+    {
+      "id": "FR-SK-6",
+      "kind": "release-unit",
+      "title": "Shims and the PATH rule (DL-6)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:304"
+      ]
+    },
+    {
+      "id": "FR-SK-7",
+      "kind": "release-unit",
+      "title": "State model (DL-7)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:305"
+      ]
+    },
+    {
+      "id": "FR-SK-8",
+      "kind": "release-unit",
+      "title": "Update and remove pipelines (DL-8)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:306"
+      ]
+    },
+    {
+      "id": "FR-SK-9",
+      "kind": "release-unit",
+      "title": "Sets into per-chat generations (DL-9)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:307"
+      ]
+    },
+    {
+      "id": "FR-SK-10",
+      "kind": "release-unit",
+      "title": "Missing-tool detector (DL-10)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:308"
+      ]
+    },
+    {
+      "id": "FR-SK-11a",
+      "kind": "release-unit",
+      "title": "Claude: `--plugin-dir` and taps",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:309"
+      ]
+    },
+    {
+      "id": "FR-SK-11b",
+      "kind": "release-unit",
+      "title": "Codex",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:310"
+      ]
+    },
+    {
+      "id": "FR-SK-11c",
+      "kind": "release-unit",
+      "title": "Copilot and ACP",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:311"
+      ]
+    },
+    {
+      "id": "FR-SK-11d",
+      "kind": "release-unit",
+      "title": "OpenCode",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:312"
+      ]
+    },
+    {
+      "id": "FR-SK-11e",
+      "kind": "release-unit",
+      "title": "Pi, Command Code, Grok",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:313"
+      ]
+    },
+    {
+      "id": "FR-SK-11f",
+      "kind": "release-unit",
+      "title": "API providers",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:314"
+      ]
+    },
+    {
+      "id": "FR-SK-12",
+      "kind": "release-unit",
+      "title": "Offer flow and resume (DL-13)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:315"
+      ]
+    },
+    {
+      "id": "FR-SK-13",
+      "kind": "release-unit",
+      "title": "Terms, records, uninstall hook, Reset (DL-15, DL-16)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:316"
+      ]
+    },
+    {
+      "id": "FR-SK-14",
+      "kind": "release-unit",
+      "title": "In-chat offer card (DL-18)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:317"
+      ]
+    },
+    {
+      "id": "FR-SK-15",
+      "kind": "release-unit",
+      "title": "Plugins page and Skills page (DL-17)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:318"
+      ]
+    },
+    {
+      "id": "FR-SK-16",
+      "kind": "release-unit",
+      "title": "Wiring (DL-19)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:319"
+      ]
+    },
+    {
+      "id": "FR-SK-17",
+      "kind": "release-unit",
+      "title": "Antigravity and Cursor plugin folder (Q-SKILLS-8 A)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:320"
+      ]
+    },
+    {
+      "id": "FR-ES-0",
+      "kind": "release-unit",
+      "title": "(in flight) `unit/blitz-effortslider2`",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:326"
+      ]
+    },
+    {
+      "id": "FR-CB-0",
+      "kind": "release-unit",
+      "title": "(in flight) `unit/blitz-cornerband`",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:327"
+      ]
+    },
+    {
+      "id": "FR-ST-0",
+      "kind": "release-unit",
+      "title": "Fast-strike round 3 and merge (U-01)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:328"
+      ]
+    },
+    {
+      "id": "FR-ST-1",
+      "kind": "release-unit",
+      "title": "Strike pure maths (TESTS Phase A)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:329"
+      ]
+    },
+    {
+      "id": "FR-ST-2",
+      "kind": "release-unit",
+      "title": "One frame resolved (Phase B)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:330"
+      ]
+    },
+    {
+      "id": "FR-ST-3",
+      "kind": "release-unit",
+      "title": "Rasterised and the frame path (Phases C, D)",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/BUILD-PLAN.md:331"
+      ]
+    },
+    {
+      "id": "FR-MA-1-1",
+      "kind": "release-unit",
+      "title": "**Accounts section** — heading: \"Accounts\" (`multi-account.html:3731`). Foot: \"Marrow uses your accounts from the top down. Drag to change the order. Each account’s ⋯ menu has its ",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:14"
+      ]
+    },
+    {
+      "id": "FR-MA-1-2",
+      "kind": "release-unit",
+      "title": "With one account: sub reads \"Signed in · <plan> plan\", mini block `Week <n>% · resets <t>`, no list (`multi-account.html:3884-3886, 3883-3889`). State: enabled; disabled switch via",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:15"
+      ]
+    },
+    {
+      "id": "FR-MA-1-3",
+      "kind": "release-unit",
+      "title": "With 2+: sub \"<n> accounts · the same order as the composer’s popover\" (`multi-account.html:3884`); list rows with grip, number, name button (title \"Rename\", hover bg `--hov`, `mul",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:16"
+      ]
+    },
+    {
+      "id": "FR-MA-1-4",
+      "kind": "release-unit",
+      "title": "Rename: input `maxlength=\"24\"`, counter \"<n>/24\", full turns `--hot` at 24, `Account name, up to 24 characters` aria-label (`multi-account.html:3865-3868`). Enter commits, Esc canc",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:17"
+      ]
+    },
+    {
+      "id": "FR-MA-1-5",
+      "kind": "release-unit",
+      "title": "Row ⋯ menu: \"Rename\", \"Move up\" (Alt+↑), \"Move to top\", \"Move down\" (Alt+↓), \"Handshake at…\", \"Sign out of this account\" (`multi-account.html:3856-3860`). Move up/down disabled at ",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:18"
+      ]
+    },
+    {
+      "id": "FR-MA-1-6",
+      "kind": "release-unit",
+      "title": "Add: \"Add another account\" (`multi-account.html:3819`); Local shows \"Add a local server\" (`multi-account.html:3761`).",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:19"
+      ]
+    },
+    {
+      "id": "FR-MA-1-7",
+      "kind": "release-unit",
+      "title": "**\"When an account runs out\"** — group visible once 2+ accounts or a pill (`multi-account.html:3732, 3745`): row \"When an account runs out\" with menu default \"Ask me the first time",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:20"
+      ]
+    },
+    {
+      "id": "FR-MA-1-8",
+      "kind": "release-unit",
+      "title": "Dependent rows (indented, shown only when parent set — `multi-account.html:3680-3683`): \"If a reply is still being written\" → \"Finish it\" / \"Stop and wait for me\" (`multi-account.h",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:21"
+      ]
+    },
+    {
+      "id": "FR-MA-1-9",
+      "kind": "release-unit",
+      "title": "\"What the next account gets\" → \"Marrow’s summary\" (Recommended) / \"The whole conversation\" / \"A summary by AI\" (`multi-account.html:3631`); button row \"What was handed over\" with b",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:22"
+      ]
+    },
+    {
+      "id": "FR-MA-1-10",
+      "kind": "release-unit",
+      "title": "**\"Handshake\" group** — \"Use the Handshake\" switch; desc on: \"Shortly before an account runs out, it briefs the next one, so the work carries on without a gap. On by default.\"; off",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:23"
+      ]
+    },
+    {
+      "id": "FR-MA-1-11",
+      "kind": "release-unit",
+      "title": "**OpenRouter row**: \"OpenRouter\", sub \"<n> keys · $<n> of credits left\", button \"Keys and order\" (`multi-account.html:3896, 3906`). Rule: NOTES:8.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:24"
+      ]
+    },
+    {
+      "id": "FR-MA-1-12",
+      "kind": "release-unit",
+      "title": "**Local row**: sub \"Found on this PC: Ollama and LM Studio · <n> models\" (`multi-account.html:3884`); per-account \"No limit · Stays on this PC\" (`multi-account.html:3850`); \"Add a ",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:25"
+      ]
+    },
+    {
+      "id": "FR-MA-1-13",
+      "kind": "release-unit",
+      "title": "One-account demo toggle \"One account\"/\"Several accounts\" (`multi-account.html:3907`); one mode removes list, Pills sidebar item (`multi-account.html:3746`), gates. See §13.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:26"
+      ]
+    },
+    {
+      "id": "FR-MA-2-1",
+      "kind": "release-unit",
+      "title": "Sidebar item \"Pills\", next to \"Models\" (`multi-account.html:3725`). NOTES:58 wants it as its own category. See CONFLICT 1 (visibility).",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:30"
+      ]
+    },
+    {
+      "id": "FR-MA-2-2",
+      "kind": "release-unit",
+      "title": "Pill editor: title \"Pill editor\", sub \"Steps run in order. Near each limit, a Handshake moves the thread to the next step.\" (`multi-account.html:4425`); step name input `maxlength=",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:31"
+      ]
+    },
+    {
+      "id": "FR-MA-2-3",
+      "kind": "release-unit",
+      "title": "Step rows: grip, number, mono mark, account name, sub \"<provider> · No limit\" for local (`multi-account.html:4474`), config line button \"Same as the account · <model · effort>\" (`m",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:32"
+      ]
+    },
+    {
+      "id": "FR-MA-2-4",
+      "kind": "release-unit",
+      "title": "\"Handshake point\" card: \"Same for every step\" / \"Set each step on its own\" (`multi-account.html:4437`); desc \"One slider moves the Handshake for every step of this pill.\" / \"Each s",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:33"
+      ]
+    },
+    {
+      "id": "FR-MA-2-5",
+      "kind": "release-unit",
+      "title": "\"When an earlier account is back\" row in pill: \"Like in Settings\" (Recommended) / \"Go back to it\" / \"Stay where I am\"; desc e.g. \"This pill does what Settings › Models says.\" (`mul",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:34"
+      ]
+    },
+    {
+      "id": "FR-MA-2-6",
+      "kind": "release-unit",
+      "title": "Loop note: \"When the last step runs out, the pill starts again from the first step that is available.\" (`multi-account.html:4450`). Rule: NOTES:53.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:35"
+      ]
+    },
+    {
+      "id": "FR-MA-2-7",
+      "kind": "release-unit",
+      "title": "Settings > Pills disabled/empty state (OD-0117): disabled dimmed list, \"a chain of accounts and models that Marrow moves through when one runs out\", button to Settings › Models — e",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:36"
+      ]
+    },
+    {
+      "id": "FR-MA-2-8",
+      "kind": "release-unit",
+      "title": "Pills page foot: \"A pill is your own order of accounts and services, used one after another. Near each limit, a Handshake moves the thread to the next step, without asking. When th",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:37"
+      ]
+    },
+    {
+      "id": "FR-MA-3-1",
+      "kind": "release-unit",
+      "title": "Section caption: \"Shown beside the model only when a service has two or more accounts.\" (`multi-account.html:1550`). Rule: NOTES:47.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:41"
+      ]
+    },
+    {
+      "id": "FR-MA-3-2",
+      "kind": "release-unit",
+      "title": "Four display variants shown, A marked Recommended: A \"Monogram capsule\", B \"Chip suffix\", C \"Avatar dot\", D \"Quiet ring\" (`multi-account.html:3917-3920`). D name slides out on hove",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:42"
+      ]
+    },
+    {
+      "id": "FR-MA-3-3",
+      "kind": "release-unit",
+      "title": "Capsule facts: height 22 px (`H = 22`, `multi-account.html:2209`); plain width 34 px (`multi-account.html:2226-2234`); colour = \"what is left of the active account\" (`multi-account",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:43"
+      ]
+    },
+    {
+      "id": "FR-MA-3-4",
+      "kind": "release-unit",
+      "title": "Pill-in-composer styles, Customization page: \"Pill in the composer\" with desc \"How a thread that runs on a pill shows it. Default: Merged capsule.\" (`multi-account.html:4889`). Sty",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:44"
+      ]
+    },
+    {
+      "id": "FR-MA-3-5",
+      "kind": "release-unit",
+      "title": "During Handshake the capsule shows a tiny tick / \"In sync\" chip: \"In sync\" pill beside composer (`multi-account.html:2481, 324`), usage dot tick `.stick` (`multi-account.html:508-5",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:45"
+      ]
+    },
+    {
+      "id": "FR-MA-4-1",
+      "kind": "release-unit",
+      "title": "Header: \"<service> accounts\" (or \"<service> models\" for Local), right \"Drag to set the order\" (`multi-account.html:2674`). Sub-line: \"Priority order: row 1 starts new threads\" (`mu",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:49"
+      ]
+    },
+    {
+      "id": "FR-MA-4-2",
+      "kind": "release-unit",
+      "title": "Rows: grip, number, mono mark (drag onto composer to link), active dot, name, \"Skipped\"/\"Off\" chip, \"resets <time>\" / local server, \"5 h\" bar, \"Week\" bar, mono percents (or dimmed ",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:50"
+      ]
+    },
+    {
+      "id": "FR-MA-4-3",
+      "kind": "release-unit",
+      "title": "**Handshake column**: per-row \"Handshake\" button showing the point (`multi-account.html:2696-2697`), aria \"Handshake point for <name>: <value>\" (`multi-account.html:2707`); local r",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:51"
+      ]
+    },
+    {
+      "id": "FR-MA-4-4",
+      "kind": "release-unit",
+      "title": "**Config line**: each row shows \"<model> · <effort> · <fast bolt?>\" via cfgLine (`multi-account.html:2706, 1791`) with chevron, opening \"This account’s defaults · used whenever a t",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:52"
+      ]
+    },
+    {
+      "id": "FR-MA-4-5",
+      "kind": "release-unit",
+      "title": "**Link column**: link icon button per row, aria \"Link <name> to check this thread’s work\"/\"Unlink <name>\" (`multi-account.html:2715`); link-mode toggle beside header (`multi-accoun",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:53"
+      ]
+    },
+    {
+      "id": "FR-MA-4-6",
+      "kind": "release-unit",
+      "title": "Row tap = pin thread: \"This thread: <b>name</b> · Back to order\" (`multi-account.html:2787`); menu has \"Keep this thread on it\"/\"Back to order\" (`multi-account.html:2734`). Rule: N",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:54"
+      ]
+    },
+    {
+      "id": "FR-MA-4-7",
+      "kind": "release-unit",
+      "title": "Thread remembers line: \"This thread remembers: <b>…</b> · Use Settings\" (`multi-account.html:2795`); clearing restores \"This thread follows Settings\" (`multi-account.html:2677`). R",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:55"
+      ]
+    },
+    {
+      "id": "FR-MA-4-8",
+      "kind": "release-unit",
+      "title": "Footer extras: \"Create a pill\" button (`multi-account.html:2676`). Rule: NOTES:47 (pills only once 2+).",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:56"
+      ]
+    },
+    {
+      "id": "FR-MA-5-1",
+      "kind": "release-unit",
+      "title": "B (picked, OD-0115 opinions=B): composer button \"Ask others for this message\" (aria/title, `multi-account.html:4804`). A: type \"@\" in composer. List header \"Also ask, for this mess",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:60"
+      ]
+    },
+    {
+      "id": "FR-MA-5-2",
+      "kind": "release-unit",
+      "title": "Answers side by side (Hydra-style cards): each card \"<mono> <account> <Answer|Opinion>\" (`multi-account.html:4859`); then a \"Combine\" button (`multi-account.html:4862`) which becom",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:61"
+      ]
+    },
+    {
+      "id": "FR-MA-5-3",
+      "kind": "release-unit",
+      "title": "After: \"That was for this message only · the thread carries on with Deep work, step 1, Claude Max 1\" (`multi-account.html:4871`). Rule: NOTES:51 (one message only, thread then carr",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:62"
+      ]
+    },
+    {
+      "id": "FR-MA-6-1",
+      "kind": "release-unit",
+      "title": "Decision: usage=B (OD-0115): current account panel. Header \"Usage\", sub \"this thread’s account\" (`multi-account.html:4342`); rows \"5-hour window\" / \"resets <t>\", \"This week\" / \"res",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:66"
+      ]
+    },
+    {
+      "id": "FR-MA-6-2",
+      "kind": "release-unit",
+      "title": "A variant: header \"Usage · this thread’s service first\" (`multi-account.html:4315`), first two service groups, then \"Show all · <n> more\" / \"Show less\" (`multi-account.html:4321, 4",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:67"
+      ]
+    },
+    {
+      "id": "FR-MA-6-3",
+      "kind": "release-unit",
+      "title": "Out-of-limit accounts: \"out · resets <t>\", dimmed (`multi-account.html:4300, 4301`); hot bar at ≥90% (`:4343`). OpenRouter: \"<$n> left\" / \"no credits\" (`multi-account.html:4309`).",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:68"
+      ]
+    },
+    {
+      "id": "FR-MA-7-1",
+      "kind": "release-unit",
+      "title": "**First-time card (simple mode, one for every choice)** — title \"<b><who></b> ran out. How should Marrow handle this?\" with three choices \"Keep me going\" (pri) / \"Ask me each time\"",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:72"
+      ]
+    },
+    {
+      "id": "FR-MA-7-2",
+      "kind": "release-unit",
+      "title": "**Limit card (approved copy)** — title \"<b>Claude Max 1</b> reached its 5-hour limit · resets 3:40 PM\", buttons \"Switch to Claude Max 2\" (pri) / \"Wait\" (`multi-account.html:4040-40",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:73"
+      ]
+    },
+    {
+      "id": "FR-MA-7-3",
+      "kind": "release-unit",
+      "title": "**Other-service card** — title \"All your Claude accounts are out. The first is back at 3:40 PM.\" with \"Codex 1 is another service: it will see this conversation.\" and buttons \"Wait",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:74"
+      ]
+    },
+    {
+      "id": "FR-MA-7-4",
+      "kind": "release-unit",
+      "title": "**Mid-reply card** — title \"<b>Claude Max 1</b> reached its 5-hour limit while writing this reply · resets 3:40 PM\", explanation \"Either way, the next account reads the whole conve",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:75"
+      ]
+    },
+    {
+      "id": "FR-MA-7-5",
+      "kind": "release-unit",
+      "title": "**Remember line (every card)** — \"Remember:\" with segmented \"Just this time\" / \"This thread\" / \"All threads\", default Just this time (`multi-account.html:2925, 2942`); \"All threads",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:76"
+      ]
+    },
+    {
+      "id": "FR-MA-7-6",
+      "kind": "release-unit",
+      "title": "Every choice row when unset shows \"Ask me the first time\" in mirrors (`multi-account.html:3615`) and unset desc e.g. \"You haven’t chosen yet. Marrow will ask you the first time it ",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:77"
+      ]
+    },
+    {
+      "id": "FR-MA-8-1",
+      "kind": "release-unit",
+      "title": "Hero: three concepts A \"Neural filaments\" (marked Recommended), B \"Phase lock\", C \"Liquid glass\" (`multi-account.html:3702-3706`). Pick: A (OD-0115).",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:81"
+      ]
+    },
+    {
+      "id": "FR-MA-8-2",
+      "kind": "release-unit",
+      "title": "Phases shown as chips \"Standby · Linking · In sync · Switch\" (`multi-account.html:3277, 3284`); status lines \"Standby · Claude Max 2 warms up in the background\", \"Linking · Claude ",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:82"
+      ]
+    },
+    {
+      "id": "FR-MA-8-3",
+      "kind": "release-unit",
+      "title": "Never blocks streaming/typing: the reply keeps streaming in the same bubble (`multi-account.html:3032`); safe pause only between steps (`:3385`). Rule: NOTES:33.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:83"
+      ]
+    },
+    {
+      "id": "FR-MA-8-4",
+      "kind": "release-unit",
+      "title": "Reduce Motion: every movement becomes a crossfade (`html.rm` rules, `multi-account.html:467-474`); Handshake has \"a crossfade-and-tick version under Reduce Motion\" (`multi-account.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:84"
+      ]
+    },
+    {
+      "id": "FR-MA-8-5",
+      "kind": "release-unit",
+      "title": "GPU warm-up: page footer comment references concepts joining OD-0108 warm-up (`multi-account.html:1294`); exact string \"not on page\".",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:85"
+      ]
+    },
+    {
+      "id": "FR-MA-8-6",
+      "kind": "release-unit",
+      "title": "Status after switch in chat: \"Continued on <b>Claude Max 2</b> · …\" (`multi-account.html:4059`). The CLI's own limit message is the hard-stop fallback only (NOTES:33; exact string ",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:86"
+      ]
+    },
+    {
+      "id": "FR-MA-8-7",
+      "kind": "release-unit",
+      "title": "\"Start the Handshake\": \"Smart (recommended)\" / \"At a set point\" with range slider min 80 max 99 step 1, aria \"Start the Handshake at this share of the limit\" (`multi-account.html:3",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:87"
+      ]
+    },
+    {
+      "id": "FR-MA-9-1",
+      "kind": "release-unit",
+      "title": "Fast mode shows a small filled yellow bolt after the provider mark, before the model name, no text (`multi-account.html:2468-2469`, comment refs EffortSlider.swift:77-80); aria-lab",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:91"
+      ]
+    },
+    {
+      "id": "FR-MA-10-1",
+      "kind": "release-unit",
+      "title": "Provider \"Local\": accounts \"Qwen Coder 32B\" (Ollama) and \"DeepSeek Coder\" (LM Studio), server noted \"Ollama · this PC\" / \"LM Studio · this PC\" (`multi-account.html:1749-1751, 2131-",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:95"
+      ]
+    },
+    {
+      "id": "FR-MA-10-2",
+      "kind": "release-unit",
+      "title": "Never runs out: \"No limit · Stays on this PC\" in popover row and Settings row (`multi-account.html:2687, 3850`); popover footer \"… · local models never run out\" (`multi-account.htm",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:96"
+      ]
+    },
+    {
+      "id": "FR-MA-10-3",
+      "kind": "release-unit",
+      "title": "Add any number: \"Add a local server\" with address placeholder and \"Connect\" (`multi-account.html:3761-3762`); note about slower/less capable; Marrow does not download models (NOTES",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:97"
+      ]
+    },
+    {
+      "id": "FR-MA-10-4",
+      "kind": "release-unit",
+      "title": "In pills it is the natural last step (`multi-account.html:2131`); in link-up and \"@\" opinions it appears as L1/L2 (`multi-account.html:4790, 4806`).",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:98"
+      ]
+    },
+    {
+      "id": "FR-MA-11-1",
+      "kind": "release-unit",
+      "title": "\"One account\" state: Settings Models renders provider block with \"Signed in · <plan> plan\" (`multi-account.html:3884`), mini bar, no account list (list removed when `one`, `multi-a",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:102"
+      ]
+    },
+    {
+      "id": "FR-MA-11-2",
+      "kind": "release-unit",
+      "title": "Handshake section hidden: `sgate` sections (\"When an account runs out\", \"Handshake\") only get `.on` when `multi() || pillsExist()` (`multi-account.html:3745`). Rule: NOTES:57, NOTE",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:103"
+      ]
+    },
+    {
+      "id": "FR-MA-11-3",
+      "kind": "release-unit",
+      "title": "Composer account capsule hidden (section caption, `multi-account.html:1550`). Rule: NOTES:47.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:104"
+      ]
+    },
+    {
+      "id": "FR-MA-11-4",
+      "kind": "release-unit",
+      "title": "Pills sidebar item gated the same way (`multi-account.html:3746`). See CONFLICT 1.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:105"
+      ]
+    },
+    {
+      "id": "FR-MA-11-5",
+      "kind": "release-unit",
+      "title": "Toggling \"One account\"/\"Several accounts\" (`multi-account.html:3907-3910`) live re-flows the Settings window.",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/first-release/multi-account-CHECKLIST.md:106"
+      ]
+    },
+    {
+      "id": "FR-SK-18",
+      "kind": "release-unit",
+      "title": "Import skills from other apps",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/owner_decisions.md#OD-0118"
+      ]
+    },
+    {
+      "id": "FR-UE-6",
+      "kind": "release-unit",
+      "title": "Exact-version What’s new",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/owner_decisions.md#OD-0111"
+      ]
+    },
+    {
+      "id": "FR-ICON-D",
+      "kind": "release-unit",
+      "title": "Aurora D identity assets",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/owner_decisions.md#OD-0112"
+      ]
+    },
+    {
+      "id": "FR-WALLPAPERS",
+      "kind": "release-unit",
+      "title": "Built-in and animated wallpaper",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/owner_decisions.md#OD-0109"
+      ]
+    },
+    {
+      "id": "FR-MA-STANDBY",
+      "kind": "release-unit",
+      "title": "Every installed service: real history load, no AI turn, deletion, unchanged settings and credentials",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/owner_decisions.md#OD-0124"
+      ]
+    },
+    {
+      "id": "FR-VOICE-CHROME-ORACLE",
+      "kind": "release-unit",
+      "title": "Same-condition locked Chrome references; unchanged V-T133 detector",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/owner_decisions.md#OD-0125"
+      ]
+    },
+    {
+      "id": "FR-CUSTOMIZATION-FADE",
+      "kind": "release-unit",
+      "title": "Approved 0.1 s curve at 60 Hz with no extra margin",
+      "status": "SPECIFIED",
+      "verification_method": "source/owner contract, interaction, visual, persistence/restart, failure/cancellation, end-to-end",
+      "source_evidence": [
+        "porting/owner_decisions.md#OD-0126"
+      ]
+    }
+  ]
+}
