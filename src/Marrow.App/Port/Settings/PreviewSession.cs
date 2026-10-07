@@ -37,7 +37,6 @@ internal sealed class PreviewSession
 
     internal void Pick(PreviewState state)
     {
-        StatePickRequested?.Invoke();
         if (state == State) return;
         State = state;
         Changed?.Invoke();
@@ -51,9 +50,6 @@ internal sealed class PreviewSession
     /// subscribes here (ED-345).
     /// </summary>
     internal event Action? VoiceDemoCancelRequested;
-
-    /// <summary>CZ-4.7.5: even picking the already-selected state cancels a voice demonstration.</summary>
-    internal event Action? StatePickRequested;
 
     /// <summary>CZ-7a → CZ-7b seam. The key changed in voiceOrb; null delay means update the preview without replay,
     /// zero means replay from Rest at once, 200 ms means relabel an open pill then replay (labels). The stage reads the

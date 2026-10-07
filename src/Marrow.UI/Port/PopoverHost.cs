@@ -86,15 +86,6 @@ public static class PopoverHost
 
     public static void SetIsSheet(Popup popup, bool value) => popup.SetValue(IsSheetProperty, value);
 
-    /// <summary>A site that already draws its own tipped card, material and motion (the voice language question).
-    /// The presenter still owns the popup, appearance inheritance, light dismiss and native outline hit testing.</summary>
-    public static readonly AttachedProperty<PopoverCard?> SiteCardProperty =
-        AvaloniaProperty.RegisterAttached<Popup, PopoverCard?>("SiteCard", typeof(PopoverHost));
-
-    public static void SetSiteCard(Popup popup, PopoverCard card) => popup.SetValue(SiteCardProperty, card);
-
-    private static PopoverCard? CardOf(Popup popup) => popup.GetValue(SiteCardProperty) ?? popup.Child as PopoverCard;
-
     /// <summary>The site's own content of a presented popup: the card's child once it hangs on one.</summary>
     public static Control? Content(Popup popup) => popup.Child is PopoverCard card ? card.Child : popup.Child;
 
@@ -104,7 +95,6 @@ public static class PopoverHost
     /// </summary>
     public static Size Room(Popup popup)
     {
-        if (popup.GetValue(SiteCardProperty) is not null) return default;
         if (Facing(popup) is not { } edge) return default;
         var (inside, shadow) = (PopoverCard.RoomAround(edge), PopoverCard.ShadowMargin(edge));
         return new Size(inside.Width + shadow.Left + shadow.Right, inside.Height + shadow.Top + shadow.Bottom);
@@ -156,7 +146,7 @@ public static class PopoverHost
         // arrive here (the overlay's host) light-dismisses it, as Avalonia does for a press outside the top-level.
         void PressBeside(object? sender, PointerPressedEventArgs e)
         {
-            if (!popup.IsOpen || !(popup.IsLightDismissEnabled || popup.GetValue(Presentation.MotionProperty) is not null) || CardOf(popup) is not { } card) return;
+            if (!popup.IsOpen || !(popup.IsLightDismissEnabled || popup.GetValue(Presentation.MotionProperty) is not null) || popup.Child is not PopoverCard card) return;
             if (card.HitTest(e.GetPosition(card))) return;
             if (popup.GetValue(Presentation.MotionProperty) is not null) Presentation.DismissMotion(popup);
             else popup.IsOpen = false;
@@ -200,7 +190,7 @@ public static class PopoverHost
             host = found;
             host?.AddHandler(InputElement.PointerPressedEvent, PressBeside, RoutingStrategies.Tunnel, handledEventsToo: true);
             Track(popup, host);
-            CardOf(popup)?.Shown(host); // its window's see-through glass, including a site's existing card
+            if (popup.Child is PopoverCard card) card.Shown(host); // its window's see-through glass
             Release();
             if (popup.PlacementTarget is { } target && WindowTransients.WindowOf(target) is { } owner) release = Listen(popup, owner, () => popup.IsOpen);
         };
@@ -208,7 +198,7 @@ public static class PopoverHost
         {
             Detach();
             Release();
-            CardOf(popup)?.Hidden();
+            if (popup.Child is PopoverCard card) card.Hidden();
         };
     }
 
@@ -306,7 +296,7 @@ public static class PopoverHost
             hooks.Add(popup, new Hooked(host, null, null));
             return;
         }
-        var hook = PassPressesBeside(() => CardOf(popup), window);
+        var hook = PassPressesBeside(() => popup.Child as PopoverCard, window);
         WindowProcedure.Current.Add(window, hook);
         hooks.Add(popup, new Hooked(host, window, hook));
     }
@@ -350,7 +340,7 @@ public static class PopoverHost
     // layout, and not the ones the popup had when the card was made.
     private static void Wrap(Popup popup)
     {
-        if (popup.GetValue(SiteCardProperty) is not null || popup.Child is null or PopoverCard || Facing(popup) is not { } edge) return;
+        if (popup.Child is null or PopoverCard || Facing(popup) is not { } edge) return;
         var content = popup.Child;
         popup.Child = null;
         var card = new PopoverCard { Child = content, TipEdge = edge, AnchorSource = () => popup.PlacementTarget, AnchorRect = () => popup.PlacementRect, ShadowRoom = true };

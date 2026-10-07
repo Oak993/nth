@@ -31,10 +31,6 @@ public sealed class VoiceSession : IAudioCaptureSink
     private readonly VoiceSessionHub hub;
     private readonly SpeechLabel label = new();
     private readonly AudioLevelMeter meter = new();
-    private readonly VoiceDesignScript? script;
-    private readonly List<WorkItem> scriptTimers = [];
-    private readonly LevelFollowers scriptBands = new();
-    private double scriptLabelAt, scriptVoice;
 
     private VoiceSessionState state = VoiceSessionState.Rest;
     private VoiceSessionSettings? active;
@@ -70,13 +66,12 @@ public sealed class VoiceSession : IAudioCaptureSink
     private TaskHandle? finalTask;
 
     public VoiceSession(Func<VoiceSessionSettings> settings, Action<VoiceTypingSettings> storeTyping, VoiceSeamSet? seams = null,
-        VoiceSessionHub? hub = null, VoiceDesignScript? script = null)
+        VoiceSessionHub? hub = null)
     {
         this.settings = settings;
         this.storeTyping = storeTyping;
         this.seams = seams ?? VoiceSeamSet.Ambient;
         this.hub = hub ?? VoiceSessionHub.Shared.Current;
-        this.script = script;
     }
 
     public VoiceSessionState State => state;
@@ -91,17 +86,10 @@ public sealed class VoiceSession : IAudioCaptureSink
     public TimeSpan BufferedAudio => transcriber?.HeldAudio ?? TimeSpan.Zero;
 
     /// <summary>The pill's state now (V-6.3).</summary>
-    public VoiceLabelState Label
-    {
-        get
-        {
-            if (script is not null && state == VoiceSessionState.Listening) StepScriptLabel();
-            return label.State(SwiftClock.Now);
-        }
-    }
+    public VoiceLabelState Label => label.State(SwiftClock.Now);
 
     /// <summary>The pill's words now, from the set the session started with (V-12.9).</summary>
-    public string LabelText => VoicePillWordSets.Word((active ?? settings()).Orb.Labels, Label);
+    public string LabelText => label.Words((active ?? settings()).Orb.Labels, SwiftClock.Now);
 
     /// <summary>The language this session decodes in: a Whisper code or "auto" (V-7.13); null before a session starts.</summary>
     public string? ResolvedLanguage => resolution?.Language;
@@ -122,8 +110,7 @@ public sealed class VoiceSession : IAudioCaptureSink
     /// The raw level and bands of the audio being listened to (V-5.3), published from the processing thread at 60 Hz of the signal (VT-11, for the orb and the glow, which smooth them
     /// with <see cref="LevelFollowers"/> on the UI thread, V-5.5). The values come from the processing thread, but this property reads the session's state, which is UI-thread only: read it on the UI thread (the meter's own <c>Latest</c> is the any-thread part); zero outside Listening.
     /// </summary>
-    public LevelBands AudioLevel => state == VoiceSessionState.Listening
-        ? script?.Level((SwiftClock.Now - listenStart).TotalSeconds) ?? meter.Latest : LevelBands.Zero;
+    public LevelBands AudioLevel => state == VoiceSessionState.Listening ? meter.Latest : LevelBands.Zero;
 
     /// <summary>Q-V-6 B: true from 270 s of listening until the cap at 300 s.</summary>
     public bool CapCountdownActive => state == VoiceSessionState.Listening && countdownActive;
@@ -189,7 +176,6 @@ public sealed class VoiceSession : IAudioCaptureSink
     /// <summary>Esc or the cross (V-14.4). Outside Listening and Processing it does nothing here.</summary>
     public void Cancel()
     {
-        if (script is not null) { suppressSend = true; sendTimer?.Cancel(); }
         switch (state)
         {
             case VoiceSessionState.Listening or VoiceSessionState.Processing:
@@ -228,7 +214,6 @@ public sealed class VoiceSession : IAudioCaptureSink
     /// <summary>The composer is leaving the screen (V-14.7): stop as a second click would; the text lands and is never sent.</summary>
     public void ComposerLeaving()
     {
-        if (script is not null) { suppressSend = true; sendTimer?.Cancel(); }
         hub.Dequeue(this);
         switch (state)
         {
@@ -384,7 +369,6 @@ public sealed class VoiceSession : IAudioCaptureSink
             CapCountdownStarted?.Invoke();
         });
         SetState(VoiceSessionState.Listening);
-        if (script is not null) StartScript();
         var gen = generation;
         var wait = loadWait;
         _ = MainActor.Spawn(async () =>
@@ -536,11 +520,6 @@ public sealed class VoiceSession : IAudioCaptureSink
         countdownTimer?.Cancel();
         countdownActive = false;
         StopCapture();
-        if (script is not null)
-        {
-            FinishScript();
-            return;
-        }
         FlushPending();
         if (!current.SawSpeech && shown.Count == 0)
         {
@@ -670,7 +649,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         TranscriptChanged?.Invoke(new TranscriptUpdate(TranscriptUpdateKind.Landing, ink, solid));
         var text = string.Join(' ', solid.Select(w => w.Text));
         if (!suppressSend && text.Length > 0 && settings().Orb.AfterVoice == VoiceAfterVoice.Send)
-            sendTimer = MainActor.AsyncAfter(SendDelay + (script is null ? TimeSpan.Zero : LandingLength), () => SendRequested?.Invoke(new SendIntent(text, SendIntentKind.AsReturn)));
+            sendTimer = MainActor.AsyncAfter(SendDelay, () => SendRequested?.Invoke(new SendIntent(text, SendIntentKind.AsReturn)));
         landingTimer = MainActor.AsyncAfter(LandingLength, () =>
         {
             if (state != VoiceSessionState.Landing) return;
@@ -749,7 +728,6 @@ public sealed class VoiceSession : IAudioCaptureSink
     private void Teardown()
     {
         generation += 1;
-        StopScriptTimers();
         capTimer?.Cancel();
         countdownTimer?.Cancel();
         processingTimer?.Cancel();
@@ -762,93 +740,6 @@ public sealed class VoiceSession : IAudioCaptureSink
         transcriber = null;
         sessionEngine = null;
         pending.Clear();
-    }
-
-    // CZ-4.7.1: fake recognition inputs at the design's exact STREAM times; state, landing, send and cancel remain this session's.
-    private void StartScript()
-    {
-        var design = script!;
-        var gen = generation;
-        scriptBands.Reset();
-        scriptVoice = scriptLabelAt = 0;
-        foreach (var e in design.Events)
-        {
-            scriptTimers.Add(MainActor.AsyncAfter(TimeSpan.FromSeconds(e.At), () =>
-            {
-                if (gen != generation || state != VoiceSessionState.Listening) return;
-                var next = shown.ToList();
-                var ops = new List<WordOp>();
-                if (e.Add)
-                {
-                    if (e.Index > 0)
-                    {
-                        next[e.Index - 1] = next[e.Index - 1] with { Tentative = false };
-                        ops.Add(WordOp.Confirm(e.Index - 1));
-                    }
-                    next.Add(new TranscriptWord(e.Text, true));
-                    ops.Add(WordOp.Add(e.Index, e.Text, true));
-                }
-                else
-                {
-                    next[e.Index] = next[e.Index] with { Text = e.Text };
-                    ops.Add(WordOp.Revise(e.Index, e.Text));
-                }
-                ApplyLive(new TranscriptDelta(ops, next, Math.Max(0, next.Count - 1), "en"));
-            }));
-        }
-        // The design's synthetic speaker ends listening at SYN.end + .35 (CZ-4.7.3).
-        scriptTimers.Add(MainActor.AsyncAfter(TimeSpan.FromSeconds(design.End + .35), () =>
-        {
-            if (gen == generation && state == VoiceSessionState.Listening) Stop(VoiceStopReason.Click);
-        }));
-    }
-
-    // The design evaluates the synthetic speaker's smoothed level on a frame, before its label.
-    // Advance that input on reads; no extra timer, frame requests or per-frame allocations.
-    private void StepScriptLabel()
-    {
-        var elapsed = (SwiftClock.Now - listenStart).TotalSeconds;
-        while (scriptLabelAt < elapsed)
-        {
-            var dt = Math.Min(1.0 / 60, elapsed - scriptLabelAt);
-            scriptLabelAt += dt;
-            scriptBands.Step(script!.Level(scriptLabelAt), dt);
-            var target = scriptBands.Bands.All;
-            scriptVoice += (target - scriptVoice) * (1 - Math.Exp(-dt / (target > scriptVoice ? .12 : .45)));
-            label.SetSpeech(scriptVoice > .16, listenStart + TimeSpan.FromSeconds(scriptLabelAt));
-        }
-    }
-
-    private void FinishScript()
-    {
-        StopScriptTimers();
-        var plan = script!.Final((SwiftClock.Now - listenStart).TotalSeconds, shown);
-        if (shown.Count == 0 && plan.Ops.Count == 0)
-        {
-            Teardown();
-            SetState(VoiceSessionState.Rest);
-            hub.Release(this);
-            return;
-        }
-        SetState(VoiceSessionState.Processing);
-        label.Finish();
-        var next = shown.ToList();
-        foreach (var item in plan.Ops)
-        {
-            var op = item.Op;
-            if (op.Kind == WordOpKind.Add) next.Add(new TranscriptWord(op.Text!, true));
-            else if (op.Kind == WordOpKind.Revise) next[op.Index] = next[op.Index] with { Text = op.Text! };
-        }
-        shown = next;
-        if (next.Count > 0) detectedLanguage = "en";
-        TranscriptChanged?.Invoke(new TranscriptUpdate(TranscriptUpdateKind.Final, plan.Ops, shown));
-        processingTimer = MainActor.AsyncAfter(plan.ProcessingDuration(TimeSpan.Zero), EnterLanding);
-    }
-
-    private void StopScriptTimers()
-    {
-        foreach (var timer in scriptTimers) timer.Cancel();
-        scriptTimers.Clear();
     }
 
     private void SetState(VoiceSessionState next)

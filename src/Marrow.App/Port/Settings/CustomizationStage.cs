@@ -11,7 +11,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port.Settings;
-using Marrow.Core.Port.Voice;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Settings;
@@ -60,8 +59,7 @@ internal sealed class CustomizationStage : Decorator
     /// <param name="backdropOpacity">The app's backdrop opacity, the stage's own backdrop wearing it; read inside a tracked read.</param>
     /// <param name="session">The preview's maker and state (CZ-4.5.3, CZ-4.6).</param>
     /// <param name="workingDots">CZ-5: the working dots' setting as the app holds it, read inside a tracked read; null leaves the dots in the accent.</param>
-    internal CustomizationStage(Func<ComposerLightSettings> settings, Func<double> backdropOpacity, PreviewSession session, Func<WorkingDotsSettings>? workingDots = null,
-        Func<VoiceOrbSettings>? voiceOrb = null, Func<VoiceTypingSettings>? voiceTyping = null)
+    internal CustomizationStage(Func<ComposerLightSettings> settings, Func<double> backdropOpacity, PreviewSession session, Func<WorkingDotsSettings>? workingDots = null)
     {
         this.settings = settings;
         this.session = session;
@@ -112,82 +110,6 @@ internal sealed class CustomizationStage : Decorator
         this.Track(settings, value => { Preview.Settings = value; Caption.SetText(Describe()); });
         this.Track(backdropOpacity, opacity => backdrop.Update(opacity, null));
         if (workingDots is not null) this.Track(workingDots, value => Preview.WorkingDots = value);
-        if (voiceOrb is not null)
-        {
-            Preview.EnableVoice(voiceOrb, voiceTyping ?? (() => VoiceTypingSettings.Default));
-            FadeCrossedLines();
-        }
-    }
-
-    // CZ-9.7: only text crossed by the floating pill fades. Compaction still owns Chat's overall opacity/translation.
-    private void FadeCrossedLines()
-    {
-        var heading = new CrossedLines(ChatHeading, Surface);
-        var body = new CrossedLines(ChatBody, Surface);
-        void Place() { heading.Place(Preview.VoicePill!); body.Place(Preview.VoicePill!); }
-        Preview.VoicePill!.FloatTargetChanged += Place;
-        Preview.Pill.LayoutUpdated += (_, _) => Place();
-        Chat.LayoutUpdated += (_, _) => Place();
-    }
-
-    // Mask the individual shaped lines, keeping the paragraph's original inlines, glyphs and line breaking.
-    // The chat's outer opacity remains the compaction opacity; a crossed line never hides its neighbours.
-    private sealed class CrossedLines
-    {
-        private readonly TextBlock text;
-        private readonly Control surface;
-        private readonly LookMotion motion;
-        private readonly LinearGradientBrush mask = new() { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative) };
-        private readonly List<LookNumber> levels = [];
-        private readonly List<(double Top, double Height)> bands = [];
-
-        public CrossedLines(TextBlock text, Control surface)
-        {
-            this.text = text;
-            this.surface = surface;
-            motion = new LookMotion(text);
-            motion.Frame += Apply;
-            text.OpacityMask = mask;
-        }
-
-        public void Place(Voice.VoicePillSlot pill)
-        {
-            var lines = text.TextLayout.TextLines;
-            if (levels.Count != lines.Count)
-            {
-                levels.Clear(); bands.Clear(); mask.GradientStops.Clear();
-                for (var i = 0; i < lines.Count; i++)
-                {
-                    levels.Add(new LookNumber(motion, 1)); bands.Add(default);
-                    mask.GradientStops.Add(new GradientStop(Colors.White, 0));
-                    mask.GradientStops.Add(new GradientStop(Colors.White, 1));
-                }
-            }
-            Rect? crossed = pill.FloatTarget is { } floating && pill.TranslatePoint(floating.TopLeft, surface) is { } p ? new Rect(p, floating.Size) : null;
-            var origin = text.TranslatePoint(default, surface);
-            double y = 0;
-            for (var i = 0; i < lines.Count; i++)
-            {
-                var line = lines[i];
-                bands[i] = (y, line.Height);
-                var hit = crossed is { } rect && origin is { } at && rect.Intersects(new Rect(at.X + line.Start, at.Y + y, line.Width, line.Height));
-                levels[i].To(hit ? 0 : 1, LookCurve.Ease(hit ? .16 : .25), hit ? 0 : .05);
-                y += line.Height;
-            }
-            Apply();
-        }
-
-        private void Apply()
-        {
-            var height = Math.Max(1, text.Bounds.Height);
-            for (var i = 0; i < levels.Count; i++)
-            {
-                var color = Color.FromArgb((byte)Math.Round(levels[i].Value * 255), 255, 255, 255);
-                mask.GradientStops[2 * i].Offset = bands[i].Top / height;
-                mask.GradientStops[2 * i + 1].Offset = (bands[i].Top + bands[i].Height) / height;
-                mask.GradientStops[2 * i].Color = mask.GradientStops[2 * i + 1].Color = color;
-            }
-        }
     }
 
     /// <summary>CZ-3.5.1: puts the block <paramref name="y"/> below where it lies at rest: a transform only, nothing is laid out again.</summary>
