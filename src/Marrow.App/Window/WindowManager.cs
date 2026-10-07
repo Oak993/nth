@@ -232,7 +232,8 @@ public sealed class WindowManager
         // Windows' downward y (the top edge is `up` less the bottom edge and the height), and, a position being whole
         // pixels, to pixels at the main window's scale.
         var top = up - centered.Bottom;
-        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(centered.X * scale)), checked((int)SwiftNumber.Rounded(top * scale)));
+        var inset = window.Content is SettingsShell shell ? shell.Inset : 0;
+        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded((centered.X - inset) * scale)), checked((int)SwiftNumber.Rounded((top - inset) * scale)));
     }
 
     // :46-54 The source's point-space calculation, shared with the headless edge-case tests. A missing screen
@@ -306,6 +307,7 @@ public sealed class WindowManager
     private AvaloniaWindow MakeSettingsWindow()
     {
         var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow()); // :81
+        if (settingsView is not null) SettingsShell.Install(window);
         WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
         // DEVIATION OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, every colour in it
         // easing 0.32 s as the locked accent board's window does (SPEC 6.5), where the source changes it in one frame.
@@ -360,7 +362,7 @@ public sealed class WindowManager
                 return;
             }
             if (ReferenceEquals(window, settingsWindow) && settingsView is { } view && window.IsVisible
-                && settingsRise is not { Done: false } && !EnvironmentValues.GetAccessibilityReduceMotion(window))
+                && settingsRise is { Done: true } && !EnvironmentValues.GetAccessibilityReduceMotion(window))
             {
                 if (settingsClose is not { Done: false }) settingsClose = new SettingsClose(window, view);
                 return;
@@ -422,7 +424,8 @@ public sealed class WindowManager
                 WindowChrome.SetCaptionHover(window, IsCaptionButton(wParam, window) ? (int)wParam : 0);
                 if (!state.TrackingLeave && OperatingSystem.IsWindows() && hWnd != 0)
                 {
-                    var track = new TrackMouseEventInfo { Size = (uint)Marshal.SizeOf<TrackMouseEventInfo>(), Flags = TME_LEAVE | TME_NONCLIENT, Window = hWnd };
+                    var trackWindow = window.Content is SettingsShell { Input: { } input } ? input.Handle : hWnd;
+                    var track = new TrackMouseEventInfo { Size = (uint)Marshal.SizeOf<TrackMouseEventInfo>(), Flags = TME_LEAVE | TME_NONCLIENT, Window = trackWindow };
                     state.TrackingLeave = TrackMouseEvent(ref track);
                 }
                 break;
@@ -573,7 +576,8 @@ public sealed class WindowManager
         {
             // Preserve the proven P7 keyboard-menu anchor at the leading caption, not (' ', 0).
             if (!GetWindowRect(hWnd, out var frame)) return false;
-            point = new ScreenPoint(frame.Left + 8, frame.Top + 44);
+            var inset = window.Content is SettingsShell shell ? (int)Math.Round(shell.Inset * window.RenderScaling) : 0;
+            point = new ScreenPoint(frame.Left + inset + 8, frame.Top + inset + 44);
         }
         var command = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, point.X, point.Y, hWnd, 0);
         if (command != 0) _ = PostMessage(hWnd, WM_SYSCOMMAND, (nint)command, 0);
@@ -637,6 +641,7 @@ public sealed class WindowManager
     // is the content rect (:93-96) and nothing is added; before the first show the platform reports the standard overlapped
     // frame instead (+39 px of caption), which centred the window 11 to 15 px too high (WindowInvisibleBorder).
     private static Avalonia.Size FrameSizeOf(AvaloniaWindow window) =>
+        window.Content is SettingsShell { Inset: > 0 } shell ? new Avalonia.Size(shell.Client.Width, shell.Client.Height) :
         window.TryGetPlatformHandle() is { Handle: not 0 } handle && handle.HandleDescriptor == "HWND"
             ? new Avalonia.Size(window.Width, window.Height)
             : new Avalonia.Size(window.Width, window.Height) + (window.FrameSize is { } frame ? frame - window.ClientSize : default);

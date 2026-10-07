@@ -16,6 +16,7 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Testing;
 using Marrow.UI.Port;
 using HostWindow = Avalonia.Controls.Window;
@@ -63,6 +64,9 @@ internal static class Program
         AppBuilder.Configure<Application>().UsePlatformDetect().WithSwiftFonts().WithPortControlThemes().SetupWithoutStarting();
         MainActor.Bind(AvaloniaMainExecutor.Instance);
         using var harness = new AppModelHarness(withRuntime: false);
+        StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.Create(Path.Combine(output, "wallpaper-data")));
+        using var wallpaper = Marrow.UI.Theme.WallpaperStore.Shared.Override(
+            (Marrow.UI.Theme.WallpaperStore)Activator.CreateInstance(typeof(Marrow.UI.Theme.WallpaperStore), nonPublic: true)!);
         FrameClock.Source.SetProcessDefault(frames);
         SwiftClock.Provider.SetProcessDefault(time);
         manager = WindowManager.Shared;
@@ -100,6 +104,11 @@ internal static class Program
             var screen = window.Screens.ScreenFromWindow(window) ?? throw new InvalidOperationException("No screen.");
             var scale = screen.Scaling;
             var work = screen.WorkingArea;
+            var shellInset = window.Content is Control shell && shell.GetType().GetProperty("Inset", Members)?.GetValue(shell) is double padding ? padding : 0;
+            var innerPosition = new PixelPoint(window.Position.X + (int)Math.Round(shellInset * scale), window.Position.Y + (int)Math.Round(shellInset * scale));
+            var expectedPosition = new PixelPoint(work.X + (int)Math.Round((work.Width - 780 * scale) / 2), work.Y + (int)Math.Round((work.Height - 580 * scale) / 3));
+            File.WriteAllText(Path.Combine(output, "centering.json"), JsonSerializer.Serialize(new { innerPosition, expectedPosition, scale }));
+            if (innerPosition != expectedPosition) throw new InvalidOperationException($"Visible Settings centering changed: {innerPosition}, expected {expectedPosition}.");
             if (work.Width < 1100 * scale || work.Height < 760 * scale) throw new InvalidOperationException("Probe needs a work area fitting 1100 x 760 DIPs.");
             window.RequestedThemeVariant = light ? ThemeVariant.Light : ThemeVariant.Dark;
             window.Topmost = true;
@@ -108,15 +117,17 @@ internal static class Program
             backdrop = new HostWindow
             {
                 WindowDecorations = WindowDecorations.None, ShowInTaskbar = false, ShowActivated = false,
-                Topmost = true, Width = 1080, Height = 740, Position = new PixelPoint(work.X, work.Y),
+                Topmost = true, Width = 1400, Height = 1100, Position = new PixelPoint(work.X, work.Y),
                 Content = new Stripes(),
                 Template = new FuncControlTemplate<HostWindow>((owner, _) => new ContentPresenter { Content = owner.Content }),
             };
             backdrop.Show();
             window.UpdateLayout();
             if (EnvironmentValues.GetAccessibilityReduceMotion(window)) throw new InvalidOperationException("Animation effects must be enabled for the motion capture; run Reduce Motion separately.");
-            origin = window.PointToScreen(default);
-            size = PixelSize.FromSize(window.ClientSize, window.RenderScaling);
+            var client = window.Content is Control content
+                && content.GetType().GetProperty("Client", Members)?.GetValue(content) is Control inner ? inner : window;
+            origin = client.PointToScreen(default);
+            size = PixelSize.FromSize(client.Bounds.Size, window.RenderScaling);
             return true;
         });
         await Task.Delay(350); // draw while cloaked; no UI-thread sleep
@@ -139,15 +150,22 @@ internal static class Program
         if (graph is null) throw new InvalidOperationException("RR-37: pinned WinUI native graph is unavailable.");
         Capture("open", 0);
         double previous = 0;
+        steppedSeconds = 0; steppedTicks = 0;
         for (var i = 1; i <= 16; i++)
         {
             var t = Math.Min(i / 60.0, .260);
             await Step(t - previous); previous = t;
             Capture("open", t);
         }
+        {
+            var input = await Ui(() => SettingsInputProbe.CheckInput(window,
+                (Control)window.Content!.GetType().GetProperty("Client", Members)!.GetValue(window.Content)!, backdrop));
+            File.WriteAllText(Path.Combine(output, "input.json"), JsonSerializer.Serialize(input, new JsonSerializerOptions { WriteIndented = true }));
+        }
         await Ui(() => { window.Close(); return true; });
         Capture("close", 0);
         previous = 0;
+        steppedSeconds = 0; steppedTicks = 0;
         for (var i = 1; i <= 10; i++)
         {
             var t = Math.Min(i / 60.0, .160);
@@ -172,6 +190,39 @@ internal static class Program
             var item = live[i];
             item.Image.SavePng(Path.Combine(output, $"{item.Phase}-{i:00}-{item.Seconds * 1000:0000}ms.png"));
         }
+        await CheckWorkflows();
+    }
+
+    private static async Task CheckWorkflows()
+    {
+        await Ui(() => { manager.ShowSettings(SettingsPage.Appearance); return true; });
+        await Task.Delay(800);
+        var client = await Ui(() => (Control)window.Content!.GetType().GetProperty("Client", Members)!.GetValue(window.Content)!);
+        var generalPoint = await Ui(() => client.PointToScreen(new Point(80, 100)));
+        var uia = NativeUiaProbe.PropertiesAt(generalPoint);
+        File.WriteAllText(Path.Combine(output, "uia.json"), JsonSerializer.Serialize(uia));
+        var name = uia["Name"];
+        if (name != "General") throw new InvalidOperationException($"UIA ElementFromPoint lost the named sidebar button: '{name}'.");
+        await Ui(() => { SettingsInputProbe.ClickGeneral(window, client); return true; });
+        await Task.Delay(150);
+        var page = await Ui(() => SettingsInputProbe.Page(window));
+        if (!page.Contains("General", StringComparison.Ordinal)) throw new InvalidOperationException("Input forwarding did not open General: " + page);
+        await Ui(() => { manager.ShowSettings(SettingsPage.Appearance); return true; });
+        await Task.Delay(150);
+        await Ui(() => { window.UpdateLayout(); SettingsInputProbe.BringWallpaperIntoView(window); return true; });
+        await Task.Delay(400);
+        var source = Path.Combine(output, "probe-drop.png");
+        ScreenGrab.Of(0, 0, 8, 8).SavePng(source); // disposable actual PNG, never an owner's wallpaper/file
+        var drop = await Ui(() => SettingsInputProbe.Drop(window, source));
+        for (var i = 0; i < 50 && !await Ui(SettingsInputProbe.WallpaperInstalled); i++) await Task.Delay(100);
+        if (!await Ui(SettingsInputProbe.WallpaperInstalled)) throw new InvalidOperationException("Wallpaper did not install the scratch OLE drop.");
+        await Ui(() => { SettingsInputProbe.Minimize(window, client); return true; });
+        await Task.Delay(250);
+        if (!await Ui(() => window.WindowState == WindowState.Minimized)) throw new InvalidOperationException("The native Minimize caption did not minimize Settings.");
+        await Ui(() => { manager.ShowSettings(); return true; });
+        await Task.Delay(250);
+        if (!await Ui(() => window.WindowState == WindowState.Normal)) throw new InvalidOperationException("Settings did not restore from Minimize.");
+        File.WriteAllText(Path.Combine(output, "workflows.json"), JsonSerializer.Serialize(new { uiaName = name, selected = page, drop, minimizedAndRestored = true }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static async Task RecordLive(string phase, int count, List<(string, double, ScreenGrab)> images)
@@ -187,15 +238,27 @@ internal static class Program
     }
     private static async Task Step(double by)
     {
-        await Ui(() => { var span = TimeSpan.FromSeconds(by); time.Advance(span); frames.Advance(span); return true; });
+        // Quantize the absolute requested phase, not every delta. .NET 10 truncates delta
+        // FromSeconds, leaving the old nominal160 pose 600 ns before the hide deadline.
+        steppedSeconds += by;
+        var ticks = (long)Math.Round(steppedSeconds * TimeSpan.TicksPerSecond);
+        var span = TimeSpan.FromTicks(ticks - steppedTicks);
+        steppedTicks = ticks;
+        await Ui(() => { time.Advance(span); frames.Advance(span); return true; });
         await Task.Delay(100);
     }
+    private static double steppedSeconds;
+    private static long steppedTicks;
     private static void Capture(string phase, double seconds)
     {
         DwmFlush();
-        var image = ScreenGrab.Of(origin.X - 20, origin.Y - 20, size.Width + 40, size.Height + 40);
+        var whole = ScreenGrab.Of(origin.X - 200, origin.Y - 200, size.Width + 400, size.Height + 400);
+        var wholeFolder = Path.Combine(output, "whole-shell");
+        Directory.CreateDirectory(wholeFolder);
+        whole.SavePng(Path.Combine(wholeFolder, $"{phase}-{seconds * 1000:0000}ms.png"));
+        var image = ProbeScreenCrop.Crop(whole, 180, 180, size.Width + 40, size.Height + 40);
         image.SavePng(Path.Combine(output, $"{phase}-{seconds * 1000:0000}ms.png"));
-        var stripe = ScreenGrab.Of(origin.X + 30, origin.Y + size.Height - 18, 120, 8);
+        var stripe = ProbeScreenCrop.Crop(whole, 230, 200 + size.Height - 18, 120, 8);
         samples.Add(new { phase, seconds, contrast = stripe.StripeContrast(), mean = stripe.MeanLuma(), native = Ui(NativeState).GetAwaiter().GetResult() });
     }
     private static object? NativeState()

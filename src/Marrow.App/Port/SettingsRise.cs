@@ -106,6 +106,8 @@ internal sealed class SettingsRiseLayout
     {
         var layout = new SettingsRiseLayout();
         layout.Glass.Add(view.RiseBackdrop);
+        if (TopLevel.GetTopLevel(view) is AvaloniaWindow { Content: SettingsShell shell })
+            layout.Glass.Add(shell.Shadow);
         if (view.RiseSheet is { } sheet)
             foreach (var child in sheet.Children)
                 if (child is Shape) layout.Glass.Add(child); // DetailSheetModifier's wash and tint (Chrome.swift:195-196)

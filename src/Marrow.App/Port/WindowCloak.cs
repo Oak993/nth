@@ -19,7 +19,13 @@ internal static class WindowCloak
         if (!OperatingSystem.IsWindows()) return false;
         if (window.TryGetPlatformHandle() is not { Handle: not 0 } handle || handle.HandleDescriptor != "HWND") return false;
         var value = cloaked ? 1 : 0;
-        return DwmSetWindowAttribute(handle.Handle, DwmwaCloak, ref value, sizeof(int)) == 0;
+        SettingsShell.SuppressNonClient(window);
+        var success = DwmSetWindowAttribute(handle.Handle, DwmwaCloak, ref value, sizeof(int)) == 0;
+        if (success && window.Content is SettingsShell { Input: { } input })
+        {
+            if (cloaked) input.Hide(); else input.Reveal();
+        }
+        return success;
     }
 
     [DllImport("dwmapi.dll")]
