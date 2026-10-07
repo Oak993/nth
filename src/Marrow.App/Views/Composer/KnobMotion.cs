@@ -106,6 +106,8 @@ public sealed class KnobSignal
     public double Charge { get; private set; }
     public double Flare { get; private set; }
     public KnobPhase Phase { get; private set; }
+    public int? MixK { get; private set; }
+    public bool? MixTwin { get; private set; }
 
     /// <summary>
     /// True when the shaped light has reached the raw one: the charge's settle is over, the flare's hold is over and both of
@@ -158,7 +160,7 @@ public sealed class KnobSignal
     /// </summary>
     public int Strikes(StrikeGeometry g, int seed, double t)
     {
-        if (!Equals(exitsFor, g)) { exits.Clear(); exitsFor = g; }
+        if (exitsFor != g) { exits.Clear(); exitsFor = g; }
         count = 0;
         var k0 = (int)Math.Floor(t / Strike.Period);
         for (var k = k0 - 2; k <= k0 + 1; k++)
@@ -192,7 +194,7 @@ public sealed class KnobSignal
         double charge = 0, flare = 0;
         var phase = KnobPhase.Rest;
         double? phaseAt = null;
-        var n = g is null ? 0 : Strikes(g, seed, t);
+        var n = g is null ? 0 : Strikes(g.Value, seed, t);
         // orbAim(g, list, 0, 1): the exit angles averaged on the circle, each weighted by its envelope
         double sx = 0, sy = 0, latest = double.NegativeInfinity, th = ExitAngle;
         for (var i = 0; i < n; i++)
@@ -212,6 +214,41 @@ public sealed class KnobSignal
         charge *= gain; flare *= gain;
         Phase = phase;
         Shape(charge, flare, clock);
+    }
+
+    // P:1482-1504, E:714-738: the production Mix signal; legacy Read/Part stay unchanged.
+    public void ReadMix(StrikeGeometry g, StrikePlans pool, double t, double clock, double gain = 1)
+    {
+        double charge = 0, flare = 0, sx = 0, sy = 0, latest = double.NegativeInfinity, th = ExitAngle;
+        var phase = KnobPhase.Rest; double? phaseAt = null; var active = 0; MixK = null; MixTwin = null;
+        var k0 = (int)Math.Floor(t / 2.4);
+        for (var k = k0 - 2; k <= k0 + 1; k++)
+        {
+            var timing=pool.TimingFor(k);
+            if(!Active(timing)&&!(timing.Event==2&&Active(pool.TimingFor(k,true))))continue;
+            var p = pool.Get(g, k); ReadPlan(p); if (p.Twin is { } twin) ReadPlan(twin);
+        }
+        if (active > 0) ExitAngle = sx * sx + sy * sy > 1e-12 ? Math.Atan2(sy, sx) : th;
+        Phase = phase; Shape(charge * gain, flare * gain, clock);
+
+        bool Active(StrikeTiming timing) {var age=t-timing.At;return age>=-timing.Lead-timing.Charge&&age<=1.9;}
+
+        void ReadPlan(StrikePlan plan)
+        {
+            var b = plan.Timing; var a = t - b.At; if (a < -b.Lead - b.Charge || a > 1.9) return; active++;
+            double pc, pf; KnobPhase pp;
+            if (a >= 0) { pc = a < 0.2 ? 1 : 0; pf = Math.Min(1, Math.Max(b.Pulse(a), 0.3 * Math.Exp(-a / 0.45))); pp = a < 0.2 ? KnobPhase.Strike : a < 0.85 ? KnobPhase.Settle : KnobPhase.Rest; }
+            else if (b.Event == 3) { var q = Math.Clamp((a + b.Lead) / b.Lead, 0, 1); pc = 0.23 * q * q; pf = 0; pp = KnobPhase.Charge; }
+            else if (a >= -b.Lead) { pc = 1; pf = 0.62 * Math.Exp(-(a + b.Lead) / 0.06); pp = KnobPhase.Strike; }
+            else if (b.Charge == 0 || a < -b.Lead - b.Charge) { pc = pf = 0; pp = KnobPhase.Rest; }
+            else { pc = Math.Pow(Strike.Ss(0, 1, (a + b.Lead + b.Charge) / b.Charge), 1.3); pf = 0; pp = KnobPhase.Charge; }
+            if (pc > charge) charge = pc; if (pf > flare) flare = pf;
+            if (pp > phase || pp == phase && phaseAt is { } previous && b.At > previous) { phase = pp; phaseAt = b.At; MixK = b.K; MixTwin = b.IsTwin; }
+            var a0 = -b.Lead - b.Charge; var env = b.Event == 3 ? Strike.Ss(-b.Lead, 0, a) : Strike.Ss(a0, a0 + 0.08, a);
+            var wt = (env * Math.Exp(-Math.Max(0, a) / 0.5) + 1e-4) * (1 - Strike.Ss(1.7, 1.9, a));
+            sx += wt * Math.Cos(plan.ExitAngle); sy += wt * Math.Sin(plan.ExitAngle);
+            if (b.At > latest) { latest = b.At; th = plan.ExitAngle; }
+        }
     }
 
     // shape(st, t)

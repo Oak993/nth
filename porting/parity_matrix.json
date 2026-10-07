@@ -7,10 +7,10 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3944,
+      "IMPLEMENTED": 3953,
       "RETIRED": 15,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "SPECIFIED": 11
+      "SPECIFIED": 2
     },
     "by_area": {
       "CHAT": 193,
@@ -7398,7 +7398,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Literal sRGB component values (the accent's 22 percent mix toward white in Color.mix(with:by:)'s default perceptual space, Oklab: ED-286, OD-0098); the gradient is a left-to-right linear gradient across the text's bounds, whose colours drift slowly along the letters at rest (OD-0094).",
       "verification_method": "capture comparison of the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7406,6 +7406,21 @@
         "decision": "OD-0094",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:543-555 titleStyle: wherever the title is a gradient (a pair's lead-to-heads colours, Antigravity's Gemini sweep at maximum, the brand into gold at maximum with fast mode) it is a static LinearGradient(leading to trailing); its colours move along the letters only while the text changes (2-chat-use.mov, study/effort-title-2026-10-03)",
         "port": "Wherever the title is drawn as a gradient its colours also drift slowly along the letters at rest (OD-0094): a mirrored, seamless loop (MorphingTextBlock.DriftPeriod = 7 s, ENGINEERING DECISION ED-238) on one phase with a change's own drawing (a change takes the drift over and hands it back without a jump), still under reduce motion, frames only while the title is shown. A single-colour title (the accent mix, fast mode's gold alone, a solid brand title) is unchanged; the colours, their order and the 0.3 s smooth changes are the source's."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderCardTests",
+          "EffortSliderSweepTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7523,7 +7538,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string, same reserved height. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062. OD-0090: the reserved height is the knob's, 48 px (EffortSlider.ThumbSize = round(1.4 x the 34 px track)), not the source's 42 (DroppyCode/App/Views/Composer/EffortSlider.swift:713, :624), so the card still keeps one height between models, as the source intends.",
       "verification_method": "capture comparison against a model with efforts",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7532,6 +7547,21 @@
         "decision": "OD-0090",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:620-624 `if efforts.isEmpty { Text(\"This model has one reasoning level.\")...frame(height: EffortSlider.thumbSize) }` with :713 `static let thumbSize: CGFloat = 42`: the note occupies 42 points of height",
         "port": "The note occupies 48 px of height, the knob's (EffortSlider.ThumbSize = 48, round(1.4 x the 34 px track): OD-0090, ED-252), so the effort card keeps one height between models, as the source intends; the string, the .callout style and Chrome.secondaryText are unchanged."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderKnobRecordsTests",
+          "EffortSliderSweepTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7667,7 +7697,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same geometry, with the knob's 48 px in place of the source's 42 (OD-0090): stop centres a knob radius (24 px) in from each end, step = (width - 48) / (count - 1), the fill x + 24 wide, the 34 px track centred in the 48 px control, as DroppyCode/App/Views/Composer/EffortSlider.swift:746-760 with the larger thumb (the page: the knob is 1.4 times the tube's height, work/design/jewel-knob-locked/jewel-knob.html:390-391; stopX = kn / 2 + i * (W - kn) / (stops - 1), :393; the fill is x + r wide, :590). The knob is the Jewel orb of OD-0090 (the locked page work/design/jewel-knob-locked/jewel-knob.html and its sources, work/design/jewel-knob-locked/; its material and colours are UI-COMPOSER-035's), not the source's glass lens: the glow disc (:781-785) and the Liquid Glass lens with its white 0.55/0.32 tint and its black 0.14 edge (:786-792) are not ported, so OD-0005's glass rule and OD-0014's clear-window scrim do not apply to the knob (the orb is drawn by its own shader, not the app's glass material). The scale ports as the lift: 1.06x about the knob's centre (work/design/jewel-knob-locked/jewel-knob.html:526 LIFT = 1.06, :585), with the knob's own shadow (--knobShadow, :21 dark, :35 light) and, as it lifts, a deeper one (:118) faded in with the lift (:597); the springs are PR-COMPOSER-125's. The knob is drawn at the opacity the slider is shown at (the model list's switch fades the slider, DroppyCode/App/Views/Composer/EffortSlider.swift:183, :187): the orb, its shadow and the lift's shadow each at that opacity.",
       "verification_method": "capture comparison at three and five stops",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7675,6 +7705,23 @@
         "decision": "OD-0090",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:713 `static let thumbSize: CGFloat = 42`, so :746 `inset = Self.thumbSize / 2` is 21, :748 step = (width - inset * 2) / (count - 1) and :759 the fill is x + inset wide; :781-796 the knob is a 42 by 42 ZStack of a blurred glow disc (:782-785 `Circle().fill(look.glow).blur(radius: look.kind == .plain ? 4 : 8).offset(y: 1)`) under a clear circle with `.glassEffect(.regular.tint(Color.white.opacity(look.isLightFill ? 0.55 : 0.32)).interactive(), in: Circle())` (:786-788) and a black 0.14 strokeBorder only on a light fill (:790-792), scaled 1.06 while dragging (:795)",
         "port": "The knob is the 48 px Jewel orb (OD-0090, ED-252): its diameter is 1.4 times the 34 px track's height (47.6, rounded to 48; work/design/jewel-knob-locked/jewel-knob.html:390), so it stands 7 px proud of the track above and below and sits flush with the track's end at either extreme; stop centres sit a knob radius (24 px) in from each end (step = (width - 48) / (count - 1)) and the fill runs to the knob's far edge (x + 24), as DroppyCode/App/Views/Composer/EffortSlider.swift:746-760 with the larger thumb; the glow disc and the Liquid Glass lens with its tint and black edge are not drawn; pressed, the knob lifts to 1.06x where it is, with a shadow that deepens as it lifts (work/design/jewel-knob-locked/jewel-knob.html:526, :118, :597)."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderJewelKnobTests",
+          "EffortSliderJewelOpacityTests",
+          "EffortSliderJewelOrbTests",
+          "EffortSliderKnobRecordsTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7724,7 +7771,7 @@
       "cancellation": "A cancelled gesture or a lost pointer capture releases the knob exactly as a release does: it springs onto the nearest stop and back to 1x (OD-0090; work/design/jewel-knob-locked/jewel-knob.html:556-557 pointerup, pointercancel and lostpointercapture all run the same release; the source leaves dragX set until the next gesture, with no cancellation handler).",
       "windows_path": "The springs are the locked page's, whose numbers are the source's (response 0.22 s, damping 0.8 held; 0.32 s, 0.78 released), applied as in expected_result; the drag keeps the grip's offset and rounds the knob's centre to the nearest stop (OD-0090). Haptics have no Windows equivalent and are dropped silently, never substituted with sound (port_impacts X8(e)).",
       "verification_method": "interaction test dragging across all stops",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7732,6 +7779,24 @@
         "decision": "OD-0090",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:801-818 DragGesture(minimumDistance: 0): the first change sets dragX to the pointer's x inside .spring(response: 0.22, dampingFraction: 0.8) (:805), later changes set it directly (:807), nearestStop is taken of the pointer's x (:809, :833-836), and onEnded clears dragX inside .spring(response: 0.32, dampingFraction: 0.78) (:815-816); the knob is scaled 1.06 while dragX is set (:795); there is no cancellation handler",
         "port": "Pressed on the knob, it lifts to 1.06x where it is (never sliding sideways) and keeps the grip's offset while it follows the pointer; pressed on the track away from the knob, it springs to the pointer; the stop is the nearest to the knob's centre, changing as the centre passes the midpoint between two stops; the springs are the locked page's physical spring(), response 0.22 s damping 0.8 held and 0.32 s damping 0.78 released (work/design/jewel-knob-locked/jewel-knob.html:447-452, :546, :556, :585), integrated in steps of at most 4 ms, a drawn frame moving them by at most 50 ms (:813); on release it springs onto the nearest stop and back to 1x; a lost pointer capture releases as a release does (:557)."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderJewelKnobTests",
+          "EffortSliderJewelLoopTests",
+          "EffortSliderJewelReviewR6Tests",
+          "EffortSliderJewelWiringTests",
+          "EffortSliderKnobRecordsTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7751,7 +7816,7 @@
       "cancellation": "not cancellable",
       "windows_path": "UI Automation RangeValue or a custom adjustable pattern with the same two names. OD-0090: the control's height is the knob's, 48 px (EffortSlider.ThumbSize), where the source reserves 42 points (DroppyCode/App/Views/Composer/EffortSlider.swift:820, :713); and an increment or decrement springs the knob onto its new stop from where it is (response 0.2 s, damping 1: the locked page's keyboard step, work/design/jewel-knob-locked/jewel-knob.html:565) instead of the source's smooth 0.3 on a look change and a cut otherwise (DroppyCode/App/Views/Composer/EffortSlider.swift:799), every change transitioned (OD-0076).",
       "verification_method": "accessibility inspection test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7759,6 +7824,21 @@
         "decision": "OD-0090",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:820 `.frame(height: Self.thumbSize)` with :713 `static let thumbSize: CGFloat = 42`: the control reserves 42 points of height; :824-830 the adjustable action writes index with no animation of its own, so the knob's move is a cut, or smooth(0.3) only when the look changes (:799)",
         "port": "The control reserves 48 px of height, the knob's (OD-0090, ED-252); an increment or decrement springs the knob onto its new stop from where it is, response 0.2 s damping 1 (the locked page's keyboard step, work/design/jewel-knob-locked/jewel-knob.html:565), instead of a cut. The label, the value and the clamped adjustable action are unchanged."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderJewelKnobTests",
+          "EffortSliderKnobRecordsTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7779,7 +7859,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same table, same ordering of pair over kind.",
       "verification_method": "capture comparison of all four looks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7787,6 +7867,22 @@
         "decision": "OD-0075",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:729-738 the four looks, with :760-767 overlaying an effect only when the kind is not plain or a pair exists (a plain look with no pair draws nothing over its fill), and :798-799 animating a look change over smooth(0.3)",
         "port": "The 2x2 mapping of (maximum effort, fast mode) onto plain, supercharged, fast and fusion is unchanged, but every kind draws the liquid effect, the plain one too (OD-0075, \"liquid at every effort level\", settling OD-0072; EffortSlider.IsLiquid is true for every look): plain is the maker's liquid, supercharged the same liquid, fast and fusion the liquid with Strike over it (OD-0073). The fill under the liquid is the brand's in every solo kind (PR-COMPOSER-128), so a solo look change moves the effect, not the fill: the effect crossfades over smooth(0.3) (PR-COMPOSER-132) and the fill follows over smooth(0.3) wherever it does change (a pair joining or leaving). The per-model and per-effort shade of OD-0063 belongs to the colour engine (unbuilt): until it is built every effort wears the maker's palette (ED-286)."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderPlainLiquidTests",
+          "EffortSliderSweepTests",
+          "EffortSliderTrackTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7807,7 +7903,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Literal sRGB values; gradients are horizontal across the fill's own bounds, which change width as the knob moves.",
       "verification_method": "capture comparison per provider brand",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7815,6 +7911,22 @@
         "decision": "OD-0075; OD-0073",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:985-998 TrackLook.fill: `.plain` is Chrome.accent (:990), `.supercharged` brand.fill (:991), `.fast` EffortPalette.fastFill, `.fusion` the brand-to-fastFill gradient (:992-996)",
         "port": "The plain track is the liquid too (OD-0075), so the fill under it is the brand's fill, as at maximum: Claude and DeepSeek their solid colour, Purple its solid, Meta, Silver, Antigravity and the OD-0047 brands their gradients; the accent is no longer a track colour. A pair's gradient ([lead fill] + the heads' colours) is unchanged. Fast and fusion keep the brand's fill under their Strike (OD-0073, ED-248)."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderPlainLiquidTests",
+          "EffortSliderSweepTests",
+          "EffortSliderTrackTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7914,7 +8026,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same identity rule; the effect's clock origin must survive a kind change in the pair case.",
       "verification_method": "capture comparison across a kind change with a pair active",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7922,6 +8034,21 @@
         "decision": "OD-0075",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:760-767 overlays the effect only when the kind is not plain or a pair exists, so a plain look with no pair has no effect view at all (the record's failure case: \"A plain look with no pair draws no effect at all\")",
         "port": "Every solo look has an effect (OD-0075): there is no look without one, so the failure case does not apply. The identity rule is unchanged: a look change without a pair replaces the effect (the old one fades out over smooth(0.3) keeping its own clock, the new one fades in from time 0, plain included), a look change that keeps the kind (one non-maximum effort to another) keeps the same effect, and with a pair the identity ignores the kind, so the effect keeps its instance and its clock."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderPlainLiquidTests",
+          "EffortSliderTrackTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -7943,7 +8070,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A composition-timer abstraction per port_impacts X8(b), with the same two rates and the same two pause conditions.",
       "verification_method": "instrumented frame-count test over ten seconds in each mode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7951,6 +8078,20 @@
         "decision": "OD-0051; OD-0075",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050 `TimelineView(.animation(minimumInterval: 1.0 / (kind == .supercharged && pair == nil ? 30 : 60)`: a supercharged track without a pair ticks at 30",
         "port": "Every effect ticks at 60: the solo supercharged track is the liquid tube (OD-0051) and, since OD-0075, so is the plain track (liquid at every effort level), so the 30 Hz case does not exist. The pauses (reduced motion, a window that is not in front), the 8 point guard (:1053), the hit-test and accessibility rules (:1070-1071) are the source's."
+      },
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-NEW-strike-10",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderCadenceTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {

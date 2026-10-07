@@ -46,12 +46,8 @@ public sealed class EffortSliderBubbleRimTests(HeadlessSession headless)
     // the same liquid and bubbles drawn directly, the rims dark or light as asked
     private static SKBitmap Direct(TrackEffect effect, double seconds, bool dark)
     {
-        var spec = LiquidSpec.For(effect.Look);
-        var theme = effect.Child!.ActualThemeVariant;
-        using var bitmap = new RenderTargetBitmap(new PixelSize(Width, Height));
-        using (var context = bitmap.CreateDrawingContext())
-            LiquidTrack.Draw(context, new Size(Width, Height), Width, seconds, spec, effect.Gradient(spec, Width, theme), effect.Bubbles(Width, Height), dark, theme, LiquidFlow.At(seconds, false));
-        return Decode(bitmap);
+        // SPEC 7/C-05: v22/simmer lanes with the neutral rim at alpha*ink; independent retained state, exact pixels.
+        return MixTrackFixtures.Draw(effect.Look,effect.StrikeGeometryFor(new Size(Width,Height)),effect.StrikeSeed,effect.Bubbles(Width,Height).Seed,seconds,effect.StrikeOffset,inkAmount:dark?1:0);
     }
 
     private static bool Same(SKColor a, SKColor b) => a == b;

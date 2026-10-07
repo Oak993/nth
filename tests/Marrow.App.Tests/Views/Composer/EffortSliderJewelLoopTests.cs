@@ -119,7 +119,9 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
         var seed = effect.StrikeSeed;
         // into strike 0's reading (from its charge, 0.14 + its charge s before it strikes, to 1.9 s after): every frame below
         // reads it, so the knob's exit angle is the strike's, from where its bolt leaves
-        var reading = Strike.StrikeAt(0, seed) - Strike.Lead - KnobSignal.ChargeOf(0, seed);
+        var first=(int)Math.Floor(effect.StrikeFrameTime/2.4)-1;
+        var plan=Enumerable.Range(first,12).Select(k=>StrikeMix.Timing(k,seed)).First(p=>p.At-p.Lead-p.Charge>effect.StrikeFrameTime&&p.Charge>0);
+        var reading = plan.At-plan.Lead-plan.Charge-effect.StrikeOffset;
         rig.Frame(Math.Max(1.0 / 60, reading + 0.02 - effect.TimeAt(SwiftDate.Now)));
         // on the track, at stop 2 (below the top: the look stays fast, the same effect): the knob springs from its stop to
         // the pointer
@@ -134,10 +136,10 @@ public sealed class EffortSliderJewelLoopTests(HeadlessSession headless)
             var x = rig.Slider.KnobX;
             var g = effect.StrikeGeometryFor(effect.Bounds.Size); // the bolt the tube draws this frame, laid out for the knob at x
             Assert.Equal(TrackEffect.ExitAt(x), g.Knob, 9);
-            var t = effect.TimeAt(SwiftDate.Now);
+            var t = effect.StrikeFrameTime;
             var page = new KnobSignal();
-            Assert.True(page.Strikes(g, seed, t) > 0, $"frame {i}: strike 0 is read at {t}");
-            page.Read(g, seed, t, 0);
+            page.ReadMix(g,new StrikePlans(seed),t,0); // SPEC A-21/B-10: the production Mix signal and shared strike time.
+            Assert.NotNull(page.MixK);
             Assert.True(Math.Abs(page.ExitAngle - rig.Slider.Signal.ExitAngle) < 1e-12,
                 $"frame {i}, the knob at {x} (from {last}): the bolt drawn leaves at {g.Knob} for an exit angle {page.ExitAngle}; the knob read {rig.Slider.Signal.ExitAngle}");
             if (TrackEffect.ExitAt(x) != TrackEffect.ExitAt(last)) moved++;

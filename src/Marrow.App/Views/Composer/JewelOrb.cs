@@ -933,11 +933,12 @@ internal static class JewelNative
 internal sealed class JewelKnobOperation : ICustomDrawOperation
 {
     private readonly Action<JewelKnobOperation>? giveBack;
+    private readonly Action<float[]>? update;
     private int given;
 
-    public JewelKnobOperation(Rect bounds, Rect box, float[] values, JewelCpuKnob? cpu = null, Action<JewelKnobOperation>? giveBack = null)
+    public JewelKnobOperation(Rect bounds, Rect box, float[] values, JewelCpuKnob? cpu = null, Action<JewelKnobOperation>? giveBack = null, Action<float[]>? update = null)
     {
-        Bounds = bounds; Box = box; Values = values; Cpu = cpu; this.giveBack = giveBack;
+        Bounds = bounds; Box = box; Values = values; Cpu = cpu; this.giveBack = giveBack; this.update = update;
     }
 
     public Rect Bounds { get; private set; }
@@ -959,6 +960,8 @@ internal sealed class JewelKnobOperation : ICustomDrawOperation
 
     public void Render(ImmediateDrawingContext context)
     {
+        update?.Invoke(Values);
+        if (Values[0] <= 0) return;
         var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()
             ?? throw new InvalidOperationException("The Jewel knob needs the Skia renderer (ISkiaSharpApiLeaseFeature).");
         using var lease = feature.Lease();
