@@ -1154,3 +1154,8 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 
 - **Owner, verbatim (to: may I run a short local check per service with your signed-in apps: open a throwaway chat, load a short test history, confirm nothing ran, delete it; no message is sent to any AI):** "Yes, all installed"
 - **Effect:** the lead may run that check once per installed CLI service (Codex and any other installed one) using the owner's existing sign-ins: a throwaway chat or session, a short test history loaded without a model turn, a check that nothing ran, then deletion. No message is sent to any AI, no credentials are typed, no settings are changed. Extends OD-0122.
+
+## OD-0125 V-T133 judges the voice pill against the approved design (2026-10-07)
+
+- **Owner, verbatim (to the lead's proposal: the speck detector stays as it is, but a speck fails only when the approved design page, drawn in Chrome at the same size, state and background, has no speck within 1 pixel of the same spot):** "Do whatever is your recommendation on this issue. I'm tired of dragging this. I need to get this port completed."
+- **Effect:** the lead's recommendation is adopted. V-T133's detector (7x7 median, more than 8 levels, small components, ink and ball exclusions) is unchanged. A speck on the port's pill fails the test unless the approved design page voice-composer.html, rendered in Chrome at the same scale, state, theme and backdrop, has a speck within 1 pixel of the same spot. The Chrome renders are generated once by a checked-in script, locked as test references with their hashes, and never regenerated to make a failure pass. Every other test, tolerance and reference stays unchanged (OD-0121, OD-0123).
