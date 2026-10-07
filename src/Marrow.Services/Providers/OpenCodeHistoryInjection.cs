@@ -41,15 +41,26 @@ public static partial class OpenCodeHistoryInjection
             foreach (var path in paths.EnumerateObject())
             {
                 if (!path.Name.StartsWith("/session/", StringComparison.Ordinal) || !path.Name.EndsWith("/message", StringComparison.Ordinal)) continue;
-                if (path.Value.ValueKind != JsonValueKind.Object || !path.Value.TryGetProperty("post", out var post)) continue;
-                var text = post.GetRawText();
-                if (text.Contains("\"noReply\"", StringComparison.Ordinal)) return true;
-                foreach (Match reference in SchemaReference().Matches(text))
+                if (path.Value.ValueKind != JsonValueKind.Object || !path.Value.TryGetProperty("post", out var post)
+                    || post.ValueKind != JsonValueKind.Object || !post.TryGetProperty("requestBody", out var body)
+                    || body.ValueKind != JsonValueKind.Object || !body.TryGetProperty("content", out var content)
+                    || content.ValueKind != JsonValueKind.Object || !content.TryGetProperty("application/json", out var json)
+                    || json.ValueKind != JsonValueKind.Object || !json.TryGetProperty("schema", out var schema)
+                    || schema.ValueKind != JsonValueKind.Object) continue;
+                if (schema.TryGetProperty("$ref", out var reference))
                 {
-                    if (root.TryGetProperty("components", out var components) && components.TryGetProperty("schemas", out var schemas)
-                        && schemas.TryGetProperty(reference.Groups[1].Value, out var schema) && schema.GetRawText().Contains("\"noReply\"", StringComparison.Ordinal))
-                        return true;
+                    if (reference.ValueKind != JsonValueKind.String || reference.GetString() is not { } value) continue;
+                    var match = SchemaReference().Match(value);
+                    if (!match.Success || match.Value != value || !root.TryGetProperty("components", out var components)
+                        || components.ValueKind != JsonValueKind.Object || !components.TryGetProperty("schemas", out var schemas)
+                        || schemas.ValueKind != JsonValueKind.Object || !schemas.TryGetProperty(match.Groups[1].Value, out schema)
+                        || schema.ValueKind != JsonValueKind.Object) continue;
                 }
+                if (schema.TryGetProperty("properties", out var properties) && properties.ValueKind == JsonValueKind.Object
+                    && properties.TryGetProperty("noReply", out var noReply) && noReply.ValueKind == JsonValueKind.Object
+                    && (!noReply.EnumerateObject().Any()
+                        || noReply.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "boolean"))
+                    return true;
             }
         }
         catch (JsonException)
