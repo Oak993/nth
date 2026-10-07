@@ -1,0 +1,13 @@
+{
+  "porting/STATE.md": {
+    "unchangedBasePrefix": true,
+    "baseBytes": 138713,
+    "baseSHA256": "6a8213df5138824fa78ef2ac2912cc013c5c56a635bde9459d8cde278cf34fb0"
+  },
+  "porting/engineering_decisions.md": {
+    "unchangedBasePrefix": true,
+    "baseBytes": 2201957,
+    "baseSHA256": "64259c2496dd1c2d3ff54bd2b9d404a76e2a147ea5b2de775809db058d935066"
+  },
+  "RR11ImplementationExcluded": true
+}

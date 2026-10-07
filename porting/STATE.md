@@ -924,3 +924,5 @@ T9 group05 retained integration READY (2026-10-07), ED-585: reviewed voice-gaps-
 2026-10-07 codex/cz-7b-fix: restore withheld CZ-7b plus ED-584 guards on d919636fa, excluding RR-11. NOT READY: unchanged Windows preview 15P/7F; timing/focus fixture evidence and scoped proposal in own scratch/handoff. Prior integration history retained byte-exact.
 
 2026-10-07 CZ-7b-fix scoped fixture exception: conserve the requested total clock ticks and focus the mounted Spoken language menu. Existing assertions unchanged, two stronger focus preconditions. Preview22P/0F; full App case comparison pending. No production timer/focus change.
+
+2026-10-07 CZ-7b-fix READY on tested d0f2cdbab: seven original identities twice-alone14P, affectedApp237P; rawApp10568P235F10803, full225-case before/after change list retained. All76 non-OD failures pass twice alone154P; unchanged OD-0128 fixed159 aliases/matrix only; V-T132224P, A12/B8. Source/test repair and approved fixture exception are separate commits. No RR-11/native/app/packaging work. Report: porting/first-release/reports/CZ-7b-Windows-fix/README.md.
