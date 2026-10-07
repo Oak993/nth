@@ -1,0 +1,18 @@
+# RR-18 custom-source API (Round 2)
+
+Public namespace: `Marrow.Services.Port.Skills.Custom`. The open root's `SkillsHost.CustomSources` implements `ICustomAddBackend`:
+
+```csharp
+Task<IReadOnlyList<CustomAddCandidate>> Check(CustomAddRequest request, CancellationToken cancel);
+Task<OwnItem> Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel);
+```
+
+`CustomAddKind`: Plugins / Skills / Tools. `CustomAddSource`: Folder / Zip / GitHub. Request fields: Kind, Source, Location, Name, Command. Candidate fields: Key, Name, Description, Problem. This mirrors T36's internal UI request/candidate records; its adapter can convert enums/records and await Add, ignoring the returned OwnItem. Retain the exact candidate from Check. Keys belong to that host and validated frozen snapshot; forged, consumed and stale keys fail. `Discard` releases unselected snapshots. A candidate with Problem is listed but cannot be added. An empty list means no matching manifests were found. Validation/read errors throw and are suitable for the sheet's error presentation.
+
+A skill needs SKILL.md with a valid name and description. A plugin needs `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json` with a valid name. A tool source needs one MZ Windows `.exe`, a display name and a valid command; all adjacent files are retained. The backend copies inputs and never executes their code. ZIP roots can contain several found items. GitHub accepts a public repository URL or owner/repository, resolves HEAD to a full commit, and fetches only that commit's codeload archive. Branch/path URLs and private repositories are not supported by this API.
+
+`List(kind)`, `SetEnabled(id, enabled)`, `Remove(id)`, `Commands()`, `PluginDirectories()` and `Snapshot()` expose the persisted own library. The registry is `skills/own/registry.json`; payloads and command entries live under `skills/own/items/<id>`. This is separate from provider imports (`skills/imported`, OD-0118) and managed catalogue state. Reset of downloaded catalogue items leaves own copies, as it leaves imported copies; explicit Remove deletes an own copy. No original user source is written or removed. Registry records include source kind/location, full GitHub commit and archive URL where applicable, source fingerprint, check time and exact installed file size/SHA-256 inventory. No licence or equivalence is invented for user content.
+
+Publish a private item tree first, then atomically replace the registry. Failed registry publication rolls back the tree and preserves the validation token for retry. Commands become registered only through the committed registry, survive reopening and disappear when disabled/removed. Commands are per-item `.cmd` entries beside the copied payload; command enumeration verifies all installed bytes before returning paths. Provider PATH binding and plugin generation integration are reported separately in the final Round 2 report.
+
+All filesystem and GitHub effects have injectable ports (`ICustomSourceFiles`, `ICustomGitHubSource`; `SkillsHostOptions.CustomFiles/CustomGitHub`). New tests use in-memory files and archive bytes; no real filesystem source reads, network, downloads, installers or provider sessions. Production traversal rejects links/reparse points, unsafe Windows paths, duplicate/colliding archive paths and excessive input (4096 files / 128 MiB). These limits are engineering resource bounds, not catalogue size facts.
