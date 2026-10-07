@@ -4,6 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port.Voice;
+using Marrow.App.Port.Voice.Cuda;
+using Avalonia.Threading;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.UI.Chrome;
@@ -79,6 +81,24 @@ internal sealed class VoiceHardwareCard : Decorator
         stack.Children.Add(TitleRow);
         stack.Children.Add(ProbeFold);
         stack.Children.Add(RecommendationFold);
+        var offer = CudaOfferComposition.Factory.Current();
+        if (offer is not null)
+        {
+            CudaOfferView? cuda = null;
+            void Changed(CudaOfferRow row) => Dispatcher.UIThread.Post(() => cuda?.Apply(row));
+            cuda = new CudaOfferView(action =>
+            {
+                if (action == CudaOfferAction.Download) _ = offer.StartAsync();
+                else if (action == CudaOfferAction.Cancel) offer.Cancel();
+            }, () => offer.Changed -= Changed);
+            stack.Children.Add(cuda);
+            AttachedToVisualTree += (_, _) =>
+            {
+                offer.Changed += Changed;
+                cuda.Apply(offer.Row);
+                _ = offer.EvaluateAsync(CancellationToken.None);
+            };
+        }
         stack.Children.Add(Preference);
         stack.Children.Add(Note);
         Child = new ChromeCard(() => stack);
