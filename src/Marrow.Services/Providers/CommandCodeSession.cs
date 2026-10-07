@@ -45,8 +45,11 @@ namespace Marrow.Services.Providers;
 // PR-PROVCLI-248. FinishEdit now delegates to the shared EditSnapshots.Finish, which also fixes a B2
 // defect: before/after were compared with C# ordinal == instead of the Swift `!=`'s canonical
 // (NFC/NFD) equivalence (SwiftString.Equal).
-public sealed class CommandCodeSession : ProviderSession
+public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime
 {
+    private Task skillReadersExited = Task.CompletedTask;
+    public Task SkillReadersExited => skillReadersExited;
+
     /// <summary>The result line, kept until the process is gone so the turn closes in order. :60-64</summary>
     private sealed record RunResult
     {
@@ -237,6 +240,7 @@ public sealed class CommandCodeSession : ProviderSession
             turnActive = false;
             throw new ProviderError(new ProviderError.Case.Failed($"Command Code could not start: {error.Message}"));
         }
+        skillReadersExited = Task.WhenAll(skillReadersExited, process.WaitForExit()); // RR-15: hold every per-turn reader
         process.Write(Encoding.UTF8.GetBytes(Prompt(input))); // :194
         process.CloseInput(); // :195
         OnEvent?.Invoke(new ProviderEvent.TurnStarted(null)); // :196

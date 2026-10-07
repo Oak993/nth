@@ -31,7 +31,7 @@ using Marrow.Services.Store;
 namespace Marrow.Services.Providers;
 
 // :11-1059. @MainActor final class -> sealed class used only on main (R-ISO-1).
-public sealed class CodexSession : ProviderSession
+public sealed class CodexSession : ProviderSession, Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime
 {
     // :22-26. R-ENUM-2: associated-value enum -> abstract record with nested sealed records. Only the type is
     // needed by this part (HandleClose reads pendingRequests' keys only); the cases are populated by
@@ -62,6 +62,8 @@ public sealed class CodexSession : ProviderSession
 
     private readonly SessionConfiguration configuration; // :35
     private readonly CodexSkillWiring? skills;            // PORT-ONLY (SK-11b, WU-7): null is the Mac's behaviour, byte for byte
+    private JSONRPCConnection? skillsReader;
+    public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
     private JSONRPCConnection? connection;                // :36
     private string? threadID;                             // :37
     private string? turnID;                               // :38
@@ -112,6 +114,7 @@ public sealed class CodexSession : ProviderSession
             configuration.Environment,
             c =>
             {
+                skillsReader = c; // RR-15: retained through failed initialization and Stop
                 c.OnNotification = HandleNotification; // :73
                 c.OnRequest = HandleRequest;            // :74
                 c.OnClose = HandleClose;                // :75

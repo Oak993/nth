@@ -1,0 +1,80 @@
+{
+  "base": "285b6b7a99b39e0e517f34c8d34a1860c945f83f",
+  "current_code_commit": "4b1be326 (subsequent fixture-helper/metadata adjustments do not change assertions or production code)",
+  "new_skills_failures": [],
+  "baseline_skills_failures": [
+    "Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: \"saved\", method: \"session/load\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: \"session/new\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: True)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: \"prior-conversation\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null)",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: True)"
+  ],
+  "final_skills_failures": [
+    "Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: \"saved\", method: \"session/load\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: \"session/new\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: True)",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop",
+    "Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: \"prior-conversation\")",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null)",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: False)",
+    "Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: True)"
+  ],
+  "summaries": {
+    "core-full": [
+      "Failed!  - Failed:   281, Passed:  2128, Skipped:     0, Total:  2409, Duration: 5 s - Marrow.Core.Tests.dll (net10.0)",
+      "Test Run Aborted."
+    ],
+    "baseline-core": [
+      "Failed!  - Failed:   434, Passed:  3027, Skipped:     0, Total:  3461, Duration: 36 s - Marrow.Core.Tests.dll (net10.0)",
+      "Test Run Aborted."
+    ],
+    "core-skills-final": [
+      "Passed!  - Failed:     0, Passed:   479, Skipped:     0, Total:   479, Duration: 13 s - Marrow.Core.Tests.dll (net10.0)"
+    ],
+    "baseline-skills": [
+      "Failed!  - Failed:    16, Passed:   860, Skipped:    48, Total:   924, Duration: 4 s - Marrow.Services.Tests.dll (net10.0)"
+    ],
+    "skills-final": [
+      "Failed!  - Failed:    16, Passed:   891, Skipped:    48, Total:   955, Duration: 19 s - Marrow.Services.Tests.dll (net10.0)"
+    ],
+    "new-services-final": [
+      "Passed!  - Failed:     0, Passed:    31, Skipped:     0, Total:    31, Duration: 338 ms - Marrow.Services.Tests.dll (net10.0)"
+    ],
+    "app-final": [
+      "Passed!  - Failed:     0, Passed:    63, Skipped:     0, Total:    63, Duration: 894 ms - Marrow.App.Tests.dll (net10.0)"
+    ],
+    "services-full": [
+      "Attempting to cancel the build..."
+    ],
+    "services-trace-final": [
+      "Passed!  - Failed:     0, Passed:    34, Skipped:     0, Total:    34, Duration: 353 ms - Marrow.Services.Tests.dll (net10.0)"
+    ],
+    "traceability-core": [
+      "Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 147 ms - Marrow.Core.Tests.dll (net10.0)"
+    ]
+  },
+  "full_services_attempt": {
+    "reported_failures": 1300,
+    "termination": "Interrupted after about eight minutes of unsupported Windows native fixtures and repeated fake-HTTP/FileWatcher timeouts; no complete green run or overall total claimed."
+  },
+  "full_core_limit": "Both branch and detached base abort from unavailable kernel32.dll; asynchronous crash timing differs, so overall counts do not prove equivalence."
+}

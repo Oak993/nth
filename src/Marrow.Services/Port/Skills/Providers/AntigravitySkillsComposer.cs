@@ -13,6 +13,10 @@ public static class AntigravitySkillsComposer
         => PrepareForProvider(host, "agy", chat, directory, home, budget);
 
     internal static Generation PrepareForProvider(SkillsHost host, string provider, string chat, string directory, string home, GenerationBudget budget)
+        => PrepareForProvider(host, provider, chat, directory, home, budget, [], null);
+
+    internal static Generation PrepareForProvider(SkillsHost host, string provider, string chat, string directory, string home, GenerationBudget budget,
+        IEnumerable<string> extraPaths, string? providerHome)
     {
         var items = new List<GenerationItem>();
         var held = new List<StoreLease>();
@@ -39,12 +43,13 @@ public static class AntigravitySkillsComposer
                     return new GenerationSkill(item.Catalogue.Id, disclosure.Name, path, disclosure.Description,
                         ReviewedGroup(disclosure.Name), 0, false);
                 }).ToArray();
-                items.Add(new GenerationItem(item, skills)); // agy is skills-only: never copy plugin hooks, commands or MCP.
+                items.Add(new GenerationItem(item, skills, item.Catalogue.Kind == Marrow.Core.Port.Skills.Catalogue.ItemKind.Plugin ? "" : null));
             }
             var switches = SkillSwitches.Load(host.Paths.EnabledFile);
             if (string.IsNullOrWhiteSpace(switches.Version))
                 switches = new(host.Pipeline.CatalogueVersion, switches.Skills, switches.Plugins);
-            var existing = new SkillClashScanner(home, directory, RepositoryRoot(directory)).Scan(provider);
+            var existing = new SkillClashScanner(home, directory, RepositoryRoot(directory)).Scan(provider, extraPaths,
+                host.ProviderSkills.Existing(provider, directory), providerHome: providerHome);
             return host.Generations.Start(provider, chat, items, switches, budget, existing);
         }
         finally { foreach (var lease in held) lease.Dispose(); }

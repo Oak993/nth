@@ -68,6 +68,10 @@ public sealed record SessionConfiguration
     public Marrow.Services.Port.Skills.Generations.Generation? SkillGeneration { get; init; }
     // PORT-ONLY SK-17: the app's private stdio relay entry point, never an executable supplied by downloaded skills.
     public string? SkillMcpExecutable { get; init; }
+    // PORT-ONLY RR-15: explicit host paths and per-chat request_tool flow; never inferred from downloaded files.
+    public string? SkillDataRoot { get; init; }
+    public string? SkillHome { get; init; }
+    public Marrow.Services.Port.Skills.Providers.IToolRequestOffer? SkillToolOffer { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.

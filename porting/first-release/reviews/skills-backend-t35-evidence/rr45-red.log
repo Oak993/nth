@@ -1,0 +1,27 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:06.08]     Marrow.Services.Tests.Port.Skills.Import.KeepBothMaximumNameTests.Maximum_names_keep_the_suffix_and_remain_distinct_after_reopen(mode: Link) [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Import.KeepBothMaximumNameTests.Maximum_names_keep_the_suffix_and_remain_distinct_after_reopen(mode: Link) [5 s]
+  Error Message:
+   System.TimeoutException : The operation has timed out.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Import.KeepBothMaximumNameTests.Maximum_names_keep_the_suffix_and_remain_distinct_after_reopen(ImportMode mode) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Import/KeepBothMaximumNameTests.cs:line 23
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:11.08]     Marrow.Services.Tests.Port.Skills.Import.KeepBothMaximumNameTests.Maximum_names_keep_the_suffix_and_remain_distinct_after_reopen(mode: Copy) [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Import.KeepBothMaximumNameTests.Maximum_names_keep_the_suffix_and_remain_distinct_after_reopen(mode: Copy) [5 s]
+  Error Message:
+   System.TimeoutException : The operation has timed out.
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Import.KeepBothMaximumNameTests.Maximum_names_keep_the_suffix_and_remain_distinct_after_reopen(ImportMode mode) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Import/KeepBothMaximumNameTests.cs:line 23
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 10 s - Marrow.Services.Tests.dll (net10.0)

@@ -1993,41 +1993,56 @@ public sealed class ThreadRuntime : MainActorModel
             if (apiKey.Length == 0)
                 throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
 
-            ProviderSession MakeApiSession(string? resumeID)
+            async Task<ProviderSession> MakeApiSession(string? resumeID)
             {
-                var configuration = new SessionConfiguration
+                var launchEpoch = sessionEpoch;
+                await pendingSkillRelease;
+                var environment = app.Providers.Environment(thread.Provider);
+                var skills = await Marrow.App.Port.Skills.ProviderSkills.Prepare.Current(thread.Provider, ThreadID.ToString("N"), directory, environment);
+                try
                 {
-                    Provider = thread.Provider,
-                    Executable = null,
-                    WorkingDirectory = SessionDirectoryUrl(directory),
-                    Environment = app.Providers.Environment(thread.Provider),
-                    ResumeID = resumeID,
-                    ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
-                    Model = thread.Model,
-                    Effort = thread.Effort,
-                    FastMode = thread.FastMode,
-                    RuntimeMode = thread.RuntimeMode,
-                    InteractionMode = thread.InteractionMode,
-                    ApiKey = apiKey,
-                    Hydra = hydra,
-                    Transcript = ApiTranscript(),
-                    IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
-                    AntiSlopEnabled = signature.AntiSlopEnabled,
-                };
+                    if (SwiftTask.IsCancelled || sessionEpoch != launchEpoch) throw new CancellationError();
+                    var configuration = new SessionConfiguration
+                    {
+                        Provider = thread.Provider,
+                        Executable = null,
+                        WorkingDirectory = SessionDirectoryUrl(directory),
+                        Environment = environment,
+                        ResumeID = resumeID,
+                        ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
+                        Model = thread.Model,
+                        Effort = thread.Effort,
+                        FastMode = thread.FastMode,
+                        RuntimeMode = thread.RuntimeMode,
+                        InteractionMode = thread.InteractionMode,
+                        ApiKey = apiKey,
+                        Hydra = hydra,
+                        Transcript = ApiTranscript(),
+                        IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
+                        AntiSlopEnabled = signature.AntiSlopEnabled,
+                        SkillGeneration = skills,
+                        SkillDataRoot = Storage.Root,
+                        SkillHome = LoginEnvironment.HomeDirectory,
+                        SkillToolOffer = SkillsOffers,
+                    };
 
-                ProviderSession created = thread.Provider switch
-                {
-                    ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1490
-                    ProviderKind.Meta => new MetaSession(configuration),
-                    ProviderKind.Zai => new ZaiSession(configuration),
-                    ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
-                    _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
-                };
-                Observe(created);
-                return created;
+                    ProviderSession created = thread.Provider switch
+                    {
+                        ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1490
+                        ProviderKind.Meta => new MetaSession(configuration),
+                        ProviderKind.Zai => new ZaiSession(configuration),
+                        ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
+                        _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
+                    };
+                    ((OpenAICompatibleSession)created).SkillTools = Marrow.Services.Port.Skills.Providers.SkillSessionFactory.NativeTools(configuration);
+                    if (skills is not null) sessionSkills.Add(created, skills);
+                    Observe(created);
+                    return created;
+                }
+                catch { skills?.Dispose(); throw; }
             }
 
-            ProviderSession candidate = MakeApiSession(thread.ProviderSessionID);
+            ProviderSession candidate = await MakeApiSession(thread.ProviderSessionID);
             session = candidate;
             sessionSignature = signature;
             var started = false;
@@ -2045,7 +2060,7 @@ public sealed class ThreadRuntime : MainActorModel
                     && !SwiftTask.IsCancelled)
                 {
                     ReleaseSession(stop: true);
-                    candidate = MakeApiSession(resumeID: null);
+                    candidate = await MakeApiSession(resumeID: null);
                     session = candidate;
                     sessionSignature = signature;
                     sessionID = await candidate.Start();
@@ -2074,12 +2089,14 @@ public sealed class ThreadRuntime : MainActorModel
         async Task<ProviderSession> MakeSession(string? resumeID)
         {
             var launchEpoch = sessionEpoch;
-            if (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor) await pendingSkillRelease;
+            await pendingSkillRelease;
+            var environment = app.Providers.Environment(thread.Provider);
             var skills = thread.Provider switch
             {
                 ProviderKind.Antigravity => await Marrow.App.Port.Skills.AntigravitySkills.Prepare.Current(ThreadID.ToString("N"), directory),
                 ProviderKind.Cursor => await Marrow.App.Port.Skills.CursorSkills.Prepare.Current(ThreadID.ToString("N"), directory),
-                _ => null,
+                ProviderKind.Devin => null, // explicit invocation only until its discovery route is proven
+                _ => await Marrow.App.Port.Skills.ProviderSkills.Prepare.Current(thread.Provider, ThreadID.ToString("N"), directory, environment),
             };
             try
             {
@@ -2089,7 +2106,7 @@ public sealed class ThreadRuntime : MainActorModel
                     Provider = thread.Provider,
                     Executable = executable,
                     WorkingDirectory = SessionDirectoryUrl(directory),
-                    Environment = app.Providers.Environment(thread.Provider),
+                    Environment = environment,
                     ResumeID = resumeID,
                     ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
                     Model = thread.Model,
@@ -2100,6 +2117,9 @@ public sealed class ThreadRuntime : MainActorModel
                     Hydra = hydra,
                     AntiSlopEnabled = signature.AntiSlopEnabled,
                     SkillGeneration = skills,
+                    SkillDataRoot = Storage.Root,
+                    SkillHome = environment.TryGetValue("HOME", out var skillHome) ? skillHome : LoginEnvironment.HomeDirectory,
+                    SkillToolOffer = SkillsOffers,
                     SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
                 };
 

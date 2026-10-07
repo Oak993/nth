@@ -52,8 +52,11 @@ namespace Marrow.Services.Providers;
 // in part 1 because Control (:301-309, needed by PR-PROVCLI-019) and the readTask
 // (PR-PROVCLI-017) both depend on it; PR-PROVCLI-061, which fully exercises it, belongs to a
 // later part.
-public sealed class ClaudeSession : ProviderSession
+public sealed class ClaudeSession : ProviderSession, Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime
 {
+    private Task skillReadersExited = Task.CompletedTask;
+    public Task SkillReadersExited => skillReadersExited;
+
     // :15-19
     private sealed record PendingTool
     {
@@ -281,6 +284,7 @@ public sealed class ClaudeSession : ProviderSession
         var process = ClaudeProviderRuntime.Process.Current(executable.Path, arguments, configuration.WorkingDirectory.Path, environment); // :136-141
         this.process = process;
         process.Start(); // :143
+        skillReadersExited = process.WaitForExit(); // RR-15: EOF is not exit
         if (generation is not null) RetainSkillsUntilExit(process);
         var messages = process.Messages; // :144
         readTask = MainActor.Spawn(async () => // :145-151
