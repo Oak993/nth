@@ -1,0 +1,42 @@
+✔ all 29 item families get independently computed bytes/hash and source metadata provenance (23.174021ms)
+✔ missing source licence and version never fall back to previous catalogue values (6.446668ms)
+✔ published metadata mismatch and omitted/duplicate item coverage fail closed (1.026053ms)
+✔ metadata supports exact text, base64 source files and JSON pointer escapes without licence classification (0.605031ms)
+✔ insecure/off-source/cross-repository URLs are rejected before a transport sees them (2.246229ms)
+✔ manual redirect transport checks every hop and sends no credentials (26.421495ms)
+✔ redirected/injected byte sources, empty artifacts and wrong published sizes are rejected (2.363475ms)
+✔ official array metadata is selected by an observed field, with ambiguity rejected (0.200892ms)
+✔ saved artifact chunks are the exact bytes hashed, and mismatched version metadata is rejected (5.830711ms)
+✔ raw metadata bodies are available to the evidence sink under their computed hashes (2.205157ms)
+✔ release CDN hosts can only be redirect destinations from an official repository endpoint (22.366516ms)
+✔ malformed metadata encoding and explicitly unknown licence metadata are blockers (1.009158ms)
+✖ artifact output names respect Windows paths and case-insensitive collisions (8.6288ms)
+✔ repository recipes use resolved full commits and nearest actual licence files, including per-skill commits (5.421746ms)
+✔ wheel and npm recipes read licences and versions from the packages own registry metadata (0.355164ms)
+✔ Python, Node and browser direct recipes reference official source metadata rather than reuse licence claims (0.283797ms)
+✔ missing resolved artifacts, truncated commits and ambiguous licence selection remain explicit blockers (0.428314ms)
+✔ resolved version expectations are checked and multiple co-located licences need explicit source selection (0.245619ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 17
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 290.857858
+
+✖ failing tests:
+
+test at tools/skills-catalogue/pin-generator.test.mjs:151:1
+✖ artifact output names respect Windows paths and case-insensitive collisions (8.6288ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///workspace/marrow-port/tools/skills-catalogue/pin-generator.test.mjs:154:7)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /artifact|Windows|path/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
