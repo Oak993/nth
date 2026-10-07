@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="05cd337b-7fb7-4a79-988c-fba567b9fbd3" name="@00b8860c4eee 2026-10-07 05:10:33" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T05:10:33.6923192+00:00" queuing="2026-10-07T05:10:33.6923192+00:00" start="2026-10-07T05:10:30.0423861+00:00" finish="2026-10-07T05:10:33.9605493+00:00" />
+  <TestSettings name="default" id="1b835479-b423-407c-9cd4-e4d63759501a">
+    <Deployment runDeploymentRoot="_00b8860c4eee_2026-10-07_05_10_33" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="57047f77-aef4-42ad-b298-af3660dea739" testId="8ca83416-e49b-de4e-80bc-ac6362add848" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 129, y: 44, perspective: True, sheet: 3)" computerName="00b8860c4eee" duration="00:00:00.3559541" startTime="2026-10-07T05:10:32.2372984+00:00" endTime="2026-10-07T05:10:32.5832160+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="57047f77-aef4-42ad-b298-af3660dea739" />
+    <UnitTestResult executionId="79b508b0-a4a9-4054-9801-824701764987" testId="3a744e67-01e6-3eb0-c700-a45eeca73528" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Stairwell_keeps_the_tilted_reference_pixel_below_the_shadow_threshold" computerName="00b8860c4eee" duration="00:00:00.0781110" startTime="2026-10-07T05:10:32.1688417+00:00" endTime="2026-10-07T05:10:32.2271133+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="79b508b0-a4a9-4054-9801-824701764987" />
+    <UnitTestResult executionId="21830eea-8cb9-44eb-b8f6-01ba6029bb10" testId="64996a32-4e64-4271-082e-2f820f8cb4aa" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 152, y: 67, perspective: False, sheet: 1)" computerName="00b8860c4eee" duration="00:00:00.3142761" startTime="2026-10-07T05:10:33.5796318+00:00" endTime="2026-10-07T05:10:33.8938402+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="21830eea-8cb9-44eb-b8f6-01ba6029bb10" />
+    <UnitTestResult executionId="1150381e-9868-4d37-9e51-1f53ae8967f5" testId="70adc048-1608-f76b-c3cd-84f23d9eeadd" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 65, y: 28, perspective: False, sheet: 3)" computerName="00b8860c4eee" duration="00:00:00.3185901" startTime="2026-10-07T05:10:33.2610629+00:00" endTime="2026-10-07T05:10:33.5793487+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1150381e-9868-4d37-9e51-1f53ae8967f5" />
+    <UnitTestResult executionId="8fb85be1-c45e-4fdc-88ea-fabff647e269" testId="1327b150-9202-6b17-8a06-02d6c487515c" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 128, y: 64, perspective: True, sheet: 3)" computerName="00b8860c4eee" duration="00:00:00.3572544" startTime="2026-10-07T05:10:32.5842642+00:00" endTime="2026-10-07T05:10:32.9407062+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8fb85be1-c45e-4fdc-88ea-fabff647e269" />
+    <UnitTestResult executionId="289dc986-e397-4fdb-b6cf-818333076dcc" testId="3a4b4778-9e3b-4ff6-9ed0-52a47d04ed46" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 62, y: 45, perspective: True, sheet: 3)" computerName="00b8860c4eee" duration="00:00:00.3198807" startTime="2026-10-07T05:10:32.9427612+00:00" endTime="2026-10-07T05:10:33.2606707+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="289dc986-e397-4fdb-b6cf-818333076dcc" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 152, y: 67, perspective: False, sheet: 1)" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="64996a32-4e64-4271-082e-2f820f8cb4aa">
+      <Execution id="21830eea-8cb9-44eb-b8f6-01ba6029bb10" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests" name="Tunnel_selects_the_reference_sheet_at_every_original_branch_failure" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 128, y: 64, perspective: True, sheet: 3)" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="1327b150-9202-6b17-8a06-02d6c487515c">
+      <Execution id="8fb85be1-c45e-4fdc-88ea-fabff647e269" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests" name="Tunnel_selects_the_reference_sheet_at_every_original_branch_failure" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Stairwell_keeps_the_tilted_reference_pixel_below_the_shadow_threshold" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="3a744e67-01e6-3eb0-c700-a45eeca73528">
+      <Execution id="79b508b0-a4a9-4054-9801-824701764987" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests" name="Stairwell_keeps_the_tilted_reference_pixel_below_the_shadow_threshold" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 62, y: 45, perspective: True, sheet: 3)" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="3a4b4778-9e3b-4ff6-9ed0-52a47d04ed46">
+      <Execution id="289dc986-e397-4fdb-b6cf-818333076dcc" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests" name="Tunnel_selects_the_reference_sheet_at_every_original_branch_failure" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 129, y: 44, perspective: True, sheet: 3)" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="8ca83416-e49b-de4e-80bc-ac6362add848">
+      <Execution id="57047f77-aef4-42ad-b298-af3660dea739" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests" name="Tunnel_selects_the_reference_sheet_at_every_original_branch_failure" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 65, y: 28, perspective: False, sheet: 3)" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="70adc048-1608-f76b-c3cd-84f23d9eeadd">
+      <Execution id="1150381e-9868-4d37-9e51-1f53ae8967f5" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests" name="Tunnel_selects_the_reference_sheet_at_every_original_branch_failure" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="8ca83416-e49b-de4e-80bc-ac6362add848" executionId="57047f77-aef4-42ad-b298-af3660dea739" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3a744e67-01e6-3eb0-c700-a45eeca73528" executionId="79b508b0-a4a9-4054-9801-824701764987" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="64996a32-4e64-4271-082e-2f820f8cb4aa" executionId="21830eea-8cb9-44eb-b8f6-01ba6029bb10" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="70adc048-1608-f76b-c3cd-84f23d9eeadd" executionId="1150381e-9868-4d37-9e51-1f53ae8967f5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1327b150-9202-6b17-8a06-02d6c487515c" executionId="8fb85be1-c45e-4fdc-88ea-fabff647e269" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3a4b4778-9e3b-4ff6-9ed0-52a47d04ed46" executionId="289dc986-e397-4fdb-b6cf-818333076dcc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="6" executed="6" passed="6" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.15]   Discovering: Marrow.UI.Tests
+[xUnit.net 00:00:01.53]   Discovered:  Marrow.UI.Tests
+[xUnit.net 00:00:01.61]   Starting:    Marrow.UI.Tests
+[xUnit.net 00:00:03.39]   Finished:    Marrow.UI.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

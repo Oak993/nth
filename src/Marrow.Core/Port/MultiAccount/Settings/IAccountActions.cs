@@ -25,4 +25,5 @@ public enum LocalConnectOutcome
 }
 
 /// <summary>What looking for a local server found. <see cref="Where"/> is "this PC" for a server on this machine, else its host.</summary>
-public sealed record LocalConnectResult(LocalConnectOutcome Outcome, int Models, string Where);
+public sealed record LocalConnectResult(LocalConnectOutcome Outcome, int Models, string Where,
+    Marrow.Core.Port.Local.LocalServerKind Kind = Marrow.Core.Port.Local.LocalServerKind.Unknown);

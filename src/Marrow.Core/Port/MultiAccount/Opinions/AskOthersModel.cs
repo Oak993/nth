@@ -12,13 +12,14 @@ public sealed class AskOthersModel : IDisposable
     private readonly Func<ProviderKind,IReadOnlyList<ModelOption>> models;
     private readonly Func<ThreadAccount,bool> hasRoom;
     private readonly List<Guid> picked=[];
+    private bool observing;
     public AskOthersModel(Guid thread,IThreadAccountPort current,IReadOnlyList<IThreadAccountPort> ports,IOpinionsPort opinions,
         OtherServiceConsentStore consent,Func<ProviderKind,IReadOnlyList<ModelOption>>? models=null,Func<ThreadAccount,bool>? hasRoom=null)
     {
         if(thread==Guid.Empty)throw new ArgumentException("A thread is required.",nameof(thread));
         this.thread=thread;this.current=current;this.ports=ports.Append(current).Distinct().ToArray();this.opinions=opinions;this.consent=consent;
         this.models=models??(_=>[]);this.hasRoom=hasRoom??(a=>!a.IsOut);
-        foreach(var port in this.ports)port.Changed+=Refresh;
+        Resume();
     }
     public event Action? Changed;
     public bool Busy {get;private set;}
@@ -32,9 +33,7 @@ public sealed class AskOthersModel : IDisposable
     public string AllDetail=>"Everyone with room";
     public string DontAskAgainLabel=>"Don't ask again";
     public IReadOnlyList<Guid> Picked=>picked.AsReadOnly();
-    // The active account also produces private Answer/Combine turns in E1; both must be safe.
-    public IReadOnlyList<OpinionPickRow> Rows=>!ConversationHeadCapabilities.Supports(current.Service)?[]:
-        ports.SelectMany(p=>p.Accounts).DistinctBy(a=>a.Id).Where(a=>a.Enabled&&a.Id!=current.ActiveAccountId&&a.CanBeConversationHead)
+    public IReadOnlyList<OpinionPickRow> Rows=>ports.SelectMany(p=>p.Accounts).DistinctBy(a=>a.Id).Where(a=>a.Enabled&&a.Id!=current.ActiveAccountId)
         .Select(a=>new OpinionPickRow(a,ModelName(a),hasRoom(a),picked.Contains(a.Id))).ToArray();
     private string ModelName(ThreadAccount a)
     {
@@ -105,5 +104,7 @@ public sealed class AskOthersModel : IDisposable
         LastRound=round;LastAskedNote="Also asked: "+string.Join(" ",rows.Select(a=>a.Mono));picked.Clear();Confirmation=null;
         return AskSendResult.Sent;
     }
-    public void Dispose(){foreach(var port in ports)port.Changed-=Refresh;}
+    // View-owned models suspend port observation while detached and can resume without losing message picks.
+    public void Resume(){if(observing)return;observing=true;foreach(var port in ports)port.Changed+=Refresh;Refresh();}
+    public void Dispose(){if(!observing)return;observing=false;foreach(var port in ports)port.Changed-=Refresh;}
 }

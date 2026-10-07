@@ -12,7 +12,7 @@ READY for the commissioned foundation. Branch `codex/ma-3`, based on `claude/ver
 - Registry status/catalog and runtime factory integration: discovery callers share one in-flight task; selected server and catalog revision bind the session. Changing endpoint or refreshing metadata replaces the bound snapshot and reuses the existing API transcript replay. No implicit switch to another server.
 - Existing provider plumbing receives Local through its current lists. One exhaustive composer brand switch maps Local to the existing purple no-provider palette to prevent a crash. No controls, assets, styles, Handshake, account UI or model downloads were added.
 
-Authority: OD-0114; OD-0049/OD-0060; the Local items in multi-account-NOTES.md; multi-account-FEASIBILITY.md section 5. Decisions are recorded under the byte-exact heading `## ED-NEW-ma-3` in engineering_decisions.md.
+Authority: OD-0114; OD-0049/OD-0060; the Local items in multi-account-NOTES.md; multi-account-FEASIBILITY.md section 5. Decisions are recorded under the byte-exact heading `## ED-410` in engineering_decisions.md.
 
 ## Test-first and review
 

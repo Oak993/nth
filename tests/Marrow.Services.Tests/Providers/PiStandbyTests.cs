@@ -8,7 +8,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// OD-0116, OD-0122, ED-NEW-ma-engine-7, research section 2: Pi holds the next account's context through the app's own load extension with `triggerTurn: false`, behind the
+// OD-0116, OD-0122, ED-439, research section 2: Pi holds the next account's context through the app's own load extension with `triggerTurn: false`, behind the
 // existing tool gate (finalReport blocks every tool). Every test spawns the compiled offline stand-in (R-TEST-8, R-TEST-10); no real CLI, network or model.
 [Trait("Rule", "R-TEST-4")]
 public sealed class PiStandbyTests

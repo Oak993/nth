@@ -9,7 +9,7 @@ namespace Marrow.Services.Tests.Port.Usage;
 public sealed class AccountLimitsSchedulerTests
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Sign_in_active_polling_and_idle_stop_use_the_injected_clock()
     {
         var clock = new ManualTimeProvider();
@@ -34,7 +34,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Near_handshake_limit_messages_and_plan_changes_refresh_with_a_60_second_ceiling()
     {
         var clock = new ManualTimeProvider();
@@ -65,7 +65,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Concurrent_accounts_keep_their_own_snapshots_and_coalesce_inflight_reads()
     {
         var clock = new ManualTimeProvider();
@@ -86,7 +86,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Signout_cancels_and_late_results_cannot_replace_the_new_generation()
     {
         var clock = new ManualTimeProvider();
@@ -104,7 +104,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Missing_reports_clear_old_limits_and_failures_back_off_instead_of_spinning()
     {
         var clock = new ManualTimeProvider();
@@ -124,7 +124,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Server_retry_after_is_respected_by_limit_and_plan_triggers()
     {
         var clock = new ManualTimeProvider();
@@ -143,7 +143,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task Global_concurrency_is_bounded_and_disposal_stops_timers()
     {
         var clock = new ManualTimeProvider();
@@ -162,7 +162,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task An_active_account_polls_from_timer_callbacks_without_a_manual_refresh()
     {
         var clock = new ManualTimeProvider();
@@ -183,7 +183,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task A_late_signed_out_read_cannot_overwrite_a_resigned_in_account()
     {
         var clock = new ManualTimeProvider();
@@ -201,7 +201,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task A_limit_during_a_read_keeps_the_earliest_permitted_followup_deadline()
     {
         var clock = new ManualTimeProvider();
@@ -220,7 +220,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task A_service_embargo_survives_signout_and_signin_of_the_same_account()
     {
         var clock = new ManualTimeProvider();
@@ -238,7 +238,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task A_late_throttle_updates_the_successor_generations_deadline()
     {
         var clock = new ManualTimeProvider();
@@ -260,7 +260,7 @@ public sealed class AccountLimitsSchedulerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public async Task A_port_trap_is_surfaced_instead_of_being_reported_as_unknown_quota()
     {
         using var scheduler = new AccountLimitsScheduler(new ManualTimeProvider(), (_, _) => throw new SwiftTrapException("Port invariant"), jitter: () => TimeSpan.Zero);

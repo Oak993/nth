@@ -2,7 +2,7 @@ using Marrow.Core.Models;
 
 namespace Marrow.Core.Port;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-2; quota and limit-event identity until the account store supplies its IDs.
+// PORT-ONLY: OD-0114 / ED-406; quota and limit-event identity until the account store supplies its IDs.
 // AccountId is a stable, non-secret store ID, never an email, token or path. Provider remains part of the key.
 public sealed record UsageAccountKey
 {

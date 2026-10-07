@@ -4,7 +4,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.Usage;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-2; account-scoped polling, independent of views and provider-keyed Registry.
+// PORT-ONLY: OD-0114 / ED-406; account-scoped polling, independent of views and provider-keyed Registry.
 // Compose the reader with the selected account's environment/key. Calls never borrow another account's snapshot.
 public sealed class AccountLimitsScheduler : IDisposable
 {

@@ -18,7 +18,7 @@ namespace Marrow.App.Tests.Port.Accounts;
 [Trait("Rule", "R-TEST-4")]
 public sealed class DeferredContextDeliveryTests
 {
-    // ED-NEW-ma-engine-7 (owner decisions OD-0116 and OD-0122, lead brief 2026-10-06): Codex is no longer deferred (it loads history without a model turn, InjectedStandbyHostTests);
+    // ED-439 (owner decisions OD-0116 and OD-0122, lead brief 2026-10-06): Codex is no longer deferred (it loads history without a model turn, InjectedStandbyHostTests);
     // this test keeps its rule for a service with nothing to open early: Command Code.
     [Fact]
     public void A_non_Claude_CLI_destination_is_never_started_in_standby_and_gets_the_context_with_its_first_turn()

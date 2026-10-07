@@ -180,7 +180,7 @@ public static class ZaiAPI
                     {
                         Id = "credit-" + creditIndex.ToString(CultureInfo.InvariantCulture),
                         Title = title,
-                        DurationMinutes = minutes, // OD-0114 / ED-NEW-ma-2
+                        DurationMinutes = minutes, // OD-0114 / ED-406
                         Percent = percent,
                         ResetsAt = resetsAt,
                         Detail = FormatCount(current) + " of " + FormatCount(usage) + " credits",

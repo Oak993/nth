@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0116, lead decision 2026-10-06 (ED-NEW-ma-engine-4). A destination with no verified text-only standby is never started early: this object only holds the package until the switch.
+// PORT-ONLY: OD-0116, lead decision 2026-10-06 (ED-436). A destination with no verified text-only standby is never started early: this object only holds the package until the switch.
 using Marrow.Core.Accounts;
 using Marrow.Services.Port.MultiAccount;
 using Marrow.Services.Providers;
@@ -7,7 +7,7 @@ namespace Marrow.App.Runtime;
 
 public sealed class DeferredStandby(SessionConfiguration configuration, WarmStandby? warm = null) : IStandbySession
 {
-    /// <summary>ED-NEW-ma-engine-7: a warm start has the destination's session open and idle; it receives nothing before the switch.</summary>
+    /// <summary>ED-439: a warm start has the destination's session open and idle; it receives nothing before the switch.</summary>
     public WarmStandby? Warm { get; } = warm;
 
     public SessionConfiguration Configuration { get; } = configuration;

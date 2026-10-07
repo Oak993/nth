@@ -14,7 +14,7 @@ public sealed class ThreadRuntimeLocalCommandTests
         ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Copilot, ProviderKind.Deepseek,
         ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Pi,
         ProviderKind.OpenRouter, // ED-234: the seven of Provider.swift:149-154 and OpenRouter, a native API provider with a /compact of its own
-        ProviderKind.Local, // ED-NEW-ma-3
+        ProviderKind.Local, // ED-410
     ];
 
     public static TheoryData<ProviderKind> AllProviders()

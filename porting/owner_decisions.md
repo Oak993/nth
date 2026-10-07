@@ -1139,3 +1139,33 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - VT-12: the voice pill follows the approved design page (voice-composer.html) exactly: no added blurs on the body, cross or glow; the capsule edge antialiased once; CSS blur radii converted to sigma; no glass refraction inside the pill; the radial clean-cap mask. Rim choice C: the shared glass rim and shade stay, with the page's rim stack on top.
   - The lead chooses the implementation. Tests, tolerances, references and the speck metric stay unchanged (standing rule); any spot that still fails comes back to the owner with its exact location.
   - Multi-account: the Handshake's soft sound ships in this release, using the locked design's recipe (link-up: sine 523.25 Hz 1.1 s and 783.99 Hz 1.3 s at +0.08 s; in-sync tick: 1318.5 Hz 0.18 s). Replaces ma-3b5-plan Q1's default of leaving it out.
+
+## OD-0122 Handshake readiness for Codex and Pi (2026-10-06)
+
+- **Owner, verbatim:** "Same tick as Claude" · "You can run it once but I think I'm out of codex usage, maybe luna might work."
+- **Effect:** where the app loads the conversation into a waiting Codex or Pi account without a model turn (history injection, research claude-cli-standby-research.md), the composer capsule shows the same in-sync tick as Claude once the history is loaded. The lead may run ONE local Codex check with the owner's signed-in Codex (a model the owner suggested: Luna) to confirm that injection makes no model call: inject a short test history into a throwaway thread, read the log, delete the thread; no message is sent to the AI.
+
+## OD-0123 Voice pill round 2: outer line removed, Inter kept, design wins over the speck test (2026-10-07)
+
+- **Owner, verbatim (answers to the Round 2 questions on the Voice Pill Decision page):** "Yes, remove it" (fix A, the shared glass's dark line just outside the pill's ends) · "App font (Inter)" (fix B declined) · "Design wins, you rule the test" (to: about 160 V-T133 cases still fail and the approved design page fails the same cases in Chrome).
+- **Effect:** the voice pill drops the shared glass's outer contact line on its ends (voice pill only; both rims and their light top and dark bottom stay, OD-0121 C). The label keeps the app font Inter. The approved design wins over V-T133; how V-T133 treats cases the design itself fails is to be settled in the exact rule the lead proposes and the owner confirms (recorded in the next OD). The linear fade kept under the page's radial clean-cap mask (V-T132, ED-387) stands.
+
+## OD-0124 Real-program checks for the seamless handover (2026-10-07)
+
+- **Owner, verbatim (to: may I run a short local check per service with your signed-in apps: open a throwaway chat, load a short test history, confirm nothing ran, delete it; no message is sent to any AI):** "Yes, all installed"
+- **Effect:** the lead may run that check once per installed CLI service (Codex and any other installed one) using the owner's existing sign-ins: a throwaway chat or session, a short test history loaded without a model turn, a check that nothing ran, then deletion. No message is sent to any AI, no credentials are typed, no settings are changed. Extends OD-0122.
+
+## OD-0125 V-T133 judges the voice pill against the approved design (2026-10-07)
+
+- **Owner, verbatim (to the lead's proposal: the speck detector stays as it is, but a speck fails only when the approved design page, drawn in Chrome at the same size, state and background, has no speck within 1 pixel of the same spot):** "Do whatever is your recommendation on this issue. I'm tired of dragging this. I need to get this port completed."
+- **Effect:** the lead's recommendation is adopted. V-T133's detector (7x7 median, more than 8 levels, small components, ink and ball exclusions) is unchanged. A speck on the port's pill fails the test unless the approved design page voice-composer.html, rendered in Chrome at the same scale, state, theme and backdrop, has a speck within 1 pixel of the same spot. The Chrome renders are generated once by a checked-in script, locked as test references with their hashes, and never regenerated to make a failure pass. Every other test, tolerance and reference stays unchanged (OD-0121, OD-0123).
+
+## OD-0126 GAP-2: the approved design's 0.1 s fade wins over the flat 15% step cap (2026-10-07)
+
+- **Owner, verbatim (to: the approved Customization design fades the old detail out in 0.1 s, a CSS ease as on the Mac; at 60 fps it must drop about 20% in its first frame, but the smoothness test allows at most 15% per frame; which wins?):** "Design wins (Recommended)" — the option read: keep the exact 0.1 s fade; the 15% check judges this motion against the design's own curve, a step is allowed only if the approved design takes the same step; same idea as OD-0125.
+- **Effect:** the detail-out fade keeps the design's exact 0.1 s ease. GAP-2's per-frame step check stays at 15% for every motion, except that a frame step is accepted when it does not exceed the approved design curve's own step at the same frame (sampled at 60 Hz from the source oracle, no extra margin). The test cites this OD. No other tolerance changes.
+
+## OD-0127 The palette refresh control: Appearance, a "Model colours" row (2026-10-07)
+
+- **Owner, verbatim (to: where should the 'refresh colour palettes' control go? A: Appearance row; B: Updates table row; C: Models page line; and are the words on the page right?):** "A: Appearance row (Recommended)" and "Yes, use them as shown (Recommended)".
+- **Effect:** completes OD-0067's visible control. Settings > Appearance gets a "Colours" section with one row: title "Model colours"; a strip of maker dots; resting line "Checked {when} · {n} models from {m} makers"; a "Refresh" button that reads "Refreshing…" and is disabled while it runs; while running, "Checking OpenRouter and {k} providers… {i} of {n} models" with the Updates page's progress line under the row; when done, a summary below the row ("{x} new models coloured", "{Maker}'s shades re-spaced", "New maker: {Maker}") that stays until the page is left; nothing new: "Checked just now · no new models"; offline: "Couldn't reach the model lists. Check your connection and try again." with colours unchanged. Changed maker dots glide to their new shades (OD-0076; still under Reduce Motion). The refresh runs the automatic engine (OD-0064/0065/0066). Locked design: E:/Droppy/work/design/decisions-2026-10-07/palette-refresh/palette-refresh-locked.html (option A). Decision page: https://claude.ai/artifact/AhTyKzxT4qbYEeGTGW2E8f

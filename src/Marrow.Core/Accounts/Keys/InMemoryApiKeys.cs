@@ -48,24 +48,14 @@ public sealed class InMemoryApiKeyCredits : IApiKeyCredits
     public double? CreditsLeft(string keyId) => credits.TryGetValue(keyId, out var v) ? v : null;
 }
 
-public sealed class InMemoryApiKeySpend : IApiKeyReservedSpend
+public sealed class InMemoryApiKeySpend : IApiKeySpend
 {
     private readonly List<(string Key, double Usd, DateTimeOffset At)> entries = [];
-    private readonly Dictionary<Guid, (string Key, double? Usd, DateTimeOffset At)> holds = [];
 
     public double SpendSince(string keyId, DateTimeOffset since) =>
-        entries.Where(e => e.Key == keyId && e.At >= since).Sum(e => e.Usd) + holds.Values.Where(e => e.Key == keyId).Sum(e => e.Usd ?? 0);
-    public double BudgetSince(string keyId, DateTimeOffset since) =>
-        holds.Values.Any(e => e.Key == keyId && e.Usd is null) ? double.PositiveInfinity : SpendSince(keyId, since);
+        entries.Where(e => e.Key == keyId && e.At >= since).Sum(e => e.Usd);
 
     public void Add(string keyId, double usd, DateTimeOffset at) => entries.Add((keyId, usd, at));
-    public void Hold(Guid request, string keyId, double? maximumUsd, DateTimeOffset at) => holds.Add(request, (keyId, maximumUsd, at));
-    public bool HasUnsettled(string keyId) => holds.Values.Any(item => item.Key == keyId);
-    public void Cancel(Guid request) => holds.Remove(request);
-    public void Settle(Guid request, double actualUsd)
-    {
-        if (holds.Remove(request, out var hold)) Add(hold.Key, actualUsd, hold.At);
-    }
 }
 
 public sealed class InMemoryKeyMovePolicy : IKeyMovePolicy

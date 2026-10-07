@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0114; ED-NEW-ma-ui. No await separates final validation from the account/session commit.
+// PORT-ONLY: OD-0114; ED-403. No await separates final validation from the account/session commit.
 using Marrow.Core.Accounts.Pills;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -80,7 +80,7 @@ public sealed partial class ThreadRuntime
         app.AutoContinue.TakeLimitOwnership(ThreadID);
         ReleaseSession(stop: true);
         app.ApplyHandshakeAccount(ThreadID, configuration, sessionId, relay, pinAccount);
-        // ED-NEW-ma-engine-7: a warm-started session is idle; the recorded context rides in front of the first real turn on it.
+        // ED-439: a warm-started session is idle; the recorded context rides in front of the first real turn on it.
         HoldDeferredHandoff(deferredContext);
         var destination = Thread!;
         session = candidate;

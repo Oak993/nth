@@ -26,7 +26,7 @@ public sealed record PlanLimits
         public required double Percent { get; init; }   // :8
         public DateTimeOffset? ResetsAt { get; init; }   // :9
         public string? Detail { get; init; }             // :10
-        // DEVIATION OD-0114 / ED-NEW-ma-2: duration comes from the reported window, never the plan name.
+        // DEVIATION OD-0114 / ED-406: duration comes from the reported window, never the plan name.
         public long? DurationMinutes { get; init; }
     }
 
@@ -139,7 +139,7 @@ public static partial class PlanLimitsReader
         ProviderKind.Commandcode => CommandCodeAPI.PlanLimits(environment),
         ProviderKind.Pi => PiPlanLimits.Read(environment),
         ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or
-            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-NEW-ma-3: no quota
+            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-410: no quota
     };
 
     // :84-90. API-key subscriptions read their windows from the API instead of a CLI. PR-PROVREG-171.
@@ -149,10 +149,10 @@ public static partial class PlanLimitsReader
         ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Cursor or ProviderKind.Opencode or
             ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Deepseek or ProviderKind.Meta or
             ProviderKind.Devin or ProviderKind.Antigravity or ProviderKind.Copilot or ProviderKind.Commandcode or
-            ProviderKind.Pi or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-NEW-ma-3
+            ProviderKind.Pi or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-410
     };
 
-    // DEVIATION OD-0114 / ED-NEW-ma-2: explicit account selection must never consult a global login.
+    // DEVIATION OD-0114 / ED-406: explicit account selection must never consult a global login.
     // The environment/key is supplied by the account store; copying it prevents later edits redirecting a read.
     // OS-vault CLI sign-ins remain single-account. No credential collection or persistence is added here.
     public static Task<PlanLimits?> Read(UsageAccountKey account, SwiftURL executable, IReadOnlyDictionary<string, string> environment)
@@ -296,7 +296,7 @@ public static partial class PlanLimitsReader
     // spawning nothing and taking no Keychain or Credential Manager branch in its place.
     internal static Task<ClaudeLogin?> ReaderClaudeLogin(IReadOnlyDictionary<string, string> environment, string? homeDirectory = null, bool allowHomeFallback = true)
     {
-        // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Explicit new accounts use the CLI-owned usage path;
+        // PORT-ONLY: OD-0114 / ED-404. Explicit new accounts use the CLI-owned usage path;
         // do not collect their OAuth tokens or fall back to another account's global credential file.
         if (environment.ContainsKey("MARROW_ACCOUNT_ID")) return Task.FromResult<ClaudeLogin?>(null);
         var directories = new List<string>();
@@ -304,7 +304,7 @@ public static partial class PlanLimitsReader
         {
             directories.Add(configured);
         }
-        // DEVIATION OD-0114 / ED-NEW-ma-2: explicit accounts fail closed; legacy callers keep the original fallback.
+        // DEVIATION OD-0114 / ED-406: explicit accounts fail closed; legacy callers keep the original fallback.
         if (allowHomeFallback) directories.Add(SwiftPath.AppendingPathComponent(homeDirectory ?? LoginEnvironment.HomeDirectory, ".claude"));
         foreach (var directory in directories)
         {

@@ -59,9 +59,9 @@ public sealed record URLRequest
     /// <summary>Swift: <c>httpMethod</c>, "GET" unless set (MCPProxy.swift:314).</summary>
     public string HttpMethod { get; init; } = "GET";
 
-    // PORT-ONLY (ED-NEW-ma-3): Local requests stay at the user's chosen server; other requests retain redirect semantics.
+    // PORT-ONLY (ED-410): Local requests stay at the user's chosen server; other requests retain redirect semantics.
     public bool FollowRedirects { get; init; } = true;
-    public bool UseCookies { get; init; } = true; // ED-NEW-ma-3: independent keyless servers never share HTTP cookies
+    public bool UseCookies { get; init; } = true; // ED-410: independent keyless servers never share HTTP cookies
 
     /// <summary>Swift: <c>httpBody</c>, nil unless set (MCPHub.swift:458, MCPProxy.swift:340-342).</summary>
     public byte[]? HttpBody { get; init; }

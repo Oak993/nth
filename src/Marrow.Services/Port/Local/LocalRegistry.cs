@@ -6,7 +6,7 @@ using Marrow.Services.Port.Local;
 
 namespace Marrow.Services.Providers;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-3. Partial keeps Local integration out of the source-derived provider implementation.
+// PORT-ONLY: OD-0114 / ED-410. Partial keeps Local integration out of the source-derived provider implementation.
 public sealed partial class ProviderRegistry
 {
     private const string LocalAddressesKey = "localServerAddresses";

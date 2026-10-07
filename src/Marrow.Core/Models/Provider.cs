@@ -40,7 +40,7 @@ public enum ProviderKind
     // PORT-ONLY (OD-0049, OD-0060, ED-234): no Swift case. An API-key provider in the manner of deepseek, meta and zai. The
     // case name is the brand's own spelling (R-NAME-2 would give "Openrouter"; the raw value is the lowercase wire form).
     [RawValue("openrouter")] OpenRouter,
-    // PORT-ONLY (OD-0114, ED-NEW-ma-3): keyless OpenAI-compatible servers, each with its own model selection.
+    // PORT-ONLY (OD-0114, ED-410): keyless OpenAI-compatible servers, each with its own model selection.
     [RawValue("local")] Local,
 }
 
@@ -69,7 +69,7 @@ public static class ProviderKindExtensions
             ProviderKind.Commandcode => "Command Code", // :35 - PR-PROVREG-013
             ProviderKind.Pi => "Pi", // :36 - PR-PROVREG-014
             ProviderKind.OpenRouter => "OpenRouter", // ED-234
-            ProviderKind.Local => "Local", // ED-NEW-ma-3
+            ProviderKind.Local => "Local", // ED-410
             _ => throw new UnreachableException(),
         };
 
@@ -94,7 +94,7 @@ public static class ProviderKindExtensions
                                                 // lives in the ProviderRegistry unit, not here.
             ProviderKind.Pi => "pi", // :55 - PR-PROVCLI-266, PR-PROVREG-027
             ProviderKind.OpenRouter => "", // ED-234: an API-key provider with no local CLI, like deepseek, meta and zai
-            ProviderKind.Local => "", // ED-NEW-ma-3
+            ProviderKind.Local => "", // ED-410
             _ => throw new UnreachableException(),
         };
 
@@ -119,7 +119,7 @@ public static class ProviderKindExtensions
             ProviderKind.Commandcode => "cmd login", // :76 - PR-PROVCLI-203
             ProviderKind.Pi => "pi", // :77 - PR-PROVCLI-266
             ProviderKind.OpenRouter => "OPENROUTER_API_KEY=sk-or-...", // ED-234
-            ProviderKind.Local => "", // ED-NEW-ma-3: no key or login
+            ProviderKind.Local => "", // ED-410: no key or login
             _ => throw new UnreachableException(),
         };
 
@@ -142,7 +142,7 @@ public static class ProviderKindExtensions
             ProviderKind.Commandcode => SwiftTraps.Unwrap(SwiftURL.Create("https://commandcode.ai/docs/quickstart")), // :95 - PR-PROVREG-052
             ProviderKind.Pi => SwiftTraps.Unwrap(SwiftURL.Create("https://pi.dev/docs/latest")), // :96 - PR-PROVREG-053
             ProviderKind.OpenRouter => SwiftTraps.Unwrap(SwiftURL.Create("https://openrouter.ai/keys")), // ED-234: where a key is made
-            ProviderKind.Local => SwiftTraps.Unwrap(SwiftURL.Create("https://ollama.com/")), // ED-NEW-ma-3: server's own app
+            ProviderKind.Local => SwiftTraps.Unwrap(SwiftURL.Create("https://ollama.com/")), // ED-410: server's own app
             _ => throw new UnreachableException(),
         };
 
@@ -195,7 +195,7 @@ public static class ProviderKindExtensions
         public bool SupportsCompact => kind switch
         {
             ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Copilot or ProviderKind.Deepseek
-                or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Pi or ProviderKind.OpenRouter or ProviderKind.Local => true, // :151, ED-234, ED-NEW-ma-3
+                or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Pi or ProviderKind.OpenRouter or ProviderKind.Local => true, // :151, ED-234, ED-410
             _ => false, // :152 - PR-PROVREG-057
         };
 

@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace Marrow.Services.Port.MultiAccount;
 
-// PORT-ONLY: OD-0114; ED-NEW-ma-4; multi-account-FEASIBILITY section 4.
+// PORT-ONLY: OD-0114; ED-407; multi-account-FEASIBILITY section 4.
 public sealed record HandoffAccount(ProviderKind Provider, string AccountId, string TranscriptRoot);
 public enum NativeResumeMode { ClaudeId, CodexPath }
 public sealed record NativeTranscript(string SessionId, string? ResumeAt, string Version, NativeResumeMode Mode,

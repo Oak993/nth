@@ -3,7 +3,7 @@ using Marrow.Core.Port;
 
 namespace Marrow.Services.Port.Usage;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-2; observational rates for future Smart Handshake timing, not quota prediction.
+// PORT-ONLY: OD-0114 / ED-406; observational rates for future Smart Handshake timing, not quota prediction.
 // External clients may spend the same budget. These rates are measured during this thread's use of an account.
 public sealed partial class UsageRateEstimator
 {

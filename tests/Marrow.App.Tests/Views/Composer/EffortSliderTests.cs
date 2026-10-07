@@ -100,7 +100,7 @@ public sealed class EffortSliderTests(HeadlessSession headless)
         Assert.Equal(EffortBrand.Commandcode, EffortBrand.Create(ProviderKind.Commandcode));
         Assert.Equal(EffortBrand.Pi, EffortBrand.Create(ProviderKind.Pi));
         Assert.Equal(EffortBrand.Purple, EffortBrand.Create(null));
-        // Existing brands stay distinct; Local uses the unchanged no-provider fallback (ED-NEW-ma-3).
+        // Existing brands stay distinct; Local uses the unchanged no-provider fallback (ED-410).
         var brands = SwiftEnum<ProviderKind>.AllCases.Where(provider => provider != ProviderKind.Local).Select(provider => EffortBrand.Create(provider)).ToArray();
         Assert.Equal(brands.Length, brands.Distinct().Count());
     }

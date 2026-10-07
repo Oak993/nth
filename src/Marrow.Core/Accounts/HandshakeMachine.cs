@@ -208,7 +208,7 @@ public sealed class HandshakeMachine(
             await EarlierAsync(back, ct);
     }
 
-    // PORT-ONLY: ED-NEW-ma-engine-1. An earlier account that is still near its own Handshake point has not come back: going to it would start the next Handshake at once.
+    // PORT-ONLY: ED-433. An earlier account that is still near its own Handshake point has not come back: going to it would start the next Handshake at once.
     private bool HasComeBack(SwitchTarget candidate) =>
         limits.Usage(candidate.Account.Id) is not { } usage
         || usage.PercentUsed < HandshakeTiming.StartPercent(candidate.Account, candidate.Step, CurrentOptions, limits, threadId);
@@ -295,7 +295,7 @@ public sealed class HandshakeMachine(
         // A prepared target cannot answer a newly relevant mid-reply choice or a revoked preference.
         Need(onLimit);
         Need(Get(DecisionKind.Bring));
-        // PORT-ONLY: ED-NEW-ma-engine-7. "Finish the reply?" is only asked of a destination that can continue it; a deferred one ignores the answer.
+        // PORT-ONLY: ED-439. "Finish the reply?" is only asked of a destination that can continue it; a deferred one ignores the answer.
         var midAt = needs.Count;
         var midReply = host.ReplyInFlight ? Get(DecisionKind.MidReply) : null;
         void NeedMidReply()
@@ -526,7 +526,7 @@ public sealed class HandshakeMachine(
 
     private async Task SwitchNowAsync(CancellationToken ct)
     {
-        // PORT-ONLY: ED-NEW-ma-ui. Preparation cannot retain permission to use a row turned Off meanwhile.
+        // PORT-ONLY: ED-403. Preparation cannot retain permission to use a row turned Off meanwhile.
         if (target is null || Find(target.Account.Id) is not { Enabled: true }
             || (limits.Usage(target.Account.Id)?.IsExhaustedAt(clock.GetUtcNow()) ?? false)
             || host.ActiveAccountId != outgoing || !PolicyStillCurrent()

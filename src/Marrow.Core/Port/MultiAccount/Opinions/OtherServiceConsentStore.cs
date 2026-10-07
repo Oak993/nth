@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0120 user-chosen Don't ask again; scope is one action and destination service, ED-NEW-ma-wave1-5.
+// PORT-ONLY: OD-0120 user-chosen Don't ask again; scope is one action and destination service, ED-471.
 using System.Text.Json;
 using Marrow.Core.Models;
 namespace Marrow.Core.Port.MultiAccount.Opinions;

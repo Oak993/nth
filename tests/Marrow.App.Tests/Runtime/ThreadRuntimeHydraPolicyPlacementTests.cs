@@ -16,7 +16,7 @@ public sealed class ThreadRuntimeHydraPolicyPlacementTests
 {
     private const string Text = "Audit the module";
 
-    // ED-NEW-ma-3: this scripted rig predates endpoint binding. Local is covered by the fake-loopback runtime test
+    // ED-410: this scripted rig predates endpoint binding. Local is covered by the fake-loopback runtime test
     // and the all-provider policy predicate test; retain every original source/OpenRouter scenario here.
     public static TheoryData<ProviderKind> EveryProvider() => new(Enum.GetValues<ProviderKind>().Where(provider => provider != ProviderKind.Local).ToArray());
 

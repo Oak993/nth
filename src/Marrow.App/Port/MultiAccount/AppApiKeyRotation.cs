@@ -32,7 +32,6 @@ public sealed class AppApiKeyRotation : IAsyncApiKeyRotation, IDisposable
     public HandshakeEvent? State { get; private set; }
     public DecisionRequest? Request => answer is { Task.IsCompleted: false } ? State?.Request : null;
     public string? StopReason => inner.StopReason;
-    public IApiKeyBudget? Budget => inner.Budget;
     public string? ContinuedOn => inner.ContinuedOn;
     private void Changed(object? sender, ApiKeyEvent value) { if (value.ThreadId == ThreadId) last = value; }
     private void Prepare()

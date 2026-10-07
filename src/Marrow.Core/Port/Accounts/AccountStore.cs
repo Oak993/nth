@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0114 / ED-NEW-ma-1. Account metadata in settings; credentials remain CLI-owned or in APIKeychain.
+// PORT-ONLY: OD-0114 / ED-404. Account metadata in settings; credentials remain CLI-owned or in APIKeychain.
 using System.Globalization;
 using System.Text.Json;
 using Marrow.Core.Models;
@@ -48,7 +48,7 @@ public sealed class AccountStore
         }
     }
 
-    // ED-NEW-ma-ui: a corrupt/newer document keeps single-account launches available, but cannot be replaced by editing a recovered row.
+    // ED-403: a corrupt/newer document keeps single-account launches available, but cannot be replaced by editing a recovered row.
     public bool SaveBlocked { get; private init; }
 
     public static AccountStore LegacyReadOnly(ISettingsStore settings, Func<ProviderKind, AccountDefaults>? defaults = null) => new(settings,

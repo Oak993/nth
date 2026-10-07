@@ -3,7 +3,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.Usage;
 
-// PORT-ONLY: OD-0114 / ED-NEW-ma-2; an account-owned observation, including honest absence of quota data.
+// PORT-ONLY: OD-0114 / ED-406; an account-owned observation, including honest absence of quota data.
 public sealed record AccountPlanLimitsSnapshot(UsageAccountKey Account, PlanLimits? Limits, DateTimeOffset ObservedAt)
 {
     // A response arriving after a refusal cannot prove recovery if its request began before that refusal.

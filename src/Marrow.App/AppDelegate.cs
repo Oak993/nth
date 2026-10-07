@@ -55,6 +55,7 @@ public sealed class AppDelegate
         ToastNotifications.Center.Current.InstallDelegate(this); // :15, ED-220 (5)-(6), before any window
         var windows = WindowManager.Shared; // :16
         Model = windows.Model; // :17
+        Marrow.App.Port.Voice.VoiceComposition.Attach(windows.Model.Settings); // VT-15: register hardware before GR-1 takes its plan; consent still gates all downloads
         // PORT-ONLY (OD-0096, GR-2): when the machine is not prepared (the first run, a new build, a new graphics card or driver) the main
         // window is made with the Getting ready sheet over its RootView, so the sheet is in its first frame; armed before :22 makes the window.
         var firstRun = Marrow.App.Port.FirstRun.GettingReadyLaunch.Arm(windows, FirstRun);

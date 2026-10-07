@@ -35,7 +35,7 @@ public sealed record TurnInput
 // :22-47. Everything a provider session needs to launch.
 public sealed record SessionConfiguration
 {
-    // PORT-ONLY: OD-0114 / ED-NEW-ma-1; null only for legacy call sites/test fixtures.
+    // PORT-ONLY: OD-0114 / ED-404; null only for legacy call sites/test fixtures.
     public Guid? AccountId { get; init; }
     public HandshakePoint? AccountHandshakePoint { get; init; }
     public required ProviderKind Provider { get; init; }                 // :23
@@ -44,7 +44,7 @@ public sealed record SessionConfiguration
     public required ValueMap<string, string> Environment { get; init; }  // :26
     public string? ResumeID { get; init; }                               // :27
     public string? ResumeAt { get; init; }                               // :28
-    // DEVIATION OD-0114 / ED-NEW-ma-4: supported Codex path resume, only set by a version-gated handoff.
+    // DEVIATION OD-0114 / ED-407: supported Codex path resume, only set by a version-gated handoff.
     public string? ResumePath { get; init; }
     public string? Model { get; init; }                                  // :29
     public string? Effort { get; init; }                                 // :30

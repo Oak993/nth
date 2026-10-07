@@ -99,7 +99,7 @@ public sealed class ThreadRuntimePart1Tests
                 ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Deepseek, ProviderKind.Meta,
                 ProviderKind.Zai, ProviderKind.Copilot, ProviderKind.Pi,
                 ProviderKind.OpenRouter, // ED-234: not in Provider.swift:149-154; a native API provider added by OD-0049
-                ProviderKind.Local, // ED-NEW-ma-3: the shared session can compact
+                ProviderKind.Local, // ED-410: the shared session can compact
             },
             compactProviders);
 

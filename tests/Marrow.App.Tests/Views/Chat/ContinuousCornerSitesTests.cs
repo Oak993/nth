@@ -55,6 +55,15 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
         ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
+        ("Marrow.App/Port/MultiAccount/Capsule/AccountCapsule.cs", "11", 1, Capsule), // MA-9 (ED-452): the blurred rim copy behind the 22 pt account capsule (styles 11, 11o), r = h / 2
+        ("Marrow.App/Port/MultiAccount/Capsule/PillPreview.cs", "8", 1, Circular), // MA-9 (ED-452): the preview stage inside a style card, design-page layout (multi-account.html .pv, CSS border-radius 8), not a Swift shape
+        ("Marrow.App/Port/MultiAccount/Capsule/PillPreview.cs", "15", 1, Circle), // MA-9 (ED-452): the 30 x 30 send button of the preview composer, a circle by construction
+        ("Marrow.App/Port/MultiAccount/Capsule/PillPreview.cs", "23", 1, Capsule), // MA-9 (ED-452): the 46 pt preview composer, r = h / 2
+        ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "12", 3, Circular), // MA-9 (ED-452): the glow card, a style card button and its shell, design-page layout (CSS border-radius 12), as CzStyleCards
+        ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "999", 1, Capsule), // MA-9 (ED-452): the small "default" tag, a pill with r far past h / 2
+        ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "9", 1, Circular), // MA-9 (ED-452): the glow variant button, design-page layout (CSS border-radius 9)
+        ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "10", 1, Circular), // MA-9 (ED-452): the picked-card ring, design-page layout (CSS border-radius 10)
+        ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "3", 1, Circle), // MA-9 (ED-452): the 6 x 6 dot of the legend, a circle by construction
         ("Marrow.App/Port/Settings/PreviewMenuItem.cs", "7", 1, Circular), // CZ-3 (ED-335): a model menu row, design-page layout (CSS .pitem border-radius 7)
         ("Marrow.App/Port/Settings/PreviewStepper.cs", "11", 1, Circle), // CZ-3 (ED-335): the 22 x 22 stepper, a circle by construction
         ("Marrow.App/Port/Settings/PreviewSwitchChip.cs", "14", 1, Capsule), // CZ-3 (ED-335): the 28 pt chip of the preview model switch, r = h / 2

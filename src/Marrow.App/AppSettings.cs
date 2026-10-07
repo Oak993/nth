@@ -322,7 +322,7 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
     // :184. CaptureRun is NOT-PORTED (ED-001): always UserDefaults.Standard. B2 named this same indirection
     // WebsiteCaptures.defaults (:184, :708, :869 at B3); the rename carries no behaviour change.
     private readonly ISettingsStore defaults = UserDefaults.Standard.Current;
-    // PORT-ONLY: OD-0114 / ED-NEW-ma-1. Read settings only; never inspect or move CLI credentials during migration.
+    // PORT-ONLY: OD-0114 / ED-404. Read settings only; never inspect or move CLI credentials during migration.
     private AccountStore? accounts;
     public AccountStore Accounts
     {

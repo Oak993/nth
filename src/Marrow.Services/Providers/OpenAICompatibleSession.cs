@@ -42,7 +42,7 @@ public class OpenAICompatibleSession : ProviderSession
         public required Uri ChatURL { get; init; }                         // :22
         public required int ContextWindow { get; init; }                   // :23
         public int? MaxOutputTokens { get; init; }                         // :25
-        // PORT-ONLY (ED-NEW-ma-3): defaults preserve all existing key-based providers.
+        // PORT-ONLY (ED-410): defaults preserve all existing key-based providers.
         public bool RequiresAPIKey { get; init; } = true;
         public bool FollowRedirects { get; init; } = true;
         public bool UseCookies { get; init; } = true;
@@ -63,11 +63,6 @@ public class OpenAICompatibleSession : ProviderSession
         public int StatusCode { get; init; } = 200;                        // :108
         /// <summary>PORT-ONLY (MA-6): the Retry-After of a non-200 answer, in seconds; the key pool honours it on a 429.</summary>
         public TimeSpan? RetryAfter { get; init; }
-        internal ModelTokenPrice? RequestPrice { get; init; }
-        internal IApiKeyRotation? RequestRotation { get; init; }
-        internal IApiKeyReservation? SpendReservation { get; init; }
-        internal bool SpendAccounted { get; set; }
-        internal bool HadUsdCap { get; init; }
     }
 
     // :114-122
@@ -77,7 +72,7 @@ public class OpenAICompatibleSession : ProviderSession
         public long? Input { get; init; }
         public long? Output { get; init; }
         public long? CachedInput { get; init; }
-        // PORT-ONLY: ED-NEW-ma-ui. OpenRouter's charged USD from the streamed usage report.
+        // PORT-ONLY: ED-403. OpenRouter's charged USD from the streamed usage report.
         public double? ReportedCostUsd { get; init; }
 
         // :122
@@ -92,7 +87,7 @@ public class OpenAICompatibleSession : ProviderSession
     // PORT-ONLY: OD-0114. Called only after the full tool round is retained, before another request.
     // False transfers continuation ownership to the host; this retired loop emits no completion.
     public Func<CancellationToken, Task<bool>>? ContinueAfterAccountStep { get; set; }
-    // PORT-ONLY: ED-NEW-ma-ui. Private context permission is rechecked after encoding on every attempt.
+    // PORT-ONLY: ED-403. Private context permission is rechecked after encoding on every attempt.
     internal Func<bool>? CanTransferContext { get; set; }
     public SessionConfiguration Configuration { get; private set; }   // :37
 
@@ -156,9 +151,6 @@ public class OpenAICompatibleSession : ProviderSession
         runtimeMode = configuration.RuntimeMode;
         interactionMode = configuration.InteractionMode;
         currentModel = configuration.Model ?? config.DefaultModel;
-        // RR-50: production binding is exact and dated. Unfilled data never supplies a guessed estimator.
-        if (ModelPriceCatalog.Current.Current.Find(configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow()) is not null)
-            KeySpendEstimator = defaultSpendEstimator = usage => ModelPriceCatalog.Current.Current.Find(Configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow())?.Estimate(usage);
     }
 
     // :240. PR-PROVAPI-093: no child process backs these sessions, so liveness is this
@@ -236,14 +228,10 @@ public class OpenAICompatibleSession : ProviderSession
     // each request goes out on the rotation's current key, and a 402 or 429 sends the same request again on the next allowed key.
     public IApiKeyRotation? KeyRotation { get; set; }
 
-    // PORT-ONLY (RR-50): exact dated production prices are bound when available; custom estimators remain a legacy offline seam.
+    // PORT-ONLY (MA-6): the money one finished request cost, for the key's monthly cap. Null (the default) records no spend: no price table is in the source.
     public Func<ReportedTokenUsage, double?>? KeySpendEstimator { get; set; }
-    private readonly Func<ReportedTokenUsage, double?>? defaultSpendEstimator;
 
     private string? rotatedKey;
-    private string? requestKeyId;
-    private IApiKeyReservation? dispatchReservation;
-    private ModelTokenPrice? dispatchPrice;
     private long apiAccountRevision;
     private long turnAccountRevision;
 
@@ -252,7 +240,7 @@ public class OpenAICompatibleSession : ProviderSession
     // :247-265. PR-PROVAPI-089, PR-PROVAPI-090, PR-PROVAPI-091, PR-PROVAPI-092.
     public Task<string> Start()
     {
-        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :248; ED-NEW-ma-3
+        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :248; ED-410
         var id = Configuration.ResumeID ?? SwiftString.Lowercased(SwiftUUID.UuidString(Guid.NewGuid())); // :249
         sessionID = id;       // :250
         interrupted = false;  // :251
@@ -297,11 +285,11 @@ public class OpenAICompatibleSession : ProviderSession
             return;
         }
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
-        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-NEW-ma-3
+        if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-410
         turnAccountRevision = apiAccountRevision;
         runtimeMode = input.RuntimeMode;             // :288
         interactionMode = input.InteractionMode;     // :289
-        if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-NEW-ma-3
+        if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-410
         interrupted = false;         // :291
         approveAllRemaining = false; // :292
         // A turn that resumes after AGENTS.md or CLAUDE.md changed gets the new rules; the files
@@ -366,7 +354,7 @@ public class OpenAICompatibleSession : ProviderSession
                 if (OpenAICompatibleSessionConfig.RequiresAPIKey && (round.StatusCode == 401 ||
                     (round.RawError is { } rawError401 &&
                      SwiftString.LocalizedCaseInsensitiveContains(rawError401, "invalid") &&
-                     SwiftString.LocalizedCaseInsensitiveContains(rawError401, "key")))) // :343-344 PR-PROVAPI-101; ED-NEW-ma-3
+                     SwiftString.LocalizedCaseInsensitiveContains(rawError401, "key")))) // :343-344 PR-PROVAPI-101; ED-410
                 {
                     throw new ProviderError(new ProviderError.Case.Failed(
                         $"{OpenAICompatibleSessionConfig.Title} rejected the API key. Check it in Settings \U00002192 Providers \U00002192 {OpenAICompatibleSessionConfig.Title}.")); // :345, U+2192 RIGHTWARDS ARROW
@@ -550,7 +538,11 @@ public class OpenAICompatibleSession : ProviderSession
     protected virtual void ReportUsage(StreamRound round)
     {
         // PORT-ONLY (MA-6): the request's cost goes against the key it used.
-        AccountRequestSpend(round);
+        if (KeyRotation is { } rotation && round.TokenUsage is { } spent)
+        {
+            var charged = spent.ReportedCostUsd ?? (spent.HasSpend ? KeySpendEstimator?.Invoke(spent) : null);
+            if (charged is { } usd && double.IsFinite(usd) && usd >= 0) rotation.RecordSpend(usd);
+        }
         if (round.Usage is { } usage) // :489
         {
             OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :490
@@ -559,20 +551,6 @@ public class OpenAICompatibleSession : ProviderSession
         if (round.TokenUsage is not { HasSpend: true } reported) return; // :493
         OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(
             OpenAICompatibleSessionConfig.Kind, reported.Total, reported.Input, reported.Output, reported.CachedInput, currentModel))); // :494-501
-    }
-
-    private void AccountRequestSpend(StreamRound round)
-    {
-        if (round.SpendAccounted) return;
-        var charged = round.TokenUsage is { } spent
-            ? spent.ReportedCostUsd is { } reported && double.IsFinite(reported) && reported >= 0 ? reported
-                : round.RequestPrice?.Estimate(spent) ?? (spent.HasSpend && !ReferenceEquals(KeySpendEstimator, defaultSpendEstimator) ? KeySpendEstimator?.Invoke(spent) : null)
-            : null;
-        if (round.SpendReservation is { } reservation) reservation.Complete(charged);
-        else if (charged is { } usd && double.IsFinite(usd) && usd >= 0) (round.RequestRotation ?? KeyRotation)?.RecordSpend(usd);
-        round.SpendAccounted = true;
-        if (round.HadUsdCap && charged is null)
-            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = "This request has no verified cost report. Its budget remains reserved." }));
     }
 
     // MARK: - Chat round
@@ -729,49 +707,14 @@ public class OpenAICompatibleSession : ProviderSession
         {
             SwiftTask.CheckCancellation(); // :518
             if (interrupted || isStopping) throw new CancellationError(); // :521
-            var rotation = KeyRotation;
-            var revision = apiAccountRevision;
-            var keyId = requestKeyId;
-            var capped = rotation?.Budget is { } budget && keyId is not null && budget.RequiresPrice(keyId);
-            var price = Configuration.Provider == ProviderKind.OpenRouter && capped
-                ? await OpenRouterPriceSource.ResolveAsync(model, SwiftTask.CancellationToken)
-                : ModelPriceCatalog.Current.Current.Find(Configuration.Provider, model, SwiftClock.Provider.Current.GetUtcNow());
-            SwiftTask.CheckCancellation();
-            if (interrupted || isStopping || revision != apiAccountRevision || !ReferenceEquals(rotation, KeyRotation)
-                || keyId != requestKeyId || CanTransferContext?.Invoke() == false) throw new CancellationError();
-            // Reserve the full authoritative model window/output maximum. No tokenizer guess or silent single-request overshoot.
-            if (capped && (price?.CeilingUsd is null || ContainsNonTextBilling(payload)))
-                throw new ProviderError(new ProviderError.Case.Failed("This capped account has no current verified price and request bound for this model. No request was sent."));
-            var reservation = rotation?.Budget is { } shared && keyId is not null ? shared.Reserve(keyId, price?.CeilingUsd) : null;
-            if (rotation?.Budget is not null && reservation is null)
-                throw new ProviderError(new ProviderError.Case.Failed("The remaining monthly USD cap cannot cover this request. No request was sent."));
-            if (capped && price is { MaximumOutputTokens: { } outputLimit })
-            {
-                payload["max_tokens"] = new JSONValue.Int(Math.Min(payload.GetValueOrDefault("max_tokens")?.JSONValueInt ?? outputLimit, outputLimit));
-                if (Configuration.Provider == ProviderKind.OpenRouter)
-                    payload["provider"] = JSONValue.FromDictionaryLiteral(("max_price", JSONValue.FromDictionaryLiteral(
-                        ("prompt", price.InputPerMillion.ToString("R", System.Globalization.CultureInfo.InvariantCulture)),
-                        ("completion", price.OutputPerMillion.ToString("R", System.Globalization.CultureInfo.InvariantCulture)),
-                        ("request", price.RequestUsd.ToString("R", System.Globalization.CultureInfo.InvariantCulture)))));
-            }
             sseDrain?.Cancel(); // :522
             sseDrain = null; // :523
-            if (reservation?.CanDispatch == false || CanTransferContext?.Invoke() == false || interrupted || isStopping || SwiftTask.IsCancelled)
-            {
-                reservation?.CancelBeforeDispatch();
-                throw new CancellationError();
-            }
-            dispatchReservation = reservation;
-            dispatchPrice = capped ? price : null;
             var task = MainActor.SpawnThrowing<StreamRound>(() => PerformStreamAttempt(payload)); // :524
             roundTask = task; // :525
             try
             {
-                var round = (await task.Value) with { RequestPrice = price, RequestRotation = rotation, SpendReservation = reservation, HadUsdCap = capped }; // :527
-                dispatchReservation = null;
-                dispatchPrice = null;
+                var round = await task.Value; // :527
                 roundTask = null; // :528
-                AccountRequestSpend(round); // charge the immutable request identity even when ownership/cancellation changes after its response
                 SwiftTask.CheckCancellation(); // :529
                 if (interrupted || isStopping) throw new CancellationError(); // :530
                 if (await ContinueOnNextKeyAsync(round)) continue; // PORT-ONLY (MA-6): the same request, on the next allowed key
@@ -779,9 +722,6 @@ public class OpenAICompatibleSession : ProviderSession
             }
             catch (StreamAttemptFailure failure) // :532
             {
-                dispatchReservation = null;
-                dispatchPrice = null;
-                reservation?.Complete(null); // unknown server outcome: retain the durable hold before any transport retry
                 roundTask = null; // :533
                 sseDrain?.Cancel(); // :534
                 sseDrain = null; // :535
@@ -806,18 +746,11 @@ public class OpenAICompatibleSession : ProviderSession
             }
             catch (Exception) // :553-556
             {
-                dispatchReservation = null;
-                dispatchPrice = null;
-                reservation?.Complete(null);
                 roundTask = null; // :554
                 throw; // :555
             }
         }
     }
-
-    private static bool ContainsNonTextBilling(Dictionary<string, JSONValue> payload) => payload.Values.Any(NonText);
-    private static bool NonText(JSONValue value) => value.JSONValueArray?.Any(NonText) == true
-        || value.JSONValueObject?.Any(pair => pair.Key is "image_url" or "audio" or "video" or "plugins" || NonText(pair.Value)) == true;
 
     // PORT-ONLY (OD-0114, MA-6). A new request takes the rotation's current key; with none left the turn ends with the pool's all-keys-out message.
     private async Task UseRotationKeyAsync()
@@ -830,7 +763,6 @@ public class OpenAICompatibleSession : ProviderSession
         if (selected is { } choice)
         {
             rotatedKey = choice.Secret;
-            requestKeyId = choice.Id;
             if (rotation.ContinuedOn is { } name) OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {name}" }));
             return;
         }
@@ -858,7 +790,6 @@ public class OpenAICompatibleSession : ProviderSession
             return false;
         }
         rotatedKey = next.Secret;
-        requestKeyId = next.Id;
         OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {next.Nickname}" }));
         return true;
     }
@@ -986,7 +917,7 @@ public class OpenAICompatibleSession : ProviderSession
     // subclass knows each model's own (OpenRouter lists a context length per model).
     protected virtual int ContextWindowFor(string model) => OpenAICompatibleSessionConfig.ContextWindow;
 
-    // PORT-ONLY (ED-NEW-ma-3): Local selections include endpoint identity; the model sent on the wire does not.
+    // PORT-ONLY (ED-410): Local selections include endpoint identity; the model sent on the wire does not.
     protected virtual string ModelForInput(string model) => model;
 
     // :588-590. DeepSeek turns thinking on and maps the effort; Meta takes a top-level
@@ -1015,27 +946,14 @@ public class OpenAICompatibleSession : ProviderSession
     private async Task<StreamRound> PerformStream(Dictionary<string, JSONValue> payload)
     {
         var request = new URLRequest(OpenAICompatibleSessionConfig.ChatURL, timeoutInterval: 300)
-            { HttpMethod = "POST", FollowRedirects = OpenAICompatibleSessionConfig.FollowRedirects, UseCookies = OpenAICompatibleSessionConfig.UseCookies } // :601-602; ED-NEW-ma-3
+            { HttpMethod = "POST", FollowRedirects = OpenAICompatibleSessionConfig.FollowRedirects, UseCookies = OpenAICompatibleSessionConfig.UseCookies } // :601-602; ED-410
             .SetValue("application/json", "Content-Type")   // :603
             .SetValue("application/json", "Accept");        // :605
-        if (OpenAICompatibleSessionConfig.RequiresAPIKey) request = request.SetValue($"Bearer {ApiKey}", "Authorization"); // :604; ED-NEW-ma-3
+        if (OpenAICompatibleSessionConfig.RequiresAPIKey) request = request.SetValue($"Bearer {ApiKey}", "Authorization"); // :604; ED-410
         request = request with { HttpBody = await Encode(payload) }; // :607
-        if (SwiftTask.IsCancelled || interrupted || isStopping)
-        {
-            dispatchReservation?.CancelBeforeDispatch();
-            throw new CancellationError(); // :608
-        }
+        if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :608
         if (CanTransferContext?.Invoke() == false)
-        {
-            dispatchReservation?.CancelBeforeDispatch();
             throw new ProviderError(new ProviderError.Case.Failed("Context transfer is no longer authorized."));
-        }
-        if (dispatchReservation?.CanDispatch == false || dispatchPrice is { } price && (price.RetrievedAt > SwiftClock.Provider.Current.GetUtcNow()
-            || SwiftClock.Provider.Current.GetUtcNow() - price.RetrievedAt >= TimeSpan.FromDays(1)))
-        {
-            dispatchReservation?.CancelBeforeDispatch();
-            throw new ProviderError(new ProviderError.Case.Failed("Permission or the USD cap changed before dispatch. No request was sent."));
-        }
 
         var messageID = NextID("message"); // :610
         var thoughtID = NextID("thought"); // :611

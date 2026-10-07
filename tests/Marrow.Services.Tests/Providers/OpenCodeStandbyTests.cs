@@ -5,7 +5,7 @@ using Marrow.Services.Tests.Fixtures;
 
 namespace Marrow.Services.Tests.Providers;
 
-// OD-0116, OD-0122, ED-NEW-ma-engine-7, research section 3: OpenCode stores the context with a `noReply` message on its own server when the running server's OpenAPI offers it;
+// OD-0116, OD-0122, ED-439, research section 3: OpenCode stores the context with a `noReply` message on its own server when the running server's OpenAPI offers it;
 // the conversation's ACP session loads that stored session at the handover. Anything missing falls back. Offline: a fake server and a fake ACP session.
 [Trait("Rule", "R-TEST-4")]
 public sealed class OpenCodeStandbyTests

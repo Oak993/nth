@@ -8,7 +8,7 @@ namespace Marrow.Services.Tests.Port.Usage;
 public sealed class UsageRateEstimatorTests
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void Rates_are_separate_for_each_thread_account_and_service_window()
     {
         var estimator = new UsageRateEstimator();
@@ -29,7 +29,7 @@ public sealed class UsageRateEstimatorTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void Resets_missing_data_and_out_of_order_samples_cannot_create_a_false_spending_rate()
     {
         var estimator = new UsageRateEstimator();
@@ -50,7 +50,7 @@ public sealed class UsageRateEstimatorTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     public void Credits_removed_windows_and_new_reset_epochs_use_separate_baselines()
     {
         var estimator = new UsageRateEstimator();
@@ -72,7 +72,7 @@ public sealed class UsageRateEstimatorTests
     }
 
     [Theory]
-    [Trait("Decision", "ED-NEW-ma-2")]
+    [Trait("Decision", "ED-406")]
     [InlineData("Pro", 95)]
     [InlineData("Plus", 95)]
     [InlineData("$20", 95)]

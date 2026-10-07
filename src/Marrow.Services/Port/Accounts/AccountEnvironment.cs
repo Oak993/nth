@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0114 / ED-NEW-ma-1; MA-0 §1 selectors. This separates CLI state, not Windows security identities.
+// PORT-ONLY: OD-0114 / ED-404; MA-0 §1 selectors. This separates CLI state, not Windows security identities.
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Marrow.Core.Models;
@@ -7,9 +7,23 @@ using Marrow.Core.Port.Accounts;
 
 namespace Marrow.Services.Port.Accounts;
 
-public sealed class AccountEnvironment(string dataRoot)
+public sealed class AccountEnvironment
 {
-    private readonly string root = Path.GetFullPath(dataRoot);
+    private readonly Lazy<string> rootValue;
+
+    public AccountEnvironment(string dataRoot)
+    {
+        var full = Path.GetFullPath(dataRoot);
+        rootValue = new Lazy<string>(() => full);
+    }
+
+    /// <summary>PORT-ONLY: the root is asked for only when a folder is, so a registry built before storage is bound (a test, or start-up order) never reads it.</summary>
+    public AccountEnvironment(Func<string> dataRoot)
+    {
+        rootValue = new Lazy<string>(() => Path.GetFullPath(dataRoot()));
+    }
+
+    private string root => rootValue.Value;
 
     // Do not let an inherited key/profile override CLI-owned sign-in for a newly created account.
     private static readonly string[] CredentialVariables =

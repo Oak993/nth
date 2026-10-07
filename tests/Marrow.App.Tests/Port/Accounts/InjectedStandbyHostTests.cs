@@ -9,7 +9,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.App.Tests.Port.Accounts;
 
-// OD-0116, OD-0120, OD-0122, ED-NEW-ma-engine-7: the host prepares a Codex destination by history injection, adopts it with no extra turn, and falls back to deferred delivery
+// OD-0116, OD-0120, OD-0122, ED-439: the host prepares a Codex destination by history injection, adopts it with no extra turn, and falls back to deferred delivery
 // without losing the context. Offline: a scripted session stands for the CLI.
 [Trait("Rule", "R-TEST-4")]
 public sealed class InjectedStandbyHostTests

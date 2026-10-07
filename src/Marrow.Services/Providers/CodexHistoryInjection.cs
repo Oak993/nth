@@ -1,4 +1,4 @@
-// PORT-ONLY: OD-0116, OD-0122, ED-NEW-ma-engine-7. The run-time check that the connected `codex app-server` can load history without a model turn (`thread/inject_items`).
+// PORT-ONLY: OD-0116, OD-0122, ED-439. The run-time check that the connected `codex app-server` can load history without a model turn (`thread/inject_items`).
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Marrow.Core.Port;
@@ -28,10 +28,10 @@ public static partial class CodexHistoryInjection
     /// <summary>The verdict already reached for this exact executable, or null when it has not been checked.</summary>
     public static bool? Known(SwiftURL executable) => ByExecutable.TryGetValue(ExecutableKey(executable), out var verdict) ? verdict : null;
 
-    [GeneratedRegex(@"^[^/\s]+/(\d+)\.(\d+)\.(\d+)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^[^/\s]+(?: [^/\s]+)*/(\d+)\.(\d+)\.(\d+)", RegexOptions.CultureInvariant)]
     private static partial Regex UserAgentVersion();
 
-    /// <summary>The initialize reply's `userAgent` is `client/version (os; arch) ...`; the version is the CLI's own build.</summary>
+    /// <summary>The initialize reply's `userAgent` is `originator/version (os; arch) ...`; originators such as Codex Desktop contain spaces. The version is the CLI's own build.</summary>
     public static bool VersionSupportsInjection(string? userAgent)
     {
         if (userAgent is null || UserAgentVersion().Match(userAgent) is not { Success: true } match) return false;
@@ -50,7 +50,7 @@ public static partial class CodexHistoryInjection
             ByExecutable[ExecutableKey(executable)] = false;
             return false;
         }
-        var key = executable.Path + "|" + userAgent!.Split(' ')[0];
+        var key = ExecutableKey(executable) + "|" + userAgent!;
         if (!Verified.TryGetValue(key, out var listed))
         {
             try { listed = await SchemaProbe.Current(executable, environment); }

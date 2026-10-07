@@ -72,7 +72,7 @@ public sealed class SettingsProviderOpenRouterTests(HeadlessSession headless)
     public void The_page_lists_a_section_for_OpenRouter_among_the_providers() => WithView(() => new ProvidersSettingsPage(), (view, _) =>
     {
         var sections = Nodes<ProviderSettingsSection>(view);
-        Assert.Equal(16, sections.Length); // OD-0114 / ED-NEW-ma-3 appends Local through existing provider plumbing
+        Assert.Equal(16, sections.Length); // OD-0114 / ED-410 appends Local through existing provider plumbing
         Assert.Contains(sections, section => Text(section).Contains("OpenRouter"));
     });
 

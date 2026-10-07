@@ -4,8 +4,8 @@ using System.Text.Json;
 
 namespace Marrow.Core.Port.Accounts;
 
-// PORT-ONLY: OD-0114, OD-0116; ED-NEW-ma-ui. Metadata shares MA-1 identities; secrets stay in the vault.
-public sealed class AccountKeyStore : IApiKeyStore, IApiKeyReservedSpend
+// PORT-ONLY: OD-0114, OD-0116; ED-403. Metadata shares MA-1 identities; secrets stay in the vault.
+public sealed class AccountKeyStore : IApiKeyStore, IApiKeySpend
 {
     public const string SettingsKey = "multiAccountApiKeys";
     private readonly AccountStore accounts;
@@ -81,48 +81,7 @@ public sealed class AccountKeyStore : IApiKeyStore, IApiKeyReservedSpend
     public double SpendSince(string keyId, DateTimeOffset since)
     {
         if (!Guid.TryParse(keyId, out var id)) return 0;
-        lock (gate) return document.Spend.Where(item => item.Key == id && item.At >= since).Sum(item => item.Usd)
-                + (document.Reservations ?? []).Where(item => item.Key == id).Sum(item => item.Usd ?? 0);
-    }
-
-    public double BudgetSince(string keyId, DateTimeOffset since)
-    {
-        if (!Guid.TryParse(keyId, out var id)) return 0;
-        lock (gate) return (document.Reservations ?? []).Any(item => item.Key == id && item.Usd is null) ? double.PositiveInfinity : SpendSince(keyId, since);
-    }
-
-    public bool HasUnsettled(string keyId)
-    {
-        if (!Guid.TryParse(keyId, out var id)) return false;
-        lock (gate) return (document.Reservations ?? []).Any(item => item.Key == id);
-    }
-
-    public void Hold(Guid request, string keyId, double? maximumUsd, DateTimeOffset at)
-    {
-        if (request == Guid.Empty || !Guid.TryParse(keyId, out var key) || key == Guid.Empty || maximumUsd is { } amount && (!double.IsFinite(amount) || amount < 0))
-            throw new ArgumentException("Invalid API budget reservation.");
-        lock (gate) Save(document with { Reservations = [.. document.Reservations ?? [], new(request, key, maximumUsd, at)] });
-        Changed?.Invoke();
-    }
-    public void Cancel(Guid request)
-    {
-        lock (gate)
-        {
-            var remaining = (document.Reservations ?? []).Where(item => item.Request != request).ToArray();
-            Save(document with { Reservations = remaining.Length == 0 ? null : remaining });
-        }
-        Changed?.Invoke();
-    }
-    public void Settle(Guid request, double actualUsd)
-    {
-        if (!double.IsFinite(actualUsd) || actualUsd < 0) throw new ArgumentOutOfRangeException(nameof(actualUsd));
-        lock (gate)
-        {
-            if ((document.Reservations ?? []).FirstOrDefault(item => item.Request == request) is not { } held) return;
-            var remaining = (document.Reservations ?? []).Where(item => item.Request != request).ToArray();
-            Save(document with { Reservations = remaining.Length == 0 ? null : remaining, Spend = [.. document.Spend, new(held.Key, actualUsd, held.At)] });
-        }
-        Changed?.Invoke();
+        lock (gate) return document.Spend.Where(item => item.Key == id && item.At >= since).Sum(item => item.Usd);
     }
 
     public void Add(string keyId, double usd, DateTimeOffset at)
@@ -153,9 +112,5 @@ public sealed class AccountKeyStore : IApiKeyStore, IApiKeyReservedSpend
         foreach (var item in value.Spend)
             if (item is null || item.Key == Guid.Empty || !double.IsFinite(item.Usd) || item.Usd < 0)
                 throw new InvalidDataException("Invalid API key spend.");
-        var requests = new HashSet<Guid>();
-        foreach (var item in value.Reservations ?? [])
-            if (item is null || item.Request == Guid.Empty || !requests.Add(item.Request) || item.Key == Guid.Empty || item.Usd is { } amount && (!double.IsFinite(amount) || amount < 0))
-                throw new InvalidDataException("Invalid API key reservation.");
     }
 }

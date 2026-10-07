@@ -4,7 +4,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.App.Tests.Fixtures;
 
-/// <summary>An offline CLI session that can wait for a switch holding injected history (ED-NEW-ma-engine-7): it records what was injected and every real turn.</summary>
+/// <summary>An offline CLI session that can wait for a switch holding injected history (ED-439): it records what was injected and every real turn.</summary>
 public sealed class ThreadRuntimeInjectionSession : ProviderSession, IStandbyInjectionSession
 {
     public Action<ProviderEvent>? OnEvent { get; set; }

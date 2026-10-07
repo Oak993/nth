@@ -143,4 +143,18 @@ public sealed class AccountEnvironmentTests
         }
         finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
+
+    [Fact]
+    public void A_root_given_as_a_function_is_asked_for_only_when_a_folder_is()
+    {
+        using var folder = new AccountTestFolder();
+        var asked = 0;
+        var builder = new AccountEnvironment(() => { asked++; return folder.Path; });
+        Assert.Equal(0, asked);
+        var account = new AccountStore(new InMemorySettingsStore()).Add(ProviderKind.Codex);
+        var first = builder.Folder(account);
+        Assert.Equal(Path.Combine(Path.GetFullPath(folder.Path), "accounts", account.Service.Id, account.Id.ToString("N")), first);
+        Assert.Equal(first, builder.Folder(account));
+        Assert.Equal(1, asked);
+    }
 }
