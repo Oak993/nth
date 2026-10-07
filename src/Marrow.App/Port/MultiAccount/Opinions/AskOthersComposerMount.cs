@@ -18,9 +18,10 @@ internal static class AskOthersComposerMount
         if (model is null)
         {
             var ports = ThreadPortSeams.Offer.Current;
-            if (runtime.Thread is not { } thread || ports.Opinions is not { } opinions || ports.Account(runtime.ThreadID, thread.Provider) is not { } current) return null;
-            var accounts = SwiftEnum<ProviderKind>.AllCases.Select(service => ports.Account(runtime.ThreadID, service)).OfType<Marrow.Core.Port.MultiAccount.Thread.IThreadAccountPort>().Distinct().ToArray();
-            model = new AskOthersModel(runtime.ThreadID, current, accounts, opinions, new OtherServiceConsentStore(UserDefaults.Standard.Current), service => runtime.App is { } app ? app.Providers.Models(service) : Array.Empty<ModelOption>());
+            if (runtime.Thread is not { } thread) return null;
+            model = ports.CreateOpinionsModel(runtime.ThreadID, thread.Provider, new OtherServiceConsentStore(UserDefaults.Standard.Current),
+                service => runtime.App is { } app ? app.Providers.Models(service) : Array.Empty<ModelOption>());
+            if (model is null) return null;
         }
         var view = new AskOthersView(model) { VerticalAlignment = VerticalAlignment.Bottom };
         if (owned) { var lifetime = model; view.AttachedToVisualTree += (_, _) => lifetime.Resume(); view.DetachedFromVisualTree += (_, _) => lifetime.Dispose(); }

@@ -220,6 +220,16 @@ public static class PiCLI
     /// </summary>
     public static SwiftURL InstallLoadExtension() => InstallLoadExtension(LocalApplicationData());
 
+    // PORT-ONLY RR-49: only this extension is loaded into a fresh checking/opinion head.
+    internal static SwiftURL InstallTextOnlyExtension(string? localApplicationData)
+    {
+        var directory = SupportDirectoryPath(localApplicationData ?? LocalApplicationData());
+        Directory.CreateDirectory(directory);
+        var file = SwiftPath.AppendingPathComponent(directory, "marrow-text-only.mjs");
+        FileOps.WriteAtomic(file, Encoding.UTF8.GetBytes(PiTextOnlyHeadPolicy.Source));
+        return FileURL(file, isDirectory: false);
+    }
+
     internal static SwiftURL InstallLoadExtension(string localApplicationData)
     {
         var directory = SupportDirectoryPath(localApplicationData);
