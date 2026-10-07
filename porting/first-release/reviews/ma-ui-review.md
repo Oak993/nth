@@ -11,7 +11,7 @@ P1 means a missing agreed interaction, inaccessible operation or broken accessib
 - Checklist: `porting/first-release/multi-account-CHECKLIST.md`, SHA-256 `2eddbd5085042555d4b4415d34ba0d7c34c963c2cbf46517d76ea4c22487afee`.
 - OD-0114..OD-0126 were read from `git show origin/claude/verify-terminal-20261001:porting/owner_decisions.md`, reference commit `285b6b7a99b39e0e517f34c8d34a1860c945f83f`. Owner decisions take precedence.
 - Reviewed the built .NET 10 / Avalonia 12.1.2 Core models and App control trees, input events, themes, animation sampling and Skia painter output. Tests ran on Linux using the Windows target with `EnableWindowsTargeting=true`. Native Windows font rasterization, real UI Automation clients and live GPU presentation were not verified here. The findings below do not depend on those unverified checks.
-- HTML references below use the **final CSS cascade and executed DOM**, including overrides at 1347, 1361–1362, 1368, 1427–1447, 1459 and 1468. In particular, the earlier fixed 70px popover row and monospace percentage rules are superseded. Shared app typography uses the port's app font; MAUI-011 pins percentage text to that same font, rather than treating the HTML's fallback font list as a new app font decision.
+- HTML references below follow the **final CSS cascade and DOM construction code**, including overrides at 1347, 1361–1362, 1368, 1427–1447, 1459 and 1468. In particular, the earlier fixed 70px popover row and monospace percentage rules are superseded. Shared app typography uses the port's app font; MAUI-011 pins percentage text to that same font, rather than treating the HTML's fallback font list as a new app font decision.
 
 ## Top ten
 
