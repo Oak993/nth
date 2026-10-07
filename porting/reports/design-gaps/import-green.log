@@ -1,0 +1,19 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.45]     Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Held_old_chat_moves_to_a_new_path_and_GC_retries_after_handle_closes [SKIP]
+[xUnit.net 00:00:01.45]     Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Claimed_generation_keeps_ACL_and_GC_runs_the_unlock_order [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Held_old_chat_moves_to_a_new_path_and_GC_retries_after_handle_closes [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Claimed_generation_keeps_ACL_and_GC_runs_the_unlock_order [1 ms]
+[xUnit.net 00:00:01.45]     Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Junction_in_generation_is_rejected_without_reading_its_target [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Junction_in_generation_is_rejected_without_reading_its_target [1 ms]
+
+Passed!  - Failed:     0, Passed:   157, Skipped:     3, Total:   160, Duration: 2 s - Marrow.Services.Tests.dll (net10.0)
