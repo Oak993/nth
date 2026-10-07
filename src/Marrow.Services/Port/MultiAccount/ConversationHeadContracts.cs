@@ -3,7 +3,11 @@ using Marrow.Core.Models;
 
 namespace Marrow.Services.Port.MultiAccount;
 
-public sealed record ConversationHeadAccount(Guid Id, ProviderKind Service, string Name, bool Enabled, bool HasRoom);
+public sealed record ConversationHeadAccount(Guid Id, ProviderKind Service, string Name, bool Enabled, bool HasRoom)
+{
+    /// <summary>The live API key's configured monthly USD cap; null means no cap. The app must supply it with HasRoom.</summary>
+    public double? MonthlyCapUsd { get; init; }
+}
 
 public enum ConversationHeadPurpose { Check, Answer, Opinion, Combine }
 
@@ -15,6 +19,9 @@ public interface IConversationHeadHost
 {
     event Action<Guid>? AccountsChanged;
     Guid ActiveAccount(Guid thread);
+    /// <summary>Monotonic context/ownership epoch. Advance for transcript edits/resume, model/effort/endpoint changes and pin/pill/source changes;
+    /// raise AccountsChanged too. Capacity changes can use the account rows without changing this epoch.</summary>
+    long Revision(Guid thread);
     IReadOnlyList<ConversationHeadAccount> Accounts(Guid thread);
     Task<string> ContextAsync(Guid thread, CancellationToken ct);
     /// <summary>OD-0120: required before context is given to any different service. A denied request sends nothing.</summary>

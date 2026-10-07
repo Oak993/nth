@@ -6,11 +6,12 @@ namespace Marrow.Services.Port.MultiAccount;
 
 public sealed class OpinionsEngine : IOpinionsPort, IDisposable
 {
-    private sealed class Preparation(Guid thread, ConversationHeadAccount source, ConversationHeadAccount[] targets, CancellationToken ct)
+    private sealed class Preparation(Guid thread, ConversationHeadAccount source, ConversationHeadAccount[] targets, long revision, CancellationToken ct)
     {
         public Guid Thread { get; } = thread;
         public ConversationHeadAccount Source { get; } = source;
         public ConversationHeadAccount[] Targets { get; } = targets;
+        public long Revision { get; } = revision;
         public CancellationTokenSource Cancel { get; } = CancellationTokenSource.CreateLinkedTokenSource(ct);
     }
 
@@ -63,7 +64,7 @@ public sealed class OpinionsEngine : IOpinionsPort, IDisposable
                 ?? throw new InvalidOperationException("The answering account is unavailable.");
             var targets = accounts.Distinct().Select(id => rows.FirstOrDefault(account => account.Id == id && id != source.Id && account.Enabled && account.HasRoom)
                 ?? throw new InvalidOperationException("An opinion account is unavailable.")).ToArray();
-            preparation = new(thread, source, targets, ct);
+            preparation = new(thread, source, targets, host.Revision(thread), ct);
             preparing.Add(preparation);
         }
         try
@@ -101,7 +102,7 @@ public sealed class OpinionsEngine : IOpinionsPort, IDisposable
     {
         lock (gate) return Array.AsReadOnly(rounds.Where(round => round.Preparation.Thread == thread).Select(round =>
             new OpinionRound(round.Id, thread, round.Message, Array.AsReadOnly(round.Heads.Select(head =>
-                new OpinionAnswer(head.Account.Id, head.Text, head.Done)).ToArray()), round.Combined)).ToArray());
+                new OpinionAnswer(head.Account.Id, head.Text, head.Done) { Error = head.Error }).ToArray()), round.Combined)).ToArray());
     }
 
     public IReadOnlyDictionary<Guid, string> Errors(Guid thread, Guid round)
@@ -200,6 +201,7 @@ public sealed class OpinionsEngine : IOpinionsPort, IDisposable
     private bool SourcePermitted(Preparation preparation)
     {
         lock (gate) return !disposed && !preparation.Cancel.IsCancellationRequested && host.ActiveAccount(preparation.Thread) == preparation.Source.Id
+            && host.Revision(preparation.Thread) == preparation.Revision
             && Available(preparation.Thread, preparation.Source);
     }
 

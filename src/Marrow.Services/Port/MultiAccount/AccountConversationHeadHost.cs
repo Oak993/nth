@@ -37,8 +37,15 @@ public sealed class AccountConversationHeadHost(
         ct.ThrowIfCancellationRequested();
         if (!TextOnlyAccountHead.Supports(request.Account.Service))
             throw new NotSupportedException(request.Account.Name + ": this service has no verified text-only checking or opinion turn.");
-        bool CanSend() => !ct.IsCancellationRequested && permitted() && Accounts(request.Thread)
-            .Any(row => row.Id == request.Account.Id && row.Service == request.Account.Service && row.Enabled && row.HasRoom);
+        var expectedRevision = Revision(request.Thread);
+        var expectedSource = ActiveAccount(request.Thread);
+        OpenAICompatibleSession? apiHead = null;
+        bool CostKnown(ConversationHeadAccount row) => row.MonthlyCapUsd is null || apiHead is null
+            || double.IsFinite(row.MonthlyCapUsd.Value) && row.MonthlyCapUsd >= 0
+                && (row.Service == ProviderKind.OpenRouter || apiHead.KeySpendEstimator is not null);
+        bool CanSend() => !ct.IsCancellationRequested && permitted() && Revision(request.Thread) == expectedRevision
+            && ActiveAccount(request.Thread) == expectedSource && Accounts(request.Thread)
+            .Any(row => row.Id == request.Account.Id && row.Service == request.Account.Service && row.Enabled && row.HasRoom && CostKnown(row));
         if (!CanSend()) throw new InvalidOperationException("The account is no longer available.");
         // Fresh private heads never inherit a working session, tool-using Hydra launch or executable skill generation.
         var source = configuration(request.Thread, request.Account.Id) with
@@ -52,9 +59,13 @@ public sealed class AccountConversationHeadHost(
             // Fail closed if a real API session was given no pool; a cached HasRoom alone is not a dispatch-time cap check.
             if (launch.Session is OpenAICompatibleSession api && request.Account.Service.IsAPIKeyBased)
             {
+                apiHead = api;
                 bindKeys?.Invoke(api, request.Account.Id);
                 api.KeyRotation = new PinnedConversationKeyRotation(api.KeyRotation
                     ?? throw new InvalidOperationException("A checking or opinion API head requires the shared private key routing."), request.Account.Id);
+                // OpenRouter reports charged USD. Other capped APIs need caller-supplied authoritative model pricing; never invent a rate.
+                if (!Accounts(request.Thread).Any(row => row.Id == request.Account.Id && CostKnown(row)))
+                    throw new InvalidOperationException("This capped account has no verified price for this model.");
             }
             if (!CanSend()) throw new InvalidOperationException("Permission to use this account changed.");
             var instruction = request.Purpose == ConversationHeadPurpose.Check

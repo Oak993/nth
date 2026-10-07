@@ -7,6 +7,7 @@ public sealed class ConversationHeadHarness : IConversationHeadHost
 {
     public Guid Thread { get; } = Guid.NewGuid();
     public Guid Active { get; set; } = Guid.NewGuid();
+    public long Version { get; private set; }
     public List<ConversationHeadAccount> Rows { get; } = [];
     public List<ConversationHeadFlight> Flights { get; } = [];
     public List<(Guid Thread, Guid Round, string Text, string Byline)> Posts { get; } = [];
@@ -25,6 +26,8 @@ public sealed class ConversationHeadHarness : IConversationHeadHost
     }
     public void Change(ConversationHeadAccount account) { Rows[Rows.FindIndex(row => row.Id == account.Id)] = account; AccountsChanged?.Invoke(Thread); }
     public void ChangeActive(Guid account) { Active = account; AccountsChanged?.Invoke(Thread); }
+    public void ChangeRevision() { Version++; AccountsChanged?.Invoke(Thread); }
+    public long Revision(Guid thread) => Version;
     public Guid ActiveAccount(Guid thread) => Active;
     public IReadOnlyList<ConversationHeadAccount> Accounts(Guid thread) => Rows.ToArray();
     public Task<string> ContextAsync(Guid thread, CancellationToken ct) => ContextWait?.WaitAsync(ct) ?? Task.FromResult("RECORDED CONVERSATION");

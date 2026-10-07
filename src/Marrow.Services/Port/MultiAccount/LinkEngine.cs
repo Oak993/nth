@@ -8,11 +8,14 @@ public sealed record LinkCheck(Guid AnswerId, Guid AnswerAccount, string Answer,
 
 public sealed class LinkEngine : ILinkPort, IDisposable
 {
-    private sealed class CheckState(Guid thread, Guid answerId, Guid source, string answer,
+    private sealed class CheckState(Guid thread, Guid answerId, ConversationHeadAccount source, long revision, bool requireSourceRoom, string answer,
         IReadOnlyList<ConversationHeadAccount> targets, CancellationTokenSource cancel)
     {
         public Guid Thread { get; } = thread;
-        public Guid Source { get; } = source;
+        public Guid Source { get; } = source.Id;
+        public ConversationHeadAccount SourceAccount { get; } = source;
+        public long Revision { get; } = revision;
+        public bool RequireSourceRoom { get; } = requireSourceRoom;
         public Guid AnswerId { get; } = answerId;
         public string Answer { get; } = answer;
         public CancellationTokenSource Cancel { get; } = cancel;
@@ -40,7 +43,8 @@ public sealed class LinkEngine : ILinkPort, IDisposable
 
     public IReadOnlyList<Guid> Linked(Guid thread)
     {
-        lock (gate) return Array.AsReadOnly(links.GetValueOrDefault(thread)?.ToArray() ?? []);
+        // Keep explicit tap intent internally; the public link state cannot show an active/out/off account.
+        lock (gate) return Array.AsReadOnly(links.GetValueOrDefault(thread)?.Where(id => Eligible(thread, id)).ToArray() ?? []);
     }
 
     public void Link(Guid thread, Guid account)
@@ -72,7 +76,14 @@ public sealed class LinkEngine : ILinkPort, IDisposable
     }
 
     /// <summary>Called once for each completed primary answer. The answer identity prevents duplicate checks.</summary>
+    public Task CheckCompletedAnswerAsync(Guid thread, Guid answerId, Guid answerAccount, string message, string answer, CancellationToken ct = default)
+        => StartCheck(thread, answerId, answerAccount, message, answer, requireSourceRoom: false, ct);
+
+    /// <summary>Checks an answer only while the source is available.</summary>
     public Task CheckAnswerAsync(Guid thread, Guid answerId, Guid answerAccount, string message, string answer, CancellationToken ct = default)
+        => StartCheck(thread, answerId, answerAccount, message, answer, requireSourceRoom: true, ct);
+
+    private Task StartCheck(Guid thread, Guid answerId, Guid answerAccount, string message, string answer, bool requireSourceRoom, CancellationToken ct)
     {
         CheckState state;
         ConversationHeadAccount source;
@@ -80,12 +91,13 @@ public sealed class LinkEngine : ILinkPort, IDisposable
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (checks.FirstOrDefault(check => check.Thread == thread && check.AnswerId == answerId) is { } existing) return existing.Done.Task;
-            source = host.Accounts(thread).FirstOrDefault(row => row.Id == answerAccount && row.Enabled && row.HasRoom)!;
+            source = host.Accounts(thread).FirstOrDefault(row => row.Id == answerAccount && row.Enabled && (!requireSourceRoom || row.HasRoom))!;
             if (source is null || host.ActiveAccount(thread) != answerAccount) return Task.CompletedTask;
             var targets = (links.GetValueOrDefault(thread) ?? []).Where(id => Eligible(thread, id))
                 .Select(id => host.Accounts(thread).First(row => row.Id == id)).ToArray();
             if (targets.Length == 0) return Task.CompletedTask;
-            state = new(thread, answerId, answerAccount, answer, targets, CancellationTokenSource.CreateLinkedTokenSource(ct));
+            // A completed author may have just spent its final quota; only the checking targets receive model turns here.
+            state = new(thread, answerId, source, host.Revision(thread), requireSourceRoom, answer, targets, CancellationTokenSource.CreateLinkedTokenSource(ct));
             checks.Add(state);
         }
         _ = CheckAsync(state, source, message);
@@ -148,7 +160,9 @@ public sealed class LinkEngine : ILinkPort, IDisposable
     {
         lock (gate) return !disposed && !state.Cancel.IsCancellationRequested && !head.Cancel.IsCancellationRequested
             && host.ActiveAccount(state.Thread) == state.Source
-            && host.Accounts(state.Thread).Any(row => row.Id == state.Source && row.Enabled && row.HasRoom)
+            && host.Revision(state.Thread) == state.Revision
+            && host.Accounts(state.Thread).Any(row => row.Id == state.Source && row.Service == state.SourceAccount.Service
+                && row.Enabled && (!state.RequireSourceRoom || row.HasRoom))
             && links.TryGetValue(state.Thread, out var ids) && ids.Contains(head.Account.Id) && Eligible(state.Thread, head.Account.Id)
             && host.Accounts(state.Thread).Any(row => row.Id == head.Account.Id && row.Service == head.Account.Service);
     }
