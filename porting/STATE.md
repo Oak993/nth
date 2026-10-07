@@ -753,3 +753,23 @@ Validation: focused Services 16/16, App 20/20; Core Skills/Providers/Traceabilit
 Review finding 7 is repaired: real composer InvalidDataException now becomes ProviderError.Case.Failed in both AntigravitySkills and CursorSkills, with original localized text. SwiftTry.IsThrownError and all existing exception cases are retained. Offline production-boundary tests use a real rooted SkillsHost and corrupt pinned disclosure; both providers failed twice alone before the two-line fix. No fake replaces Prepare.
 
 Scoped green validation through unchanged heavy.sh/lead wrappers, Native excluded: App preparation/affected launches/Traceability 25/25; Services composer/Traceability 5/5. Zero failed/skipped; clean red/green builds. READY for orchestrator independent check; local commits only, push held. Evidence: porting/first-release/reports/W2-sk17-catch-filter.md; ED-380; final head in E:\Droppy\work\scratch\handoff\codex-W2-sk17-fix.md. No new live/CLI/network/account run, owner app, native, installer or packaging. This entry only covers W2(b); orchestration owns integration.
+
+
+### T17 MA-3b-E1 item 1 (2026-10-07)
+
+Branch codex/ma-e1 from origin/claude/ma-engine 2fc98c90; authorized no-ff merge of claude/ma-3b5-base plus byte-preserving ledger repair. ILinkPort engine implemented with per-answer streamed checks, ordered tap link/unlink, no active/out/off target, cancellation/revocation and required consent/no-tools host boundary. Green scoped checks: Services 16/16, Core 287/287. Linux full Core !~Native aborted (1821 passed, 198 failed); Services broad native failures remain. SDK 10.0.401 installed; repo has no global.json. Next: parallel one-message opinion engine/Combine, concrete verified text-only runner and persistent OD-0120 confirmation; job W must bind views and primary-answer notifications. No full Windows verification claim. ED-NEW-ma-e1-1 records the conservative unavailable-source restriction.
+
+
+### T17 MA-3b-E1 item 2 (2026-10-07)
+
+OpinionsEngine now implements IOpinionsPort: one-message parallel Answer/Opinion heads, everyone with room including Local, immutable stream snapshots, isolated round cancellation, original-account Combine with byline and one append attempt. Scoped Services checks 31/31; tests-first and independent-review publication race recorded in ED-NEW-ma-e1-2. Broad Linux Services finished 4141 passed / 1288 failed / 52 skipped (5481 total). Next: OD-0120 remembered confirmation/unchecked checkbox, concrete no-tools runner, source revision hardening; job W binding remains separate.
+
+
+### T17 MA-3b-E1 item 3 (2026-10-07)
+
+OD-0120 consent/persistence and an actual Avalonia modal are implemented: unchecked Don't ask again, explicit Send, no persistence on refusal/cancellation, directed service-pair scope, corrupt preference preservation. Automatic Handshake/key switching remain off until their own consent. Concrete fresh text-only head adapter is supplied; unsupported CLI model heads fail safely rather than inheriting standby capability. Private API pool binding/spend accounting and pinned no-fallback routing are required at real dispatch. Independent review's missing cap binding is fixed. Green: Core 351/351, Services 69/69, App headless dialog/modal/Traceability 7/7; App compiled on Linux with EnableWindowsTargeting. All E1 tests are offline fakes; existing tests/assertions untouched. Next: context-revision and completed-last-answer guards, final mandatory project runs/report. Job W wiring and real Windows validation remain; ED-NEW-ma-e1-3 records safe provider restriction and proposed confirmation wording.
+
+
+### T17 MA-3b-E1 item 4 (2026-10-07)
+
+Final engine hardening: required context/ownership epoch prevents stale consent/context/stream/Combine publication; canonical completed-answer seam checks the capped author's last answer without sending to it; outward links hide active/out/off identities while retaining tap intent; opinion errors are port-visible. Current monthly-cap metadata plus shared pinned routing are required; capped token-only APIs fail before send without verified model pricing (no guessed rates). Tests-first red witnesses repaired without changing assertions. Final green scopes: Core 351/351, Services 84/84 with five repeats, App headless/base shared surfaces/Traceability 16/16; App builds on Linux with Windows targeting. Independent source review passed with read-only execution limit. Broad final Core !~Native aborted (3566 passed,459 failed,4025 completed); broad Services final still running. Integration contract: porting/first-release/multi-account-E1-integration.md; ED-NEW-ma-e1-4. Job W wiring, verified other-CLI text-only heads/model pricing, native Windows/full-suite validation remain.
