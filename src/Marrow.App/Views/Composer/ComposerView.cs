@@ -476,6 +476,7 @@ public sealed class ComposerView : Decorator
         insetPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         fadePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         scalePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+        Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
         if (VoiceFeature.Enabled)
         {
             voice = new ComposerVoiceController(new ComposerVoiceHost(() => Model.Settings, DraftSelection, ReplaceDraft, Send));
@@ -1684,7 +1685,7 @@ internal sealed class ComposerControls : Decorator
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 }; // :626
         if (voice is not null) row.Children.Add(new VoiceOrbSlot(voice)); // V-14.2: the orb, where the attachment was
         // PORT-ONLY (OD-0115 composer=A, step 3a): the account capsule, only with a second account of the service or a pill relay; it sits before the model chip
-        if (Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Offer.Current(runtime) is { } capsuleSlot) { capsuleSlot.VerticalAlignment = VerticalAlignment.Center; row.Children.Add(capsuleSlot); }
+        if (Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Offer.Current(runtime) is { } capsuleSlot) { capsuleSlot.VerticalAlignment = VerticalAlignment.Center; row.Children.Add(Marrow.App.Port.MultiAccount.Handshake.HandshakeCapsuleHost.With(Marrow.App.Port.MultiAccount.Link.LinkComposerHost.With(capsuleSlot, runtime), capsuleSlot, runtime)); }
         row.Children.Add(slot = new ModelEffortSlot(runtime, thread, compact)); // :647
         if (!compact) row.Children.Add(meter = new ContextMeter(runtime, thread.Provider, headsProvider)); // :650-651
         row.Children.Add(send = new SendButton(runtime, goesToHead, queueGoesToHead, onSend)); // :653

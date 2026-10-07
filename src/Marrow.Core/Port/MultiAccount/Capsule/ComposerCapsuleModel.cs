@@ -94,8 +94,14 @@ public sealed class ComposerCapsuleModel
 
     private uint HueOf(Account account)
     {
-        var palette = Hues.GetValueOrDefault(account.Service, Neutral);
         var position = accounts.ForService(account.Service).ToList().FindIndex(a => a.Id == account.Id);
+        return MarkHue(account.Service, position);
+    }
+
+    /// <summary>The shared mark hue of an account in its service's zero-based order.</summary>
+    public static uint MarkHue(ProviderKind service, int position)
+    {
+        var palette = Hues.GetValueOrDefault(service, Neutral);
         return palette[Math.Max(0, position) % palette.Length];
     }
 

@@ -4365,3 +4365,139 @@ Task verdict: READY for Windows verification; RR-49 and RR-50 source status DONE
 [T9][LEDGER INTEGRATION] ENGINEERING DECISION: inherited multi-account branches inserted byte-exact historical contributions among existing records and reused ED-NEW-ma-ui for distinct bodies. Transport only the verified inserted bytes to final append order; keep the existing train prefix and line endings exactly. Distinct headings receive distinct sequential numbers, identical shared bodies are kept once, and old inline MA-5/6/7 records gain headings. The unchanged lead ed_merge.py numbers live references; immutable oracle/provenance files keep their original bytes.
 
 ED-403 is the generic historical integration reference anchor. Its separately numbered constituent records are ED-403, ED-405, ED-409, ED-413, ED-414, ED-415, ED-416, ED-417, ED-418, ED-419, ED-420, ED-421, ED-422, ED-423, ED-424, ED-425, ED-426, ED-427, ED-428, ED-429, ED-430, ED-431. The original bodies are preserved, including superseded NOT READY notes; this index connects generic inherited references to the complete chronology. The full original-label/body-hash/number map is in E:/Droppy/work/scratch/codex-merge-train/standing/01-engine/manifest.json and the T9 handoff. No program behavior, test assertion, tolerance, reference or owner decision is changed by numbering. The held ma-gaps ED-460..463 remain historical after its code merge is reverted.
+
+## ED-465
+
+ENGINEERING DECISION: MA-3b-1 popover model binds IThreadAccountPort and AccountStore; models, local-server subtitle and total connected-account count are supplied functions because job-0 rows do not carry these. Unknown usage remains unknown, never fabricated zero. Reorder preserves disconnected store slots (Settings precedent). Page AccountPanel :2674-2797 defines words, footer, bars and aria; OD-0117 gates Create a pill at two connected accounts across services. Display text is plain, with account identities retained in row data for rich styling by job 2. Events are unsubscribed on Dispose. No shared UI seam modified; job W supplies live inputs.
+
+## ED-466
+
+ENGINEERING DECISION: MA-3b-8 UsagePanelModel reads current and other service IThreadAccountPorts, grouping unique accounts and counting all connected rows (including off/out). A supplied credits reader provides OpenRouter balances missing from job-0 ThreadAccount. Unknown balances/usage display no invented amount or bar. Next is the first enabled account with room in this service, as page B; disposal releases seam subscriptions. Page :4297-4350 and money :2102 supply display words. Two-page presentation belongs to job 9; no shared UsagePanel modified.
+
+## ED-467
+
+ENGINEERING DECISION: MA-3b-10 LimitCardModel maps DecisionRequest/HandshakeEvent into one card with page A options exposed and one Remember scope. First-time OnLimit has three equal, unselected choices; Bring is unselected there (OD-0116), compact by default on subsequent cards (page :2937). Unresolved permission groups must be chosen before a move; the engine Switch preset supplies Bring/MidReply for one operation. Stale requests and overlapping clicks cannot answer; failures reopen the card. Plain text preserves account data for view styling. SOURCE FACT: engine AnswerAsync :151 rejects Ask, although the approved first-time Ask me each time choice and job-0 ICardPort/FakeCardPort permit its value. The model preserves that owner-required choice; job W must resolve the live engine adapter mismatch rather than silently substitute Switch or Wait. No engine file changed in this wave.
+
+## ED-468
+
+MA-3b-2 (OD-0115/0119; locked multi-account.html AccountPanel :2674-2797, CSS :215-248 and :826): account popover content uses PlainControls.Popover and the existing PopoverHost glass/presentation lifecycle, as MenuPopover. One ComposerView seam wraps the capsule only when the job-0 thread port is bound. Job W owns the real binding. AccountPopoverModel drives order, usage, pin, remembered choices and pill gating. Config rows use the later .prow.cf height 70, not the initial height 56. Width 340. Bar tokens match .bar; capsule tokens are shared. Model changes crossfade on the frame clock, exhausted-row feedback lasts 300 ms; Reduce Motion removes translation.
+The new headless capsule test installs the existing popup overlay template because MultiAccountHarness has no popup host by default (failed alone twice). This is test environment scaffolding only: no expectations, existing tests or references changed. Native glass/anchor at 100%/150% remains for lead verification.
+
+## ED-469
+
+ENGINEERING DECISION: MA-4-1 geometry faithfully translates page geo/phaseVals/drawA :3069-3160, checked against 56 locked Node-generated cases (both themes and Reduce Motion, page SHA256 909bee162d1d794cb704c50bf2712735768b70eedd3c33d570095e8ff59eddb8). Live ICardPort events, never the demo loop, authorize phase advances. Minimum visible times are the page math spans: standby 600 ms, linking 1000 ms, sync 800 ms, switch 620 ms; late phases queue behind them, and Idle after Switch preserves completion. Geometry uses reported UsageLight endpoints. Reduce Motion draws the static crossfading arc and ghost. Sound recipe includes sine/gain/attack/decay/tail values :3053-3066; remains off initially as the page says and plays once on Linking and verified InSyncReady. OD-0122 gives Primed and Injected the same tick; Deferred gets none. This base predates StandbyKind, so a supplied HandshakeReadiness callback maps engine readiness in job W. Injected status omits the untrue read-back claim (uses page prefix); Deferred uses the page Continued/What was handed over words. Geometry frame collections are pure model outputs; the allocation-free GPU painter is job 4-2, not this model. No App or engine file changed.
+
+## ED-470
+
+MA-3b-9 (OD-0115 usage=B; multi-account.html :4328-4350): MultiAccountUsageView renders UsagePanelModel, with current account then all groups and a back button. Pages crossfade and slide on the frame clock, only crossfade under Reduce Motion; navigation restores keyboard focus, Escape goes back before requesting dismissal. Existing UsagePanel gets one early-return seam through MultiAccountUsageSeams.Offer only for MoreCount >= 1. Unbound or one-account offers retain the original body and refresh behavior. The offer is a view-model factory for the active thread, to be bound by job W (not a provider-global live model).
+Test-first job9-red.log missing namespace; final build 0 warnings/errors; 5 new headless cases passed, existing usage plus new slice 318/318. Native appearance/page slide awaits lead check. No existing tests changed.
+
+## ED-471
+
+ENGINEERING DECISION: MA-3b-6 AskOthersModel owns only the Core button/list/chip/send state (App views assigned to T16 by the owner). Reads job-0 IThreadAccountPorts and calls IOpinionsPort only; active account excluded, off rows absent, out rows cannot be picked, @all means every enabled account with room. The button exists whenever another enabled account exists even if out. Model names and optional room policy are supplied (API credit eligibility is not carried by job-0 rows). OD-0120 delays the entire picked send behind an immutable confirmation snapshot; checkbox starts false, cancel never sends/grants, stale accounts invalidate it. OtherServiceConsentStore remembers only explicit checked-and-accepted consent, narrowly per destination service AND action (Opinions vs Link), across restart; corrupt/newer saved values fail closed and are preserved. New key multiAccountOtherServiceConsent and confirmation copy formed from page other-service text are internal decisions because no store/confirmation layout exists on the page. Reentrancy reserves Busy before any Changed notification; no typing @ path exists. Send success alone clears message-only chips and emits Also asked; cancellation/failure retains selection. No App/shared seam or engine modified.
+
+## ED-472
+
+MA-3b-3 (AccountPanel :2729-2745, dragList, Settings same order): pointer capture on the grip calls the model Reorder by distance (70 point config row + 2 point gap); Alt+Up/Down and Move up/top/down use that same store path, disabled at ends. Focus returns to the moved account by id. Reduce Motion suppresses drag translation. The nested menu click is stopped before the pin button, matching stopPropagation (new regression failed alone twice). New real headless mouse drag verifies production grip input does not pin. Red job3-red.log missing APIs; App build 0 warnings/errors, final popover/Settings slice 79/79. Native drag feel remains a lead check.
+
+## ED-473
+
+MA-3b-4 (openCfg :2380-2430, Handshake dialog :2628-2660, AccountPanel :2699; OD-0119): AccountDefaultsPanel uses the locked EffortSliderCard and its yellow FastModeButton, writes AccountStore.SetDefaults while preserving the account point; model changes reset effort to the reported model default and keep Fast only when supported. The card's keyboard arrows/Home/End write the same binding (the existing slider has only pointer/automation input). AccountHandshakePanel reuses HandshakeSliderControl (Smart, then 80-99), applies the required aria name to this instance only, shows plan-derived 95/98 fallback, and clears the override via Use the default. Dialogs share PlainControls/PopoverHost glass, Escape and light dismissal. Row menu has Handshake at…; quiet note appears only for a point different from the general default.
+Rows now keep identity by account id and update their values in place so a defaults write never tears down its anchored popup. Footer/pin/remember lines crossfade individually. Test-first job4-red.log, then three implementation errors failed alone twice (aria, keyboard effort, parent ownership), fixed without changing assertions. Final App build 0 warnings/errors; popover/defaults/Settings/usage slice 89/89, including post-implementation popup identity coverage. Native dialog/effort-card appearance remains a lead check.
+
+## ED-474
+MA-3b-11: the timeline has one stable, collapsible card slot after reply rows and before the sentinel. Layout A stays expanded; first-time actions share the same capsule styling and no primary/preselected action. The shared CzRadioGroup supports no initial pick (CzSegmentedControl requires one during Arrange). Move actions wait for all unresolved groups to be explicitly chosen; Remember defaults to Just this time. Enter/leave use the existing frame-clock opacity/extent transition and a short Reduce Motion fade. The App seam remains unbound until W.
+Tests: first missing namespace red, UI-thread fixture error failed alone twice, corrected scaffold only; related timeline/skills/new cards 227/227. Native card glass/layout/input appearance remains required.
+
+## ED-475
+MA-3b-12: limit answers replace the card with the exact Waiting/Continued note on the existing timeline slot. Switch now and What was handed over bind through a thread-specific App context; absent adapters disable the link. The handed sheet consumes only the adapter's recorded data and reuses HandedSheetView/ChatSheetPresentation, never HandedOverExample.For. Waiting phase events draw notes without a DecisionRequest; Idle clears the extent. The clock zone is injectable for deterministic reset text; production uses the local zone.
+Tests first red on missing context; build 0 warnings/errors and cards slice 7/7. Native note/sheet styling remains required. W owns both real action adapters.
+
+## ED-476
+MA-3b-13: the shared chassis draws the model's other-service consent and primary Wait choice, and earlier-account Go back/Stay actions. Account names in titles use semibold inline spans. CardTitleBlock retains the complete Text after span construction because Avalonia clears it when Inlines changes; the title remains readable by accessibility and plain-text inspection. No Core file changed.
+Tests first: missing bold names failed alone twice, rich-title text regression reproduced alone twice for each failing case; implementation fixed and new Codex fixture given two accounts to match its numbered name. Final build 0 warnings/errors; all card tests 9/9. Native title/font and card appearance remains required.
+
+## ED-477
+MA-3b-14: the test-first shared card chassis already renders the model's verbatim mid-reply title, explanation and Finish now/Stop buttons. No additional renderer or duplicate policy is needed. Two new keyboard/pending-answer cases validate both actions, exact 12px/17px explanation styling and disabled overlapping input while the fake port holds the answer. They passed against the existing chassis; no fabricated red or existing assertion edits.
+Build 0 warnings/errors, new cases 2/2; native mid-reply appearance remains required.
+
+## ED-478
+MA-4-2: retained Skia path/paints/gradient palette render the Core geometry without managed draw allocations. The radial gradients are precomputed into 256 endpoint-colour blends and white; a cached Gaussian core shadow implements page bloom. Operations are pooled and retain resource sets until all in-flight draws are disposed. Program.cs registers the actual gradient/bloom draw under Graphics before first preparation; it uses the existing GPU program cache/warm-up. The native fixture is explicitly added to the child protocol type list; nonce, exact Fact and owned-job checks are unchanged.
+Tests first missing painter/canvas red. Related non-native slice 76/76; 120 warmed painter draws 0 B. Native allowlist failure twice alone then additive fixture registration; native GPU warm draw/cadence passed: 596 draws/10.007 s, 59.56 fps, first 0.201 ms, max 0.461 ms. Whole UI-frame allocation is not claimed: Core Plan still allocates, requested from T15. 100%/150% light/dark exact visual comparison remains for lead.
+
+## ED-479
+MA-4-3: a single composer seam adds the event-driven host around the existing clickable capsule/popover. It draws the incoming account with the same capsule class/style and correct mark anchor (including stacked style), a frame-clock status/tick crossfade and the Core phase geometry on the input-transparent Skia canvas. Accounts are snapshotted on actual engine events; no provider enumeration in the frame loop. Reduce Motion holds the ghost's position/scale and fades it. Sound is off until the supplied policy enables it; cached PCM sine voices follow the page's chord/tick recipe through the existing SwiftSound output seam. Engine readiness is injectable: Primed and Injected use the same tick; W must map actual readiness, never infer it from elapsed time.
+Tests first absent APIs red; functional capsule/status/click/sound cases 3/3, related popover/usage/cards/composer/GPU/timeline slice 318/318. Final anchor/cache refinements re-built 0 warnings/errors and 3/3. Native hooked composition/status/ghost comparisons and total UI-frame allocation are not claimed.
+
+## ED-480
+- MA-3b-6 App: locked page :4795-4871, OD-0115 opinions B and OD-0120. New button/list/chips/confirmation views; one optional ComposerView Install seam mounts beside attachment within its text column. W owns the real send gate and per-sent-message note attachment; Sent(note, round) supplies that association.
+- ENGINEERING DECISION: the page predates OD-0120 and supplies no confirmation action words. Use Cancel and Ask others (Link for the shared link confirmation), disclosure verbatim from the other-service card, and an unchecked plain checkbox. Unbound seam draws no new composer UI. Existing T16 views are reused without edits.
+
+## ED-481
+- T16 MA-4-2 request: HandshakeFrameSnapshot is a value struct. ReadFrame(dark) caches account strings and usage on engine events or explicit RefreshAccounts; it calls neither the account callback nor the allocating geometry API. Plan remains the inspection/oracle API and refreshes current accounts. Renderer retains its own buffers.
+- Sound recipe instances and queue capacity are allocated outside frame sampling. Existing phase/minimum-time/RM/readiness/tick semantics unchanged. Acceptance measures 0 B across 10,000 warmed samples per phase and no account callback reads; existing geometry oracle and sound tests stay unchanged. W/T16 must call RefreshAccounts on usage/account changes, not per frame.
+
+
+## ED-482
+MA-4-2/3 allocation follow-up: merge T15 ecbac6101 and bind the live host/canvas/operation to HandshakeFrameSnapshot and ReadFrame. Legacy Plan remains an explicitly allocating inspection oracle only. Account strings/usage refresh on the account ports' Changed events and Handshake events; the frame loop never enumerates provider accounts. Direct Skia drawing emits the Core oracle's Arc/Normal/Smooth/Ease values into retained paths, and the ghost uses an allocation-free value calculation checked against the unchanged Core geometry. The gradient palette now caches every rounded RGB blend interval/boundary rather than quantizing the fraction; endpoint glow precedes strands as locked drawA :3098-3160 specifies. No shared seam changes in this follow-up.
+Tests: the initial Core Plan allocation probe failed alone twice at 32,352 B/frame; T15 supplied the new designated live API, so the probe calls ReadFrame with its 0-byte expectation unchanged. Four theme/motion cases compare the direct painter pixel-for-pixel against the existing Core geometry projection at twelve times, and measure 0 B/120 warmed draws. Two ghost cases compare thirteen times and measure 0 B/120 reads. Final App build 0 warnings/errors; related non-native slice 331/331. This measures frame sampling, painter and ghost math, not allocations in the entire Avalonia UI framework. Native frame revalidation and lead-owned scale/theme composition checks are recorded in the T16 handoff.
+
+## ED-483
+- MA-3b-5 Link A: optional LinkComposerSeams offer wraps the existing capsule/popover host via one ComposerView seam replacement. Runtime augmentation adds the 26px link column to retained row grids and joins plain-capsule marks inside its expanded shared glass/outline; original face/input and eased usage remain retained. No T16 or base capsule file is edited. Screen coordinate conversion reaches the global owner overlay across popup roots; native stacking/appearance remains a lead check.
+- Exact 22px flight starts at the account number, 560ms cubic-bezier(.45,0,.2,1); opacity stays 1 through the midpoint then falls to .4. RM crossfades 260ms. Link is recorded after landing; stale/unavailable flights cancel by account ID, cannot cancel a newer request, and detach releases frames. Unlink restores the original capsule layers. OD-0120 uses the shared unchecked confirmation and Link-purpose consent only. W supplies real offers/adapters.
+- Ask App completion: separate hue-backed monogram chips and live retained-row account/model updates; post-await refresh dispatches to UI. All own borders use the existing continuous-shape helper, including the plain checkbox; no census-table or existing assertion edit. Initial red and twice-alone repro evidence is in the T15 handoff.
+
+## ED-484
+- MA-5-1 (brief alias MA-3b-5-1): audit acceptance exercises actual popover, usage B, Settings accounts, account defaults, Pill editor and capsule aria over real in-memory stores and job-0 fakes. Fast on/off is a yellow bolt only; spoken Fast mode remains allowed. Report-driven No 5-hour claims cover Claude/Codex/OpenRouter/Local, unknown usage, plan changes and live flag changes.
+- Eleven cases passed initially against the existing implementation; no fabricated red and no production changes required for this audit. No claims are made for the separately owned cloud opinion/Combine views or native appearance.
+
+
+## ED-485
+
+MAUI-018/042/060/061: both Settings reorder handlers accept only the primary button and use a 300ms opacity transition instead of translation under Reduce Motion (locked HTML 467/1993/2024). The use switch names the live account, not Rename (3846). No engine, test or oracle changes.
+
+
+## ED-486
+
+MAUI-025: the existing Handshake EffortSlider now handles unmodified arrows, Home and End through the same point binding; locked sliders remain outside keyboard/pointer actions. HTML 2613-2617. No tests changed.
+
+
+## ED-487
+
+MAUI P1 001/002/019/020/057/065: retained popover rows own their Link action (disabled until its port/model is bound), reused by the existing Link confirmation/fly host. Keyboard arrows focus adjacent rows and Shift+F10/ContextMenu opens the existing menu. A multi-account-only button template paints card faces and the inset focus ring without changing the source-faithful PlainControls template. Ask others uses supplied job-0 thread ports when no explicit view-model offer exists; view-owned observation suspends/resumes with its lifetime. Opacity transitions for 018/060 remain animated under Reduce Motion instead of using AnimatedScalar's spatial-motion stilling rule. Locked HTML 229/2687/2715/375-378/4804-4811 and OD-0076/0115/0120. No tests, assertions or tolerances changed.
+
+
+## ED-488
+
+MAUI P2 popover/layout: 003/006/007/010/012/013/014/058/059 now use the locked row menu, auto/min-68 layout with 7px vertical padding, live monogram, 7px green active dot/halo, .42 off content, pinned/hover tint, config chevron and exact text tokens. Dialogs 021/022/024/026 use 330px/248px widths, account-specific aria and the existing effort renderer in optional compact 18px/12px Handshake geometry; default 48px/34px effort geometry is untouched. 023 hides reset with no own value (HTML 2642); its new test is contradictory because Harness.Find filters visible controls before Assert.False(IsEffectivelyVisible). Old account-dialog tests still expect the generic aria replaced by HTML 2635. All tests remain byte-exact for lead disposition.
+
+
+## ED-489
+MAUI-016/017/062/063/064: the production popover grip waits for 5px, carries at 1.02 scale, measures the retained rows' pitch, applies the page's edge rubber band and glides displaced neighbours over .34s (.32,.72,0,1). Drop records current visual tops and compensates the new order before settling; the carried row uses the locked mass-1 spring(240,19), the same 1/1200 Euler integration, 44 rounded samples and linear interpolation as HTML :1671-1684 / :1983. Reduce Motion uses opacity without translation. Existing keyboard and persistent store order remain. Each new case failed alone twice; final five review plus four existing reorder cases 9/9, build 0 warnings/errors. No test bytes changed.
+
+## ED-490
+MAUI-041/051/052: equal-to-general Settings points do not add a quiet note (OD-0119). Queued real Handshake events retain the locked Standby 1000 ms and In sync 1400 ms intervals (HTML 3039). Existing short-interval tests remain unchanged; conflicting assertions are reported separately.
+
+## ED-491
+MAUI-040: apply final HTML 1459 off opacity .45 to Settings words, usage and number only, preserving bright switch/menu and independent Reduce Motion drag feedback.
+
+## ED-492
+MAUI-044/045/048/055: Pill steps carry the real account monogram, including custom initials, instead of a provider icon. The shared composer Fast bolt is before the model with Fast mode aria. Off dims name/mark/number only to .45 (HTML1468); locked slider states how to reach the active top slider (HTML2622).
+
+
+## ED-493
+MAUI-027/028/029/030/031/032: Usage B restores the 12px header, 15px current-account name and 5-hour window label above the reported No 5-hour limit state. Navigation measures the full view width: incoming All accounts starts at +100%, outgoing current at -28%; reverse navigation mirrors the same page positions. Translation uses .45s (.32,.72,0,1); opacity uses .3s CSS ease (.25,.1,.25,1), including Reduce Motion with no translation. All six findings failed alone twice; six review plus five existing Usage B cases 11/11, build 0 warnings/errors. No tests changed.
+
+
+## ED-494
+MAUI-034/035/036/037/038: card explanation retains accessible full Text while emphasizing Finish now and Stop in semibold; Remember divider is 1px, the primary ink follows --pacInk in both themes, gauge follows --hot, and notes have the locked tile/rim capsule with 4px/11px padding and 11.5px/16px text. Shared card shape helpers route the segmented container through the continuous outline; existing CzButton capsule radius clamps to the 22px height without a redundant raw-radius assignment. The inherited raw-corner census now passes. Each finding failed alone twice; final card review excluding owner-disputed 033 + existing cards + unchanged census 18/18, build 0 warnings/errors. No tests changed.
+
+## ED-495
+MAUI-046/047: step defaults use the existing floating presenter, with real SmallSwitch binding for Same as the account and the existing effort card; no inline expansion. Minimum-two refusal follows HTML4466 300ms 0/-4/+4/0 keyframes with CSS ease per segment; Reduce Motion uses opacity feedback. Legacy inline-open assertion stays unchanged for lead disposition.
+
+
+## ED-496
+MAUI-005/008/009/011/015/050: popover shell padding is 6px; grip is 16x24; the number is an 18px rounded capsule with the final --seg token, .num semibold app font and disabled opacity applied to the whole pill; percentages use the retained app font; footer is a 1px divided Border with 8/8/6 padding, top margin4 and 16px line height. Bar fill follows the locked .6s (.32,.72,0,1) curve. Final .aoff grip opacity .42 is applied while the normal grip retains .8. Each new finding failed alone twice; all popover review except disputed 004 + existing popover cases except the documented old account-slider aria collision pass 37/37, build 0 warnings/errors. No tests changed.
+
+## ED-497
+MAUI-001 Link fidelity follow-up: HTML2716/2741-2749 flies the account monogram from its actual rectangle, not the row number. Link adapter now anchors on retained row.LinkMark; no T16 file changed. New monogram proof failed alone twice first. The protected old number-origin assertion remains for lead disposition.

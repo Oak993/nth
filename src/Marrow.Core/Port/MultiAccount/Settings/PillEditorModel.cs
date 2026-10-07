@@ -72,7 +72,7 @@ public sealed class PillEditorModel
                 var point = locked ? pill.SameHandshake ?? HandshakePoint.Smart : step.HandshakeAt ?? HandshakePoint.Smart;
                 return new StepView(i, i + 1, step.AccountId, marks[i].AccountName, service, service is { } s ? ServiceNames.Title(s) : "", marks[i].Skipped, marks[i].NewService,
                     step.Model is null && step.Effort is null && step.Fast is null, service is { } sv ? modelName(sv, model) : "", model, step.Effort ?? defaults?.Effort, step.Fast ?? defaults?.FastMode ?? false,
-                    point, locked, service == ProviderKind.Local);
+                    point, locked, service == ProviderKind.Local, Marrow.Core.Port.MultiAccount.Capsule.AccountMono.Of(marks[i].AccountName, account?.CustomName is not null), Marrow.Core.Port.MultiAccount.Capsule.ComposerCapsuleModel.MarkHue(service ?? ProviderKind.Claude, service is { } hueService ? accounts.ForService(hueService).ToList().FindIndex(a => a.Id == account?.Id) : 0));
             })];
         }
     }

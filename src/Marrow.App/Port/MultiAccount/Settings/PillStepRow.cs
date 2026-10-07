@@ -6,6 +6,9 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.VisualTree;
+using Marrow.App.Port.MultiAccount.Capsule;
+using Marrow.App.Port.MultiAccount.Shared;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
@@ -31,16 +34,19 @@ internal sealed class PillStepRow : Decorator
     private readonly Border newService;
     private readonly Border skipped;
     private readonly Control bolt;
-    private readonly CzFoldRow settingsFold;
+    private readonly PillStepSettingsPopup settingsPopup;
+    private readonly OpacityTransition feedback;
     private readonly Border host = new();
-    private readonly Border settingsHost = new() { Padding = new Thickness(0, 6, 0, 0) };
     private readonly Grid line2;
+    private readonly StackPanel words;
     private HandshakeSliderControl? slider;
     private StepSettingsPanel? panel;
     private Control? never;
     private StepView step;
     private readonly Button configButton;
-    private readonly ProviderIcon icon = new() { Size = 16, Width = 16, Height = 16 };
+    private readonly TextBlock mono = MultiAccountText.Text("", 9, weight: SwiftFont.Weight.Bold);
+    private readonly Border mark;
+    private readonly OpacityTransition dragFade;
     private bool dragging;
     private double dragStart;
 
@@ -50,6 +56,7 @@ internal sealed class PillStepRow : Decorator
         this.pulse = pulse;
         this.models = models;
         step = first;
+        dragFade = new OpacityTransition(this, 1, value => Opacity = value);
         var key = first.AccountId;
         var grip = new Border { Width = 22, Height = 22, Background = Avalonia.Media.Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText, SwiftFont.Weight.Medium) };
         ((Control)grip.Child!).HorizontalAlignment = HorizontalAlignment.Center;
@@ -57,33 +64,36 @@ internal sealed class PillStepRow : Decorator
         grip.Opacity = 0.7;
         grip.Cursor = new Cursor(StandardCursorType.SizeAll);
         grip.Named("Drag to reorder", "step-grip-" + key);
-        grip.PointerPressed += (_, e) => { dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
-        grip.PointerMoved += (_, e) => { if (dragging) { RenderTransform = new Avalonia.Media.TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; } };
+        grip.PointerPressed += (_, e) => { if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return; dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
+        grip.PointerMoved += (_, e) => { if (dragging) { if (CapsuleMotion.Reduce(this)) { RenderTransform = null; dragFade.Set(.7, FrameClock.IsBound ? Animation.EaseOut(duration: .3) : null); } else RenderTransform = new Avalonia.Media.TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; } };
         grip.PointerReleased += (_, e) => EndDrag(e.GetPosition(null).Y - dragStart);
         grip.PointerCaptureLost += (_, _) => { if (dragging) EndDrag(0); };
 
         newService = Pip(MultiAccountWords.NewService, "step-new-" + key);
         skipped = Pip(MultiAccountWords.SkippedOff, "step-skipped-" + key);
-        var remove = LibraryButtons.Glyph("xmark", "Remove step", "step-remove-" + key, () => editor.RemoveStep(step.Index));
-        var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { name, sub } };
+        var remove = LibraryButtons.Glyph("xmark", "Remove step", "step-remove-" + key, Remove);
+        words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { name, sub } };
         var tags = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center, Children = { newService, skipped } };
         var line1 = new Grid { ColumnDefinitions = new ColumnDefinitions("22,18,20,*,Auto,22"), ColumnSpacing = 8 };
         number.VerticalAlignment = VerticalAlignment.Center;
-        icon.VerticalAlignment = VerticalAlignment.Center;
+        mono.HorizontalAlignment = HorizontalAlignment.Center; mono.VerticalAlignment = VerticalAlignment.Center;
+        mark = new Border { Width = 24, Height = 24, Child = mono, VerticalAlignment = VerticalAlignment.Center }.RoundedRectangle(12, RoundedCornerStyle.Continuous);
+        mark.Background = ChromeTokens.Overlay(.08).Brush(mark);
         grip.VerticalAlignment = VerticalAlignment.Center;
         remove.VerticalAlignment = VerticalAlignment.Center;
-        foreach (var (control, column) in new (Control, int)[] { (grip, 0), (number, 1), (icon, 2), (words, 3), (tags, 4), (remove, 5) })
+        foreach (var (control, column) in new (Control, int)[] { (grip, 0), (number, 1), (mark, 2), (words, 3), (tags, 4), (remove, 5) })
         {
             Grid.SetColumn(control, column);
             line1.Children.Add(control);
         }
 
-        bolt = LibraryUi.Glyph("bolt.fill", 11, Marrow.UI.Port.SwiftColor.Yellow);
+        bolt = SwiftImage.SystemName("bolt.fill").Font(ChromeTokens.InlineIconFont).ForegroundStyle(SwiftColor.Yellow);
+        bolt.Named("Fast mode");
         bolt.VerticalAlignment = VerticalAlignment.Center;
         var chevron = LibraryUi.Glyph("chevron.down", 9, ChromeTokens.SecondaryText, SwiftFont.Weight.Semibold);
         chevron.VerticalAlignment = VerticalAlignment.Center;
         config.VerticalAlignment = VerticalAlignment.Center;
-        configButton = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { config, bolt, chevron } }, ToggleSettings);
+        configButton = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { bolt, config, chevron } }, ToggleSettings);
         configButton.Focusable = true;
         configButton.Cursor = new Cursor(StandardCursorType.Hand);
         configButton.Named("Model, effort and fast mode", "step-config-" + key);
@@ -93,8 +103,21 @@ internal sealed class PillStepRow : Decorator
         Grid.SetColumn(host, 1);
         line2.Children.Add(host);
 
-        settingsFold = new CzFoldRow(settingsHost, false);
-        Child = new Border { Padding = new Thickness(16, 10, 12, 10), Child = new StackPanel { Spacing = 8, Children = { line1, line2, settingsFold } } };
+        settingsPopup = new PillStepSettingsPopup(configButton, () => panel = new StepSettingsPanel(editor, step.Index, step, models(step.Service ?? ProviderKind.Claude), pulse));
+        feedback = new OpacityTransition(this, 1, progress =>
+        {
+            if (CapsuleMotion.Reduce(this)) { RenderTransform = null; Opacity = .6 + .4 * progress; }
+            else
+            {
+                // HTML 4466: three equal-time CSS-ease segments, 0 -> -4 -> 4 -> 0.
+                var segment = Math.Min(2, (int)(progress * 3));
+                var local = progress * 3 - segment;
+                var eased = Animation.TimingCurve(.25, .1, .25, 1, duration: 1).Progress(local);
+                var x = segment switch { 0 => -4 * eased, 1 => -4 + 8 * eased, _ => 4 * (1 - eased) };
+                RenderTransform = progress >= 1 ? null : new Avalonia.Media.TranslateTransform(x, 0);
+            }
+        });
+        Child = new Border { Padding = new Thickness(16, 10, 12, 10), Child = new StackPanel { Spacing = 8, Children = { line1, line2, settingsPopup.Popup } } };
         Focusable = true;
         KeyDown += (_, e) =>
         {
@@ -126,7 +149,8 @@ internal sealed class PillStepRow : Decorator
 
     internal bool SkippedShown => skipped.IsVisible;
 
-    internal bool SettingsOpen => settingsFold.Open;
+    // Retained inspection API means inline expansion, not a floating popup.
+    internal bool SettingsOpen => panel?.GetVisualAncestors().Contains(this) == true;
 
     internal HandshakeSliderControl? Slider => slider;
 
@@ -141,11 +165,14 @@ internal sealed class PillStepRow : Decorator
         step = next;
         number.Text = next.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
         name.Text = next.AccountName;
-        if (next.Service is { } service) icon.Provider = service;
+        mono.Text = next.Mono;
+        var hue = Avalonia.Media.Color.FromUInt32(0xFF000000u | next.MarkHue);
+        mark.Background = new Avalonia.Media.SolidColorBrush(hue, .22);
+        mark.BorderBrush = new Avalonia.Media.SolidColorBrush(hue, .62); mark.BorderThickness = new Thickness(1);
         sub.SetText(next.ServiceText + (next.NeverRunsOut ? " · " + MultiAccountWords.NoLimit.Split(" · ")[0] : ""));
         newService.IsVisible = next.NewService;
         skipped.IsVisible = next.Skipped;
-        Opacity = next.Skipped ? 0.6 : 1;
+        words.Opacity = line2.Opacity = mark.Opacity = number.Opacity = next.Skipped ? .45 : 1;
         config.SetText((next.SameAsAccount ? MultiAccountWords.SameAsAccount : "") + ModelLine(next));
         bolt.IsVisible = next.Fast;
         AutomationProperties.SetName(this, MultiAccountWords.StepStatement(next.Number, next.AccountName, next.Model));
@@ -164,7 +191,7 @@ internal sealed class PillStepRow : Decorator
                 slider = new HandshakeSliderControl(() => Point(), p => editor.SetStepHandshake(step.Index, Core(p)), "Handshake point for " + next.AccountName, brand, pulse);
                 host.Child = slider;
             }
-            slider.Lock(next.HandshakeLocked, MultiAccountWords.SameForEvery);
+            slider.Lock(next.HandshakeLocked, "Same for every step: set it with the slider at the top");
         }
         panel?.Apply();
     }
@@ -175,19 +202,20 @@ internal sealed class PillStepRow : Decorator
 
     private static string ModelLine(StepView s) => s.Effort is { Length: > 0 } effort ? s.Model + " · " + ModelOption.EffortTitle(effort) : s.Model;
 
-    private void ToggleSettings()
+    private void ToggleSettings() => settingsPopup.Toggle();
+
+    private void Remove()
     {
-        if (panel is null && step.Service is { } service)
-        {
-            panel = new StepSettingsPanel(editor, step.Index, step, models(service), pulse);
-            settingsHost.Child = panel;
-        }
-        settingsFold.Open = !settingsFold.Open;
+        if (editor.RemoveStep(step.Index)) return;
+        feedback.Set(0, null);
+        feedback.Set(1, FrameClock.IsBound ? Animation.Linear(duration: .3) : null);
     }
 
     private void EndDrag(double dy)
     {
+        if (!dragging) return;
         dragging = false;
+        dragFade.Set(1, FrameClock.IsBound ? Animation.EaseOut(duration: .3) : null);
         RenderTransform = null;
         ZIndex = 0;
         var target = AccountRowControl.DragTarget(step.Index, dy, RowHeight, editor.Steps.Count);
