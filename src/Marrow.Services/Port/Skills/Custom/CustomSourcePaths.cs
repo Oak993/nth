@@ -76,19 +76,31 @@ internal static partial class CustomSourcePaths
         return Validate(files);
     }
     internal static string Fingerprint(IReadOnlyDictionary<string, byte[]> files) => Hash(Encoding.UTF8.GetBytes(string.Join('\n', files.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => p.Key + "=" + Hash(p.Value)))));
-    internal static string Repository(string input)
+    internal static (string Repository, string SubPath) GitHubLocation(string input)
     {
         var value = input.Trim();
+        if (value.Length > 32768) throw new ArgumentException("GitHub source location is too long.");
         if (value.StartsWith("https://", StringComparison.Ordinal))
         {
             if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Host != "github.com" || uri.Port != 443 || uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0)
                 throw new ArgumentException("Use a public GitHub repository URL or owner/repository.");
-            value = uri.AbsolutePath.Trim('/');
+            // URI parsing normalizes dot segments. Validate the original path so '..' is never erased before validation.
+            var slash = value.IndexOf('/', "https://".Length);
+            if (slash < 0) throw new ArgumentException("Use a public GitHub repository URL or owner/repository.");
+            value = value[(slash + 1)..];
         }
-        if (value.EndsWith(".git", StringComparison.Ordinal)) value = value[..^4];
-        if (!RepositoryName().IsMatch(value)) throw new ArgumentException("Use a public GitHub repository URL or owner/repository.");
-        return value;
+        var parts = value.Split('/', 3);
+        if (parts.Length < 2) throw new ArgumentException("Use a public GitHub repository URL or owner/repository.");
+        var repoName = parts[1].EndsWith(".git", StringComparison.Ordinal) ? parts[1][..^4] : parts[1];
+        var repository = parts[0] + "/" + repoName;
+        if (!RepositoryName().IsMatch(repository) || repoName is "." or "..") throw new ArgumentException("Use a public GitHub repository URL or owner/repository.");
+        var subPath = parts.Length == 3 ? parts[2].Replace('\\', '/') : "";
+        try { if (subPath.Length != 0) Require(subPath); }
+        catch (InvalidDataException e) { throw new ArgumentException("Use a relative GitHub sub-folder path without dot segments or absolute paths.", nameof(input), e); }
+        return (repository, subPath);
     }
+    internal static string EncodeGitHubPath(string path) => string.Join('/', path.Split('/').Select(Uri.EscapeDataString));
+    internal static string ContentsUrl(string repository, string subPath, string commit) => "https://api.github.com/repos/" + repository + "/contents/" + EncodeGitHubPath(subPath) + "?ref=" + commit;
     [GeneratedRegex(@"^(CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])(?:\.|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Device();
     [GeneratedRegex(@"^[A-Za-z0-9_-]+/[A-Za-z0-9_.-]+$", RegexOptions.CultureInvariant)]

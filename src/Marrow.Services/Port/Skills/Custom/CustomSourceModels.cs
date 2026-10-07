@@ -5,11 +5,11 @@ public enum CustomAddKind { Plugins, Skills, Tools }
 public enum CustomAddSource { Folder, Zip, GitHub }
 public sealed record CustomAddRequest(CustomAddKind Kind, CustomAddSource Source, string Location, string Name, string Command);
 public sealed record CustomAddCandidate(string Key, string Name, string Description, string? Problem);
-public sealed record CustomProvenance(CustomAddSource Source, string Location, string? Commit, string? ArtifactUrl, string SourceSha256, DateTimeOffset CheckedAt);
+public sealed record CustomProvenance(CustomAddSource Source, string Location, string? Commit, string? ArtifactUrl, string SourceSha256, DateTimeOffset CheckedAt, string SubPath = "");
 public sealed record CustomFilePin(string Path, long Size, string Sha256);
 public sealed record OwnItem(string Id, CustomAddKind Kind, string Name, string Description, string? Command, string? Executable, bool Enabled, CustomProvenance Provenance, CustomFilePin[] Files);
 public sealed record CustomCommand(string Name, string Entry, string ItemId);
-public sealed record CustomGitHubArchive(string Commit, string Url, byte[] Bytes);
+public sealed record CustomGitHubArchive(string Commit, string Url, byte[] Bytes, string SubPath = "", IReadOnlyDictionary<string, byte[]>? Files = null);
 
 public interface ICustomAddBackend
 {
@@ -29,7 +29,7 @@ public interface ICustomSourceFiles
     void SaveRegistry(string root, byte[] bytes);
 }
 
-/// <summary>Resolve a public repository to a full commit, then fetch its archive. No clone, credentials, shell or install scripts.</summary>
+/// <summary>Resolve owner/repository[/sub-folder] to a full commit. Root requests fetch an archive; subtree requests fetch only that folder's files, relative to it. No clone, credentials, shell or install scripts.</summary>
 public interface ICustomGitHubSource
 {
     Task<CustomGitHubArchive> Fetch(string repository, CancellationToken cancel);

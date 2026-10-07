@@ -5,6 +5,7 @@ namespace Marrow.Services.Tests.Port.Skills.Custom;
 
 internal sealed class CustomSourceFake : ICustomSourceFiles, ICustomGitHubSource
 {
+    private readonly object gate = new();
     public Dictionary<string, byte[]> Files { get; set; } = [];
     public Dictionary<string, Dictionary<string, byte[]>> Installed { get; } = [];
     public byte[]? Registry { get; private set; }
@@ -20,8 +21,8 @@ internal sealed class CustomSourceFake : ICustomSourceFiles, ICustomGitHubSource
     }
     public byte[]? ReadRegistry(string root) => Registry?.ToArray();
     public IReadOnlyDictionary<string, byte[]> ReadInstalled(string root, string id) => Installed[id];
-    public void Publish(string root, string id, IReadOnlyDictionary<string, byte[]> files) => Installed.Add(id, files.ToDictionary(p => p.Key, p => p.Value.ToArray()));
-    public void Delete(string root, string id) => Installed.Remove(id);
+    public void Publish(string root, string id, IReadOnlyDictionary<string, byte[]> files) { lock (gate) Installed.Add(id, files.ToDictionary(p => p.Key, p => p.Value.ToArray())); }
+    public void Delete(string root, string id) { lock (gate) Installed.Remove(id); }
     public void SaveRegistry(string root, byte[] bytes)
     {
         if (FailCommit) throw new IOException("Fixture commit failure");

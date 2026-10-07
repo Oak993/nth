@@ -16,6 +16,7 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
     private readonly object gate = new();
     private readonly Dictionary<string, CheckedCustomItem> pending = [];
     private OwnItem[] items;
+    private readonly Dictionary<string, CheckedCustomItem> publishing = [];
 
     public CustomSources(string root, ICustomSourceFiles files, ICustomGitHubSource github, TimeProvider clock)
     {
@@ -39,6 +40,7 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
         if (!Enum.IsDefined(request.Kind) || !Enum.IsDefined(request.Source) || string.IsNullOrWhiteSpace(request.Location)) throw new ArgumentException("Choose a custom source.");
         Dictionary<string, byte[]> snapshot;
         string? commit = null, url = null;
+        var subPath = "";
         string hash;
         switch (request.Source)
         {
@@ -52,19 +54,29 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
                 snapshot = CustomSourcePaths.Unzip(zip, false);
                 break;
             case CustomAddSource.GitHub:
-                var repo = CustomSourcePaths.Repository(request.Location);
-                var archive = await github.Fetch(repo, cancel).ConfigureAwait(false);
-                if (archive.Commit.Length != 40 || archive.Commit.Any(c => !Uri.IsHexDigit(c)) || archive.Url != "https://codeload.github.com/" + repo + "/zip/" + archive.Commit)
-                    throw new InvalidDataException("GitHub source did not return a pinned official archive.");
+                var location = CustomSourcePaths.GitHubLocation(request.Location);
+                subPath = location.SubPath;
+                var archive = await github.Fetch(location.Repository + (subPath.Length == 0 ? "" : "/" + subPath), cancel).ConfigureAwait(false);
+                var expectedUrl = subPath.Length == 0 ? "https://codeload.github.com/" + location.Repository + "/zip/" + archive.Commit : CustomSourcePaths.ContentsUrl(location.Repository, subPath, archive.Commit);
+                if (archive.Commit.Length != 40 || archive.Commit.Any(c => !Uri.IsHexDigit(c)) || archive.Url != expectedUrl || archive.SubPath != subPath)
+                    throw new InvalidDataException("GitHub source did not return a pinned official source.");
                 commit = archive.Commit;
                 url = archive.Url;
-                hash = CustomSourcePaths.Hash(archive.Bytes);
-                snapshot = CustomSourcePaths.Unzip(archive.Bytes, true);
+                if (subPath.Length == 0)
+                {
+                    hash = CustomSourcePaths.Hash(archive.Bytes);
+                    snapshot = CustomSourcePaths.Unzip(archive.Bytes, true);
+                }
+                else
+                {
+                    snapshot = CustomSourcePaths.Validate(archive.Files ?? throw new InvalidDataException("GitHub subtree has no file snapshot."));
+                    hash = CustomSourcePaths.Fingerprint(snapshot);
+                }
                 break;
             default: throw new ArgumentException("Unsupported source.");
         }
         cancel.ThrowIfCancellationRequested();
-        var provenance = new CustomProvenance(request.Source, request.Location, commit, url, hash, clock.GetUtcNow());
+        var provenance = new CustomProvenance(request.Source, request.Location, commit, url, hash, clock.GetUtcNow(), subPath);
         var result = new List<CustomAddCandidate>();
         if (request.Kind == CustomAddKind.Tools)
         {
@@ -126,31 +138,40 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
     public Task<OwnItem> Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel) => Task.Run(() =>
     {
         cancel.ThrowIfCancellationRequested();
-        OwnItem installed;
+        CheckedCustomItem checkedItem;
         lock (gate)
         {
             cancel.ThrowIfCancellationRequested();
-            if (!pending.TryGetValue(candidate.Key, out var checkedItem) || checkedItem.Candidate != candidate || candidate.Problem is not null)
+            if (!pending.TryGetValue(candidate.Key, out checkedItem!) || checkedItem.Candidate != candidate || candidate.Problem is not null || publishing.ContainsKey(candidate.Key))
                 throw new InvalidOperationException("Check this item again before adding it.");
-            if (items.Any(i => i.Kind == checkedItem.Kind && (i.Name.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase) || checkedItem.Command is not null && i.Command == checkedItem.Command)))
+            if (items.Any(i => i.Kind == checkedItem.Kind && (i.Name.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase) || checkedItem.Command is not null && i.Command == checkedItem.Command)) ||
+                publishing.Values.Any(i => i.Kind == checkedItem.Kind && (i.Candidate.Name.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase) || checkedItem.Command is not null && i.Command == checkedItem.Command)))
                 throw new InvalidOperationException("An own item already uses that name or command.");
-            var id = Guid.NewGuid().ToString("N");
+            publishing.Add(candidate.Key, checkedItem);
+        }
+        var id = Guid.NewGuid().ToString("N");
+        OwnItem installed;
+        try
+        {
             var content = checkedItem.Files.ToDictionary(p => "payload/" + p.Key, p => p.Value);
             if (checkedItem.Command is { } command && checkedItem.Executable is { } executable)
                 content.Add("bin/" + command + ".cmd", Encoding.UTF8.GetBytes("@\"%~dp0..\\payload\\" + executable.Replace('/', '\\') + "\" %*\r\n@exit /b %errorlevel%\r\n"));
             installed = new(id, checkedItem.Kind, candidate.Name, candidate.Description, checkedItem.Command, checkedItem.Executable, true, checkedItem.Provenance,
                 content.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => new CustomFilePin(p.Key, p.Value.LongLength, CustomSourcePaths.Hash(p.Value))).ToArray());
-            var next = items.Append(installed).ToArray();
+            cancel.ThrowIfCancellationRequested();
+            // Independent private copies may overlap; only the registry commit is serialized.
             files.Publish(root, id, content);
-            try
+            lock (gate)
             {
                 cancel.ThrowIfCancellationRequested();
+                var next = items.Append(installed).ToArray();
                 files.SaveRegistry(root, JsonSerializer.SerializeToUtf8Bytes(next, CustomSourceJsonContext.Default.OwnItemArray));
+                items = next;
+                pending.Remove(candidate.Key);
             }
-            catch { files.Delete(root, id); throw; }
-            items = next;
-            pending.Remove(candidate.Key);
         }
+        catch { files.Delete(root, id); throw; }
+        finally { lock (gate) publishing.Remove(candidate.Key); }
         // User code is never invoked under the registry gate or allowed to undo an already committed install.
         try { progress.Report(1); } catch (Exception) { }
         return installed;
