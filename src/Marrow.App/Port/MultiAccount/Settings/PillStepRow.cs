@@ -37,12 +37,14 @@ internal sealed class PillStepRow : Decorator
     private readonly Border host = new();
     private readonly Border settingsHost = new() { Padding = new Thickness(0, 6, 0, 0) };
     private readonly Grid line2;
+    private readonly StackPanel words;
     private HandshakeSliderControl? slider;
     private StepSettingsPanel? panel;
     private Control? never;
     private StepView step;
     private readonly Button configButton;
-    private readonly ProviderIcon icon = new() { Size = 16, Width = 16, Height = 16 };
+    private readonly TextBlock mono = MultiAccountText.Text("", 10, weight: SwiftFont.Weight.Semibold);
+    private readonly Border mark;
     private readonly OpacityTransition dragFade;
     private bool dragging;
     private double dragStart;
@@ -69,25 +71,28 @@ internal sealed class PillStepRow : Decorator
         newService = Pip(MultiAccountWords.NewService, "step-new-" + key);
         skipped = Pip(MultiAccountWords.SkippedOff, "step-skipped-" + key);
         var remove = LibraryButtons.Glyph("xmark", "Remove step", "step-remove-" + key, () => editor.RemoveStep(step.Index));
-        var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { name, sub } };
+        words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { name, sub } };
         var tags = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center, Children = { newService, skipped } };
         var line1 = new Grid { ColumnDefinitions = new ColumnDefinitions("22,18,20,*,Auto,22"), ColumnSpacing = 8 };
         number.VerticalAlignment = VerticalAlignment.Center;
-        icon.VerticalAlignment = VerticalAlignment.Center;
+        mono.HorizontalAlignment = HorizontalAlignment.Center; mono.VerticalAlignment = VerticalAlignment.Center;
+        mark = new Border { Width = 20, Height = 20, Child = mono, VerticalAlignment = VerticalAlignment.Center }.RoundedRectangle(6, RoundedCornerStyle.Continuous);
+        mark.Background = ChromeTokens.Overlay(.08).Brush(mark);
         grip.VerticalAlignment = VerticalAlignment.Center;
         remove.VerticalAlignment = VerticalAlignment.Center;
-        foreach (var (control, column) in new (Control, int)[] { (grip, 0), (number, 1), (icon, 2), (words, 3), (tags, 4), (remove, 5) })
+        foreach (var (control, column) in new (Control, int)[] { (grip, 0), (number, 1), (mark, 2), (words, 3), (tags, 4), (remove, 5) })
         {
             Grid.SetColumn(control, column);
             line1.Children.Add(control);
         }
 
-        bolt = LibraryUi.Glyph("bolt.fill", 11, Marrow.UI.Port.SwiftColor.Yellow);
+        bolt = SwiftImage.SystemName("bolt.fill").Font(ChromeTokens.InlineIconFont).ForegroundStyle(SwiftColor.Yellow);
+        bolt.Named("Fast mode");
         bolt.VerticalAlignment = VerticalAlignment.Center;
         var chevron = LibraryUi.Glyph("chevron.down", 9, ChromeTokens.SecondaryText, SwiftFont.Weight.Semibold);
         chevron.VerticalAlignment = VerticalAlignment.Center;
         config.VerticalAlignment = VerticalAlignment.Center;
-        configButton = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { config, bolt, chevron } }, ToggleSettings);
+        configButton = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { bolt, config, chevron } }, ToggleSettings);
         configButton.Focusable = true;
         configButton.Cursor = new Cursor(StandardCursorType.Hand);
         configButton.Named("Model, effort and fast mode", "step-config-" + key);
@@ -145,11 +150,11 @@ internal sealed class PillStepRow : Decorator
         step = next;
         number.Text = next.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
         name.Text = next.AccountName;
-        if (next.Service is { } service) icon.Provider = service;
+        mono.Text = next.Mono;
         sub.SetText(next.ServiceText + (next.NeverRunsOut ? " · " + MultiAccountWords.NoLimit.Split(" · ")[0] : ""));
         newService.IsVisible = next.NewService;
         skipped.IsVisible = next.Skipped;
-        Opacity = next.Skipped ? 0.6 : 1;
+        words.Opacity = line2.Opacity = mark.Opacity = number.Opacity = next.Skipped ? .45 : 1;
         config.SetText((next.SameAsAccount ? MultiAccountWords.SameAsAccount : "") + ModelLine(next));
         bolt.IsVisible = next.Fast;
         AutomationProperties.SetName(this, MultiAccountWords.StepStatement(next.Number, next.AccountName, next.Model));
@@ -168,7 +173,7 @@ internal sealed class PillStepRow : Decorator
                 slider = new HandshakeSliderControl(() => Point(), p => editor.SetStepHandshake(step.Index, Core(p)), "Handshake point for " + next.AccountName, brand, pulse);
                 host.Child = slider;
             }
-            slider.Lock(next.HandshakeLocked, MultiAccountWords.SameForEvery);
+            slider.Lock(next.HandshakeLocked, "Same for every step: set it with the slider at the top");
         }
         panel?.Apply();
     }

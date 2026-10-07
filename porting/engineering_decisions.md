@@ -4172,3 +4172,6 @@ MAUI-041/051/052: equal-to-general Settings points do not add a quiet note (OD-0
 
 ## ED-NEW-ma-wave1-15
 MAUI-040: apply final HTML 1459 off opacity .45 to Settings words, usage and number only, preserving bright switch/menu and independent Reduce Motion drag feedback.
+
+## ED-NEW-ma-wave1-16
+MAUI-044/045/048/055: Pill steps carry the real account monogram, including custom initials, instead of a provider icon. The shared composer Fast bolt is before the model with Fast mode aria. Off dims name/mark/number only to .45 (HTML1468); locked slider states how to reach the active top slider (HTML2622).
