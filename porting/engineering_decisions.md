@@ -3936,3 +3936,12 @@ T14 Strike code/raster/production integration READY. Final focused154/154 and br
 Assigned nine PR and six UI records are IMPLEMENTED with actual source-bound classes and clean1380-test receipt; matching15spec entries synchronized. Deep JSON audit preserves every contract field/unassigned record, changing only assigned statuses/evidence and the nine PR count transfers. UI035 existing no-Req-credit guard/page-capture qualification remains. No VERIFIED/whole GateD claim. No queue/T-M7 edits: lead waives mark.mjs for T14 and T9 uses final handoff/pushed branch.
 
 Native quietPC PhaseE needs the lead's quiet window; owner says none in this phase. Exact command,duration,unchanged gates in porting/first-release/strike-native-release.md and prepared scratch script. Historical ST0 under-load numbers informative only. Reviewer D07 and owner locked-page glass/fringe/inner-shade capture remain release gates. No native run, owner-app/installer/package/sign/release, real network/CLI/model test, reference/otherWT write or PC-wide setting change. Full report porting/first-release/strike-T14-report.md; final pushedSHA in E:\Droppy\work\scratch\handoff\codex-T14-strike.md.
+
+
+## ED-NEW-models-palette-13 - RR-19 post-Strike approved picker binding (2026-10-07)
+
+OD-0049/0060/0075/0099, Q-PICKER A and the T37 ruling permit binding only after T9 merges Strike. Verified origin/codex/strike 2d618f2177c1c7ad04b369e7a9fe66d2beaab630 is an ancestor of standing origin/claude/verify-terminal-20261001 666097b04; merge 4f795ba37 imports that exact approved Strike branch. The ledger merge preserves the entire T37 prefix and appends the Strike branch's 29,282-byte suffix.
+
+Two composer seams: OpenRouter popup offset -10 px (existing Top placement retained); ModelList delegates its OpenRouter-only branch to the new ModelPickerBinding. This preserves existing Choose/Back/history restrictions, original Hydra pair rows/callbacks, retained search, and the .12 s outer panel transition. The mandatory colour delegate reads approved locked brand hearts while ModelShades.ApplyToUi remains false. No LiquidTrack/LiquidStrike change belongs to this row.
+
+Fake-only real ModelList tests and approved picker tests: round2/rr19-rr20-binding-green.trx (five passed, including one RR-20 adapter test). Compile and behaviour reds retained. New test setup pumps the real dispatcher after TextBox.Text changes and fakes Reduce Motion; no original assertion/tolerance/reference was edited. Windows native above-chip, glass/fonts/scroll and Hydra/history captures remain required.

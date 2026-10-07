@@ -48,3 +48,10 @@ Linux: three actual headless picker tests pass in `rr21-app-final3.trx`, includi
 The lead ruling expressly forbids an EffortSlider edit. Delivered additive seam (in the dependent palette commit): `ModelPickerSeam.Create(entries, selected, hasHistory, choose, back, colour)` and `Place(popup)`. After T14/Strike, bind the model-only list at EffortSlider.cs:304, retaining Choose at :353, Back, history/provider restrictions, pair selection at :305-309 and the outer .12 s page transition. Pass the existing EffortBrand heart; do not enable draft model shades. Place uses Top/-10 px, and the popup must retain that clearance as height changes. This branch changes ZERO bytes in the three Strike-owned files.
 
 Windows needs: native above-chip placement and monitor-edge flip while search/card height changes; glass and Inter/Cascadia/source SVG rendering; hover/press/focus and smooth keyboard scrolling; selection/back/history/Hydra after seam integration. These are explicitly uncredited by the fake/headless proofs. This row's delivered implementation does not open RR-20 or RR-41 acceptance.
+
+
+### Round 2 lead-ruling follow-up: post-Strike binding
+
+DONE for implementation and fake/Linux proof. T9 merged Strike in standing 666097b04; this branch imports the Strike tip in merge 4f795ba37. The real OpenRouter ModelList now uses the approved searchable picker. New ModelPickerBinding retains Hydra pair rows, Choose, Back, current-provider history restrictions and search. EffortSlider.cs adds only the -10 px OpenRouter popup offset and conditional ModelList delegation for this row; the outer .12 s panel transition is preserved. Locked brand hearts remain authoritative while the separate ModelShades UI gate is false. ED-NEW-models-palette-13.
+
+round2/rr19-rr20-binding-green.trx: five passed, comprising two real picker binding tests, two locked picker tests and one RR-20 adapter test. Native Windows glass/font/smooth-scroll and above-chip captures are still required; no source-side visual acceptance is claimed from headless tests.

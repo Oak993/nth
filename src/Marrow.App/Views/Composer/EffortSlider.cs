@@ -126,6 +126,7 @@ public sealed class ModelEffortButton : Decorator
             lockedWidth = presented ? naturalWidth : null; frame.Width = compact ? double.NaN : lockedWidth ?? double.NaN; // :108-117
             if (presented)
             {
+                popup.VerticalOffset = inputs.Thread.Provider == ProviderKind.OpenRouter ? -Marrow.App.Port.ModelsPalette.OpenRouterPicker.ChipClearance : 0; // ED-NEW-models-palette-13.
                 var panel = openPanel = new ModelEffortPanel(inputs.Thread.Id, inputs.HasHistory);
                 var content = panel.PresentedChrome();
                 AppEnvironment.SetAppModel(content, AppEnvironment.GetAppModel(this));
@@ -393,6 +394,7 @@ public sealed class ModelList : Decorator
         }, snapshot =>
         {
             var (model, entries, pairs) = snapshot;
+            if (Marrow.App.Port.ModelsPalette.ModelPickerBinding.TryCreate(model, thread, hasHistory, entries, pairs, onChoose, onBack, onEnterPair, Child) is { } approved) { Child = approved; return; }
             var leadsWithPair = pairs.Any(pair => model.LeadsWithHydraPair(pair, thread)); // :280
             var showsProviders = entries.Select(entry => entry.Provider).Distinct().Count() > 1;
             var rowHeight = showsProviders || hasHistory && entries.Any(entry => entry.Provider != thread.Provider) ? 46 : 34;
