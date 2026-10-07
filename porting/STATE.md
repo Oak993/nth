@@ -669,3 +669,8 @@ Branch codex/f-wl-1 from requested base 0eb930d1d6d4611ac6654564ea52b3409b465666
 [WALLPAPER][T20-WL-FIX] 2026-10-07. ED-399 applies the proven reference arithmetic after f5ae4578. Six branch regressions and 44 affected frame comparisons pass; all corrected live grid branches match the reference. Full post-fix matrix remains the next gate; Windows GPU and inherited WIC acceptance are not claimed. Only codex/wl-fix may be pushed.
 
 [WALLPAPER][T20-WL-FIX] 2026-10-07. ED-400: READY for requested T20 raster fidelity. At tested production 24706fa7, full 5148-frame matrix, App 339 and UI 1239 cases pass with zero failures/skips; all 5104 unrelated measurements are identical. Source/fixture/assertion bytes and ledger prefixes remain intact. Native Windows GPU and inherited WIC acceptance are unverified. Final evidence: porting/reports/wl-fix.md and wl-fix/results-final.json. Proof f5ae4578 precedes fix 24706fa7. Push only codex/wl-fix without force.
+
+
+### T9 Batch 10: VT16 HELD after unchanged Windows failure
+
+Input 502b082e66730796da75f8297bf9fb8df43e3e0c; verification merge 342f24659e791616219d91e6af4df1f35328fb23. The existing cloud-row disabled-button assertion (VoiceTypingSettingsPageTests.cs:80) failed alone twice on the full group and passed alone twice after reverting only VT16 on an owned scratch branch. The VT16 merge is reverted; historical ED-390 / STATE append bytes remain intact. VT15, WL-fix and icon D remain. No assertion, tolerance, reference or production repair was made. Evidence: E:/Droppy/work/scratch/codex-merge-train/batch10/group/bisect-vt16/.
