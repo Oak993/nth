@@ -23,7 +23,7 @@ internal sealed class MultiAccountUsageView : Decorator
     private readonly TranslateTransform pageOffset = new(), leavingOffset = new();
     private double slideFrom;
     private bool slidingAll;
-    internal MultiAccountUsageView(UsagePanelModel model, bool ownsModel = false)
+    internal MultiAccountUsageView(UsagePanelModel model)
     {
         this.model = model; Child = slot; ClipToBounds = true; MinWidth = 240;
         slide = new AnimatedScalar(this, 0, x =>
@@ -36,7 +36,7 @@ internal sealed class MultiAccountUsageView : Decorator
             leaving.RenderTransform = reduce ? null : leavingOffset;
         });
         Refresh(); AttachedToVisualTree += (_, _) => model.Changed += OnChanged;
-        DetachedFromVisualTree += (_, _) => { model.Changed -= OnChanged; if (ownsModel) model.Dispose(); };
+        DetachedFromVisualTree += (_, _) => model.Changed -= OnChanged;
         KeyDown += (_, e) => { if (e.Key != Key.Escape) return; if (AllShown) Go(false); else CloseRequested?.Invoke(); e.Handled = true; };
     }
     internal bool AllShown { get; private set; }

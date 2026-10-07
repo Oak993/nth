@@ -2444,7 +2444,6 @@ public sealed partial class ThreadRuntime : MainActorModel
                 TurnStartedAt = null;
                 SaveNow();
                 SettleForegroundHeads(status);
-                var answerAuthor = status == TurnStatus.Completed && TryHandshakeAccountId(out var author) ? (Guid?)author : null;
 
                 if (Thread?.IsArchived == true)
                 {
@@ -2501,7 +2500,6 @@ public sealed partial class ThreadRuntime : MainActorModel
                 }
 
                 App?.TurnFinished(ThreadID, status, continues);
-                if (answerAuthor is { } completedAuthor) CheckCompletedAccountAnswer(turnID, completedAuthor);
 
                 // ThreadRuntime.swift:2493-2503: once the entire job has settled, hand its
                 // work to the existing merge coordinator, which rechecks readiness after waiting.

@@ -12,7 +12,7 @@ public sealed partial class AppModel
     private AppApiKeyRouting? apiKeys;
     internal AppApiKeyRouting ApiKeys => apiKeys ??= new(this);
     public MultiAccountRouting AccountRouting => accountRouting ??= new(this);
-    internal void DetachAccountRouting(Guid thread) { DetachThreadPorts(thread); accountRouting?.Detach(thread); }
+    internal void DetachAccountRouting(Guid thread) => accountRouting?.Detach(thread);
     internal void TickAccountRouting(Guid thread) => accountRouting?.AtSafePoint(thread);
     private long accountReportsRevision;
     public long AccountReportsRevision { get => Read(accountReportsRevision); private set => Set(ref accountReportsRevision, value); }

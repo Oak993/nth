@@ -834,3 +834,6 @@ Evidence: Core account/model 511 passed; Services portable account 223 passed; A
 
 
 [INTEGRATION T9] 2026-10-07: ma-opinions-view 18dcbc9f is HELD for its acknowledged W timeline-association dependency, not merely Windows proof. Candidate 08bc3a61 was withdrawn after W d49e21d7 still had no production binding of OpinionTimelineSeams.Offer (default null); OpinionAnswerRows.Append therefore refuses production attachment. ED-517/518 remain historical. No test/production repair is authored on integration. Both MA waves and the delivered W ports remain under grouped Windows verification.
+
+
+[INTEGRATION T9] 2026-10-07: W c23e031b/d49e21d7 admission-held for its missing production Link UI model and timeline opinion bindings; withdraw only that merge, retain both READY waves and historical ED-519/520. Raw candidate Windows focused gates pass; full Core4902/Services5603/UI4696 pass, App9990pass7fail with all seven unchanged methods passing twice alone. A fixture pass is not proof of an unbound production view. No production/test repair on integration.

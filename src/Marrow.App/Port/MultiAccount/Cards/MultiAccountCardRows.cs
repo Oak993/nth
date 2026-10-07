@@ -59,11 +59,7 @@ internal sealed class MultiAccountCardRows : Decorator
         }
         if (request == next) return;
         request = next; var rows = accounts(); var model = new LimitCardModel(state, rows, port, context?.Zone); Card = new LimitCardView(model, rows.Select(a => a.Name).ToArray());
-        Card.Answered += () =>
-        {
-            if (request != next) return; // Ask may already have replaced this card with the switch-or-wait request.
-            Show(model.AfterNote is { } note ? new LimitCardNote(note, context) : null);
-        };
+        Card.Answered += () => Show(model.AfterNote is { } note ? new LimitCardNote(note, context) : null);
         Show(Card);
     }
     private void Show(Control? control)
