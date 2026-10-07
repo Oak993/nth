@@ -39,6 +39,12 @@ public static class SkiaShaders
     private static extern nint sk_shader_new_linear_gradient(SKPoint[] points, uint[] colors, float[] colorPos, int colorCount, SKShaderTileMode tileMode, ref SKMatrix localMatrix);
 
     [DllImport(Skia, CallingConvention = CallingConvention.Cdecl)]
+    private static extern nint sk_shader_new_blend(SKBlendMode mode,nint destination,nint source);
+
+    [DllImport(Skia, CallingConvention = CallingConvention.Cdecl)]
+    private static extern nint sk_shader_new_color(uint color);
+
+    [DllImport(Skia, CallingConvention = CallingConvention.Cdecl)]
     private static extern nint sk_surface_new_image_snapshot(nint surface);
 
     [DllImport(Skia, CallingConvention = CallingConvention.Cdecl)]
@@ -156,6 +162,10 @@ public static class SkiaShaders
         var identity = SKMatrix.Identity;
         return sk_shader_new_linear_gradient(points, colors, stops, colors.Length, SKShaderTileMode.Clamp, ref identity);
     }
+
+    /// <summary>Native blend and solid nodes retain their inputs; release the returned reference.</summary>
+    public static nint Blend(SKBlendMode mode,nint destination,nint source)=>sk_shader_new_blend(mode,destination,source);
+    public static nint Solid(SKColor color)=>sk_shader_new_color((uint)color);
 
     public static void Release(nint shader) { if (shader != 0) sk_shader_unref(shader); }
 

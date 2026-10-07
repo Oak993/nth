@@ -55,13 +55,52 @@ public sealed class StrikeRasterTests
                 var precision = spark ? 3 : 1;
                 try {
                 Assert.InRange(Math.Abs(a.Alpha - b.Alpha), 0, precision);
-                Assert.InRange(Math.Abs(a.Red * a.Alpha / 255d - b.Red * b.Alpha / 255d), 0, precision);
-                Assert.InRange(Math.Abs(a.Green * a.Alpha / 255d - b.Green * b.Alpha / 255d), 0, precision);
-                Assert.InRange(Math.Abs(a.Blue * a.Alpha / 255d - b.Blue * b.Alpha / 255d), 0, precision);
-                } catch (Xunit.Sdk.XunitException error) { throw new Xunit.Sdk.XunitException(error.Message + $" spark={spark} ({x},{y}) actual={a} expected={b}"); }
+                // SPEC6.4: compare stored premultiplied bytes. GetPixel decodes straight RGB;
+                // multiplying that rounded decode back can inflate a one-byte difference.
+                for(var channel=0;channel<3;channel++)Assert.InRange(Math.Abs(RawChannel(actual,x,y,channel)-RawChannel(reference,x,y,channel)),0,precision);
+                } catch (Xunit.Sdk.XunitException error) { throw new Xunit.Sdk.XunitException(error.Message + $" spark={spark} ({x},{y}) actual={a} expected={b} {RawPrecision(actual,reference)}"); }
             }
         }
         finally { ((IDisposable)raster).Dispose(); }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [Trait("Decision","ED-248")]
+    public void Each_ink_layer_preserves_the_independent_canvas_reference(int layer)
+    {
+        var info=new SKImageInfo(96,40,SKColorType.Rgba8888,SKAlphaType.Premul);
+        var f=new StrikeResolvedFrame {Opacity=1,LightOpacity=0};
+        f.Masks.Add(new(1,layer,Line(12,24,84,16),layer==0?7:layer==1?3:1,0.8));
+        var ink=StrikeInk.Of(StrikeOracleLiquid.From("OpenAI","dark")); using var raster=new StrikeRaster(info);
+        raster.Paint(new(96,40,80,28),f,ink,17.3,1274);using var actual=Pixels(raster.Over);using var reference=Reference(info,f,ink,17.3);
+        var max=0d; var worst="";
+        for(var y=0;y<40;y++)for(var x=0;x<96;x++) {
+            var a=actual.GetPixel(x,y);var b=reference.GetPixel(x,y);
+            var delta=(double)Math.Abs(a.Alpha-b.Alpha);
+            for(var channel=0;channel<3;channel++)delta=Math.Max(delta,Math.Abs(RawChannel(actual,x,y,channel)-RawChannel(reference,x,y,channel)));
+            if(delta>max){max=delta;worst=$"({x},{y}) actual={a} expected={b}";}
+        }
+        Assert.True(max<=1,$"layer{layer}: difference {max} {worst} {RawPrecision(actual,reference)}");
+    }
+
+    private static string RawPrecision(SKBitmap actual,SKBitmap expected)
+    {
+        var rgb=0;var alpha=0;
+        for(var y=0;y<actual.Height;y++)for(var x=0;x<actual.Width;x++)for(var c=0;c<4;c++) {
+            var a=System.Runtime.InteropServices.Marshal.ReadByte(actual.GetPixels(),y*actual.RowBytes+x*4+c);
+            var b=System.Runtime.InteropServices.Marshal.ReadByte(expected.GetPixels(),y*expected.RowBytes+x*4+c);
+            if(c==3)alpha=Math.Max(alpha,Math.Abs(a-b));else rgb=Math.Max(rgb,Math.Abs(a-b));
+        }
+        return $"raw premul maxRGB={rgb},maxAlpha={alpha},types={actual.ColorType}/{actual.AlphaType},{expected.ColorType}/{expected.AlphaType}";
+    }
+
+    private static byte RawChannel(SKBitmap bitmap,int x,int y,int channel)
+    {
+        Assert.Equal(SKAlphaType.Premul,bitmap.AlphaType);Assert.Equal(SKColorType.Bgra8888,bitmap.ColorType);
+        return System.Runtime.InteropServices.Marshal.ReadByte(bitmap.GetPixels(),y*bitmap.RowBytes+x*4+channel);
     }
 
     private static SKBitmap Reference(SKImageInfo info, StrikeResolvedFrame f, StrikeInk ink, double time)
@@ -80,16 +119,41 @@ public sealed class StrikeRasterTests
             for (var layer = 0; layer < 3; layer++)
             {
                 using var combined = SKSurface.Create(info); using var p = new SKPaint(); var gain = layer switch { 0 => 0.55, 1 => 0.92, _ => 1 };
-                p.ColorF = new SKColorF(1, 1, 1, (float)(layer == 2 ? 1 : gain));
+                p.ColorF = new SKColorF(1, 1, 1, (float)(layer == 2 ? 1 : gain*f.Opacity));
                 masks[layer].Draw(combined.Canvas, 0, 0, p); masks[3 + layer].Draw(combined.Canvas, 0, 0, p);
                 var colors = Enumerable.Range(0, 5).Select(i => layer == 2 ? ink.Palette.Core : ink.Gradient(layer == 0, time, 1274 % 7 * 0.9, i)).ToArray();
                 using var gradient = SKShader.CreateLinearGradient(new SKPoint(0, 0), new SKPoint(info.Width, 0), colors, [0, 0.25f, 0.5f, 0.75f, 1], SKShaderTileMode.Clamp);
                 p.Shader = gradient; p.BlendMode = SKBlendMode.SrcIn; p.Color = SKColors.White; combined.Canvas.DrawRect(new SKRect(0, 0, info.Width, info.Height), p); p.Shader = null; p.BlendMode = SKBlendMode.SrcOver;
-                using var blur = layer == 0 ? SKImageFilter.CreateBlur(3, 3) : null; p.ImageFilter = blur; combined.Draw(output.Canvas, 0, 0, p);
+                using var blur = layer == 0 ? SKImageFilter.CreateBlur(3, 3) : null; p.ImageFilter = blur; p.ColorF=new SKColorF(1,1,1,(float)(layer==2?f.Opacity:1)); combined.Draw(output.Canvas, 0, 0, p);
             }
             return Pixels(output);
         }
         finally { foreach (var m in masks) m.Dispose(); }
+    }
+
+    [Theory]
+    [InlineData(1d)]
+    [InlineData(0.5)]
+    [InlineData(0.1)]
+    [InlineData(0.003)]
+    [InlineData(0.002)]
+    [InlineData(0d)]
+    [Trait("Decision","ED-248")]
+    public void Pale_ink_gains_follow_the_fast_opacity_through_the_source_cutoff(double opacity)
+    {
+        var info=new SKImageInfo(96,40,SKColorType.Rgba8888,SKAlphaType.Premul); var frame=new StrikeResolvedFrame {Opacity=opacity,LightOpacity=0};
+        for(var layer=0;layer<3;layer++) frame.Masks.Add(new(1,layer,Line(12,20,84,20),layer==0?7:layer==1?3:1,1));
+        var ink=StrikeInk.Of(StrikeOracleLiquid.From("OpenAI","dark")); using var raster=new StrikeRaster(info);
+        raster.Paint(new(96,40,80,28),frame,ink,17.3,1274); using var actual=Pixels(raster.Over);
+        if(opacity<=0.002) { Assert.Equal(0,raster.InkDraws); for(var y=0;y<40;y++) for(var x=0;x<96;x++) Assert.Equal(0,actual.GetPixel(x,y).Alpha); return; }
+        Assert.Equal(3,raster.InkDraws); using var expected=Reference(info,frame,ink,17.3);
+        for(var y=0;y<40;y++) for(var x=0;x<96;x++)
+        {
+            try {
+            var a=actual.GetPixel(x,y); var b=expected.GetPixel(x,y); Assert.InRange(Math.Abs(a.Alpha-b.Alpha),0,1);
+            for(var channel=0;channel<3;channel++)Assert.InRange(Math.Abs(RawChannel(actual,x,y,channel)-RawChannel(expected,x,y,channel)),0,1);
+            }catch(Xunit.Sdk.XunitException error){throw new Xunit.Sdk.XunitException(error.Message+$" op={opacity} {RawPrecision(actual,expected)}");}
+        }
     }
 
     [Theory]

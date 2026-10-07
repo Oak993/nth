@@ -8,17 +8,11 @@ public sealed class StrikeRaster : IDisposable
 {
     internal static readonly Lazy<SKRuntimeEffect> ColourEffect = new(() => SKRuntimeEffect.CreateShader("""
         uniform shader first; uniform shader second;
-        uniform float gain; uniform float useFirst; uniform float perMask; uniform float gradientOnly;
-        uniform float width; uniform float4 colours[5];
+        uniform float gain; uniform float useFirst; uniform float4 colours[5];
         half4 main(float2 p) {
-            float a = first.eval(p).a * useFirst, b = second.eval(p).a;
-            // P:579-584 draws each gained mask into an 8-bit canvas before recolouring it.
-            float ag = floor(a*gain*255.0+0.5)/255.0, bg = floor(b*gain*255.0+0.5)/255.0;
-            float alpha = perMask > 0.5 ? floor((1.0-(1.0-ag)*(1.0-bg))*255.0+0.5)/255.0 : (1.0-(1.0-a)*(1.0-b))*gain;
-            if (gradientOnly > 0.5) alpha = 1.0;
-            float q = clamp(p.x / width * 4.0, 0.0, 4.0);
-            float4 c = q < 1.0 ? mix(colours[0],colours[1],q) : q < 2.0 ? mix(colours[1],colours[2],q-1.0) : q < 3.0 ? mix(colours[2],colours[3],q-2.0) : mix(colours[3],colours[4],q-3.0);
-            return half4(c.rgb * alpha, alpha);
+            float a=first.eval(p).a*useFirst,b=second.eval(p).a;
+            float alpha=(1.0-(1.0-a)*(1.0-b))*gain;
+            return half4(colours[0].rgb*alpha,alpha);
         }
         """, out var error) ?? throw new InvalidOperationException("Strike colour: " + error));
     internal static readonly Lazy<SKRuntimeEffect> WashEffect = new(() => SKRuntimeEffect.CreateShader("""
@@ -49,6 +43,7 @@ public sealed class StrikeRaster : IDisposable
     public int InkDraws { get; private set; }
     public int LightDraws { get; private set; }
     public int WashDraws { get; private set; }
+    public int CompositeDraws { get; private set; }
     public int SurfacesMade => 9;
     public int FiltersMade { get; private set; }
     public StrikeRaster(SKImageInfo info, GRContext? gpu = null)
@@ -63,7 +58,7 @@ public sealed class StrikeRaster : IDisposable
 
     public void Paint(StrikeGeometry g, StrikeResolvedFrame frame, StrikeInk ink, double time, int seed, StrikeContacts? contacts = null)
     {
-        InkDraws = LightDraws = WashDraws = 0; overCanvas.Clear(SKColors.Transparent); screenCanvas.Clear(SKColors.Transparent); lightCanvas.Clear(SKColors.Transparent);
+        InkDraws = LightDraws = WashDraws = CompositeDraws = 0; overCanvas.Clear(SKColors.Transparent); screenCanvas.Clear(SKColors.Transparent); lightCanvas.Clear(SKColors.Transparent);
         var scale = info.Height / g.Height;
         gradientWidth = g.Width * scale;
         if (filterScale != scale)
@@ -82,11 +77,11 @@ public sealed class StrikeRaster : IDisposable
             for (var i = 0; i < masks.Length; i++) { images[i] = SkiaShaders.Snapshot(masks[i]); shaders[i] = SkiaShaders.ImageShader(images[i], SKMatrix.Identity); }
             if (ink.Amount > 0.01 && frame.Masks.Count > 0)
             {
-                for (var layer = 0; layer < 3; layer++)
+                for (var layer = 0; layer < 2; layer++)
                 {
                     var gain = (layer == 0 ? 0.55 : layer == 1 ? 0.92 : 1) * ink.Amount * frame.Opacity;
                     for (var i = 0; i < 5; i++) SetColour(i, layer == 2 ? ink.Palette.Core : ink.Gradient(layer == 0, time, seed % 7 * 0.9, i));
-                    Composite(overCanvas, layer, gain, true, layer < 2, layer == 0 ? g.Height >= 34 ? blurBig : blurSmall : null); InkDraws++;
+                    Composite(overCanvas, layer, gain, true, true, layer == 0 ? g.Height >= 34 ? blurBig : blurSmall : null,ink.Amount*frame.Opacity,ink.Palette.Core); InkDraws+=layer==1?2:1;
                 }
             }
             if (frame.LightOpacity >= 0.002)
@@ -99,7 +94,7 @@ public sealed class StrikeRaster : IDisposable
                 }
             }
             DrawBursts();
-            if (frame.LightOpacity >= 0.002) { fill.ColorF = new SKColorF(1, 1, 1, (float)frame.LightOpacity); fill.BlendMode = SKBlendMode.Screen; light.Draw(screenCanvas, 0, 0, fill); fill.BlendMode = SKBlendMode.SrcOver; }
+            if (frame.LightOpacity >= 0.002) { fill.ColorF = new SKColorF(1, 1, 1, (float)frame.LightOpacity); fill.BlendMode = SKBlendMode.Screen; light.Draw(screenCanvas, 0, 0, fill); CompositeDraws++; fill.BlendMode = SKBlendMode.SrcOver; }
         }
         finally { colour.SetChild("first", 0); colour.SetChild("second", 0); for (var i = 0; i < masks.Length; i++) { SkiaShaders.Release(shaders[i]); SkiaShaders.ReleaseImage(images[i]); images[i] = shaders[i] = 0; } }
 
@@ -119,32 +114,57 @@ public sealed class StrikeRaster : IDisposable
     }
 
     private void SetColour(int i, SKColor c) { gradientColours[i] = (uint)c; colours[i * 4] = c.Red / 255f; colours[i * 4 + 1] = c.Green / 255f; colours[i * 4 + 2] = c.Blue / 255f; colours[i * 4 + 3] = 1; }
-    private void Composite(SKCanvas canvas, int layer, double gain, bool useLock, bool perMask, SKImageFilter? filter)
+    private void Composite(SKCanvas canvas,int layer,double gain,bool useLock,bool perMask,SKImageFilter? filter,double coreGain=0,SKColor coreColor=default)
     {
-        colour.SetChild("first", shaders[layer]); colour.SetChild("second", shaders[3 + layer]); colour.Set("gain", (float)gain); colour.Set("useFirst", useLock ? 1 : 0); colour.Set("perMask", perMask ? 1 : 0); colour.Set("gradientOnly", useLock ? 1 : 0); colour.Set("width", (float)gradientWidth); colour.Set("colours", colours);
-        if (useLock)
-        {
-            lightCanvas.Clear(SKColors.Transparent); fill.ColorF = new SKColorF(1,1,1,(float)(perMask ? gain : 1));
-            SkiaShaders.DrawImage(lightCanvas,images[layer],0,0,fill); SkiaShaders.DrawImage(lightCanvas,images[3+layer],0,0,fill);
-        }
-        gradientPoints[1] = new SKPoint((float)gradientWidth,0);
-        var shader = useLock ? SkiaShaders.LinearGradient(gradientPoints,gradientColours,gradientStops) : colour.MakeShader(); SkiaShaders.SetShader(fill, shader); fill.Color = SKColors.White; fill.ImageFilter = filter;
-        try
-        {
-            if (!useLock) canvas.DrawRect(new SKRect(0, 0, info.Width, info.Height), fill);
-            else
-            {
-                // P:579-585 recolours the gained union, then CSS blurs that RGBA8 canvas.
-                fill.ImageFilter = null; fill.BlendMode = SKBlendMode.SrcIn;
-                lightCanvas.DrawRect(new SKRect(0, 0, info.Width, info.Height), fill);
-                SkiaShaders.SetShader(fill, 0); fill.ImageFilter = filter; fill.BlendMode = SKBlendMode.SrcOver;
-                fill.ColorF = new SKColorF(1,1,1,(float)(perMask ? 1 : gain));
-                var image = SkiaShaders.Snapshot(light);
-                try { SkiaShaders.DrawImage(canvas, image, 0, 0, fill); }
-                finally { SkiaShaders.ReleaseImage(image); lightCanvas.Clear(SKColors.Transparent); }
+        nint shader=0;
+        try {
+            if(useLock) shader=InkShader(layer,gain,coreGain,coreColor);
+            else {
+                colour.SetChild("first",shaders[layer]);colour.SetChild("second",shaders[3+layer]);
+                colour.Set("gain",(float)gain);colour.Set("useFirst",0);colour.Set("colours",colours);
+                shader=Required(colour.MakeShader());
+            }
+            SkiaShaders.SetShader(fill,shader);fill.Color=SKColors.White;fill.ImageFilter=null;
+            if(filter is null) {canvas.DrawRect(new SKRect(0,0,info.Width,info.Height),fill);CompositeDraws++;}
+            else {
+                // P:579-585: device-scale RGBA8 soft canvas first, then its CSS blur.
+                lightCanvas.Clear(SKColors.Transparent);lightCanvas.DrawRect(new SKRect(0,0,info.Width,info.Height),fill);CompositeDraws++;
+                SkiaShaders.SetShader(fill,0);fill.ImageFilter=filter;
+                var image=SkiaShaders.Snapshot(light);
+                try {SkiaShaders.DrawImage(canvas,image,0,0,fill);CompositeDraws++;}
+                finally {SkiaShaders.ReleaseImage(image);lightCanvas.Clear(SKColors.Transparent);}
             }
         }
-        finally { fill.ImageFilter = null; SkiaShaders.SetShader(fill, 0); SkiaShaders.Release(shader); }
+        finally {fill.ImageFilter=null;SkiaShaders.SetShader(fill,0);SkiaShaders.Release(shader);}
+    }
+    private static nint Required(nint shader)=>shader!=0?shader:throw new InvalidOperationException("Strike shader graph creation failed");
+    private static SKColor GainColour(double gain)=>new(255,255,255,(byte)Math.Clamp(Strike.Round(gain*255),0,255));
+    private nint InkShader(int layer,double gain,double coreGain,SKColor coreColour)
+    {
+        nint body=0,core=0,alpha=0,scaled=0;
+        try {
+            body=InkLayer(layer,gain);
+            if(layer==0)return body;
+            for(var i=0;i<5;i++)gradientColours[i]=(uint)coreColour;
+            core=InkLayer(2,1);alpha=Required(SkiaShaders.Solid(GainColour(coreGain)));
+            scaled=Required(SkiaShaders.Blend(SKBlendMode.Modulate,core,alpha));
+            return Required(SkiaShaders.Blend(SKBlendMode.SrcOver,body,scaled));
+        }
+        finally {if(layer!=0)SkiaShaders.Release(body);SkiaShaders.Release(core);SkiaShaders.Release(alpha);SkiaShaders.Release(scaled);}
+    }
+    private nint InkLayer(int layer,double gain)
+    {
+        nint alpha=0,first=0,second=0,union=0,gradient=0;
+        try {
+            alpha=Required(SkiaShaders.Solid(GainColour(gain)));
+            first=Required(SkiaShaders.Blend(SKBlendMode.Modulate,shaders[layer],alpha));
+            second=Required(SkiaShaders.Blend(SKBlendMode.Modulate,shaders[3+layer],alpha));
+            union=Required(SkiaShaders.Blend(SKBlendMode.SrcOver,first,second));
+            gradientPoints[1]=new SKPoint((float)gradientWidth,0);
+            gradient=Required(SkiaShaders.LinearGradient(gradientPoints,gradientColours,gradientStops));
+            return Required(SkiaShaders.Blend(SKBlendMode.SrcIn,union,gradient));
+        }
+        finally {SkiaShaders.Release(alpha);SkiaShaders.Release(first);SkiaShaders.Release(second);SkiaShaders.Release(union);SkiaShaders.Release(gradient);}
     }
     private void Trace(StrikeTrace trace) { path.Rewind(); path.MoveTo((float)trace.Line.X(trace.First), (float)trace.Y(trace.First)); for (var i = trace.First + 1; i <= trace.Last; i++) path.LineTo((float)trace.Line.X(i), (float)trace.Y(i)); }
     private void Light(SKCanvas canvas, StrikeLight op, StrikeInk ink, StrikeGeometry g, double scale)

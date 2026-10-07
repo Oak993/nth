@@ -15,6 +15,24 @@ public sealed class StrikePlans
     public int SlotCount => slots.Length;
     public long Builds { get; private set; }
 
+    internal StrikeTiming TimingFor(int k,bool twin=false)
+    {
+        var slot=slots[k&7];
+        if(slot.Ready&&slot.Timing.K==k) return twin ? slot.TwinSlot!.Timing : slot.Timing;
+        return StrikeMix.Timing(k,seed,twin);
+    }
+
+    internal void PrepareNext(StrikeGeometry g,double time)
+    {
+        var k0=(int)Math.Floor(time/2.4);
+        for(var k=k0-2;k<=k0+2;k++)
+        {
+            var slot=slots[k&7];
+            if(geometry==g&&slot.Ready&&slot.Timing.K==k)continue;
+            Get(g,k);return; // SPEC12: one ahead build, including the clean interval following a random jump.
+        }
+    }
+
     public StrikePlan Get(StrikeGeometry g, int k, bool twin = false)
     {
         if (geometry != g)

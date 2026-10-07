@@ -27,3 +27,5 @@ The 19 discrete rounding ties below are zero-based case indices. They are report
 | 75 | 36918 | 0 | 88603.690627074 | 88603.69062707352 | 115 | 114 |
 | 76 | 36918 | 0.5 | 88604.190627074 | 88604.19062707352 | 85 | 84 |
 | 77 | 36918 | 1 | 88604.690627074 | 88604.69062707352 | 55 | 54 |
+
+A-17 C# validation completed after the uniform reconstruction: Phase A 34/34 and the later Composer/Traceability sweeps include the 80 model-wait cases, with their original expected frames/timestamps/tolerances and byte-identical vectors. The preceding pending statement is historical. Native Phase E needs the lead's quiet window; the lead waives mark.mjs specifically for T14, with no queue or T-M7 edits.

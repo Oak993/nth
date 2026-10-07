@@ -24,6 +24,8 @@ public sealed class StrikeContacts(int seed, StrikeBubbleLanes lanes, StrikeFast
         {
             for (var k = (int)Math.Floor(t0 / 2.4) - 2; k <= (int)Math.Floor(t1 / 2.4) + 1; k++)
             {
+                var timing=plans.TimingFor(k);
+                if(!EventWindow(timing)&&!(timing.Event==2&&EventWindow(plans.TimingFor(k,true))))continue;
                 var p = plans.Get(g, k); Events(p); if (p.Twin is { } twin) Events(twin);
             }
             // JS sort is stable: equal timestamps preserve primary/twin and event insertion order.
@@ -65,6 +67,12 @@ public sealed class StrikeContacts(int seed, StrikeBubbleLanes lanes, StrikeFast
                 if (count == pending.Length) throw new InvalidOperationException("Strike pending contact capacity exceeded");
                 pending[count++] = new(t, p, e);
             }
+        }
+        bool EventWindow(StrikeTiming timing)
+        {
+            var last=0.3;
+            for(var i=0;i<timing.FlickerCount;i++)last=Math.Max(last,Strike.Round(timing.Flicker(i).At*1000)/1000d);
+            return timing.At-timing.Lead<=t1&&timing.At+last>t0;
         }
         void Contact(double at, int k, int source, int n)
         {

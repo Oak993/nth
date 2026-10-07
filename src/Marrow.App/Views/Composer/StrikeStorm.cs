@@ -9,10 +9,13 @@ public sealed class StrikeStorm(int seed)
     public StrikeResolvedFrame Resolve(StrikeGeometry g, double time, double pageTime, double fast, double ink)
     {
         frame.Clear(); frame.Opacity = Strike.Round(fast * 1000) / 1000d; frame.LightOpacity = Strike.Round(frame.Opacity * (1 - ink) * 1000) / 1000d;
-        if (frame.Opacity <= 0.002) return frame;
+        var builds=Plans.Builds;
+        if (frame.Opacity <= 0.002) {Plans.PrepareNext(g,time);return frame;}
         var js = (int)Math.Floor(time * 30); var ja = 0.8 * g.K; var k0 = (int)Math.Floor(time / 2.4); var busy = false;
         for (var k = k0 - 2; k <= k0 + 1; k++)
         {
+            var timing=Plans.TimingFor(k); var twinTiming=timing.Event==2 ? Plans.TimingFor(k,true) : default;
+            if(!Visible(timing)&&!(timing.Event==2&&Visible(twinTiming)))continue;
             var p = Plans.Get(g, k); Bolt(p); if (p.Twin is { } twin) Bolt(twin);
         }
         Wash(g.Knob, g.Middle, g.Height * 0.9, 0.12 + 0.04 * Math.Sin(pageTime * 2.6), 1.2);
@@ -26,7 +29,10 @@ public sealed class StrikeStorm(int seed)
             if (a >= 0.15) frame.AddLit(new(trace, 0.6 + 0.6 * ink, g.K));
             Mask(0, 0, trace, 4 * g.K, a); Mask(0, 1, trace, 2.4 * g.K, a); Mask(0, 2, trace, Math.Max(0.8, 1.05 * g.K), a);
         }
+        if(Plans.Builds==builds)Plans.PrepareNext(g,time);
         return frame;
+
+        bool Visible(StrikeTiming timing) {var age=time-timing.At;return age>=-timing.Lead&&age<=1.9;}
 
         void Bolt(StrikePlan p)
         {

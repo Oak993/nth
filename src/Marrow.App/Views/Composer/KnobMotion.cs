@@ -224,10 +224,14 @@ public sealed class KnobSignal
         var k0 = (int)Math.Floor(t / 2.4);
         for (var k = k0 - 2; k <= k0 + 1; k++)
         {
+            var timing=pool.TimingFor(k);
+            if(!Active(timing)&&!(timing.Event==2&&Active(pool.TimingFor(k,true))))continue;
             var p = pool.Get(g, k); ReadPlan(p); if (p.Twin is { } twin) ReadPlan(twin);
         }
         if (active > 0) ExitAngle = sx * sx + sy * sy > 1e-12 ? Math.Atan2(sy, sx) : th;
         Phase = phase; Shape(charge * gain, flare * gain, clock);
+
+        bool Active(StrikeTiming timing) {var age=t-timing.At;return age>=-timing.Lead-timing.Charge&&age<=1.9;}
 
         void ReadPlan(StrikePlan plan)
         {
