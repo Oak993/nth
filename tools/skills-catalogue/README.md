@@ -65,3 +65,27 @@ If any item fails (a hash that does not match a published digest, a signature th
 - Plugins list their skills so that the gate's name rule can be checked; the same skill folder name in two plugins of one item is a gate violation to be decided.
 - The new `catalogue.json` replaces plan estimates with measured sizes and nulls with values, so tests that transcribe today's data (the pins, counts and sizes tests of SK-1,
   `UpdateCheckTests` and `ItemTermsTests` of SK-7) move with it.
+
+## Round 2: source metadata pin generator (RR-13 / RR-14)
+
+`pin-generator.mjs` is an importable, transport-injected generator; importing it never fetches anything. The new standalone real-source command is `generate-pins.mjs`. **Do not run it in cloud verification or tests.** The local owner thread runs it against upstream, reviews the output and changes the catalogue/guards alongside those real facts. Nothing in this Round 2 change is a claimed production licence/version/size.
+
+Offline tests (synthetic bytes and metadata, injected requests; no sockets, installers or package processes):
+
+```text
+node --test tools/skills-catalogue/pin-generator.test.mjs tools/skills-catalogue/pin-manifest.test.mjs
+node tools/skills-catalogue/selftest.mjs
+```
+
+Local owner workflow:
+
+1. Run the existing resolver/builder, above, with its signature prerequisites and a new output folder. Its `catalogue.raw.json` supplies the resolved file lists, artifact URLs, transitive package choices and full per-skill commits. The old builder still carries some previous licence/version claims; these are **not** new source observations.
+2. Prepare a manifest offline: `node tools/skills-catalogue/prepare-pin-manifest.mjs --resolved <catalogue.raw.json> --out <new manifest.json>`.
+3. Review its source metadata recipes. A `version` / `licence` selector supplies an official URL plus `format: json` and an RFC 6901 `pointer`, or `format: text/base64` (whole source text or exactly one capture in `pattern`). An array can use `match: {field, value}` plus `valuePointer` to select a source entry. These are selectors, never supplied fact values. Recipes cover full repository/per-skill commits and nearest selected licence files, GitHub release tags/licence bodies, PyPI wheel metadata, npm metadata, CPython tag metadata/LICENCE, Node's release index/licence, and Chromium's official version index/licence. Keep mixed per-folder licences separate and review their scope; full licence text is preserved without inventing an SPDX classification. LibreOffice's version/licence selectors remain null until the local thread identifies the actual release's upstream metadata (for example the correct full source tag's configure metadata and licence). A repository with no applicable licence file or a package with null/legacy licence metadata also blocks: select its own published metadata or report it unresolved, never insert a guessed fact. A PyPI legacy licence can explicitly select `/info/license` if its contents apply; do not replace a null expression with a claim.
+4. Run on the owner's network: `node tools/skills-catalogue/generate-pins.mjs --manifest <reviewed manifest.json> --out <new pins folder> --run-real-source-fetch`.
+
+The manifest must cover all 29 catalogue IDs exactly, with at least one entry per ID and source metadata for every entry. The generator downloads each selected artifact/file, hashes the exact streamed bytes with SHA-256, counts exact bytes, checks any published digest/size or selected version expectation, and saves the same artifact bytes. Every fact records the requested URL, final URL and UTC date. Version/licence values come only from the fetched source metadata; its URL, byte size, SHA-256, selector and raw body are retained in `pins.json` and `metadata/<sha256>.bin`. Raw licence bodies can remain text; classification/terms and cross-folder equivalence need owner review. No version is inferred from a filename and no licence is inherited from the old catalogue.
+
+Official-source policies derive from checked-in `sources.json` and direct vendors, not caller-supplied host lists. HTTPS and anonymous requests only; redirects are checked at every hop, metadata is bounded to 16 MiB, credentials and fragments are refused. The command refuses an existing output folder, writes to a staging folder and publishes only after every entry succeeds. A failed run publishes no completed output. This supplements the existing resolver/signature checks and does not replace them. It neither edits the embedded catalogue nor runs pip/npm installers itself.
+
+`SkillsCataloguePinsTests` and `ProductionSeamsTests.What_the_catalogue_gives_no_install_parameters_for_fails_closed_with_the_one_unavailable_message` stay byte-identical in Round 2. Their exact names and remaining work are in `porting/first-release/reviews/skills-backend-t35.md`. Real catalogue completion and RR-14 installer/restart bindings must land before retiring those guards in the same reviewed commit.

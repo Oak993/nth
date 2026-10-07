@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="d6fb177c-a6fa-45db-a30a-31261491eea2" name="@a24583ba704a 2026-10-07 08:33:28" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T08:33:28.6340483+00:00" queuing="2026-10-07T08:33:28.6340483+00:00" start="2026-10-07T08:33:24.8267420+00:00" finish="2026-10-07T08:33:28.6386934+00:00" />
+  <TestSettings name="default" id="672f6caf-820d-4e27-aa81-814fa3b4802c">
+    <Deployment runDeploymentRoot="_a24583ba704a_2026-10-07_08_33_28" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="ea41f65b-8d1b-41f2-a942-056f38382c26" testId="43ea3cb2-48d9-3684-7fc4-6e18477a8160" testName="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Popup_opens_and_closes_with_its_locked_curves_instead_of_the_default_presenter" computerName="a24583ba704a" duration="00:00:00.1075875" startTime="2026-10-07T08:33:28.3266594+00:00" endTime="2026-10-07T08:33:28.4340825+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ea41f65b-8d1b-41f2-a942-056f38382c26" />
+    <UnitTestResult executionId="44edba64-43ca-42ca-8eb1-f81245f44c23" testId="844d189e-55d6-a491-7277-6b931a00b924" testName="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades" computerName="a24583ba704a" duration="00:00:00.7539932" startTime="2026-10-07T08:33:27.0694483+00:00" endTime="2026-10-07T08:33:27.7745068+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="44edba64-43ca-42ca-8eb1-f81245f44c23">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.InRange() Failure: Value not in range
+Range:  (0.001 - 0.999)
+Actual: 0</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.&lt;&gt;c.&lt;The_pill_arrival_eases_and_reduced_motion_still_fades&gt;b__4_0(LibraryPageHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsProgressPillTests.cs:line 85
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.&lt;&gt;c__DisplayClass33_0.&lt;Run&gt;g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 77
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.Run(HeadlessSession headless, LibrarySection section, Action`1 check, Boolean motion, Boolean reduceMotion, SkillsCatalogue catalogue, IFirstInstall install, ImportModel imports, Boolean defaultImports) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 82
+   at Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsProgressPillTests.cs:line 72
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="a0302f90-86b1-4c10-b246-0a7b77442b28" testId="5704c635-bf45-062b-5cb4-35a7026ff0a3" testName="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Completion_retains_the_ring_for_450ms_then_crossfades_and_scales_the_check" computerName="a24583ba704a" duration="00:00:00.1017709" startTime="2026-10-07T08:33:28.4343369+00:00" endTime="2026-10-07T08:33:28.5360389+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a0302f90-86b1-4c10-b246-0a7b77442b28" />
+    <UnitTestResult executionId="3205e1b2-248d-4384-bcf9-4899a1e0dd56" testId="c3d7b300-7296-b5e6-01a4-2c82142579db" testName="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.Hide_keeps_the_run_visible_in_both_pills_and_enlarge_reopens_the_same_dialog" computerName="a24583ba704a" duration="00:00:00.2127555" startTime="2026-10-07T08:33:27.7862582+00:00" endTime="2026-10-07T08:33:27.9877747+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3205e1b2-248d-4384-bcf9-4899a1e0dd56" />
+    <UnitTestResult executionId="641a5b0a-0fc0-4795-a5de-0ce3cf2dda5b" testId="cc0b5095-91e5-eac8-5e9c-501288711b26" testName="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.A_hidden_run_keeps_its_completion_and_failure_visible_until_close" computerName="a24583ba704a" duration="00:00:00.1045753" startTime="2026-10-07T08:33:27.9892697+00:00" endTime="2026-10-07T08:33:28.0921661+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="641a5b0a-0fc0-4795-a5de-0ce3cf2dda5b" />
+    <UnitTestResult executionId="d75169ca-9dfc-44b1-9bda-77e669e4b5ce" testId="cf8b1fbe-633f-f062-9840-05916aed4c11" testName="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Reduced_motion_keeps_the_arrival_delay_and_short_fade_without_displacement" computerName="a24583ba704a" duration="00:00:00.1131974" startTime="2026-10-07T08:33:28.0940652+00:00" endTime="2026-10-07T08:33:28.2068936+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d75169ca-9dfc-44b1-9bda-77e669e4b5ce" />
+    <UnitTestResult executionId="d8d6f1a0-aebc-455a-9e1e-f39504be58e6" testId="32f0afed-8ce1-9873-f9f5-01a8ff57184d" testName="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Arrival_holds_for_120ms_then_uses_independent_locked_opacity_and_movement" computerName="a24583ba704a" duration="00:00:00.1192292" startTime="2026-10-07T08:33:28.2071208+00:00" endTime="2026-10-07T08:33:28.3264105+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d8d6f1a0-aebc-455a-9e1e-f39504be58e6" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Completion_retains_the_ring_for_450ms_then_crossfades_and_scales_the_check" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="5704c635-bf45-062b-5cb4-35a7026ff0a3">
+      <Execution id="a0302f90-86b1-4c10-b246-0a7b77442b28" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests" name="Completion_retains_the_ring_for_450ms_then_crossfades_and_scales_the_check" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.Hide_keeps_the_run_visible_in_both_pills_and_enlarge_reopens_the_same_dialog" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c3d7b300-7296-b5e6-01a4-2c82142579db">
+      <Execution id="3205e1b2-248d-4384-bcf9-4899a1e0dd56" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests" name="Hide_keeps_the_run_visible_in_both_pills_and_enlarge_reopens_the_same_dialog" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="844d189e-55d6-a491-7277-6b931a00b924">
+      <Execution id="44edba64-43ca-42ca-8eb1-f81245f44c23" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests" name="The_pill_arrival_eases_and_reduced_motion_still_fades" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Arrival_holds_for_120ms_then_uses_independent_locked_opacity_and_movement" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="32f0afed-8ce1-9873-f9f5-01a8ff57184d">
+      <Execution id="d8d6f1a0-aebc-455a-9e1e-f39504be58e6" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests" name="Arrival_holds_for_120ms_then_uses_independent_locked_opacity_and_movement" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Reduced_motion_keeps_the_arrival_delay_and_short_fade_without_displacement" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="cf8b1fbe-633f-f062-9840-05916aed4c11">
+      <Execution id="d75169ca-9dfc-44b1-9bda-77e669e4b5ce" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests" name="Reduced_motion_keeps_the_arrival_delay_and_short_fade_without_displacement" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests.Popup_opens_and_closes_with_its_locked_curves_instead_of_the_default_presenter" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="43ea3cb2-48d9-3684-7fc4-6e18477a8160">
+      <Execution id="ea41f65b-8d1b-41f2-a942-056f38382c26" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsLockedMotionTests" name="Popup_opens_and_closes_with_its_locked_curves_instead_of_the_default_presenter" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.A_hidden_run_keeps_its_completion_and_failure_visible_until_close" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="cc0b5095-91e5-eac8-5e9c-501288711b26">
+      <Execution id="641a5b0a-0fc0-4795-a5de-0ce3cf2dda5b" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests" name="A_hidden_run_keeps_its_completion_and_failure_visible_until_close" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="43ea3cb2-48d9-3684-7fc4-6e18477a8160" executionId="ea41f65b-8d1b-41f2-a942-056f38382c26" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="844d189e-55d6-a491-7277-6b931a00b924" executionId="44edba64-43ca-42ca-8eb1-f81245f44c23" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5704c635-bf45-062b-5cb4-35a7026ff0a3" executionId="a0302f90-86b1-4c10-b246-0a7b77442b28" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c3d7b300-7296-b5e6-01a4-2c82142579db" executionId="3205e1b2-248d-4384-bcf9-4899a1e0dd56" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc0b5095-91e5-eac8-5e9c-501288711b26" executionId="641a5b0a-0fc0-4795-a5de-0ce3cf2dda5b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cf8b1fbe-633f-f062-9840-05916aed4c11" executionId="d75169ca-9dfc-44b1-9bda-77e669e4b5ce" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="32f0afed-8ce1-9873-f9f5-01a8ff57184d" executionId="d8d6f1a0-aebc-455a-9e1e-f39504be58e6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="7" executed="7" passed="6" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.0)
+[xUnit.net 00:00:00.30]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.53]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.56]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.57]       Assert.InRange() Failure: Value not in range
+[xUnit.net 00:00:02.57]       Range:  (0.001 - 0.999)
+[xUnit.net 00:00:02.58]       Actual: 0
+[xUnit.net 00:00:02.58]       Stack Trace:
+[xUnit.net 00:00:02.58]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsProgressPillTests.cs(85,0): at Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.&lt;&gt;c.&lt;The_pill_arrival_eases_and_reduced_motion_still_fades&gt;b__4_0(LibraryPageHarness h)
+[xUnit.net 00:00:02.58]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs(77,0): at Marrow.App.Tests.Fixtures.LibraryPageHarness.&lt;&gt;c__DisplayClass33_0.&lt;Run&gt;g__Body|0()
+[xUnit.net 00:00:02.58]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:02.58]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:02.58]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:02.58]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.58]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:02.58]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs(82,0): at Marrow.App.Tests.Fixtures.LibraryPageHarness.Run(HeadlessSession headless, LibrarySection section, Action`1 check, Boolean motion, Boolean reduceMotion, SkillsCatalogue catalogue, IFirstInstall install, ImportModel imports, Boolean defaultImports)
+[xUnit.net 00:00:02.58]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsProgressPillTests.cs(72,0): at Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades()
+[xUnit.net 00:00:02.58]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.58]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.34]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a24583ba704a" outcome="Error" timestamp="2026-10-07T08:33:27.7768938+00:00">
+        <Text>[xUnit.net 00:00:02.57]     Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

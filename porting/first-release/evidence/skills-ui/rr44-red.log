@@ -1,0 +1,83 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.42]     Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known [FAIL]
+[xUnit.net 00:00:02.43]     Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(terminal: Continuing) [FAIL]
+[xUnit.net 00:00:02.44]     Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(terminal: Done) [FAIL]
+[xUnit.net 00:00:02.45]     Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(terminal: Declined) [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known [604 ms]
+  Error Message:
+   Assert.Contains() Failure: Item not found in collection
+Collection: ["LibreOffice", "download.documentfoundation.org", "25%"]
+Not found:  "1 MB of 4 MB"
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.<>c.<Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known>b__2_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 18
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 13
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(terminal: Continuing) [15 ms]
+  Error Message:
+   The final hide cut 66 points of card/header height.
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.<>c__DisplayClass3_0.<The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding>b__0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 47
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(OfferStage terminal) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 32
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(terminal: Done) [10 ms]
+  Error Message:
+   The final hide cut 66 points of card/header height.
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.<>c__DisplayClass3_0.<The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding>b__0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 47
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(OfferStage terminal) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 32
+   at InvokeStub_OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(terminal: Declined) [11 ms]
+  Error Message:
+   The final hide cut 66 points of card/header height.
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.<>c__DisplayClass3_0.<The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding>b__0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 47
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(OfferStage terminal) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 32
+   at InvokeStub_OfferCardPresentationTests.The_last_visible_frame_has_already_collapsed_the_whole_header_and_padding(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+
+Failed!  - Failed:     4, Passed:     0, Skipped:     0, Total:     4, Duration: 642 ms - Marrow.App.Tests.dll (net10.0)

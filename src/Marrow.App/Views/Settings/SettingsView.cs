@@ -11,6 +11,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.App.Port;
 using Marrow.App.Port.Settings;
+using Marrow.App.Port.Skills.Pages;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.UI.Common;
@@ -216,9 +217,11 @@ public sealed class SettingsView : Decorator
         search.Margin = new Thickness(Chrome.ListInset, 14, Chrome.ListInset, 0); // :144-145
         var scroll = new ScrollViewer { Content = rows, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :146,190
         WireScroll(scroll, page: false);
-        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*") }; // :137
+        var column = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto") }; // :137 + OD-0099 lower-left progress
         var spacer = new Border { Height = Chrome.TrafficLightDiameter, Margin = new Thickness(0, Chrome.TrafficLightTop, 0, 0) }; // :138-140
         Grid.SetRow(search, 1); Grid.SetRow(scroll, 2); column.Children.Add(spacer); column.Children.Add(search); column.Children.Add(scroll);
+        var downloads = new SkillsProgressPills { Margin = new Thickness(14, 0, 14, 16) };
+        Grid.SetRow(downloads, 3); column.Children.Add(downloads);
         sidebar = PlainControls.Background(column, new WindowDragArea()); sidebar.Width = 212; // :112,192-193
         detail.Margin = new Thickness(0, Chrome.SheetInset, Chrome.SheetInset, Chrome.SheetInset); // :114-115
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("212,*") }; Grid.SetColumn(detail, 1); grid.Children.Add(sidebar); grid.Children.Add(detail);

@@ -123,7 +123,7 @@ internal sealed class ActionArea : Decorator
             default:
                 Add(LibraryUi.Glyph("checkmark.circle.fill", 14, ChromeTokens.Success));
                 Add(LibraryUi.Text(LibraryWords.Installed, 12.5));
-                if (!row.Plugins) Add(LibraryUi.Text(LibraryWords.ReadyInNewChats, 11.5, secondary: true));
+                if (!row.Plugins && !model.Tools) Add(LibraryUi.Text(LibraryWords.ReadyInNewChats, 11.5, secondary: true));
                 Add(LibraryButtons.Glyph("trash", LibraryWords.Remove, "action-trash", () => controller.AskRemove(id)));
                 break;
         }

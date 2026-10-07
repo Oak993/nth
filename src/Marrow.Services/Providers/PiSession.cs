@@ -18,8 +18,11 @@ using Marrow.Core.Port.Skills.Detect;
 namespace Marrow.Services.Providers;
 
 // :19-20. @MainActor final class -> sealed class used only on main (R-ISO-1).
-public sealed class PiSession : ProviderSession, IStandbyInjectionSession
+public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime
 {
+    private Task skillReadersExited = Task.CompletedTask;
+    public Task SkillReadersExited => skillReadersExited;
+
     public Action<ProviderEvent>? OnEvent { get; set; } // :21
 
     // PORT-ONLY: SK-11e / WU-10 and DL-12. Null for both means today's argv, environment and behaviour exactly.
@@ -168,6 +171,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession
             var description = error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
             throw new ProviderError(new ProviderError.Case.Failed($"Pi could not start: {description}"));
         }
+        skillReadersExited = child.WaitForExit(); // RR-15: retained after Stop clears process
         process = child; // :125
         var messages = child.Messages; // :126
         readTask = MainActor.Spawn(async () => // :127-134

@@ -1,0 +1,49 @@
+✔ all 29 item families get independently computed bytes/hash and source metadata provenance (13.600124ms)
+✔ missing source licence and version never fall back to previous catalogue values (1.747107ms)
+✔ published metadata mismatch and omitted/duplicate item coverage fail closed (1.289409ms)
+✔ metadata supports exact text, base64 source files and JSON pointer escapes without licence classification (0.682577ms)
+✔ insecure/off-source/cross-repository URLs are rejected before a transport sees them (1.952487ms)
+✔ manual redirect transport checks every hop and sends no credentials (17.301791ms)
+✔ redirected/injected byte sources, empty artifacts and wrong published sizes are rejected (2.100028ms)
+✔ official array metadata is selected by an observed field, with ambiguity rejected (0.237547ms)
+✔ saved artifact chunks are the exact bytes hashed, and mismatched version metadata is rejected (3.855939ms)
+✔ raw metadata bodies are available to the evidence sink under their computed hashes (2.222974ms)
+✔ release CDN hosts can only be redirect destinations from an official repository endpoint (1.887599ms)
+✔ malformed metadata encoding and explicitly unknown licence metadata are blockers (0.750689ms)
+✔ artifact output names respect Windows paths and case-insensitive collisions (0.81109ms)
+✖ each artifact and cached source metadata records its actual read time across a date boundary (3.574396ms)
+✔ repository recipes use resolved full commits and nearest actual licence files, including per-skill commits (1.321959ms)
+✔ wheel and npm recipes read licences and versions from the packages own registry metadata (0.347653ms)
+✔ Python, Node and browser direct recipes reference official source metadata rather than reuse licence claims (0.383156ms)
+✔ missing resolved artifacts, truncated commits and ambiguous licence selection remain explicit blockers (0.424829ms)
+✔ resolved version expectations are checked and multiple co-located licences need explicit source selection (1.367397ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 18
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.751678
+
+✖ failing tests:
+
+test at tools/skills-catalogue/pin-generator.test.mjs:161:1
+✖ each artifact and cached source metadata records its actual read time across a date boundary (3.574396ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + '2026-10-07T23:59:00.000Z'
+  - '2026-10-08T00:01:00.000Z'
+              ^
+
+      at TestContext.<anonymous> (file:///workspace/marrow-port/tools/skills-catalogue/pin-generator.test.mjs:166:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '2026-10-07T23:59:00.000Z',
+    expected: '2026-10-08T00:01:00.000Z',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

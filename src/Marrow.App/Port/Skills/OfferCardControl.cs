@@ -29,9 +29,10 @@ public sealed class OfferCardControl : Border
     private readonly IOfferCardSource source;
     private readonly SkillsCatalogue catalogue;
     private readonly Func<AddonsState> state;
-    private readonly CrossfadeSlot slot = new();
-    private readonly TextBlock title = LibraryUi.Text("", 13, weight: SwiftFont.Weight.Semibold, trim: true);
-    private readonly TextBlock host = LibraryUi.Text("", 11.5, secondary: true, trim: true);
+    private CrossfadeSlot slot = new();
+    private readonly CrossfadeSlot whole = new() { ClipToBounds = true };
+    private TextBlock title = LibraryUi.Text("", 13, weight: SwiftFont.Weight.Semibold, trim: true);
+    private TextBlock host = LibraryUi.Text("", 11.5, secondary: true, trim: true);
     private string? kind;
     private string? contentKey;
     private OfferCardView? view;
@@ -43,23 +44,19 @@ public sealed class OfferCardControl : Border
     private Button? decline;
     private TextBlock? sentence;
     private TextBlock? why;
+    private CrossfadeSlot? transfer;
+    private Marrow.UI.Port.Settings.CzCrossfadeText? bytes;
+    private bool knownTotal;
 
     public OfferCardControl(IOfferCardSource source, SkillsCatalogue catalogue, Func<AddonsState> state)
     {
         this.source = source ?? throw new ArgumentNullException(nameof(source));
         this.catalogue = catalogue ?? throw new ArgumentNullException(nameof(catalogue));
         this.state = state ?? throw new ArgumentNullException(nameof(state));
-        var column = new StackPanel { Spacing = 8 };
-        column.Children.Add(title);
-        column.Children.Add(host);
-        column.Children.Add(slot);
-        Child = column;
-        Padding = new Thickness(12, 9, 12, 10);
+        Child = whole;
         Focusable = true;
         HorizontalAlignment = HorizontalAlignment.Stretch;
         AutomationProperties.SetName(this, "Offer");
-        Background = ChromeTokens.Overlay(0.06).Brush(this);
-        this.RoundedRectangle(10, RoundedCornerStyle.Continuous);
         KeyDown += OnKeyDown;
         this.Track(() => (source.Stage, source.Card, source.Progress, source.Failure, source.CanFetch, source.TermsRevision, source.Why), _ => Refresh());
         Refresh();
@@ -107,7 +104,19 @@ public sealed class OfferCardControl : Border
             OfferStage.Failed => "failed",
             _ => "none",
         };
+        var newCard = next != "none" && kind is null or "none";
         if (next != "none") IsVisible = true;
+        if (newCard)
+        {
+            // A returning offer gets its own tree. The previous card may still be fading; no control is reparented out of that animation.
+            title = LibraryUi.Text("", 13, weight: SwiftFont.Weight.Semibold, trim: true);
+            host = LibraryUi.Text("", 11.5, secondary: true, trim: true);
+            slot = new CrossfadeSlot();
+            var column = new StackPanel { Spacing = 8, Children = { title, host, slot } };
+            var surface = new Border { Child = column, Padding = new Thickness(12, 9, 12, 10) }.RoundedRectangle(10, RoundedCornerStyle.Continuous);
+            surface.Background = ChromeTokens.Overlay(0.06).Brush(surface);
+            whole.Show(surface, contentKey is null ? null : Fade());
+        }
         if (view is not null)
         {
             title.Text = string.Join(", ", view.Titles);
@@ -121,14 +130,32 @@ public sealed class OfferCardControl : Border
             var first = contentKey is null;
             contentKey = key;
             kind = next;
-            bar = null; percent = null; failure = null; primary = null; cancel = null; decline = null; sentence = null; why = null;
-            slot.Show(Build(next), first ? null : Fade());
-            if (next == "none") HideWhenSettled();
+            bar = null; percent = null; failure = null; primary = null; cancel = null; decline = null; sentence = null; why = null; transfer = null; bytes = null;
+            if (next == "none")
+            {
+                whole.Show(new Border { Height = 0 }, first ? null : Fade());
+                HideWhenSettled();
+            }
+            else slot.Show(Build(next), first || newCard ? null : Fade());
         }
         if (view is not null)
         {
+            if (transfer is not null)
+            {
+                var known = view.Percent is not null;
+                if (known != knownTotal)
+                {
+                    knownTotal = known;
+                    transfer.Show(TransferFace(known), Fade());
+                }
+            }
             if (bar is not null) bar.Set(Fraction(view), animated: true);
-            if (percent is not null) percent.Text = (view.Percent ?? 0) + "%";
+            if (percent is not null) percent.Text = view.Percent is { } number ? number + "%" : "";
+            if (bytes is not null)
+            {
+                var done = OfferTransferWords.Bytes(view.BytesDone ?? 0);
+                bytes.SetText(view.BytesTotal is > 0 and { } total ? done + " of " + OfferTransferWords.Bytes(total) : done);
+            }
             if (failure is not null) failure.Text = view.Failure ?? "";
             if (primary is not null) primary.IsEnabled = view.PrimaryEnabled;
         }
@@ -137,13 +164,13 @@ public sealed class OfferCardControl : Border
     /// <summary>A card that has nothing left to say fades and glides to no height first, and only then leaves the layout (the composer below it moves with the glide, never in one frame).</summary>
     private void HideWhenSettled()
     {
-        if (!FrameClock.IsBound || !slot.Settling) { IsVisible = false; return; }
+        if (!FrameClock.IsBound || !whole.Settling) { IsVisible = false; return; }
         var frames = FrameClock.Source.Current;
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
             if (kind != "none") return; // a new offer came back while it faded
-            if (slot.Settling) { frames.RequestFrame(tick!); return; }
+            if (whole.Settling) { frames.RequestFrame(tick!); return; }
             IsVisible = false;
         };
         frames.RequestFrame(tick);
@@ -157,6 +184,13 @@ public sealed class OfferCardControl : Border
     }
 
     private static double Fraction(OfferCardView view) => view.BytesTotal is > 0 and { } total ? Math.Clamp((double)(view.BytesDone ?? 0) / total, 0, 1) : 0;
+
+    private Control TransferFace(bool known)
+    {
+        if (known) return bar = new LibraryBar { Width = 150 };
+        bar = null;
+        return new SystemSpinner { Width = 14, Height = 14 };
+    }
 
     private Control Build(string what)
     {
@@ -181,14 +215,17 @@ public sealed class OfferCardControl : Border
                 }
                 return asked;
             case "downloading":
-                bar = new LibraryBar { Width = 150 }; // rounds/skills-downloads-v3-KBarrEq1.html:342 `.mw .ofs .bar{width:150px}`
-                percent = LibraryUi.Text("0%", 12.5, secondary: true);
+                knownTotal = view!.Percent is not null;
+                transfer = new CrossfadeSlot { Width = 150 }; // rounds/skills-downloads-v3-KBarrEq1.html:342 `.mw .ofs .bar{width:150px}`
+                transfer.Show(TransferFace(knownTotal), null);
+                percent = LibraryUi.Text("", 12.5, secondary: true);
                 percent.MinWidth = 34;
                 cancel = LibraryButtons.Glyph("xmark", Marrow.Core.Port.Skills.Pages.LibraryWords.Cancel, "offer-cancel", source.Cancel);
-                Add(bar);
+                Add(transfer);
                 Add(percent);
                 Add(cancel);
-                break;
+                bytes = new Marrow.UI.Port.Settings.CzCrossfadeText("") { FontSize = 11.5, Secondary = true };
+                return new StackPanel { Spacing = 4, Children = { line, bytes } };
             case "checking":
                 Add(new SystemSpinner { Width = 14, Height = 14 });
                 Add(LibraryUi.Text(view!.Status!, 12.5, secondary: true));

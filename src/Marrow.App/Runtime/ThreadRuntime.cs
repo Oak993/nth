@@ -2050,35 +2050,50 @@ public sealed partial class ThreadRuntime : MainActorModel
             if (thread.Provider.IsAPIKeyBased && string.IsNullOrEmpty(apiKey))
                 throw new ProviderError(new ProviderError.Case.NotInstalled(thread.Provider));
 
-            ProviderSession MakeApiSession(string? resumeID)
+            async Task<ProviderSession> MakeApiSession(string? resumeID)
             {
-                var configuration = new SessionConfiguration
+                var launchEpoch = sessionEpoch;
+                await pendingSkillRelease;
+                var environment = app.Providers.Environment(account.Id);
+                var skills = await Marrow.App.Port.Skills.ProviderSkills.Prepare.Current(thread.Provider, ThreadID.ToString("N"), directory, environment);
+                try
                 {
-                    Provider = thread.Provider,
-                    Executable = null,
-                    WorkingDirectory = SessionDirectoryUrl(directory),
-                    AccountId = account.Id,
-                    Environment = app.Providers.Environment(account.Id),
-                    ResumeID = resumeID,
-                    ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
-                    Model = thread.Model,
-                    Effort = thread.Effort,
-                    FastMode = thread.FastMode,
-                    RuntimeMode = thread.RuntimeMode,
-                    InteractionMode = thread.InteractionMode,
-                    ApiKey = apiKey,
-                    Hydra = hydra,
-                    Transcript = ApiTranscript(),
-                    IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
-                    AntiSlopEnabled = signature.AntiSlopEnabled,
-                };
+                    if (SwiftTask.IsCancelled || sessionEpoch != launchEpoch) throw new CancellationError();
+                    var configuration = new SessionConfiguration
+                    {
+                        Provider = thread.Provider,
+                        Executable = null,
+                        WorkingDirectory = SessionDirectoryUrl(directory),
+                        AccountId = account.Id,
+                        Environment = environment,
+                        ResumeID = resumeID,
+                        ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
+                        Model = thread.Model,
+                        Effort = thread.Effort,
+                        FastMode = thread.FastMode,
+                        RuntimeMode = thread.RuntimeMode,
+                        InteractionMode = thread.InteractionMode,
+                        ApiKey = apiKey,
+                        Hydra = hydra,
+                        Transcript = ApiTranscript(),
+                        IsHydraHead = thread.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy,
+                        AntiSlopEnabled = signature.AntiSlopEnabled,
+                        SkillGeneration = skills,
+                        SkillDataRoot = Storage.Root,
+                        SkillHome = LoginEnvironment.HomeDirectory,
+                        SkillToolOffer = SkillsOffers,
+                    };
 
-                var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
-                Observe(created, account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, account.Id.ToString("D")));
-                return created;
+                    var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
+                    if (created is OpenAICompatibleSession api) api.SkillTools = Marrow.Services.Port.Skills.Providers.SkillSessionFactory.NativeTools(configuration);
+                    if (skills is not null) sessionSkills.Add(created, skills);
+                    Observe(created, account.UsesLegacyCredentials ? UsageAccountKey.Default(account.Service) : new(account.Service, account.Id.ToString("D")));
+                    return created;
+                }
+                catch { skills?.Dispose(); throw; }
             }
 
-            ProviderSession candidate = MakeApiSession(thread.ProviderSessionID);
+            ProviderSession candidate = await MakeApiSession(thread.ProviderSessionID);
             session = candidate;
             sessionSignature = signature;
             if (canCommit is not null) guardedStartingSession = candidate;
@@ -2099,7 +2114,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     && !SwiftTask.IsCancelled)
                 {
                     ReleaseSession(stop: true);
-                    candidate = MakeApiSession(resumeID: null);
+                    candidate = await MakeApiSession(resumeID: null);
                     session = candidate;
                     sessionSignature = signature;
                     sessionID = await StartOwnedSessionAsync(candidate, startCancellation);
@@ -2131,12 +2146,14 @@ public sealed partial class ThreadRuntime : MainActorModel
         async Task<ProviderSession> MakeSession(string? resumeID)
         {
             var launchEpoch = sessionEpoch;
-            if (thread.Provider is ProviderKind.Antigravity or ProviderKind.Cursor) await pendingSkillRelease;
+            await pendingSkillRelease;
+            var environment = app.Providers.Environment(account.Id);
             var skills = thread.Provider switch
             {
                 ProviderKind.Antigravity => await Marrow.App.Port.Skills.AntigravitySkills.Prepare.Current(ThreadID.ToString("N"), directory),
                 ProviderKind.Cursor => await Marrow.App.Port.Skills.CursorSkills.Prepare.Current(ThreadID.ToString("N"), directory),
-                _ => null,
+                ProviderKind.Devin => null, // explicit invocation only until its discovery route is proven
+                _ => await Marrow.App.Port.Skills.ProviderSkills.Prepare.Current(thread.Provider, ThreadID.ToString("N"), directory, environment),
             };
             try
             {
@@ -2147,7 +2164,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     Executable = executable,
                     WorkingDirectory = SessionDirectoryUrl(directory),
                     AccountId = account.Id,
-                    Environment = app.Providers.Environment(account.Id),
+                    Environment = environment,
                     ResumeID = resumeID,
                     ResumeAt = resumeID is null ? null : thread.ProviderResumeAt,
                     Model = thread.Model,
@@ -2158,6 +2175,9 @@ public sealed partial class ThreadRuntime : MainActorModel
                     Hydra = hydra,
                     AntiSlopEnabled = signature.AntiSlopEnabled,
                     SkillGeneration = skills,
+                    SkillDataRoot = Storage.Root,
+                    SkillHome = environment.TryGetValue("HOME", out var skillHome) ? skillHome : LoginEnvironment.HomeDirectory,
+                    SkillToolOffer = SkillsOffers,
                     SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
                 };
 

@@ -124,10 +124,13 @@ public sealed record LiquidSpec(IReadOnlyList<LiquidSegment> Segments)
     /// <summary>The oil sheen's stretch along the track (0..1), or null when no model carries it.</summary>
     public (double From, double To)? OilRange()
     {
-        var total = Segments.Sum(s => s.Weight);
+        // ED-248 review: read every frame, so indexed loops (no enumerator, no LINQ)
+        double total = 0;
+        for (var i = 0; i < Segments.Count; i++) total += Segments[i].Weight;
         double at = 0;
-        foreach (var s in Segments)
+        for (var i = 0; i < Segments.Count; i++)
         {
+            var s = Segments[i];
             var from = at / total; at += s.Weight;
             if (s.Oil) return (from, at / total);
         }
@@ -153,12 +156,21 @@ public sealed record LiquidSpec(IReadOnlyList<LiquidSegment> Segments)
 }
 
 /// <summary>One rise of one bubble, as the canvas draws it: where its box sits, its "wander" keyframe values, and the
-/// pause before the bubble's next rise.</summary>
+/// pause before the bubble's next rise. A value (ED-248 review: a new rise allocates nothing).</summary>
 public sealed record LiquidBubble(double Left, double Bottom, double Size, double Duration, double Opacity,
     double S0, double S1, double S2, Point P1, Point P2, Point P3, double Gap)
 {
     /// <summary>The border box's side: the content plus a 1 px rim each side.</summary>
     public double Outer => Size + 2;
+}
+
+// Value storage on the frame path; public snapshots retain the existing inspection API.
+public readonly record struct LiquidBubbleValues(double Left, double Bottom, double Size, double Duration, double Opacity,
+    double S0, double S1, double S2, Point P1, Point P2, Point P3, double Gap)
+{
+    /// <summary>The border box's side: the content plus a 1 px rim each side.</summary>
+    public double Outer => Size + 2;
+    public LiquidBubble Snapshot() => new(Left, Bottom, Size, Duration, Opacity, S0, S1, S2, P1, P2, P3, Gap);
 }
 
 /// <summary>
@@ -167,13 +179,23 @@ public sealed record LiquidBubble(double Left, double Bottom, double Size, doubl
 /// </summary>
 public sealed class BubbleLanes(int seed, double width, double height)
 {
-    private readonly (int K, LiquidBubble Rise, double Start)?[] lanes = new (int, LiquidBubble, double)?[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
+    private readonly (int K, LiquidBubbleValues Rise, double Start)?[] lanes = new (int, LiquidBubbleValues, double)?[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
 
     // OD-0078 (strike-engine.js laneAt): each lane keeps its last four rises, so a look a little into the past (a contact
     // between two frames) finds the rise as it was; a seek further back starts the lane again
-    private readonly (int K, LiquidBubble Rise, double Start)[][] history = Enumerable.Range(0, Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles))
-        .Select(_ => new (int, LiquidBubble, double)[4]).ToArray();
+    private readonly (int K, LiquidBubbleValues Rise, double Start)[][] history = Enumerable.Range(0, Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles))
+        .Select(_ => new (int, LiquidBubbleValues, double)[4]).ToArray();
     private readonly int[] kept = new int[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
+
+    private readonly (int K, LiquidBubble Rise)?[] inspected = new (int, LiquidBubble)?[Math.Clamp((int)Math.Round(width / 32), 4, LiquidTrack.MaxBubbles)];
+
+    public (LiquidBubble Rise, double Progress, int K)? At(int i, double time)
+    {
+        if (AtFrame(i, time) is not { } frame) return null;
+        if (inspected[i] is not { } keptRise || keptRise.K != frame.K)
+            inspected[i] = (frame.K, frame.Rise.Snapshot());
+        return (inspected[i]!.Value.Rise, frame.Progress, frame.K);
+    }
 
     public int Seed => seed;
 
@@ -187,7 +209,7 @@ public sealed class BubbleLanes(int seed, double width, double height)
     public double Height => height;
 
     /// <summary>Bubble <paramref name="i"/> at a time: its current rise, how far through it and its number, or null between rises.</summary>
-    public (LiquidBubble Rise, double Progress, int K)? At(int i, double time)
+    internal (LiquidBubbleValues Rise, double Progress, int K)? AtFrame(int i, double time)
     {
         var lane = lanes[i];
         if (lane is { } shown && time < shown.Start)
@@ -204,15 +226,15 @@ public sealed class BubbleLanes(int seed, double width, double height)
         if (lane is not { } current || time < current.Start)
         {
             // the first rise is already under way when the track appears, at a random point of it
-            var first = LiquidTrack.Rise(seed, i, 0, Count, width, height);
-            current = (0, first, -LiquidTrack.Rise(seed, i, 1000, Count, width, height).Gap / 1.4 * first.Duration);
+            var first = LiquidTrack.RiseValues(seed, i, 0, Count, width, height);
+            current = (0, first, -LiquidTrack.RiseValues(seed, i, 1000, Count, width, height).Gap / 1.4 * first.Duration);
         }
         while (time >= current.Start + current.Rise.Duration + current.Rise.Gap)
         {
             if (kept[i] == 4) { Array.Copy(history[i], 1, history[i], 0, 3); kept[i] = 3; }
             history[i][kept[i]++] = current;
             var k = current.K + 1;
-            current = (k, LiquidTrack.Rise(seed, i, k, Count, width, height), current.Start + current.Rise.Duration + current.Rise.Gap);
+            current = (k, LiquidTrack.RiseValues(seed, i, k, Count, width, height), current.Start + current.Rise.Duration + current.Rise.Gap);
         }
         lanes[i] = current;
         var progress = (time - current.Start) / current.Rise.Duration;
@@ -233,7 +255,9 @@ public static class LiquidTrack
     /// of the track it starts (each bubble keeps one stretch, so they stay spread out; one rise in five starts anywhere),
     /// and the pause before the next rise. Durations and pauses are random, so the pattern never comes round again.
     /// </summary>
-    public static LiquidBubble Rise(int seed, int bubble, int rise, int count, double width, double height)
+    public static LiquidBubble Rise(int seed, int bubble, int rise, int count, double width, double height) => RiseValues(seed, bubble, rise, count, width, height).Snapshot();
+
+    internal static LiquidBubbleValues RiseValues(int seed, int bubble, int rise, int count, double width, double height)
     {
         var x = unchecked((uint)(seed * 73856093) ^ (uint)((bubble + 1) * 19349663) ^ (uint)((rise + 7) * 83492791));
         if (x == 0) x = 1;
@@ -257,8 +281,10 @@ public static class LiquidTrack
         var bottom = -6 + R() * (height * 0.45);
         var opacity = 0.55 + R() * 0.4;
         double s0 = 0.35 + R() * 0.3, s1 = 0.7 + R() * 0.3, s2 = 0.9 + R() * 0.35;
-        return new LiquidBubble(left, bottom, size, duration, opacity, s0, s1, s2, new Point(x1, y1), new Point(x2, y2), new Point(x3, y3), R() * 1.4);
+        return new LiquidBubbleValues(left, bottom, size, duration, opacity, s0, s1, s2, new Point(x1, y1), new Point(x2, y2), new Point(x3, y3), R() * 1.4);
     }
+
+    private static readonly int[] Strides = [7, 5, 3, 11, 13];
 
     /// <summary>
     /// The step that hands each bubble its own stretch in a scattered order: 7 as on the canvas, or the next of 5, 3, 11, 13
@@ -267,7 +293,7 @@ public static class LiquidTrack
     public static int Stride(int count)
     {
         static int Gcd(int a, int b) => b == 0 ? a : Gcd(b, a % b);
-        foreach (var s in new[] { 7, 5, 3, 11, 13 }) if (Gcd(s, count) == 1) return s;
+        foreach (var s in Strides) if (Gcd(s, count) == 1) return s; // (a static array: a new rise allocates nothing, ED-248 review)
         return 1;
     }
 
@@ -293,27 +319,33 @@ public static class LiquidTrack
         return ((ay * u + by) * u + cy) * u;
     }
 
+    private static readonly double[] TransformKeys = [0, 0.38, 0.70, 1], OpacityKeys = [0, 0.12, 0.70, 1];
+
     /// <summary>
     /// A rise at a point of its progress (0..1): the bubble's centre, its radius (border box, scaled) and its opacity. The "wander" keyframes: transform
     /// at 0/38/70/100 %, opacity at 0/12/70/100 %, each segment eased cubic-bezier(.35,.1,.55,1).
     /// </summary>
-    public static (Point Centre, double Radius, double Opacity) BubbleAt(LiquidBubble b, double height, double progress)
+    public static (Point Centre, double Radius, double Opacity) BubbleAt(LiquidBubble b, double height, double progress) => BubbleAt(new LiquidBubbleValues(b.Left, b.Bottom, b.Size, b.Duration, b.Opacity, b.S0, b.S1, b.S2, b.P1, b.P2, b.P3, b.Gap), height, progress);
+
+    internal static (Point Centre, double Radius, double Opacity) BubbleAt(LiquidBubbleValues b, double height, double progress)
     {
         var p = Math.Clamp(progress, 0, 1);
-        static (int I, double F) Segment(double p, double[] keys)
+        // ED-248 review: no arrays made per bubble per frame: the keyframes' offsets are static arrays (a collection
+        // expression here made new ones every call, measured) and the values are picked by index
+        static (int I, double F) Segment(double p, ReadOnlySpan<double> keys)
         {
             var i = 0;
             while (i < keys.Length - 2 && p > keys[i + 1]) i++;
             return (i, CubicBezier(0.35, 0.1, 0.55, 1, (p - keys[i]) / (keys[i + 1] - keys[i])));
         }
-        var (ti, tf) = Segment(p, [0, 0.38, 0.70, 1]);
-        Point[] at = [new(0, 0), b.P1, b.P2, b.P3];
-        double[] scale = [b.S0, b.S1, b.S1, b.S2];
-        var translate = new Point(at[ti].X + (at[ti + 1].X - at[ti].X) * tf, at[ti].Y + (at[ti + 1].Y - at[ti].Y) * tf);
-        var sc = scale[ti] + (scale[ti + 1] - scale[ti]) * tf;
-        var (oi, of) = Segment(p, [0, 0.12, 0.70, 1]);
-        double[] opacity = [0, b.Opacity, b.Opacity, 0];
-        var o = opacity[oi] + (opacity[oi + 1] - opacity[oi]) * of;
+        var (ti, tf) = Segment(p, TransformKeys);
+        Point At(int i) => i switch { 0 => new Point(0, 0), 1 => b.P1, 2 => b.P2, _ => b.P3 };
+        double Scale(int i) => i switch { 0 => b.S0, 1 or 2 => b.S1, _ => b.S2 };
+        double Opacity(int i) => i is 1 or 2 ? b.Opacity : 0;
+        var translate = new Point(At(ti).X + (At(ti + 1).X - At(ti).X) * tf, At(ti).Y + (At(ti + 1).Y - At(ti).Y) * tf);
+        var sc = Scale(ti) + (Scale(ti + 1) - Scale(ti)) * tf;
+        var (oi, of) = Segment(p, OpacityKeys);
+        var o = Opacity(oi) + (Opacity(oi + 1) - Opacity(oi)) * of;
         var centre = new Point(b.Left + b.Outer / 2 + translate.X, height - b.Bottom - b.Outer / 2 + translate.Y);
         return (centre, b.Outer / 2 * sc, Math.Max(0, o));
     }
@@ -604,6 +636,8 @@ public static class LiquidTrack
     private static Lazy<SKRuntimeEffect> Compile(string source, string what) => new(() =>
         SKRuntimeEffect.CreateShader(source, out var error) ?? throw new InvalidOperationException("Liquid " + what + " shader did not compile: " + error));
 
+    private static readonly Lazy<SKRuntimeEffect> GradientMixEffect = Compile(
+        "uniform shader previous; uniform shader current; uniform float amount; half4 main(float2 p) { return mix(previous.eval(p), current.eval(p), amount); }", "gradient fade");
     private static readonly Lazy<SKRuntimeEffect> BaseEffect = Compile("uniform shader grad;\n" + Uniforms_ + Helpers + BaseMain, "base");
     private static readonly Lazy<SKRuntimeEffect> OilEffect = Compile(Uniforms_ + Helpers + OilMain, "oil");
     private static readonly Lazy<SKRuntimeEffect> StrandsEffect = Compile(Uniforms_ + Helpers + StrandsMain, "current");
@@ -617,21 +651,27 @@ public static class LiquidTrack
     private static readonly Lazy<SKRuntimeEffect> LitEffect = Compile("uniform shader liquid;\nuniform shader light;\n" + Uniforms_ + Helpers +
         GlassMain.Replace("//LIGHT", "half4 l = light.eval(p); o = l + o - l * o;", StringComparison.Ordinal), "lit glass");
     private static readonly Lazy<SKRuntimeEffect> BubbleEffect = Compile(BubbleShader, "bubble");
+    // OD-0093 / OD-0099: the normal ink group then screen light, unbent, under gloss/rims.
+    internal static readonly Lazy<SKRuntimeEffect> MixEffect = Compile("uniform shader liquid;\nuniform shader strikeOver;\nuniform shader light;\n" + Uniforms_ + Helpers +
+        GlassMain.Replace("//LIGHT", "half4 k = strikeOver.eval(p); o = over(o, k); half4 l = light.eval(p); o = l + o - l * o;", StringComparison.Ordinal), "Mix glass");
 
     /// <summary>Compiles every pass (tests use it to prove the sources are valid SkSL).</summary>
     internal static SKRuntimeEffect CompiledEffect
     {
         get
         {
-            foreach (var pass in new[] { BaseEffect, OilEffect, StrandsEffect, SlowEffect, CausticEffect, CoverEffect, BubbleEffect, LitEffect }) _ = pass.Value;
+            foreach (var pass in new[] { BaseEffect, OilEffect, StrandsEffect, SlowEffect, CausticEffect, CoverEffect, BubbleEffect, LitEffect, MixEffect }) _ = pass.Value;
+            _ = StrikeRaster.ColourEffect.Value; _ = StrikeRaster.WashEffect.Value;
             return Effect.Value;
         }
     }
 
     /// <summary>One frame's values, resolved on the UI thread.</summary>
-    internal sealed record Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
+    internal readonly record struct Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
         IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0,
-        IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null);
+        IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null, LiquidLayers? Layers = null, StrikeFrame? ResolvedStrike = null, SKColor[]? PreviousGradient = null, double GradientMix = 1,
+        StrikeResolvedFrame? Mix = null, StrikeGeometry MixGeometry = default, StrikeInk MixInk = default, StrikeBubbleLanes? MixLanes = null, StrikeFastClock? FastClock = null, StrikeContacts? MixContacts = null, bool MixStill = false, int MixSeed = 0);
+
 
     /// <summary>
     /// Draws the liquid tube and its bubbles into <paramref name="context"/> at <paramref name="time"/>: its currents and
@@ -644,6 +684,13 @@ public static class LiquidTrack
         IReadOnlyList<BubbleBurst>? rings = null, IReadOnlyCollection<(int Lane, int Rise)>? popped = null) =>
         context.Custom(new Operation(new Frame(size, track, time, gradient, spec, bubbles, darkBubbles,
             spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike, bubbleInk, rings, popped)));
+    internal static Color[] StrandColorsOf(LiquidSpec spec, ThemeVariant theme)
+    {
+        var colors = new Color[spec.Segments.Count];
+        for (var i = 0; i < colors.Length; i++) colors[i] = spec.Segments[i].Strand.Resolve(theme);
+        return colors;
+    }
+
 
     /// <summary>The gradient row for a spec at a device width.</summary>
     public static SKColor[] GradientFor(LiquidSpec spec, int pixels, ThemeVariant theme) =>
@@ -655,7 +702,15 @@ public static class LiquidTrack
     /// </summary>
     internal static (float[] Oil, float Mask) Oil(LiquidSpec spec, double width, double time)
     {
-        if (spec.OilRange() is not { } range) return (new float[4], 0f);
+        var oil = new float[4];
+        return (oil, OilInto(oil, spec, width, time));
+    }
+
+    // the same, written into oil (4 values); returns the end mask
+    private static float OilInto(float[] oil, LiquidSpec spec, double width, double time)
+    {
+        Array.Clear(oil);
+        if (spec.OilRange() is not { } range) return 0f;
         double left = 0, span = width;
         if (spec.IsBlend)
         {
@@ -664,85 +719,471 @@ public static class LiquidTrack
             span = width - left - right;
         }
         var position = 1 - Alternate(time, 6.5); // background-position 100 % to 0 %
-        return (new[] { 1f, (float)left, (float)span, (float)(-1.6 * span * position) }, spec.IsBlend ? 1f : 0f);
+        oil[0] = 1f; oil[1] = (float)left; oil[2] = (float)span; oil[3] = (float)(-1.6 * span * position);
+        return spec.IsBlend ? 1f : 0f;
     }
 
     /// <summary>The glass pass's uniforms for a frame (separate so tests can read them).</summary>
-    internal static SKRuntimeEffectUniforms Uniforms(Frame f, double scale) => Uniforms(Effect.Value, f, scale);
-
-    // Every pass but the bubbles declares the same uniforms (Uniforms_), so one filler serves them all.
-    private static SKRuntimeEffectUniforms Uniforms(SKRuntimeEffect effect, Frame f, double scale)
+    internal static SKRuntimeEffectUniforms Uniforms(in Frame f, double scale)
     {
-        var (w, h) = (f.Size.Width, f.Size.Height);
-        var track = Math.Max(f.Track, w);
-        var breathe = Breathe(f.Time);
-        var u = new SKRuntimeEffectUniforms(effect)
+        var pass = new PassUniforms(Effect.Value);
+        pass.Fill(f, scale);
+        return pass.Uniforms;
+    }
+
+    /// <summary>
+    /// One pass's uniforms, kept with the track's layers and refilled each frame in place (ED-248 review: no uniform block or
+    /// array made per frame), its children as native handles in the effect's declaration order, and its paint. Every pass
+    /// but the bubbles declares the same uniforms (Uniforms_), so one filler serves them all; the bubbles set their own.
+    /// </summary>
+    internal sealed class PassUniforms : IDisposable
+    {
+        private readonly float[] size = new float[2], breathe = new float[2], refraction = new float[3], curA = new float[4], curB = new float[4],
+            waveB = new float[4], shapes = new float[MaxStrands * 4], colors = new float[MaxStrands * 4], oil = new float[4];
+        private readonly SKData? data;
+        private readonly Dictionary<string, int> offsets = [];
+        private readonly string[] childNames;
+        private readonly nint[]? children;
+
+        public PassUniforms(SKRuntimeEffect effect)
         {
-            ["size"] = new[] { (float)w, (float)h },
-            ["track"] = (float)track,
-            ["gradWidth"] = (float)f.Gradient.Length,
-            ["scale"] = (float)scale,
-            ["breathe"] = new[] { (float)breathe.Saturate, (float)breathe.Brightness },
-            ["refraction"] = new[] { (float)Refraction.R, (float)Refraction.G, (float)Refraction.B },
-        };
-        // the currents: one model has the canvas's wave1 (amplitude 5, 4 cycles) and wave2 (7, 2 cycles, phase 2) in a
-        // 30-unit viewBox; a blend has a strand per model (the lead 10, a worker 6, 4 cycles, phases spread evenly, 3
-        // wide) and wave3 (8, 2 cycles, phase 1) in a 40-unit viewBox. 7 s and 11 s a pass (OD-0073: 4.67 s and 7.33 s in
-        // fast mode), as the frame's flow says.
-        var (fastPx, slowPx, causticPx) = Offsets(f.Flow, track);
-        var fastOffset = (float)fastPx;
-        var slowOffset = (float)slowPx;
-        var shapes = new float[MaxStrands * 4]; var colors = new float[MaxStrands * 4];
-        int strands;
-        if (!f.Spec.IsBlend)
-        {
-            strands = 1;
-            shapes[0] = 5; shapes[1] = 4; shapes[2] = 0; shapes[3] = 5;
-            colors[0] = colors[1] = colors[2] = colors[3] = 1;
-            u["curA"] = new[] { 30f, 0.55f, fastOffset, 0 };
-            u["curB"] = new[] { 30f, 0.35f, slowOffset, 1 };
-            u["waveB"] = new[] { 7f, 2f, 2f, 5f };
+            Effect = effect;
+            Uniforms = new SKRuntimeEffectUniforms(effect);
+            data = SkiaShaders.DataOf(Uniforms);
+            childNames = effect.Children.ToArray();
+            children = childNames.Length == 0 ? null : new nint[childNames.Length];
         }
-        else
+
+        public SKRuntimeEffect Effect { get; }
+        public SKRuntimeEffectUniforms Uniforms { get; }
+        public SKPaint Paint { get; } = new();
+
+        /// <summary>Grok's oil this frame, as <see cref="Fill"/> left it.</summary>
+        public float[] OilValues => oil;
+        public float OilMask { get; private set; }
+
+        /// <summary>Sets a child by name to a native shader handle (0: none), kept until set again.</summary>
+        public void SetChild(string name, nint shader) => children![Array.IndexOf(childNames, name)] = shader;
+
+        /// <summary>This frame's shader (a native reference the caller releases).</summary>
+        public nint MakeShader() => SkiaShaders.Make(Effect, Uniforms, data, children);
+
+        public void Fill(in Frame f, double scale)
         {
-            strands = Math.Min(MaxStrands, f.Spec.Segments.Count);
-            for (var i = 0; i < strands; i++)
+            var (w, h) = (f.Size.Width, f.Size.Height);
+            var trackWidth = Math.Max(f.Track, w);
+            var (saturate, brightness) = Breathe(f.Time);
+            size[0] = (float)w; size[1] = (float)h;
+            breathe[0] = (float)saturate; breathe[1] = (float)brightness;
+            refraction[0] = (float)Refraction.R; refraction[1] = (float)Refraction.G; refraction[2] = (float)Refraction.B;
+            Set("size", size);
+            Set("track", (float)trackWidth);
+            Set("gradWidth", f.Gradient.Length);
+            Set("scale", (float)scale);
+            Set("breathe", breathe);
+            Set("refraction", refraction);
+            // the currents: one model has the canvas's wave1 (amplitude 5, 4 cycles) and wave2 (7, 2 cycles, phase 2) in a
+            // 30-unit viewBox; a blend has a strand per model (the lead 10, a worker 6, 4 cycles, phases spread evenly, 3
+            // wide) and wave3 (8, 2 cycles, phase 1) in a 40-unit viewBox. 7 s and 11 s a pass (OD-0073: 4.67 s and 7.33 s in
+            // fast mode), as the frame's flow says.
+            var (fastPx, slowPx, causticPx) = Offsets(f.Flow, trackWidth);
+            var fastOffset = (float)fastPx;
+            var slowOffset = (float)slowPx;
+            Array.Clear(shapes); Array.Clear(colors);
+            int count;
+            if (!f.Spec.IsBlend)
             {
-                var segment = f.Spec.Segments[i];
-                shapes[i * 4] = segment.Lead ? 10 : 6; shapes[i * 4 + 1] = 4; shapes[i * 4 + 2] = (float)(i * Math.PI * 2 / f.Spec.Segments.Count); shapes[i * 4 + 3] = 3;
-                var c = f.StrandColors[i];
-                var a = c.A / 255f;
-                colors[i * 4] = c.R / 255f * a; colors[i * 4 + 1] = c.G / 255f * a; colors[i * 4 + 2] = c.B / 255f * a; colors[i * 4 + 3] = a;
+                count = 1;
+                shapes[0] = 5; shapes[1] = 4; shapes[2] = 0; shapes[3] = 5;
+                colors[0] = colors[1] = colors[2] = colors[3] = 1;
+                Set(curA, 30f, 0.55f, fastOffset, 0); Set(curB, 30f, 0.35f, slowOffset, 1); Set(waveB, 7f, 2f, 2f, 5f);
             }
-            u["curA"] = new[] { 40f, 0.55f, fastOffset, 0 };
-            u["curB"] = new[] { 40f, 0.35f, slowOffset, 1 };
-            u["waveB"] = new[] { 8f, 2f, 1f, 5f };
+            else
+            {
+                count = Math.Min(MaxStrands, f.Spec.Segments.Count);
+                for (var i = 0; i < count; i++)
+                {
+                    var segment = f.Spec.Segments[i];
+                    shapes[i * 4] = segment.Lead ? 10 : 6; shapes[i * 4 + 1] = 4; shapes[i * 4 + 2] = (float)(i * Math.PI * 2 / f.Spec.Segments.Count); shapes[i * 4 + 3] = 3;
+                    var c = f.StrandColors[i];
+                    var a = c.A / 255f;
+                    colors[i * 4] = c.R / 255f * a; colors[i * 4 + 1] = c.G / 255f * a; colors[i * 4 + 2] = c.B / 255f * a; colors[i * 4 + 3] = a;
+                }
+                Set(curA, 40f, 0.55f, fastOffset, 0); Set(curB, 40f, 0.35f, slowOffset, 1); Set(waveB, 8f, 2f, 1f, 5f);
+            }
+            Set("curA", curA); Set("curB", curB); Set("waveB", waveB);
+            Set("strands", count);
+            Set("strandShape", shapes);
+            Set("strandColor", colors);
+            // the caustic tile pans by up to the track's width, 6 s each way (OD-0073: 4 s in fast mode)
+            Set("caustic", (float)causticPx);
+            OilMask = OilInto(oil, f.Spec, w, f.Time);
+            Set("oil", oil);
+            Set("oilMask", OilMask);
         }
-        u["strands"] = (float)strands;
-        u["strandShape"] = shapes;
-        u["strandColor"] = colors;
-        // the caustic tile pans by up to the track's width, 6 s each way (OD-0073: 4 s in fast mode)
-        u["caustic"] = (float)causticPx;
-        var (oil, oilMask) = Oil(f.Spec, w, f.Time);
-        u["oil"] = oil; u["oilMask"] = oilMask;
-        return u;
+
+        private static void Set(float[] v, float a, float b, float c, float d) { v[0] = a; v[1] = b; v[2] = c; v[3] = d; }
+
+        /// <summary>Sets a uniform of this pass: in place in its block once its offset is known (no allocation), through
+        /// SkiaSharp if it has none.</summary>
+        public void Set(string name, ReadOnlySpan<float> values)
+        {
+            if (!offsets.TryGetValue(name, out var offset)) offsets[name] = offset = SkiaShaders.OffsetOf(Uniforms, data, name, values.Length);
+            if (offset >= 0) SkiaShaders.Write(data!, offset, values);
+            else if (values.Length == 1) Uniforms[name] = values[0];
+            else Uniforms[name] = values.ToArray();
+        }
+
+        public void Set(string name, float value) => Set(name, new ReadOnlySpan<float>(in value));
+
+        public void Dispose() { Paint.Dispose(); Uniforms.Dispose(); }
     }
 
     /// <summary>The bubbles risen at this frame: centre x, centre y, scale, opacity; border box side, dark rim.</summary>
-    internal static IReadOnlyList<(float[] A, float[] B)> Bubbles(Frame f)
+    internal static IReadOnlyList<(float[] A, float[] B)> Bubbles(in Frame f)
     {
         var list = new List<(float[], float[])>();
+        var a = new float[MaxBubbles * 4]; var b = new float[MaxBubbles * 4];
+        var n = BubblesInto(f, a, b);
+        for (var i = 0; i < n; i++) list.Add((a[(i * 4)..(i * 4 + 4)], b[(i * 4)..(i * 4 + 4)]));
+        return list;
+    }
+
+    // the same, written four values a bubble into a and b; returns how many
+    private static int BubblesInto(in Frame f, float[] a, float[] b)
+    {
+        var n = 0;
+        if (f.MixLanes is { } lanes && f.FastClock is { } clock)
+        {
+            var fast = f.MixStill ? f.Mix?.Opacity ?? 0 : clock.FastAt(f.Time);
+            var at = f.MixStill ? 1.3 : lanes.Simmer ? clock.ClockB(f.Time) : f.Time;
+            for (var i = 0; i < Math.Min(MaxBubbles, lanes.Count); i++)
+            {
+                var now = lanes.Now(i, at, fast); if (now.Alpha < 0.004 || !f.MixStill && f.MixContacts?.IsDead(i, now.K) == true) continue;
+                a[n * 4] = (float)now.X; a[n * 4 + 1] = (float)now.Y; a[n * 4 + 2] = (float)now.Scale; a[n * 4 + 3] = (float)now.Alpha;
+                b[n * 4] = (float)(Strike.Round(now.Outer * 10) / 10d); b[n * 4 + 1] = 0; b[n * 4 + 2] = (float)f.MixInk.Amount; b[n * 4 + 3] = 0; n++;
+            }
+            return n;
+        }
         var count = Math.Min(MaxBubbles, f.Bubbles?.Count ?? 0);
         for (var i = 0; i < count; i++)
         {
-            if (f.Bubbles!.At(i, f.Time) is not { } now) continue; // between rises
+            if (f.Bubbles!.AtFrame(i, f.Time) is not { } now) continue; // between rises
             if (f.Popped is { } popped && popped.Contains((i, now.K))) continue; // OD-0078: burst, gone until its next rise
             var (centre, radius, opacity) = BubbleAt(now.Rise, f.Size.Height, now.Progress);
             if (opacity <= 0.003) continue;
-            list.Add((new[] { (float)centre.X, (float)centre.Y, (float)(radius / (now.Rise.Outer / 2)), (float)opacity },
-                new[] { (float)now.Rise.Outer, f.DarkBubbles ? 1f : 0f, f.BubbleInk < 0.01 ? 0f : (float)f.BubbleInk, 0f }));
+            a[n * 4] = (float)centre.X; a[n * 4 + 1] = (float)centre.Y; a[n * 4 + 2] = (float)(radius / (now.Rise.Outer / 2)); a[n * 4 + 3] = (float)opacity;
+            b[n * 4] = (float)now.Rise.Outer; b[n * 4 + 1] = f.DarkBubbles ? 1f : 0f; b[n * 4 + 2] = f.BubbleInk < 0.01 ? 0f : (float)f.BubbleInk; b[n * 4 + 3] = 0f;
+            n++;
+
         }
-        return list;
+        return n;
+    }
+
+    /// <summary>
+    /// A track's drawing state, kept across frames (ED-248 review: a steady frame makes no surface, no uniform block, no
+    /// paint and no managed object at all): the liquid's offscreen surface and the Strike layer's, made at the frame's device
+    /// size and made again only when that size or the GPU context changes; the gradient's image, made again only for a new
+    /// gradient row; each pass's uniforms and paint; the bubbles' values; the lightning's painter. Each frame's shaders and
+    /// snapshots are native references released at once (<see cref="SkiaShaders"/>). Render thread only, under a lock on
+    /// this object; the UI thread uses only <see cref="StrandColors"/>. A track that leaves the window retires its layers,
+    /// and the next liquid frame drawn (on the render thread, where the GPU context is current) disposes them.
+    /// </summary>
+    public sealed class LiquidLayers
+    {
+        private static readonly System.Collections.Concurrent.ConcurrentQueue<LiquidLayers> Retired = new();
+
+        private nint context;                         // the GPU context the surfaces belong to (0: raster)
+        private SKImageInfo info;
+        private SKSurface? liquid, light;
+        private SKCanvas? liquidCanvas, lightCanvas;
+        private SKColor[]? gradientRow;
+        private SKImage? gradientImage;
+        private SKShader? gradientShader;
+        private SKColor[]? previousRow;
+        private SKImage? previousImage;
+        private SKShader? previousShader;
+        private readonly Dictionary<SKRuntimeEffect, PassUniforms> passes = [];
+        private readonly float[] bubbleA = new float[MaxBubbles * 4], bubbleB = new float[MaxBubbles * 4], oneA = new float[4], oneB = new float[4];
+        private readonly SKPaint glassPaint = new() { IsAntialias = true };
+        private readonly StrikePainter painter = new();
+        private StrikeRaster? mixRaster;
+        private readonly StrikeBurstPainter mixRings = new();
+        public int StrikeSurfacesMade { get; private set; }
+        internal int MixPasses => (mixRaster?.InkDraws > 0 ? 1 : 0) | (mixRaster?.LightDraws > 0 ? 2 : 0) | (mixRaster?.WashDraws > 0 ? 4 : 0);
+
+        // UI thread: the strand colours of the last spec and theme
+        private (LiquidSpec Spec, ThemeVariant Theme)? strandsFor;
+        private Color[] strands = [];
+
+        /// <summary>Whether these layers were disposed (a retired track's).</summary>
+        public bool Disposed { get; private set; }
+
+        /// <summary>How many offscreen surfaces these layers have made (tests: two for a fast track, again only on a resize).</summary>
+        public int SurfacesMade { get; private set; }
+
+        /// <summary>How many gradient images these layers have made (tests: one per gradient row).</summary>
+        public int GradientsMade { get; private set; }
+
+        /// <summary>How many shaders these layers have handed Skia (a pass each, a bubble each, the glass).</summary>
+        public long ShadersHanded { get; private set; }
+
+        /// <summary>How many snapshots of its surfaces these layers have taken for the glass to sample.</summary>
+        public long Snapshots { get; private set; }
+
+        /// <summary>UI thread: the spec's strand colours in the theme, kept while both hold.</summary>
+        internal IReadOnlyList<Color> StrandColors(LiquidSpec spec, ThemeVariant theme)
+        {
+            if (strandsFor is not { } key || !ReferenceEquals(key.Spec, spec) || key.Theme != theme)
+            {
+                strandsFor = (spec, theme);
+                strands = StrandColorsOf(spec, theme);
+            }
+            return strands;
+        }
+
+        /// <summary>Hands these layers to the render thread for disposal (a track leaving the window).</summary>
+        public void Retire() => Retired.Enqueue(this);
+
+        /// <summary>Disposes the retired layers. Render thread, with the GPU context current.</summary>
+        internal static void DisposeRetired()
+        {
+            while (Retired.TryDequeue(out var layers)) lock (layers) layers.Dispose();
+        }
+
+        private SKSurface Surface(ref SKSurface? surface, ref SKCanvas? canvas, GRContext? gpu, SKImageInfo wanted)
+        {
+            var handle = gpu?.Handle ?? 0;
+            if (handle != context || wanted != info)
+            {
+                Release(ref liquid, ref liquidCanvas); Release(ref light, ref lightCanvas);
+                mixRaster?.Dispose(); mixRaster = null;
+                context = handle; info = wanted;
+            }
+            if (surface is null)
+            {
+                surface = (gpu is not null ? SKSurface.Create(gpu, true, wanted) : null) ?? SKSurface.Create(wanted);
+                canvas = surface.Canvas;
+                SurfacesMade++;
+            }
+            return surface;
+        }
+
+        private static void Release(ref SKSurface? surface, ref SKCanvas? canvas) { surface?.Dispose(); surface = null; canvas = null; }
+
+        private SKShader Gradient(SKColor[] row)
+        {
+            if (gradientShader is not null && ReferenceEquals(row, gradientRow)) return gradientShader;
+            gradientShader?.Dispose(); gradientImage?.Dispose();
+            using var bitmap = new SKBitmap(row.Length, 1, SKColorType.Rgba8888, SKAlphaType.Premul) { Pixels = row };
+            gradientImage = SKImage.FromBitmap(bitmap);
+            gradientShader = gradientImage.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp, new SKSamplingOptions(SKFilterMode.Linear));
+            gradientRow = row;
+            GradientsMade++;
+            return gradientShader;
+        }
+
+        private SKShader Previous(SKColor[] row)
+        {
+            if (previousShader is not null && ReferenceEquals(row, previousRow)) return previousShader;
+            previousShader?.Dispose(); previousImage?.Dispose();
+            using var bitmap = new SKBitmap(row.Length, 1, SKColorType.Rgba8888, SKAlphaType.Premul) { Pixels = row };
+            previousImage = SKImage.FromBitmap(bitmap);
+            previousShader = previousImage.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp, new SKSamplingOptions(SKFilterMode.Linear));
+            previousRow = row; GradientsMade++;
+            return previousShader;
+        }
+
+        private PassUniforms Pass(SKRuntimeEffect effect)
+        {
+            if (!passes.TryGetValue(effect, out var pass)) passes[effect] = pass = new PassUniforms(effect);
+            return pass;
+        }
+
+        // one shader of the pass's uniforms and children, set on its paint, drawn over rect, released
+        private void Paint(SKCanvas target, PassUniforms pass, SKRect rect, SKBlendMode mode)
+        {
+            var shader = pass.MakeShader();
+            if (shader == 0) return;
+            ShadersHanded++;
+            pass.Paint.BlendMode = mode;
+            SkiaShaders.SetShader(pass.Paint, shader);
+            target.DrawRect(rect, pass.Paint);
+            SkiaShaders.SetShader(pass.Paint, 0);
+            SkiaShaders.Release(shader);
+        }
+
+        /// <summary>Draws one frame of the tube into <paramref name="canvas"/> (in px at its current matrix).</summary>
+        internal void Draw(SKCanvas canvas, GRContext? gpu, double opacity, Frame frame)
+        {
+            var scale = Math.Max(1, canvas.TotalMatrix.ScaleX);
+            var (w, h) = (frame.Size.Width, frame.Size.Height);
+            var rect = new SKRect(0, 0, (float)w, (float)h);
+            var wanted = new SKImageInfo(Math.Max(1, (int)Math.Ceiling(w * scale)), Math.Max(1, (int)Math.Ceiling(h * scale)), SKColorType.Rgba8888, SKAlphaType.Premul);
+
+            // (A) the liquid, composed once at device scale
+            var surface = Surface(ref liquid, ref liquidCanvas, gpu, wanted);
+            var target = liquidCanvas!;
+            var saved = target.Save();
+            target.Clear(SKColors.Transparent);
+            target.Scale((float)scale);
+            PassUniforms Filled(Lazy<SKRuntimeEffect> effect) { var pass = Pass(effect.Value); pass.Fill(frame, scale); return pass; }
+            var basePass = Filled(BaseEffect);
+            var gradientHandle = Gradient(frame.Gradient).Handle;
+            nint mixedGradient = 0;
+            if (frame.PreviousGradient is { } previous && frame.GradientMix < 1)
+            {
+                var blend = Pass(GradientMixEffect.Value);
+                blend.SetChild("previous", Previous(previous).Handle);
+                blend.SetChild("current", gradientHandle);
+                blend.Set("amount", (float)frame.GradientMix);
+                mixedGradient = blend.MakeShader(); gradientHandle = mixedGradient;
+            }
+            basePass.SetChild("grad", gradientHandle);
+            var hasOil = basePass.OilValues[0] > 0.5f;
+            var oilMask = basePass.OilMask;
+            try { Paint(target, basePass, rect, SKBlendMode.SrcOver); }
+            finally { basePass.SetChild("grad", 0); SkiaShaders.Release(mixedGradient); }
+            if (hasOil && oilMask > 0.5f) Paint(target, Filled(OilEffect), rect, SKBlendMode.Screen); // a blend's oil goes under its currents
+            Paint(target, Filled(StrandsEffect), rect, SKBlendMode.SoftLight);
+            Paint(target, Filled(SlowEffect), rect, SKBlendMode.SoftLight);
+            Paint(target, Filled(CausticEffect), rect, SKBlendMode.Overlay);
+            if (hasOil && oilMask < 0.5f) Paint(target, Filled(OilEffect), rect, SKBlendMode.Screen); // one model's oil goes over its light
+            var bubble = Pass(BubbleEffect.Value);
+            var bubbles = BubblesInto(frame, bubbleA, bubbleB);
+            SKCanvas bubbleTarget = target;
+            if (frame.Mix is not null)
+            {
+                _ = Surface(ref light, ref lightCanvas, gpu, wanted); bubbleTarget = lightCanvas!; bubbleTarget.Clear(SKColors.Transparent); bubbleTarget.Save(); bubbleTarget.Scale((float)scale);
+            }
+            for (var i = 0; i < bubbles; i++)
+            {
+                Array.Copy(bubbleA, i * 4, oneA, 0, 4); Array.Copy(bubbleB, i * 4, oneB, 0, 4);
+                bubble.Set("scale", (float)scale); bubble.Set("A", oneA); bubble.Set("B", oneB);
+                var reach = (oneB[0] * 0.5f + 6f) * oneA[2];
+                Paint(bubbleTarget, bubble, new SKRect(oneA[0] - reach, oneA[1] - reach, oneA[0] + reach, oneA[1] + reach), SKBlendMode.SrcOver);
+            }
+            if (frame.Mix is not null)
+            {
+                if (!frame.MixStill && frame.MixContacts is { } contacts) mixRings.Draw(bubbleTarget, contacts, frame.MixGeometry, frame.Time, frame.MixInk);
+                bubbleTarget.Restore(); var matrix = target.Save(); target.ResetMatrix(); glassPaint.Color = SKColors.White; light!.Draw(target, 0, 0, glassPaint); target.RestoreToCount(matrix);
+            }
+            if (frame.Rings is { Count: > 0 } rings)
+                BubbleBursts.DrawRings(target, rings, Math.Max(0.62, Math.Min(1, h / 40)), frame.Time, frame.BubbleInk);
+            Paint(target, Filled(CoverEffect), rect, SKBlendMode.DstIn);
+            target.RestoreToCount(saved);
+
+            // OD-0073: the Strike lightning, resolved here (its buffers stay on this thread), drawn source-over into its own
+            // layer at device scale; the glass screens it over the refracted liquid (above the bubbles, under the gloss and
+            // rims) and clips it with the tube
+            SKSurface? lit = null;
+            SKSurface? over = null;
+            if (frame.Mix is { } resolvedMix)
+            {
+                if (mixRaster is null) { mixRaster = new StrikeRaster(wanted, gpu); StrikeSurfacesMade += mixRaster.SurfacesMade; }
+                mixRaster.Paint(frame.MixGeometry, resolvedMix, frame.MixInk, frame.Time, frame.MixSeed, frame.MixStill ? null : frame.MixContacts);
+                lit = mixRaster.Screen; over = mixRaster.Over;
+            }
+            if (frame.ResolvedStrike is { } strike)
+            {
+                lock (strike.Channels)
+                {
+                    var ops = strike.Channels.Scene(strike.Geometry, strike.Time, strike.Tint);
+                    if (ops.Count > 0)
+                    {
+                        lit = Surface(ref light, ref lightCanvas, gpu, wanted);
+                        var lc = lightCanvas!;
+                        var lightSaved = lc.Save();
+                        lc.Clear(SKColors.Transparent);
+                        lc.Scale((float)scale);
+                        painter.Paint(lc, ops);
+                        lc.RestoreToCount(lightSaved);
+                    }
+                }
+            }
+
+            if (frame.Strike is { Count: > 0 } legacy)
+            {
+                lit = Surface(ref light, ref lightCanvas, gpu, wanted);
+                var lc = lightCanvas!;
+                var count = lc.Save(); lc.Clear(SKColors.Transparent); lc.Scale((float)scale);
+                painter.Paint(lc, legacy); lc.RestoreToCount(count);
+            }
+
+            // (B) the glass: the composed liquid refracted per channel, the gloss and the rims
+            var toPixels = SKMatrix.CreateScale((float)(1 / scale), (float)(1 / scale));
+            nint composed = 0, sampled = 0, lightImage = 0, lightShader = 0, overImage = 0, overShader = 0;
+            try
+            {
+                composed = SkiaShaders.Snapshot(surface);
+                sampled = SkiaShaders.ImageShader(composed, toPixels);
+                Snapshots++;
+                if (lit is not null)
+                {
+                    lightImage = SkiaShaders.Snapshot(lit);
+                    lightShader = SkiaShaders.ImageShader(lightImage, toPixels);
+                    Snapshots++;
+                }
+                if (over is not null) { overImage = SkiaShaders.Snapshot(over); overShader = SkiaShaders.ImageShader(overImage, toPixels); Snapshots++; }
+                var glass = Filled(over is not null ? MixEffect : lit is null ? Effect : LitEffect);
+                glass.SetChild("liquid", sampled);
+                if (lit is not null) glass.SetChild("light", lightShader);
+                if (over is not null) glass.SetChild("strikeOver", overShader);
+                glassPaint.Color = SKColors.White.WithAlpha((byte)Math.Clamp(opacity * 255, 0, 255));
+                var shader = glass.MakeShader();
+                if (shader != 0)
+                {
+                    ShadersHanded++;
+                    SkiaShaders.SetShader(glassPaint, shader);
+                    canvas.DrawRect(rect, glassPaint);
+                    SkiaShaders.SetShader(glassPaint, 0);
+                    SkiaShaders.Release(shader);
+                }
+                glass.SetChild("liquid", 0);
+                if (lit is not null) glass.SetChild("light", 0);
+                if (over is not null) glass.SetChild("strikeOver", 0);
+            }
+            finally
+
+            {
+                SkiaShaders.Release(lightShader); SkiaShaders.ReleaseImage(lightImage);
+                SkiaShaders.Release(overShader); SkiaShaders.ReleaseImage(overImage);
+                SkiaShaders.Release(sampled); SkiaShaders.ReleaseImage(composed);
+            }
+        }
+
+        internal void Dispose()
+        {
+            if (Disposed) return;
+            Disposed = true;
+            Release(ref liquid, ref liquidCanvas); Release(ref light, ref lightCanvas);
+            gradientShader?.Dispose(); gradientImage?.Dispose(); gradientShader = null; gradientImage = null; gradientRow = null;
+            previousShader?.Dispose(); previousImage?.Dispose(); previousShader = null; previousImage = null; previousRow = null;
+            foreach (var pass in passes.Values) pass.Dispose();
+            passes.Clear();
+            glassPaint.Dispose(); painter.Dispose();
+            mixRaster?.Dispose(); mixRaster = null; mixRings.Dispose();
+        }
+    }
+
+    // the drawing of one frame through Avalonia's Skia lease: the retired layers disposed first (the GPU context is current
+    // here), then the frame drawn with its layers, or with layers of its own when they were retired
+    private static void Render(ImmediateDrawingContext context, in Frame frame)
+    {
+        var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()
+            ?? throw new InvalidOperationException("The liquid track needs the Skia renderer (ISkiaSharpApiLeaseFeature).");
+        using var lease = feature.Lease();
+        LiquidLayers.DisposeRetired();
+        if (frame.Layers is { } layers)
+        {
+            lock (layers)
+            {
+                if (!layers.Disposed) { layers.Draw(lease.SkCanvas, lease.GrContext, lease.CurrentOpacity, frame); return; }
+            }
+        }
+        var own = new LiquidLayers();
+        try { own.Draw(lease.SkCanvas, lease.GrContext, lease.CurrentOpacity, frame); }
+        finally { own.Dispose(); }
     }
 
     private sealed class Operation(Frame frame) : ICustomDrawOperation
@@ -751,83 +1192,35 @@ public static class LiquidTrack
         public bool HitTest(Point p) => false;
         public bool Equals(ICustomDrawOperation? other) => false;
         public void Dispose() { }
+        public void Render(ImmediateDrawingContext context) => LiquidTrack.Render(context, frame);
+    }
+
+    /// <summary>
+    /// ED-248 review 2: where a <see cref="Live"/> operation takes its frame when it is drawn (render thread, or main for a
+    /// snapshot): the view's scene at its current time, false when there is nothing to draw.
+    /// </summary>
+    internal interface ILiveSource
+    {
+        Rect Bounds { get; }
+        bool TryFrame(out Frame frame);
+    }
+
+    /// <summary>
+    /// ED-248 review 2 (OD-0069): a track's one draw operation, recorded again only when what it draws changes (the look, the
+    /// size, the theme), never per frame: each time Avalonia draws it (a render-thread frame redraws its area,
+    /// <see cref="RenderFrameSource"/>) it resolves the frame then, at the track's current time. So a liquid frame makes no
+    /// record, no operation and no render pass on main.
+    /// </summary>
+    internal sealed class Live(ILiveSource source) : ICustomDrawOperation
+    {
+        public Rect Bounds => source.Bounds;
+        public bool HitTest(Point p) => false;
+        public bool Equals(ICustomDrawOperation? other) => false;
+        public void Dispose() { } // Avalonia disposes a replaced recording's operations: this one is kept and recorded again
 
         public void Render(ImmediateDrawingContext context)
         {
-            var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()
-                ?? throw new InvalidOperationException("The liquid track needs the Skia renderer (ISkiaSharpApiLeaseFeature).");
-            using var lease = feature.Lease();
-            var canvas = lease.SkCanvas;
-            var scale = Math.Max(1, canvas.TotalMatrix.ScaleX);
-            var (w, h) = (frame.Size.Width, frame.Size.Height);
-            var rect = new SKRect(0, 0, (float)w, (float)h);
-            var info = new SKImageInfo(Math.Max(1, (int)Math.Ceiling(w * scale)), Math.Max(1, (int)Math.Ceiling(h * scale)), SKColorType.Rgba8888, SKAlphaType.Premul);
-
-            // (A) the liquid, composed once at device scale
-            using var surface = (lease.GrContext is { } gpu ? SKSurface.Create(gpu, true, info) : null) ?? SKSurface.Create(info);
-            var liquid = surface.Canvas;
-            liquid.Clear(SKColors.Transparent);
-            liquid.Scale((float)scale);
-            using var bitmap = new SKBitmap(frame.Gradient.Length, 1, SKColorType.Rgba8888, SKAlphaType.Premul) { Pixels = frame.Gradient };
-            using var image = SKImage.FromBitmap(bitmap);
-            using var grad = image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp, new SKSamplingOptions(SKFilterMode.Linear));
-            void Layer(Lazy<SKRuntimeEffect> pass, SKBlendMode mode, SKShader? child = null, string? childName = null)
-            {
-                var effect = pass.Value;
-                var children = new SKRuntimeEffectChildren(effect);
-                if (child is not null) children[childName!] = child;
-                using var shader = effect.ToShader(Uniforms(effect, frame, scale), children);
-                using var paint = new SKPaint { Shader = shader, BlendMode = mode };
-                liquid.DrawRect(rect, paint);
-            }
-            var (oil, oilMask) = Oil(frame.Spec, w, frame.Time);
-            var hasOil = oil[0] > 0.5f;
-            Layer(BaseEffect, SKBlendMode.SrcOver, grad, "grad");
-            if (hasOil && oilMask > 0.5f) Layer(OilEffect, SKBlendMode.Screen); // a blend's oil goes under its currents
-            Layer(StrandsEffect, SKBlendMode.SoftLight);
-            Layer(SlowEffect, SKBlendMode.SoftLight);
-            Layer(CausticEffect, SKBlendMode.Overlay);
-            if (hasOil && oilMask < 0.5f) Layer(OilEffect, SKBlendMode.Screen); // one model's oil goes over its light
-            var bubbleEffect = BubbleEffect.Value;
-            foreach (var (a, b) in Bubbles(frame))
-            {
-                var bubble = new SKRuntimeEffectUniforms(bubbleEffect) { ["scale"] = (float)scale, ["A"] = a, ["B"] = b };
-                using var shader = bubbleEffect.ToShader(bubble, new SKRuntimeEffectChildren(bubbleEffect));
-                using var paint = new SKPaint { Shader = shader };
-                var reach = (b[0] * 0.5f + 6f) * a[2];
-                liquid.DrawRect(new SKRect(a[0] - reach, a[1] - reach, a[0] + reach, a[1] + reach), paint);
-            }
-            // OD-0078: the bursts' rings, with the bubbles (on a pale liquid with their neutral rings under them)
-            if (frame.Rings is { Count: > 0 } rings)
-                BubbleBursts.DrawRings(liquid, rings, Math.Max(0.62, Math.Min(1, h / 40)), frame.Time, frame.BubbleInk);
-            Layer(CoverEffect, SKBlendMode.DstIn);
-
-            // OD-0073: the Strike lightning, drawn source-over into its own layer at device scale; the glass screens it over
-            // the refracted liquid (above the bubbles, under the gloss and rims) and clips it with the tube
-            using var light = frame.Strike is { Count: > 0 }
-                ? (lease.GrContext is { } gpuLight ? SKSurface.Create(gpuLight, true, info) : null) ?? SKSurface.Create(info)
-                : null;
-            if (light is not null)
-            {
-                var lc = light.Canvas;
-                lc.Clear(SKColors.Transparent);
-                lc.Scale((float)scale);
-                Strike.Render(lc, frame.Strike!);
-            }
-
-            // (B) the glass: the composed liquid refracted per channel, the gloss and the rims
-            using var composed = surface.Snapshot();
-            using var sampled = composed.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear),
-                SKMatrix.CreateScale((float)(1 / scale), (float)(1 / scale)));
-            using var lightImage = light?.Snapshot();
-            using var lightShader = lightImage?.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear),
-                SKMatrix.CreateScale((float)(1 / scale), (float)(1 / scale)));
-            var glass = lightShader is null ? Effect.Value : LitEffect.Value;
-            var glassChildren = new SKRuntimeEffectChildren(glass) { ["liquid"] = sampled };
-            if (lightShader is not null) glassChildren["light"] = lightShader;
-            using var glassShader = glass.ToShader(Uniforms(glass, frame, scale), glassChildren);
-            using var glassPaint = new SKPaint { Shader = glassShader, IsAntialias = true, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
-            canvas.DrawRect(rect, glassPaint);
+            if (source.TryFrame(out var frame)) LiquidTrack.Render(context, frame);
         }
     }
 }

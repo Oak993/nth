@@ -22,7 +22,7 @@ public static class ProviderChildEnvironment
     public static IReadOnlyDictionary<string, string> Apply(IReadOnlyDictionary<string, string> environment, string dataRoot)
     {
         ArgumentNullException.ThrowIfNull(environment);
-        return ShimPath.ForChild(environment, dataRoot);
+        return ProviderCustomCommands.ForChild(environment, dataRoot);
     }
 
     private static string? BoundDataRoot()

@@ -1,0 +1,5 @@
+porting/engineering_decisions.md : retained 1795078 Round 1 bytes; appended 17580
+porting/STATE.md : retained 84714 Round 1 bytes; appended 1009
+porting/first-release/reviews/skills-ui-T36.md : retained 9436 Round 1 bytes; appended 7803
+No baseline test, tolerance or reference modified; approved Round 1 arrival-test correction only.
+Core/Services/runtime identical to merged T35 a0437bbf.

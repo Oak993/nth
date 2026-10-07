@@ -36,6 +36,7 @@ public sealed class VoiceSession : IAudioCaptureSink
     private VoiceSessionSettings? active;
     private LanguageResolution? resolution;
     private StreamingTranscriber? transcriber;
+    private ISpeechEngine? sessionEngine;
     private IReadOnlyList<TranscriptWord> shown = [];
     private string? detectedLanguage;
     private VoiceStopReason? lastStop;
@@ -51,6 +52,7 @@ public sealed class VoiceSession : IAudioCaptureSink
     private TimeSpan quiet;
     private ContinuousInstant listenStart;
     private ContinuousInstant? lastAddAt;
+    private ContinuousInstant? processingOpsUntil;
     private bool countdownActive;
     private Task<bool> loadWait = Task.FromResult(true);
 
@@ -311,6 +313,13 @@ public sealed class VoiceSession : IAudioCaptureSink
             Fail(VoiceNoteKind.ModelLoadFailed);
             return;
         }
+        var engine = seams.Engine;
+        var cloud = current.Typing.Engine == VoiceEngine.Cloud;
+        if (cloud && engine is IProcessingSpeechEngine processing)
+        {
+            try { processing.ValidateReady(); }
+            catch (Exception error) { Fail(VoiceNoteKind.ModelLoadFailed, error); return; }
+        }
         switch (seams.Microphone.Status())
         {
             case MicrophoneAccessStatus.Denied:
@@ -322,13 +331,15 @@ public sealed class VoiceSession : IAudioCaptureSink
         }
         active = current;
         resolution = resolved;
-        transcriber = new StreamingTranscriber(seams.Engine, resolved.Language, current.LiveWords);
+        sessionEngine = engine;
+        transcriber = new StreamingTranscriber(engine, resolved.Language, current.LiveWords, processingOnly: cloud);
         shown = [];
         detectedLanguage = null;
         suppressSend = false;
         lastStop = null;
         FailureCause = null;
         lastAddAt = null;
+        processingOpsUntil = null;
         label.Reset();
         pending.Clear();
         inSpeech = false;
@@ -348,7 +359,7 @@ public sealed class VoiceSession : IAudioCaptureSink
             Fail(VoiceNoteKind.CaptureFailed, error);
             return;
         }
-        loadWait = hub.EnsureLoaded(seams.Engine, model);
+        loadWait = hub.EnsureLoaded(engine, model);
         hub.Enter(this);
         listenStart = SwiftClock.Now;
         capTimer = MainActor.AsyncAfter(Cap, () => Stop(VoiceStopReason.Cap));
@@ -531,6 +542,16 @@ public sealed class VoiceSession : IAudioCaptureSink
         live?.Cancel();
         var gen = generation;
         var wait = loadWait;
+        var streaming = active?.Typing.Engine == VoiceEngine.Cloud ? sessionEngine as IProcessingSpeechEngine : null;
+        void StreamOps(IReadOnlyList<WordOp> ops)
+        {
+            // The HTTP reader may be on the pool; every draft operation belongs to the main executor. Generation rejects queued operations after cancel or a new session.
+            void Apply()
+            {
+                if (gen == generation && state == VoiceSessionState.Processing) ApplyProcessingOps(ops);
+            }
+            if (MainActor.IsIsolated) Apply(); else MainActor.Post(Apply);
+        }
         finalTask = MainActor.Spawn(async () =>
         {
             try
@@ -538,6 +559,7 @@ public sealed class VoiceSession : IAudioCaptureSink
                 if (live is not null) await live.Completion;
                 if (gen != generation || SwiftTask.IsCancelled) return;
                 if (!await wait || gen != generation) return;
+                if (streaming is not null) streaming.OpsProduced += StreamOps;
                 var delta = await current.RunFinal(SwiftTask.CancellationToken);
                 if (gen != generation || state != VoiceSessionState.Processing) return;
                 FinishProcessing(delta, clickAt);
@@ -549,7 +571,46 @@ public sealed class VoiceSession : IAudioCaptureSink
             {
                 if (gen == generation && state == VoiceSessionState.Processing) Fail(VoiceNoteKind.EngineFailed, error);
             }
+            finally
+            {
+                if (streaming is not null) streaming.OpsProduced -= StreamOps;
+            }
         });
+    }
+
+    private void ApplyProcessingOps(IReadOnlyList<WordOp> ops)
+    {
+        var words = shown.ToList();
+        foreach (var op in ops)
+        {
+            switch (op.Kind)
+            {
+                case WordOpKind.Add: words.Insert(op.Index, new TranscriptWord(op.Text!, op.Tentative)); break;
+                case WordOpKind.Revise: words[op.Index] = words[op.Index] with { Text = op.Text! }; break;
+                case WordOpKind.Remove: words.RemoveAt(op.Index); break;
+                case WordOpKind.Confirm: words[op.Index] = words[op.Index] with { Tentative = false }; break;
+            }
+        }
+        // A later SSE event may correct a word whose Add is still paced into the future. Keep every dependent operation after earlier operations, including across batches;
+        // otherwise DictationWords would ignore the revision before the word exists. Adds still keep V-7.5's 60 ms spacing.
+        var now = SwiftClock.Now;
+        var at = processingOpsUntil is { } end && end > now ? end - now : TimeSpan.Zero;
+        var nextAdd = lastAddAt is { } last && last + TranscriptOps.MinAddSpacing > now ? last + TranscriptOps.MinAddSpacing - now : TimeSpan.Zero;
+        var scheduled = new List<ScheduledOp>(ops.Count);
+        foreach (var op in ops)
+        {
+            if (op.Kind == WordOpKind.Add)
+            {
+                if (nextAdd > at) at = nextAdd;
+                lastAddAt = now + at;
+                nextAdd = at + TranscriptOps.MinAddSpacing;
+                label.WordArrived(now);
+            }
+            scheduled.Add(new ScheduledOp(at, op));
+        }
+        processingOpsUntil = now + at;
+        shown = words;
+        if (ops.Count > 0) TranscriptChanged?.Invoke(new TranscriptUpdate(TranscriptUpdateKind.Live, scheduled, words));
     }
 
     private void FinishProcessing(TranscriptDelta delta, ContinuousInstant clickAt)
@@ -564,6 +625,12 @@ public sealed class VoiceSession : IAudioCaptureSink
             return;
         }
         var plan = TranscriptOps.PlanFinal(shown, delta.Words);
+        // Finish after the stream's queued word operations have arrived. Final corrections and Landing must not overtake a paced cloud batch.
+        if (processingOpsUntil is { } streamEnd && streamEnd > SwiftClock.Now)
+        {
+            var backlog = streamEnd - SwiftClock.Now;
+            plan = new FinalPlan(plan.Ops.Select(op => op with { At = op.At + backlog }).ToList(), plan.ScheduleEnd + backlog);
+        }
         shown = delta.Words;
         if (delta.Language is { } language) detectedLanguage = language;
         TranscriptChanged?.Invoke(new TranscriptUpdate(TranscriptUpdateKind.Final, plan.Ops, delta.Words));
@@ -671,6 +738,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         countdownActive = false;
         transcriber?.Clear();
         transcriber = null;
+        sessionEngine = null;
         pending.Clear();
     }
 
