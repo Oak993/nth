@@ -5156,3 +5156,5 @@ Verdict: READY for T9's Windows run of W and opinions together; not a release/fu
 ## ED-NEW-ma-wire-lead-1 - OpinionAnswerRowsTests layout
 
 Lead (claude/ma-wire-fix), after T9's final group withdrew codex/ma-wire c2d74d897 for TraceabilityTests R-TEST-2/3: OpinionAnswerRowsTests declared a nested HeldCombine port. It moves unchanged to Fixtures/OpinionHeldCombine.cs as OpinionHeldCombine; no assertion changes. Traceability and OpinionAnswerRowsTests pass twice alone on the combined tree.
+
+Census addendum (T9 replacement gate): ContinuousCornerSitesTests' table gains OpinionRoundView's 26 pt Combine button, CornerRadius(13), classed Capsule (r = h / 2). Census and Traceability pass twice alone on the combined tree.
