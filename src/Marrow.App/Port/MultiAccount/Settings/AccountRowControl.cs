@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Marrow.App.Port.MultiAccount.Capsule;
+using Marrow.App.Port.MultiAccount.Shared;
 using Avalonia.Media;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Settings;
@@ -37,7 +38,7 @@ internal sealed class AccountRowControl : Decorator
     private readonly StackPanel usageBox;
     private readonly Action openHandshake;
     private readonly SettingsSwitch toggle;
-    private readonly AnimatedScalar dragFade;
+    private readonly OpacityTransition dragFade;
     private AccountRowView view;
     private double dragStart;
     private bool dragging;
@@ -50,7 +51,7 @@ internal sealed class AccountRowControl : Decorator
         this.dragged = dragged;
         id = first.Id;
         view = first;
-        dragFade = new AnimatedScalar(this, 1, value => Opacity = value);
+        dragFade = new OpacityTransition(this, 1, value => Opacity = value);
 
         grip = new Border { Width = 22, Height = 22, Background = Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText, SwiftFont.Weight.Medium) };
         ((Control)((Border)grip).Child!).HorizontalAlignment = HorizontalAlignment.Center;

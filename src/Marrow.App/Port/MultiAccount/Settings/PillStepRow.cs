@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Marrow.App.Port.MultiAccount.Capsule;
+using Marrow.App.Port.MultiAccount.Shared;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
@@ -42,7 +43,7 @@ internal sealed class PillStepRow : Decorator
     private StepView step;
     private readonly Button configButton;
     private readonly ProviderIcon icon = new() { Size = 16, Width = 16, Height = 16 };
-    private readonly AnimatedScalar dragFade;
+    private readonly OpacityTransition dragFade;
     private bool dragging;
     private double dragStart;
 
@@ -52,7 +53,7 @@ internal sealed class PillStepRow : Decorator
         this.pulse = pulse;
         this.models = models;
         step = first;
-        dragFade = new AnimatedScalar(this, 1, value => Opacity = value);
+        dragFade = new OpacityTransition(this, 1, value => Opacity = value);
         var key = first.AccountId;
         var grip = new Border { Width = 22, Height = 22, Background = Avalonia.Media.Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText, SwiftFont.Weight.Medium) };
         ((Control)grip.Child!).HorizontalAlignment = HorizontalAlignment.Center;

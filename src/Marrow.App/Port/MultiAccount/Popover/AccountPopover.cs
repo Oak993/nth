@@ -53,7 +53,7 @@ internal sealed class AccountPopover : Decorator
         for (var index = 0; index < values.Count; index++)
         {
             var value = values[index];
-            if (!kept.TryGetValue(value.Account.Id, out var row)) { row = new AccountPopoverRowControl(value, Pin, Move, index, values.Count, context); kept.Add(value.Account.Id, row); list.Children.Add(row); }
+            if (!kept.TryGetValue(value.Account.Id, out var row)) { row = new AccountPopoverRowControl(value, Pin, Move, index, values.Count, context, Navigate); kept.Add(value.Account.Id, row); list.Children.Add(row); }
             else row.Apply(value, index, values.Count);
             var old = list.Children.IndexOf(row); if (old != index) list.Children.Move(old, index); wanted.Add(row);
         }
@@ -66,6 +66,11 @@ internal sealed class AccountPopover : Decorator
     private void TextSlot(CrossfadeSlot slot, string value, Func<Control> make)
     {
         if (shown.GetValueOrDefault(slot) == value) return; shown[slot] = value; slot.Show(make(), FrameClock.IsBound ? Animation.EaseOut(duration: .25) : null);
+    }
+    private void Navigate(Guid id, int direction)
+    {
+        var at = Rows.ToList().FindIndex(row => row.AccountId == id);
+        if (at >= 0) Rows[Math.Clamp(at + direction, 0, Rows.Count - 1)].FocusPin();
     }
     private void Move(Guid id, int target)
     {

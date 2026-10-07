@@ -45,13 +45,8 @@ internal sealed class LinkPopoverColumns : Decorator
         {
             if (!buttons.TryGetValue(row.AccountId, out var button))
             {
-                var pin = row.GetLogicalDescendants().OfType<Button>().FirstOrDefault(b => LibraryUi.IdOf(b) == "popover-pin-" + row.AccountId.ToString("N"));
-                if (pin?.Content is not Grid grid) continue;
-                grid.ColumnDefinitions.Insert(3, new ColumnDefinition(new GridLength(26)));
-                foreach (var child in grid.Children.Where(c => Grid.GetColumn(c) >= 3)) Grid.SetColumn(child, Grid.GetColumn(child) + 1);
-                var id = row.AccountId;
-                button = PlainControls.Button(LibraryUi.Glyph("link", 13, ChromeTokens.SecondaryText), () => Toggle(id)); button.Focusable = true;
-                Grid.SetColumn(button, 3); grid.Children.Add(button); buttons.Add(id, button);
+                var id = row.AccountId; button = row.LinkButton; row.LinkBound = true;
+                button.Click += (_, e) => { Toggle(id); e.Handled = true; }; buttons.Add(id, button);
             }
             button.IsVisible = model.CanLink(row.AccountId); button.IsEnabled = !model.Busy && !confirm.IsOpen;
             button.Named(model.Aria(row.AccountId), "link-account-" + row.AccountId.ToString("N"));

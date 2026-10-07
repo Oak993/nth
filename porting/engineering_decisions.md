@@ -4156,3 +4156,8 @@ MAUI-018/042/060/061: both Settings reorder handlers accept only the primary but
 ## ED-NEW-ma-wave1-11
 
 MAUI-025: the existing Handshake EffortSlider now handles unmodified arrows, Home and End through the same point binding; locked sliders remain outside keyboard/pointer actions. HTML 2613-2617. No tests changed.
+
+
+## ED-NEW-ma-wave1-12
+
+MAUI P1 001/002/019/020/057/065: retained popover rows own their Link action (disabled until its port/model is bound), reused by the existing Link confirmation/fly host. Keyboard arrows focus adjacent rows and Shift+F10/ContextMenu opens the existing menu. A multi-account-only button template paints card faces and the inset focus ring without changing the source-faithful PlainControls template. Ask others uses supplied job-0 thread ports when no explicit view-model offer exists; view-owned observation suspends/resumes with its lifetime. Opacity transitions for 018/060 remain animated under Reduce Motion instead of using AnimatedScalar's spatial-motion stilling rule. Locked HTML 229/2687/2715/375-378/4804-4811 and OD-0076/0115/0120. No tests, assertions or tolerances changed.
