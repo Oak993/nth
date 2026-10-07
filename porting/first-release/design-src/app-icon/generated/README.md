@@ -9,7 +9,7 @@ Each canvas starts in a fresh page with fresh caches and uses the still state
 uses one icon across themes; the source's light variant only changes edge/shadow
 contrast and is not a separately installed identity.
 
-From the repository root, using Python 3 and a local Chrome/Chromium/Edge:
+From the repository root, using Python 3 and local Chromium 151.0.7922.173:
 
 ```sh
 python -m pip install playwright==1.62.0
@@ -24,7 +24,10 @@ networking is disabled. Playwright's pinned defaults disable the Chromium
 sandbox for this local rendering process. The manifest records the browser
 version, Playwright version, custom flags, launch configuration, source/tooling
 SHA-256 hashes, render state, and every generated file's hash and byte length.
-The checked-in outputs were generated with Chromium **151.0.7922.173** on Linux.
+The manifest pins the browser name **Chromium**, exact version **151.0.7922.173**,
+and records Linux/x86_64 platform provenance. The generator rejects a different
+browser name or version before exporting. The checked-in outputs were generated
+with that renderer on Linux.
 For byte-identical regeneration use that browser version and rendering platform;
 `--check` fails on any changed byte, including provenance. It never rewrites a
 baseline. Installing Playwright does not install its browsers automatically.
@@ -60,10 +63,11 @@ use the App PNG. Toast startup materializes that PNG as `notification-icon.png`;
 lookup key loads the two UI PNGs. The unused OD-0015 SVG assets are removed;
 their source and pixel assertions remain available in Git history.
 
-The old packaged-icon test expectations have **not** been regenerated. Their
-own documentation supplies no generator or regeneration policy. This tool
-deliberately writes no test file or existing Aurora renderer reference.
-OD-0112 supersedes their OD-0015 artwork assumptions, but changing those locked
-expectations requires an authorized, documented test-baseline workflow. T21
-does not weaken their assertions or tolerances. See `porting/first-release/T21-REPORT.md`
-for test evidence and remaining Windows verification.
+The lead authorized replacement of the superseded OD-0015 artwork expectations
+under OD-0112. ED-NEW-icon-d-2 lists each old/new asset hash and pixel sample.
+Tests pin literal hashes and sample values from these checked-in outputs; they
+never regenerate or require Python, Playwright or Chromium at test time. This
+tool writes no test file or existing Aurora renderer reference. Every comparison,
+assertion and tolerance remains unchanged. See `porting/first-release/T21-REPORT.md`
+and `porting/first-release/T21-ARTWORK-EXPECTATIONS-REPORT.md` for test evidence
+and the exact Windows-only checks still pending.

@@ -6,6 +6,7 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import platform
 from pathlib import Path
 import shutil
 import struct
@@ -15,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DESIGN = 'porting/first-release/design-src/app-icon'
 GENERATED = DESIGN + '/generated'
 SIZES = (16, 20, 24, 32, 40, 48, 64, 96, 128, 256)
+BROWSER = {'name': 'Chromium', 'version': '151.0.7922.173'}
 LOCKED = {
     DESIGN + '/src/iconkit.js': '930efb3d74ba7913e863139b8bda322ccd7d26ed67d40662c389480ab18d0b75',
     DESIGN + '/src/icons-a-j/D-aurora.js': 'a5b97966a4ba80020123536074ded566b3e2818a15fd0a3de023cf06a2feb0b2',
@@ -53,6 +55,12 @@ def main():
     browser = args.browser or next((shutil.which(x) for x in ('chromium', 'google-chrome', 'msedge') if shutil.which(x)), None)
     if not browser:
         parser.error('set AURORA_BROWSER or --browser to a local Chromium/Chrome/Edge executable')
+    executable_name = Path(browser).name.lower()
+    browser_name = ('Chromium' if 'chromium' in executable_name else
+                    'Microsoft Edge' if 'msedge' in executable_name else
+                    'Google Chrome' if 'chrome' in executable_name else 'Unknown')
+    if browser_name != BROWSER['name']:
+        raise RuntimeError(f"locked renderer requires {BROWSER['name']}, got {browser_name}")
     for path, digest in LOCKED.items():
         if sha((ROOT / path).read_bytes()) != digest:
             raise RuntimeError('locked OD-0112 source changed: ' + path)
@@ -83,6 +91,8 @@ def main():
         instance = p.chromium.launch(executable_path=browser, headless=True, args=flags)
         version = instance.version
         try:
+            if version != BROWSER['version']:
+                raise RuntimeError(f"locked renderer requires {BROWSER['version']}, got {version}")
             context = instance.new_context(device_scale_factor=1, viewport={'width': 1024, 'height': 1024})
             context.route('**/*', lambda route: route.abort())
             for name, _, _ in jobs:
@@ -115,6 +125,8 @@ def main():
         provenance[path] = sha((ROOT / path).read_bytes())
     manifest = {
         'decision': 'OD-0112', 'browser': version, 'flags': flags,
+        'browserName': browser_name, 'lockedBrowser': BROWSER,
+        'platform': {'system': platform.system(), 'machine': platform.machine()},
         'playwright': importlib.metadata.version('playwright'),
         'launch': {'headless': True, 'chromiumSandbox': False, 'defaultArgs': 'Playwright 1.62.0 Chromium defaults'},
         'sources': provenance, 'theme': 'dark', 'dpr': 1,

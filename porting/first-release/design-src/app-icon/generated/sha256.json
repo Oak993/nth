@@ -14,6 +14,15 @@
     "--force-device-scale-factor=1",
     "--host-resolver-rules=MAP * ~NOTFOUND"
   ],
+  "browserName": "Chromium",
+  "lockedBrowser": {
+    "name": "Chromium",
+    "version": "151.0.7922.173"
+  },
+  "platform": {
+    "system": "Linux",
+    "machine": "x86_64"
+  },
   "playwright": "1.62.0",
   "launch": {
     "headless": true,
@@ -25,7 +34,7 @@
     "porting/first-release/design-src/app-icon/src/icons-a-j/D-aurora.js": "a5b97966a4ba80020123536074ded566b3e2818a15fd0a3de023cf06a2feb0b2",
     "porting/first-release/design-src/app-icon/app-icon.html": "78755d39fa860445fe4e0f92b63d16a0a9fb4686301cd6aa122bca0d8c120b05",
     "porting/first-release/design-src/app-icon/src/ICON-MODULE.md": "6201e9fbb69872bac240c2fa6be8c071b097d94e9c5c59e1f293d0a92d201d9f",
-    "porting/tools/generate_app_icon_d.py": "aa14ae8f868ba0072520844dd3fe9e50794bca5fcee996616a499b5afd852351"
+    "porting/tools/generate_app_icon_d.py": "d9d8b91a7ecc9a0edf74ec6595c813b54d703e4fc72d3c4501e6e94ea7cf3b94"
   },
   "theme": "dark",
   "dpr": 1,
