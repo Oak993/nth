@@ -41,10 +41,10 @@ public sealed class ComposerChipRig : IDisposable
     /// <summary>The Codex model the tests give the thread: efforts low to xhigh, a fast tier.</summary>
     public const string ModelID = "c1";
 
-    public static ComposerChipRig Start(Action<AppModel>? configure = null, string effort = "low", bool fast = false, bool hydra = false)
+    public static ComposerChipRig Start(Action<AppModel>? configure = null, string effort = "low", bool fast = false, bool hydra = false, ProviderKind provider = ProviderKind.Codex)
     {
         Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
-        var harness = new ThreadRuntimePart12Harness();
+        var harness = new ThreadRuntimePart12Harness(provider); // the thread's service (MAUI-002 under RR-49: a verified opinion head)
         harness.Main.Loop.Run(() => harness.Runtime.EnsureLoaded(), AppModelHarness.Bound);
         var frames = new ManualFrameSource();
         var presenter = new RecordingPresenter();
