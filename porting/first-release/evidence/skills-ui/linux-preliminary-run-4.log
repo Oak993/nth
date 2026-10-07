@@ -1,0 +1,48 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:30.56]     Marrow.App.Tests.Views.Settings.ImportSkillsTests.The_port_tick_boxes_tick_one_skill_or_a_whole_app_and_the_button_counts_them [FAIL]
+[xUnit.net 00:00:31.32]     Marrow.App.Tests.Views.Settings.ImportSkillsTests.Choose_a_folder_adds_that_folder_to_the_list_through_the_system_chooser [FAIL]
+  Failed Marrow.App.Tests.Views.Settings.ImportSkillsTests.The_port_tick_boxes_tick_one_skill_or_a_whole_app_and_the_button_counts_them [220 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.App.Tests.Views.Settings.ImportSkillsTests.<>c.<The_port_tick_boxes_tick_one_skill_or_a_whole_app_and_the_button_counts_them>b__9_0(LibraryPageHarness h, ImportRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/ImportSkillsTests.cs:line 82
+   at Marrow.App.Tests.Views.Settings.ImportSkillsTests.<>c__DisplayClass8_0.<RunWithFiles>b__0(LibraryPageHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/ImportSkillsTests.cs:line 73
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.<>c__DisplayClass33_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 77
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.Run(HeadlessSession headless, LibrarySection section, Action`1 check, Boolean motion, Boolean reduceMotion, SkillsCatalogue catalogue, IFirstInstall install, ImportModel imports, Boolean defaultImports) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 82
+   at Marrow.App.Tests.Views.Settings.ImportSkillsTests.RunWithFiles(Action`2 check, Boolean motion, Boolean reduceMotion, Func`1 pick) in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/ImportSkillsTests.cs:line 73
+   at Marrow.App.Tests.Views.Settings.ImportSkillsTests.The_port_tick_boxes_tick_one_skill_or_a_whole_app_and_the_button_counts_them() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/ImportSkillsTests.cs:line 79
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.ImportSkillsTests.Choose_a_folder_adds_that_folder_to_the_list_through_the_system_chooser [114 ms]
+  Error Message:
+   Assert.Contains() Failure: Item not found in collection
+Collection: ["Listed in every session: 0 skills", "Fixture S1", "3.5 MB", "Fixture S2", "8.1 MB", ···]
+Not found:  "No skills found in the usual places. You can choos"···
+  Stack Trace:
+     at Marrow.App.Tests.Views.Settings.ImportSkillsTests.<>c__DisplayClass16_0.<Choose_a_folder_adds_that_folder_to_the_list_through_the_system_chooser>b__1(LibraryPageHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/ImportSkillsTests.cs:line 230
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.<>c__DisplayClass33_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 77
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.Run(HeadlessSession headless, LibrarySection section, Action`1 check, Boolean motion, Boolean reduceMotion, SkillsCatalogue catalogue, IFirstInstall install, ImportModel imports, Boolean defaultImports) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 82
+   at Marrow.App.Tests.Views.Settings.ImportSkillsTests.Choose_a_folder_adds_that_folder_to_the_list_through_the_system_chooser() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/ImportSkillsTests.cs:line 227
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /tmp/skills-ui-evidence/linux-run-4.trx
+
+Failed!  - Failed:     2, Passed:   209, Skipped:     0, Total:   211, Duration: 39 s - Marrow.App.Tests.dll (net10.0)

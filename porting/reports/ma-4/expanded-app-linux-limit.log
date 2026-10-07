@@ -1,0 +1,47 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:06.45]     Marrow.App.Tests.Runtime.ThreadRuntimeFinishTurnTests.A_command_still_open_when_the_turn_ends_has_its_changes_counted_in_the_turn [FAIL]
+  Failed Marrow.App.Tests.Runtime.ThreadRuntimeFinishTurnTests.A_command_still_open_when_the_turn_ends_has_its_changes_counted_in_the_turn [2 ms]
+  Error Message:
+   System.AggregateException : One or more errors occurred. (Unable to load shared library 'kernel32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/kernel32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/kernel32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libkernel32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libkernel32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/kernel32.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/kernel32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libkernel32.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libkernel32.dll: cannot open shared object file: No such file or directory
+)
+---- System.DllNotFoundException : Unable to load shared library 'kernel32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/kernel32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/kernel32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libkernel32.dll.so: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libkernel32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/kernel32.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/kernel32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libkernel32.dll: cannot open shared object file: No such file or directory
+/tmp/marrow-dotnet/shared/Microsoft.NETCore.App/10.0.12/libkernel32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
+   at System.Threading.Tasks.Task.Wait(Int32 millisecondsTimeout, CancellationToken cancellationToken)
+   at System.Threading.Tasks.Task.Wait(TimeSpan timeout, CancellationToken cancellationToken)
+   at Marrow.App.Tests.Fixtures.AppModelGitRepo.Raw(String[] arguments) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/AppModelFixtures.cs:line 391
+   at Marrow.App.Tests.Fixtures.AppModelGitRepo.Git(String[] arguments) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/AppModelFixtures.cs:line 382
+   at Marrow.App.Tests.Fixtures.AppModelGitRepo.Empty(String folder) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/AppModelFixtures.cs:line 347
+   at Marrow.App.Tests.Fixtures.AppModelGitRepo.WithCommit(String folder) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/AppModelFixtures.cs:line 359
+   at Marrow.App.Tests.Runtime.ThreadRuntimeFinishTurnTests.<>c__DisplayClass10_0.<A_command_still_open_when_the_turn_ends_has_its_changes_counted_in_the_turn>b__0(AppModelHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Runtime/ThreadRuntimeFinishTurnTests.cs:line 137
+   at Marrow.App.Tests.Fixtures.ThreadRuntimeTurnRig..ctor(ProviderKind provider, Func`2 configure, String projectFolder, Boolean install, Action`1 settings, Boolean hydraOn, Func`2 projectFactory, Func`3 configureWithHarness) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/ThreadRuntimeTurnRig.cs:line 24
+   at Marrow.App.Tests.Runtime.ThreadRuntimeFinishTurnTests.A_command_still_open_when_the_turn_ends_has_its_changes_counted_in_the_turn() in /workspace/marrow-port/tests/Marrow.App.Tests/Runtime/ThreadRuntimeFinishTurnTests.cs:line 136
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+----- Inner Stack Trace -----
+   at Marrow.Core.Port.ProcessNative.CreatePipe(SafeFileHandle& readPipe, SafeFileHandle& writePipe, IntPtr attributes, Int32 size)
+   at Marrow.Core.Port.ProcessPipe..ctor() in /workspace/marrow-port/src/Marrow.Core/Port/ProcessLauncher.cs:line 121
+   at Marrow.Core.Support.Shell.RunBody(String executable, IReadOnlyList`1 arguments, String directory, IReadOnlyDictionary`2 environment, Byte[] input, Double timeout, Nullable`1 outputLimit) in /workspace/marrow-port/src/Marrow.Core/Support/Shell.cs:line 89
+Results File: /tmp/marrow-ma4-results/ma4-app.trx
+
+Failed!  - Failed:     1, Passed:    37, Skipped:     0, Total:    38, Duration: 7 s - Marrow.App.Tests.dll (net10.0)

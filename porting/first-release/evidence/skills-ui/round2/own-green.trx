@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="82dc055c-e6d4-42dd-9ff2-5c1821c62c36" name="@a24583ba704a 2026-10-07 08:55:11" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T08:55:11.7769059+00:00" queuing="2026-10-07T08:55:11.7769059+00:00" start="2026-10-07T08:55:04.7745862+00:00" finish="2026-10-07T08:55:14.5351829+00:00" />
+  <TestSettings name="default" id="b2e271c8-455d-467f-8b9a-de099746b0e4">
+    <Deployment runDeploymentRoot="_a24583ba704a_2026-10-07_08_55_11" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="15e35388-ec0c-48ac-a559-80a233da6d90" testId="dc1a351a-ec12-15d7-7639-2136ee89d8a0" testName="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Check_Add_reopen_and_remove_show_real_owned_provenance(sourceName: &quot;Folder&quot;)" computerName="a24583ba704a" duration="00:00:01.8927196" startTime="2026-10-07T08:55:11.7645184+00:00" endTime="2026-10-07T08:55:13.6311347+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="15e35388-ec0c-48ac-a559-80a233da6d90" />
+    <UnitTestResult executionId="642b63d2-3741-4eca-9537-60a7aef4439c" testId="2fd299e2-113a-7efd-9870-48ba068aa379" testName="Marrow.App.Tests.Port.Skills.CustomAddSheetTests.Invalid_candidates_cannot_be_selected_and_valid_items_add_in_parallel_only_after_Add" computerName="a24583ba704a" duration="00:00:00.1186173" startTime="2026-10-07T08:55:14.3550926+00:00" endTime="2026-10-07T08:55:14.4736513+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="642b63d2-3741-4eca-9537-60a7aef4439c" />
+    <UnitTestResult executionId="adeb1b02-314a-4a6a-a429-6d863969687f" testId="9a4b9caf-a50a-bd6d-0091-776448b597fa" testName="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Plugin_and_tool_copies_bind_their_real_registry_and_registration(kindName: &quot;Plugins&quot;)" computerName="a24583ba704a" duration="00:00:00.0162181" startTime="2026-10-07T08:55:14.0621423+00:00" endTime="2026-10-07T08:55:14.0783038+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="adeb1b02-314a-4a6a-a429-6d863969687f" />
+    <UnitTestResult executionId="defd1c09-1804-416d-b499-997044bf1bd0" testId="c78b8830-78dc-6bd0-de26-7ef1ce7e4a90" testName="Marrow.App.Tests.Port.Skills.CustomAddSheetTests.Folder_and_zip_are_browsed_readonly_and_GitHub_is_the_only_typed_source" computerName="a24583ba704a" duration="00:00:00.0928678" startTime="2026-10-07T08:55:14.2619805+00:00" endTime="2026-10-07T08:55:14.3547782+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="defd1c09-1804-416d-b499-997044bf1bd0" />
+    <UnitTestResult executionId="2d0eff03-4003-4bfe-8416-ecfdd4d11ec0" testId="4629157c-1fd2-0704-aa38-13eb549b5245" testName="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Changing_source_discards_checked_snapshots" computerName="a24583ba704a" duration="00:00:00.0816329" startTime="2026-10-07T08:55:14.0784990+00:00" endTime="2026-10-07T08:55:14.1601208+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2d0eff03-4003-4bfe-8416-ecfdd4d11ec0" />
+    <UnitTestResult executionId="b8a6543f-f08e-40a9-8001-ee2c4970065f" testId="6ad9617b-5998-125b-f894-bab8e36e63df" testName="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Plugin_and_tool_copies_bind_their_real_registry_and_registration(kindName: &quot;Tools&quot;)" computerName="a24583ba704a" duration="00:00:00.0821093" startTime="2026-10-07T08:55:13.9802628+00:00" endTime="2026-10-07T08:55:14.0619564+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b8a6543f-f08e-40a9-8001-ee2c4970065f" />
+    <UnitTestResult executionId="96e2482c-0ce2-4402-b56d-db254d688574" testId="ded2a939-b2f3-51ab-55ad-314189039073" testName="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Check_Add_reopen_and_remove_show_real_owned_provenance(sourceName: &quot;Zip&quot;)" computerName="a24583ba704a" duration="00:00:00.2351284" startTime="2026-10-07T08:55:13.6326655+00:00" endTime="2026-10-07T08:55:13.8663243+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="96e2482c-0ce2-4402-b56d-db254d688574" />
+    <UnitTestResult executionId="60d1b214-6655-4b68-8393-1f994f28c851" testId="b3928ba9-04c0-6017-b8d0-c84524149c72" testName="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Check_Add_reopen_and_remove_show_real_owned_provenance(sourceName: &quot;GitHub&quot;)" computerName="a24583ba704a" duration="00:00:04.7000466" startTime="2026-10-07T08:55:07.0547619+00:00" endTime="2026-10-07T08:55:11.7387155+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="60d1b214-6655-4b68-8393-1f994f28c851" />
+    <UnitTestResult executionId="8626aedb-b631-4c71-a0b3-ff208980cd70" testId="aab84069-fc79-1fb6-72eb-36403c1c8f51" testName="Marrow.App.Tests.Port.Skills.CustomAddSheetTests.An_unbound_backend_and_a_cancelled_picker_cannot_add_or_check" computerName="a24583ba704a" duration="00:00:00.0999415" startTime="2026-10-07T08:55:14.1619546+00:00" endTime="2026-10-07T08:55:14.2617575+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8626aedb-b631-4c71-a0b3-ff208980cd70" />
+    <UnitTestResult executionId="07bbd74e-9b72-4bf2-ab96-4fd8e2f7b210" testId="fae458a1-b113-9755-f7e3-a36cf966696d" testName="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Failed_publication_can_retry_the_same_checked_token_and_forged_details_fail" computerName="a24583ba704a" duration="00:00:00.1128744" startTime="2026-10-07T08:55:13.8676074+00:00" endTime="2026-10-07T08:55:13.9796743+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="07bbd74e-9b72-4bf2-ab96-4fd8e2f7b210" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Check_Add_reopen_and_remove_show_real_owned_provenance(sourceName: &quot;GitHub&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="b3928ba9-04c0-6017-b8d0-c84524149c72">
+      <Execution id="60d1b214-6655-4b68-8393-1f994f28c851" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests" name="Check_Add_reopen_and_remove_show_real_owned_provenance" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Plugin_and_tool_copies_bind_their_real_registry_and_registration(kindName: &quot;Plugins&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="9a4b9caf-a50a-bd6d-0091-776448b597fa">
+      <Execution id="adeb1b02-314a-4a6a-a429-6d863969687f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests" name="Plugin_and_tool_copies_bind_their_real_registry_and_registration" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomAddSheetTests.An_unbound_backend_and_a_cancelled_picker_cannot_add_or_check" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="aab84069-fc79-1fb6-72eb-36403c1c8f51">
+      <Execution id="8626aedb-b631-4c71-a0b3-ff208980cd70" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomAddSheetTests" name="An_unbound_backend_and_a_cancelled_picker_cannot_add_or_check" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Changing_source_discards_checked_snapshots" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="4629157c-1fd2-0704-aa38-13eb549b5245">
+      <Execution id="2d0eff03-4003-4bfe-8416-ecfdd4d11ec0" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests" name="Changing_source_discards_checked_snapshots" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Failed_publication_can_retry_the_same_checked_token_and_forged_details_fail" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="fae458a1-b113-9755-f7e3-a36cf966696d">
+      <Execution id="07bbd74e-9b72-4bf2-ab96-4fd8e2f7b210" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests" name="Failed_publication_can_retry_the_same_checked_token_and_forged_details_fail" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Plugin_and_tool_copies_bind_their_real_registry_and_registration(kindName: &quot;Tools&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="6ad9617b-5998-125b-f894-bab8e36e63df">
+      <Execution id="b8a6543f-f08e-40a9-8001-ee2c4970065f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests" name="Plugin_and_tool_copies_bind_their_real_registry_and_registration" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Check_Add_reopen_and_remove_show_real_owned_provenance(sourceName: &quot;Zip&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ded2a939-b2f3-51ab-55ad-314189039073">
+      <Execution id="96e2482c-0ce2-4402-b56d-db254d688574" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests" name="Check_Add_reopen_and_remove_show_real_owned_provenance" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomAddSheetTests.Folder_and_zip_are_browsed_readonly_and_GitHub_is_the_only_typed_source" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c78b8830-78dc-6bd0-de26-7ef1ce7e4a90">
+      <Execution id="defd1c09-1804-416d-b499-997044bf1bd0" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomAddSheetTests" name="Folder_and_zip_are_browsed_readonly_and_GitHub_is_the_only_typed_source" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests.Check_Add_reopen_and_remove_show_real_owned_provenance(sourceName: &quot;Folder&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="dc1a351a-ec12-15d7-7639-2136ee89d8a0">
+      <Execution id="15e35388-ec0c-48ac-a559-80a233da6d90" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomOwnBindingTests" name="Check_Add_reopen_and_remove_show_real_owned_provenance" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.CustomAddSheetTests.Invalid_candidates_cannot_be_selected_and_valid_items_add_in_parallel_only_after_Add" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2fd299e2-113a-7efd-9870-48ba068aa379">
+      <Execution id="642b63d2-3741-4eca-9537-60a7aef4439c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.CustomAddSheetTests" name="Invalid_candidates_cannot_be_selected_and_valid_items_add_in_parallel_only_after_Add" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="dc1a351a-ec12-15d7-7639-2136ee89d8a0" executionId="15e35388-ec0c-48ac-a559-80a233da6d90" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2fd299e2-113a-7efd-9870-48ba068aa379" executionId="642b63d2-3741-4eca-9537-60a7aef4439c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9a4b9caf-a50a-bd6d-0091-776448b597fa" executionId="adeb1b02-314a-4a6a-a429-6d863969687f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c78b8830-78dc-6bd0-de26-7ef1ce7e4a90" executionId="defd1c09-1804-416d-b499-997044bf1bd0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4629157c-1fd2-0704-aa38-13eb549b5245" executionId="2d0eff03-4003-4bfe-8416-ecfdd4d11ec0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6ad9617b-5998-125b-f894-bab8e36e63df" executionId="b8a6543f-f08e-40a9-8001-ee2c4970065f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ded2a939-b2f3-51ab-55ad-314189039073" executionId="96e2482c-0ce2-4402-b56d-db254d688574" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b3928ba9-04c0-6017-b8d0-c84524149c72" executionId="60d1b214-6655-4b68-8393-1f994f28c851" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="aab84069-fc79-1fb6-72eb-36403c1c8f51" executionId="8626aedb-b631-4c71-a0b3-ff208980cd70" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fae458a1-b113-9755-f7e3-a36cf966696d" executionId="07bbd74e-9b72-4bf2-ab96-4fd8e2f7b210" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="10" executed="10" passed="10" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.0)
+[xUnit.net 00:00:00.31]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.60]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.65]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:09.33]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

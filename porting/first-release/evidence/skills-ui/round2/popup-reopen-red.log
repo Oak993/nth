@@ -1,0 +1,28 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.28]     Marrow.UI.Tests.Port.PopoverMotionDismissalTests.Reopening_during_custom_close_restarts_open_motion_on_the_existing_surface [FAIL]
+  Failed Marrow.UI.Tests.Port.PopoverMotionDismissalTests.Reopening_during_custom_close_restarts_open_motion_on_the_existing_surface [14 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 2
+Actual:   1
+  Stack Trace:
+     at Marrow.UI.Tests.Port.PopoverMotionDismissalTests.<>c.<Reopening_during_custom_close_restarts_open_motion_on_the_existing_surface>b__2_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/PopoverMotionDismissalTests.cs:line 35
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.PopoverMotionDismissalTests.Reopening_during_custom_close_restarts_open_motion_on_the_existing_surface() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/PopoverMotionDismissalTests.cs:line 17
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:     1, Passed:     1, Skipped:     0, Total:     2, Duration: 471 ms - Marrow.UI.Tests.dll (net10.0)

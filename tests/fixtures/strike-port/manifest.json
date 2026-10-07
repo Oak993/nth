@@ -1,0 +1,137 @@
+{
+ "generator": "gen-vectors.mjs",
+ "version": 1,
+ "quick": false,
+ "node": "v24.14.1",
+ "generatedAt": "2026-10-03T06:57:08.381Z",
+ "sources": {
+  "strike-engine.js": "ce2da0566ae9f611141ed9c3b744c702061283007d25b87ccc6eb25b9328a518",
+  "strike-light-locked.html": "d386ee71fca450fed5338427db62d90c89e3cb0abfa210eed51c3fa9729f7df5",
+  "knob-variants.js": "42672728ee259efb5d89db291f7ea03f24bc1125d65f2405a1431c7a0173861e",
+  "knob-orbs-1.js": "13bf5e16cbc4974c55ca0c135a731b1fc4f8ef9bab45907335e2554688bf8688",
+  "knob-orbs-2.js": "86321f76189ef56c89def6c302afde231295e885e3904d26a8e56f93f3057bba",
+  "liquid-palettes.json": "a600baefbcf22aca861392456ff4d9c05088c37627fe30e95cd5142d5c441f15"
+ },
+ "pageRanges": [
+  [
+   284,
+   865
+  ],
+  [
+   1331,
+   1387
+  ],
+  [
+   1481,
+   1535
+  ]
+ ],
+ "seam": "page line 1332 rnd() -> globalThis.__draw()",
+ "geometries": {
+  "appMax": {
+   "W": 298,
+   "H": 34,
+   "kn": 48,
+   "ex": 272,
+   "bub": "53,9,3,1",
+   "note": "the app's track 298 x 34 (ED-252's like-for-like evidence), knob 48 px (OD-0090), knob at Max (centre 274)"
+  },
+  "appHigh": {
+   "W": 298,
+   "H": 34,
+   "kn": 48,
+   "ex": 188.75,
+   "bub": "53,9,3,1",
+   "note": "the app track, knob at High of 4 stops"
+  },
+  "pageBig": {
+   "W": 520,
+   "H": 40,
+   "kn": 56,
+   "ex": 335.25,
+   "bub": "53,15,5,1",
+   "note": "the page's large main slider (TUBES.big, index 2 High)"
+  },
+  "pageSmall": {
+   "W": 300,
+   "H": 26,
+   "kn": 36,
+   "ex": 280,
+   "bub": "54,9,3,1",
+   "note": "the page's small main slider (TUBES.sm, index 3 Max)"
+  }
+ },
+ "seeds": [
+  1274,
+  110,
+  207,
+  2000000011
+ ],
+ "files": {
+  "noise.json": {
+   "bytes": 27037,
+   "sha256": "5c17f8462583ebf0b1c161ed2908b5d7874546c8810666c7906b3e857e70a129",
+   "bytesOnDisk": 27037
+  },
+  "plan-timing.json": {
+   "bytes": 235759,
+   "sha256": "c67da434452f44c05606d3f278260c050288882047bc01e921146376e9252999",
+   "bytesOnDisk": 235759
+  },
+  "plan-stats.json": {
+   "bytes": 1550,
+   "sha256": "ab06f1f2e408333839b319ab06f80af1fa0f520093fbbabfcca47c85620cfbb0",
+   "bytesOnDisk": 1550
+  },
+  "plan-geometry.json": {
+   "bytes": 1440483,
+   "sha256": "4028769efd8378308a5ea8269adf25e9e7eb8e4740935b268edbc63d573df8aa",
+   "bytesOnDisk": 1440483
+  },
+  "plume-frames.json": {
+   "bytes": 2126267,
+   "sha256": "42cf855bee0fc574a11ec684da762689490437456482066c6826e08859846a2b",
+   "bytesOnDisk": 2126267
+  },
+  "bursts.json": {
+   "bytes": 125673,
+   "sha256": "2d774acc4e63efb8e1bebc44e1f7438285832f6d57aaeb54382b9b544f542b46",
+   "bytesOnDisk": 125673
+  },
+  "burst-draw.json": {
+   "bytes": 126427,
+   "sha256": "7071e92c859922745051bd78db3e5240c3d35ddb95da5cf07de78b56793645dd",
+   "bytesOnDisk": 126427
+  },
+  "ink.json": {
+   "bytes": 27415,
+   "sha256": "cdc69f0b28b80ef8fedded31683e8ccaccfc5b77a993cad51a1109fb5f08713c",
+   "bytesOnDisk": 27415
+  },
+  "clean-windows.json": {
+   "bytes": 64635,
+   "sha256": "b3dd9cdf4f55f754cbb52e779693ede6ab1f019731504eab01ea336dc55a38cf",
+   "bytesOnDisk": 64635
+  },
+  "random-entry.json": {
+   "bytes": 31613,
+   "sha256": "37c6e5678dad5a658ab38a9529e9caf26dd7e51d3ca6b90849376371e21e10f6",
+   "bytesOnDisk": 31613
+  },
+  "bubbles.json": {
+   "bytes": 1577196,
+   "sha256": "f821ba7ddfaecf80564cc9ab5d58ae26dcd3325cb187f5b1fff9b4f33ab611ce",
+   "bytesOnDisk": 1577196
+  },
+  "knob-signal.json": {
+   "bytes": 267666,
+   "sha256": "b979e99d96028a682041520109cdbbfe15da735372ab9b4bfe0e35a43c590b69",
+   "bytesOnDisk": 267666
+  },
+  "budget.json": {
+   "bytes": 2095,
+   "sha256": "261dd84819abbe75b71c60f7157cb39be6371e080e23ffccb5487818210796c7",
+   "bytesOnDisk": 2095
+  }
+ }
+}

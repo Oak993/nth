@@ -2452,7 +2452,27 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:59-138"
       ],
-      "notes": "The label never swaps to something like \"Select effort\" while open, because that would resize the chip under the popover's own arrow. The name is the only part allowed to truncate. AMENDED (blitz-effortslider2): the interaction read \"below the chip\"; the source (EffortSlider.swift:120 arrowEdge: .bottom) and the reference runtime (2-chat-use.mov 33.74-33.94 s, the card above the chip, its arrow pointing down at it) put the card above it (ED-262 (6)); the port places it on top (PlacementMode.Top, flipping below without room)."
+      "notes": "The label never swaps to something like \"Select effort\" while open, because that would resize the chip under the popover's own arrow. The name is the only part allowed to truncate. AMENDED (blitz-effortslider2): the interaction read \"below the chip\"; the source (EffortSlider.swift:120 arrowEdge: .bottom) and the reference runtime (2-chat-use.mov 33.74-33.94 s, the card above the chip, its arrow pointing down at it) put the card above it (ED-262 (6)); the port places it on top (PlacementMode.Top, flipping below without room).",
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-530",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderChipMarkTests",
+          "EffortSliderChipRecordsTests",
+          "EffortSliderComponentsTests",
+          "EffortSliderSweepTests",
+          "ModelChipTextCrossfadeTests",
+          "ModelEffortPopoverPlacementTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
+      }
     },
     {
       "area": "COMPOSER",
@@ -2878,7 +2898,25 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:153-228",
         "DroppyCode/App/Views/Composer/EffortSlider.swift:557-656 `var body: some View { VStack(spacing: 16) {` (557-558) with `.padding(.horizontal, 16)` (653), `.padding(.top, 14)` (654), `.padding(.bottom, 16)` (655)"
       ],
-      "notes": "The chip's width is frozen while this is open so the popover does not drift. AMENDED (blitz-effortslider2): the interaction read \"hangs below the model chip\"; the source (EffortSlider.swift:120) and the reference runtime (2-chat-use.mov 33.74-33.94 s) put the card above the chip (ED-262 (6))."
+      "notes": "The chip's width is frozen while this is open so the popover does not drift. AMENDED (blitz-effortslider2): the interaction read \"hangs below the model chip\"; the source (EffortSlider.swift:120) and the reference runtime (2-chat-use.mov 33.74-33.94 s) put the card above the chip (ED-262 (6)).",
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-530",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderCardTests",
+          "EffortSliderPanelTests",
+          "EffortSliderSweepTests",
+          "ModelEffortPopoverPlacementTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
+      }
     },
     {
       "area": "COMPOSER",
@@ -2908,6 +2946,24 @@
         "decision": "OD-0094",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:543-555 titleStyle: a gradient title is a static LinearGradient (leading to trailing); its colours move along the letters only while the text changes (2-chat-use.mov, study/effort-title-2026-10-03)",
         "port": "A gradient title's colours also drift slowly along the letters at rest (OD-0094): a mirrored, seamless 7 s loop (MorphingTextBlock.DriftPeriod, ENGINEERING DECISION ED-238), continuous with a change's own drawing, still under reduce motion, frames only while the title is shown. Single-colour titles, the geometry, typography, hover, tap and the 0.3 s smooth colour changes are the source's."
+      },
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-530",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderCardPartsTests",
+          "EffortSliderCardTests",
+          "EffortSliderSweepTests",
+          "EffortTitleMorphTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -2957,7 +3013,24 @@
         "DroppyCode/App/Views/Composer/EffortSlider.swift:659-683 `private struct FastModeButton` - `Image(systemName: isOn ? \"bolt.fill\" : \"bolt\").font(.system(.body, weight: .semibold)).foregroundStyle(isOn ? Color.yellow : Chrome.secondaryText).symbolEffect(.bounce, value: isOn).frame(width: 30, height: 30)`, `Circle().fill(isOn ? Color.yellow.opacity(0.18) : Chrome.overlay(isHovering ? 0.1 : 0.06))`, `.help(isOn ? \"Fast mode is on\" : \"Fast mode\")`"
       ],
       "notes": "Accessibility label is always \"Fast mode\" with the value \"On\" or \"Off\"; the tooltip differs from the label when on.",
-      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:668 `.font(.system(size: 13, weight: .semibold))` -> B2 :668 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059)."
+      "b2_change": "B1 DroppyCode/App/Views/Composer/EffortSlider.swift:668 `.font(.system(size: 13, weight: .semibold))` -> B2 :668 `.font(.system(.body, weight: .semibold))`, 13 point per upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` (file deleted at B2; the port uses these sizes per ED-059).",
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-530",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderCardPartsTests",
+          "EffortSliderFastModeSpringTests",
+          "EffortSliderSweepTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
+      }
     },
     {
       "area": "COMPOSER",
@@ -3014,6 +3087,25 @@
         "decision": "OD-0090; OD-0048; OD-0051; OD-0073; OD-0075",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:713 thumbSize = 42 (:746 inset 21, :820 control height 42); :781-796 the knob: a blurred glow disc (radius 4 plain, 8 charged, offset 1 point down, :782-785) under a clear circle with .glassEffect(.regular.tint(white at 0.55 on a light fill, else 0.32).interactive()) (:786-788) and a black 0.14 strokeBorder only on a light fill (:790-792), 42 by 42, scaled 1.06 while dragging (:794-795); :801-818 the drag; :824-830 the adjustable action | the states: :760-767 overlay an effect only for a non-plain kind or a pair (plain: the accent fill, no effect), :985-998 the fill per kind, and the pair's \"live fusion seam\" (:1232-1256 drawFusion)",
         "port": "The knob is the 48 px Jewel orb (OD-0090, ED-252), larger than the 34 px track (1.4 x its height: it stands 7 px proud above and below and sits flush with the track's end at either extreme), with the control 48 px high, stop centres 24 px in from each end and the fill to the knob's far edge; it lifts to 1.06x where it is pressed (response 0.22 s, damping 0.8, a deeper shadow fading in) and springs onto the nearest stop and back to 1x on release (0.32 s, 0.78), the gem always moving (speed 2.6 at rest, up to 4.2 as the charge rises; still under reduce motion), its colours the selected maker's liquid, crossfading over 0.6 s on a model change; no glass lens, tint, edge or glow. The states other than the knob's: every look draws the liquid effect, the plain one too (OD-0075), the fast and fusion looks Strike over it (OD-0073), and a pair draws the liquid with the workers to the left and the lead at the knob (OD-0048, OD-0051, in place of the fusion seam); the fill under the liquid is the brand's in every solo kind (OD-0075, OD-0073) and [lead fill] + the heads' colours in a pair."
+      },
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-530",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderJewelKnobTests",
+          "EffortSliderJewelOrbTests",
+          "StrikeProductionTests",
+          "StrikeRasterTests",
+          "StrikePipelineDisciplineTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim. The locked page knob glass/fringe/inner-shade capture comparison and owner eye check remain UNVERIFIED; the existing no-Req-credit guard is preserved."
       }
     },
     {
@@ -3039,6 +3131,22 @@
         "decision": "OD-0090",
         "upstream": "DroppyCode/App/Views/Composer/EffortSlider.swift:620-624 `.frame(height: EffortSlider.thumbSize)` with :713 thumbSize = 42: the note occupies 42 points of height",
         "port": "The note occupies 48 px of height, the knob's (EffortSlider.ThumbSize = 48 under OD-0090, ED-252), so the card keeps one height between models, as the source intends."
+      },
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "unit": "T14 Strike / codex/strike",
+        "decision": "ED-530",
+        "sources": [
+          "src/Marrow.App/Views/Composer/EffortSlider.cs",
+          "src/Marrow.App/Views/Composer/LiquidTrack.cs",
+          "src/Marrow.App/Views/Composer/StrikeRaster.cs"
+        ],
+        "tests": [
+          "EffortSliderKnobRecordsTests",
+          "EffortSliderSweepTests"
+        ],
+        "receipt": "E:/Droppy/work/scratch/codex-strike/st3-close-all.log",
+        "qualification": "IMPLEMENTED code only. Native Phase E needs the lead's quiet window; independent reviewer owns D-07. No VERIFIED or whole Gate D claim."
       }
     },
     {
@@ -18615,6 +18723,32 @@
         "decision": "OD-0005",
         "upstream": "SidebarView.swift:904-964: a `PopoverMenu` on the system popover material whose buttons use `.buttonStyle(.glass)` and `.buttonStyle(.glassProminent)` (macOS Liquid Glass).",
         "port": "An Acrylic-class Windows system material where the surface shows the desktop, and the source-defined material (shape, corner radius, tint colour and opacity, interactivity) over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop."
+      },
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "accepted_commit": "5e5df33078d112af6eb9ab029643e8d4b213fe24",
+        "accepted_source_tree": "7e9a2d1fe92de8eee3c6c861172f3033484a5e68",
+        "accepted_test_tree": "decc125760c68e0b4345da0a1d98850b5ef05255",
+        "independent_review": "Independent /root/source_review source/test review 2026-10-07 accepts these four whole records as IMPLEMENTED; no production gap or remaining actionable finding. Reviewer did not independently rerun tests. See porting/verification/parity-tail-20261007/independent-review.md.",
+        "evidence_refs": [
+          "porting/verification/parity-tail-20261007/REPORT.md",
+          "tests/Marrow.App.Tests/Views/Sidebar/ParityTailArchiveTests.cs",
+          "tests/Marrow.App.Tests/Views/Sidebar/SidebarViewTests.cs",
+          "src/Marrow.App/Views/Sidebar/SidebarView.cs:1532-1608,1628-1780",
+          "ED-389"
+        ],
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "porting/verification/parity-tail-20261007/parity-tail-build-final.log.gz"
+        },
+        "tests": {
+          "focused_passed": 9,
+          "focused_failed": 0,
+          "focused_skipped": 0,
+          "mode": "Supplemental Linux ICU76; five focused repeats 9/9. Without forwarding final focused 7 passed/2 failed. Affected 24 passed/1 unchanged Windows API failure. Broad results and raw failures/aborts/skips retained in REPORT.md and receipts.json."
+        },
+        "scope": "Already implemented at base; source-derived regression closure only. IMPLEMENTED, not VERIFIED. Native Windows, real Boot B/bootstrap, visual comparison and installed-package checks pending."
       }
     },
     {
@@ -18643,6 +18777,33 @@
         "decision": "OD-0005",
         "upstream": "SidebarView.swift:925-931 styles Delete `.buttonStyle(.glass)` and Archive `.buttonStyle(.glassProminent)` (macOS Liquid Glass).",
         "port": "An Acrylic-class Windows system material where the surface shows the desktop, and the source-defined material (shape, corner radius, tint colour and opacity, interactivity) over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop. Roles, colours and tooltips unchanged."
+      },
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "accepted_commit": "5e5df33078d112af6eb9ab029643e8d4b213fe24",
+        "accepted_source_tree": "7e9a2d1fe92de8eee3c6c861172f3033484a5e68",
+        "accepted_test_tree": "decc125760c68e0b4345da0a1d98850b5ef05255",
+        "independent_review": "Independent /root/source_review source/test review 2026-10-07 accepts these four whole records as IMPLEMENTED; no production gap or remaining actionable finding. Reviewer did not independently rerun tests. See porting/verification/parity-tail-20261007/independent-review.md.",
+        "evidence_refs": [
+          "porting/verification/parity-tail-20261007/REPORT.md",
+          "tests/Marrow.App.Tests/Views/Sidebar/ParityTailArchiveTests.cs",
+          "tests/Marrow.App.Tests/Views/Sidebar/SidebarViewTests.cs",
+          "src/Marrow.App/Views/Sidebar/SidebarView.cs:1532-1608,1628-1780",
+          "ED-389"
+        ],
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "porting/verification/parity-tail-20261007/parity-tail-build-final.log.gz"
+        },
+        "tests": {
+          "focused_passed": 9,
+          "focused_failed": 0,
+          "focused_skipped": 0,
+          "mode": "Supplemental Linux ICU76; five focused repeats 9/9. Without forwarding final focused 7 passed/2 failed. Affected 24 passed/1 unchanged Windows API failure. Broad results and raw failures/aborts/skips retained in REPORT.md and receipts.json."
+        },
+        "scope": "Already implemented at base; source-derived regression closure only. IMPLEMENTED, not VERIFIED. Native Windows, real Boot B/bootstrap, visual comparison and installed-package checks pending.",
+        "deletion_proof_limit": "New proof simulates the two real Popup.Closed operations; real native popup teardown remains a Windows check."
       }
     },
     {

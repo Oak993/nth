@@ -28,9 +28,13 @@ public sealed class BubbleBursts
     /// <summary>A burst's life, s.</summary>
     public const double Life = 0.19;
 
-    private readonly Dictionary<(int Lane, int Rise), double> dead = [];
-    private readonly List<BubbleBurst> bursts = [];
-    private readonly List<(double T, int K, int Step)> events = [];
+    private readonly Dictionary<(int Lane, int Rise), double> dead = new(128);
+    private readonly List<BubbleBurst> bursts = new(128);
+    private readonly List<(double T, int K, int Step)> events = new(128);
+    private readonly (int Lane, int Rise)[] expiredKeys = new (int, int)[128];
+    private readonly double[][] glints = Enumerable.Range(0, 128).Select(_ => new double[12]).ToArray();
+
+    internal IReadOnlyCollection<(int Lane, int Rise)> DeadKeys => dead.Keys;
     private double? processedTo;
     private BubbleLanes? lanes;
 
@@ -79,18 +83,23 @@ public sealed class BubbleBursts
             foreach (var (te, k, step) in events) Contact(channels, g, strikeSeed, bubbles, te, k, step);
         }
         processedTo = t;
-        if (bursts.Count > 0 && t - bursts[0].T > 0.4) bursts.RemoveAll(b => t - b.T > 0.4);
-        if (dead.Count > 64) foreach (var key in dead.Where(e => t - e.Value > 10).Select(e => e.Key).ToArray()) dead.Remove(key);
+        for (var i = bursts.Count - 1; i >= 0; i--) if (t - bursts[i].T > 0.4) bursts.RemoveAt(i);
+        if (dead.Count > 64)
+        {
+            var count = 0;
+            foreach (var item in dead) if (t - item.Value > 10) expiredKeys[count++] = item.Key;
+            for (var i = 0; i < count; i++) dead.Remove(expiredKeys[i]);
+        }
     }
 
     private void Contact(StrikeChannels channels, StrikeGeometry g, int seed, BubbleLanes bubbles, double te, int k, int step)
     {
-        var main = channels.Main(g, k);
+        var main = channels.MainFrame(g, k);
         var last = main.Length / 2 - 1;
         var hw = HalfWidth * g.K;
         for (var i = 0; i < bubbles.Count; i++)
         {
-            if (bubbles.At(i, te) is not { } now) continue;
+            if (bubbles.AtFrame(i, te) is not { } now) continue;
             var (centre, radius, opacity) = LiquidTrack.BubbleAt(now.Rise, g.Height, now.Progress);
             if (opacity < 0.12) continue;
             var key = (i, now.K);
@@ -107,7 +116,7 @@ public sealed class BubbleBursts
             else
             {
                 hit = Near(centre.X, centre.Y, main, 0, last, lim);
-                for (var b = 0; b < 5 && !hit; b++) hit = Near(centre.X, centre.Y, channels.Branch(g, k, b), 0, 5, lim);
+                for (var b = 0; b < 5 && !hit; b++) hit = Near(centre.X, centre.Y, channels.BranchFrame(g, k, b), 0, 5, lim);
             }
             if (!hit) continue;
             dead[key] = te;
@@ -146,6 +155,7 @@ public sealed class BubbleBursts
     public void Light(List<StrikeOp> ops, StrikeGeometry g, StrikeTint tint, double t)
     {
         double sk = Math.Sqrt(g.K);
+        var glint = 0;
         foreach (var b in bursts)
         {
             var u = (t - b.T) / Life;
@@ -156,7 +166,7 @@ public sealed class BubbleBursts
             int m = 3 + b.N % 2;
             double e2 = 1 - (1 - u) * (1 - u), ga = Math.Pow(1 - u, 2) * 0.95;
             // one path of m discs filled once, as the engine fills them (overlapping glints do not add up)
-            var discs = new double[m * 3];
+            var discs = glints[glint++];
             for (var j = 0; j < m; j++)
             {
                 var an = b.Rot + j * 2 * Math.PI / m + (Strike.Hash(b.N, j) - 0.5) * 0.9;
@@ -164,7 +174,7 @@ public sealed class BubbleBursts
                 discs[j * 3] = b.X + d * Math.Cos(an); discs[j * 3 + 1] = b.Y + d * Math.Sin(an);
                 discs[j * 3 + 2] = (0.6 + 0.45 * Strike.Hash(b.N, j + 13)) * (1 - 0.5 * u) * Math.Max(0.8, g.K);
             }
-            ops.Add(StrikeOp.Discs(discs, tint.Inner, Strike.Fixed3(ga)));
+            ops.Add(StrikeOp.Discs(discs, m * 3, tint.Inner, Strike.Fixed3(ga)));
         }
 
         static void Pool(List<StrikeOp> ops, StrikeTint tint, double x, double y, double r, double a)

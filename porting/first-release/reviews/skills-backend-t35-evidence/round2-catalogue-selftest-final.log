@@ -1,0 +1,15 @@
+ok  sha256 and git blob sha1
+ok  front matter name
+ok  SHASUMS and single-file sha256
+ok  integrity
+ok  raw url encodes each segment and keeps slashes
+ok  skill directories and folders
+ok  files under a directory, with excluded segments
+ok  symlinks and submodules are unsupported, licences are found
+ok  python names, wheel names and lock pins
+ok  npm lock filtering by platform
+ok  host allow-list is exact and https only
+ok  percent off and the bounded pool
+ok  npm needs a shell on Windows only (spawnSync cannot start npm.cmd directly there)
+ok  mapLimit keeps order
+selftest passed

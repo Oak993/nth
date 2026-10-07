@@ -1,0 +1,39 @@
+{
+  "scope": "Read-only evidence probes; not an exhaustive catalogue pin run. Source commit/version URL from unchanged catalogue; successful bytes measured, no values inferred.",
+  "observations": [
+    {
+      "url": "https://raw.githubusercontent.com/anthropics/skills/8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4/skills/docx/SKILL.md",
+      "status": 200,
+      "bytes": 6911,
+      "sha256": "8017469ea95fb7d28225c62daf8e2f3492a7b516fc64c18c28977cbf8980b7fe"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/anthropics/skills/8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4/skills/docx/LICENSE.txt",
+      "status": 200,
+      "bytes": 1467,
+      "sha256": "79f6d8f5b427252fa3b1c11ecdbdb6bf610b944f7530b4de78f770f38741cfaa"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/pdf/SKILL.md",
+      "status": 200,
+      "bytes": 2517,
+      "sha256": "d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2"
+    },
+    {
+      "url": "https://api.github.com/repos/anthropics/skills/git/trees/8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4?recursive=1",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    },
+    {
+      "url": "https://www.python.org/ftp/python/3.14.7/python-3.14.7-embed-amd64.zip",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    },
+    {
+      "url": "https://download.documentfoundation.org/libreoffice/stable/",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    },
+    {
+      "url": "https://cdn.playwright.dev/",
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    }
+  ]
+}

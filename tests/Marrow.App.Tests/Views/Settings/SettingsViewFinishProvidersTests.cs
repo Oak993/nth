@@ -64,7 +64,7 @@ public sealed class SettingsViewFinishProvidersTests(HeadlessSession headless) :
             button = Assert.Single(Nodes<Button>(refresh)); glyph = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.False(button.IsEnabled); Assert.Equal("Checking providers…", ToolTip.GetTip(button)); Assert.Equal("Checking providers…", AutomationProperties.GetName(button)); Assert.Equal(0x2026, (int)"Checking providers…"[^1]); Assert.Equal(1, ToolTip.GetTip(button)!.ToString()!.Count(c => c == '…'));
             Ink(glyph, Avalonia.Controls.Documents.TextElement.GetForeground(glyph), Chrome.PrimaryText.Opacity(0.32)); Assert.Equal(new Size(34, 32), refresh.Bounds.Size);
             Finish(h, model); Drain(w); button = Assert.Single(Nodes<Button>(refresh)); glyph = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.True(button.IsEnabled); Assert.Equal("Check providers again", ToolTip.GetTip(button)); Ink(glyph, Avalonia.Controls.Documents.TextElement.GetForeground(glyph), Chrome.PrimaryText.Opacity(0.92));
-            Assert.True(lookups > 0); Assert.Equal(15, model.Providers.Statuses.Count); // the refresh checked every provider again
+            Assert.True(lookups > 0); Assert.Equal(16, model.Providers.Statuses.Count); // the refresh checked every provider again
         }, height: 1100);
     }
 
@@ -91,7 +91,7 @@ public sealed class SettingsViewFinishProvidersTests(HeadlessSession headless) :
             var button = Assert.Single(Nodes<Button>(refresh)); Assert.Equal("Check providers again", ToolTip.GetTip(button)); Start(h, w, button, new Point(14, 14)); Assert.True(model.Providers.IsRefreshing);
             // While it runs the button is disabled, a second call returns at once without starting another, and a press on the dimmed button changes nothing.
             Task? again = null; using (MainActor.Executor.Override(h.Main.Loop)) { h.Main.Loop.Enqueue(() => again = model.Providers.RefreshEverything()); h.Main.RunUntilIdle(); } Assert.True(again!.IsCompletedSuccessfully); button = Assert.Single(Nodes<Button>(refresh)); Assert.False(button.IsEnabled); Assert.Equal("Checking providers…", ToolTip.GetTip(button)); ClickOnce(w, button, new Point(14, 14));
-            Finish(h, model); Drain(w); var first = lookups; Assert.True(first > 0); Assert.Equal(15, model.Providers.Statuses.Count); Assert.Equal("Check providers again", ToolTip.GetTip(Assert.Single(Nodes<Button>(refresh))));
+            Finish(h, model); Drain(w); var first = lookups; Assert.True(first > 0); Assert.Equal(16, model.Providers.Statuses.Count); Assert.Equal("Check providers again", ToolTip.GetTip(Assert.Single(Nodes<Button>(refresh))));
             // A plain second run costs exactly what the first did, so nothing the first run's extra calls did started a second run.
             Start(h, w, Assert.Single(Nodes<Button>(refresh)), new Point(14, 14)); Assert.True(model.Providers.IsRefreshing); Finish(h, model); Drain(w); Assert.Equal(first * 2, lookups);
             // :254 the button is in the chrome row only while the Providers page is showing, never on another page (other pages may look providers up for their own reasons).

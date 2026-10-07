@@ -369,13 +369,19 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         Assert.Equal(StrikeOpKind.Wash, wash.Kind);
         Assert.Equal(Strike.Ambient(quiet), wash.Alpha, 12);
         Assert.Equal(0.9 * 34 * 1.2, wash.Rx, 9);
-        using var drawn = Frame(effect, quiet);
+        using var initial=Frame(effect,0);
+        var baseTime=effect.StrikeOffset; var starts=new StrikeStarts(seed); var windows=starts.Windows(baseTime,baseTime+60,true);
+        var clean=windows.Items.Take(windows.Count).First(w=>w.To-w.From>0.02);
+        var pageTime=(clean.From+clean.To)/2-baseTime; // K-162/K-165: the interior, never the inclusive visible-end boundary.
+        using var drawn = Frame(effect, pageTime);
         var spec = LiquidSpec.For(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude));
         // OD-0078 (required with OD-0090): the bubbles the last strikes touched have burst and are gone until their next rise
         var (_, _, popped) = StrikeFixtures.WithBursts(ops, effect.StrikeGeometryFor(new Size(260, 34)), seed, effect.Bubbles(260, 34).Seed, 260, quiet, StrikeTint.Claude);
         using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, quiet, LiquidFlow.At(quiet, true), null, 1, effect.Bubbles(260, 34), null, null, popped);
-        Assert.True(MaxDelta(drawn, bare, 0, (int)(239 - wash.Rx) - 1, 3, 31) <= 1);                 // left of the pool: the liquid alone
-        Assert.True(MaxDelta(drawn, bare, 225, 250, 12, 22) >= 5);                                   // at the knob: the pool
+        using var expected=MixTrackFixtures.Draw(effect.Look,effect.StrikeGeometryFor(new Size(260,34)),seed,effect.Bubbles(260,34).Seed,pageTime,baseTime,previousFrame:0);
+        Assert.True(MaxDelta(drawn,expected,0,260,0,34)<=1); // SPEC K-111/K-127/B-08: independent page-clock pool, exact scene.
+        var idle=new StrikeStorm(seed).Resolve(effect.StrikeGeometryFor(new Size(260,34)),pageTime+baseTime,pageTime,1,0);
+        Assert.Equal(0,idle.Masks.Count); Assert.Equal(1,idle.LightCount); Assert.Equal(Strike.Ambient(pageTime),idle.Light[0].Alpha,12);
     });
 
     [Fact]
@@ -402,19 +408,17 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         var look = new TrackLook(kind, EffortBrand.Deepseek, pair);
         Assert.True(TrackEffect.IsLiquid(look));
         var effect = Effect(look);
-        var t = Strike.StrikeAt(2, effect.StrikeSeed) + 0.01;
+        using var initial = Frame(effect,0);
+        var t = MixTrackFixtures.NextStrikePageTime(effect);
         using var drawn = Frame(effect, t);
         var geometry = effect.StrikeGeometryFor(new Size(260, 34));
         // the knob's radius, and where the bolt leaves: OD-0090's page puts it 2 px before the knob's centre (236), on a
         // quarter pixel (jewel-knob.html:593 tl.exAt = Math.round((x - 2) * 4) / 4: 234)
         Assert.Equal(new StrikeGeometry(260, 34, 234, EffortSlider.ThumbSize / 2), geometry);
-        var ops = new StrikeChannels(effect.StrikeSeed).Scene(geometry, t, StrikeTint.DeepSeek);
-        var spec = LiquidSpec.For(look);
-        // OD-0078 (required with OD-0090): the bubbles the strikes touched have burst
-        var (lit, rings, popped) = StrikeFixtures.WithBursts(ops, geometry, effect.StrikeSeed, effect.Bubbles(260, 34).Seed, 260, t, StrikeTint.DeepSeek);
-        using var expected = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), lit, 1, effect.Bubbles(260, 34), null, rings, popped);
+        // SPEC B-01..B-07/C-02 + OD-0093 supersede the A2 production scene. State/math are pinned separately by locked vectors.
+        using var expected = MixTrackFixtures.Draw(look,geometry,effect.StrikeSeed,effect.Bubbles(260,34).Seed,t,effect.StrikeOffset,previousFrame:0);
         Assert.True(MaxDelta(drawn, expected, 0, 260, 0, 34) <= 1, "the track draws the scene of its own seed in the lead's tint");
-        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), null, 1, effect.Bubbles(260, 34), null, null, popped);
+        using var bare = MixTrackFixtures.Draw(look with {TrackLookKind=TrackLook.Kind.Plain},geometry,effect.StrikeSeed,effect.Bubbles(260,34).Seed,t,effect.StrikeOffset);
         Assert.True(MaxDelta(drawn, bare, 150, 238, 4, 30) > 60, "the strike shows");
     });
 
@@ -470,8 +474,9 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         using var later = Frame(effect, 7.9);
         Assert.Equal(first.Bytes, later.Bytes);
         var ops = new StrikeChannels(effect.StrikeSeed).Scene(effect.StrikeGeometryFor(new Size(260, 34)), Strike.StillTime(effect.StrikeSeed), StrikeTint.Claude);
-        Assert.Equal(2 + 1 + 3 + 5 * 3 + 1, ops.Count);                                              // ghost x2, flash, main x3, five branches x3, ambient
-        using var still = StrikeFixtures.Liquid(LiquidSpec.For(look), new Size(260, 34), 260, 0, default, ops, 1);
+        Assert.Equal(2 + 1 + 3 + 5 * 3 + 1, ops.Count);                                              // legacy pure maths retained unchanged
+        var geometry=effect.StrikeGeometryFor(new Size(260,34));
+        using var still = MixTrackFixtures.Draw(look,geometry,effect.StrikeSeed,effect.Bubbles(260,34).Seed,0,0,true);
         Assert.True(MaxDelta(first, still, 0, 260, 0, 34) <= 1, "the still: the liquid at rest, no bubbles, the strike 35 ms in");
     });
 

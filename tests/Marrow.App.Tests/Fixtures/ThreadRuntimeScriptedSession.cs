@@ -32,13 +32,14 @@ public sealed class ThreadRuntimeScriptedSession : ProviderSession
     public int InterruptCalls { get; private set; }
     public Exception? SendFailure { get; set; }
     public Func<TurnInput, Task>? SendScript { get; set; }
+    public Func<Task<string>>? StartScript { get; set; }
     public Func<Task>? InterruptScript { get; set; }
     public Func<Task>? CompactScript { get; set; }
 
     public Task<string> Start()
     {
         StartCalls++;
-        return Task.FromResult("scripted-session");
+        return StartScript?.Invoke() ?? Task.FromResult("scripted-session");
     }
 
     public async Task Send(TurnInput input)

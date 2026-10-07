@@ -18,8 +18,11 @@ using Marrow.Core.Port.Skills.Detect;
 namespace Marrow.Services.Providers;
 
 // :19-20. @MainActor final class -> sealed class used only on main (R-ISO-1).
-public sealed class PiSession : ProviderSession
+public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marrow.Services.Port.Skills.Providers.ISkillSessionLifetime
 {
+    private Task skillReadersExited = Task.CompletedTask;
+    public Task SkillReadersExited => skillReadersExited;
+
     public Action<ProviderEvent>? OnEvent { get; set; } // :21
 
     // PORT-ONLY: SK-11e / WU-10 and DL-12. Null for both means today's argv, environment and behaviour exactly.
@@ -72,6 +75,13 @@ public sealed class PiSession : ProviderSession
     private readonly PendingReplies<JSONValue> pendingResponses = new(); // :57
     private int requestCounter; // :58
 
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. A waiting standby loads context through the app's load extension with no turn; any agent or tool activity is a violation.
+    private bool standbyActive;
+    private bool standbyDiscarding;
+    private bool loadCommandAvailable;
+    public string? StandbyViolation { get; private set; }
+    public Action<string>? OnStandbyViolation { get; set; }
+
     public PiSession(SessionConfiguration configuration) : this(configuration, localApplicationData: null) // :60-73
     {
     }
@@ -120,10 +130,15 @@ public sealed class PiSession : ProviderSession
         Directory.CreateDirectory(WindowsPath(gateDirectory));
         var gateFileURL = gateDirectory.Appending(SwiftUUID.UuidString(Guid.NewGuid()) + ".json");
         gateURL = WindowsPath(gateFileURL);
-        WriteGate(finalReport: false);
+        WriteGate(finalReport: standbyActive); // PORT-ONLY (ED-439): a waiting standby blocks every tool
 
         // :93-94
         var arguments = LiveArguments(WindowsPath(extensionURL), runtimeMode, model, effort, sessionID);
+        if (standbyActive)
+        {
+            arguments.Add("-e");
+            arguments.Add(WindowsPath(localApplicationData is { } loadAppData ? PiCLI.InstallLoadExtension(loadAppData) : PiCLI.InstallLoadExtension()));
+        }
         // PORT-ONLY: SK-11e / WU-10. The chat's locked generation; the model-list probe (PiCLI) never gets this.
         arguments = WithSkills(arguments);
 
@@ -156,6 +171,7 @@ public sealed class PiSession : ProviderSession
             var description = error is ILocalizedError or ISwiftErrorIdentity ? SwiftErrors.LocalizedDescription(error) : error.Message;
             throw new ProviderError(new ProviderError.Case.Failed($"Pi could not start: {description}"));
         }
+        skillReadersExited = child.WaitForExit(); // RR-15: retained after Stop clears process
         process = child; // :125
         var messages = child.Messages; // :126
         readTask = MainActor.Spawn(async () => // :127-134
@@ -185,6 +201,7 @@ public sealed class PiSession : ProviderSession
             foreach (var entry in entries)
             {
                 if (entry["name"]?.JSONValueString is not { } name) continue;
+                if (name.TrimStart('/') == "droppy-load") loadCommandAvailable = true;
                 commands.Add(new SlashCommand { Name = name, Detail = entry["description"]?.JSONValueString ?? "" });
             }
             if (commands.Count != 0)
@@ -199,6 +216,7 @@ public sealed class PiSession : ProviderSession
     public async Task Send(TurnInput input) // :160-201
     {
         if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning()); // :161
+        if (standbyActive) throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         if (turnActive) throw new ProviderError(new ProviderError.Case.Failed("Pi is still on the last turn.")); // :162
         runtimeMode = input.RuntimeMode; // :163
         interactionMode = input.InteractionMode; // :164
@@ -259,6 +277,8 @@ public sealed class PiSession : ProviderSession
 
     public async Task Compact() // :208-211
     {
+        if (standbyActive || standbyDiscarding)
+            throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning());
         child.Send(Obj(("type", "compact")));
         await Task.CompletedTask;
@@ -279,6 +299,86 @@ public sealed class PiSession : ProviderSession
     }
 
     public Task<bool> StopAgent(string id) => Task.FromResult(false); // :225
+
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. Standby by injection through the app's load extension (`pi.sendMessage(..., { triggerTurn: false })`): no model turn.
+    public Task<bool> SupportsStandbyInjection(CancellationToken ct) =>
+        Task.FromResult(configuration.Executable is { } executable && !PiHistoryInjection.IsUnavailable(executable));
+
+    public async Task<string> StartInjectedStandby(CancellationToken ct)
+    {
+        standbyActive = true;
+        string id;
+        try { id = await Start(); }
+        catch
+        {
+            standbyActive = false;
+            Stop();
+            throw;
+        }
+
+        if (!loadCommandAvailable)
+        {
+            if (configuration.Executable is { } executable) PiHistoryInjection.MarkUnavailable(executable);
+            await DiscardStandby();
+            throw new StandbyUnavailableException("This Pi did not load the history command.");
+        }
+
+        return id;
+    }
+
+    public async Task InjectStandbyHistory(string text, CancellationToken ct)
+    {
+        if (!standbyActive || StandbyViolation is not null || !IsRunning || gateURL is not { } gate)
+            throw new StandbyUnavailableException("The standby is no longer waiting.");
+        ct.ThrowIfCancellationRequested();
+        var file = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(gate)!, SwiftUUID.UuidString(Guid.NewGuid()) + ".load.txt");
+        try
+        {
+            File.WriteAllText(file, text, new System.Text.UTF8Encoding(false));
+            var handled = await Request(Obj(("type", "prompt"), ("message", "/droppy-load " + file)));
+            var disposition = (handled["data"] ?? handled)["disposition"]?.JSONValueString;
+            if (StandbyViolation is null && handled["success"]?.JSONValueBool == true && disposition == "handled")
+            {
+                var reply = await Request(Obj(("type", "get_messages")));
+                var messages = (reply["data"] ?? reply)["messages"]?.JSONValueArray;
+                if (StandbyViolation is null && messages?.Any(entry => entry["customType"]?.JSONValueString == "droppy-handoff"
+                        && ToolText.Blocks(entry["content"]) == text) == true)
+                    return;
+            }
+        }
+        finally { SwiftTry.Ignore(() => File.Delete(file)); }
+
+        if (configuration.Executable is { } executable && StandbyViolation is null) PiHistoryInjection.MarkUnavailable(executable);
+        await DiscardStandby();
+        throw new StandbyUnavailableException("Pi did not store the context in its history.");
+    }
+
+    public async Task DiscardStandby()
+    {
+        standbyActive = false;
+        standbyDiscarding = true;
+        var sessionFile = sessionID;
+        var child = process;
+        Stop();
+        if (child is not null) _ = await Task.WhenAny(child.WaitForExit(), SwiftTask.TrySleep(TimeSpan.FromSeconds(2)));
+        // The standby's own fresh session file goes with it; a resumed conversation is never touched.
+        if (configuration.ResumeID is null && sessionFile is { Length: > 0 } && File.Exists(sessionFile))
+            SwiftTry.Ignore(() => File.Delete(sessionFile));
+    }
+
+    public Task EndStandbyAsync(CancellationToken ct)
+    {
+        standbyActive = false;
+        return Task.CompletedTask;
+    }
+
+    private void StandbyActivity(string kind)
+    {
+        if (StandbyViolation is not null) return;
+        StandbyViolation = kind;
+        OnStandbyViolation?.Invoke(kind);
+        _ = DiscardStandby();
+    }
 
     public void ResolveApproval(string requestID, string optionID) // :227-241
     {
@@ -362,6 +462,15 @@ public sealed class PiSession : ProviderSession
     /// process (see the file header note).</summary>
     internal void Handle(JSONValue message) // :286-326
     {
+        // PORT-ONLY (ED-439): fail closed. Only replies to the app's own requests pass; any agent or tool activity on a waiting session stops and discards it.
+        if ((standbyActive || standbyDiscarding) && message["type"]?.JSONValueString is { } waitingKind && waitingKind != "response")
+        {
+            if (standbyActive && (waitingKind is "agent_start" or "turn_start" or "tool_execution_start" or "extension_ui_request"
+                || waitingKind == "message_start" && message["message"]?["role"]?.JSONValueString == "assistant"))
+                StandbyActivity(waitingKind);
+            return;
+        }
+
         switch (message["type"]?.JSONValueString)
         {
             case "response": // :288-294

@@ -1,0 +1,880 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="fc0cb117-ae87-465e-b4ec-7cc06b1b6036" name="@1909c9b16337 2026-10-05 12:24:12" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T12:24:12.4957759+00:00" queuing="2026-10-05T12:24:12.4957759+00:00" start="2026-10-05T12:24:02.5018717+00:00" finish="2026-10-05T12:24:12.5300963+00:00" />
+  <TestSettings name="default" id="3bb8236a-818e-41c2-ba4d-5970432aadfb">
+    <Deployment runDeploymentRoot="_1909c9b16337_2026-10-05_12_24_12" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="1898ef1a-5486-413c-bd49-31fe26d92b2a" testId="64263471-99a4-79fd-b687-a278341f94c7" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer" computerName="1909c9b16337" duration="00:00:00.0002179" startTime="2026-10-05T12:24:12.1879940+00:00" endTime="2026-10-05T12:24:12.1880455+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1898ef1a-5486-413c-bd49-31fe26d92b2a">
+      <Output>
+        <ErrorInfo>
+          <Message>static pixel comparisons would be skipped, not run: WL-1 has not landed: public WallpaperRenderer selection constructor and DrawFrameAt(SKCanvas, int, int, double) are required (origin/codex/f-wl-1).</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer() in /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 20
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="93d55f0d-5236-4874-af87-166cafd57263" testId="9f411938-b326-9394-3d67-fade56120a7c" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value" computerName="1909c9b16337" duration="00:00:00.2118822" startTime="2026-10-05T12:24:11.7165190+00:00" endTime="2026-10-05T12:24:11.9512854+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="93d55f0d-5236-4874-af87-166cafd57263">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Contains() Failure: Filter not matched in collection
+Collection: [0, 1]</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value() in /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 62
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8eeabfff-32ee-452f-825e-98859933e14b" testId="c6ce1da1-80a7-0c84-5d37-f288019c45a8" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt" computerName="1909c9b16337" duration="00:00:00.0408752" startTime="2026-10-05T12:24:11.9954863+00:00" endTime="2026-10-05T12:24:12.0263053+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8eeabfff-32ee-452f-825e-98859933e14b">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Contains() Failure: Filter not matched in collection
+Collection: [WallpaperFidelityCase { Collection = "static", File = "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "default",
+      "dark": true,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.30028507113456726,
+          0.0657091811299324,
+          -0.11156591773033142,
+          0.3810754120349884,
+          0.14518064260482788,
+          -0.06721386313438416,
+          0.46895885467529297,
+          0.17704425752162933,
+          0.031164195388555527,
+          0.5694557428359985,
+          0.13680315017700195,
+          0.11488118767738342,
+          0.6711209416389465,
+          0.049165382981300354,
+          0.13662110269069672,
+          0.16957025229930878,
+          0.018088005483150482,
+          -0.04673636704683304
+        ],
+        "dark": 1,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad97fa07b2511d21.png",
+      "sha256": "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad97fa07b2511d21",
+      "rgbaSha256": "eb6682cdfac48db4b5e4d7e8c3a2fb27cf1e7d07fa879194131d5f26f84ce112",
+      "bytes": 20666
+    }, Label = "static/riptide/default/Coral/dark/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f7"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "default",
+      "dark": false,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.8598729372024536,
+          0.03583149239420891,
+          -0.060923803597688675,
+          0.7988707423210144,
+          0.09069092571735382,
+          -0.042225684970617294,
+          0.7397013902664185,
+          0.12831157445907593,
+          0.022424640133976936,
+          0.6900910139083862,
+          0.11446339637041092,
+          0.09597154706716537,
+          0.6395909190177917,
+          0.048671890050172806,
+          0.1301828771829605,
+          0.960276186466217,
+          0.006546240299940109,
+          -0.01892107166349888
+        ],
+        "dark": 0,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582.png",
+      "sha256": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582",
+      "rgbaSha256": "c2379edb9ae8127f6934aedf0ef0e1bac9aecfe10cdfdaf36a9e0f4d56042a48",
+      "bytes": 20788
+    }, Label = "static/riptide/default/Coral/light/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c8"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "quiet",
+      "dark": true,
+      "packIndex": 4,
+      "packId": "Sage",
+      "packName": "Sage",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.2995327413082123,
+          -0.027629541233181953,
+          -0.04688705876469612,
+          0.38158178329467773,
+          -0.057221680879592896,
+          -0.032795995473861694,
+          0.4711624085903168,
+          -0.07608678191900253,
+          0.007665572222322226,
+          0.5693129301071167,
+          -0.06082473695278168,
+          0.042404498904943466,
+          0.6709330081939697,
+          0.04921216890215874,
+          -0.04380999132990837,
+          0.16996437311172485,
+          -0.012786468490958214,
+          -0.016593828797340393
+        ],
+        "dark": 1,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c86c03891baea2db.png",
+      "sha256": "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c86c03891baea2db",
+      "rgbaSha256": "83961b1a6b0fca5cad7e555c1a60a8cb6a20764ac6e84731d054176f9f6625d3",
+      "bytes": 19050
+    }, Label = "static/riptide/quiet/Sage/dark/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f7"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "rich",
+      "dark": false,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": false,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.8598729372024536,
+          0.03583149239420891,
+          -0.060923803597688675,
+          0.7988707423210144,
+          0.09069092571735382,
+          -0.042225684970617294,
+          0.7397013902664185,
+          0.12831157445907593,
+          0.022424640133976936,
+          0.6900910139083862,
+          0.11446339637041092,
+          0.09597154706716537,
+          0.6395909190177917,
+          0.048671890050172806,
+          0.1301828771829605,
+          0.960276186466217,
+          0.006546240299940109,
+          -0.01892107166349888
+        ],
+        "dark": 0,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          -0.55,
+          0.8
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582.png",
+      "sha256": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582",
+      "rgbaSha256": "c2379edb9ae8127f6934aedf0ef0e1bac9aecfe10cdfdaf36a9e0f4d56042a48",
+      "bytes": 20788
+    }, Label = "static/riptide/rich/Coral/light/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67"···, Inputs = {
+      "collection": "static",
+      "wallpaper": "riptide",
+      "name": "Riptide",
+      "variant": "dynamic-dusk",
+      "dark": true,
+      "packIndex": 0,
+      "packId": "Coral",
+      "packName": "Coral",
+      "time": 0,
+      "period": 0,
+      "speed": 1,
+      "dynamic": true,
+      "clockHours": 18,
+      "accent": "#005FB8",
+      "focus": 0,
+      "perspective": true,
+      "tilt": [
+        0,
+        0
+      ],
+      "grain": 0.3,
+      "options": {
+        "grain": 0.3,
+        "option": 0.5
+      },
+      "uniforms": {
+        "palette": [
+          0.39528506994247437,
+          0.13779683411121368,
+          -0.12583953142166138,
+          0.4760754108428955,
+          0.19533488154411316,
+          -0.02655816450715065,
+          0.5639588832855225,
+          0.20468935370445251,
+          0.10466916859149933,
+          0.664455771446228,
+          0.08716673403978348,
+          0.13485299050807953,
+          0.766120970249176,
+          0.007358238101005554,
+          0.1564888060092926,
+          0.2645702660083771,
+          0.044723089784383774,
+          -0.056715622544288635
+        ],
+        "dark": 0.5,
+        "tilt": [
+          0,
+          0
+        ],
+        "tg": 1,
+        "light": [
+          0.15000000000000002,
+          0.09999999999999998
+        ],
+        "light0": [
+          -0.55,
+          0.8
+        ],
+        "lw": 0.028,
+        "focus": 0,
+        "blur": 0,
+        "dream": 0
+      },
+      "file": "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67f3a3b47dc34b0b.png",
+      "sha256": "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67f3a3b47dc34b0b",
+      "rgbaSha256": "01dfa18957e67f352a097cb4466afd41a1e289aa1bcb2133744f3915d0e11576",
+      "bytes": 21517
+    }, Label = "static/riptide/dynamic-dusk/Coral/dark/t=0", Premium = True, ··· }, ···]</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt() in /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 35
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ee3609e1-3229-4776-8f5b-dff72e246301" testId="a2f70d72-02b7-ca63-d34e-98891bc24288" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent" computerName="1909c9b16337" duration="00:00:00.0303128" startTime="2026-10-05T12:24:11.9900498+00:00" endTime="2026-10-05T12:24:11.9901281+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ee3609e1-3229-4776-8f5b-dff72e246301">
+      <Output>
+        <ErrorInfo>
+          <Message>1 accent colour(s)</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent() in /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 45
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="26e5de9c-e6ba-4828-8fa1-589b20e6cc15" testId="a46b6972-fe9d-f664-c50a-1323a3327765" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_a_uniform_three_level_colour_error_over_the_whole_picture_is_not_within_tolerance" computerName="1909c9b16337" duration="00:00:00.1411175" startTime="2026-10-05T12:24:12.0434907+00:00" endTime="2026-10-05T12:24:12.1871666+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="26e5de9c-e6ba-4828-8fa1-589b20e6cc15" />
+    <UnitTestResult executionId="fd41dad6-ef5a-4af2-9403-800404dcb2b9" testId="1572fb2c-6df7-8cc0-426d-cb8bf1ba2b17" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks" computerName="1909c9b16337" duration="00:00:00.0031543" startTime="2026-10-05T12:24:12.0431782+00:00" endTime="2026-10-05T12:24:12.0432272+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fd41dad6-ef5a-4af2-9403-800404dcb2b9">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Contains() Failure: Filter not matched in collection
+Collection: [18]</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks() in /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 53
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="22315387-04d9-4fba-9c62-d0bb825962cc" testId="f101d63c-c14b-75fe-c8d3-3ef6a57d57b4" testName="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer" computerName="1909c9b16337" duration="00:00:00.0004626" startTime="2026-10-05T12:24:12.0298623+00:00" endTime="2026-10-05T12:24:12.0428315+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="22315387-04d9-4fba-9c62-d0bb825962cc">
+      <Output>
+        <ErrorInfo>
+          <Message>dusk, Match accent and full Focus comparisons would be skipped, not run: WL-1 has not landed: public WallpaperRenderer selection constructor and DrawFrameAt(SKCanvas, int, int, double) are required (origin/codex/f-wl-1).</Message>
+          <StackTrace>   at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer() in /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs:line 27
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent" storage="/workspace/wl-review-baseline/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="a2f70d72-02b7-ca63-d34e-98891bc24288">
+      <Execution id="ee3609e1-3229-4776-8f5b-dff72e246301" />
+      <TestMethod codeBase="/workspace/wl-review-baseline/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_match_accent_is_compared_at_more_than_one_accent" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value" storage="/workspace/wl-review-baseline/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="9f411938-b326-9394-3d67-fade56120a7c">
+      <Execution id="93d55f0d-5236-4874-af87-166cafd57263" />
+      <TestMethod codeBase="/workspace/wl-review-baseline/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_focus_is_compared_at_an_intermediate_value" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer" storage="/workspace/wl-review-baseline/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="64263471-99a4-79fd-b687-a278341f94c7">
+      <Execution id="1898ef1a-5486-413c-bd49-31fe26d92b2a" />
+      <TestMethod codeBase="/workspace/wl-review-baseline/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer" storage="/workspace/wl-review-baseline/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="f101d63c-c14b-75fe-c8d3-3ef6a57d57b4">
+      <Execution id="22315387-04d9-4fba-9c62-d0bb825962cc" />
+      <TestMethod codeBase="/workspace/wl-review-baseline/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks" storage="/workspace/wl-review-baseline/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="1572fb2c-6df7-8cc0-426d-cb8bf1ba2b17">
+      <Execution id="fd41dad6-ef5a-4af2-9403-800404dcb2b9" />
+      <TestMethod codeBase="/workspace/wl-review-baseline/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt" storage="/workspace/wl-review-baseline/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c6ce1da1-80a7-0c84-5d37-f288019c45a8">
+      <Execution id="8eeabfff-32ee-452f-825e-98859933e14b" />
+      <TestMethod codeBase="/workspace/wl-review-baseline/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_a_uniform_three_level_colour_error_over_the_whole_picture_is_not_within_tolerance" storage="/workspace/wl-review-baseline/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="a46b6972-fe9d-f664-c50a-1323a3327765">
+      <Execution id="26e5de9c-e6ba-4828-8fa1-589b20e6cc15" />
+      <TestMethod codeBase="/workspace/wl-review-baseline/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests" name="REVIEW_a_uniform_three_level_colour_error_over_the_whole_picture_is_not_within_tolerance" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="64263471-99a4-79fd-b687-a278341f94c7" executionId="1898ef1a-5486-413c-bd49-31fe26d92b2a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9f411938-b326-9394-3d67-fade56120a7c" executionId="93d55f0d-5236-4874-af87-166cafd57263" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c6ce1da1-80a7-0c84-5d37-f288019c45a8" executionId="8eeabfff-32ee-452f-825e-98859933e14b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a2f70d72-02b7-ca63-d34e-98891bc24288" executionId="ee3609e1-3229-4776-8f5b-dff72e246301" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a46b6972-fe9d-f664-c50a-1323a3327765" executionId="26e5de9c-e6ba-4828-8fa1-589b20e6cc15" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1572fb2c-6df7-8cc0-426d-cb8bf1ba2b17" executionId="fd41dad6-ef5a-4af2-9403-800404dcb2b9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f101d63c-c14b-75fe-c8d3-3ef6a57d57b4" executionId="22315387-04d9-4fba-9c62-d0bb825962cc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="7" executed="7" passed="1" failed="6" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.01] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:01.29]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:07.37]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:07.66]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:08.11]       Assert.Contains() Failure: Filter not matched in collection
+[xUnit.net 00:00:08.11]       Collection: [0, 1]
+[xUnit.net 00:00:08.11]       Stack Trace:
+[xUnit.net 00:00:08.11]         /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(62,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value()
+[xUnit.net 00:00:08.11]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:08.11]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:08.14]       1 accent colour(s)
+[xUnit.net 00:00:08.14]       Stack Trace:
+[xUnit.net 00:00:08.14]         /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(45,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent()
+[xUnit.net 00:00:08.14]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:08.15]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:08.18]       Assert.Contains() Failure: Filter not matched in collection
+[xUnit.net 00:00:08.18]       Collection: [WallpaperFidelityCase { Collection = "static", File = "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad"···, Inputs = {
+[xUnit.net 00:00:08.18]             "collection": "static",
+[xUnit.net 00:00:08.18]             "wallpaper": "riptide",
+[xUnit.net 00:00:08.18]             "name": "Riptide",
+[xUnit.net 00:00:08.18]             "variant": "default",
+[xUnit.net 00:00:08.18]             "dark": true,
+[xUnit.net 00:00:08.18]             "packIndex": 0,
+[xUnit.net 00:00:08.18]             "packId": "Coral",
+[xUnit.net 00:00:08.18]             "packName": "Coral",
+[xUnit.net 00:00:08.18]             "time": 0,
+[xUnit.net 00:00:08.18]             "period": 0,
+[xUnit.net 00:00:08.18]             "speed": 1,
+[xUnit.net 00:00:08.18]             "dynamic": false,
+[xUnit.net 00:00:08.18]             "clockHours": 18,
+[xUnit.net 00:00:08.18]             "accent": "#005FB8",
+[xUnit.net 00:00:08.18]             "focus": 0,
+[xUnit.net 00:00:08.18]             "perspective": true,
+[xUnit.net 00:00:08.18]             "tilt": [
+[xUnit.net 00:00:08.18]               0,
+[xUnit.net 00:00:08.18]               0
+[xUnit.net 00:00:08.18]             ],
+[xUnit.net 00:00:08.18]             "grain": 0.3,
+[xUnit.net 00:00:08.18]             "options": {
+[xUnit.net 00:00:08.18]               "grain": 0.3,
+[xUnit.net 00:00:08.18]               "option": 0.5
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "uniforms": {
+[xUnit.net 00:00:08.18]               "palette": [
+[xUnit.net 00:00:08.18]                 0.30028507113456726,
+[xUnit.net 00:00:08.18]                 0.0657091811299324,
+[xUnit.net 00:00:08.18]                 -0.11156591773033142,
+[xUnit.net 00:00:08.18]                 0.3810754120349884,
+[xUnit.net 00:00:08.18]                 0.14518064260482788,
+[xUnit.net 00:00:08.18]                 -0.06721386313438416,
+[xUnit.net 00:00:08.18]                 0.46895885467529297,
+[xUnit.net 00:00:08.18]                 0.17704425752162933,
+[xUnit.net 00:00:08.18]                 0.031164195388555527,
+[xUnit.net 00:00:08.18]                 0.5694557428359985,
+[xUnit.net 00:00:08.18]                 0.13680315017700195,
+[xUnit.net 00:00:08.18]                 0.11488118767738342,
+[xUnit.net 00:00:08.18]                 0.6711209416389465,
+[xUnit.net 00:00:08.18]                 0.049165382981300354,
+[xUnit.net 00:00:08.18]                 0.13662110269069672,
+[xUnit.net 00:00:08.18]                 0.16957025229930878,
+[xUnit.net 00:00:08.18]                 0.018088005483150482,
+[xUnit.net 00:00:08.18]                 -0.04673636704683304
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "dark": 1,
+[xUnit.net 00:00:08.18]               "tilt": [
+[xUnit.net 00:00:08.18]                 0,
+[xUnit.net 00:00:08.18]                 0
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "tg": 1,
+[xUnit.net 00:00:08.18]               "light": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "light0": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "lw": 0.028,
+[xUnit.net 00:00:08.18]               "focus": 0,
+[xUnit.net 00:00:08.18]               "blur": 0,
+[xUnit.net 00:00:08.18]               "dream": 0
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "file": "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad97fa07b2511d21.png",
+[xUnit.net 00:00:08.18]             "sha256": "d902aef5bd8d087fe14358bec3f500b1583dccb83bed46c3ad97fa07b2511d21",
+[xUnit.net 00:00:08.18]             "rgbaSha256": "eb6682cdfac48db4b5e4d7e8c3a2fb27cf1e7d07fa879194131d5f26f84ce112",
+[xUnit.net 00:00:08.18]             "bytes": 20666
+[xUnit.net 00:00:08.18]           }, Label = "static/riptide/default/Coral/dark/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f7"···, Inputs = {
+[xUnit.net 00:00:08.18]             "collection": "static",
+[xUnit.net 00:00:08.18]             "wallpaper": "riptide",
+[xUnit.net 00:00:08.18]             "name": "Riptide",
+[xUnit.net 00:00:08.18]             "variant": "default",
+[xUnit.net 00:00:08.18]             "dark": false,
+[xUnit.net 00:00:08.18]             "packIndex": 0,
+[xUnit.net 00:00:08.18]             "packId": "Coral",
+[xUnit.net 00:00:08.18]             "packName": "Coral",
+[xUnit.net 00:00:08.18]             "time": 0,
+[xUnit.net 00:00:08.18]             "period": 0,
+[xUnit.net 00:00:08.18]             "speed": 1,
+[xUnit.net 00:00:08.18]             "dynamic": false,
+[xUnit.net 00:00:08.18]             "clockHours": 18,
+[xUnit.net 00:00:08.18]             "accent": "#005FB8",
+[xUnit.net 00:00:08.18]             "focus": 0,
+[xUnit.net 00:00:08.18]             "perspective": true,
+[xUnit.net 00:00:08.18]             "tilt": [
+[xUnit.net 00:00:08.18]               0,
+[xUnit.net 00:00:08.18]               0
+[xUnit.net 00:00:08.18]             ],
+[xUnit.net 00:00:08.18]             "grain": 0.3,
+[xUnit.net 00:00:08.18]             "options": {
+[xUnit.net 00:00:08.18]               "grain": 0.3,
+[xUnit.net 00:00:08.18]               "option": 0.5
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "uniforms": {
+[xUnit.net 00:00:08.18]               "palette": [
+[xUnit.net 00:00:08.18]                 0.8598729372024536,
+[xUnit.net 00:00:08.18]                 0.03583149239420891,
+[xUnit.net 00:00:08.18]                 -0.060923803597688675,
+[xUnit.net 00:00:08.18]                 0.7988707423210144,
+[xUnit.net 00:00:08.18]                 0.09069092571735382,
+[xUnit.net 00:00:08.18]                 -0.042225684970617294,
+[xUnit.net 00:00:08.18]                 0.7397013902664185,
+[xUnit.net 00:00:08.18]                 0.12831157445907593,
+[xUnit.net 00:00:08.18]                 0.022424640133976936,
+[xUnit.net 00:00:08.18]                 0.6900910139083862,
+[xUnit.net 00:00:08.18]                 0.11446339637041092,
+[xUnit.net 00:00:08.18]                 0.09597154706716537,
+[xUnit.net 00:00:08.18]                 0.6395909190177917,
+[xUnit.net 00:00:08.18]                 0.048671890050172806,
+[xUnit.net 00:00:08.18]                 0.1301828771829605,
+[xUnit.net 00:00:08.18]                 0.960276186466217,
+[xUnit.net 00:00:08.18]                 0.006546240299940109,
+[xUnit.net 00:00:08.18]                 -0.01892107166349888
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "dark": 0,
+[xUnit.net 00:00:08.18]               "tilt": [
+[xUnit.net 00:00:08.18]                 0,
+[xUnit.net 00:00:08.18]                 0
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "tg": 1,
+[xUnit.net 00:00:08.18]               "light": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "light0": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "lw": 0.028,
+[xUnit.net 00:00:08.18]               "focus": 0,
+[xUnit.net 00:00:08.18]               "blur": 0,
+[xUnit.net 00:00:08.18]               "dream": 0
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "file": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582.png",
+[xUnit.net 00:00:08.18]             "sha256": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582",
+[xUnit.net 00:00:08.18]             "rgbaSha256": "c2379edb9ae8127f6934aedf0ef0e1bac9aecfe10cdfdaf36a9e0f4d56042a48",
+[xUnit.net 00:00:08.18]             "bytes": 20788
+[xUnit.net 00:00:08.18]           }, Label = "static/riptide/default/Coral/light/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c8"···, Inputs = {
+[xUnit.net 00:00:08.18]             "collection": "static",
+[xUnit.net 00:00:08.18]             "wallpaper": "riptide",
+[xUnit.net 00:00:08.18]             "name": "Riptide",
+[xUnit.net 00:00:08.18]             "variant": "quiet",
+[xUnit.net 00:00:08.18]             "dark": true,
+[xUnit.net 00:00:08.18]             "packIndex": 4,
+[xUnit.net 00:00:08.18]             "packId": "Sage",
+[xUnit.net 00:00:08.18]             "packName": "Sage",
+[xUnit.net 00:00:08.18]             "time": 0,
+[xUnit.net 00:00:08.18]             "period": 0,
+[xUnit.net 00:00:08.18]             "speed": 1,
+[xUnit.net 00:00:08.18]             "dynamic": false,
+[xUnit.net 00:00:08.18]             "clockHours": 18,
+[xUnit.net 00:00:08.18]             "accent": "#005FB8",
+[xUnit.net 00:00:08.18]             "focus": 0,
+[xUnit.net 00:00:08.18]             "perspective": true,
+[xUnit.net 00:00:08.18]             "tilt": [
+[xUnit.net 00:00:08.18]               0,
+[xUnit.net 00:00:08.18]               0
+[xUnit.net 00:00:08.18]             ],
+[xUnit.net 00:00:08.18]             "grain": 0.3,
+[xUnit.net 00:00:08.18]             "options": {
+[xUnit.net 00:00:08.18]               "grain": 0.3,
+[xUnit.net 00:00:08.18]               "option": 0.5
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "uniforms": {
+[xUnit.net 00:00:08.18]               "palette": [
+[xUnit.net 00:00:08.18]                 0.2995327413082123,
+[xUnit.net 00:00:08.18]                 -0.027629541233181953,
+[xUnit.net 00:00:08.18]                 -0.04688705876469612,
+[xUnit.net 00:00:08.18]                 0.38158178329467773,
+[xUnit.net 00:00:08.18]                 -0.057221680879592896,
+[xUnit.net 00:00:08.18]                 -0.032795995473861694,
+[xUnit.net 00:00:08.18]                 0.4711624085903168,
+[xUnit.net 00:00:08.18]                 -0.07608678191900253,
+[xUnit.net 00:00:08.18]                 0.007665572222322226,
+[xUnit.net 00:00:08.18]                 0.5693129301071167,
+[xUnit.net 00:00:08.18]                 -0.06082473695278168,
+[xUnit.net 00:00:08.18]                 0.042404498904943466,
+[xUnit.net 00:00:08.18]                 0.6709330081939697,
+[xUnit.net 00:00:08.18]                 0.04921216890215874,
+[xUnit.net 00:00:08.18]                 -0.04380999132990837,
+[xUnit.net 00:00:08.18]                 0.16996437311172485,
+[xUnit.net 00:00:08.18]                 -0.012786468490958214,
+[xUnit.net 00:00:08.18]                 -0.016593828797340393
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "dark": 1,
+[xUnit.net 00:00:08.18]               "tilt": [
+[xUnit.net 00:00:08.18]                 0,
+[xUnit.net 00:00:08.18]                 0
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "tg": 1,
+[xUnit.net 00:00:08.18]               "light": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "light0": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "lw": 0.028,
+[xUnit.net 00:00:08.18]               "focus": 0,
+[xUnit.net 00:00:08.18]               "blur": 0,
+[xUnit.net 00:00:08.18]               "dream": 0
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "file": "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c86c03891baea2db.png",
+[xUnit.net 00:00:08.18]             "sha256": "98b1c988dcda47c087e4bd882185256118cf8bb562b2fc40c86c03891baea2db",
+[xUnit.net 00:00:08.18]             "rgbaSha256": "83961b1a6b0fca5cad7e555c1a60a8cb6a20764ac6e84731d054176f9f6625d3",
+[xUnit.net 00:00:08.18]             "bytes": 19050
+[xUnit.net 00:00:08.18]           }, Label = "static/riptide/quiet/Sage/dark/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f7"···, Inputs = {
+[xUnit.net 00:00:08.18]             "collection": "static",
+[xUnit.net 00:00:08.18]             "wallpaper": "riptide",
+[xUnit.net 00:00:08.18]             "name": "Riptide",
+[xUnit.net 00:00:08.18]             "variant": "rich",
+[xUnit.net 00:00:08.18]             "dark": false,
+[xUnit.net 00:00:08.18]             "packIndex": 0,
+[xUnit.net 00:00:08.18]             "packId": "Coral",
+[xUnit.net 00:00:08.18]             "packName": "Coral",
+[xUnit.net 00:00:08.18]             "time": 0,
+[xUnit.net 00:00:08.18]             "period": 0,
+[xUnit.net 00:00:08.18]             "speed": 1,
+[xUnit.net 00:00:08.18]             "dynamic": false,
+[xUnit.net 00:00:08.18]             "clockHours": 18,
+[xUnit.net 00:00:08.18]             "accent": "#005FB8",
+[xUnit.net 00:00:08.18]             "focus": 0,
+[xUnit.net 00:00:08.18]             "perspective": true,
+[xUnit.net 00:00:08.18]             "tilt": [
+[xUnit.net 00:00:08.18]               0,
+[xUnit.net 00:00:08.18]               0
+[xUnit.net 00:00:08.18]             ],
+[xUnit.net 00:00:08.18]             "grain": 0.3,
+[xUnit.net 00:00:08.18]             "options": {
+[xUnit.net 00:00:08.18]               "grain": 0.3,
+[xUnit.net 00:00:08.18]               "option": 0.5
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "uniforms": {
+[xUnit.net 00:00:08.18]               "palette": [
+[xUnit.net 00:00:08.18]                 0.8598729372024536,
+[xUnit.net 00:00:08.18]                 0.03583149239420891,
+[xUnit.net 00:00:08.18]                 -0.060923803597688675,
+[xUnit.net 00:00:08.18]                 0.7988707423210144,
+[xUnit.net 00:00:08.18]                 0.09069092571735382,
+[xUnit.net 00:00:08.18]                 -0.042225684970617294,
+[xUnit.net 00:00:08.18]                 0.7397013902664185,
+[xUnit.net 00:00:08.18]                 0.12831157445907593,
+[xUnit.net 00:00:08.18]                 0.022424640133976936,
+[xUnit.net 00:00:08.18]                 0.6900910139083862,
+[xUnit.net 00:00:08.18]                 0.11446339637041092,
+[xUnit.net 00:00:08.18]                 0.09597154706716537,
+[xUnit.net 00:00:08.18]                 0.6395909190177917,
+[xUnit.net 00:00:08.18]                 0.048671890050172806,
+[xUnit.net 00:00:08.18]                 0.1301828771829605,
+[xUnit.net 00:00:08.18]                 0.960276186466217,
+[xUnit.net 00:00:08.18]                 0.006546240299940109,
+[xUnit.net 00:00:08.18]                 -0.01892107166349888
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "dark": 0,
+[xUnit.net 00:00:08.18]               "tilt": [
+[xUnit.net 00:00:08.18]                 0,
+[xUnit.net 00:00:08.18]                 0
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "tg": 1,
+[xUnit.net 00:00:08.18]               "light": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "light0": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "lw": 0.028,
+[xUnit.net 00:00:08.18]               "focus": 0,
+[xUnit.net 00:00:08.18]               "blur": 0,
+[xUnit.net 00:00:08.18]               "dream": 0
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "file": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582.png",
+[xUnit.net 00:00:08.18]             "sha256": "270e5cf4899fd65c5d3dd0bc51c8ed1c0c5fd4fb923eb349f755e5ebd4826582",
+[xUnit.net 00:00:08.18]             "rgbaSha256": "c2379edb9ae8127f6934aedf0ef0e1bac9aecfe10cdfdaf36a9e0f4d56042a48",
+[xUnit.net 00:00:08.18]             "bytes": 20788
+[xUnit.net 00:00:08.18]           }, Label = "static/riptide/rich/Coral/light/t=0", Premium = False, ··· }, WallpaperFidelityCase { Collection = "static", File = "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67"···, Inputs = {
+[xUnit.net 00:00:08.18]             "collection": "static",
+[xUnit.net 00:00:08.18]             "wallpaper": "riptide",
+[xUnit.net 00:00:08.18]             "name": "Riptide",
+[xUnit.net 00:00:08.18]             "variant": "dynamic-dusk",
+[xUnit.net 00:00:08.18]             "dark": true,
+[xUnit.net 00:00:08.18]             "packIndex": 0,
+[xUnit.net 00:00:08.18]             "packId": "Coral",
+[xUnit.net 00:00:08.18]             "packName": "Coral",
+[xUnit.net 00:00:08.18]             "time": 0,
+[xUnit.net 00:00:08.18]             "period": 0,
+[xUnit.net 00:00:08.18]             "speed": 1,
+[xUnit.net 00:00:08.18]             "dynamic": true,
+[xUnit.net 00:00:08.18]             "clockHours": 18,
+[xUnit.net 00:00:08.18]             "accent": "#005FB8",
+[xUnit.net 00:00:08.18]             "focus": 0,
+[xUnit.net 00:00:08.18]             "perspective": true,
+[xUnit.net 00:00:08.18]             "tilt": [
+[xUnit.net 00:00:08.18]               0,
+[xUnit.net 00:00:08.18]               0
+[xUnit.net 00:00:08.18]             ],
+[xUnit.net 00:00:08.18]             "grain": 0.3,
+[xUnit.net 00:00:08.18]             "options": {
+[xUnit.net 00:00:08.18]               "grain": 0.3,
+[xUnit.net 00:00:08.18]               "option": 0.5
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "uniforms": {
+[xUnit.net 00:00:08.18]               "palette": [
+[xUnit.net 00:00:08.18]                 0.39528506994247437,
+[xUnit.net 00:00:08.18]                 0.13779683411121368,
+[xUnit.net 00:00:08.18]                 -0.12583953142166138,
+[xUnit.net 00:00:08.18]                 0.4760754108428955,
+[xUnit.net 00:00:08.18]                 0.19533488154411316,
+[xUnit.net 00:00:08.18]                 -0.02655816450715065,
+[xUnit.net 00:00:08.18]                 0.5639588832855225,
+[xUnit.net 00:00:08.18]                 0.20468935370445251,
+[xUnit.net 00:00:08.18]                 0.10466916859149933,
+[xUnit.net 00:00:08.18]                 0.664455771446228,
+[xUnit.net 00:00:08.18]                 0.08716673403978348,
+[xUnit.net 00:00:08.18]                 0.13485299050807953,
+[xUnit.net 00:00:08.18]                 0.766120970249176,
+[xUnit.net 00:00:08.18]                 0.007358238101005554,
+[xUnit.net 00:00:08.18]                 0.1564888060092926,
+[xUnit.net 00:00:08.18]                 0.2645702660083771,
+[xUnit.net 00:00:08.18]                 0.044723089784383774,
+[xUnit.net 00:00:08.18]                 -0.056715622544288635
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "dark": 0.5,
+[xUnit.net 00:00:08.18]               "tilt": [
+[xUnit.net 00:00:08.18]                 0,
+[xUnit.net 00:00:08.18]                 0
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "tg": 1,
+[xUnit.net 00:00:08.18]               "light": [
+[xUnit.net 00:00:08.18]                 0.15000000000000002,
+[xUnit.net 00:00:08.18]                 0.09999999999999998
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "light0": [
+[xUnit.net 00:00:08.18]                 -0.55,
+[xUnit.net 00:00:08.18]                 0.8
+[xUnit.net 00:00:08.18]               ],
+[xUnit.net 00:00:08.18]               "lw": 0.028,
+[xUnit.net 00:00:08.18]               "focus": 0,
+[xUnit.net 00:00:08.18]               "blur": 0,
+[xUnit.net 00:00:08.18]               "dream": 0
+[xUnit.net 00:00:08.18]             },
+[xUnit.net 00:00:08.18]             "file": "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67f3a3b47dc34b0b.png",
+[xUnit.net 00:00:08.18]             "sha256": "5ace6ac47dbc526145833ac9980a81c370de1d01d083df6d67f3a3b47dc34b0b",
+[xUnit.net 00:00:08.18]             "rgbaSha256": "01dfa18957e67f352a097cb4466afd41a1e289aa1bcb2133744f3915d0e11576",
+[xUnit.net 00:00:08.18]             "bytes": 21517
+[xUnit.net 00:00:08.18]           }, Label = "static/riptide/dynamic-dusk/Coral/dark/t=0", Premium = True, ··· }, ···]
+[xUnit.net 00:00:08.18]       Stack Trace:
+[xUnit.net 00:00:08.18]         /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(35,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt()
+[xUnit.net 00:00:08.18]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:08.18]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:08.20]       dusk, Match accent and full Focus comparisons would be skipped, not run: WL-1 has not landed: public WallpaperRenderer selection constructor and DrawFrameAt(SKCanvas, int, int, double) are required (origin/codex/f-wl-1).
+[xUnit.net 00:00:08.20]       Stack Trace:
+[xUnit.net 00:00:08.20]         /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(27,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer()
+[xUnit.net 00:00:08.20]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:08.20]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:08.20]       Assert.Contains() Failure: Filter not matched in collection
+[xUnit.net 00:00:08.20]       Collection: [18]
+[xUnit.net 00:00:08.20]       Stack Trace:
+[xUnit.net 00:00:08.20]         /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(53,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks()
+[xUnit.net 00:00:08.20]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:08.20]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:08.34]       static pixel comparisons would be skipped, not run: WL-1 has not landed: public WallpaperRenderer selection constructor and DrawFrameAt(SKCanvas, int, int, double) are required (origin/codex/f-wl-1).
+[xUnit.net 00:00:08.34]       Stack Trace:
+[xUnit.net 00:00:08.34]         /workspace/wl-review-baseline/tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs(20,0): at Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer()
+[xUnit.net 00:00:08.34]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:08.34]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:08.35]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:24:11.9548523+00:00">
+        <Text>[xUnit.net 00:00:08.11]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_focus_is_compared_at_an_intermediate_value [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:24:11.9906043+00:00">
+        <Text>[xUnit.net 00:00:08.14]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_match_accent_is_compared_at_more_than_one_accent [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:24:12.0274145+00:00">
+        <Text>[xUnit.net 00:00:08.18]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_some_static_reference_is_rendered_with_a_non_zero_tilt [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:24:12.0458966+00:00">
+        <Text>[xUnit.net 00:00:08.20]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_premium_fidelity_gate_is_open_against_the_WL_4_renderer [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:24:12.0459358+00:00">
+        <Text>[xUnit.net 00:00:08.20]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_dynamic_is_compared_at_an_hour_between_two_key_looks [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T12:24:12.1959986+00:00">
+        <Text>[xUnit.net 00:00:08.34]     Marrow.App.Tests.Wallpapers.REVIEW_WallpaperFidelityGateTests.REVIEW_the_static_default_fidelity_gate_is_open_against_the_WL_4_renderer [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

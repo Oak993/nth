@@ -214,6 +214,36 @@ public static class PiCLI
         return FileURL(file, isDirectory: false); // :125
     }
 
+    /// <summary>
+    /// PORT-ONLY: OD-0116, OD-0122, ED-439. The app's own second extension, loaded only into a waiting standby: `/droppy-load <file>` stores the file's text in the session
+    /// history as a custom message with `triggerTurn: false`, so no model turn runs. It is separate from the gate extension, whose source is pinned.
+    /// </summary>
+    public static SwiftURL InstallLoadExtension() => InstallLoadExtension(LocalApplicationData());
+
+    internal static SwiftURL InstallLoadExtension(string localApplicationData)
+    {
+        var directory = SupportDirectoryPath(localApplicationData);
+        Directory.CreateDirectory(directory);
+        var file = SwiftPath.AppendingPathComponent(directory, "droppy-load.ts");
+        var data = Encoding.UTF8.GetBytes(LoadExtensionSource);
+        var existing = SwiftTry.Optional(() => File.ReadAllBytes(file));
+        if (existing is null || !existing.AsSpan().SequenceEqual(data)) FileOps.WriteAtomic(file, data);
+        return FileURL(file, isDirectory: false);
+    }
+
+    public static string LoadExtensionSource => string.Join("\n",
+        "import fs from \"node:fs\";",
+        "",
+        "export default async function (pi) {",
+        "  pi.registerCommand(\"droppy-load\", {",
+        "    description: \"Marrow: load a recorded context file into the history without starting a turn\",",
+        "    handler: async (args) => {",
+        "      const text = fs.readFileSync(String(args ?? \"\").trim(), \"utf8\");",
+        "      pi.sendMessage({ customType: \"droppy-handoff\", content: text, display: false }, { triggerTurn: false });",
+        "    },",
+        "  });",
+        "}");
+
     /// <summary>The gate the app loads into every RPC session with `-e`. Pi itself keeps approving everything
     /// (`--approve`) or nothing (`--no-approve`); this extension gates the tools instead: every call that could change
     /// something is asked over `ctx.ui.select`, which in RPC mode surfaces on stdout as an `extension_ui_request` the app

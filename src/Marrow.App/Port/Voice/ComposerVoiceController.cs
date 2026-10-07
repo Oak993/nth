@@ -8,6 +8,7 @@ using Marrow.Core.Port.Voice.Orb;
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Port.Voice.Session;
 using Marrow.Core.Port.Voice.Transcript;
+using Marrow.Services.Port.Voice.Cloud;
 
 namespace Marrow.App.Port.Voice;
 
@@ -30,6 +31,8 @@ public sealed class ComposerVoiceController : MainActorModel
     private readonly LevelFollowers followers = new();
     private OrbBands orbBands;
     private bool dictationOpen;
+    private bool setupOpen;
+    private bool preparing;
 
     public ComposerVoiceController(ComposerVoiceHost host)
     {
@@ -43,6 +46,9 @@ public sealed class ComposerVoiceController : MainActorModel
 
     /// <summary>The composer's session (V-15's table).</summary>
     public VoiceSession Session { get; }
+
+    internal VoiceFirstRun? FirstRun => VoiceFirstRun.Find(host.Settings());
+    internal bool SetupOpen { get => Read(setupOpen); set => Set(ref setupOpen, value); }
 
     /// <summary>Listening has begun (VT-11): the draft and selection as they are, where the dictated words will go (V-8.1).</summary>
     public event Action<DraftSelection>? DictationBegan;
@@ -133,7 +139,7 @@ public sealed class ComposerVoiceController : MainActorModel
     public void PointerEnter()
     {
         PointerOver = true;
-        Session.PointerEnter();
+        if (FirstRun is not { } flow || flow.CanListen) Session.PointerEnter();
     }
 
     public void PointerLeave()
@@ -143,7 +149,23 @@ public sealed class ComposerVoiceController : MainActorModel
     }
 
     /// <summary>The orb clicked, or Enter or Space on it.</summary>
-    public void Activate() => Session.Activate();
+    public void Activate()
+    {
+        if (IsLive || State is VoiceSessionState.Asking or VoiceSessionState.Blocked || host.Settings().VoiceTyping.Engine != VoiceEngine.Local || FirstRun is not { } flow)
+        {
+            Session.Activate();
+            return;
+        }
+        if (preparing) { SetupOpen = true; return; }
+        if (flow.CanListen) { SetupOpen = false; Session.Activate(); return; }
+        SetupOpen = true;
+        preparing = true;
+        _ = MainActor.Spawn(async () =>
+        {
+            try { _ = await flow.OrbAsync(CancellationToken.None); }
+            finally { preparing = false; }
+        });
+    }
 
     /// <summary>Esc or the cross (V-14.4): cancels a live session, says so, and does nothing otherwise.</summary>
     public bool Cancel()
@@ -163,7 +185,8 @@ public sealed class ComposerVoiceController : MainActorModel
         var settings = host.Settings();
         var typing = settings.VoiceTyping;
         return new VoiceSessionSettings(settings.VoiceOrb, typing, CultureInfo.CurrentUICulture.Name,
-            typing.Model is { } id ? new SpeechModel(id, null) : null);
+            typing.Engine == VoiceEngine.Cloud ? new SpeechModel(OpenAiTranscriber.DefaultModel, null) : FirstRun is { } flow ? flow.Model(typing.Model) : typing.Model is { } id ? new SpeechModel(id, null) : null)
+            { LiveWords = VoicePreparation.LiveWordsOf(settings.VoiceHardware) };
     }
 
     private void StoreTyping(VoiceTypingSettings typing) => host.Settings().VoiceTyping = typing;

@@ -1,0 +1,45 @@
+✔ all 29 item families get independently computed bytes/hash and source metadata provenance (13.718573ms)
+✔ missing source licence and version never fall back to previous catalogue values (1.26368ms)
+✔ published metadata mismatch and omitted/duplicate item coverage fail closed (1.01079ms)
+✔ metadata supports exact text, base64 source files and JSON pointer escapes without licence classification (0.482586ms)
+✔ insecure/off-source/cross-repository URLs are rejected before a transport sees them (1.46916ms)
+✔ manual redirect transport checks every hop and sends no credentials (17.816736ms)
+✔ redirected/injected byte sources, empty artifacts and wrong published sizes are rejected (2.259909ms)
+✔ official array metadata is selected by an observed field, with ambiguity rejected (0.196305ms)
+✔ saved artifact chunks are the exact bytes hashed, and mismatched version metadata is rejected (13.878183ms)
+✔ raw metadata bodies are available to the evidence sink under their computed hashes (2.463846ms)
+✔ release CDN hosts can only be redirect destinations from an official repository endpoint (2.510867ms)
+✖ malformed metadata encoding and explicitly unknown licence metadata are blockers (0.865972ms)
+✔ repository recipes use resolved full commits and nearest actual licence files, including per-skill commits (1.288358ms)
+✔ wheel and npm recipes read licences and versions from the packages own registry metadata (0.357988ms)
+✔ Python, Node and browser direct recipes reference official source metadata rather than reuse licence claims (0.271769ms)
+✔ missing resolved artifacts, truncated commits and ambiguous licence selection remain explicit blockers (0.453402ms)
+✔ resolved version expectations are checked and multiple co-located licences need explicit source selection (1.363371ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 16
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 128.402027
+
+✖ failing tests:
+
+test at tools/skills-catalogue/pin-generator.test.mjs:144:1
+✖ malformed metadata encoding and explicitly unknown licence metadata are blockers (0.865972ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///workspace/marrow-port/tools/skills-catalogue/pin-generator.test.mjs:145:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /UTF|encoding|decode/i,
+    operator: 'throws',
+    diff: 'simple'
+  }

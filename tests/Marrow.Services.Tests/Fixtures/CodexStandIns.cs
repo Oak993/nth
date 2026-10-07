@@ -80,6 +80,10 @@ public sealed class CodexScript
     public void SetResponse(string method, string resultJson, int? occurrence = null) =>
         File.WriteAllText(Path.Combine(ControlDirectory, ResponseFileName("response", method, occurrence)), resultJson, new UTF8Encoding(false));
 
+    /// <summary>Raw wire lines (notifications) the stand-in writes right after its reply to this method (ED-439).</summary>
+    public void SetEmit(string method, string lines, int? occurrence = null) =>
+        File.WriteAllText(Path.ChangeExtension(Path.Combine(ControlDirectory, ResponseFileName("emit", method, occurrence)), ".txt"), lines, new UTF8Encoding(false));
+
     /// <summary>The message text to send back as an RPCError for every request of this method.</summary>
     public void SetError(string method, string message, int? occurrence = null) =>
         File.WriteAllText(Path.Combine(ControlDirectory, ResponseFileName("error", method, occurrence)), message, new UTF8Encoding(false));

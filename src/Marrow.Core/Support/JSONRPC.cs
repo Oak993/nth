@@ -82,6 +82,9 @@ public sealed class JSONRPCConnection
     public bool IsClosed { get; private set; }
 
     private readonly StdioProcess process;
+    private bool childStarted;
+    // PORT-ONLY RR-15: protocol EOF/Close is not process exit.
+    public Task ChildExited => childStarted ? process.WaitForExit() : Task.CompletedTask;
     private readonly bool sendsVersion;
     private long nextID = 1;
     private readonly Dictionary<RPCID, CheckedContinuation<JSONValue>> pending = [];
@@ -107,6 +110,7 @@ public sealed class JSONRPCConnection
     public void Start()
     {
         process.Start();
+        childStarted = true;
         var messages = process.Messages;
         var weak = new WeakReference<JSONRPCConnection>(this);
         readTask = MainActor.Spawn(async () =>

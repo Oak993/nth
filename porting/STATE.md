@@ -643,3 +643,261 @@ ED-NEW-design-gaps-1..4: manual publication/hash/write-turn accounting, imported
 ## T40 RR-37 locked-close acceptance follow-up (2026-10-07)
 
 ED-NEW-design-gaps-5 records the lead-authorized retirement of ONLY SettingsRiseTests:406's immediate-hide assertion. Its replacement proves the nine locked alpha samples, the independent cubic, visible until C+160 ms, exact zero-alpha/.985 centre-scale endpoint and re-open cancellation/restoration; every other byte of that test stays. Original assertion red; revised test/existing close tests 4/4, all App design regressions plus revised test 10/10, no failures/skips. Native probe and owner decisions byte-identical; prior ledger prefixes retained by binary append. The frozen-test conflict is resolved, superseding that limitation in the earlier T40 entry/ED-NEW-design-gaps-4. Native evidence and formal verification remain pending, verdict NOT READY. Updated report: porting/first-release/reports/T40-design-gaps.md. Lead runs the existing native probe before merge.
+
+
+## T22 parity tail checkpoint (2026-10-07)
+
+Branch codex/parity-tail from origin/claude/verify-terminal-20261001 (1291606c). PR-LAUNCH-071, PR-SETTINGS-249, UI-SIDEBAR-031/032 already have production implementations; added nine source-derived proof cases and closed IMPLEMENTED with evidence. No existing tests, composer records, EffortSlider, LiquidTrack or LiquidStrike changed. ED-387/2/3; report porting/verification/parity-tail-20261007/REPORT.md. Supplemental focused Linux ICU76 9/9, five repeats 9/9; affected 24/25 (unchanged user32.dll failure); final without alias 7/9. Core non-Native aborted on kernel32.dll (2844 pass/344 fail); Services 3856 pass/1266 fail/52 skip; UI stopped stalled run (2047 pass/298 fail executed, aborted). Final App test rebuild 0 warnings/errors. Native Windows boot/bootstrap/popup visuals, whole-suite repeats and installed legal files pending. Verdict NOT READY for Windows acceptance; implementation status is not VERIFIED.
+
+
+## ED-390 T18 / VT-16 follow-up (2026-10-07)
+
+On codex/vt-16 from claude/verify-terminal-20261001 1291606c. The Services cloud adapter/key store already existed (ED-311); built its missing final-only complete-recording session path, ordered Processing SSE updates, app cloud engine/model composition and Providers-pattern protected key editor. Cloud remains off by default. Fake-only test-first commits and independent review; no real network/key/model/microphone, no existing tests changed, no plaintext key persistence/logging.
+
+Final focused Core 660 passed; Services 57 passed/1 Windows skip; App 15 passed. New cases passed all five repeat rounds (2 Core, 8 Services, 5 App per round). Broad Linux Core exact Native-excluded filter aborted after 2697 passed/299 failed; Services completed 3863 passed/1265 failed/52 skipped, before final scheduling/metadata/lifetime follow-ups. Missing new-test metadata is repaired and final traceability checks pass. The unchanged App inert-until-VT-16 test fails (page suite 25 passed/1 failed), preserved under the owner's no-existing-test-change instruction. Windows full suites, five whole-suite repeats, Credential Manager and visual/keyboard verification remain due. Feature activation, VAD/resampler production binding and note presentation still need their existing integration work. NOT READY for complete acceptance. ED-390; porting/first-release/reports/T18-VT-16-cloud-transcription.md.
+
+
+## T23 VT-15 / WV-1 integration (2026-10-07)
+
+The existing staging preparation, speed-question state machine and V2 Welcome section are connected to production startup and every composer. Voice hardware registers before GR-1 takes its plan and VoiceFeature switches on. Downloads stay behind Welcome Yes / orb consent; an early orb click displays actual transfer progress and a deferred slow question uses the orb PopoverCard. Verified local engine, deferred VAD, resampler and settings self-test are bound. Current records and unanswered choices survive restart, probe-only records cannot bypass setup, and LiveWords controls live versus complete after-stop transcription. Cloud engine source and the key row are unchanged.
+
+Affected fake suites: Core voice 656 pass, Services voice 473 pass / 5 Windows skips, App preparation/question/V2/integration logic 86 pass. Existing Welcome section UI tests 9 pass on Linux; composer UI and broad required suites do not establish Windows readiness. Required non-Native Core run aborts on Windows dependencies; Services run times out after recorded unrelated platform/fixture failures. Gate B 8 pass; Gate A lacks the pinned Windows reference checkout. Verdict NOT READY pending the report's Windows-run list. No real voice hardware, network download or model in added tests; no base test/assertion/tolerance changes. ED-391 through ED-394; porting/first-release/reports/T23-vt15-wv1.md. Branch codex/vt-15-wv-1 only. Existing mixed line endings retained byte-for-byte before these appended entries.
+
+
+T23 final evidence supplement: f11ca528 repairs duplicate parenting caught by the new orb regression. Final App logic + Welcome/DetailView + traceability 100/100 pass at 0344a55d; Core traceability/new session regressions 6/6, Services traceability 3/3. Mounted orb reaches the Windows user32 popup boundary and needs Windows. Required broad Windows suites, pinned reference and packaged composition checks remain: NOT READY. This supplement appends bytes; prior entries remain exact.
+
+
+## WL-1 engine handoff (2026-10-05)
+
+Branch codex/f-wl-1 from requested base 0eb930d1d6d4611ac6654564ea52b3409b465666. Engine, resources, catalogue, compositor backdrop and saved selection are implemented; upstream None and custom-image behavior are retained. Scoped CPU tests: 307 new + 71 existing = 378 passing, no skipped; App builds with no warnings/errors. App Linux tests: 80 pass/95 fail, exactly the same outcomes as the requested base. Native Windows/GPU/WIC and visual/cost checks remain unverified. Final Settings library UI is the next separate unit. No queue status or whole-port parity claim. See porting/reports/codex-wl-1.md, its evidence JSON/ZIP, and the appended ED-396 section (including one later shared-options test-first-ordering exception). Only codex/f-wl-1 is authorized for push; no packaging/signing/publication/installer.
+
+
+[WALLPAPER][WL-RECONCILE] 2026-10-05. Branch codex/wl-reconcile starts at codex/f-wl-1 51447ee99, reconciles cloud/f-wl-3 f8fbb675d, codex/f-wl-4 b95251ee8 and codex/f-wl-5 d0d72fb1c, and preserves every wallpaper REVIEW artifact from cloud/review-wl-4-5 4930bebd5 byte-exact. One environment/selection/renderer/view/wake/store serves the approved 90 static and 72 animated wallpapers. The locked snapshot is unchanged; an explicit hash-bound derived-page patch resolves no-brown consistently. The full oracle has 5,148 cases with no size pruning. Decision: ED-397. Evidence and readiness/counts: porting/reports/wl-reconcile.md and porting/reports/wl-reconcile/. Only codex/wl-reconcile is authorized for push; no full-port/native Windows acceptance is claimed.
+
+[WALLPAPER][T20-WL-FIX] 2026-10-07. codex/wl-fix starts at held fa74d2afce279017e89d9670b61dce17c3765c2c. ED-398 checks in the independent CPU/live branch proof before production edits. 39 over-limit pixel occurrences in 20 frames; approximate pow/log and atan2 are causal. Perspective wiring matches the reference. Proof and next repair: porting/reports/wl-fix.md. Only codex/wl-fix is authorized for push.
+
+[WALLPAPER][T20-WL-FIX] 2026-10-07. ED-399 applies the proven reference arithmetic after f5ae4578. Six branch regressions and 44 affected frame comparisons pass; all corrected live grid branches match the reference. Full post-fix matrix remains the next gate; Windows GPU and inherited WIC acceptance are not claimed. Only codex/wl-fix may be pushed.
+
+[WALLPAPER][T20-WL-FIX] 2026-10-07. ED-400: READY for requested T20 raster fidelity. At tested production 24706fa7, full 5148-frame matrix, App 339 and UI 1239 cases pass with zero failures/skips; all 5104 unrelated measurements are identical. Source/fixture/assertion bytes and ledger prefixes remain intact. Native Windows GPU and inherited WIC acceptance are unverified. Final evidence: porting/reports/wl-fix.md and wl-fix/results-final.json. Proof f5ae4578 precedes fix 24706fa7. Push only codex/wl-fix without force.
+
+
+### T9 Batch 10: VT16 HELD after unchanged Windows failure
+
+Input 502b082e66730796da75f8297bf9fb8df43e3e0c; verification merge 342f24659e791616219d91e6af4df1f35328fb23. The existing cloud-row disabled-button assertion (VoiceTypingSettingsPageTests.cs:80) failed alone twice on the full group and passed alone twice after reverting only VT16 on an owned scratch branch. The VT16 merge is reverted; historical ED-390 / STATE append bytes remain intact. VT15, WL-fix and icon D remain. No assertion, tolerance, reference or production repair was made. Evidence: E:/Droppy/work/scratch/codex-merge-train/batch10/group/bisect-vt16/.
+## MA-3 scoped checkpoint: 2026-10-05, Codex
+
+Commissioned Local provider foundation on `codex/ma-3`, based on staging `claude/verify-terminal-20261001` at
+`7a4cfad3ef57459faf2f593368412fd44d54de06`. READY within the requested scope: SDK 10.0.401 Linux solution build,
+warnings as errors with EnableWindowsTargeting=true; 29 fake-loopback Local tests passed five consecutive runs;
+12 Traceability checks passed. Broader touched slices have 102 failures that reproduce by name on the exact base;
+no added failures. See `first-release/ma-3-REPORT.md`, `first-release/ma-3-EVIDENCE.json` and `ED-410`.
+No new UI controls, live model inference, Windows/native gate, source parity progress or task-ledger advancement.
+This checkpoint only records the commissioned Local unit; the global checkpoint below remains historical context.
+B3 remains `52bc7926097cd622d08d6294e0d8b08a48c7516e`.
+
+
+
+## MA-2 isolated foundation checkpoint, 2026-10-05, Codex
+
+User-assigned usage-limits foundation on codex/ma-2, from claude/verify-terminal-20261001 at 7a4cfad3ef57459faf2f593368412fd44d54de06. See porting/reports/codex-ma-2.md and appended ED-406. No UI or parity/task ledger advancement. Build: 0 warnings/errors with EnableWindowsTargeting and warnaserror. 39 MA-2 tests plus 12 Traceability checks pass; broader slices retain exactly the untouched base's 190 Services and 14 App Linux failures, with no introduced failing names. Unit delivery status NOT READY pending supported Windows verification of those inherited paths. This isolated checkpoint does not supersede the staging/release checkpoint above.
+
+
+## T11 multi-account integration checkpoint, 2026-10-05, Codex
+
+All seven foundations, staging bffb63a39 and independent review 2780ba681 are merged on codex/ma-ui. Windows scoped validation is Core 196/196, Services 178/178, App 55/55, zero skipped/build warnings/errors; see ED-403 and E:/Droppy/work/scratch/handoff/codex-T11-ma-ui.md.
+
+**Incomplete:** T11 step 1 production host/controller, final-tail/full-Git summary, pill new-thread routing, MA-6 live key routing/caps/spend/pins and verified CLI standby restriction/restoration. Steps 2-5 Settings/composer/cards/opinions/usage, capsule styles, GPU neural motion and Fast/actual-window labels have not begun. No native or release gate, push, mark/DONE claim. Work continues under OD-0116 and OD-0117.
+
+
+## T11 host and summary checkpoint, 2026-10-05, Codex
+
+The real ThreadRuntime host, final-tail acknowledgement/revalidation, full Git context/facts, new-thread and launch-reuse pill routing, Local identity projection, briefing payload and cost-window/recovery adapters are implemented with narrow Windows Services 29/29 and App 11/11 tests; see ED-403.
+
+**Incomplete:** live account factory/controller/scheduler and Local discovery joins; API key metadata/rotation/caps/spend/pins; independently identified consent bypasses; CLI pre-tool restriction/restoration; all steps 2-5 and native checks. A new uncommitted API metadata test batch is in progress. Prior full-foundation counts are not relabelled as this checkpoint. T11 remains NOT READY, no push or DONE.
+
+
+## T11 live factory and consent checkpoint, 2026-10-05, Codex
+
+Normal launches share the account factory; Local discovery projects persistent account rows; operation-scoped once answers, changed service/package policy, unknown-report waiting, effective pill targets and API metadata/spend boundaries have narrow Windows validation: Core 227/227, Services 22/22, App 72/72; zero skips/build warnings/errors. See ED-403.
+
+**Incomplete:** production controller/scheduler ownership; actual API pools/credits/caps/spend/pins; remaining provider restriction/restoration and step-1 joins. Step 2 is owned by cloud/ma-settings; merge its READY delivery after completing/pushing step 1. Composer/cards/opinions/usage, capsule styles, neural GPU motion, Fast/actual-window labels and native checks remain. No push/DONE/release claim; T11 NOT READY.
+
+
+## T11 live routing and pill-key checkpoint, 2026-10-05, Codex
+
+Per-thread routing/scheduler ownership, first-time OFF/acceptance behavior, final consent guards, chosen-wait same-turn recovery, canceled startup, immutable source identity and pill-key selection/availability/persistence now have scoped Windows evidence: Core 245/245, Services 34/34, App 137/137, zero skipped/build warnings/errors. Read-only review and exact-method alone-twice regressions are recorded in ED-403. The aborted Drain run is excluded.
+
+**Incomplete:** actual API key pools/caps/spend/credits/pins; provider restricted priming/restoration (including unsupported or unknown resume identities); step-1 joins. Settings cloud/ma-settings 317722f27 is NOT READY and belongs to the separate helper/Fledge worktree; no step-2 implementation here. Later composer/cards/opinions/usage/styles/motion and native checks remain. T11 NOT READY; no passing-step push, DONE or release claim.
+## T11 staging/recovery checkpoint, Codex, 2026-10-05
+
+Staging 5c3cf1b4d joined with all insert-only ledger contributions byte-preserved, OD-0119/checklist included. Fresh account recovery works after its last thread moved away; guarded exited-CLI recovery refuses a missing original conversation ID before launch. Alone-twice reds and scoped Windows evidence: Core 245/245, Services 119/119, App 166/166, zero skips/build warnings/errors.
+
+**Incomplete:** T11 step 1 API pool/cap/spend/credit/pin composition and verified provider restricted priming/restoration. Settings step 2 stays with the separate helper/Fledge; its cloud delivery is NOT READY. No passing-step push, native/DONE/parity/package/release claim.
+
+## T11 pin/API-consent checkpoint, Codex, 2026-10-06
+
+Persisted account pins, pin/unpin routing, cached API key binding and request-local retained retry consent have scoped test-first Windows evidence: Core 263/263, Services 89/89, App 145/145, zero skips/build warnings/errors. Awaited 402/429 consent keeps the same request and cancels on Stop. Read-only review R14-R17 repaired.
+
+**Incomplete:** actual App API pool/cap/spend/credit/pin composition (new LiveApiKeyPool draft tests not run yet), verified CLI restricted priming/restoration and other step-1 joins. Settings step 2 belongs exclusively to the helper on cloud/ma-settings; Fledge is retired. Settings needs READY and Windows checks before merge. Handshake uses multiAccountHandshake, default OFF; first-time consent is required. Sign-in uses ProviderRegistry.SignIn(Guid); removing a private account never touches the original CLI sign-in. No fabricated usage readings or implicit default persistence; no passing-step push or native/DONE/release claim. T11 NOT READY.
+
+## T11 live API checkpoint, Codex, 2026-10-06
+
+Actual App API routing/caps/spend/card joins have scoped Windows evidence: Core267/267, Services89/89, App164/164, zero skipped/build warnings/errors. Request-local consent, cancel/revoke/observer ownership, private adoption and destination defaults repaired test-first, including independent R18-R22 and R18b.
+
+**Incomplete:** actual service credits/shared scheduler/chooser/final availability, API reset/all-out joins, verified CLI restricted priming/restoration and remaining step1 integration. New AccountCreditLimitsTests11 are red twice and not passing evidence. Helper owns Settings5b76d40261c338c7f3730b7d14ef129f9359e21f (Windows verdict READY, merge only after our step1 passes) and capsule step3a. Step1 NOT READY; no passing-step push, native/DONE/parity/package/release claim.
+
+## T11 account reports checkpoint, Codex, 2026-10-06
+
+Actual account credit readers, shared AutoContinue scheduler, API cap/out pill/final guards and polling lifetime repairs have scoped Windows evidence Core267/267 Services143/143 App211/211, zero skipped/build warnings/errors. Independent R23/R24/R23b/R23c regressions repaired test-first.
+
+**Incomplete:** live API wait/all-out and actual payload destination defaults, bootstrap/report liveness, Hydra configuration and verified CLI restricted priming/restoration; step1 NOT READY. Settings helper5b76d40261c338c7f3730b7d14ef129f9359e21f remains READY by lead Windows verdict but merges after step1 passes. Capsule step3a remains helper-owned. No passing-step push/native/DONE/parity/package/release claim.
+
+## T11 real API/controller, Hydra and bootstrap checkpoint, Codex, 2026-10-06
+
+Real 402/429 waits/resume and other-service consent, destination payload defaults with identical refused-request retries, destination/final/private Hydra policy, task-group main-actor hop and bootstrap/observable account reports have scoped Windows evidence Core267/267 Services321/321 App221/221. Zero skips/build warnings/errors. Every counted defect failed exact method alone twice, including the preemption regression; fixture/interruption/lock errors excluded.
+
+**Incomplete:** verified CLI restricted text-only priming/restoration; private cost measurement, optional incoming light-model AI-summary fallback, between-tool safe pause, remaining view/report and manual-choice joins. Step1 NOT READY, no passing-step push. Settings5b76d40261c338c7f3730b7d14ef129f9359e21f is independently Windows READY but merges after step1 passes. Capsule step3a remains helper-owned and unmerged. No native/DONE/parity/package/release claim.
+
+## T11 live API Hydra continuity checkpoint, Codex, 2026-10-06
+
+Destination Hydra, system policy and the live runtime signature now move together before observers run, retaining the real API session on the next message. Windows App223/223 Services237/237, zero skips/build warnings/errors. Exact configuration/reuse tests failed alone twice; refused retry payload tests remain green. Core267 and wider Services321 are prior scoped validations, not additional fresh counts.
+
+**Incomplete:** verified CLI restricted text-only priming/restoration, private cost measurement, incoming light-model AI-summary fallback, between-tool safe pause and remaining manual/view/report joins. Step1 NOT READY and unpushed; Settings/capsule are helper-owned/unmerged. No native/DONE/release claim.
+
+## T11 visible account report demand checkpoint, Codex, 2026-10-06
+
+The shared report scheduler now accepts overlapping visible-view leases without a chat runtime. Last-owner release pauses accounts and invalidates queued/late callbacks; reopening retains cached data and provider throttle. Focused Windows8/8 and App account/traceability126/126, zero skips/build warnings/errors. Existing Core/Services results remain prior evidence.
+
+**Incomplete:** verified CLI restricted priming/restoration (documented Claude subscription/managed-hook gap); private cost measurement, optional incoming light-model summary, between-tool safe pause and manual account selection. Report leases still need binding when helper Settings/capsule merge. Step1 NOT READY, no push; helper Settings/capsule scopes remain unmerged. No native/DONE/release claim.
+
+## T11 manual API account pin checkpoint, Codex, 2026-10-06
+
+A connected eligible API account can be pinned for this conversation through the public App operation; the next request retains the real session/context, uses its chosen key/defaults and persists the independent pin. Off/capped/missing/foreign accounts are rejected and Back to order preserves automatic-switching OFF. Focused Windows6/6 and App account/traceability132/132, zero skips/build warnings/errors; exact methods alone twice.
+
+**Incomplete:** selecting another CLI/Local account via the guarded handoff; verified CLI restricted priming/restoration; private cost/light-summary/between-tool safe-pause joins; report leases still await helper view binding. Step1 NOT READY/unpushed; Settings/capsule remain helper-owned/unmerged. No native/DONE/release claim.
+
+
+## T11 Claude private priming/restoration checkpoint, Codex, 2026-10-06
+
+Claude text-only context transfer now has a version/effective-policy gate, empty main-agent tool pool, actual session/init proof, action denial, original settings/permission restoration in the same process and a bounded cleanup deadline. The App host awaits restoration and then reruns final atomic guards before releasing the outgoing session. Narrow Windows Services165/165; App account131/131 and rules3/3, zero skips/build warnings/errors. Exact new method failures reproduced alone twice; fixture compile errors and accidentally excluded method-name runs do not count. No real CLI/network/model ran.
+
+**Incomplete:** installed/native Claude policy verification and other CLI restrictions/restoration; private quota-cost estimate, optional incoming light-model summary, between-tool safe pause and manual CLI/Local selection. Helper Settings/capsule remain unmerged and their report leases await binding. Step1 NOT READY and unpushed. No native/DONE/release claim.
+
+
+## T11 incoming AI-summary fallback checkpoint, Codex, 2026-10-06
+
+An explicitly chosen AI summary now requests a real incoming light-model briefing when the outgoing one is unavailable and refuses absent output. The actual selected Claude account must report haiku; a separate restricted private session receives the complete archive, disables Fast/inherited effort, requires model selection acknowledgement and checks transfer permission at final dispatch. It never substitutes Marrow's mechanical summary, changes account defaults, releases the live source or enables automatic switching. Current narrow Windows Core267/267 Services165/165 App138/138, zero skips/build warnings/errors; new focused Core5/App4 cases and exact method reds alone twice.
+
+**Incomplete:** installed/native Claude verification and other CLI/light-model capability gates, private quota-cost measurement, between-tool safe pause, manual CLI/Local selection and helper view report binding. Step1 NOT READY/unpushed; Settings/capsule remain helper-owned/unmerged. No native/DONE/release claim.
+
+
+- T11 ma-ui private quota cost checkpoint: actual private text turns feed a conservative aggregate-window delta via the one shared throttled scheduler, with overlapping turn completion/read-start/epoch guards and cancellation cleanup. This does not assert exclusive spending attribution. Windows Services63/63 and App140/140 (new focused8+2), no skips/build warnings/errors; exact new method reds alone twice in private-cost-*-alone-1/2.log. ED prefixes preserved. Step1 remains NOT READY: between-tool provider pause, manual CLI/Local selection, unverified installed CLI capabilities and helper view joins remain; Settings/capsule helper surfaces are untouched/unmerged. No push/native/DONE/release claim.
+
+
+- T11 ma-ui API/Local between-step checkpoint: the actual API tool loop can wait after the full tool round is retained, then atomically hand the original turn/bubble to an acknowledged standby under explicit Finish consent. A UI tool-finished event remains insufficient. Revocation keeps the source; final-acknowledgement cancellation releases the private pipeline/pause and completes the original turn once. Scoped Windows Core271/271 Services70/70 App143/143, new focused4+2+3, no skips/build warnings/errors; counted exact reds alone twice, fixture compile/timeouts and report-test timing assumption excluded. Ledgers append byte-exact. Step1 is NOT READY: manual CLI/Local choice, verified CLI between-step/restricted priming capabilities and helper view joins remain; helper Settings/capsule are untouched/unmerged. No push/native/DONE/release claim.
+
+
+- T11 ma-ui private context revocation: the engine and actual collector/provider dispatch now reject context after choices, source/pin, destination configuration or availability change during preparation. API/Local check after async encoding on each request attempt; adoption clears the old private-source guard. Live source remains intact. Windows narrow Core266/266 Services86/86 App188/188, no skips/build warnings/errors; new11 regressions failed exact methods alone twice, next ordinary adopted request verified. Generic error representation and new fixture storage corrected; no assertions weakened. Step1 remains NOT READY (manual CLI/Local selection, other verified restricted CLI capabilities, helper joins). Settings/capsule helpers remain untouched/unmerged. No push/native/DONE/release claim.
+
+
+- T11 ma-ui manual CLI/Local checkpoint: explicit TryPinThreadAccountAsync uses acknowledged private context and the actual settled runtime boundary, captures/replaces an old account pin, commits account/session/defaults/pin together and persists the pin. Bring is supplied, not invented; automatic switching remains off. Back to order cancels a pending manual operation; real limit/detach cancels it; sign-out during tool restoration retains the source. Final Windows App162/162, new16 cases, zero skips/build warnings/errors. Counted red15 cases exact-method alone twice; actual limit case baseline green. Initial fixture compilation/signature and stopped probes excluded. Initial loopback fixture mistakenly passed through the real HTTP client; those attempts are excluded, replaced by an in-process offline.invalid endpoint, and documented in ED. Step1 remains NOT READY/unpushed pending verified restricted CLI capabilities beyond Claude and helper view joins. Settings/capsule helpers remain untouched/unmerged; no native/DONE/release claim.
+
+
+- T11 ma-ui Handshake OFF receipt checkpoint: final context refresh keeps the successfully received package's read-back mode. Manual Claude/Local pins use the actual chosen Handshake mode and invalidate preparation if it changes before adoption. Actual final archive still receives an acknowledgement; AI-summary Bring remains a separate explicit choice. Windows Services89/89 App170/170 (new8 cases), zero skips/build warnings/errors, five defect cases failed exact methods alone twice; corrected nested-main-loop fixture errors excluded. Official Codex docs do not establish complete reversible text-only tool restrictions; history insertion is not an AI read-back. Step1 NOT READY and unpushed. Settings/capsule helper ownership unchanged, unmerged; report-view joins await those merges. No native/DONE/parity/package/release claim.
+
+
+### T17 MA-3b-E1 item 1 (2026-10-07)
+
+Branch codex/ma-e1 from origin/claude/ma-engine 2fc98c90; authorized no-ff merge of claude/ma-3b5-base plus byte-preserving ledger repair. ILinkPort engine implemented with per-answer streamed checks, ordered tap link/unlink, no active/out/off target, cancellation/revocation and required consent/no-tools host boundary. Green scoped checks: Services 16/16, Core 287/287. Linux full Core !~Native aborted (1821 passed, 198 failed); Services broad native failures remain. SDK 10.0.401 installed; repo has no global.json. Next: parallel one-message opinion engine/Combine, concrete verified text-only runner and persistent OD-0120 confirmation; job W must bind views and primary-answer notifications. No full Windows verification claim. ED-454 records the conservative unavailable-source restriction.
+
+
+### T17 MA-3b-E1 item 2 (2026-10-07)
+
+OpinionsEngine now implements IOpinionsPort: one-message parallel Answer/Opinion heads, everyone with room including Local, immutable stream snapshots, isolated round cancellation, original-account Combine with byline and one append attempt. Scoped Services checks 31/31; tests-first and independent-review publication race recorded in ED-455. Broad Linux Services finished 4141 passed / 1288 failed / 52 skipped (5481 total). Next: OD-0120 remembered confirmation/unchecked checkbox, concrete no-tools runner, source revision hardening; job W binding remains separate.
+
+
+### T17 MA-3b-E1 item 3 (2026-10-07)
+
+OD-0120 consent/persistence and an actual Avalonia modal are implemented: unchecked Don't ask again, explicit Send, no persistence on refusal/cancellation, directed service-pair scope, corrupt preference preservation. Automatic Handshake/key switching remain off until their own consent. Concrete fresh text-only head adapter is supplied; unsupported CLI model heads fail safely rather than inheriting standby capability. Private API pool binding/spend accounting and pinned no-fallback routing are required at real dispatch. Independent review's missing cap binding is fixed. Green: Core 351/351, Services 69/69, App headless dialog/modal/Traceability 7/7; App compiled on Linux with EnableWindowsTargeting. All E1 tests are offline fakes; existing tests/assertions untouched. Next: context-revision and completed-last-answer guards, final mandatory project runs/report. Job W wiring and real Windows validation remain; ED-456 records safe provider restriction and proposed confirmation wording.
+
+
+### T17 MA-3b-E1 item 4 (2026-10-07)
+
+Final engine hardening: required context/ownership epoch prevents stale consent/context/stream/Combine publication; canonical completed-answer seam checks the capped author's last answer without sending to it; outward links hide active/out/off identities while retaining tap intent; opinion errors are port-visible. Current monthly-cap metadata plus shared pinned routing are required; capped token-only APIs fail before send without verified model pricing (no guessed rates). Tests-first red witnesses repaired without changing assertions. Final green scopes: Core 351/351, Services 84/84 with five repeats, App headless/base shared surfaces/Traceability 16/16; App builds on Linux with Windows targeting. Independent source review passed with read-only execution limit. Broad final Core !~Native aborted (3566 passed,459 failed,4025 completed); broad Services final still running. Integration contract: porting/first-release/multi-account-E1-integration.md; ED-457. Job W wiring, verified other-CLI text-only heads/model pricing, native Windows/full-suite validation remain.
+
+
+### T17 MA-3b-E1 final delivery (2026-10-07)
+
+Link A, one-message opinions B/parallel streams/one Combine, persistent unchecked-by-default cross-service consent, fresh restricted account heads and live cap/epoch/cancellation guards are committed on codex/ma-e1 and pushed only there. Core focused 351/351; Services focused 84/84 plus five repeats; App headless/shared/modal/Traceability 16/16 with successful Windows-targeted App build. Final required Core !~Native aborted (3566 passed,459 failed,4025 completed); Services completed (4199 passed,1288 failed,52 skipped,total5539), with identical failed names to baseline and all 58 new E1 Services cases passing. Existing tests/assertions/tolerances/references/skips unchanged after authorized base merge; no real network/CLI/model or credentials in E1 tests. Independent read-only source review found no E1 blocker. NOT READY for release until job W wiring, verified additional CLI heads/model pricing and native Windows/full-suite validation. Report and exact counter/filter receipt: porting/first-release/reviews/ma-e1-verification.md, ma-e1-test-results.json; integration contract: porting/first-release/multi-account-E1-integration.md. ED-458. Historical ledger bytes preserved, append only.
+
+
+### T9 Batch 10+ group 01: ma-gaps HELD, engine retained (2026-10-07)
+
+Revert only ma-gaps merge ed0820d7 after two unchanged E1 pricing cases failed twice alone. Scratch 00ea876e, with ma-gaps alone reverted, passes all five theory cases twice (10/10). Engine 0e213f9 and CLI checks 95fd4af stay integrated. Retain all historical ledger entries ED-460..463; they do not claim an admitted pricing/head adapter. Raw full sweep remains recorded at ed0820d7, not relabeled clean. No assertion, tolerance, reference or production repair. Final affected reruns and push receipt are in the T9 handoff and standing/01-engine manifest.
+
+
+## T25 MA-3b-W live wiring (2026-10-07)
+
+Branch codex/ma-wire: ma-wave2 + reviewed ma-engine-review + ready ma-e1, --no-ff merges; both mixed-ending ledgers preserve each parent's bytes with insertions only. Production IThreadAccountPort/ICardPort/ILinkPort/IOpinionsPort are real bindings. Pin/clear/Remember use real thread state; Ask is accepted without switch consent; cards, capsule readiness/tick, popover and usage read live state. E1 uses real context/revision/cap/private-key/consent/atomic append boundaries and completed-answer forwarding. No requested production port remains on a fake. Separate App link/opinion presentation and full MA-4 painter/sound presentation are not completed by this seam pass; unsupported E1 head services and unpriced capped token-only APIs fail explicitly.
+
+Evidence: Core account/model 511 passed; Services portable account 223 passed; App live/screens/meta 112 passed/1 unresolved pin-fixture failure, no skipped. Required broad Core/Services !Native and attempted App Linux runs are red/incomplete from Windows APIs/fixtures/environment issues and other failures; no tests or assertions weakened. Full failure evidence, exact Windows rerun lists and commits: porting/reports/multi-account-W-20261007/README.md. NOT READY for Windows/release; Windows pin/runtime/native UI checks remain. No feature marked DONE. Push only codex/ma-wire, never force.
+
+
+[INTEGRATION T9] 2026-10-07: ma-opinions-view 18dcbc9f is HELD for its acknowledged W timeline-association dependency, not merely Windows proof. Candidate 08bc3a61 was withdrawn after W d49e21d7 still had no production binding of OpinionTimelineSeams.Offer (default null); OpinionAnswerRows.Append therefore refuses production attachment. ED-517/518 remain historical. No test/production repair is authored on integration. Both MA waves and the delivered W ports remain under grouped Windows verification.
+
+
+[INTEGRATION T9] 2026-10-07: W c23e031b/d49e21d7 admission-held for its missing production Link UI model and timeline opinion bindings; withdraw only that merge, retain both READY waves and historical ED-519/520. Raw candidate Windows focused gates pass; full Core4902/Services5603/UI4696 pass, App9990pass7fail with all seven unchanged methods passing twice alone. A fixture pass is not proof of an unbound production view. No production/test repair on integration.
+
+## Incomplete: T14 Strike (codex/strike, 2026-10-07)
+ST-0 retained frame integration and server-GC/zero-main repairs are implemented with unchanged legacy assertions; ED-521. Scoped UI 413/413, App 637/637; counter follow-up UI 37/37. Native #5 informative under shared load: 59.979671 tube updates/s, main 0, recordings 0, UI 414.775 B/s, quiet 80 B, drawn median 5792 B, one gen0 and 21.5718 ms longest observed content gap. Quiet-window, DXGI presentation and baseline-equal allocation checks are NOT PASSED. New gate fails missing measurement/precondition evidence. ST-1 pure vector maths, ST-2 plume/contacts/knob, ST-3 masks/ink/lanes/start wiring/warm registration, and the 15 assigned parity/UI closures remain incomplete. No T14 queue id exists; mapping to T-M7-092/093/094 needs the lead's correct task scope, never a fabricated DONE.
+
+T14 ST-1 checkpoint A-01..A-06 (ED-522): immutable vectors/generator copied and SHA-pinned; exact shared maths/ease/Mix timing and four 100000-strike statistics green. Vector tests 9/9; unchanged A2 plus Traceability scope 43/43; zero-warning/error build. Production still A2, no assertions replaced. Remaining Phase A and ST-2/ST-3 remain incomplete; quiet-PC gate pending.
+
+T14 Strike A-07/A-08 partial checkpoint (ED-523): retained plan geometry/orb/spark vectors and zero-byte ring pass. Production Mix/plume/ink/starts/contact wiring and remaining proofs are incomplete; all 15 assigned record closures remain open.
+
+T14 A-09/A-10 checkpoint (ED-524): retained plume geometry and expanded contact-event oracles green, production wiring still incomplete. No assigned parity/UI record is closed.
+
+T14 Strike checkpoint: ST-1 A-11 and A-15..A-17 accepted (capacity/100000-strike walks and 20000-change statistics scope 24/24; exact-input 80-case wait guard 1/1). ED-525 lists all 19 serialization ties and the lead ruling; ED-526 records retained timing windows/capacities. Ink, bubble/ramp and Mix-knob validation is in progress. Production Mix/plume/ink, OD-0093 contacts, raster/composite/frame wiring, warm programs, allocation integration, quiet-PC presentation/GC gate and all 15 record closures remain incomplete. T14 NOT READY.
+
+T14 Strike ST-1 maths accepted: complete A-01..A-21/provenance/Traceability 34/34 (0 skips; build 0 warnings/errors); legacy Knob/Jewel/EffortSliderStrike/Traceability 290/290. ED-527 records retained colour/lane/clock/Mix knob maths and both confirmed corrections. Production still renders A2. ST-2 frame resolution/OD-0093 contacts, ST-3 masks/composite/wiring/warm programs, integration allocation gate, quiet-PC presentation/GC gate, final verification/mark and all 15 closures remain incomplete. T14 NOT READY.
+
+T14 ST-2 partial checkpoint (ED-528): B-01..B-05/B-07 vectors and independent contact audits 13/13, zero skips; build zero warnings/errors. Retained frame/contact maths implemented; production still A2. Burst drawing, re-entry/trigger state, raster/composite/frame wiring, integrated discipline/mutation and quiet-PC gates, final verification/mark and all 15 record closures remain incomplete. T14 NOT READY.
+
+T14 ST-2 drawing/start-state checkpoint (ED-529): frame/contact/burst/re-entry/Traceability 17/17, zero skips; build zero warnings/errors. B-06 explicit recorded drawing oracles and 80 pending waits pass. Production remains A2; rasterised jump/lanes/trigger integration, B-10..B-12, ST-3 discipline, quiet gate, verification/mark and all 15 closures remain incomplete. T14 NOT READY.
+
+T14 ST-3 production/raster checkpoint (ED-530): six A8 masks, exact gained-mask/8-bit halo/native-gradient staging, grouped premultiplied light/ink/glass, source Mix lanes/contacts/ramp/random starts and warm registration are implemented. st3-green14:46/46,0skips; build0warnings/errors. Full warmed pipeline resolves/rasterises liquid, bubbles, bursts/rings and glass with exactly0B over2880frames. The raw Composer/Traceability run remains1313pass/2fail/0skip; allocation failure confirmed twice and fixed by retaining canvases directly; production pixel failure was intermittent (alone1fail/1pass), and its independent fixture now replays the same initial frame/contact history. Model-fade kind-toggle origin confirmed twice and fixed; existing replacement view identity/local clocks retained. Final broad acceptance, Release timing and the15 assigned IMPLEMENTED transitions remain pending. Lead defers native quiet measurements to release: needs the lead's quiet window; exact command/duration/pass criteria are in scratch strike-native-ready.md. Reviewer owns D-07. No whole GateD, owner visual or mark DONE claim.
+
+T14 Strike checkpoint: ED-531 fixes combined D03 clean re-entry plan budget and SPEC12 actual raster composite budget; faithful SPEC6.4 raw premultiplied readback preserves every pixel tolerance and locked/legacy oracle. Focused154/154,0skips,clean build; exact full pipeline0B/2880 and peaks4/3/7 plus glass<=8. Broader App/UI and Release timing closeout pending. Quiet native PhaseE needs the lead's quiet window, reviewer D07 and owner page capture remain release gates. Lead explicitly waives T14 mark.mjs; no queue/T-M7 packet touched. Handoff E:\Droppy\work\scratch\handoff\codex-T14-strike.md, branch codex/strike.
+
+T14 Strike READY for code integration: ST0..ST3 complete, focused154/154,final Composer/clock/warm/Traceability1380/1380,ReleaseD04 twice1/1,all0skips/cleanbuilds. Latest raw UI3464/1/0; Aurora allocation method passes12/12 twice alone (unconfirmed); earlierUI3465/3465. Assigned9PR/6UI IMPLEMENTED,matching15spec rows,contract/unassigned fields preserved; no VERIFIED claim. ED-532 and porting/first-release/strike-T14-report.md. NativePhaseE needs lead's quiet window; reviewerD07/ownerpagecapture remain release gates. T14 mark.mjs waived, no queue/T-M7 touched. T9 merges codex/strike using E:\Droppy\work\scratch\handoff\codex-T14-strike.md.
+
+
+### 2026-10-07 — T36 skills UI (`codex/skills-ui`)
+
+RR-17: functional minimized progress in both approved sidebar locations and enlarge to the same run; exact locked presentation remains BLOCKED (ED-545, -3). RR-18: custom Add fakeable UI and optional Tools Download all added; production custom validation/install/Your own integration remains BLOCKED (ED-546). RR-44: whole offer fade/collapse, bytes and indeterminate unknown total fixed; ordered service starts remain BLOCKED outside UI scope (ED-548). No services/core/runtime changes or modified baseline tests/assertions/references. Linux build zero warnings/errors; five final serial selections 211/211 each; Gate B passes; Gates A/C and native/full Windows suite remain open. Earlier import repeat failures retained in evidence. Verdict NOT READY. Report: first-release/reviews/skills-ui-T36.md; raw evidence: first-release/evidence/skills-ui/.
+
+
+### T36 skills UI release gaps - Round 2 (2026-10-07)
+
+Branch codex/skills-ui. RR-17 DONE for T9: locked 120ms arrival, delayed 450ms ring/check, .22s compact opacity and .32s movement, .34/.26s state folds, outside dismissal/reopen and compact faces; sole Round 1 test correction explicitly approved (ED-550). RR-44 DONE for T9: merged T35 ordered starts, preserving whole-card collapse/byte/unknown-total presentation. RR-18 BLOCKED: production custom API, persisted Your own/provenance and command/plugin composition are bound; optional GitHub subtree paths required by the locked UI are rejected by the service. T35 a0437bbf merged, no direct T36 Core/Services/runtime edits. Final Linux build 0 warnings/errors; five serial App selections 236/236 each, UI 54/54, Services 25/25; fakes only. Windows native/full five-run acceptance remains. Round 2 report: first-release/reviews/skills-ui-T36.md; evidence: first-release/evidence/skills-ui/round2; ED-549..11. Verdict NOT READY.
+
+
+## T34 voice release gaps — RR-10 (2026-10-07)
+RR-10 implementation DONE: pinned NVIDIA companion installer, complete staged publication, production binding and CUDA A hardware-card row are present. Fake Services and mounted App acceptance pass; no real download, GPU, microphone or model was used. Windows filesystem/native/visual acceptance remains listed in porting/first-release/reports/T34-voice-gaps-RR10.md. ED-557. This entry does not declare the voice release ready; RR-11 and RR-12 remain open.
+
+
+## T34 voice release gaps — RR-11 (2026-10-07)
+RR-11 BLOCKED: picked error notes are mounted and real AVX2 facts bound, with fake lifetime/announcement/mounted-surface coverage; the 30-second Countdown C is still not mounted. Its exact pill integration and first-download-note suppression require the protected VT-12/CZ-7b/VT-15 files; the OpenAI key row needs VT-16 integration. No protected source/test/reference was edited or imported. Evidence and Windows checklist: porting/first-release/reports/T34-voice-gaps-RR11.md. ED-558.
+
+
+## T34 voice release gaps — RR-12 and final verdict (2026-10-07)
+RR-12 BLOCKED: Add now visually confirms its preceding word without changing transcriber logical Tentative semantics; the focused regression passes. Automatic RTL paragraph direction, independently rising wrapped fragments and final-fragment caret/scroll parity remain incomplete. The unproven renderer was excluded after independent review; no original test/assertion/reference/tolerance changed. Affected checks: Core voice 653 plus 3 metadata passed; Services voice/metadata 491 passed, 12 Windows skips; App affected/metadata 64 passed. Broad App and full Core/Services runs encounter recorded Windows/font/platform failures on Linux. RR-10 implementation DONE; RR-11 and RR-12 BLOCKED; verdict NOT READY. Windows work and exact evidence: porting/first-release/reports/T34-voice-gaps-validation.md. ED-559.
+
+
+## T34 voice gaps - Round 2 checkpoint (2026-10-07, codex/voice-gaps)
+
+READY for T9 Windows verification (lead definition in 45096401f90e1d0ae74a9e156cb9f0cb3fa67e60:R-gaps-round2.md), not full release acceptance. RR-10 ALREADY DONE/awaiting T9. RR-11 BLOCKED here and stopped for lead handoff to T33 after VT-12 READY, depending on local VT-12/VT-16; no Round 2 production edit there. RR-12 DONE implementation: shared natural-bidi paragraph editor/layer, full native shaped glyph-cluster pictures through wrapped motion/revisions/reflow, final-line caret/scroll, landing lifetime and same-picture handover. ED-560 supersedes the old line-101/Round-1 paragraph/fragment implementation limitation; it remains historical, not edited.
+
+Pinned B3 52bc7926097cd622d08d6294e0d8b08a48c7516e / tree115745914ccc103dfe4e74d96c6c539faab2eedb. Locked mirror26f8fbe89ee8480c9b18b4afe16d6c57bccb3610 read without merging. Round2 base0f13cc3c52f95b04c10391d03bd49ce0b6edb550. Tests: Core voice+trace656 pass; Services voice+trace491 pass/12 Windows-native skips; affected App+trace121 pass including57 new RR-12 checks; unchanged composer26 pass/24 Linux dependency failures (19 glyphTypeface creation failures (6 default, 13 Inter),5 user32). All original tests/assertions/tolerances/references untouched. Test-first pixel/timing red witnesses repaired; independent contract15 final review cleared implementation for T9. GateB8/8; protected workspace paths unchanged; E:/ reference checks and native full gates unavailable on Linux. Application seams fake/scripted, no real network/download/GPU/microphone/model.
+
+Next: T9 runs the explicit Needs Windows list in first-release/reports/T34-voice-gaps-RR12.md and the RR-10 native list: native fonts/fallback/IME/bidi selection/caret/DPI/theme/ReduceMotion, captured revised/wrapped glyph pictures, pixel handover/undo/cancel, actual composer scroll/height/performance, unchanged mounted fixtures and full Core/Services/App plus native skipped checks. Lead/T33 owns RR-11 countdown/preparation/cloud integration. Round2 reports and raw authentic evidence appended under first-release/reports/T34-voice-gaps-*. Ledgers appended byte-exact with original prefix hashes preserved; only codex/voice-gaps is pushed, no force.
