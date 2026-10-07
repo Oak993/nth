@@ -66,7 +66,28 @@ def unit_check(mapping, text, currency_evidence=None, token_unit_evidence=None):
             raise ValueError('Source must explicitly establish USD per million tokens')
         official_evidence(mapping['service'], currency_evidence['sourceUrl'])
 
-def complete_list_evidence(mapping, review, capture):
+TOOL_STATEMENT = "applies only to the provider's web-search tool, which Marrow never enables"
+ACCOUNT_DASHBOARDS = {'meta': {'https://dev.meta.ai/billing'}, 'zai': {'https://z.ai/manage-apikey/billing'}}
+
+def validate_provider_tool_proof(service, proof):
+    """Source-bound reviewed proof; the compiled transport guard independently stops future tools."""
+    if service not in ('meta', 'zai') or not proof or proof.get('service') != service or proof.get('statement') != TOOL_STATEMENT:
+        raise ValueError('Missing provider-specific local-function-only request builder proof')
+    required = {'src/Marrow.Services/Providers/OpenAICompatibleSession.cs',
+                'src/Marrow.Services/Providers/' + ('MetaSession.cs' if service == 'meta' else 'ZaiSession.cs'),
+                'src/Marrow.Services/Providers/ProviderToolBillingGuard.cs',
+                'tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs'}
+    sources = proof.get('sources', [])
+    if len(sources) != len(required) or {source['path'] for source in sources} != required:
+        raise ValueError('Incomplete/duplicate production request builder, guard and regression proof')
+    for source in sources:
+        try: digest = hashlib.sha256((ROOT / source['path']).read_bytes()).hexdigest()
+        except OSError as error: raise ValueError('Production request builder/guard proof source unavailable: ' + source['path']) from error
+        if not isinstance(source.get('line'), int) or source['line'] < 1 or digest != source.get('sourceSha256'):
+            raise ValueError('Request builder/guard proof changed; provider tool exclusion must be reviewed again')
+    return proof
+
+def complete_list_evidence(mapping, review, capture, tool_proof=None):
     if not review or review.get('service') != mapping['service'] or review.get('sourceUrl') != mapping['sourceUrl'] or review.get('completeTokenTable') is not True:
         raise ValueError('Missing complete official token-price-list review' + (': ' + review['reason'] if review and review.get('reason') else ''))
     pages = review.get('pages', []); urls = {page['sourceUrl'] for page in pages}; receipts = []; contents = {}
@@ -82,20 +103,35 @@ def complete_list_evidence(mapping, review, capture):
         if content['sha256'] != page.get('contentSha256'): raise ValueError('Official pricing/billing content changed; review every fee again: ' + url)
         contents[url] = content
         receipts.append(dict(sourceUrl=url, retrievedAt=receipt['retrievedAt'], sourceSha256=receipt['sourceSha256'], reviewedContentSha256=content['sha256']))
+    dashboards = review.get('accountDashboards', [])
+    dashboard_urls = set()
+    for dashboard in dashboards:
+        # Only known account transaction UIs, never public billing terms or arbitrary links.
+        if dashboard.get('sourceUrl') not in ACCOUNT_DASHBOARDS.get(mapping['service'], set()) or dashboard.get('kind') != 'account-transaction-dashboard' or not dashboard.get('reason'):
+            raise ValueError('Cannot exclude a public billing terms page as an account dashboard')
+        validate_provider_tool_proof(mapping['service'], tool_proof)
+        dashboard_urls.add(dashboard['sourceUrl'])
     for url, content in contents.items():
         for href in content['billingLinks']:
             linked = urllib.parse.urljoin(url, href); parts = urllib.parse.urlsplit(linked)
             linked = urllib.parse.urlunsplit(parts._replace(fragment=''))
-            if parts.hostname in EVIDENCE_HOSTS[mapping['service']] and linked not in urls:
+            if parts.hostname in EVIDENCE_HOSTS[mapping['service']] and linked not in urls and linked not in dashboard_urls:
                 raise ValueError('Unreviewed linked official billing page: ' + linked)
+    charges = []
     for charge in review.get('listedCharges', []):
         content = contents.get(charge['sourceUrl'])
         if content is None or not charge.get('quote') or charge['quote'] not in content['text']:
             raise ValueError('Missing/changed listed fee/minimum/surcharge quote')
-        raise ValueError('Listed charge cannot use absent-fee evidence: ' + charge.get('reason', charge['quote']))
+        if charge.get('disposition') != 'excluded-provider-web-search-tool' or charge.get('statement') != TOOL_STATEMENT:
+            raise ValueError('Listed charge cannot use absent-fee evidence: ' + charge.get('reason', charge['quote']))
+        proof = validate_provider_tool_proof(mapping['service'], tool_proof)
+        # Quote must explicitly name web search, not an unrelated minimum/surcharge.
+        if not re.search(r'web\s+search', charge['quote'], re.I): raise ValueError('Exclusion is limited to the exactly quoted provider web-search tool charge')
+        receipt = next(receipt for receipt in receipts if receipt['sourceUrl'] == charge['sourceUrl'])
+        charges.append(dict(charge, retrievedAt=receipt['retrievedAt'], sourceSha256=receipt['sourceSha256'], requestBuilderProof=proof))
     return dict(kind='complete-official-price-list', statement='none listed on the official pricing page', requestUsd=0,
-                sourceUrl=mapping['sourceUrl'], captures=receipts, listedConditionalCharges=review.get('listedCharges', []),
-                scope='complete official token price list and every linked official billing page; no listed separate charge')
+                sourceUrl=mapping['sourceUrl'], captures=receipts, listedConditionalCharges=charges, accountDashboards=dashboards,
+                scope='complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists')
 
 class Tables(html.parser.HTMLParser):
     def __init__(self):
@@ -391,7 +427,8 @@ def build_reviewed(document, fetcher, json_path, cs_path, manifest_path):
                         review = next((review for review in document.get('completeListReviews', []) if review['id'] == mapping['completeListReview']), None)
                         row['listedCharges'] = review.get('listedCharges', []) if review else []
                         try:
-                            request_evidence = complete_list_evidence(mapping, review, capture)
+                            tool_proof = next((proof for proof in document.get('providerToolProofs', []) if proof.get('service') == mapping['service']), None)
+                            request_evidence = complete_list_evidence(mapping, review, capture, tool_proof)
                             row['requestFeeEvidence'] = request_evidence
                         except ValueError as error: row['reasons'].append(str(error))
                     elif not fee or fee not in text or not re.search(r'no (?:per-request|request) fees', fee, re.I):
@@ -454,6 +491,8 @@ def main():
         if mapping.get('identityMap'):
             identity_path = args.map.parent / mapping['identityMap']
             mapping['identities'] = json.loads(identity_path.read_text(encoding='utf-8'))['models']
+            if mapping.get('providerToolProofMap'):
+                mapping['providerToolProofs'] = json.loads((args.map.parent / mapping['providerToolProofMap']).read_text(encoding='utf-8'))['providers']
             manifest = build_reviewed(mapping, capturing_fetch, pricing / 'model-prices.json', ROOT / 'src/Marrow.Services/Providers/ModelPriceData.cs', pricing / 'model-price-fetch-manifest.json')
             print('Generated', manifest['filledCount'], 'filled and', manifest['unfilledCount'], 'unfilled model records. Reasons and highest-rate selections are in the manifest.')
         else:
