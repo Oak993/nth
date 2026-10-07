@@ -33,6 +33,7 @@ public sealed class PreviewMakersTests(HeadlessSession headless)
             [ProviderKind.Zai] = "Zai", [ProviderKind.Devin] = "Devin", [ProviderKind.Antigravity] = "Gemini", [ProviderKind.Copilot] = "Copilot",
             [ProviderKind.Commandcode] = "CommandCode", [ProviderKind.Pi] = "Pi",
             [ProviderKind.OpenRouter] = "Claude", // Purple has no maker
+            [ProviderKind.Local] = "Claude", // ED-410: existing no-maker fallback
         };
         foreach (var provider in Enum.GetValues<ProviderKind>()) Assert.Equal(expected[provider], PreviewMakers.Initial(provider));
         Assert.Equal(Enum.GetValues<ProviderKind>().Length, expected.Count);

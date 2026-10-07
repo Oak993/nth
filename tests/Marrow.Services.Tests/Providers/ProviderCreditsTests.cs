@@ -39,7 +39,7 @@ public sealed class ProviderCreditsTests
     public void ExposesCredits_covers_every_provider_kind_and_is_true_for_exactly_two()
     {
         var trueCount = SwiftEnum<ProviderKind>.AllCases.Count(CreditsReader.ExposesCredits);
-        Assert.Equal(15, SwiftEnum<ProviderKind>.AllCases.Count); // the fourteen of Provider.swift:8 and OpenRouter (ED-234), which has no credits
+        Assert.Equal(16, SwiftEnum<ProviderKind>.AllCases.Count); // source cases, OpenRouter (ED-234), Local (ED-410); no additional credits
         Assert.Equal(2, trueCount);
     }
 

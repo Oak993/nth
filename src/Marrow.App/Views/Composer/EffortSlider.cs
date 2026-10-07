@@ -1584,6 +1584,7 @@ public static class EffortBrandExtensions
             ProviderKind.Commandcode => EffortBrand.Commandcode,
             ProviderKind.Pi => EffortBrand.Pi,
             ProviderKind.OpenRouter => EffortBrand.Purple, // OD-0050 pending: automatic colour
+            ProviderKind.Local => EffortBrand.Purple, // PORT-ONLY (ED-410): existing no-provider palette
             null => EffortBrand.Purple, // :869
             _ => throw new UnreachableException(),
         };

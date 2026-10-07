@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Port.Usage;
 
 // Source: DroppyCode/Services/Providers/CommandCodeAPI.swift (B3 52bc7926), :1-460. Not ported yet: the approvalMod
 // literal (:374-439), left as its skeleton stub because the Windows form of its orphan predicate at :430 is not
@@ -131,7 +132,7 @@ public static partial class CommandCodeAPI
     // MARK: - Plan and credits (:71)
 
     // :73-101
-    public static async Task<PlanLimits?> PlanLimits(IReadOnlyDictionary<string, string> environment)
+    public static async Task<PlanLimits?> PlanLimits(IReadOnlyDictionary<string, string> environment, bool reportedWindowsOnly = false)
     {
         // :79
         if (ApiKey(environment) is not { } key) return null;
@@ -140,14 +141,14 @@ public static partial class CommandCodeAPI
         {
             // :80-83. async let for both routes, awaited credits first.
             await using var scope = new AsyncLetScope();
-            var creditsFetch = scope.Start(() => Fetch("/alpha/billing/credits", key));
-            var subscriptionFetch = scope.Start(() => Fetch("/alpha/billing/subscriptions", key));
+            var creditsFetch = scope.Start(() => Fetch("/alpha/billing/credits", key, reportedWindowsOnly));
+            var subscriptionFetch = scope.Start(() => Fetch("/alpha/billing/subscriptions", key, reportedWindowsOnly));
             var credits = await creditsFetch;
             subscription = await subscriptionFetch;
             // :84
             if (credits is null) return null;
             // :85-97
-            found = Windows(credits);
+            found = Windows(credits, reportedWindowsOnly);
         }
         // :98
         var planName = PlanName(subscription?["data"]?["planId"]?.JSONValueString);
@@ -158,7 +159,7 @@ public static partial class CommandCodeAPI
     }
 
     // :85-97
-    private static PlanLimits.Window[] Windows(JSONValue credits)
+    private static PlanLimits.Window[] Windows(JSONValue credits, bool reportedWindowsOnly)
     {
         var windows = new List<PlanLimits.Window>(); // :85
         var limits = credits["windowLimits"] ?? new JSONValue.Null(); // :86
@@ -177,6 +178,7 @@ public static partial class CommandCodeAPI
             windows.Add(new PlanLimits.Window // :91-96
             {
                 Id = key, // :92
+                DurationMinutes = reportedWindowsOnly ? key == "fiveHour" ? 300 : 10_080 : null, // OD-0114 / ED-406
                 Title = title + " \U000000B7 " + MoneyFormatter.Current(cap, "USD"), // :93 U+00B7 MIDDLE DOT
                 Percent = percent < 100 ? percent : 100, // :94
                 ResetsAt = resetAt, // :95
@@ -273,7 +275,7 @@ public static partial class CommandCodeAPI
     private static partial Regex MultiplierPattern();
 
     // :168-175
-    private static async Task<JSONValue?> Fetch(string path, string key)
+    private static async Task<JSONValue?> Fetch(string path, string key, bool reportThrottling = false)
     {
         // :169. baseURL.appendingPathComponent(path): the base's path is empty and every route starts with "/", so
         // resolving the route against the base gives the same URL (https://api.commandcode.ai/alpha/billing/...).
@@ -282,8 +284,9 @@ public static partial class CommandCodeAPI
         request = request.SetValue("Bearer " + key, forHTTPHeaderField: "Authorization"); // :170
         request = request.SetValue("application/json", forHTTPHeaderField: "Accept");    // :171
         // :172-173
-        if (await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request)) is not { } exchange
-            || exchange.Response is not HTTPURLResponse { StatusCode: 200 })
+        var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
+        if (reportThrottling && result?.Response is HTTPURLResponse response) LimitsPollException.ThrowIfThrottled(response);
+        if (result is not { } exchange || exchange.Response is not HTTPURLResponse { StatusCode: 200 })
         {
             return null;
         }

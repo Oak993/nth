@@ -59,6 +59,10 @@ public sealed record URLRequest
     /// <summary>Swift: <c>httpMethod</c>, "GET" unless set (MCPProxy.swift:314).</summary>
     public string HttpMethod { get; init; } = "GET";
 
+    // PORT-ONLY (ED-410): Local requests stay at the user's chosen server; other requests retain redirect semantics.
+    public bool FollowRedirects { get; init; } = true;
+    public bool UseCookies { get; init; } = true; // ED-410: independent keyless servers never share HTTP cookies
+
     /// <summary>Swift: <c>httpBody</c>, nil unless set (MCPHub.swift:458, MCPProxy.swift:340-342).</summary>
     public byte[]? HttpBody { get; init; }
 
@@ -743,7 +747,7 @@ public sealed class URLSession
             HttpResponseMessage response;
             try
             {
-                using var message = Build(hop, app);
+                using var message = Build(hop, app, request.UseCookies);
                 exchange.ArmIdle();
                 response = await transport.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, exchange.Token);
             }
@@ -752,10 +756,10 @@ public sealed class URLSession
                 throw exchange.End(error, inBody: false);
             }
             exchange.ArmIdle();
-            if (response.Headers.NonValidated.TryGetValues("Set-Cookie", out var setCookies))
+            if (request.UseCookies && response.Headers.NonValidated.TryGetValues("Set-Cookie", out var setCookies))
                 cookies.Receive(hop.Url, setCookies);
             var status = (int)response.StatusCode;
-            if (status is 301 or 302 or 303 or 307 or 308 && Location(response, hop.Url) is { } location)
+            if (request.FollowRedirects && (status is 301 or 302 or 303 or 307 or 308) && Location(response, hop.Url) is { } location)
             {
                 response.Dispose();
                 if (redirects == MaximumRedirects) throw exchange.End(new URLError(URLError.Code.HTTPTooManyRedirects), inBody: false);
@@ -783,7 +787,7 @@ public sealed class URLSession
     }
 
     /// <summary>The request of one hop, as the session sends it (ED-118 defaults, the session's cookies).</summary>
-    private HttpRequestMessage Build(Hop hop, AppInfo app)
+    private HttpRequestMessage Build(Hop hop, AppInfo app, bool useCookies)
     {
         var fields = new List<(string Name, string Value)>();
         void Put(string name, string value)
@@ -810,7 +814,7 @@ public sealed class URLSession
         if (!Has("Accept-Encoding")) Put("Accept-Encoding", AcceptEncoding);
         if (hop.Body is not null && !Has("Content-Type")) Put("Content-Type", "application/x-www-form-urlencoded");
         // UNVERIFIED O-28: the session's cookies go to every request they match.
-        if (!Has("Cookie") && cookies.CookieHeader(hop.Url) is { } cookie) Put("Cookie", cookie);
+        if (useCookies && !Has("Cookie") && cookies.CookieHeader(hop.Url) is { } cookie) Put("Cookie", cookie);
 
         var message = new HttpRequestMessage(new HttpMethod(hop.Method), hop.Url);
         HttpContent? content = hop.Body is { } body ? new ByteArrayContent(body) : null;

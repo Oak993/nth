@@ -1,4 +1,5 @@
 using Marrow.Core.Models;
+using Marrow.Core.Port.Accounts;
 using Marrow.Core.Support;
 using Marrow.Services.Port;
 
@@ -57,6 +58,20 @@ public static class APIKeychain
         // :22
         return Set(key, account);
     }
+
+    // PORT-ONLY: OD-0114 / ED-404. Migrated identities keep the old protected target in place.
+    public static string Key(Marrow.Core.Port.Accounts.Account account, string fallback) =>
+        CredentialAccount(account) is { } target ? Read(target) ?? fallback : fallback;
+
+    public static bool SetKey(string key, Marrow.Core.Port.Accounts.Account account) =>
+        CredentialAccount(account) is { } target && Set(key, target);
+
+    private static string? CredentialAccount(Marrow.Core.Port.Accounts.Account account) => Account(account.Service) is { } legacy
+        ? account.UsesLegacyCredentials ? legacy : legacy + " / " + account.Id.ToString("N")
+        : null;
+
+    /// <summary>PORT-ONLY (MA-6): the account a provider's one key is stored under, for the extra keys' account names. Null for a provider with no account.</summary>
+    internal static string? PrimaryAccount(ProviderKind provider) => Account(provider);
 
     /// <summary>The accounts older builds stored keys under; changing one loses that key.</summary>
     // :25-34

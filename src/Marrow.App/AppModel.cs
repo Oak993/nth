@@ -208,6 +208,7 @@ public sealed partial class AppModel : MainActorModel
         SyncChildCells(threads);
         threadIndex = new ThreadIndex(threads); // AppModel.swift:141
         AutoContinue = new AutoContinue(this); // AppModel.swift:142
+        InitializeAccountReports(); // OD-0114: start only after bootstrap has loaded credentials and provider statuses.
         if (Settings.LastProjectID is { } lastID && Project(lastID) is null) Settings.LastProjectID = null; // AppModel.swift:143-145
     }
 
@@ -323,6 +324,7 @@ public sealed partial class AppModel : MainActorModel
         }); // AppModel.swift:255-261
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: provider refresh"))
         await Providers.RefreshAll(); // AppModel.swift:263
+        StartAccountReports(); // OD-0114: Settings can read each connected account before a chat opens.
         await TaskGroup.Run(async group =>
         {
             foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.OpenRouter /* PORT-ONLY (ED-234) */ })
@@ -689,21 +691,25 @@ public sealed partial class AppModel : MainActorModel
             .FirstOrDefault(); // AppModel.swift:576-581
         if (unused is not null)
         {
-            var fresh = MakeThread(project, null); // AppModel.swift:582-585
-            UpdateThread(unused.Id, thread =>
+            var fresh = ApplyNewThreadPill(MakeThread(project, null)); // OD-0114 / ED-403; AppModel.swift:582-585
+            UpdateThreadValue(unused.Id, thread =>
             {
-                if (thread.Provider != fresh.Provider)
+                if (thread.Provider != fresh.Provider || thread.ProviderAccountID != fresh.ProviderAccountID)
                     thread = thread with { ProviderSessionID = null, ProviderResumeAt = null }; // AppModel.swift:587-590
                 return thread with
                 {
                     Provider = fresh.Provider,
+                    ProviderAccountID = fresh.ProviderAccountID,
+                    PillID = fresh.PillID,
+                    PillStepIndex = fresh.PillStepIndex,
+                    PillStepAccountID = fresh.PillStepAccountID,
                     Model = fresh.Model,
                     Effort = fresh.Effort,
                     FastMode = fresh.FastMode,
                     HydraPairID = fresh.HydraPairID,
                     HydraEnabled = fresh.HydraEnabled,
                 }; // AppModel.swift:591-597
-            });
+            }, accountSwitch: true);
             SelectedThreadID = unused.Id; // AppModel.swift:598
         }
         else
@@ -724,7 +730,7 @@ public sealed partial class AppModel : MainActorModel
             ChooseProjectFolder(); // AppModel.swift:606-609
             return null;
         }
-        var thread = MakeThread(destination, SelectedThread); // AppModel.swift:610
+        var thread = ApplyNewThreadPill(MakeThread(destination, SelectedThread)); // OD-0114 / ED-403; AppModel.swift:610
         Threads = Threads.Appending(thread); // AppModel.swift:611
         UpdateProject(destination.Id, existing => existing with { IsExpanded = true }); // AppModel.swift:612
         RememberLastProject(destination.Id); // AppModel.swift:613
@@ -818,11 +824,13 @@ public sealed partial class AppModel : MainActorModel
     public void UpdateThread(Guid id, Func<ChatThread, ChatThread> change) =>
         UpdateThreadValue(id, change); // AppModel.swift:705-712
 
-    private void UpdateThreadValue(Guid id, Func<ChatThread, ChatThread> change)
+    private void UpdateThreadValue(Guid id, Func<ChatThread, ChatThread> change, bool accountSwitch = false)
     {
         if (!threadIndex.Positions.TryGetValue(id, out var position)) return; // AppModel.swift:705-708
         var index = checked((int)position);
         var changed = change(threads[index]); // AppModel.swift:709-710
+        // PORT-ONLY: OD-0114 / ED-404. Account bindings belong to one service.
+        if (changed.Provider != threads[index].Provider && !accountSwitch) changed = changed with { ProviderAccountID = null };
         if (changed == threads[index]) return; // AppModel.swift:711: nothing changed, nothing assigned or saved
         Threads = threads.SetItem(index, changed); // AppModel.swift:712
         ScheduleSave(); // AppModel.swift:713

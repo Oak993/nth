@@ -23,9 +23,10 @@ public sealed class EffortBrandOpenRouterTests
     public void The_brand_of_every_provider_is_still_a_brand_and_the_other_fourteen_keep_the_ones_OD_0047_gave_them()
     {
         // Adding a case must not move any existing mapping: the fourteen source providers keep their own brand,
-        // and Purple is given to no provider but OpenRouter.
-        foreach (var provider in SwiftEnum<ProviderKind>.AllCases.Where(kind => kind != ProviderKind.OpenRouter))
+        // OD-0114 / ED-410: Local also uses the existing no-provider fallback; source mappings stay intact.
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases.Where(kind => kind is not (ProviderKind.OpenRouter or ProviderKind.Local)))
             Assert.NotEqual(EffortBrand.Purple, EffortBrand.Create(provider));
-        Assert.Equal(15, SwiftEnum<ProviderKind>.AllCases.Count);
+        Assert.Equal(16, SwiftEnum<ProviderKind>.AllCases.Count);
+        Assert.Equal(EffortBrand.Create(null), EffortBrand.Create(ProviderKind.Local));
     }
 }

@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
+using Marrow.App.Port.MultiAccount.Settings;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -40,6 +41,7 @@ public sealed class ModelsSettingsPage : Decorator
     private readonly ViewState state = new();
     private readonly Dictionary<ProviderKind, ProviderModelsSection> sections = new(); // a section keeps its identity (and focus) across body updates
     private AppModel? sectionsModel;
+    private readonly Control accounts = new MultiAccountHost<ModelsAccountsView>(context => new ModelsAccountsView(context.Accounts, context.OpenUsage, context.OpenKeys)); // PORT-ONLY T11 step 2
     private ModelPin? pressedPin; // the grip currently held down, tracked on the page so a rebuilt row never loses the drag
     private Point? dragOrigin;
     private TopLevel? dragRoot;
@@ -105,6 +107,7 @@ public sealed class ModelsSettingsPage : Decorator
         var visiblePins = VisiblePins(pins, registry, trimmed); // :105-110
 
         var desired = new List<Control>();
+        if (trimmed.Length == 0) desired.Add(accounts); // PORT-ONLY (T11 step 2, OD-0114): the accounts, "When an account runs out" and the Handshake, above the model lists
         if (trimmed.Length == 0 || visiblePins.Count > 0) // :33
         {
             desired.Add(new ChromeSection("Your models", () => YourModels(model, pins, visiblePins, registry, settings, trimmed))); // :30-65

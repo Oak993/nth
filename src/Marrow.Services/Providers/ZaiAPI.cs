@@ -2,6 +2,7 @@ using System.Globalization;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Port.Usage;
 
 // Source: DroppyCode/Services/Providers/ZaiAPI.swift (B3 52bc7926), :1-207.
 //
@@ -92,25 +93,26 @@ public static class ZaiAPI
     /// or the API is unreachable.
     /// </summary>
     // :55-66
-    public static async Task<PlanLimits?> PlanLimits(string apiKey, Uri? quotaUrl = null, Uri? resetListUrl = null)
+    public static async Task<PlanLimits?> PlanLimits(string apiKey, Uri? quotaUrl = null, Uri? resetListUrl = null, bool reportedWindowsOnly = false)
     {
         var key = apiKey.Trimmed(); // :56
         if (key.Length == 0) return null; // :57
         var request = OpenAICompatibleAPI.BearerRequest(quotaUrl ?? Endpoint.Current(QuotaURL), key); // :58
         // :59-61
         var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
+        if (reportedWindowsOnly && result?.Response is HTTPURLResponse response) LimitsPollException.ThrowIfThrottled(response);
         if (result is not { } exchange || exchange.Response is not HTTPURLResponse http || http.StatusCode != 200 ||
             JSONValue.Parse(exchange.Data) is not { } json)
         {
             return null;
         }
         if (json["code"]?.JSONValueInt != 200 && json["success"]?.JSONValueBool != true) return null; // :62
-        if (Limits(json) is not { } limits) return null; // :63
+        if (Limits(json, reportedWindowsOnly) is not { } limits) return null; // :63
         return limits with { PlanLimitsResetCredits = await ResetCredits(key, resetListUrl) }; // :64-65
     }
 
     // :68-130
-    public static PlanLimits? Limits(JSONValue json)
+    public static PlanLimits? Limits(JSONValue json, bool reportedWindowsOnly = false)
     {
         // :69
         var planName = PlanLimitsReader.PlanName(json["data"]?["level"]?.JSONValueString) is { } level
@@ -162,6 +164,10 @@ public static class ZaiAPI
                     {
                         title = PlanLimitsReader.WindowTitle(minutesValue);
                     }
+                    else if (reportedWindowsOnly)
+                    {
+                        title = PlanLimitsReader.WindowTitle(null);
+                    }
                     else if (creditIndex == 0)
                     {
                         title = "5-hour limit";
@@ -174,6 +180,7 @@ public static class ZaiAPI
                     {
                         Id = "credit-" + creditIndex.ToString(CultureInfo.InvariantCulture),
                         Title = title,
+                        DurationMinutes = minutes, // OD-0114 / ED-406
                         Percent = percent,
                         ResetsAt = resetsAt,
                         Detail = FormatCount(current) + " of " + FormatCount(usage) + " credits",

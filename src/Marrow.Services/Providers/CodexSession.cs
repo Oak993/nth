@@ -31,7 +31,7 @@ using Marrow.Services.Store;
 namespace Marrow.Services.Providers;
 
 // :11-1059. @MainActor final class -> sealed class used only on main (R-ISO-1).
-public sealed class CodexSession : ProviderSession
+public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
 {
     // :22-26. R-ENUM-2: associated-value enum -> abstract record with nested sealed records. Only the type is
     // needed by this part (HandleClose reads pendingRequests' keys only); the cases are populated by
@@ -73,6 +73,9 @@ public sealed class CodexSession : ProviderSession
     private readonly Dictionary<string, string> headTurns = new(StringComparer.Ordinal); // :47
     private readonly Dictionary<string, TokenSpendTracker> headSpend = new(StringComparer.Ordinal); // :48
     private readonly Dictionary<string, string> headModels = new(StringComparer.Ordinal); // :51
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. While the standby waits, no turn, item, hook or approval may appear on its thread.
+    private bool standbyActive;
+    private bool standbyDiscarding;
     private Action<ProviderEvent>? leadSinkField; // :53 backs the lazily created LeadSink below
     private Action<ProviderEvent> LeadSink => leadSinkField ??= e => OnEvent?.Invoke(e); // :53
 
@@ -122,7 +125,6 @@ public sealed class CodexSession : ProviderSession
         try
         {
             var parameters = ThreadParameters; // :85
-
             if (configuration.ResumeID is { } resumeID) // :87
             {
                 var resume = ResumeParameters(parameters, resumeID);
@@ -167,6 +169,7 @@ public sealed class CodexSession : ProviderSession
             ["threadId"] = resumeID,       // :89
             ["excludeTurns"] = true,        // :90
         };
+        if (configuration.ResumePath is { } path) resume["path"] = new JSONValue.String(path);
         if (skills?.MovedNote is { } moved)
         {
             resume["developerInstructions"] = (resume["developerInstructions"].JSONValueString ?? "") + "\n\n" + moved;
@@ -221,6 +224,12 @@ public sealed class CodexSession : ProviderSession
         if (connection is not { IsClosed: false } connected || threadID is not { } currentThreadID) // :130
         {
             throw new ProviderError(new ProviderError.Case.NotRunning());
+        }
+
+        // PORT-ONLY (ED-439): a waiting standby runs no model turn; the handover ends the standby first.
+        if (standbyActive || standbyDiscarding)
+        {
+            throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         }
 
         var content = new List<JSONValue>(
@@ -289,6 +298,160 @@ public sealed class CodexSession : ProviderSession
         }
     }
 
+    // PORT-ONLY: OD-0116, OD-0122, ED-439. Standby by history injection (`thread/inject_items`): no model turn, so nothing can act.
+    public string? StandbyViolation { get; private set; }
+    public Action<string>? OnStandbyViolation { get; set; }
+
+    public async Task<bool> SupportsStandbyInjection(CancellationToken ct)
+    {
+        if (configuration.Executable is not { } executable) return false;
+        if (CodexHistoryInjection.Known(executable) is { } known) return known;
+        // An unknown CLI build: one short-lived app-server reads its version; the verdict is cached for this executable.
+        JSONValue? initializeResult = null;
+        JSONRPCConnection? probe = null;
+        try
+        {
+            probe = await Connect(executable, configuration.WorkingDirectory, configuration.Environment, _ => { }, null, initialized: result => initializeResult = result);
+            ct.ThrowIfCancellationRequested();
+            return await CodexHistoryInjection.SupportedAsync(executable, configuration.Environment, initializeResult?["userAgent"]?.JSONValueString);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            return false;
+        }
+        finally
+        {
+            probe?.Close();
+        }
+    }
+
+    public async Task<string> StartInjectedStandby(CancellationToken ct)
+    {
+        if (configuration.Executable is not { } executable)
+        {
+            throw new ProviderError(new ProviderError.Case.NotInstalled(configuration.Provider));
+        }
+
+        JSONValue? initializeResult = null;
+        standbyActive = true;
+        var connected = await Connect(
+            executable,
+            configuration.WorkingDirectory,
+            configuration.Environment,
+            c =>
+            {
+                c.OnNotification = HandleNotification;
+                c.OnRequest = HandleRequest;
+                c.OnClose = HandleClose;
+            },
+            skills is null ? null : new SkillRoot(skills.ExtraRoot, ListFirst: true),
+            initialized: result => initializeResult = result);
+        connection = connected;
+        var started = false;
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            var userAgent = initializeResult?["userAgent"]?.JSONValueString;
+            if (!await CodexHistoryInjection.SupportedAsync(executable, configuration.Environment, userAgent))
+            {
+                throw new StandbyUnavailableException("This Codex version cannot load history without a model turn.");
+            }
+
+            ct.ThrowIfCancellationRequested();
+            // Belt and braces only: the thread starts read-only and asking, and no turn is ever started on it before the handover.
+            var parameters = ThreadParameters;
+            parameters["approvalPolicy"] = "untrusted";
+            parameters["sandbox"] = "read-only";
+            parameters["approvalsReviewer"] = "user";
+            var result = await RequestThread(connected, "thread/start", parameters);
+            if (result["thread"]?["id"]?.JSONValueString is not { } id)
+            {
+                throw new ProviderError(new ProviderError.Case.Failed("Codex did not start a thread."));
+            }
+
+            threadID = id;
+            activeModel = result["model"]?.JSONValueString;
+            started = true;
+            return id;
+        }
+        finally
+        {
+            if (!started)
+            {
+                standbyActive = false;
+                isStopping = true;
+                connected.Close();
+                connection = null;
+            }
+        }
+    }
+
+    public async Task InjectStandbyHistory(string text, CancellationToken ct)
+    {
+        if (!standbyActive || StandbyViolation is not null || connection is not { IsClosed: false } connected || threadID is not { } id)
+        {
+            throw new StandbyUnavailableException("The standby is no longer waiting.");
+        }
+
+        ct.ThrowIfCancellationRequested();
+        var item = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+        {
+            ["type"] = "message",
+            ["role"] = "developer",
+            ["content"] = new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["type"] = "input_text",
+                ["text"] = text,
+            }))])),
+        }));
+        try
+        {
+            _ = await connected.Request("thread/inject_items", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
+            {
+                ["threadId"] = id,
+                ["items"] = new JSONValue.Array(new ValueList<JSONValue>([item])),
+            })));
+        }
+        catch (RPCError error)
+        {
+            await DiscardStandby();
+            throw new StandbyUnavailableException("Codex refused the injected history: " + error.Message);
+        }
+    }
+
+    public async Task DiscardStandby()
+    {
+        standbyActive = false;
+        if (standbyDiscarding) return;
+        standbyDiscarding = true;
+        isStopping = true;
+        if (connection is { IsClosed: false } connected && threadID is { } id)
+        {
+            // thread/delete removes the persisted standby thread; a slow or silent CLI cannot keep the app waiting.
+            var delete = SwiftTry.IgnoreAsync(async () =>
+            {
+                _ = await connected.Request("thread/delete", new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue> { ["threadId"] = id })));
+            });
+            _ = await Task.WhenAny(delete, SwiftTask.TrySleep(TimeSpan.FromSeconds(3)));
+        }
+
+        connection?.Close();
+    }
+
+    public Task EndStandbyAsync(CancellationToken ct)
+    {
+        standbyActive = false;
+        return Task.CompletedTask;
+    }
+
+    private void StandbyActivity(string method)
+    {
+        if (StandbyViolation is not null) return;
+        StandbyViolation = method;
+        OnStandbyViolation?.Invoke(method);
+        _ = DiscardStandby();
+    }
+
     // :164-170
     public async Task Interrupt()
     {
@@ -310,6 +473,8 @@ public sealed class CodexSession : ProviderSession
     // :172-175
     public async Task Compact()
     {
+        if (standbyActive || standbyDiscarding)
+            throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         if (connection is not { } connected || threadID is not { } currentThreadID) // :173
         {
             throw new ProviderError(new ProviderError.Case.NotRunning());
@@ -778,6 +943,7 @@ public sealed class CodexSession : ProviderSession
                     {
                         Id = $"{snapshot["limitId"]?.JSONValueString ?? "codex"}-{key}", // :425
                         Title = title,                                                    // :426
+                        DurationMinutes = window["windowDurationMins"]?.JSONValueInt, // OD-0114 / ED-406
                         Percent = percent,                                                // :427
                         ResetsAt = window["resetsAt"]?.JSONValueDouble is { } resets ? SwiftDate.From1970Seconds(resets) : null, // :428
                     });
@@ -937,7 +1103,8 @@ public sealed class CodexSession : ProviderSession
         SwiftURL directory,
         IReadOnlyDictionary<string, string> environment,
         Action<JSONRPCConnection> configure,
-        SkillRoot? skillRoot = null)
+        SkillRoot? skillRoot = null,
+        Action<JSONValue>? initialized = null)
     {
         var process = new StdioProcess(executable.Path, AppServerArguments, directory.Path, CodexChildEnvironment.Apply(environment)); // :511. PORT-ONLY (SK-11b, DL-11): the PATH rule, nothing else.
         var connection = new JSONRPCConnection(process, sendsVersion: false); // :512
@@ -955,7 +1122,8 @@ public sealed class CodexSession : ProviderSession
         {
             try
             {
-                _ = await connection.Request("initialize", InitializeParameters()); // :521-524
+                var initializeResult = await connection.Request("initialize", InitializeParameters()); // :521-524
+                initialized?.Invoke(initializeResult);
             }
             catch
             {
@@ -987,6 +1155,13 @@ public sealed class CodexSession : ProviderSession
     // "item/started" or "item/completed" notification, so the switch reaches those cases only in a later part.
     private void HandleNotification(string method, JSONValue parameters)
     {
+        // PORT-ONLY (ED-439): fail closed. Activity on a waiting thread stops and discards it; nothing of it reaches the conversation.
+        if (standbyActive || standbyDiscarding)
+        {
+            if (standbyActive && method is "turn/started" or "item/started" or "item/completed" or "hook/started") StandbyActivity(method);
+            return;
+        }
+
         if (method == "thread/started") // :536-539
         {
             HeadStarted(parameters["thread"] ?? new JSONValue.Null());
@@ -1539,6 +1714,13 @@ public sealed class CodexSession : ProviderSession
     // :929-996. PR-PROVCLI-124, 125, 126, 127, 128, 129.
     private void HandleRequest(RPCID id, string method, JSONValue parameters)
     {
+        // PORT-ONLY (ED-439): a server request (approval, question, tool) on a waiting thread means something ran. It is never answered.
+        if (standbyActive || standbyDiscarding)
+        {
+            if (standbyActive) StandbyActivity(method);
+            return;
+        }
+
         if (SwiftString.Equal(method, "item/commandExecution/requestApproval")) // :931
         {
             var (options, payloads) = DecisionOptions(parameters["availableDecisions"]?.JSONValueArray, command: true); // :932

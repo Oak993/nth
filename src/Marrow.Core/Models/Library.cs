@@ -280,6 +280,10 @@ public sealed record ChatThread
     public string? WorktreePath { get; init; }                               // :135
     public string? Branch { get; init; }                                      // :136
     public string? ProviderSessionID { get; init; }                             // :137
+    // PORT-ONLY: OD-0114 / ED-404. Null binds pre-MA-1 native sessions to legacy Account 1 in place.
+    public Guid? ProviderAccountID { get; init; }
+    // PORT-ONLY: OD-0114. An account pin is independent of sidebar IsPinned; null follows the order.
+    public Guid? ProviderAccountPinID { get; init; }
     public string? ProviderResumeAt { get; init; }                                // :138
     public bool IsPinned { get; init; }                                            // :139
     public bool IsArchived { get; init; }                                           // :140
@@ -305,6 +309,17 @@ public sealed record ChatThread
     public Guid? HydraPairID { get; init; }                          // :182
     public long HydraSpawnCount { get; init; } = 0;                    // :184
     public HydraHeadInfo? Hydra { get; init; }                          // :186
+
+    // PORT-ONLY (OD-0114, MA-7): the pill this thread relays through, and where it is in it, so a restart resumes the relay. All three are null for a thread with no pill.
+    public Guid? PillID { get; init; }
+    public int? PillStepIndex { get; init; }
+    public string? PillStepAccountID { get; init; }
+
+    public Marrow.Core.Accounts.Pills.PillThreadState? PillRelay =>
+        PillID is { } pill && PillStepIndex is { } index && PillStepAccountID is { } account ? new(pill, index, account) : null;
+
+    public ChatThread WithPillRelay(Marrow.Core.Accounts.Pills.PillThreadState? state) =>
+        this with { PillID = state?.PillId, PillStepIndex = state?.StepIndex, PillStepAccountID = state?.AccountId };
 
     public bool IsHelper => ParentThreadID is not null; // :189
     public bool IsHydraHead => Hydra is not null;         // :192
@@ -462,11 +477,22 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
                 : throw new DecodingError("typeMismatch", "Expected to decode Dictionary<String, Any>."),
             () => null); // :263
 
-        return ChatThread.FromDecoded(id, projectID, title, createdAt, updatedAt, provider, model, effort, fastMode,
+        var thread = ChatThread.FromDecoded(id, projectID, title, createdAt, updatedAt, provider, model, effort, fastMode,
             runtimeMode, interactionMode, worktreePath, branch, providerSessionID, providerResumeAt, isPinned,
             isArchived, isSettled, settledAt, hasUnread, hasCustomTitle, sortOrder, activityOrder, activityOrderDay,
             lastStatus, parentThreadID, isInPanel, expandsHelpers, hydraEnabled, hydraEnabledIsExplicit, hydraPairID,
             hydraSpawnCount, hydra);
+        // PORT-ONLY (MA-7): absent or unreadable pill fields mean no pill.
+        return thread with
+        {
+            ProviderAccountID = element.TryGetProperty("providerAccountID", out var accountBinding) && accountBinding.ValueKind != JsonValueKind.Null
+                ? Coding.Value<Guid?>(element, "providerAccountID", field => SwiftDecoding.ReadUUID(field), () => Guid.Empty) : null,
+            ProviderAccountPinID = element.TryGetProperty("providerAccountPinID", out var accountPin) && accountPin.ValueKind != JsonValueKind.Null
+                ? Coding.Value<Guid?>(element, "providerAccountPinID", field => SwiftDecoding.ReadUUID(field), () => Guid.Empty) : null,
+            PillID = Coding.Value<Guid?>(element, "pillID", field => SwiftDecoding.ReadUUID(field), () => null),
+            PillStepIndex = Coding.Value<int?>(element, "pillStepIndex", field => (int)SwiftDecoding.ReadInt(field), () => null),
+            PillStepAccountID = Coding.Value<string?>(element, "pillStepAccountID", SwiftDecoding.ReadString, () => null),
+        };
     }
 
     public override void Write(Utf8JsonWriter writer, ChatThread value, JsonSerializerOptions options) => WriteMembers(writer, value);
@@ -490,6 +516,8 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
         if (value.Branch is { } branch) writer.WriteString("branch", branch);
         if (value.ProviderSessionID is { } providerSessionID) writer.WriteString("providerSessionID", providerSessionID);
         if (value.ProviderResumeAt is { } providerResumeAt) writer.WriteString("providerResumeAt", providerResumeAt);
+        if (value.ProviderAccountID is { } accountID) writer.WriteString("providerAccountID", SwiftUUID.UuidString(accountID));
+        if (value.ProviderAccountPinID is { } accountPinID) writer.WriteString("providerAccountPinID", SwiftUUID.UuidString(accountPinID));
         writer.WriteBoolean("isPinned", value.IsPinned);
         writer.WriteBoolean("isArchived", value.IsArchived);
         writer.WriteBoolean("isSettled", value.IsSettled);
@@ -512,6 +540,9 @@ internal sealed class ChatThreadConverter : JsonConverter<ChatThread>
             writer.WritePropertyName("hydra");
             JsonSerializer.Serialize(writer, hydra, Coding.StorageOptions);
         }
+        if (value.PillID is { } pillID) writer.WriteString("pillID", SwiftUUID.UuidString(pillID)); // PORT-ONLY (MA-7)
+        if (value.PillStepIndex is { } pillStepIndex) writer.WriteNumber("pillStepIndex", pillStepIndex);
+        if (value.PillStepAccountID is { } pillStepAccountID) writer.WriteString("pillStepAccountID", pillStepAccountID);
         writer.WriteEndObject();
     }
 }
