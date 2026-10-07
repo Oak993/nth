@@ -1,0 +1,1568 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.80]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.Frames_are_the_only_wake_ups_time_alone_moves_nothing_and_ends_nothing [FAIL]
+[xUnit.net 00:00:02.82]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.The_bar_eases_to_the_new_share_in_03_s [FAIL]
+[xUnit.net 00:00:02.83]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_prepared_run_ends_015_s_plus_11_s_after_its_last_event_and_a_failed_one_11_s_never_longer_than_the_work [FAIL]
+[xUnit.net 00:00:02.84]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_step_finishing_swaps_spinner_for_check_along_the_pages_curves_with_no_jump [FAIL]
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.Frames_are_the_only_wake_ups_time_alone_moves_nothing_and_ends_nothing [704 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.AllDone(GettingReadyRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 23
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<Frames_are_the_only_wake_ups_time_alone_moves_nothing_and_ends_nothing>b__8_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 124
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.Frames_are_the_only_wake_ups_time_alone_moves_nothing_and_ends_nothing() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 121
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.The_bar_eases_to_the_new_share_in_03_s [15 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 228
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<The_bar_eases_to_the_new_share_in_03_s>b__11_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 188
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.The_bar_eases_to_the_new_share_in_03_s() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 185
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_prepared_run_ends_015_s_plus_11_s_after_its_last_event_and_a_failed_one_11_s_never_longer_than_the_work [10 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.AllDone(GettingReadyRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 23
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<A_prepared_run_ends_015_s_plus_11_s_after_its_last_event_and_a_failed_one_11_s_never_longer_than_the_work>g__Ends|7_1(FirstRunOutcome outcome) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 102
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<A_prepared_run_ends_015_s_plus_11_s_after_its_last_event_and_a_failed_one_11_s_never_longer_than_the_work>b__7_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 110
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_prepared_run_ends_015_s_plus_11_s_after_its_last_event_and_a_failed_one_11_s_never_longer_than_the_work() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 97
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_step_finishing_swaps_spinner_for_check_along_the_pages_curves_with_no_jump [10 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<A_step_finishing_swaps_spinner_for_check_along_the_pages_curves_with_no_jump>b__9_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 141
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_step_finishing_swaps_spinner_for_check_along_the_pages_curves_with_no_jump() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 138
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:03.18]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.The_lift_holds_015_s_then_follows_the_fixtures_frames_for_11_s [FAIL]
+[xUnit.net 00:00:03.19]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_step_starting_dims_up_its_label_in_03_s_and_the_dot_gives_way_to_the_spinner [FAIL]
+[xUnit.net 00:00:03.20]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.At_60_Hz_the_lift_never_jumps_and_never_runs_backwards [FAIL]
+[xUnit.net 00:00:03.21]     Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.Ready_replaces_the_title_by_a_crossfade_with_a_short_rise_never_a_cut [FAIL]
+[xUnit.net 00:00:03.24]     Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_scripted_preparation_drives_the_sheet_from_its_real_events_and_ends_prepared [FAIL]
+[xUnit.net 00:00:03.58]     Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_clock_moved_by_hours_changes_nothing_no_step_ticks_and_the_bar_does_not_creep [FAIL]
+[xUnit.net 00:00:03.59]     Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_prepared_run_says_Ready [FAIL]
+[xUnit.net 00:00:03.60]     Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.The_bar_is_the_real_share_of_the_work_done_never_a_guess [FAIL]
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.The_lift_holds_015_s_then_follows_the_fixtures_frames_for_11_s [337 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.AllDone(GettingReadyRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 23
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<The_lift_holds_015_s_then_follows_the_fixtures_frames_for_11_s>b__5_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 36
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.The_lift_holds_015_s_then_follows_the_fixtures_frames_for_11_s() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 33
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_step_starting_dims_up_its_label_in_03_s_and_the_dot_gives_way_to_the_spinner [12 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<A_step_starting_dims_up_its_label_in_03_s_and_the_dot_gives_way_to_the_spinner>b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 167
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.A_step_starting_dims_up_its_label_in_03_s_and_the_dot_gives_way_to_the_spinner() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 161
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.At_60_Hz_the_lift_never_jumps_and_never_runs_backwards [10 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.AllDone(GettingReadyRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 23
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<At_60_Hz_the_lift_never_jumps_and_never_runs_backwards>b__6_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 68
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.At_60_Hz_the_lift_never_jumps_and_never_runs_backwards() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 65
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.Ready_replaces_the_title_by_a_crossfade_with_a_short_rise_never_a_cut [10 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.AllDone(GettingReadyRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 23
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.<>c.<Ready_replaces_the_title_by_a_crossfade_with_a_short_rise_never_a_cut>b__12_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 203
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyTransitionAuditTests.Ready_replaces_the_title_by_a_crossfade_with_a_short_rise_never_a_cut() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyTransitionAuditTests.cs:line 200
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_scripted_preparation_drives_the_sheet_from_its_real_events_and_ends_prepared [25 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.<>c.<A_scripted_preparation_drives_the_sheet_from_its_real_events_and_ends_prepared>b__9_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 150
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_scripted_preparation_drives_the_sheet_from_its_real_events_and_ends_prepared() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 131
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_clock_moved_by_hours_changes_nothing_no_step_ticks_and_the_bar_does_not_creep [340 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.<>c.<A_clock_moved_by_hours_changes_nothing_no_step_ticks_and_the_bar_does_not_creep>b__6_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 80
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_clock_moved_by_hours_changes_nothing_no_step_ticks_and_the_bar_does_not_creep() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 77
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_prepared_run_says_Ready [10 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.<>c.<A_prepared_run_says_Ready>b__7_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 98
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_prepared_run_says_Ready() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 93
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.The_bar_is_the_real_share_of_the_work_done_never_a_guess [8 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 228
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.<>c.<The_bar_is_the_real_share_of_the_work_done_never_a_guess>b__5_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 65
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.The_bar_is_the_real_share_of_the_work_done_never_a_guess() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 61
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:03.62]     Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_running_step_shows_the_spinner_and_a_done_step_the_check [FAIL]
+[xUnit.net 00:00:03.63]     Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_failed_run_ticks_nothing_it_did_not_do_and_never_says_Ready [FAIL]
+[xUnit.net 00:00:04.00]     Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Welcome_waits_behind_the_sheet_blurred_dimmed_and_still [FAIL]
+[xUnit.net 00:00:04.03]     Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Welcome_is_blurred_in_the_drawn_frame_and_sharp_again_after_the_lift [FAIL]
+[xUnit.net 00:00:04.10]     Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.At_60_Hz_the_pane_never_jumps_and_the_sheet_leaves_the_tree_only_once_it_is_out_of_sight_and_the_pane_whole [FAIL]
+[xUnit.net 00:00:04.13]     Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.The_pane_comes_back_along_the_fixtures_frames_as_the_sheet_lifts [FAIL]
+[xUnit.net 00:00:04.15]     Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.A_window_with_no_sheet_is_untouched [FAIL]
+[xUnit.net 00:00:04.20]     Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Under_reduce_motion_the_hold_still_runs_then_the_pane_is_whole_in_the_one_frame [FAIL]
+[xUnit.net 00:00:04.22]     Marrow.App.Tests.Port.FirstRun.GettingReadyReviewTests.The_top_of_the_pane_does_not_step_on_the_frame_the_sheet_and_its_shadow_are_taken_out [FAIL]
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_running_step_shows_the_spinner_and_a_done_step_the_check [9 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 226
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.<>c.<A_running_step_shows_the_spinner_and_a_done_step_the_check>b__4_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 39
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_running_step_shows_the_spinner_and_a_done_step_the_check() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 36
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_failed_run_ticks_nothing_it_did_not_do_and_never_says_Ready [8 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 228
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.<>c.<A_failed_run_ticks_nothing_it_did_not_do_and_never_says_Ready>b__8_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 116
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyStatesTests.A_failed_run_ticks_nothing_it_did_not_do_and_never_says_Ready() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyStatesTests.cs:line 113
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Welcome_waits_behind_the_sheet_blurred_dimmed_and_still [373 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Fixtures.GettingReadyRootRig..ctor(AppModel model, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/GettingReadyRootRig.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_1.<Mounted>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 24
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_0.<Mounted>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 22
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Mounted(HeadlessSession headless, Action`1 body, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 18
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Welcome_waits_behind_the_sheet_blurred_dimmed_and_still() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 31
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Welcome_is_blurred_in_the_drawn_frame_and_sharp_again_after_the_lift [26 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Fixtures.GettingReadyRootRig..ctor(AppModel model, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/GettingReadyRootRig.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_1.<Mounted>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 24
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_0.<Mounted>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 22
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Mounted(HeadlessSession headless, Action`1 body, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 18
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Welcome_is_blurred_in_the_drawn_frame_and_sharp_again_after_the_lift() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 136
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.At_60_Hz_the_pane_never_jumps_and_the_sheet_leaves_the_tree_only_once_it_is_out_of_sight_and_the_pane_whole [66 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Fixtures.GettingReadyRootRig..ctor(AppModel model, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/GettingReadyRootRig.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_1.<Mounted>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 24
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_0.<Mounted>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 22
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Mounted(HeadlessSession headless, Action`1 body, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 18
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.At_60_Hz_the_pane_never_jumps_and_the_sheet_leaves_the_tree_only_once_it_is_out_of_sight_and_the_pane_whole() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 81
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.The_pane_comes_back_along_the_fixtures_frames_as_the_sheet_lifts [26 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Fixtures.GettingReadyRootRig..ctor(AppModel model, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/GettingReadyRootRig.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_1.<Mounted>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 24
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_0.<Mounted>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 22
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Mounted(HeadlessSession headless, Action`1 body, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 18
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.The_pane_comes_back_along_the_fixtures_frames_as_the_sheet_lifts() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 60
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.A_window_with_no_sheet_is_untouched [22 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Fixtures.GettingReadyRootRig..ctor(AppModel model, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/GettingReadyRootRig.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_1.<Mounted>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 24
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_0.<Mounted>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 22
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Mounted(HeadlessSession headless, Action`1 body, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 18
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.A_window_with_no_sheet_is_untouched() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 50
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Under_reduce_motion_the_hold_still_runs_then_the_pane_is_whole_in_the_one_frame [46 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Fixtures.GettingReadyRootRig..ctor(AppModel model, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/GettingReadyRootRig.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_1.<Mounted>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 24
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.<>c__DisplayClass3_0.<Mounted>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 22
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Mounted(HeadlessSession headless, Action`1 body, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 18
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyRootViewTests.Under_reduce_motion_the_hold_still_runs_then_the_pane_is_whole_in_the_one_frame() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyRootViewTests.cs:line 120
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyReviewTests.The_top_of_the_pane_does_not_step_on_the_frame_the_sheet_and_its_shadow_are_taken_out [20 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Fixtures.GettingReadyRootRig..ctor(AppModel model, Boolean reduceMotion, Boolean show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/GettingReadyRootRig.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyReviewTests.<>c__DisplayClass2_1.<Mounted>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyReviewTests.cs:line 21
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyReviewTests.<>c__DisplayClass2_0.<Mounted>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyReviewTests.cs:line 19
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyReviewTests.Mounted(HeadlessSession headless, Action`1 body) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyReviewTests.cs:line 15
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyReviewTests.The_top_of_the_pane_does_not_step_on_the_frame_the_sheet_and_its_shadow_are_taken_out() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyReviewTests.cs:line 28
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.65]     Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.A_machine_found_prepared_after_the_sheet_was_made_just_lifts_it_and_runs_nothing [FAIL]
+[xUnit.net 00:00:04.69]     Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.The_run_happens_behind_the_sheet_and_the_launch_is_done_when_the_sheet_has_lifted [FAIL]
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.A_machine_found_prepared_after_the_sheet_was_made_just_lifts_it_and_runs_nothing [23 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.Host(AppModel model, RootView root) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 50
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.<>c__DisplayClass8_1.<Driven>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 135
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.<>c__DisplayClass8_0.<Driven>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 129
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.Driven(HeadlessSession headless, GettingReadyScripted scripted, Action`4 during, Action`2 after) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 120
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.A_machine_found_prepared_after_the_sheet_was_made_just_lifts_it_and_runs_nothing() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 200
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.The_run_happens_behind_the_sheet_and_the_launch_is_done_when_the_sheet_has_lifted [21 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.Host(AppModel model, RootView root) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 50
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.<>c__DisplayClass8_1.<Driven>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 135
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.<>c__DisplayClass8_0.<Driven>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 129
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.Driven(HeadlessSession headless, GettingReadyScripted scripted, Action`4 during, Action`2 after) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 120
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.The_run_happens_behind_the_sheet_and_the_launch_is_done_when_the_sheet_has_lifted() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 151
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:04.73]     Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.A_run_that_fails_still_lifts_the_sheet_without_saying_Ready [FAIL]
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.A_run_that_fails_still_lifts_the_sheet_without_saying_Ready [21 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.UI.Chrome.DragHandleView.RefreshHover() in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 252
+   at Marrow.UI.Chrome.DragHandleView.OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) in /workspace/marrow-port/src/Marrow.UI/Chrome/DragHandle.cs:line 231
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.Host(AppModel model, RootView root) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 50
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.<>c__DisplayClass8_1.<Driven>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 135
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.<>c__DisplayClass8_0.<Driven>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 129
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.Driven(HeadlessSession headless, GettingReadyScripted scripted, Action`4 during, Action`2 after) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 120
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyLaunchTests.A_run_that_fails_still_lifts_the_sheet_without_saying_Ready() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyLaunchTests.cs:line 177
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.44]     Marrow.App.Tests.Port.FirstRun.GettingReadyGeometryTests.The_sheets_title_and_line_say_W1s_words_and_the_bars_fill_is_the_progress [FAIL]
+[xUnit.net 00:00:05.50]     Marrow.App.Tests.Port.FirstRun.GettingReadyAppDelegateTests.A_first_run_shows_the_sheet_in_the_main_window_and_the_tour_waits_for_it [FAIL]
+[xUnit.net 00:00:06.06]     Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start [FAIL]
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyGeometryTests.The_sheets_title_and_line_say_W1s_words_and_the_bars_fill_is_the_progress [362 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.App.Port.FirstRun.GettingReadyRowView.Apply(FirstRunStepState state, Double fraction) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 228
+   at Marrow.App.Port.FirstRun.GettingReadySheet.Report(FirstRunProgress progress) in /workspace/marrow-port/src/Marrow.App/Port/FirstRun/GettingReadySheet.cs:line 474
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyGeometryTests.<>c.<The_sheets_title_and_line_say_W1s_words_and_the_bars_fill_is_the_progress>b__13_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyGeometryTests.cs:line 133
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyGeometryTests.The_sheets_title_and_line_say_W1s_words_and_the_bars_fill_is_the_progress() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyGeometryTests.cs:line 126
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.FirstRun.GettingReadyAppDelegateTests.A_first_run_shows_the_sheet_in_the_main_window_and_the_tour_waits_for_it [29 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsCursorPlatform.GetCursorPos(NativePoint& point)
+   at Marrow.UI.Port.WindowsCursorPlatform.get_ScreenPosition() in /workspace/marrow-port/src/Marrow.UI/Port/CursorPlatform.cs:line 32
+   at Marrow.App.Port.WindowCentering.Center(Window window, Size frame) in /workspace/marrow-port/src/Marrow.App/Port/WindowCentering.cs:line 30
+   at Marrow.App.Window.WindowManager.MakeMainWindow() in /workspace/marrow-port/src/Marrow.App/Window/WindowManager.cs:line 300
+   at Marrow.App.Window.WindowManager.ShowMain() in /workspace/marrow-port/src/Marrow.App/Window/WindowManager.cs:line 147
+   at Marrow.App.AppDelegate.<>c__DisplayClass16_0.<ApplicationDidFinishLaunching>b__1() in /workspace/marrow-port/src/Marrow.App/AppDelegate.cs:line 65
+   at Marrow.App.Tests.Fixtures.LaunchHarness.<>c.<.ctor>b__4_8(WindowManager _, Action show) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LaunchFixtures.cs:line 80
+   at Marrow.App.AppDelegate.ApplicationDidFinishLaunching() in /workspace/marrow-port/src/Marrow.App/AppDelegate.cs:line 65
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyAppDelegateTests.<>c.<A_first_run_shows_the_sheet_in_the_main_window_and_the_tour_waits_for_it>b__3_0(LaunchHarness launch) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyAppDelegateTests.cs:line 45
+   at Marrow.App.Tests.Fixtures.LaunchSurfaceRig.<>c__DisplayClass3_0.<WithLaunch>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LaunchSurfaceRig.cs:line 35
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.LaunchSurfaceRig.WithLaunch(HeadlessSession headless, Action`1 prepare, Action`1 body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LaunchSurfaceRig.cs:line 29
+   at Marrow.App.Tests.Port.FirstRun.GettingReadyAppDelegateTests.A_first_run_shows_the_sheet_in_the_main_window_and_the_tour_waits_for_it() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/FirstRun/GettingReadyAppDelegateTests.cs:line 32
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start [102 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Every_later_open_plays_the_same_rise_from_a_hidden_start>b__22_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 406
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 388
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:06.97]     Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs [105 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/tmp/design-gaps-dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.UI.Chrome.SidebarRow.<>c__DisplayClass1_1.<.ctor>b__4(Object _, AvaloniaPropertyChangedEventArgs change) in /workspace/marrow-port/src/Marrow.UI/Chrome/Chrome.cs:line 1383
+   at Avalonia.AvaloniaObject.RaisePropertyChanged[T](AvaloniaProperty`1 property, Optional`1 oldValue, BindingValue`1 newValue, BindingPriority priority, Boolean isEffectiveValue)
+   at Avalonia.AvaloniaObject.SetAndRaise[T](DirectPropertyBase`1 property, T& field, T value)
+   at Avalonia.Controls.Button.set_IsPressed(Boolean value)
+   at Avalonia.Controls.Button.OnPointerPressed(PointerPressedEventArgs e)
+   at Avalonia.Input.InputElement.<>c.<.cctor>b__34_10(InputElement x, PointerPressedEventArgs e)
+   at Avalonia.Interactivity.RoutedEvent`1.<>c__DisplayClass1_0`1.<AddClassHandler>g__Adapter|0(Object sender, RoutedEventArgs e)
+   at Avalonia.Interactivity.RoutedEvent.<>c__DisplayClass23_0.<AddClassHandler>b__0(ValueTuple`2 args)
+   at Avalonia.Reactive.AnonymousObserver`1.OnNext(T value)
+   at Avalonia.Reactive.LightweightObservableBase`1.PublishNext(T value)
+   at Avalonia.Reactive.LightweightSubject`1.OnNext(T value)
+   at Avalonia.Interactivity.RoutedEvent.InvokeRaised(Object sender, RoutedEventArgs e)
+   at Avalonia.Interactivity.EventRoute.RaiseEventImpl(RoutedEventArgs e)
+   at Avalonia.Interactivity.EventRoute.RaiseEvent(Interactive source, RoutedEventArgs e)
+   at Avalonia.Interactivity.Interactive.RaiseEvent(RoutedEventArgs e)
+   at Avalonia.Input.MouseDevice.MouseDown(IMouseDevice device, UInt64 timestamp, IInputRoot root, Point p, PointerPointProperties properties, KeyModifiers inputModifiers, IInputElement hitTest, Object platformInputEventCookie)
+   at Avalonia.Input.MouseDevice.ProcessRawEvent(RawPointerEventArgs e)
+   at Avalonia.Input.MouseDevice.ProcessRawEvent(RawInputEventArgs e)
+   at Avalonia.Input.InputManager.ProcessInput(RawInputEventArgs e)
+   at Avalonia.Controls.PresentationSource.HandleInputCore(Object state)
+   at Avalonia.Threading.Dispatcher.Send(SendOrPostCallback action, Object arg, Nullable`1 priority)
+   at Avalonia.Controls.PresentationSource.HandleInput(RawInputEventArgs e)
+   at Avalonia.Headless.HeadlessWindowImpl.Avalonia.Headless.IHeadlessWindow.MouseDown(Point point, MouseButton button, RawInputModifiers modifiers)
+   at Avalonia.Headless.HeadlessWindowExtensions.<>c__DisplayClass7_0.<MouseDown>b__0(IHeadlessWindow w)
+   at Avalonia.Headless.HeadlessWindowExtensions.RunJobsOnImpl(TopLevel topLevel, Action`1 action)
+   at Avalonia.Headless.HeadlessWindowExtensions.MouseDown(TopLevel topLevel, Point point, MouseButton button, RawInputModifiers modifiers)
+   at Marrow.App.Tests.Window.SettingsWindowFixture.Click(Window window, Control control, Nullable`1 local) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 118
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Input_reaches_the_window_while_the_wave_runs>b__25_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 481
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 471
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:    28, Passed:    63, Skipped:     0, Total:    91, Duration: 11 s - Marrow.App.Tests.dll (net10.0)

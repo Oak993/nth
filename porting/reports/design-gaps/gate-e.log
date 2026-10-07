@@ -1,0 +1,10 @@
+Droppy Code -> Windows port verification
+pinned source 52bc7926097cd622d08d6294e0d8b08a48c7516e
+reference     E:/Droppy/reference/droppy-code-v1.7.0
+
+Gate E
+  [TODO] packaged artifact installs, launches, cleans up children, upgrades and uninstalls
+         gate not built yet; it fails by design rather than passing by omission
+
+NOT_IMPLEMENTED=1
+RESULT: NOT ACCEPTABLE (mandatory checks unmet)
