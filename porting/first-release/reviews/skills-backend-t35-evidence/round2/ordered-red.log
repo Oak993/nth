@@ -1,0 +1,42 @@
+Build started 10/07/2026 08:35:50.
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.21]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:01.02]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:01.05]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:01.26]     Marrow.Services.Tests.Port.Skills.Fetch.OrderedServiceStartsTests.A_delayed_first_observer_cannot_let_a_later_request_start_first [FAIL]
+[xUnit.net 00:00:01.26]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:01.26]                  ↓ (pos 0)
+[xUnit.net 00:00:01.26]       Expected: ["S1", "S3"]
+[xUnit.net 00:00:01.26]       Actual:   ["S3", "S1"]
+[xUnit.net 00:00:01.26]                  ↑ (pos 0)
+[xUnit.net 00:00:01.26]       Stack Trace:
+[xUnit.net 00:00:01.26]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/OrderedServiceStartsTests.cs(35,0): at Marrow.Services.Tests.Port.Skills.Fetch.OrderedServiceStartsTests.A_delayed_first_observer_cannot_let_a_later_request_start_first()
+[xUnit.net 00:00:01.26]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.27]   Finished:    Marrow.Services.Tests
+  Failed Marrow.Services.Tests.Port.Skills.Fetch.OrderedServiceStartsTests.A_delayed_first_observer_cannot_let_a_later_request_start_first [171 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+           ↓ (pos 0)
+Expected: ["S1", "S3"]
+Actual:   ["S3", "S1"]
+           ↑ (pos 0)
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Fetch.OrderedServiceStartsTests.A_delayed_first_observer_cannot_let_a_later_request_start_first() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/OrderedServiceStartsTests.cs:line 35
+--- End of stack trace from previous location ---
+
+Test Run Failed.
+Total tests: 1
+     Failed: 1
+ Total time: 1.7573 Seconds
+     1>Project "/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj" on node 1 (VSTest target(s)).
+     1>_VSTestConsole:
+         MSB4181: The "VSTestTask" task returned false but did not log an error.
+     1>Done Building Project "/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj" (VSTest target(s)) -- FAILED.
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.24

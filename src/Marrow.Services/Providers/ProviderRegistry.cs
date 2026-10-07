@@ -1579,6 +1579,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     // more entries; updating an existing key never evicts.
     public void UpdateCommands(ValueList<SlashCommand> list, ProviderKind provider, string directory)
     {
+        Marrow.Services.Port.Skills.Providers.ProviderSkillsComposition.Observe(provider, directory, list); // RR-16: observe actual skill listings, never infer from commands.
         var key = CommandKey(provider, directory); // :741
         if (!commands.ContainsKey(key) && commands.Count >= 32) // :742
         {

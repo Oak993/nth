@@ -1,0 +1,323 @@
+  Determining projects to restore...
+  Restored /tmp/marrow-t35-baseline/src/Marrow.Core/Marrow.Core.csproj (in 217 ms).
+  Restored /tmp/marrow-t35-baseline/src/Marrow.Services/Marrow.Services.csproj (in 549 ms).
+  Restored /tmp/marrow-t35-baseline/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 1 ms).
+  Restored /tmp/marrow-t35-baseline/tests/Marrow.Testing/Marrow.Testing.csproj (in 642 ms).
+  Restored /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 645 ms).
+  Restored /tmp/marrow-t35-baseline/tests/Marrow.Skills.PipelineWorker/Marrow.Skills.PipelineWorker.csproj (in 376 ms).
+  Restored /tmp/marrow-t35-baseline/src/Marrow.Shim/Marrow.Shim.csproj (in 276 ms).
+  Marrow.Core -> /tmp/marrow-t35-baseline/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /tmp/marrow-t35-baseline/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /tmp/marrow-t35-baseline/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /tmp/marrow-t35-baseline/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /tmp/marrow-t35-baseline/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim -> /tmp/marrow-t35-baseline/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Services.Tests -> /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.36]     Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.A_failed_build_releases_its_reservation_so_GC_removes_the_tmp_residue [SKIP]
+[xUnit.net 00:00:03.36]     Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.Store_GC_at_every_install_step_keeps_the_build_and_its_fresh_spares_while_reserved [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.A_failed_build_releases_its_reservation_so_GC_removes_the_tmp_residue [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.Store_GC_at_every_install_step_keeps_the_build_and_its_fresh_spares_while_reserved [1 ms]
+[xUnit.net 00:00:03.40]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_fake_msiexec_exe_returns_success_and_failure_codes [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_fake_msiexec_exe_returns_success_and_failure_codes [1 ms]
+[xUnit.net 00:00:03.40]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_zip_refuses_reparse_entry_and_junction_root [SKIP]
+[xUnit.net 00:00:03.40]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_named_data_stream_is_refused [SKIP]
+[xUnit.net 00:00:03.40]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_python_embed_runs_tiny_test_built_exe [SKIP]
+[xUnit.net 00:00:03.40]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_lock_deny_and_readonly_survive_publish_and_teardown_unlocks [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_zip_refuses_reparse_entry_and_junction_root [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_named_data_stream_is_refused [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_python_embed_runs_tiny_test_built_exe [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsTests.WINDOWS_ONLY_lock_deny_and_readonly_survive_publish_and_teardown_unlocks [1 ms]
+[xUnit.net 00:00:03.43]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:03.43]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:03.43]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code [SKIP]
+[xUnit.net 00:00:03.43]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.A_helper_the_target_leaves_running_survives_a_normal_exit_as_it_does_without_the_shim [SKIP]
+[xUnit.net 00:00:03.43]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.A_profile_folder_that_cannot_be_deleted_never_changes_the_targets_exit_code [SKIP]
+[xUnit.net 00:00:03.43]     Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Cmd_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.PowerShell_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Git_Bash_invocation_preserves_arguments_streams_and_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.A_helper_the_target_leaves_running_survives_a_normal_exit_as_it_does_without_the_shim [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.A_profile_folder_that_cannot_be_deleted_never_changes_the_targets_exit_code [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimWindowsTests.Killing_the_shim_kills_its_child_and_grandchild_by_Job_Object [1 ms]
+[xUnit.net 00:00:03.43]     Marrow.Services.Tests.Port.Skills.Pipelines.PipelineRepairCrashTests.Abrupt_exit_at_every_repair_step_leaves_a_damaged_or_installed_pin_that_restart_finishes [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Pipelines.PipelineRepairCrashTests.Abrupt_exit_at_every_repair_step_leaves_a_damaged_or_installed_pin_that_restart_finishes [1 ms]
+[xUnit.net 00:00:03.57]     Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: False) [FAIL]
+[xUnit.net 00:00:03.58]     Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: True) [FAIL]
+[xUnit.net 00:00:03.58]     Marrow.Services.Tests.Port.Skills.Pipelines.PipelineRepairWindowsTests.A_held_file_in_the_damaged_folder_defers_repair_until_it_closes [SKIP]
+  Failed Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: False) [2 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\copilot-cli\CopilotStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.CopilotStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 59
+   at Marrow.Services.Tests.Fixtures.CopilotStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 40
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.CopilotStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 24
+   at Marrow.Services.Tests.Fixtures.CopilotScript..ctor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 74
+   at Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(Boolean resume) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/WindowsByteIdentityTests.cs:line 21
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(resume: True) [< 1 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\copilot-cli\CopilotStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.CopilotStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 59
+   at Marrow.Services.Tests.Fixtures.CopilotStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 40
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.CopilotStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 24
+   at Marrow.Services.Tests.Fixtures.CopilotScript..ctor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/CopilotStandIns.cs:line 74
+   at Marrow.Services.Tests.Port.Skills.Providers.WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(Boolean resume) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/WindowsByteIdentityTests.cs:line 21
+   at InvokeStub_WindowsByteIdentityTests.Empty_Copilot_Start_sends_the_existing_argv_and_every_startup_RPC_body_byte_for_byte(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Skipped Marrow.Services.Tests.Port.Skills.Pipelines.PipelineRepairWindowsTests.A_held_file_in_the_damaged_folder_defers_repair_until_it_closes [1 ms]
+[xUnit.net 00:00:03.60]     Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Shims.ShimFilesTests.Npm_and_npx_cmd_wrappers_dispatch_to_Node_with_prefix_arguments_and_preserve_exit [1 ms]
+[xUnit.net 00:00:03.63]     Marrow.Services.Tests.Port.Skills.Pipelines.PipelineWindowsTests.Locked_update_keeps_old_handle_usable_and_GC_retries_after_close [SKIP]
+[xUnit.net 00:00:03.63]     Marrow.Services.Tests.Port.Skills.Pipelines.PipelineWindowsTests.Reset_retries_held_bin_files_after_restart_and_preserves_enabled_and_terms [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Pipelines.PipelineWindowsTests.Locked_update_keeps_old_handle_usable_and_GC_retries_after_close [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Pipelines.PipelineWindowsTests.Reset_retries_held_bin_files_after_restart_and_preserves_enabled_and_terms [1 ms]
+[xUnit.net 00:00:03.66]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_an_installed_tool_and_skill_set_verify_under_SK5_seal_and_full_check [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_an_installed_tool_and_skill_set_verify_under_SK5_seal_and_full_check [1 ms]
+[xUnit.net 00:00:03.66]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_a_crash_at_every_step_under_the_real_ACL_leaves_only_unlocked_tmp_folders [SKIP]
+[xUnit.net 00:00:03.66]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_msiexec_gets_documented_PROPERTY_quoted_value_for_a_data_root_with_spaces [SKIP]
+[xUnit.net 00:00:03.66]     Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_sfx_7z_receives_its_documented_switches_as_two_arguments [SKIP]
+[xUnit.net 00:00:03.69]     Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.Start_with_wiring_sends_skills_list_and_extraRoots_between_initialized_and_thread_start_and_changes_no_other_line [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_a_crash_at_every_step_under_the_real_ACL_leaves_only_unlocked_tmp_folders [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_msiexec_gets_documented_PROPERTY_quoted_value_for_a_data_root_with_spaces [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Install.InstallerWindowsReviewTests.WINDOWS_ONLY_sfx_7z_receives_its_documented_switches_as_two_arguments [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.Start_with_wiring_sends_skills_list_and_extraRoots_between_initialized_and_thread_start_and_changes_no_other_line [1 ms]
+[xUnit.net 00:00:03.70]     Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.Start_without_wiring_sends_exactly_initialize_initialized_thread_start_and_launches_app_server [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.Start_without_wiring_sends_exactly_initialize_initialized_thread_start_and_launches_app_server [1 ms]
+[xUnit.net 00:00:03.73]     Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.The_skill_part_of_the_turn_input_carries_the_rewritten_path_and_the_text_part_is_unchanged [SKIP]
+[xUnit.net 00:00:03.73]     Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.The_child_environment_differs_from_today_only_by_addons_bin_in_PATH [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.The_skill_part_of_the_turn_input_carries_the_rewritten_path_and_the_text_part_is_unchanged [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Providers.CodexSessionUnchangedTests.The_child_environment_differs_from_today_only_by_addons_bin_in_PATH [1 ms]
+[xUnit.net 00:00:03.92]     Marrow.Services.Tests.Port.Skills.Providers.NativeProviderSkillsTurnTests.The_block_comes_before_the_projects_own_guidelines [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Providers.NativeProviderSkillsTurnTests.The_block_comes_before_the_projects_own_guidelines [1 ms]
+[xUnit.net 00:00:04.19]     Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Held_old_chat_moves_to_a_new_path_and_GC_retries_after_handle_closes [SKIP]
+[xUnit.net 00:00:04.19]     Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Claimed_generation_keeps_ACL_and_GC_runs_the_unlock_order [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Held_old_chat_moves_to_a_new_path_and_GC_retries_after_handle_closes [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Claimed_generation_keeps_ACL_and_GC_runs_the_unlock_order [1 ms]
+[xUnit.net 00:00:04.19]     Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Junction_in_generation_is_rejected_without_reading_its_target [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Generations.WindowsGenerationTests.Junction_in_generation_is_rejected_without_reading_its_target [1 ms]
+[xUnit.net 00:00:04.28]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_owned_pipe_serves_MCP_without_exporting_a_disk_trust_manifest_and_closes_on_stop [3 ms]
+  Error Message:
+   System.ArgumentException : An absolute Marrow MCP executable is required. (Parameter 'executable')
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Providers.SkillsMcpBridge..ctor(Generation generation, String executable) in /tmp/marrow-t35-baseline/src/Marrow.Services/Port/Skills/Providers/SkillsMcpBridge.cs:line 22
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Constructor(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:04.29]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once [FAIL]
+[xUnit.net 00:00:04.29]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.Automatic_permission_is_only_for_this_owned_read_only_server_and_allow_once [3 ms]
+  Error Message:
+   System.ArgumentException : An absolute Marrow MCP executable is required. (Parameter 'executable')
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Providers.SkillsMcpBridge..ctor(Generation generation, String executable) in /tmp/marrow-t35-baseline/src/Marrow.Services/Port/Skills/Providers/SkillsMcpBridge.cs:line 22
+   at InvokeStub_SkillsMcpBridge..ctor(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsMcpTests.The_stdio_relay_forwards_the_real_MCP_contract_and_exits_when_the_parent_closes [2 ms]
+  Error Message:
+   System.ArgumentException : An absolute Marrow MCP executable is required. (Parameter 'executable')
+  Stack Trace:
+     at Marrow.Services.Port.Skills.Providers.SkillsMcpBridge..ctor(Generation generation, String executable) in /tmp/marrow-t35-baseline/src/Marrow.Services/Port/Skills/Providers/SkillsMcpBridge.cs:line 22
+   at InvokeStub_SkillsMcpBridge..ctor(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:06.10]     Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown [FAIL]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreReviewTests.Under_the_real_ACL_a_damaged_item_is_never_leased_and_Repair_restores_the_same_pin_locked [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreReviewTests.A_real_held_handle_in_the_damaged_folder_defers_Repair_promotion_to_the_next_GC [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreReviewTests.Teardown_with_a_real_held_handle_unlocks_everything_and_the_next_GC_removes_the_rest [SKIP]
+  Failed Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown [1 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "/"
+Actual:   ""
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Pages.HostLibraryBackendTests.The_drive_of_a_root_is_its_label_and_free_bytes_and_a_share_or_a_missing_drive_is_unknown() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Pages/HostLibraryBackendTests.cs:line 147
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreReviewTests.Under_the_real_ACL_a_damaged_item_is_never_leased_and_Repair_restores_the_same_pin_locked [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreReviewTests.A_real_held_handle_in_the_damaged_folder_defers_Repair_promotion_to_the_next_GC [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreReviewTests.Teardown_with_a_real_held_handle_unlocks_everything_and_the_next_GC_removes_the_rest [1 ms]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_lock_is_one_exact_current_user_deny_with_both_inheritance_flags [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Hidden_and_system_entries_are_never_excluded_from_verification [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Removing_the_deny_or_renaming_a_locked_tree_is_checked_on_the_next_use [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_NTFS_junction_is_damage_and_GC_unlinks_it_without_touching_its_target [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Reset_ACLs_then_clear_read_only_then_delete_removes_the_whole_locked_fixture [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_named_stream_is_damage_even_when_the_main_stream_matches [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_handle_without_delete_sharing_defers_GC_until_the_next_pass [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_process_working_directory_defers_GC_without_running_a_real_CLI [SKIP]
+[xUnit.net 00:00:06.11]     Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_exact_inherited_deny_refuses_create_write_append_attribute_rename_and_delete [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_lock_is_one_exact_current_user_deny_with_both_inheritance_flags [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Hidden_and_system_entries_are_never_excluded_from_verification [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Removing_the_deny_or_renaming_a_locked_tree_is_checked_on_the_next_use [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_NTFS_junction_is_damage_and_GC_unlinks_it_without_touching_its_target [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.Reset_ACLs_then_clear_read_only_then_delete_removes_the_whole_locked_fixture [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_named_stream_is_damage_even_when_the_main_stream_matches [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_real_handle_without_delete_sharing_defers_GC_until_the_next_pass [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.A_process_working_directory_defers_GC_without_running_a_real_CLI [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.WindowsStoreProtectionTests.The_exact_inherited_deny_refuses_create_write_append_attribute_rename_and_delete [1 ms]
+[xUnit.net 00:00:06.12]     Marrow.Services.Tests.Port.Skills.Uninstall.SkillsUninstallWindowsTests.Under_the_real_ACL_with_nothing_held_the_hook_removes_every_locked_folder [SKIP]
+[xUnit.net 00:00:06.13]     Marrow.Services.Tests.Port.Skills.Uninstall.SkillsUninstallWindowsTests.Under_the_real_ACL_with_a_file_held_open_the_hook_finishes_inside_10_seconds_and_leaves_only_unlocked_files [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Uninstall.SkillsUninstallWindowsTests.Under_the_real_ACL_with_nothing_held_the_hook_removes_every_locked_folder [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Uninstall.SkillsUninstallWindowsTests.Under_the_real_ACL_with_a_file_held_open_the_hook_finishes_inside_10_seconds_and_leaves_only_unlocked_files [1 ms]
+[xUnit.net 00:00:06.17]     Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.A_junction_for_enabled_json_and_for_an_unlisted_child_of_skills_is_not_followed [SKIP]
+[xUnit.net 00:00:06.17]     Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.An_odd_data_root_is_refused_before_anything_is_touched [SKIP]
+[xUnit.net 00:00:06.17]     Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.A_junction_in_the_tree_is_removed_as_a_link_and_its_target_is_untouched [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.A_junction_for_enabled_json_and_for_an_unlisted_child_of_skills_is_not_followed [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.An_odd_data_root_is_refused_before_anything_is_touched [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.A_junction_in_the_tree_is_removed_as_a_link_and_its_target_is_untouched [1 ms]
+[xUnit.net 00:00:06.17]     Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.A_data_root_under_a_junction_deletes_nothing_it_was_not_told_to [SKIP]
+[xUnit.net 00:00:06.17]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null) [FAIL]
+[xUnit.net 00:00:06.18]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: "prior-conversation") [FAIL]
+[xUnit.net 00:00:06.18]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments [FAIL]
+[xUnit.net 00:00:06.19]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli [FAIL]
+[xUnit.net 00:00:06.20]     Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments [FAIL]
+[xUnit.net 00:00:06.20]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts [FAIL]
+[xUnit.net 00:00:06.21]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: "session/new") [FAIL]
+[xUnit.net 00:00:06.22]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: "saved", method: "session/load") [FAIL]
+  Skipped Marrow.Services.Tests.Port.Skills.Uninstall.REVIEW_SkillsUninstallLinkTests.A_data_root_under_a_junction_deletes_nothing_it_was_not_told_to [1 ms]
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: null) [4 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\antigravity-cli\AntigravityStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AntigravityStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 56
+   at Marrow.Services.Tests.Fixtures.AntigravityStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 37
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AntigravityStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 26
+   at Marrow.Services.Tests.Fixtures.AntigravityScript..ctor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 70
+   at Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(String resume) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/SkillOverlaySessionTests.cs:line 41
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(resume: "prior-conversation") [3 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\antigravity-cli\AntigravityStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AntigravityStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 56
+   at Marrow.Services.Tests.Fixtures.AntigravityStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 37
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AntigravityStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 26
+   at Marrow.Services.Tests.Fixtures.AntigravityScript..ctor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 70
+   at Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(String resume) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/SkillOverlaySessionTests.cs:line 41
+   at InvokeStub_SkillOverlaySessionTests.Antigravity_new_and_resumed_sessions_add_the_verified_generation_as_a_second_root(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments [1 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\acp-cli\AcpStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AcpStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 76
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 57
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 28
+   at Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_without_a_generation_does_not_probe_or_change_its_arguments() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/SkillOverlaySessionTests.cs:line 84
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli [7 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\antigravity-cli\AntigravityStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AntigravityStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 56
+   at Marrow.Services.Tests.Fixtures.AntigravityStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 37
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AntigravityStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 26
+   at Marrow.Services.Tests.Fixtures.AntigravityScript..ctor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AntigravityStandIns.cs:line 70
+   at Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.A_damaged_generation_is_refused_before_starting_the_cli() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/SkillOverlaySessionTests.cs:line 104
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments [7 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\acp-cli\AcpStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AcpStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 76
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 57
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 28
+   at Marrow.Services.Tests.Port.Skills.Providers.SkillOverlaySessionTests.Cursor_MCP_attachment_preserves_the_original_CLI_arguments() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/SkillOverlaySessionTests.cs:line 66
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts [4 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\acp-cli\AcpStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AcpStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 76
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 57
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 28
+   at Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_refuses_a_damaged_generation_before_any_CLI_process_starts() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/CursorSkillsAcpTests.cs:line 94
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: null, method: "session/new") [9 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\acp-cli\AcpStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AcpStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 76
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 57
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 28
+   at Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(String resume, String method) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/CursorSkillsAcpTests.cs:line 57
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(resume: "saved", method: "session/load") [4 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\acp-cli\AcpStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AcpStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 76
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 57
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 28
+   at Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(String resume, String method) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/CursorSkillsAcpTests.cs:line 57
+   at InvokeStub_CursorSkillsAcpTests.Cursor_attaches_the_owned_server_to_new_and_loaded_sessions_without_replacing_user_MCP(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:06.23]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: True) [FAIL]
+[xUnit.net 00:00:06.23]     Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: False) [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: True) [6 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\acp-cli\AcpStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AcpStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 76
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 57
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 28
+   at Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(Boolean stop) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/CursorSkillsAcpTests.cs:line 28
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(stop: False) [4 ms]
+  Error Message:
+   System.IO.FileNotFoundException : tests\fixtures\acp-cli\AcpStandIn.cs was not found above the test output folder.
+  Stack Trace:
+     at Marrow.Services.Tests.Fixtures.AcpStandIns.FindSource() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 76
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.Compile() in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 57
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)
+--- End of stack trace from previous location ---
+   at System.Lazy`1.CreateValue()
+   at Marrow.Services.Tests.Fixtures.AcpStandIns.CopyFor(String label) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Fixtures/AcpStandIns.cs:line 28
+   at Marrow.Services.Tests.Port.Skills.Providers.CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(Boolean stop) in /tmp/marrow-t35-baseline/tests/Marrow.Services.Tests/Port/Skills/Providers/CursorSkillsAcpTests.cs:line 28
+   at InvokeStub_CursorSkillsAcpTests.Stop_or_damage_during_the_launch_wait_prevents_a_late_Cursor_child(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+
+Failed!  - Failed:    16, Passed:   860, Skipped:    48, Total:   924, Duration: 4 s - Marrow.Services.Tests.dll (net10.0)

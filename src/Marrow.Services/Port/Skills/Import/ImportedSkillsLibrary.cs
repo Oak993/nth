@@ -81,9 +81,9 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
                 {
                     CheckWritable();
                     var existing = Duplicate(skill);
-                    var name = existing is null || choice == DuplicateChoice.Replace ? skill.Name : UniqueName(skill);
                     try
                     {
+                        var name = existing is null || choice == DuplicateChoice.Replace ? skill.Name : UniqueName(skill);
                         var id = Guid.NewGuid().ToString("N");
                         var record = new ImportedSkill(id, name, skill.Name, skill.Description, skill.App, skill.Source, mode, skill.Path, skill.Layout,
                             existing is not null && choice == DuplicateChoice.Replace ? existing.Skill.Enabled : true, clock.GetUtcNow(), false);
@@ -298,11 +298,17 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
             _ => "folder",
         };
         bool Taken(string n) => entries.Any(e => string.Equals(e.Skill.Name, n, StringComparison.OrdinalIgnoreCase));
-        var candidate = Trim(skill.Name + "-" + slug);
-        for (var i = 2; Taken(candidate) || !SkillName.IsValid(candidate); i++) candidate = Trim(skill.Name + "-" + slug + "-" + i);
-        return candidate;
-
-        static string Trim(string value) => value.Length <= SkillName.MaxLength ? value : value[..SkillName.MaxLength].TrimEnd('-');
+        // ED-533 / RR-45: reserve space for the suffix before shortening
+        // the base. At most entries.Count names are taken, so Count + 1 distinct candidates suffice.
+        if (!SkillName.IsValid(skill.Name)) throw new InvalidDataException("The imported skill name is invalid.");
+        for (long i = 1; i <= (long)entries.Count + 1; i++)
+        {
+            var suffix = "-" + slug + (i == 1 ? "" : "-" + i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var length = Math.Min(skill.Name.Length, SkillName.MaxLength - suffix.Length);
+            var candidate = skill.Name[..length].TrimEnd('-') + suffix;
+            if (SkillName.IsValid(candidate) && !Taken(candidate)) return candidate;
+        }
+        throw new InvalidDataException("A unique imported skill name could not be made.");
     }
 
     // ---- the index

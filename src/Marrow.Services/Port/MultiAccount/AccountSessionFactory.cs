@@ -13,21 +13,7 @@ public static class AccountSessionFactory
     /// <summary>The one place a provider session object is built from its prepared configuration; tests override it for offline launches.</summary>
     public static Ambient<Func<SessionConfiguration, ProviderSession>> Constructor { get; } = new(Construct);
 
-    private static ProviderSession Construct(SessionConfiguration configuration) => configuration.Provider switch
-    {
-        ProviderKind.Codex => new CodexSession(configuration),
-        ProviderKind.Claude => new ClaudeSession(configuration),
-        ProviderKind.Antigravity => new AntigravitySession(configuration),
-        ProviderKind.Copilot => new CopilotSession(configuration),
-        ProviderKind.Commandcode => new CommandCodeSession(configuration),
-        ProviderKind.Pi => new PiSession(configuration),
-        ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Devin => new ACPSession(configuration),
-        ProviderKind.Deepseek => new DeepSeekSession(configuration),
-        ProviderKind.Meta => new MetaSession(configuration),
-        ProviderKind.Zai => new ZaiSession(configuration),
-        ProviderKind.OpenRouter => new OpenRouterSession(configuration),
-        _ => throw new InvalidOperationException($"Unsupported provider session: {configuration.Provider}."),
-    };
+    private static ProviderSession Construct(SessionConfiguration configuration) => Marrow.Services.Port.Skills.Providers.SkillSessionFactory.Create(configuration);
 
     public static AccountSessionLaunch Create(ProviderRegistry registry, SessionConfiguration configuration, Guid accountId, bool freshContext = false)
         => Launcher.Current(registry, configuration, accountId, freshContext);

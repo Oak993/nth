@@ -153,6 +153,9 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
                 start = true;
             }
             flight.Askers++;
+            // RR-44: reserve the start in the same critical section as creation.
+            // Observers/listeners outside this gate may block or re-enter; they cannot reorder starts.
+            if (start) _ = Task.Factory.StartNew(() => Run(flight, item), CancellationToken.None, TaskCreationOptions.DenyChildAttach, starts).Unwrap();
         }
         using var listening = flight.Listen(progress, part);
         var left = 0;
@@ -176,7 +179,6 @@ public sealed class SkillsDownloads(SkillsPipeline pipeline, SkillsCatalogue cat
         if (start)
         {
             Notify();
-            _ = Task.Factory.StartNew(() => Run(flight, item), CancellationToken.None, TaskCreationOptions.DenyChildAttach, starts).Unwrap(); // in the order asked, see starts
         }
         try { return await flight.Result.Task.WaitAsync(cancellation).ConfigureAwait(false); }
         finally { Leave(); }

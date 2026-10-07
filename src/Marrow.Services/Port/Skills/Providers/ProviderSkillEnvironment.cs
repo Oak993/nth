@@ -14,7 +14,7 @@ public static class ProviderSkillEnvironment
             return ReferenceEquals(bound, environment) ? environment
                 : new ValueMap<string, string>(bound, StringComparer.OrdinalIgnoreCase);
         }
-        var child = ShimPath.ForChild(environment, launch.DataRoot);
+        var child = ProviderCustomCommands.ForChild(environment, launch.DataRoot);
         return new ValueMap<string, string>(child, StringComparer.OrdinalIgnoreCase);
     }
 }
