@@ -78,6 +78,7 @@ public sealed partial class InjectedStandbySession : IAdoptableStandby
                 foreach (var text in texts)
                 {
                     ct.ThrowIfCancellationRequested();
+                    if (canTransfer?.Invoke() == false) throw new InvalidOperationException("Context transfer is no longer authorized.");
                     await injector.InjectStandbyHistory(text, ct);
                     if (FaultReason is not null) return null;
                 }

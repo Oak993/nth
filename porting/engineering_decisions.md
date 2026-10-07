@@ -4030,3 +4030,8 @@ UNVERIFIED and the weakest of the three injections: the research could not confi
 ### ED-NEW-ma-review-1: require the OpenCode noReply request capability
 
 [T19][MULTI-ACCOUNT][SAFETY] OD-0116/OD-0122. Confirmed with fake server tests before repair: the capability probe accepted noReply in response schemas (including a response-only reference), nested message-part fields, and a string-valued field. Such a server need not honor the top-level boolean sent by injection and could run a reply. Inspect only application/json requestBody.schema, its direct documented schema reference, and a top-level boolean noReply property. No CLI/network/model used. OpenCodeStandbyCapabilityReviewTests: four cases red, one negative control green; after repair all five pass, with the unchanged OpenCodeStandbyTests (14 cases) also passing. Test assertions and ledger prefix bytes preserved.
+
+
+### ED-NEW-ma-review-2: recheck consent before every injected part
+
+[T19][MULTI-ACCOUNT][CONSENT] OD-0116/OD-0120. Confirmed with a scripted injection fake: a rebuilt context and changed briefing produce two injections. Revoking the transfer grant during the first still transmitted the second briefing; the test observed three total injections instead of two. Recheck canTransfer at each injection boundary. InjectedStandbyConsentReviewTests was red before this one-line fix and passes afterward, with all 15 unchanged InjectedStandbySessionTests cases (16/16). No CLI/network/model, no existing test edits, no ledger byte normalization.
