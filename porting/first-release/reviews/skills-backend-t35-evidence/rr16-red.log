@@ -1,0 +1,11 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pages/ProviderOriginReportsTests.cs(19,27): error CS0246: The type or namespace name 'ProviderSkillReports' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pages/ProviderOriginReportsTests.cs(24,50): error CS0103: The name 'SkillOrigin' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pages/ProviderOriginReportsTests.cs(40,27): error CS0246: The type or namespace name 'ProviderSkillReports' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pages/ProviderOriginReportsTests.cs(52,22): error CS0103: The name 'SkillOrigin' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Pages/ProviderOriginReportsTests.cs(54,22): error CS0103: The name 'SkillOrigin' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]

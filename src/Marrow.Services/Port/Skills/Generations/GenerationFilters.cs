@@ -28,6 +28,12 @@ public static class GenerationFilters
         return !skill.ExplicitOnly || provider is "claude" or "codex" or "pi" or "native" or "cursor" or "devin" or "agy";
     }
     public static string Normalize(string name) => name[(name.LastIndexOf(':') + 1)..].ToLowerInvariant();
+    // RR-16: equivalence is a comparison rule, never evidence that an account supplied a skill.
+    public static IReadOnlyList<string> Equivalents(string name)
+    {
+        var normalized = Normalize(name);
+        return Array.AsReadOnly((Groups.FirstOrDefault(g => g.Contains(normalized, StringComparer.Ordinal)) ?? [normalized]).Order(StringComparer.Ordinal).ToArray());
+    }
     public static bool Clashes(string provider, string name, IEnumerable<ExistingSkill> existing)
     {
         name = Normalize(name);

@@ -1,5 +1,6 @@
 // PORT-ONLY: SK-13 / ED-326 (6)(a), ED-325 "Own the whole root". There is no Swift twin.
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Fetch;
@@ -33,6 +34,7 @@ public sealed class SkillsHost : IDisposable
     {
         this.key = key;
         Paths = paths;
+        ProviderSkills = new(() => LoginEnvironment.HomeDirectory, paths.Root);
         Pipeline = pipeline;
         Generations = generations;
         Imported = imported;
@@ -44,6 +46,8 @@ public sealed class SkillsHost : IDisposable
     }
 
     public StorePaths Paths { get; }
+
+    public Marrow.Services.Port.Skills.Pages.ProviderSkillReports ProviderSkills { get; }
 
     /// <summary>SK-14: the catalogue the host was opened with: the in-chat offers read it.</summary>
     public SkillsCatalogue Catalogue { get; }
