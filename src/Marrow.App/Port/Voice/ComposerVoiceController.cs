@@ -8,6 +8,7 @@ using Marrow.Core.Port.Voice.Orb;
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Port.Voice.Session;
 using Marrow.Core.Port.Voice.Transcript;
+using Marrow.Services.Port.Voice.Cloud;
 
 namespace Marrow.App.Port.Voice;
 
@@ -163,7 +164,7 @@ public sealed class ComposerVoiceController : MainActorModel
         var settings = host.Settings();
         var typing = settings.VoiceTyping;
         return new VoiceSessionSettings(settings.VoiceOrb, typing, CultureInfo.CurrentUICulture.Name,
-            typing.Model is { } id ? new SpeechModel(id, null) : null);
+            typing.Engine == VoiceEngine.Cloud ? new SpeechModel(OpenAiTranscriber.DefaultModel, null) : typing.Model is { } id ? new SpeechModel(id, null) : null);
     }
 
     private void StoreTyping(VoiceTypingSettings typing) => host.Settings().VoiceTyping = typing;

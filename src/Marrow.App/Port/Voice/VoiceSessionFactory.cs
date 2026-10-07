@@ -2,6 +2,7 @@
 using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Session;
+using Marrow.Core.Port.Voice.Seams;
 
 namespace Marrow.App.Port.Voice;
 
@@ -11,7 +12,10 @@ namespace Marrow.App.Port.Voice;
 /// </summary>
 public sealed class VoiceSessionFactory(Func<Func<VoiceSessionSettings>, Action<VoiceTypingSettings>, VoiceSession> create)
 {
-    public static Ambient<VoiceSessionFactory> Current { get; } = new(new VoiceSessionFactory((settings, store) => new VoiceSession(settings, store)));
+    public static Ambient<VoiceSessionFactory> Current { get; } = new(new VoiceSessionFactory((settings, store) => new VoiceSession(settings, store,
+        new VoiceSeamSet(() => VoiceSeams.Capture.Current, () => VoiceSeams.Vad.Current,
+            () => settings().Typing.Engine == VoiceEngine.Cloud ? VoiceCloudEngine.Current.Current : VoiceSeams.Engine.Current,
+            () => VoiceSeams.Microphone.Current, () => VoiceSeams.Resampler.Current))));
 
     public VoiceSession Create(Func<VoiceSessionSettings> settings, Action<VoiceTypingSettings> storeTyping) => create(settings, storeTyping);
 }
