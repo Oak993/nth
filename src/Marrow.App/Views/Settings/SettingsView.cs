@@ -900,7 +900,7 @@ internal sealed class ProviderSettingsSection : Decorator
                 if (provider.IsAPIKeyBased && !status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Get a key", () => Link(provider.GetKeyLinkText, provider.InstallURL), provider.DisplayName + " needs an API key. Nothing to install.")); } // :719-727
                 if (provider.IsAPIKeyBased) return;
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
-                else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => SettingsGlassButtons.Text("Login", () => Workspace.OpenTerminal(provider.LoginCommand), labelHeight: Chrome.RowButtonLabelHeight), "Click here to login again.")); } // :638-641,747-756
+                else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => SettingsGlassButtons.Text("Login", () => Marrow.App.Port.ProviderLoginWatch.Open(model.Providers, provider), labelHeight: Chrome.RowButtonLabelHeight), "Click here to login again.")); } // :638-641,747-756
             });
         });
     }

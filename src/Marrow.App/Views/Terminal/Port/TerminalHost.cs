@@ -417,7 +417,7 @@ public static class WindowsShell
     // CreateProcessW does not search PATH for a bare lpApplicationName; resolve the preferred shell through PATH and
     // finally use the absolute System32 WindowsPowerShell path.
     internal static string Resolve(IReadOnlyDictionary<string, string>? environment) =>
-        LoginEnvironment.Which("pwsh.exe", environment)
-        ?? LoginEnvironment.Which("powershell.exe", environment)
+        LoginEnvironment.WhichLaunchable("pwsh.exe", environment) // a Store PowerShell cannot join the job (WhichLaunchable)
+        ?? LoginEnvironment.WhichLaunchable("powershell.exe", environment)
         ?? Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
 }

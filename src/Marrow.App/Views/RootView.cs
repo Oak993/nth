@@ -1160,7 +1160,7 @@ internal sealed class ProviderStatusRow : Decorator
         {
             content = provider.IsAPIKeyBased
                 ? new OpenProvidersSettingsButton()
-                : GlassButton("Login", () => Workspace.OpenTerminal(provider.LoginCommand));
+                : GlassButton("Login", () => Marrow.App.Port.ProviderLoginWatch.Open(AppEnvironment.GetAppModel(this).Providers, provider)); // owner finding F2: re-checks on its own
         }
         else // :402-405
         {

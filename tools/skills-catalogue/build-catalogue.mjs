@@ -412,7 +412,7 @@ async function buildRepoItem(prev, cfg) {
     for (const [p, text] of got.texts) {
       const dir = p === 'SKILL.md' ? '' : p.slice(0, -'/SKILL.md'.length);
       const folder = dir.split('/').pop();
-      const old = prev.skills.find((s) => s.folder === folder);
+      const old = (prev.skills ?? []).find((s) => s.folder === folder);
       skills.push({ folder, name: L.parseFrontmatterName(text), path: dir, needs: old?.needs ?? [], ...(old?.termsClass ? { termsClass: old.termsClass } : {}), ...(old?.pin ? { pin: old.pin } : {}) });
     }
     if (layout.type === 'plugins') folders = roots.map((r) => ({ name: r.plugin, skillCount: skills.filter((s) => s.path === r.dir || s.path.startsWith(r.dir + '/')).length }));
@@ -426,7 +426,7 @@ async function buildRepoItem(prev, cfg) {
   for (const s of skills) if (s.name === null) warn(id, `skill ${s.path} has no name in its front matter`);
   else if (s.name !== s.folder) warn(id, `skill ${s.path}: front matter name "${s.name}" is not its folder name "${s.folder}"`);
   if (prev.skillCount != null && skills.length !== prev.skillCount) warn(id, `${skills.length} skills found, the plan counts ${prev.skillCount}`);
-  if (prev.skills.length > 0 && layout.type !== 'perSkillPins') {
+  if ((prev.skills ?? []).length > 0 && layout.type !== 'perSkillPins') {
     const was = prev.skills.map((s) => s.folder).sort(), now = skills.map((s) => s.folder).sort();
     if (was.join() !== now.join()) warn(id, `the skill folders differ from the plan's list: missing ${was.filter((x) => !now.includes(x)).join(', ') || '(none)'}; new ${now.filter((x) => !was.includes(x)).join(', ') || '(none)'}`);
   }

@@ -517,7 +517,8 @@ public sealed class ComposerView : Decorator
             layers.Children.Insert(1, new VoiceGlowLayer(voice));
             pillSlot = new VoicePillSlot(voice);
             layers.Children.Insert(2, pillSlot);
-            insetRight = new AnimatedScalar(this, 0, inset => textColumn.Margin = new Thickness(0, 4, inset, 4));
+            insetRight = new AnimatedScalar(this, 0, inset => { textColumn.Margin = new Thickness(0, 4, inset, 4); FadeBesidePill(inset); });
+            textColumn.SizeChanged += (_, _) => FadeBesidePill(textColumn.Margin.Right);
             pillSlot.InsetTargetChanged += target => insetRight.Set(target, LookCurve.Ez(0.42)); // V-12.6: the text's right edge eases over 0.42 s ez
             question = new VoiceLanguageQuestion();
             questionHost.Children.Add(question);
@@ -1003,6 +1004,24 @@ public sealed class ComposerView : Decorator
     }
 
     // :275-288. Internal for this unit's tests (InternalsVisibleTo Marrow.App.Tests); private in Swift.
+    // OD-0130 (owner finding F5, 2026-10-08): "the text gets cut off right there; it should fade smoothly as it nears the pill". While the
+    // voice pill has pushed the text column's right edge in (V-12.6's inset), the column's last 24 points fade to nothing instead of
+    // ending in a hard clip; at rest (no inset) the column carries no mask, so typing is unaffected.
+    private const double PillFadeWidth = 24;
+
+    private void FadeBesidePill(double inset)
+    {
+        var width = textColumn.Bounds.Width;
+        if (inset < 0.5 || width <= PillFadeWidth) { textColumn.OpacityMask = null; return; }
+        var start = (width - PillFadeWidth) / width;
+        textColumn.OpacityMask = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Colors.Black, 0), new GradientStop(Colors.Black, start), new GradientStop(Colors.Transparent, 1) },
+        };
+    }
+
     internal string Placeholder(ChatThread? thread)
     {
         if (thread is null) return ""; // :276

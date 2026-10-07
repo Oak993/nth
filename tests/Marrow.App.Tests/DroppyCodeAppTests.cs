@@ -95,7 +95,7 @@ public sealed class DroppyCodeAppTests
     }
 
     [Fact]
-    [Trait("Req", "PR-UPDATE-112")] // project.yml:13-14 (B3 52bc792): MARKETING_VERSION "1.7.0", CURRENT_PROJECT_VERSION "21"
+    [Trait("Req", "PR-UPDATE-112")] // project.yml:13-14 (B3 52bc792): MARKETING_VERSION "1.7.0", CURRENT_PROJECT_VERSION "21"; DEVIATION OD-0129: Marrow ships as 1.0.0, build 1
     public void The_assembly_carries_the_pinned_version_and_build_numbers()
     {
         // The source of truth every AppInfo/version-display record cites (PR-UPDATE-112's own source_evidence);
@@ -106,8 +106,8 @@ public sealed class DroppyCodeAppTests
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .ToDictionary(attribute => attribute.Key, attribute => attribute.Value);
 
-        Assert.Equal("1.7.0", metadata["CFBundleShortVersionString"]);
-        Assert.Equal("21", metadata["CFBundleVersion"]);
+        Assert.Equal("1.0.0", metadata["CFBundleShortVersionString"]); // OD-0129 ("The version has to be v1.0")
+        Assert.Equal("1", metadata["CFBundleVersion"]);
     }
 
     // ED-212's ReopenSignalName tests moved to DroppyCodeAppDevDataRootTests (review fix, R-TEST-5): they mutate

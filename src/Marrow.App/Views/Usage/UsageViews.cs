@@ -144,7 +144,7 @@ public sealed class PlanLimitsView : Decorator
                         var label = Label("Click here to login again", SwiftFont.Callout, Chrome.SecondaryText);
                         label.Margin = new Thickness(0, 0, 24, 0);
                         var login = new Button { Content = "Login" };
-                        login.Click += (_, _) => Workspace.OpenTerminal(provider.LoginCommand);
+                        login.Click += (_, _) => Marrow.App.Port.ProviderLoginWatch.Open(AppEnvironment.GetAppModel(this).Providers, provider); // owner finding F2
                         var problemRow = new Grid
                         {
                             ColumnDefinitions = new ColumnDefinitions("*,Auto"),

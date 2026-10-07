@@ -643,6 +643,29 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         });
     }
 
+    // PORT-ONLY (owner finding F2, 2026-10-08): after a Login opened in the terminal, Marrow re-checks the provider's sign-in
+    // on its own (Droppy's Settings needs a press of Check providers again). Quiet: no IsChecking state, so the row does not
+    // flicker while it waits, and the status is written only when the sign-in or the executable actually changed. Returns
+    // whether the provider is now signed in.
+    public async Task<bool> RecheckSignIn(ProviderKind provider)
+    {
+        if (provider.IsAPIKeyBased || provider == ProviderKind.Local || !HasEnabledAccount(provider)) return false;
+        await LoginEnvironment.Load();
+        if (Executable(provider) is not { } executable) return false;
+        var environment = Environment(provider);
+        var auth = await Auth(provider, executable, environment);
+        var current = Status(provider);
+        if (current.ProviderStatusAuth.GetType() != auth.GetType() || current.Executable != executable)
+        {
+            var version = await Version(executable.Path, environment);
+            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus { Executable = executable, Version = version, ProviderStatusAuth = auth });
+        }
+        if (auth is not ProviderStatus.Auth.SignedIn) return false;
+        RefreshPlanLimits(provider, force: true); // as signIn(_:) does after a successful login (ProviderRegistry.swift:308-310)
+        await LoadCatalog(provider, force: true);
+        return true;
+    }
+
     // :788-796. Swift: version(_:_:).
     internal static async Task<string?> Version(string executable, IReadOnlyDictionary<string, string> environment)
     {

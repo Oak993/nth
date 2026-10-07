@@ -115,10 +115,34 @@ public static class PortControlThemes
         return card;
     });
 
-    /// <summary>The ToolTip default theme: the system tooltip card.</summary>
+    // Owner finding F4 (2026-10-08, installed build): hovering a title-bar button showed the dark tip card inside a white
+    // square. A ToolTip is shown in a Popup of its own, and on Windows that Popup is a PopupRoot window whose default
+    // Background is opaque white (PopupRoot's static constructor; PopoverHost.cs note 2 says the same of popovers). The
+    // card above assumes a clear surround, so the tip's top-level gets no fill at all and a transparent surface, as a
+    // tipped popover's does (PopoverHost.Register), the moment the tip is put in it, before the window is shown.
+    private static readonly AttachedProperty<bool> ClearsTipSurroundProperty =
+        AvaloniaProperty.RegisterAttached<ToolTip, bool>("ClearsTipSurround", typeof(PortControlThemes));
+
+    static PortControlThemes()
+    {
+        ClearsTipSurroundProperty.Changed.AddClassHandler<ToolTip>((tip, change) =>
+        {
+            if (change.NewValue is not true) return;
+            void Clear()
+            {
+                if (TopLevel.GetTopLevel(tip) is not PopupRoot root) return;
+                root.Background = null;
+                root.TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
+            }
+            tip.AttachedToVisualTree += (_, _) => Clear();
+            Clear();
+        });
+    }
+
+    /// <summary>The ToolTip default theme: the system tooltip card, in a clear top-level.</summary>
     public static ControlTheme ToolTipTheme { get; } = new(typeof(ToolTip))
     {
-        Setters = { new Setter(TemplatedControl.TemplateProperty, TipTemplate) },
+        Setters = { new Setter(TemplatedControl.TemplateProperty, TipTemplate), new Setter(ClearsTipSurroundProperty, true) },
     };
 
     // Slider(...).controlSize(.small) (SettingsView.swift:532-534 transparency, WallpaperCard.swift:133-139 softness): drew
