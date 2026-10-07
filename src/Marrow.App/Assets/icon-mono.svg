@@ -1,7 +1,0 @@
-<!-- Marrow monochrome mark. Original artwork for this project; not derived from Droppy or Droppy Code artwork. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-  <path d="M 8.55 3.47 A 7 7 0 0 1 16.64 8.87"/>
-    <path d="M 21.11 13.28 A 7 7 0 0 1 12.39 17.59"/>
-    <path d="M 6.34 19.25 A 7 7 0 0 1 6.97 9.55"/>
-  <circle cx="12" cy="12" r="1.9" fill="currentColor"/>
-</svg>

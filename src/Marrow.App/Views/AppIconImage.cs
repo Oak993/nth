@@ -8,7 +8,7 @@ namespace Marrow.App.Views;
 
 /// <summary>
 /// <c>Image(nsImage: NSApp.applicationIconImage)</c>: RootView.swift:307, NewThreadPrompt.swift:17, AboutUpdateViews.swift:554 and
-/// SettingsView.swift:971. OD-0015 / OD-0033: the app icon is the packaged Marrow icon, Assets/icon.png (512 px, with its
+/// SettingsView.swift:971. OD-0112 / OD-0033: the app icon is the packaged Aurora icon, Assets/icon.png (512 px, with its
 /// margin, as an application icon image has). One immutable bitmap serves every site for the life of the app.
 /// </summary>
 internal static class AppIconImage

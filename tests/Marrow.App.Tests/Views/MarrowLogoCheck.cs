@@ -18,7 +18,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views;
 
-// Shared pixel check for the logo places (OD-0015): samples only the Marrow icon artwork satisfies.
+// OD-0112, ED-402: locked generator outputs replace only OD-0015 artwork expectations.
+// Samples and literal hashes are checked in; tests never regenerate. All comparisons and bounds are unchanged.
 internal static class MarrowLogoCheck
 {
     public static void AssertIsTheMarrowIcon(SwiftImage logo)
@@ -42,16 +43,16 @@ internal static class MarrowLogoCheck
             var i = (y * size.Width + x) * 4;
             return bgra ? (bytes[i + 2], bytes[i + 1], bytes[i], bytes[i + 3]) : (bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]);
         }
-        static double U(double v) => (v - 72) / 880; // icon.svg: the tile is x,y 72..952 of a 1024 box
+        static double U(double v) => (v - 72) / 880; // Fixed fractional sampling grid; OD-0112 samples are mapped into it.
         void Near(string what, (int R, int G, int B, int A) p, int r, int g, int b) =>
             Assert.True(p.A >= 250 && Math.Abs(p.R - r) <= tolerance && Math.Abs(p.G - g) <= tolerance && Math.Abs(p.B - b) <= tolerance,
                 $"{what}: got ({p.R},{p.G},{p.B},{p.A}), expected about ({r},{g},{b})");
         Assert.Equal(0, At(0.0, 0.0).A);
-        var core = At(0.5, 0.5);
+        var core = At(0.88, 0.67); // OD-0112: Aurora curtain glint; brightness bounds unchanged.
         Assert.True(core.A >= 250 && core.R >= 214 && core.G >= 220 && core.B >= 240, $"core: got ({core.R},{core.G},{core.B})");
-        Near("blue arm", At(U(392.88), U(217.16)), 0x9C, 0xBB, 0xFF);
-        Near("violet arm", At(U(826.91), U(556.26)), 0xCB, 0xA6, 0xFF);
-        Near("mint arm", At(U(316.22), U(762.59)), 0x74, 0xF2, 0xD0);
+        Near("night glass", At(U(688), U(248)), 0x0B, 0x10, 0x27);
+        Near("teal curtain", At(U(336), U(486.48)), 0x55, 0xE3, 0xC4);
+        Near("emerald foot", At(U(293.76), U(441.6)), 0x52, 0xFF, 0xDB);
         var navy = At(U(828), U(828));
         Assert.True(navy.A >= 250 && navy.R < 40 && navy.G < 40 && navy.B < 64, $"navy tile: got ({navy.R},{navy.G},{navy.B})");
     }
@@ -67,7 +68,7 @@ internal static class MarrowLogoCheck
         var source = Assert.IsAssignableFrom<Bitmap>(image.Source);
         using var resource = AssetLoader.Open(new Uri("avares://Marrow.App/Assets/icon.png"));
         using var copy = new MemoryStream(); resource.CopyTo(copy);
-        Assert.Equal("52D605D7B064BC0B1BD4460600AB65E0280280391FDCD00D021F14F00E727A60", Convert.ToHexString(SHA256.HashData(copy.ToArray())));
+        Assert.Equal("2833C700A1BEC5DB954FD0EDC3045708BC1A821E0F8D4CB47958036408097008", Convert.ToHexString(SHA256.HashData(copy.ToArray())));
         copy.Position = 0;
         using var approved = new Bitmap(copy);
         Assert.Equal(approved.PixelSize, source.PixelSize);
