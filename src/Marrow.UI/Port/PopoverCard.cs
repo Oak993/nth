@@ -92,6 +92,9 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     /// <summary>The card's corner radius, measured on the reference frames (see the file note).</summary>
     internal const double BodyRadius = 20;
 
+    /// <summary>A site-specific body radius; ordinary popovers retain the reference radius.</summary>
+    public double BodyCornerRadius { get; init; } = BodyRadius;
+
     // OD-0095: "one outline, one fill, one shadow". ENGINEERING DECISION (no number is published for NSPopover's window
     // shadow; the videos show it soft and faint, more a lift than a drop): a Gaussian falloff, 0.22 black at the outline,
     // sigma 3.5 pt, gone by 10 pt, 1 pt down, following the card and its tip as one outline, in Light and Dark alike. It is
@@ -244,7 +247,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
             // body inside the hairline, concentric with it. A site's own clip on its content is left alone.
             if (child.Clip is null || ReferenceEquals(child.Clip, contentClip))
             {
-                var radius = Math.Max(0, BodyRadius - Edge);
+                var radius = Math.Max(0, BodyCornerRadius - Edge);
                 if (contentClip is not RectangleGeometry { } current || current.Rect != new Rect(inner.Size))
                     contentClip = new RectangleGeometry(new Rect(inner.Size), radius, radius);
                 child.Clip = contentClip;
@@ -263,7 +266,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     private double Along(Size size)
     {
         var length = Vertical ? size.Width : size.Height;
-        var least = TipLeast;
+        var least = BodyCornerRadius + TipHalfWidth + TipShoulderRadius;
         var at = TipOffset ?? length / 2;
         return length < 2 * least ? length / 2 : Math.Clamp(at, least, length - least);
     }
@@ -320,7 +323,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         var along = Along(size);
         var depth = TipHeight + inset - inset * Math.Sqrt(2); // from the deflated edge to the point
         var half = TipHalfWidth + inset - inset * Math.Sqrt(2);
-        var corner = Math.Max(0, Math.Min(BodyRadius - inset, Math.Min(body.Width, body.Height) / 2));
+        var corner = Math.Max(0, Math.Min(BodyCornerRadius - inset, Math.Min(body.Width, body.Height) / 2));
         var apex = Math.Max(0, TipApexRadius - inset);
         var shoulder = TipShoulderRadius + inset;
         // Clockwise from the top left, with the tip's three corners on the edge it stands on.
@@ -442,7 +445,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     /// coordinate space): the card's side of the anchor decides the edge (it may have flipped from the preferred one for
     /// want of room); the tip's centre is the anchor's middle, held on the straight part of the edge.
     /// </summary>
-    internal static (PopoverTipEdge Edge, double Offset) Aim(Rect card, Rect anchor, PopoverTipEdge preferred)
+    internal static (PopoverTipEdge Edge, double Offset) Aim(Rect card, Rect anchor, PopoverTipEdge preferred, double bodyCornerRadius = BodyRadius)
     {
         // A popup flips along the axis it was placed on, never across it: above or below for a tip on the top or bottom,
         // left or right for one on the side. The tip turns only once the card's body (the card less the tip's room) is
@@ -459,7 +462,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         };
         var length = vertical ? card.Width : card.Height;
         var at = vertical ? anchor.Center.X - card.Left : anchor.Center.Y - card.Top;
-        var least = TipLeast;
+        var least = bodyCornerRadius + TipHalfWidth + TipShoulderRadius;
         return (edge, length < 2 * least ? length / 2 : Math.Clamp(at, least, length - least));
     }
 
@@ -478,7 +481,7 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         var anchorOrigin = anchor.PointToScreen(within.Position);
         var card = new Rect(cardOrigin.X / top.RenderScaling, cardOrigin.Y / top.RenderScaling, Bounds.Width, Bounds.Height);
         var target = new Rect(anchorOrigin.X / anchorTop.RenderScaling, anchorOrigin.Y / anchorTop.RenderScaling, within.Width, within.Height);
-        var (edge, offset) = Aim(card, target, TipEdge);
+        var (edge, offset) = Aim(card, target, TipEdge, BodyCornerRadius);
         if (edge != TipEdge) TipEdge = edge;
         if (TipOffset is not { } current || Math.Abs(current - offset) > 0.01) TipOffset = offset;
         if (RenderTransform is ScaleTransform) RenderTransformOrigin = TipOrigin; // a grow-in under way follows the tip

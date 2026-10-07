@@ -40,7 +40,7 @@ internal sealed class VoiceLanguageQuestion : Panel
     private readonly LookMotion motion;
     private readonly LookNumber opacityValue;
     private readonly LookNumber progress;
-    private readonly PopoverCard card = new();
+    private readonly PopoverCard card = new() { BodyCornerRadius = CardRadius };
     private readonly Border glass = new();
     private readonly Border rim = new() { IsHitTestVisible = false };
     private readonly Grid shell = new();
