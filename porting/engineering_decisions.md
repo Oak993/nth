@@ -4167,6 +4167,10 @@ MAUI P1 001/002/019/020/057/065: retained popover rows own their Link action (di
 
 MAUI P2 popover/layout: 003/006/007/010/012/013/014/058/059 now use the locked row menu, auto/min-68 layout with 7px vertical padding, live monogram, 7px green active dot/halo, .42 off content, pinned/hover tint, config chevron and exact text tokens. Dialogs 021/022/024/026 use 330px/248px widths, account-specific aria and the existing effort renderer in optional compact 18px/12px Handshake geometry; default 48px/34px effort geometry is untouched. 023 hides reset with no own value (HTML 2642); its new test is contradictory because Harness.Find filters visible controls before Assert.False(IsEffectivelyVisible). Old account-dialog tests still expect the generic aria replaced by HTML 2635. All tests remain byte-exact for lead disposition.
 
+
+## ED-NEW-ma-wave2-12
+MAUI-016/017/062/063/064: the production popover grip waits for 5px, carries at 1.02 scale, measures the retained rows' pitch, applies the page's edge rubber band and glides displaced neighbours over .34s (.32,.72,0,1). Drop records current visual tops and compensates the new order before settling; the carried row uses the locked mass-1 spring(240,19), the same 1/1200 Euler integration, 44 rounded samples and linear interpolation as HTML :1671-1684 / :1983. Reduce Motion uses opacity without translation. Existing keyboard and persistent store order remain. Each new case failed alone twice; final five review plus four existing reorder cases 9/9, build 0 warnings/errors. No test bytes changed.
+
 ## ED-NEW-ma-wave1-14
 MAUI-041/051/052: equal-to-general Settings points do not add a quiet note (OD-0119). Queued real Handshake events retain the locked Standby 1000 ms and In sync 1400 ms intervals (HTML 3039). Existing short-interval tests remain unchanged; conflicting assertions are reported separately.
 
@@ -4175,6 +4179,10 @@ MAUI-040: apply final HTML 1459 off opacity .45 to Settings words, usage and num
 
 ## ED-NEW-ma-wave1-16
 MAUI-044/045/048/055: Pill steps carry the real account monogram, including custom initials, instead of a provider icon. The shared composer Fast bolt is before the model with Fast mode aria. Off dims name/mark/number only to .45 (HTML1468); locked slider states how to reach the active top slider (HTML2622).
+
+
+## ED-NEW-ma-wave2-13
+MAUI-027/028/029/030/031/032: Usage B restores the 12px header, 15px current-account name and 5-hour window label above the reported No 5-hour limit state. Navigation measures the full view width: incoming All accounts starts at +100%, outgoing current at -28%; reverse navigation mirrors the same page positions. Translation uses .45s (.32,.72,0,1); opacity uses .3s CSS ease (.25,.1,.25,1), including Reduce Motion with no translation. All six findings failed alone twice; six review plus five existing Usage B cases 11/11, build 0 warnings/errors. No tests changed.
 
 ## ED-NEW-ma-wave1-17
 MAUI-046/047: step defaults use the existing floating presenter, with real SmallSwitch binding for Same as the account and the existing effort card; no inline expansion. Minimum-two refusal follows HTML4466 300ms 0/-4/+4/0 keyframes with CSS ease per segment; Reduce Motion uses opacity feedback. Legacy inline-open assertion stays unchanged for lead disposition.
