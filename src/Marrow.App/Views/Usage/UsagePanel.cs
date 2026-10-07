@@ -23,6 +23,7 @@ public sealed class UsagePanel : Decorator
     // :19-24 init(usage:provider:headsProvider:fillsWidth:); :26-79 body
     public UsagePanel(ContextUsage? usage, ProviderKind provider, ProviderKind? headsProvider = null, bool fillsWidth = false)
     {
+        if (Marrow.App.Port.MultiAccount.Usage.MultiAccountUsageSeams.Try(provider) is { } accountUsage) { Child = accountUsage; return; }
         var heads = headsProvider is { } configuredHeads && configuredHeads != provider
             ? configuredHeads
             : (ProviderKind?)null;
