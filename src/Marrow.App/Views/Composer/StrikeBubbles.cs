@@ -2,11 +2,6 @@ using System.Globalization;
 
 namespace Marrow.App.Views.Composer;
 
-public readonly record struct StrikeBubbleRise(double Cx, double Cy, double Outer, double Dur, double O, double S0, double S1, double S2,
-    double X1, double Y1, double X2, double Y2, double X3, double Y3, double Gap, double Wa, double Wn, double Wp, bool Nuc);
-
-public readonly record struct StrikeBubbleNow(int K, double X, double Y, double Scale, double Radius, double Alpha, double Outer);
-
 // E:917-1010; SPEC K-128..K-136. The A2 public maths remain intact until the new lanes are wired at ST-3.
 public sealed class StrikeBubbleLanes
 {
@@ -19,6 +14,7 @@ public sealed class StrikeBubbleLanes
     public int NucleationCount { get; }
     public int Count => lanes.Length;
     public bool Simmer { get; }
+    public int Restarts { get; private set; }
 
     public StrikeBubbleLanes(string configuration, double width, double height)
     {
@@ -70,7 +66,7 @@ public sealed class StrikeBubbleLanes
         if (current.Ready && time < current.Start)
         {
             for (var j = kept[i] - 1; j >= 0; j--) { var old = history[i * 16 + (heads[i] + j) % 16]; if (time >= old.Start) return old; }
-            current = default; heads[i] = kept[i] = 0;
+            current = default; heads[i] = kept[i] = 0; Restarts++;
         }
         if (!current.Ready)
         {
@@ -99,5 +95,3 @@ public sealed class StrikeBubbleLanes
         return new(lane.K, b.Cx + tx, b.Cy + ty, scale, b.Outer / 2 * scale, alpha, b.Outer);
     }
 }
-
-internal readonly record struct StrikeBubbleLane(int K, StrikeBubbleRise Rise, double Start, bool Ready);

@@ -1,8 +1,5 @@
 namespace Marrow.App.Views.Composer;
 
-public readonly record struct StrikeBurst(double T, int Lane, int Rise, double X, double Y, double Radius, double Alpha, double Rotation, int N, int K, int Source);
-internal readonly record struct StrikePendingContact(double T, StrikePlan Plan, StrikeContactEvent Event);
-
 // E:875-890 + P:601-652; SPEC K-139..K-146. One render-thread contact state, stable chronological events.
 public sealed class StrikeContacts(int seed, StrikeBubbleLanes lanes, StrikeFastClock clock)
 {

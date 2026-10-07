@@ -33,5 +33,3 @@ public sealed class StrikeFastClock
     public double ClockB(double time) { var s = Segment(time); return s.B0 + (time - s.At) + 0.75 * Integral(s, time); }
     public double ClockC(double time) { var s = Segment(time); return s.C0 + (time - s.At) + 0.5 * Integral(s, time); }
 }
-
-internal readonly record struct StrikeFastSegment(double At, double From, double To, double Duration, double B0, double C0);

@@ -26,7 +26,7 @@ public sealed class StrikeRetainedFadeTests(HeadlessSession headless)
         using (var context = bitmap.CreateDrawingContext()) effect.Child!.Render(context);
         Assert.True(((LiquidTrack.ILiveSource)effect).TryFrame(out var frame));
         var expected = StrikeTint.Mix(StrikeTint.Claude, StrikeTint.For(EffortBrand.Silver), mix);
-        Assert.Equal(expected.Wash, frame.Strike!.Last(op => op.Kind == StrikeOpKind.Wash).Color);
+        Assert.Equal(expected.Wash, frame.MixInk.Tint.Wash); // SPEC K-126/K-127 replaces the production A2 light-op carrier.
         Assert.Equal(expected.Ink, frame.BubbleInk, 9);
     });
 }

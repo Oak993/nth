@@ -1,8 +1,5 @@
 namespace Marrow.App.Views.Composer;
 
-public readonly record struct StrikeBurstArc(double X, double Y, double Radius, double Start, double End);
-public readonly record struct StrikeBurstGlint(double X, double Y, double Radius);
-
 // E:1058-1079 / P:686-727. Retained geometry, explicit colour alpha; canvas state belongs to the painter.
 public sealed class StrikeBurstDrawing
 {

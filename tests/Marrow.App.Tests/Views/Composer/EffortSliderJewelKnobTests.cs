@@ -502,10 +502,12 @@ public sealed class EffortSliderJewelKnobTests(HeadlessSession headless)
         // whose previous one has left the knob's reading (1.9 s after it, jewel-knob.html orbList) by then: the seed comes
         // from how many tracks the process has made, and with some seeds strike 0's tail still lights strike 1's charge
         var seed = effect.StrikeSeed;
-        var k = Enumerable.Range(1, 8).First(j => Strike.StrikeAt(j, seed) - Strike.Lead - KnobSignal.ChargeOf(j, seed) / 2 - Strike.StrikeAt(j - 1, seed) > 1.9);
-        var leader = Strike.StrikeAt(k, seed) - Strike.Lead;
-        var charging = leader - KnobSignal.ChargeOf(k, seed) / 2;
+        var first=(int)Math.Floor(effect.StrikeFrameTime/2.4)-1;
+        var plan=Enumerable.Range(first,30).Select(k=>StrikeMix.Timing(k,seed)).First(p=>p.Charge>0&&p.At-p.Lead-p.Charge/2>effect.StrikeFrameTime&&p.At-p.Lead-p.Charge/2-StrikeMix.Timing(p.K-1,seed).At>1.9);
+        var leader = plan.At-plan.Lead-effect.StrikeOffset;
+        var charging = leader-plan.Charge/2; // SPEC A-21/B-09
         rig.Frame(charging - effect.TimeAt(SwiftDate.Now));
+        Assert.True(rig.Slider.Signal.Phase==KnobPhase.Charge,$"Mix k={plan.K} charging={charging:R} page={effect.Time:R} shared={effect.StrikeFrameTime:R} offset={effect.StrikeOffset:R} raw={rig.Slider.Signal.RawCharge:R} phase={rig.Slider.Signal.Phase}");
         Assert.Equal(KnobPhase.Charge, rig.Slider.Signal.Phase);
         Assert.InRange(rig.Slider.Signal.Charge, 0.05, 0.95);
         Assert.Equal(0, rig.Slider.Signal.RawFlare);

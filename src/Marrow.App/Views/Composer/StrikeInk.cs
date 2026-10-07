@@ -2,11 +2,6 @@ using SkiaSharp;
 
 namespace Marrow.App.Views.Composer;
 
-public readonly record struct StrikeInkPalette(SKColor Core, SKColor MidA, SKColor MidB, SKColor HaloA, SKColor HaloB)
-{
-    public SKColor At(int i) => i switch { 0 => Core, 1 => MidA, 2 => MidB, 3 => HaloA, 4 => HaloB, _ => throw new ArgumentOutOfRangeException(nameof(i)) };
-}
-
 // P:791-841, SPEC K-107/K-111/K-113..K-126. Kept value colours: drifting stops and fades allocate nothing.
 public readonly record struct StrikeInk(double Contrast, StrikeTint Tint, SKColor Deep, SKColor InkColor, StrikeInkPalette Palette)
 {

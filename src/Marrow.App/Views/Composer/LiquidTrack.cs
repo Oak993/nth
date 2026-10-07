@@ -651,13 +651,17 @@ public static class LiquidTrack
     private static readonly Lazy<SKRuntimeEffect> LitEffect = Compile("uniform shader liquid;\nuniform shader light;\n" + Uniforms_ + Helpers +
         GlassMain.Replace("//LIGHT", "half4 l = light.eval(p); o = l + o - l * o;", StringComparison.Ordinal), "lit glass");
     private static readonly Lazy<SKRuntimeEffect> BubbleEffect = Compile(BubbleShader, "bubble");
+    // OD-0093 / OD-0099: the normal ink group then screen light, unbent, under gloss/rims.
+    internal static readonly Lazy<SKRuntimeEffect> MixEffect = Compile("uniform shader liquid;\nuniform shader strikeOver;\nuniform shader light;\n" + Uniforms_ + Helpers +
+        GlassMain.Replace("//LIGHT", "half4 k = strikeOver.eval(p); o = over(o, k); half4 l = light.eval(p); o = l + o - l * o;", StringComparison.Ordinal), "Mix glass");
 
     /// <summary>Compiles every pass (tests use it to prove the sources are valid SkSL).</summary>
     internal static SKRuntimeEffect CompiledEffect
     {
         get
         {
-            foreach (var pass in new[] { BaseEffect, OilEffect, StrandsEffect, SlowEffect, CausticEffect, CoverEffect, BubbleEffect, LitEffect }) _ = pass.Value;
+            foreach (var pass in new[] { BaseEffect, OilEffect, StrandsEffect, SlowEffect, CausticEffect, CoverEffect, BubbleEffect, LitEffect, MixEffect }) _ = pass.Value;
+            _ = StrikeRaster.ColourEffect.Value; _ = StrikeRaster.WashEffect.Value;
             return Effect.Value;
         }
     }
@@ -665,7 +669,8 @@ public static class LiquidTrack
     /// <summary>One frame's values, resolved on the UI thread.</summary>
     internal readonly record struct Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
         IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0,
-        IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null, LiquidLayers? Layers = null, StrikeFrame? ResolvedStrike = null, SKColor[]? PreviousGradient = null, double GradientMix = 1);
+        IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null, LiquidLayers? Layers = null, StrikeFrame? ResolvedStrike = null, SKColor[]? PreviousGradient = null, double GradientMix = 1,
+        StrikeResolvedFrame? Mix = null, StrikeGeometry MixGeometry = default, StrikeInk MixInk = default, StrikeBubbleLanes? MixLanes = null, StrikeFastClock? FastClock = null, StrikeContacts? MixContacts = null, bool MixStill = false, int MixSeed = 0);
 
 
     /// <summary>
@@ -848,6 +853,18 @@ public static class LiquidTrack
     private static int BubblesInto(in Frame f, float[] a, float[] b)
     {
         var n = 0;
+        if (f.MixLanes is { } lanes && f.FastClock is { } clock)
+        {
+            var fast = f.MixStill ? f.Mix?.Opacity ?? 0 : clock.FastAt(f.Time);
+            var at = f.MixStill ? 1.3 : lanes.Simmer ? clock.ClockB(f.Time) : f.Time;
+            for (var i = 0; i < Math.Min(MaxBubbles, lanes.Count); i++)
+            {
+                var now = lanes.Now(i, at, fast); if (now.Alpha < 0.004 || !f.MixStill && f.MixContacts?.IsDead(i, now.K) == true) continue;
+                a[n * 4] = (float)now.X; a[n * 4 + 1] = (float)now.Y; a[n * 4 + 2] = (float)now.Scale; a[n * 4 + 3] = (float)now.Alpha;
+                b[n * 4] = (float)(Strike.Round(now.Outer * 10) / 10d); b[n * 4 + 1] = 0; b[n * 4 + 2] = (float)f.MixInk.Amount; b[n * 4 + 3] = 0; n++;
+            }
+            return n;
+        }
         var count = Math.Min(MaxBubbles, f.Bubbles?.Count ?? 0);
         for (var i = 0; i < count; i++)
         {
@@ -890,6 +907,10 @@ public static class LiquidTrack
         private readonly float[] bubbleA = new float[MaxBubbles * 4], bubbleB = new float[MaxBubbles * 4], oneA = new float[4], oneB = new float[4];
         private readonly SKPaint glassPaint = new() { IsAntialias = true };
         private readonly StrikePainter painter = new();
+        private StrikeRaster? mixRaster;
+        private readonly StrikeBurstPainter mixRings = new();
+        public int StrikeSurfacesMade { get; private set; }
+        internal int MixPasses => (mixRaster?.InkDraws > 0 ? 1 : 0) | (mixRaster?.LightDraws > 0 ? 2 : 0) | (mixRaster?.WashDraws > 0 ? 4 : 0);
 
         // UI thread: the strand colours of the last spec and theme
         private (LiquidSpec Spec, ThemeVariant Theme)? strandsFor;
@@ -936,6 +957,7 @@ public static class LiquidTrack
             if (handle != context || wanted != info)
             {
                 Release(ref liquid, ref liquidCanvas); Release(ref light, ref lightCanvas);
+                mixRaster?.Dispose(); mixRaster = null;
                 context = handle; info = wanted;
             }
             if (surface is null)
@@ -1029,12 +1051,22 @@ public static class LiquidTrack
             if (hasOil && oilMask < 0.5f) Paint(target, Filled(OilEffect), rect, SKBlendMode.Screen); // one model's oil goes over its light
             var bubble = Pass(BubbleEffect.Value);
             var bubbles = BubblesInto(frame, bubbleA, bubbleB);
+            SKCanvas bubbleTarget = target;
+            if (frame.Mix is not null)
+            {
+                _ = Surface(ref light, ref lightCanvas, gpu, wanted); bubbleTarget = lightCanvas!; bubbleTarget.Clear(SKColors.Transparent); bubbleTarget.Save(); bubbleTarget.Scale((float)scale);
+            }
             for (var i = 0; i < bubbles; i++)
             {
                 Array.Copy(bubbleA, i * 4, oneA, 0, 4); Array.Copy(bubbleB, i * 4, oneB, 0, 4);
                 bubble.Set("scale", (float)scale); bubble.Set("A", oneA); bubble.Set("B", oneB);
                 var reach = (oneB[0] * 0.5f + 6f) * oneA[2];
-                Paint(target, bubble, new SKRect(oneA[0] - reach, oneA[1] - reach, oneA[0] + reach, oneA[1] + reach), SKBlendMode.SrcOver);
+                Paint(bubbleTarget, bubble, new SKRect(oneA[0] - reach, oneA[1] - reach, oneA[0] + reach, oneA[1] + reach), SKBlendMode.SrcOver);
+            }
+            if (frame.Mix is not null)
+            {
+                if (!frame.MixStill && frame.MixContacts is { } contacts) mixRings.Draw(bubbleTarget, contacts, frame.MixGeometry, frame.Time, frame.MixInk);
+                bubbleTarget.Restore(); var matrix = target.Save(); target.ResetMatrix(); glassPaint.Color = SKColors.White; light!.Draw(target, 0, 0, glassPaint); target.RestoreToCount(matrix);
             }
             if (frame.Rings is { Count: > 0 } rings)
                 BubbleBursts.DrawRings(target, rings, Math.Max(0.62, Math.Min(1, h / 40)), frame.Time, frame.BubbleInk);
@@ -1045,6 +1077,13 @@ public static class LiquidTrack
             // layer at device scale; the glass screens it over the refracted liquid (above the bubbles, under the gloss and
             // rims) and clips it with the tube
             SKSurface? lit = null;
+            SKSurface? over = null;
+            if (frame.Mix is { } resolvedMix)
+            {
+                if (mixRaster is null) { mixRaster = new StrikeRaster(wanted, gpu); StrikeSurfacesMade += mixRaster.SurfacesMade; }
+                mixRaster.Paint(frame.MixGeometry, resolvedMix, frame.MixInk, frame.Time, frame.MixSeed, frame.MixStill ? null : frame.MixContacts);
+                lit = mixRaster.Screen; over = mixRaster.Over;
+            }
             if (frame.ResolvedStrike is { } strike)
             {
                 lock (strike.Channels)
@@ -1073,7 +1112,7 @@ public static class LiquidTrack
 
             // (B) the glass: the composed liquid refracted per channel, the gloss and the rims
             var toPixels = SKMatrix.CreateScale((float)(1 / scale), (float)(1 / scale));
-            nint composed = 0, sampled = 0, lightImage = 0, lightShader = 0;
+            nint composed = 0, sampled = 0, lightImage = 0, lightShader = 0, overImage = 0, overShader = 0;
             try
             {
                 composed = SkiaShaders.Snapshot(surface);
@@ -1085,9 +1124,11 @@ public static class LiquidTrack
                     lightShader = SkiaShaders.ImageShader(lightImage, toPixels);
                     Snapshots++;
                 }
-                var glass = Filled(lit is null ? Effect : LitEffect);
+                if (over is not null) { overImage = SkiaShaders.Snapshot(over); overShader = SkiaShaders.ImageShader(overImage, toPixels); Snapshots++; }
+                var glass = Filled(over is not null ? MixEffect : lit is null ? Effect : LitEffect);
                 glass.SetChild("liquid", sampled);
                 if (lit is not null) glass.SetChild("light", lightShader);
+                if (over is not null) glass.SetChild("strikeOver", overShader);
                 glassPaint.Color = SKColors.White.WithAlpha((byte)Math.Clamp(opacity * 255, 0, 255));
                 var shader = glass.MakeShader();
                 if (shader != 0)
@@ -1100,11 +1141,13 @@ public static class LiquidTrack
                 }
                 glass.SetChild("liquid", 0);
                 if (lit is not null) glass.SetChild("light", 0);
+                if (over is not null) glass.SetChild("strikeOver", 0);
             }
             finally
 
             {
                 SkiaShaders.Release(lightShader); SkiaShaders.ReleaseImage(lightImage);
+                SkiaShaders.Release(overShader); SkiaShaders.ReleaseImage(overImage);
                 SkiaShaders.Release(sampled); SkiaShaders.ReleaseImage(composed);
             }
         }
@@ -1119,6 +1162,7 @@ public static class LiquidTrack
             foreach (var pass in passes.Values) pass.Dispose();
             passes.Clear();
             glassPaint.Dispose(); painter.Dispose();
+            mixRaster?.Dispose(); mixRaster = null; mixRings.Dispose();
         }
     }
 

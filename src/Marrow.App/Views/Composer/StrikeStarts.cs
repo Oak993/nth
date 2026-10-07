@@ -3,37 +3,6 @@ using System.Security.Cryptography;
 
 namespace Marrow.App.Views.Composer;
 
-// SPEC K-166/K-169: an injectable uint32 / 2^32 draw source.
-public interface IStrikeDraws
-{
-    double Next();
-}
-
-public sealed class CryptoStrikeDraws : IStrikeDraws
-{
-    public static CryptoStrikeDraws Shared { get; } = new();
-    public double Next()
-    {
-        Span<byte> bytes = stackalloc byte[4]; RandomNumberGenerator.Fill(bytes);
-        return BinaryPrimitives.ReadUInt32LittleEndian(bytes) / 4294967296d;
-    }
-}
-
-public readonly record struct StrikeWindow(double From, double To);
-
-public sealed class StrikeWindowBuffer
-{
-    public StrikeWindow[] Items { get; } = new StrikeWindow[256];
-    public int Count { get; internal set; }
-    internal void Add(double from, double to)
-    {
-        if (Count == Items.Length) throw new InvalidOperationException("Strike timing window capacity exceeded");
-        Items[Count++] = new(from, to);
-    }
-}
-
-public readonly record struct StrikeEntry(int K, double T0, int Windows, int Index, double From, double To, double U);
-
 // P:1331-1387; SPEC K-159..K-166. Timing only: a clean start never builds geometry.
 public sealed class StrikeStarts(int seed)
 {
