@@ -11,7 +11,7 @@ namespace Marrow.App.Port.Voice.Cuda;
 /// while CUDA is not already the working backend and while an installer for NVIDIA's libraries is bound; one Download starts the pack through VT-7's installer (on the shared
 /// downloader) and then the libraries; progress counts both by their bytes; the x cancels and keeps the partial; the end states are Installed (the next start uses it: the page's
 /// "Restart Marrow to use it", ED-351) or Failed (Download again). <see cref="Changed"/> may be raised from a download thread: the view marshals it. The row's drawing in
-/// VoiceTypingSettingsPage is NOT DONE here (VT-14's page).
+/// the hardware card is mounted by CudaOfferComposition and VoiceHardwareCard.
 /// </summary>
 public sealed class CudaOffer : IDisposable
 {
@@ -48,9 +48,10 @@ public sealed class CudaOffer : IDisposable
     /// <summary>Runs the hardware probe and decides whether, and in which state, the row shows. A probe that fails hides the row; a cancelled one leaves it as it was.</summary>
     public async Task EvaluateAsync(CancellationToken cancellationToken)
     {
+        lock (gate) { if (cancel is not null) return; }
         if (!companions.Available)
         {
-            Set(CudaOfferRow.Hidden);
+            SetEvaluation(CudaOfferRow.Hidden);
             return;
         }
         HardwareProfile profile;
@@ -64,22 +65,29 @@ public sealed class CudaOffer : IDisposable
         }
         catch (Exception)
         {
-            Set(CudaOfferRow.Hidden); // fail closed: nothing is offered on a PC the probe could not read
+            SetEvaluation(CudaOfferRow.Hidden); // fail closed: nothing is offered on a PC the probe could not read
             return;
         }
         if (profile.GpuVendor != GpuVendor.Nvidia || profile.Backend == GpuBackend.Cuda)
         {
-            Set(CudaOfferRow.Hidden);
+            SetEvaluation(CudaOfferRow.Hidden);
             return;
         }
         size = CudaOfferStates.SizeText(pack, companions);
-        Set(installer.IsInstalled(pack) && companions.IsInstalled(installer.FolderFor(pack)) ? CudaOfferStates.Installed(size) : CudaOfferStates.Offer(size));
+        try
+        {
+            var installed = await Task.Run(() => installer.IsInstalled(pack) && companions.IsInstalled(installer.FolderFor(pack)), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            SetEvaluation(installed ? CudaOfferStates.Installed(size) : CudaOfferStates.Offer(size));
+        }
+        catch (OperationCanceledException) { /* A cancelled evaluation leaves the previous row. */ }
     }
 
     /// <summary>The Download capsule. While a download runs, a second press is that same download. Nothing happens while the row is hidden or installed.</summary>
     public Task StartAsync()
     {
         Task started;
+        var beginning = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         CudaOfferRow shown;
         lock (gate)
         {
@@ -88,9 +96,14 @@ public sealed class CudaOffer : IDisposable
             var source = cancel = new CancellationTokenSource();
             progress = 0;
             shown = row = CudaOfferStates.Downloading(size, 0);
-            started = running = Run(source);
+            started = running = Task.Run(async () =>
+            {
+                await beginning.Task;
+                await Run(source); // Receipt/native hashing and extraction never block the UI thread.
+            });
         }
-        Raise(shown); // a handler is never called under the lock
+        try { Raise(shown); } // A handler is never called under the lock; no worker event can overtake this one.
+        finally { beginning.TrySetResult(); }
         return started;
     }
 
@@ -164,6 +177,16 @@ public sealed class CudaOffer : IDisposable
             if (row.State != CudaOfferState.Downloading || share <= progress) return;
             progress = Math.Min(1, share);
             next = CudaOfferStates.Downloading(size, progress);
+            row = next;
+        }
+        Raise(next);
+    }
+
+    private void SetEvaluation(CudaOfferRow next)
+    {
+        lock (gate)
+        {
+            if (cancel is not null || row == next) return;
             row = next;
         }
         Raise(next);

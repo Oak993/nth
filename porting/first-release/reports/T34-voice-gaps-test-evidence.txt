@@ -1,0 +1,638 @@
+T34 voice gaps: preserved run excerpts and raw-log fingerprints
+Base: 285b6b7a99b39e0e517f34c8d34a1860c945f83f
+Branch: codex/voice-gaps
+Exact commands, scope and limitations: T34-voice-gaps-validation.md
+Raw logs retained under /tmp/t34-evidence in this workspace. Fingerprints below are of those bytes.
+
+core-baseline.log
+SHA256 d9244d89819d3158b8c4e0f426c29bf9d9a36ea58578bece043290e5f6e5fbf2
+Passed!  - Failed:     0, Passed:   653, Skipped:     0, Total:   653, Duration: 33 s - Marrow.Core.Tests.dll (net10.0)
+
+app-baseline.log
+SHA256 21a0ae4f745ba7d2bdf6685dfabab8eed307ebd140f446465d2bccaabae71bbf
+Failed!  - Failed:    25, Passed:    30, Skipped:     0, Total:    55, Duration: 7 s - Marrow.App.Tests.dll (net10.0)
+
+rr10-red.log
+SHA256 730b2029024de02c569b2fe5fb42adb687eb14717a872ec2edaf0d87e362c425
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Voice/Models/NvidiaCompanionInstallerTests.cs(26,35): error CS0246: The type or namespace name 'NvidiaCompanionArchive' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Voice/Models/NvidiaCompanionInstallerTests.cs(44,14): error CS0246: The type or namespace name 'NvidiaCompanionInstaller' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+
+rr10-service-green.log
+SHA256 d8c942955599b0ffcf1d529ca931a2b5a17f2f78b7280731bdfe01d938530f40
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 172 ms - Marrow.Services.Tests.dll (net10.0)
+
+rr11-red.log
+SHA256 81ae46158b269d66f89b23e8d1c1501abf75ee5ffbc38e8beec0941cdf5c25ae
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/Notes/VoiceReleaseNoteTests.cs(26,23): error CS0103: The name 'VoiceReleaseNotes' does not exist in the current context [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/Notes/VoiceReleaseNoteTests.cs(40,21): error CS0103: The name 'MicrophoneAccessResult' does not exist in the current context [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+
+notes-refresh-red.log
+SHA256 cc481dba83ebc90154bb203ec789310aececc9f4736523a979246ad57735cf63
+Failed!  - Failed:     1, Passed:    16, Skipped:     0, Total:    17, Duration: 477 ms - Marrow.App.Tests.dll (net10.0)
+
+cuda-boundary-red.log
+SHA256 5f1fdb32aed19a955217e44db85883344bf41f464489823595bca427b8f0827a
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 258 ms - Marrow.App.Tests.dll (net10.0)
+
+app-trace-red.log
+SHA256 4d9adae081499c5c0b1c6ef29ad97be0a6dec15f6432723a29819acbdacdf7d5
+Failed!  - Failed:     3, Passed:     0, Skipped:     0, Total:     3, Duration: 558 ms - Marrow.App.Tests.dll (net10.0)
+
+services-trace-red.log
+SHA256 7951129a9c1a6fbf2c51c1ad1b14747bd1a446419ad30f56a4d9a0414ce63017
+Failed!  - Failed:     3, Passed:     0, Skipped:     0, Total:     3, Duration: 238 ms - Marrow.Services.Tests.dll (net10.0)
+
+core-voice-final.log
+SHA256 2a6e75818c6f04152437be902fbf7b454d0ebd126d942e8a3b304ca5c1f34695
+Passed!  - Failed:     0, Passed:   653, Skipped:     0, Total:   653, Duration: 52 s - Marrow.Core.Tests.dll (net10.0)
+
+core-trace-red.log
+SHA256 a66b641b9c05866e5d3922884bffa95f5bf338e4acd66d2aae1d589de9544efd
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 136 ms - Marrow.Core.Tests.dll (net10.0)
+
+services-verified.log
+SHA256 635d136d060aba799eb0c2044eefd0146e7068efec924061aed74f56943fed5b
+Passed!  - Failed:     0, Passed:   491, Skipped:    12, Total:   503, Duration: 9 s - Marrow.Services.Tests.dll (net10.0)
+
+app-verified-final.log
+SHA256 37beb1a581d4424da727052e36317dbc86a2148c89506a89255629fc44ed9277
+Passed!  - Failed:     0, Passed:    64, Skipped:     0, Total:    64, Duration: 38 s - Marrow.App.Tests.dll (net10.0)
+
+app-voice-broad.log
+SHA256 82069c6e286f7d20bcecf61788391eb4efbb0214a55a526d26c7c796bf10c1c2
+Failed!  - Failed:    35, Passed:   338, Skipped:     1, Total:   374, Duration: 48 s - Marrow.App.Tests.dll (net10.0)
+
+core-full.log
+SHA256 672d395eef1afebb0677b6e95e718bc632a105f2d02245c537d9d73e7bd663cd
+Failed!  - Failed:   235, Passed:  1949, Skipped:     0, Total:  2184, Duration: 4 s - Marrow.Core.Tests.dll (net10.0)
+Test Run Aborted.
+
+core-full-icu.log
+SHA256 54efba46f3062a1c9fdcafcef488acd1391b76d7bd86c6c2df4687c305b06d10
+Failed!  - Failed:   177, Passed:  2314, Skipped:     0, Total:  2491, Duration: 3 s - Marrow.Core.Tests.dll (net10.0)
+Test Run Aborted.
+
+services-full.log
+SHA256 d1a6876ff8044cb9803d4b2bf284160755f4bc3f434b5c214be1928cecca1343
+Failed!  - Failed:  1186, Passed:  3450, Skipped:    42, Total:  4678, Duration: 8 m 35 s - Marrow.Services.Tests.dll (net10.0)
+Test Run Aborted.
+
+add-baseline-red.log
+SHA256 bdacfb5a0464a06d9ef059cfeac434fbf532467d735313ae6b5b032362f1b414
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 262 ms - Marrow.App.Tests.dll (net10.0)
+
+protected.log
+SHA256 d62f0564a57739d9d975d6014de99589b16b3eff8f71965b23fad6dd2774d3d8
+
+gate-a.log
+SHA256 d5680a0514d5fcee01145b30b9ec6f50e889d258d005ded63364e06e826d0d90
+FAIL=5  PASS=7
+RESULT: NOT ACCEPTABLE (mandatory checks unmet)
+
+gate-b.log
+SHA256 d438ffbf40b3d464bce128abb6905a99f1c5e4b6438980dd081855d92852e63b
+PASS=8
+RESULT: all implemented checks pass
+
+requirements.log
+SHA256 aa6a68a1b40c0cc6eb0731acebc481f3919397ce1031e801696b9fe8ebd58836
+<ref *1> Error: spawnSync dotnet ENOENT
+  code: 'ENOENT',
+
+
+Round 2 - 2026-10-07 - READY for T9 Windows verification (lead definition)
+Round 2 base: 0f13cc3c52f95b04c10391d03bd49ce0b6edb550
+Ruling: 45096401f90e1d0ae74a9e156cb9f0cb3fa67e60:R-gaps-round2.md T34
+Design mirror read-only: 26f8fbe89ee8480c9b18b4afe16d6c57bccb3610
+No mirror/dependency merge. No original tests/tolerances/references edited.
+SDK10.0.401 runtime10.0.12; test data /tmp/t34-data; GC heap limit0x100000000.
+App actual CPU text rendering: LD_LIBRARY_PATH=/tmp/t34-icu (forward to real Linux ICU76), explicit DejaVu Sans only in NEW Linux fixture, native motion preference/frame/clock fake. No real application download/network/GPU/microphone/model.
+
+Reproduction selectors (dotnet executable /tmp/t34-dotnet/dotnet):
+Core: test tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj --no-build --no-restore --filter 'FullyQualifiedName~Port.Voice|FullyQualifiedName~TraceabilityTests'
+Services: test tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj --no-build --no-restore -p:EnableWindowsTargeting=true --filter 'FullyQualifiedName~Port.Voice|FullyQualifiedName~TraceabilityTests'
+App final: test tests/Marrow.App.Tests/Marrow.App.Tests.csproj --no-restore -m:1 -p:UseSharedCompilation=false -p:EnableWindowsTargeting=true --filter 'FullyQualifiedName~DictationFragment|FullyQualifiedName~DictationClusterParityTests|FullyQualifiedName~DictationParagraphLifecycleTests|FullyQualifiedName~ComposerParagraphLayoutTests|FullyQualifiedName~Cuda|FullyQualifiedName~VoiceReleaseNoteTests|FullyQualifiedName~VoiceErrorMountTests|FullyQualifiedName~DictationAddConfirmationTests|FullyQualifiedName~CapCountdownLineTests|FullyQualifiedName~TraceabilityTests' --logger 'console;verbosity=normal'
+App unchanged original: test tests/Marrow.App.Tests/Marrow.App.Tests.csproj --no-build --no-restore -p:EnableWindowsTargeting=true --filter 'FullyQualifiedName~ComposerDictation|FullyQualifiedName~ComposerTextViewTests' --logger 'console;verbosity=normal'
+Gates: node porting/tools/verify.mjs --gate B; node porting/tools/check_protected.mjs; git diff --check.
+
+Independent reviewer /root/review_voice_gaps (PORT_CONTRACT15): font features, inherited line height/spacing and terminal break findings repaired; isolated setting cases, exact baseline continuity and immutable Urdu guards verified; final clearance RR12 implementation READY for T9 Windows proof. No remaining concrete implementation finding. Native fonts/DPI/fallback/IME and unchanged native composer tests remain unverified.
+Original mounted composer errors (first error line per FAIL): 19 Could not create glyphTypeface (6 default, 13 Inter),5 missing user32.dll; 26 pass,24 fail. No behavior-pass inference from these failures.
+Protected script prints reference checkout clean after three fatal missing E:/ source directories: reference integrity check unavailable; only workspace protected paths unchanged is accepted.
+
+Authentic log hashes/results:
+
+round2-red.log
+SHA256 47af27e7b5ec7d18df129b0ef2e564dabae53698b8cff0d7069a8c426ce7d1aa
+[xUnit.net 00:00:02.21]     Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Caret_uses_the_final_character_on_the_final_wrapped_line(word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", rtl: True) [FAIL]
+[xUnit.net 00:00:02.21]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:02.21]       Expected: 96.988000000000014
+[xUnit.net 00:00:02.21]       Actual:   8.2840000000000007
+[xUnit.net 00:00:02.21]       Stack Trace:
+[xUnit.net 00:00:02.21]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationFragmentParityTests.cs(70,0): at Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.<>c__DisplayClass4_0.<Caret_uses_the_final_character_on_the_final_wrapped_line>b__0()
+[xUnit.net 00:00:02.22]     Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Caret_uses_the_final_character_on_the_final_wrapped_line(word: "abcdefghijklmnopqrstuvwxyzzabcdefghijklmnopqrstuvw"···, rtl: False) [FAIL]
+[xUnit.net 00:00:02.22]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:02.22]       Expected: 83.1328125
+[xUnit.net 00:00:02.22]       Actual:   1.6484375
+[xUnit.net 00:00:02.22]       Stack Trace:
+[xUnit.net 00:00:02.22]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationFragmentParityTests.cs(70,0): at Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.<>c__DisplayClass4_0.<Caret_uses_the_final_character_on_the_final_wrapped_line>b__0()
+[xUnit.net 00:00:02.32]     Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Every_wrapped_fragment_uses_the_locked_arrival_pixels(word: "ábcdefghijklmnopqrstuvwxyzffiabcdefg", rtl: False) [FAIL]
+[xUnit.net 00:00:02.32]       fragment 0, 0, 73.130859375, 16.296875: difference 209.662745
+[xUnit.net 00:00:02.32]       Stack Trace:
+[xUnit.net 00:00:02.32]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/DictationFragmentRig.cs(70,0): at Marrow.App.Tests.Fixtures.DictationFragmentRig.AssertWordPixels(String text, Int32 start, Int32 length, Double opacity, Double rise, FlowDirection direction)
+[xUnit.net 00:00:02.32]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationFragmentParityTests.cs(50,0): at Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.<>c__DisplayClass3_0.<Every_wrapped_fragment_uses_the_locked_arrival_pixels>b__0()
+[xUnit.net 00:00:02.32]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0()
+[xUnit.net 00:00:02.34]     Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Every_wrapped_fragment_uses_the_locked_arrival_pixels(word: "abcdefghijklmnopqrstuvwxyzzabcdefghijklmnopqrstuvw"···, rtl: False) [FAIL]
+[xUnit.net 00:00:02.34]       fragment 0, 0, 73.130859375, 16.296875: difference 207.737255
+[xUnit.net 00:00:02.34]       Stack Trace:
+[xUnit.net 00:00:02.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/DictationFragmentRig.cs(70,0): at Marrow.App.Tests.Fixtures.DictationFragmentRig.AssertWordPixels(String text, Int32 start, Int32 length, Double opacity, Double rise, FlowDirection direction)
+[xUnit.net 00:00:02.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationFragmentParityTests.cs(50,0): at Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.<>c__DisplayClass3_0.<Every_wrapped_fragment_uses_the_locked_arrival_pixels>b__0()
+[xUnit.net 00:00:02.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0()
+[xUnit.net 00:00:02.35]     Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Every_wrapped_fragment_uses_the_locked_arrival_pixels(word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", rtl: True) [FAIL]
+[xUnit.net 00:00:02.35]       fragment 1.39322656249999, 0, 78.60677343750001, 29.568: difference 138.003922
+[xUnit.net 00:00:02.35]       Stack Trace:
+[xUnit.net 00:00:02.35]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/DictationFragmentRig.cs(70,0): at Marrow.App.Tests.Fixtures.DictationFragmentRig.AssertWordPixels(String text, Int32 start, Int32 length, Double opacity, Double rise, FlowDirection direction)
+[xUnit.net 00:00:02.37]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationFragmentParityTests.cs(50,0): at Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.<>c__DisplayClass3_0.<Every_wrapped_fragment_uses_the_locked_arrival_pixels>b__0()
+[xUnit.net 00:00:02.38]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0()
+[xUnit.net 00:00:02.40]     Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Editor_detects_each_paragraph_base_without_changing_physical_left_alignment [FAIL]
+[xUnit.net 00:00:02.41]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:02.41]       Expected: Left
+[xUnit.net 00:00:02.41]       Actual:   Start
+[xUnit.net 00:00:02.41]       Stack Trace:
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationFragmentParityTests.cs(22,0): at Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.<>c.<Editor_detects_each_paragraph_base_without_changing_physical_left_alignment>b__2_0()
+Test Run Failed.
+Total tests: 7
+     Passed: 1
+     Failed: 6
+
+round2-reflow-red-valid.log
+SHA256 fce851f6b63a520ebc3b450229c8782784183b69352c23f53cb242f626c4918d
+[xUnit.net 00:00:02.41]     Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Width_reflow_keeps_all_glyphs_at_their_displayed_positions_on_its_first_frame [FAIL]
+[xUnit.net 00:00:02.41]       a width change jumped 692.043137 pixels
+[xUnit.net 00:00:02.41]       Stack Trace:
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationFragmentTransitionTests.cs(64,0): at Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.<>c.<Width_reflow_keeps_all_glyphs_at_their_displayed_positions_on_its_first_frame>b__5_0()
+[xUnit.net 00:00:02.41]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0()
+[xUnit.net 00:00:02.41]            at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+Test Run Failed.
+Total tests: 38
+     Passed: 37
+     Failed: 1
+
+round2-glyph-green.log
+SHA256 79138ec7218a68a1a693539b8a7806eab6d65d048f5f0e8ece67af273ef802d1
+Test Run Successful.
+Total tests: 38
+     Passed: 38
+
+round2-features-red.log
+SHA256 cacb23b1b33238999f0c5afffe48c616e37feb860d18b6a1297b0312a95012f5
+[xUnit.net 00:00:02.47]     Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Tentative_mask_and_ink_preserve_the_editors_disabled_ligatures [FAIL]
+[xUnit.net 00:00:02.47]       full text picture difference 81.243137
+[xUnit.net 00:00:02.47]       Stack Trace:
+[xUnit.net 00:00:02.47]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/DictationFragmentRig.cs(93,0): at Marrow.App.Tests.Fixtures.DictationFragmentRig.AssertPicture(Action`1 paint)
+[xUnit.net 00:00:02.47]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationClusterParityTests.cs(80,0): at Marrow.App.Tests.Port.Voice.DictationClusterParityTests.<>c.<Tentative_mask_and_ink_preserve_the_editors_disabled_ligatures>b__5_0()
+[xUnit.net 00:00:02.47]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0()
+Test Run Failed.
+Total tests: 6
+     Passed: 5
+     Failed: 1
+
+round2-style-red.log
+SHA256 8eb356ca20aa3bbaec126c1c7ceed1e371395bc16c23a4f3e85d6c4c283157e3
+[xUnit.net 00:00:02.31]     Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Tentative_mask_and_ink_preserve_the_editors_disabled_ligatures [FAIL]
+[xUnit.net 00:00:02.31]       full text picture difference 81.243137
+[xUnit.net 00:00:02.31]       Stack Trace:
+[xUnit.net 00:00:02.31]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/DictationFragmentRig.cs(93,0): at Marrow.App.Tests.Fixtures.DictationFragmentRig.AssertPicture(Action`1 paint)
+[xUnit.net 00:00:02.31]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationClusterParityTests.cs(80,0): at Marrow.App.Tests.Port.Voice.DictationClusterParityTests.<>c.<Tentative_mask_and_ink_preserve_the_editors_disabled_ligatures>b__5_0()
+[xUnit.net 00:00:02.31]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0()
+[xUnit.net 00:00:02.48]     Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Wrapped_picture_and_editor_share_line_height_and_inherited_letter_spacing [FAIL]
+[xUnit.net 00:00:02.48]       full text picture difference 477.635294
+[xUnit.net 00:00:02.48]       Stack Trace:
+[xUnit.net 00:00:02.48]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/DictationFragmentRig.cs(93,0): at Marrow.App.Tests.Fixtures.DictationFragmentRig.AssertPicture(Action`1 paint)
+[xUnit.net 00:00:02.48]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationClusterParityTests.cs(100,0): at Marrow.App.Tests.Port.Voice.DictationClusterParityTests.<>c.<Wrapped_picture_and_editor_share_line_height_and_inherited_letter_spacing>b__6_0()
+[xUnit.net 00:00:02.48]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0()
+Test Run Failed.
+Total tests: 7
+     Passed: 5
+     Failed: 2
+
+round2-newline-build.log
+SHA256 7990f58afcfbd299e4becda62ec00cc85f58f0366bfe84610685ca299265320f
+
+round2-newline-red.log
+SHA256 df2429c646f600bc6940d31f6a3567573aaf55d63709399dfb90cc614dad7df7
+[xUnit.net 00:00:02.72]     Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Live_font_features_spacing_and_line_height_invalidate_the_target_and_caret [FAIL]
+[xUnit.net 00:00:02.72]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:02.72]       Expected: 73
+[xUnit.net 00:00:02.72]       Actual:   73.5
+[xUnit.net 00:00:02.72]       Stack Trace:
+[xUnit.net 00:00:02.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationParagraphLifecycleTests.cs(81,0): at Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.<>c.<Live_font_features_spacing_and_line_height_invalidate_the_target_and_caret>b__4_0()
+[xUnit.net 00:00:02.73]     Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ\r\n") [FAIL]
+[xUnit.net 00:00:02.73]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:02.73]       Expected: 31.216437499999998
+[xUnit.net 00:00:02.73]       Actual:   8.2840000000000007
+[xUnit.net 00:00:02.73]       Stack Trace:
+[xUnit.net 00:00:02.73]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationParagraphLifecycleTests.cs(57,0): at Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.<>c__DisplayClass3_0.<Required_terminal_break_puts_the_live_caret_on_the_new_empty_line>b__0()
+[xUnit.net 00:00:02.76]     Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ\n") [FAIL]
+[xUnit.net 00:00:02.76]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:02.76]       Expected: 31.216437499999998
+[xUnit.net 00:00:02.76]       Actual:   8.2840000000000007
+[xUnit.net 00:00:02.76]       Stack Trace:
+[xUnit.net 00:00:02.76]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationParagraphLifecycleTests.cs(57,0): at Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.<>c__DisplayClass3_0.<Required_terminal_break_puts_the_live_caret_on_the_new_empty_line>b__0()
+Test Run Failed.
+Total tests: 53
+     Passed: 50
+     Failed: 3
+
+round2-app-pre-final.log
+SHA256 aa4d39a7ed12db5a3399ddf5f72fb1290a1b7323c39acd6487bcd69946f09f9b
+[xUnit.net 00:00:39.75]     Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ\r\n") [FAIL]
+[xUnit.net 00:00:39.75]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:39.75]       Expected: 31.216437499999998
+[xUnit.net 00:00:39.75]       Actual:   31.216437500000001
+[xUnit.net 00:00:39.75]       Stack Trace:
+[xUnit.net 00:00:39.76]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationParagraphLifecycleTests.cs(57,0): at Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.<>c__DisplayClass3_0.<Required_terminal_break_puts_the_live_caret_on_the_new_empty_line>b__0()
+[xUnit.net 00:00:39.78]     Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ\n") [FAIL]
+[xUnit.net 00:00:39.78]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:39.78]       Expected: 31.216437499999998
+[xUnit.net 00:00:39.78]       Actual:   31.216437500000001
+[xUnit.net 00:00:39.78]       Stack Trace:
+[xUnit.net 00:00:39.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/DictationParagraphLifecycleTests.cs(57,0): at Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.<>c__DisplayClass3_0.<Required_terminal_break_puts_the_live_caret_on_the_new_empty_line>b__0()
+Test Run Failed.
+Total tests: 120
+     Passed: 118
+     Failed: 2
+
+round2-app-final.log
+SHA256 b79295dcbd57532dc1ad00219a8aa9c815f052fbb443a9a1f6f96fe3f51fe275
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.32]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.83]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.97]   Starting:    Marrow.App.Tests
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.A_pack_and_libraries_already_on_disk_show_the_installed_state_until_the_restart [132 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferBoundaryTests.Cancellation_after_the_probe_leaves_the_previous_row_without_throwing [131 ms]
+  Passed Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed [142 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.A_PC_without_an_NVIDIA_graphics_card_is_offered_nothing(vendor: 4098, backend: Vulkan) [53 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.A_PC_without_an_NVIDIA_graphics_card_is_offered_nothing(vendor: 5140, backend: None) [46 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.A_PC_without_an_NVIDIA_graphics_card_is_offered_nothing(vendor: 32902, backend: None) [58 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.A_pack_whose_hash_does_not_match_ends_Failed_and_nothing_is_unpacked [320 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.The_owners_NVIDIA_desktop_with_a_working_probe_is_offered_CUDA [57 ms]
+  Passed Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [228 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.Nothing_is_offered_while_no_installer_for_NVIDIAs_libraries_is_bound [44 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.Cancelling_while_the_libraries_install_returns_to_the_offer [127 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.A_cancelled_probe_leaves_the_row_hidden [55 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.A_pack_on_disk_without_the_libraries_is_still_an_offer [56 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.Any_NVIDIA_adapter_whose_probe_finished_is_offered_CUDA_whatever_Vulkan_said(vendor: 4318, backend: Vulkan) [47 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.A_server_error_ends_Failed_and_Download_tries_again_to_success [118 ms]
+  Passed Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [217 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.Any_NVIDIA_adapter_whose_probe_finished_is_offered_CUDA_whatever_Vulkan_said(vendor: 4318, backend: None) [41 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.Every_request_the_download_made_went_to_the_loopback_fake [100 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferReevaluationTests.Reevaluating_during_a_download_keeps_the_same_download_and_cancel_target [91 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.A_probe_that_fails_or_is_unbound_offers_nothing_and_the_error_does_not_escape [74 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferRowTests.The_installed_row_says_to_restart_and_the_failed_row_offers_the_download_again [5 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferRowTests.The_companion_sizes_are_voice_pins_jsons [3 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferRowTests.The_size_is_the_three_pinned_files_added_and_shown_as_the_model_list_shows_sizes [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferRowTests.The_rows_strings_are_the_ones_the_page_draws_in_look_A [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferRowTests.The_downloading_row_shows_the_percentage_the_cancel_x_and_the_bar [3 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: CloudOutOfQuota, target: "voice:engine") [3 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: MicrophoneUnplugged, target: "voice:microphone") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: Blocked, target: "ms-settings:privacy-microphone") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: NoMicrophone, target: "ms-settings:sound") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: CloudNoKey, target: "voice:openAiKey") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: NoAvx2, target: "voice:engine") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: ModelFailedToLoad, target: "voice:speechModel") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: ModelStillDownloading, target: "voice:speechModel") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: CloudNoNetwork, target: "voice:engine") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: EngineFailure, target: "voice:page") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: MicrophoneBusy, target: "voice:microphone") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Every_picked_note_preserves_its_exact_words_and_one_destination(noteCase: CloudKeyRefused, target: "voice:openAiKey") [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.While_CUDA_is_already_the_working_backend_there_is_nothing_to_offer [35 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.Draft_refresh_restores_the_same_note_without_repeating_the_announcement [18 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.The_runtime_processor_adapter_reports_the_bound_fact(supported: False) [2 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.The_runtime_processor_adapter_reports_the_bound_fact(supported: True) [< 1 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferBoundaryTests.The_worker_starts_only_after_the_initial_downloading_notification_returns [593 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceReleaseNoteTests.An_error_is_resolved_from_the_bound_processor_fact_and_announced_once [13 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferShownTests.The_CPU_only_laptop_is_offered_nothing [49 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.Progress_runs_from_0_to_1_in_order_and_counts_the_libraries_as_their_share_of_the_size [115 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferRestartTests.A_download_started_as_a_cancel_returns_to_the_offer_can_itself_be_cancelled [95 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.A_download_fetches_the_pack_installs_the_libraries_and_ends_Installed [103 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.Starting_while_hidden_does_nothing [33 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.Cancel_stops_the_download_keeps_the_partial_installs_nothing_and_returns_to_the_offer [83 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.Libraries_that_fail_end_Failed_and_the_next_try_does_not_fetch_the_pack_again [82 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.While_the_pack_is_on_its_way_the_row_shows_the_bytes_received_so_far [84 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaOfferDownloadTests.A_second_press_while_downloading_is_the_same_download [82 ms]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.There_is_no_line_before_270_seconds_or_outside_a_session [3 s]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.A_session_that_ends_before_the_10_second_moment_makes_no_late_announcement [3 s]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.A_second_session_counts_down_afresh [7 s]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.A_disposed_line_announces_nothing_more [4 s]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.The_lines_palette_and_Reduce_Motion_are_read_at_each_frame [3 s]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.From_270_seconds_the_line_is_full_and_drains_with_the_sessions_clock [3 s]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.A_screen_reader_hears_the_countdown_once_at_30_seconds_and_once_at_10 [3 s]
+  Passed Marrow.App.Tests.Port.Voice.Countdown.CapCountdownLineTests.At_the_cap_the_text_finishes_as_if_the_orb_were_clicked_and_the_line_is_gone [5 s]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaMountedRowTests.The_mounted_row_keeps_the_picked_words_and_the_download_bar_and_installed_check [84 ms]
+  Passed Marrow.App.Tests.Port.Voice.Cuda.CudaHardwareCardMountTests.The_factory_offer_is_mounted_below_the_recommendation_and_its_buttons_start_and_cancel_the_same_download [343 ms]
+  Passed Marrow.App.Tests.Port.Voice.Notes.VoiceErrorMountTests.The_mounted_error_survives_generic_draft_updates_moves_to_the_notice_and_expires [1 s]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Mixed_paragraph_selection_lands_with_identical_pixels_one_undo_and_cancel_restoration(draft: "یہ ایک ٹیسٹ\nEnglish suffix", word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", still: False) [89 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Mixed_paragraph_selection_lands_with_identical_pixels_one_undo_and_cancel_restoration(draft: "یہ ایک ٹیسٹ\nEnglish suffix", word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", still: True) [26 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Mixed_paragraph_selection_lands_with_identical_pixels_one_undo_and_cancel_restoration(draft: "English before\n123 اردو\nשלום suffix", word: "differentlongtextdifferentlongtextdifferentlongtex"···, still: False) [33 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ\r\n") [14 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ ") [10 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ\n") [8 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Required_terminal_break_puts_the_live_caret_on_the_new_empty_line(word: "یہٹیسٹ ") [9 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Each_live_font_setting_independently_invalidates_the_picture_and_caret(setting: "size") [19 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Each_live_font_setting_independently_invalidates_the_picture_and_caret(setting: "spacing") [25 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Each_live_font_setting_independently_invalidates_the_picture_and_caret(setting: "features") [16 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationParagraphLifecycleTests.Each_live_font_setting_independently_invalidates_the_picture_and_caret(setting: "lineHeight") [18 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Revision_preserves_every_old_fragment_while_new_fragment_count_changes(before: "short", after: "abcdefghijklmnopqrstuvwxyzzabcdefghijklmnopqrstuvw"···) [34 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Revision_preserves_every_old_fragment_while_new_fragment_count_changes(before: "abcdefghijklmnopqrstuvwxyzzabcdefghijklmnopqrstuvw"···, after: "short") [26 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Revision_preserves_every_old_fragment_while_new_fragment_count_changes(before: "abcdefghijklmnopqrstuvwxyzzabcdefghijklmnopqrstuvw"···, after: "differentlongtextdifferentlongtextdifferentlongtex"···) [34 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Width_reflow_keeps_all_glyphs_at_their_displayed_positions_on_its_first_frame [15 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Scrolling_follows_the_final_wrapped_line_on_the_locked_curve [12 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Wrapped_word_withdraws_with_the_same_opacity_and_rise_on_every_line [19 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentTransitionTests.Wrapped_landing_and_withdraw_hand_over_identical_editor_pixels_and_one_undo [25 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Caret_uses_the_final_character_on_the_final_wrapped_line(word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", rtl: True) [24 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Caret_uses_the_final_character_on_the_final_wrapped_line(word: "abcdefghijklmnopqrstuvwxyzzabcdefghijklmnopqrstuvw"···, rtl: False) [18 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Every_wrapped_fragment_uses_the_locked_arrival_pixels(word: "ábcdefghijklmnopqrstuvwxyzffiabcdefg", rtl: False) [28 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Every_wrapped_fragment_uses_the_locked_arrival_pixels(word: "abcdefghijklmnopqrstuvwxyzzabcdefghijklmnopqrstuvw"···, rtl: False) [27 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Every_wrapped_fragment_uses_the_locked_arrival_pixels(word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", rtl: True) [33 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Empty_revision_and_empty_add_keep_a_finite_caret_and_can_withdraw [14 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Natural_RTL_base_preserves_the_existing_Urdu_FLIP_guard [21 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationFragmentParityTests.Editor_detects_each_paragraph_base_without_changing_physical_left_alignment [16 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Tentative_mask_and_ink_preserve_the_editors_disabled_ligatures [22 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Cluster_reflow_preserves_the_first_frame_for_RTL_ligatures_combining_marks_and_mixed_font_baselines(word: "ábcdefghijklmnopqrstuvwxyzffiabcdefg", prefix: "") [19 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Cluster_reflow_preserves_the_first_frame_for_RTL_ligatures_combining_marks_and_mixed_font_baselines(word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", prefix: "") [27 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Cluster_reflow_preserves_the_first_frame_for_RTL_ligatures_combining_marks_and_mixed_font_baselines(word: "یہایکبہتلمبااردولفظہےیہایکبہتلمبااردولفظہے", prefix: "English ") [25 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Repeated_wrapped_revisions_keep_each_captured_picture_until_its_own_expiry [24 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Landing_waits_for_reflow_clusters_when_the_first_word_anchor_and_final_caret_stay_fixed [27 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationClusterParityTests.Wrapped_picture_and_editor_share_line_height_and_inherited_letter_spacing [17 ms]
+  Passed Marrow.App.Tests.Port.Voice.DictationAddConfirmationTests.Add_visually_confirms_its_predecessor_without_committing_the_transcribers_tentative_tail [8 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "123 English اردو", rtl: False, fallbackRtl: False) [2 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "𞤀123", rtl: True, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "123 שלום", rtl: True, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "⁧اردو⁩", rtl: True, fallbackRtl: True) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "؜123", rtl: True, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "⁧اردو", rtl: False, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "⁨⁧اردو⁩English⁩ עברית", rtl: True, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "ְ123 English", rtl: False, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "⁨English⁩ اردو", rtl: True, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "(123)!", rtl: True, fallbackRtl: True) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "123 العربية", rtl: True, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "(123)!", rtl: False, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "⁧اردو⁩ English", rtl: False, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "ً123 English", rtl: False, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "", rtl: False, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "𐐀123", rtl: False, fallbackRtl: True) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.First_strong_base_uses_unicode_classes_and_skips_isolates(text: "123 اردو", rtl: True, fallbackRtl: False) [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.Paragraph_separators_reset_the_base_but_a_soft_line_separator_does_not(separator: "\n") [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.Paragraph_separators_reset_the_base_but_a_soft_line_separator_does_not(separator: " ") [< 1 ms]
+[xUnit.net 00:00:41.22]   Finished:    Marrow.App.Tests
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.Paragraph_separators_reset_the_base_but_a_soft_line_separator_does_not(separator: "\r\n") [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.Paragraph_separators_reset_the_base_but_a_soft_line_separator_does_not(separator: "") [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.Paragraph_separators_reset_the_base_but_a_soft_line_separator_does_not(separator: "\r") [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.Paragraph_separators_reset_the_base_but_a_soft_line_separator_does_not(separator: " ") [< 1 ms]
+  Passed Marrow.App.Tests.Views.Composer.ComposerParagraphLayoutTests.Native_formatter_installation_survives_a_fresh_locator_and_noncomposer_sources_are_delegated_unchanged [11 ms]
+
+Test Run Successful.
+Total tests: 121
+     Passed: 121
+ Total time: 41.6660 Seconds
+
+round2-app-originals.log
+SHA256 15081ad8eb05497c661331515428cf347df2f29c1a57109679526cd0487a9049
+[xUnit.net 00:00:05.04]     Marrow.App.Tests.Views.Composer.ComposerDictationWithdrawTests.An_engine_failure_makes_the_drawn_words_leave_and_returns_the_draft [FAIL]
+[xUnit.net 00:00:05.04]       System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+[xUnit.net 00:00:05.05]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:05.05]       /tmp/t34-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:05.05]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:05.05]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:05.29]     Marrow.App.Tests.Views.Composer.ComposerDictationWithdrawTests.A_cancel_withdraws_the_words_from_the_end_30_ms_apart_on_the_designs_curves [FAIL]
+[xUnit.net 00:00:05.29]       System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:05.29]       Stack Trace:
+[xUnit.net 00:00:05.29]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:05.29]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:05.29]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:05.53]     Marrow.App.Tests.Views.Composer.ComposerDictationWithdrawTests.A_cancel_returns_the_draft_with_the_selection_it_had [FAIL]
+[xUnit.net 00:00:05.53]       System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:05.53]       Stack Trace:
+[xUnit.net 00:00:05.53]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:05.53]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:05.53]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:06.41]     Marrow.App.Tests.Views.Composer.ComposerDictationWithdrawTests.A_cancel_after_a_replaced_selection_fades_the_old_text_back_in_and_the_hand_over_is_no_cut [FAIL]
+[xUnit.net 00:00:06.41]       System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:06.41]       Stack Trace:
+[xUnit.net 00:00:06.41]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:06.41]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:06.41]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:07.06]     Marrow.App.Tests.Views.Composer.ComposerDictationWithdrawTests.After_a_cancel_the_composer_looks_as_it_did_before_the_session [FAIL]
+[xUnit.net 00:00:07.06]       System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:07.06]       Stack Trace:
+[xUnit.net 00:00:07.06]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:07.06]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:07.06]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:07.15]     Marrow.App.Tests.Views.Composer.ComposerDictationWithdrawTests.A_cancel_keeps_the_caret_riding_and_fades_it_after_the_words_have_gone [FAIL]
+[xUnit.net 00:00:07.15]       System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:07.15]       Stack Trace:
+[xUnit.net 00:00:07.15]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:07.15]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:07.15]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:07.35]     Marrow.App.Tests.Views.Composer.ComposerDictationWithdrawTests.A_cancel_before_any_word_leaves_the_editor_alone [FAIL]
+[xUnit.net 00:00:07.35]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:07.35]       Stack Trace:
+[xUnit.net 00:00:07.35]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:07.35]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:07.35]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:07.58]     Marrow.App.Tests.Views.Composer.ComposerDictationRtlTests.An_Urdu_session_lands_with_a_pixel_identical_hand_over [FAIL]
+[xUnit.net 00:00:07.58]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:07.58]       Stack Trace:
+[xUnit.net 00:00:07.58]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:07.58]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:07.58]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:07.76]     Marrow.App.Tests.Views.Composer.ComposerDictationRtlTests.A_word_added_to_an_Urdu_run_rises_in_its_place_while_the_others_glide_frame_by_frame [FAIL]
+[xUnit.net 00:00:07.76]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:07.76]       Stack Trace:
+[xUnit.net 00:00:07.76]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:07.76]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:07.76]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:07.95]     Marrow.App.Tests.Views.Composer.ComposerDictationRtlTests.Urdu_words_are_drawn_where_the_bidi_layout_puts_them_and_the_caret_stands_at_the_left_of_the_last [FAIL]
+[xUnit.net 00:00:07.95]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:07.95]       Stack Trace:
+[xUnit.net 00:00:07.95]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:07.95]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:07.95]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:08.14]     Marrow.App.Tests.Views.Composer.ComposerDictationLiveTests.The_tentative_word_is_drawn_at_0_6_of_the_text_colour_and_turns_solid_on_the_ease_curve [FAIL]
+[xUnit.net 00:00:08.14]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:08.14]       Stack Trace:
+[xUnit.net 00:00:08.14]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:08.14]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:08.14]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:09.49]     Marrow.App.Tests.Views.Composer.ComposerDictationLiveTests.The_draft_follows_the_words_live_while_the_editor_keeps_its_own_text [FAIL]
+[xUnit.net 00:00:09.49]       System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+[xUnit.net 00:00:09.49]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:09.49]       /tmp/t34-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:09.49]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:09.49]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:09.67]     Marrow.App.Tests.Views.Composer.ComposerDictationLiveTests.The_words_after_a_revised_one_follow_to_their_new_places_by_FLIP_frame_by_frame [FAIL]
+[xUnit.net 00:00:09.67]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:09.67]       Stack Trace:
+[xUnit.net 00:00:09.67]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:09.67]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:09.67]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:09.85]     Marrow.App.Tests.Views.Composer.ComposerDictationLiveTests.A_rising_words_ink_follows_the_opacity_curve_frame_by_frame_on_the_pixels [FAIL]
+[xUnit.net 00:00:09.85]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:09.85]       Stack Trace:
+[xUnit.net 00:00:09.85]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:09.85]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:09.85]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:10.35]     Marrow.App.Tests.Views.Composer.ComposerDictationLiveTests.A_long_dictation_scrolls_to_keep_its_end_in_view_with_an_ease_never_a_jump [FAIL]
+[xUnit.net 00:00:10.35]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:10.35]       Stack Trace:
+[xUnit.net 00:00:10.35]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:10.35]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:10.35]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:10.39]     Marrow.App.Tests.Views.Composer.ComposerDictationLiveTests.The_caret_stands_a_pixel_past_the_last_word [FAIL]
+[xUnit.net 00:00:10.39]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:10.39]       Stack Trace:
+[xUnit.net 00:00:10.39]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:10.39]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:10.39]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:10.94]     Marrow.App.Tests.Views.Composer.ComposerDictationLiveTests.A_selection_is_replaced_by_the_first_word_and_the_text_around_it_stays [FAIL]
+[xUnit.net 00:00:10.94]       System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+[xUnit.net 00:00:10.94]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:10.94]       /tmp/t34-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:10.94]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:10.94]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.00]     Marrow.App.Tests.Views.Composer.ComposerDictationLandingTests.The_hand_over_from_the_layer_to_the_editor_is_pixel_identical [FAIL]
+[xUnit.net 00:00:11.00]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:11.00]       Stack Trace:
+[xUnit.net 00:00:11.00]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:11.00]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:11.00]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:11.23]     Marrow.App.Tests.Views.Composer.ComposerDictationLandingTests.After_the_landing_the_caret_is_after_the_text_and_the_editor_takes_typing_again [FAIL]
+[xUnit.net 00:00:11.23]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:11.23]       Stack Trace:
+[xUnit.net 00:00:11.23]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:11.23]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:11.23]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:11.45]     Marrow.App.Tests.Views.Composer.ComposerDictationLandingTests.The_hand_over_is_pixel_identical_inside_an_existing_draft [FAIL]
+[xUnit.net 00:00:11.45]       System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:11.45]       Stack Trace:
+[xUnit.net 00:00:11.45]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:11.45]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:11.45]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:11.53]     Marrow.App.Tests.Views.Composer.ComposerDictationLandingTests.One_undo_removes_the_whole_dictation_and_the_edits_before_it_are_still_there [FAIL]
+[xUnit.net 00:00:11.53]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:11.53]       Stack Trace:
+[xUnit.net 00:00:11.53]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:11.53]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:11.53]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+[xUnit.net 00:00:11.60]     Marrow.App.Tests.Views.Composer.ComposerDictationLandingTests.A_send_after_landing_leaves_no_layer_and_no_text_behind [FAIL]
+[xUnit.net 00:00:11.60]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Normal. Stretch: Normal
+[xUnit.net 00:00:11.60]       Stack Trace:
+[xUnit.net 00:00:11.60]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:11.60]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:11.60]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CreateEmptyTextLine(Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties)
+[xUnit.net 00:00:11.78]     Marrow.App.Tests.Views.Composer.ComposerDictationDesignStreamTests.The_designs_final_pass_and_the_landing_ink_are_written_on_the_designs_curves_at_every_frame [FAIL]
+[xUnit.net 00:00:11.78]       System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+[xUnit.net 00:00:11.78]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.78]       /tmp/t34-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.78]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.78]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.80]     Marrow.App.Tests.Views.Composer.ComposerDictationDesignStreamTests.The_designs_live_stream_is_written_on_the_designs_curves_at_every_frame [FAIL]
+[xUnit.net 00:00:11.80]       System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable:
+[xUnit.net 00:00:11.80]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.80]       /tmp/t34-dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.80]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+[xUnit.net 00:00:11.80]       /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+Test Run Failed.
+Total tests: 50
+     Passed: 26
+     Failed: 24
+
+round2-core.log
+SHA256 5bc5b6a1f63f3f6a78ba791761807c867ebaf37fd03febd1b51e296dac1b4987
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   656, Skipped:     0, Total:   656, Duration: 55 s - Marrow.Core.Tests.dll (net10.0)
+
+round2-services.log
+SHA256 3962031f4a1d8adf8f5746c252b3df138cf250e0fb4c0560b2ab4cc59e6f64fa
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:13.84]     Marrow.Services.Tests.Port.Voice.Capture.CaptureNativeEnumerationTests.The_real_host_watches_and_stops_watching_without_raising_anything_by_itself [SKIP]
+[xUnit.net 00:00:13.87]     Marrow.Services.Tests.Port.Voice.Capture.CaptureNativeEnumerationTests.The_real_host_says_NotFound_for_an_endpoint_that_does_not_exist_and_opens_nothing [SKIP]
+  Skipped Marrow.Services.Tests.Port.Voice.Capture.CaptureNativeEnumerationTests.The_real_host_watches_and_stops_watching_without_raising_anything_by_itself [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Capture.CaptureNativeEnumerationTests.The_real_host_says_NotFound_for_an_endpoint_that_does_not_exist_and_opens_nothing [1 ms]
+[xUnit.net 00:00:13.87]     Marrow.Services.Tests.Port.Voice.Capture.CaptureNativeEnumerationTests.The_real_host_lists_active_capture_endpoints_with_ids_and_names_and_a_default_that_is_one_of_them [SKIP]
+  Skipped Marrow.Services.Tests.Port.Voice.Capture.CaptureNativeEnumerationTests.The_real_host_lists_active_capture_endpoints_with_ids_and_names_and_a_default_that_is_one_of_them [1 ms]
+[xUnit.net 00:00:15.83]     Marrow.Services.Tests.Port.Voice.Cloud.VoiceKeyStoreWindowsTests.V_T47_the_real_Credential_Manager_holds_the_key_as_one_generic_credential_and_gives_it_back [SKIP]
+[xUnit.net 00:00:15.83]     Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_real_SileroVad_gives_a_probability_per_frame_that_is_high_in_the_clip_speech_and_low_in_silence [SKIP]
+[xUnit.net 00:00:15.83]     Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_real_backend_refuses_a_missing_model_file_and_the_engine_stays_unloaded [SKIP]
+[xUnit.net 00:00:15.83]     Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_real_VAD_load_test_reports_a_runtime_from_the_order_it_was_given [SKIP]
+[xUnit.net 00:00:15.84]     Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_VAD_is_never_given_the_GPU_because_whisper_cpp_aborts_the_process_on_it [SKIP]
+  Skipped Marrow.Services.Tests.Port.Voice.Cloud.VoiceKeyStoreWindowsTests.V_T47_the_real_Credential_Manager_holds_the_key_as_one_generic_credential_and_gives_it_back [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_real_SileroVad_gives_a_probability_per_frame_that_is_high_in_the_clip_speech_and_low_in_silence [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_real_backend_refuses_a_missing_model_file_and_the_engine_stays_unloaded [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_real_VAD_load_test_reports_a_runtime_from_the_order_it_was_given [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Engine.WhisperNativeWindowsTests.The_VAD_is_never_given_the_GPU_because_whisper_cpp_aborts_the_process_on_it [1 ms]
+[xUnit.net 00:00:15.88]     Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_real_DXGI_enumeration_gives_adapters_with_names_and_sane_memory [SKIP]
+[xUnit.net 00:00:15.88]     Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_real_probe_reports_its_four_rows_in_order [SKIP]
+[xUnit.net 00:00:15.88]     Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_real_processor_memory_and_core_reads_are_plausible [SKIP]
+[xUnit.net 00:00:15.88]     Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_driver_version_of_an_adapter_no_registry_key_names_is_empty_and_never_throws [SKIP]
+  Skipped Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_real_DXGI_enumeration_gives_adapters_with_names_and_sane_memory [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_real_probe_reports_its_four_rows_in_order [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_real_processor_memory_and_core_reads_are_plausible [1 ms]
+  Skipped Marrow.Services.Tests.Port.Voice.Probe.HardwareSourceWindowsTests.The_driver_version_of_an_adapter_no_registry_key_names_is_empty_and_never_throws [1 ms]
+
+Passed!  - Failed:     0, Passed:   491, Skipped:    12, Total:   503, Duration: 34 s - Marrow.Services.Tests.dll (net10.0)
+
+round2-gate-b.log
+SHA256 d438ffbf40b3d464bce128abb6905a99f1c5e4b6438980dd081855d92852e63b
+Droppy Code -> Windows port verification
+pinned source 52bc7926097cd622d08d6294e0d8b08a48c7516e
+reference     E:/Droppy/reference/droppy-code-v1.7.0
+
+Gate B
+  [PASS] architecture record exists and is substantive
+         63015 bytes, 194 source citations
+  [PASS] parity matrix exists with well-formed requirements
+         3992 requirements across 20 areas
+  [PASS] every cited source path exists in the pinned inventory
+         all cited source paths exist at 52bc7926; all cited port artifacts exist on disk
+  [PASS] UI contract exists with well-formed records
+         1057 UI records
+  [PASS] quarantined behavior is not marked ready to implement
+         no open quarantine entries
+  [PASS] no requirement silently depends on an unresolved unknown
+         15 open unknowns, 36 requirement(s) declare a dependency
+  [PASS] every completeness-audit finding has been adjudicated
+         83 findings adjudicated across 4 scopes
+  [PASS] platform adaptation register covers the identified boundaries
+         21 adaptation entries
+
+PASS=8
+RESULT: all implemented checks pass
+
+round2-protected.log
+SHA256 d62f0564a57739d9d975d6014de99589b16b3eff8f71965b23fad6dd2774d3d8
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.6.2': No such file or directory
+protected paths unchanged against HEAD; reference checkout clean
+
+Ledger integrity - binary append; unchanged Round 2 prefix bytes:
+porting/STATE.md {"CRLF": 445, "LF": 647, "length": 85736, "sha256": "8ddb407909822696a95de79355ba019faac5da79af200a6d57fea303b97cbec3"} prefix verified; appended 2270 bytes
+porting/engineering_decisions.md {"CRLF": 10, "LF": 3740, "length": 1789298, "sha256": "4bbfb747a03ccd0ad5cf9ac2041d0901127736aa217b4626b71cce2701955a52"} prefix verified; appended 2957 bytes
+
+Embedded excerpts omit trailing spaces; SHA256 values identify the unmodified source logs.
