@@ -1,0 +1,10 @@
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.6.2': No such file or directory
+PROTECTED PATHS CHANGED against HEAD (1):
+  porting/engineering_decisions.md
+
+A worker may not change these. Revert them before review:
+  git checkout HEAD -- <path>        (tracked files)
+  and delete any new untracked file listed above.
+If the change is genuinely needed, the ORCHESTRATOR makes it, with a reason in the commit.

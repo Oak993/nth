@@ -403,7 +403,7 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         {
             window.Close(); // hidden, kept (WindowManager.swift:98)
             Dispatcher.UIThread.RunJobs();
-            Assert.False(window.IsVisible);
+            DesignGapsLockedClose.CompleteAndCheckCancellation(window, manager, rig);
             rig.Events.Clear();
             manager.ShowSettings(SettingsPage.Appearance);
             Dispatcher.UIThread.RunJobs();
