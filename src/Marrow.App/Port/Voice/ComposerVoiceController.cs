@@ -69,7 +69,7 @@ public sealed class ComposerVoiceController : MainActorModel
     /// <summary>The composer's session (V-15's table).</summary>
     public VoiceSession Session { get; }
 
-    internal VoiceFirstRun? FirstRun => VoiceFirstRun.Find(host.Settings());
+    internal VoiceFirstRun? FirstRun => host is null ? null : VoiceFirstRun.Find(host.Settings());
     internal bool SetupOpen { get => Read(setupOpen); set => Set(ref setupOpen, value); }
 
     /// <summary>Listening has begun (VT-11): the draft and selection as they are, where the dictated words will go (V-8.1).</summary>
@@ -183,7 +183,7 @@ public sealed class ComposerVoiceController : MainActorModel
     /// <summary>The orb clicked, or Enter or Space on it.</summary>
     public void Activate()
     {
-        if (IsLive || State is VoiceSessionState.Asking or VoiceSessionState.Blocked || host.Settings().VoiceTyping.Engine != VoiceEngine.Local || FirstRun is not { } flow)
+        if (IsLive || State is VoiceSessionState.Asking or VoiceSessionState.Blocked || host is null || host.Settings().VoiceTyping.Engine != VoiceEngine.Local || FirstRun is not { } flow)
         {
             Session.Activate();
             return;
