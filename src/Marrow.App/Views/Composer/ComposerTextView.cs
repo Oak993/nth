@@ -9,11 +9,16 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
+using Avalonia.Threading;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using Marrow.App.Port.Voice;
+using Marrow.App.Port.Voice.Notes;
+using Marrow.App.Port;
+using Marrow.Services.Port.Voice.Models;
+using Marrow.Core.Port.Voice;
 using Marrow.Core.Port;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
@@ -552,6 +557,7 @@ public sealed class ComposerTextView : Decorator
     private Action onBlur; // :222
     private readonly ComposerNSTextView textView;
     private readonly ScrollViewer scroll;
+    private VoiceReleaseNotes? releaseNotes;
 
     public ComposerTextView(
         Binding<string> text,
@@ -605,11 +611,40 @@ public sealed class ComposerTextView : Decorator
 
         controller.TextViewInstance = textView; // :274
 
-        AttachedToVisualTree += (_, _) => MainActor.Spawn(() => RunAppear(takesFocusOnAppear)); // :283-289
+        AttachedToVisualTree += (_, _) =>
+        {
+            MountReleaseNotes();
+            MainActor.Spawn(() => RunAppear(takesFocusOnAppear));
+        };
+        DetachedFromVisualTree += (_, _) => { releaseNotes?.Dispose(); releaseNotes = null; }; // :283-289
+        this.Track(() => (text.Value, this.GetVisualAncestors().OfType<ComposerView>().FirstOrDefault()?.Voice?.Note), _ =>
+            Dispatcher.UIThread.Post(() => releaseNotes?.RefreshSurface(), DispatcherPriority.Background));
     }
 
     /// <summary>PORT-ONLY (voice-SPEC V-8.3, VT-11): the layer that draws live dictation over the editor.</summary>
     internal DictationLayer Dictation { get; }
+
+    // OD-0106: the typed composer ancestor supplies the session; existing TextColumn surfaces own placement and transitions.
+    private void MountReleaseNotes()
+    {
+        if (releaseNotes is not null) return;
+        var composer = this.GetVisualAncestors().OfType<ComposerView>().FirstOrDefault();
+        var column = this.GetVisualAncestors().OfType<ComposerTextColumn>().FirstOrDefault();
+        if (composer?.Voice is not { } voice || column is null) return;
+        bool Downloading()
+        {
+            var settings = AppEnvironment.GetAppModel(this).Settings;
+            return Marrow.Core.Port.Voice.ModelCatalog.Find(settings.VoiceTyping.Model) is { } model && SpeechModelController.For(settings).State(model).Kind == ModelInstallKind.Downloading;
+        }
+        void Show(VoiceNoteContent? error)
+        {
+            var note = error ?? voice.Note;
+            var inField = string.IsNullOrEmpty(text.Value);
+            column.SetVoiceNote(note, inField, inField);
+        }
+        releaseNotes = new VoiceReleaseNotes(voice.Session, () => text.Value, Downloading, () => false,
+            ProcessorFeatureSeams.Current.Current, Show, VoiceErrorAnnouncements.For(voice.Session).Say);
+    }
 
     private Task RunAppear(bool takesFocusOnAppear)
     {

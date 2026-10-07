@@ -8,6 +8,7 @@
 using Avalonia;
 using Marrow.App.Port.Voice;
 using Marrow.App.Port.Voice.Cuda;
+using Marrow.App.Port.Voice.Notes;
 using Marrow.Core.Support;
 using Marrow.UI.Port;
 
@@ -30,6 +31,7 @@ public sealed class MarrowApplication : Application
             SystemReduceMotion.Install(); // ED-084: every window follows Windows' "Animation effects" setting
             WindowsTaskbarOverlay.Install(); // ED-219: the Dock unread badge is the taskbar overlay icon
             CudaOfferComposition.Install(StoragePaths.Root);
+            ProcessorFeatureSeams.Install();
             VoiceComposition.Install(); // VT-14 (voice-SPEC V-2.4): the voice seams' production parts; the storage roots are bound before the app is built (Program.cs)
         });
 }

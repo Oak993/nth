@@ -637,3 +637,7 @@ Scoped green validation through unchanged heavy.sh/lead wrappers, Native exclude
 
 ## T34 voice release gaps — RR-10 (2026-10-07)
 RR-10 implementation DONE: pinned NVIDIA companion installer, complete staged publication, production binding and CUDA A hardware-card row are present. Fake Services and mounted App acceptance pass; no real download, GPU, microphone or model was used. Windows filesystem/native/visual acceptance remains listed in porting/first-release/reports/T34-voice-gaps-RR10.md. ED-NEW-voice-gaps-1. This entry does not declare the voice release ready; RR-11 and RR-12 remain open.
+
+
+## T34 voice release gaps — RR-11 (2026-10-07)
+RR-11 BLOCKED: picked error notes are mounted and real AVX2 facts bound, with fake lifetime/announcement/mounted-surface coverage; the 30-second Countdown C is still not mounted. Its exact pill integration and first-download-note suppression require the protected VT-12/CZ-7b/VT-15 files; the OpenAI key row needs VT-16 integration. No protected source/test/reference was edited or imported. Evidence and Windows checklist: porting/first-release/reports/T34-voice-gaps-RR11.md. ED-NEW-voice-gaps-2.
