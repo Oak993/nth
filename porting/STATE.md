@@ -824,3 +824,10 @@ Link A, one-message opinions B/parallel streams/one Combine, persistent unchecke
 ### T9 Batch 10+ group 01: ma-gaps HELD, engine retained (2026-10-07)
 
 Revert only ma-gaps merge ed0820d7 after two unchanged E1 pricing cases failed twice alone. Scratch 00ea876e, with ma-gaps alone reverted, passes all five theory cases twice (10/10). Engine 0e213f9 and CLI checks 95fd4af stay integrated. Retain all historical ledger entries ED-460..463; they do not claim an admitted pricing/head adapter. Raw full sweep remains recorded at ed0820d7, not relabeled clean. No assertion, tolerance, reference or production repair. Final affected reruns and push receipt are in the T9 handoff and standing/01-engine manifest.
+
+
+## T25 MA-3b-W live wiring (2026-10-07)
+
+Branch codex/ma-wire: ma-wave2 + reviewed ma-engine-review + ready ma-e1, --no-ff merges; both mixed-ending ledgers preserve each parent's bytes with insertions only. Production IThreadAccountPort/ICardPort/ILinkPort/IOpinionsPort are real bindings. Pin/clear/Remember use real thread state; Ask is accepted without switch consent; cards, capsule readiness/tick, popover and usage read live state. E1 uses real context/revision/cap/private-key/consent/atomic append boundaries and completed-answer forwarding. No requested production port remains on a fake. Separate App link/opinion presentation and full MA-4 painter/sound presentation are not completed by this seam pass; unsupported E1 head services and unpriced capped token-only APIs fail explicitly.
+
+Evidence: Core account/model 511 passed; Services portable account 223 passed; App live/screens/meta 112 passed/1 unresolved pin-fixture failure, no skipped. Required broad Core/Services !Native and attempted App Linux runs are red/incomplete from Windows APIs/fixtures/environment issues and other failures; no tests or assertions weakened. Full failure evidence, exact Windows rerun lists and commits: porting/reports/multi-account-W-20261007/README.md. NOT READY for Windows/release; Windows pin/runtime/native UI checks remain. No feature marked DONE. Push only codex/ma-wire, never force.
