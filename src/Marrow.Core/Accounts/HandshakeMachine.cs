@@ -295,7 +295,16 @@ public sealed class HandshakeMachine(
         // A prepared target cannot answer a newly relevant mid-reply choice or a revoked preference.
         Need(onLimit);
         Need(Get(DecisionKind.Bring));
-        if (host.ReplyInFlight) Need(Get(DecisionKind.MidReply));
+        // PORT-ONLY: ED-NEW-ma-engine-7. "Finish the reply?" is only asked of a destination that can continue it; a deferred one ignores the answer.
+        var midAt = needs.Count;
+        var midReply = host.ReplyInFlight ? Get(DecisionKind.MidReply) : null;
+        void NeedMidReply()
+        {
+            if (midReply is not { MustAsk: true } r) return;
+            needs.Insert(midAt, r.Kind);
+            firstTime |= r.FirstTime;
+            midReply = null;
+        }
         var chosen = standby is not null ? target : null;
         DateTimeOffset? alternateReset = null;
         if (chosen is null)
@@ -310,6 +319,7 @@ public sealed class HandshakeMachine(
                     chosen = other.Target;
                     break;
                 case ChooserResult.WaitFor wait:
+                    NeedMidReply();
                     if (needs.Count > 0)
                     {
                         Ask(new Pending(false, accountId, resetsAt, null, needs), firstTime, null);
@@ -324,6 +334,8 @@ public sealed class HandshakeMachine(
                     return;
             }
         }
+
+        if (!await DeferredAsync(chosen, ct)) NeedMidReply();
 
         // Retained candidates and a destination that changed after a card still need service permission.
         if (host.Pill is null && Find(accountId)?.Service != chosen.Account.Service)
@@ -444,14 +456,23 @@ public sealed class HandshakeMachine(
             string? readBack = null;
             if (!received)
             {
-                readBack = await standby.ReceiveAsync(new HandoffPackage(bring, summary, briefing), CurrentOptions.Enabled && !deferred, token);
+                // An injected history is loaded without a model turn, so there is nothing to read back; its readiness is the same in-sync tick (OD-0122).
+                readBack = await standby.ReceiveAsync(new HandoffPackage(bring, summary, briefing), CurrentOptions.Enabled && !deferred && standby.Kind != StandbyKind.Injected, token);
                 received = true;
+                // A loaded history that was discarded for safety is now a deferred delivery.
+                deferred = Deferred(to);
+                if (deferred) resume = false;
             }
 
             if (CurrentOptions.Enabled && !deferred)
             {
                 SetPhase(HandshakePhase.InSync);
-                if (!synced)
+                if (!synced && standby.Kind == StandbyKind.Injected)
+                {
+                    synced = true;
+                    Emit(HandshakeEventKind.InSyncReady, phase, phase, null, detail: "in sync");
+                }
+                else if (!synced)
                 {
                     var gaps = summaries.FindGaps(summary, readBack ?? "");
                     EnsureTransferAuthorized(from, to, why);
@@ -489,7 +510,10 @@ public sealed class HandshakeMachine(
         if (host.AtSafePoint) await SwitchNowAsync(ct);
     }
 
-    private bool Deferred(SwitchTarget to) => host is IDeferredDeliveryHost deferred && deferred.DeliversDeferred(to);
+    private bool Deferred(SwitchTarget to) => standby?.Kind == StandbyKind.Deferred || host is IDeferredDeliveryHost deferred && deferred.DeliversDeferred(to);
+
+    private async Task<bool> DeferredAsync(SwitchTarget to, CancellationToken ct) =>
+        standby?.Kind == StandbyKind.Deferred || host is IDeferredDeliveryHost deferred && await deferred.ResolveDeliversDeferredAsync(to, ct);
 
     private void EnsureTransferAuthorized(string from, SwitchTarget to, HandshakeReason why)
     {

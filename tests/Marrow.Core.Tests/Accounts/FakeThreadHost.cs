@@ -9,6 +9,16 @@ public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost, 
 
     public bool DeliversDeferred(SwitchTarget target) => DeferredAccounts.Contains(target.Account.Id);
 
+    /// <summary>Destinations that load the history without a model turn (Codex, Pi): no read-back, the same in-sync tick (OD-0122).</summary>
+    public HashSet<string> InjectedAccounts { get; } = [];
+    /// <summary>Destinations whose deferral only shows after the host checks the CLI at run time.</summary>
+    public HashSet<string> LateDeferredAccounts { get; } = [];
+    /// <summary>An injected standby that discards its loaded history on receiving the package (a turn or item showed on the waiting thread).</summary>
+    public bool InjectedDiscardsOnReceive { get; set; }
+
+    public ValueTask<bool> ResolveDeliversDeferredAsync(SwitchTarget target, CancellationToken ct) =>
+        ValueTask.FromResult(DeliversDeferred(target) || LateDeferredAccounts.Contains(target.Account.Id));
+
     public List<string> Log { get; } = [];
 
     public string ActiveAccountId { get; set; } = "";
@@ -42,7 +52,7 @@ public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost, 
         if (StandbyFails is not null) throw StandbyFails;
         Targets.Add(target);
         Log.Add($"standby:{target.Account.Id}");
-        return new Standby(this);
+        return new Standby(this, target.Account.Id);
     }
 
     public async Task<string?> RequestBriefingAsync(HandoffSummary summary, CancellationToken ct)
@@ -63,10 +73,15 @@ public sealed class FakeThreadHost : IThreadAccountHost, IIncomingBriefingHost, 
         ReplyInFlight = false;
     }
 
-    private sealed class Standby(FakeThreadHost host) : IStandbySession
+    private sealed class Standby(FakeThreadHost host, string account) : IStandbySession
     {
+        private bool discarded;
+
+        public StandbyKind Kind => discarded ? StandbyKind.Deferred : host.InjectedAccounts.Contains(account) ? StandbyKind.Injected : StandbyKind.Primed;
+
         public Task<string?> ReceiveAsync(HandoffPackage package, bool readBack, CancellationToken ct)
         {
+            if (Kind == StandbyKind.Injected && host.InjectedDiscardsOnReceive) discarded = true;
             host.Packages.Add(package);
             host.Log.Add(readBack ? "receive:readback" : "receive");
             return Task.FromResult<string?>(readBack ? host.ReadBack : null);

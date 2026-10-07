@@ -18,6 +18,8 @@ namespace Marrow.App.Tests.Port.Accounts;
 [Trait("Rule", "R-TEST-4")]
 public sealed class DeferredContextDeliveryTests
 {
+    // ED-NEW-ma-engine-7 (owner decisions OD-0116 and OD-0122, lead brief 2026-10-06): Codex is no longer deferred (it loads history without a model turn, InjectedStandbyHostTests);
+    // this test keeps its rule for a service with nothing to open early: Command Code.
     [Fact]
     public void A_non_Claude_CLI_destination_is_never_started_in_standby_and_gets_the_context_with_its_first_turn()
     {
@@ -28,11 +30,11 @@ public sealed class DeferredContextDeliveryTests
         Guid codex = default;
         rig.H.Main.Loop.Run(async () =>
         {
-            codex = rig.App.Settings.Accounts.ForService(ProviderKind.Codex)[0].Id;
+            codex = rig.App.Settings.Accounts.ForService(ProviderKind.Commandcode)[0].Id;
             rig.App.Settings.Accounts.MarkSignedIn(codex);
             var summaries = new HandshakeSummaryAdapter((id, ct) => rig.Runtime.BuildHandshakeSourceAsync(ct));
             var host = new ThreadAccountHost(rig.App, rig.Runtime, new(), summaries);
-            var target = new SwitchTarget(new(codex.ToString("D"), ProviderKind.Codex.Id, "Codex"));
+            var target = new SwitchTarget(new(codex.ToString("D"), ProviderKind.Commandcode.Id, "Command Code"));
             Assert.True(((IDeferredDeliveryHost)host).DeliversDeferred(target));
             await using var standby = await host.StartStandbyAsync(target, CancellationToken.None);
             Assert.Null(await standby.ReceiveAsync(new(Bring.MarrowSummary, await summaries.BuildAsync(rig.InitialThread.Id, CancellationToken.None), null), true, CancellationToken.None));
@@ -40,7 +42,7 @@ public sealed class DeferredContextDeliveryTests
         }, AppModelHarness.Bound);
         Assert.Equal(0, launches);
         var thread = rig.Thread;
-        Assert.Equal((ProviderKind.Codex, codex, (string?)null), (thread.Provider, thread.ProviderAccountID, thread.ProviderSessionID));
+        Assert.Equal((ProviderKind.Commandcode, codex, (string?)null), (thread.Provider, thread.ProviderAccountID, thread.ProviderSessionID));
         rig.Install(incoming);
         rig.Send("the next message");
         var first = Assert.Single(incoming.Inputs).Text;

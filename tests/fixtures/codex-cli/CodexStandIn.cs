@@ -17,6 +17,7 @@
 //   captured-<n>-<m>.txt     written by the stand-in itself: the raw text of the m-th non-empty stdin line
 //                             (0-based) of launch n, so a test can inspect any wire line Codex actually
 //                             received (bare JSON, one per line, no Content-Length header, no "jsonrpc" member).
+//   emit-<method>[-<k>].txt  raw wire lines (one per line) written right after that method's reply (ED-NEW-ma-engine-7).
 //   exit-status.txt          the exit code once stdin closes (missing: 0).
 // The run also exits on its own after 45 real seconds with no new stdin line, well past this file's own 20 and
 // 30 second production watchdogs, so a test proving one of those does not leave the process (and its reader
@@ -137,6 +138,17 @@ internal static class CodexStandIn
             }
             Console.Out.Write(reply);
             Console.Out.Write('\n');
+            // PORT-ONLY (R-TEST-8, ED-NEW-ma-engine-7): emit-<method>[-<k>].txt holds raw wire lines (notifications) written right after that method's reply, so a test can script activity on a waiting thread.
+            string emitPath = FirstExisting(dir, "emit-" + safeMethod + "-" + occurrence + ".txt", "emit-" + safeMethod + ".txt");
+            if (emitPath != null)
+            {
+                foreach (string emitted in File.ReadAllLines(emitPath, Encoding.UTF8))
+                {
+                    if (emitted.Length == 0) continue;
+                    Console.Out.Write(emitted);
+                    Console.Out.Write('\n');
+                }
+            }
             Console.Out.Flush();
         }
 

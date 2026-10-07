@@ -6,7 +6,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.Services.Port.MultiAccount;
 
-public sealed class HandshakeStandbySession : IStandbySession
+public sealed class HandshakeStandbySession : IAdoptableStandby
 {
     private readonly ProviderSession session;
     private readonly SemaphoreSlim gate = new(1, 1);
