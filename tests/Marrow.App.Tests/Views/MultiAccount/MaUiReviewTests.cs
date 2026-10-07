@@ -161,7 +161,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
     public void MAUI_002_Ask_others_B_is_an_accessible_composer_action() => headless.OnUiThread(() =>
     {
         // HTML 4804-4811,4855-4871; checklist 5; OD-0115 opinions=B / OD-0120.
-        // RR-49 / ED-NEW-ma-gaps-5 (lead fixture ruling, ED-NEW-ma-wire-lead-1): opinions go only to verified heads, so the action is
+        // RR-49 / ED-NEW-ma-gaps-5 (lead fixture ruling, ED-639): opinions go only to verified heads, so the action is
         // proved on a Claude thread (a verified head); the review's Codex fixture now proves the fail-closed side instead.
         foreach (var (service, offered) in new[] { (ProviderKind.Claude, true), (ProviderKind.Codex, false) })
         {

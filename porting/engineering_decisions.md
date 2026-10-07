@@ -5604,3 +5604,7 @@ Lead (claude/design-gaps-lead), after T9's final group withdrew codex/design-gap
 ## ED-638 - MAUI-002 fixture under RR-49
 
 Lead (claude/ma-gaps-lead), after T9's final group withdrew codex/ma-gaps 121a2a1bd: MaUiReviewTests.MAUI_002 failed twice alone because its fixture is a Codex thread and RR-49 / ED-NEW-ma-gaps-5 (ConversationHeadCapabilities: opinion heads only for verified services) correctly offers no opinion targets from an unverified Codex source. Fixture correction (as the MAUI-046 ruling, T15-review-rulings.md 4): the review assertion "Ask others for this message" is effectively visible is kept byte-identical and proved on a Claude thread with two Claude accounts (a verified head); the original Codex fixture is kept as a new, stricter fail-closed check that the action is NOT shown. ComposerChipRig.Start gains an optional provider argument (default Codex, so every other caller is unchanged). Combined-tree run (T9 candidate dcdcd498a + fixes): MaUiReviewTests, composer chip, AskOthers and Traceability, 134 cases, twice alone, all pass.
+
+## ED-639 - OpinionAnswerRowsTests layout
+
+Lead (claude/ma-wire-fix), after T9's final group withdrew codex/ma-wire c2d74d897 for TraceabilityTests R-TEST-2/3: OpinionAnswerRowsTests declared a nested HeldCombine port. It moves unchanged to Fixtures/OpinionHeldCombine.cs as OpinionHeldCombine; no assertion changes. Traceability and OpinionAnswerRowsTests pass twice alone on the combined tree.
