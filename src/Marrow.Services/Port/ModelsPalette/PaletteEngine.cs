@@ -224,6 +224,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         }
         if(seedChanged)try{store.SaveSeeds(seeds);}catch(IOException){}catch(UnauthorizedAccessException){}
         Progress?.Invoke(new(PaletteRefreshPhase.Applying,0,1));Publish();
+        MarkChecked(); // OD-0127: automatic and manual checks share the real completion clock.
         Progress?.Invoke(new(PaletteRefreshPhase.Done,1,1));
         if(started)
         {

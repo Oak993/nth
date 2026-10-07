@@ -13,7 +13,7 @@
   },
   "verdict": "NOT READY",
   "build": {
-    "receipt": "build-poststrike-verified.log",
+    "receipt": "build-checked-age-final.log",
     "warnings": 0,
     "errors": 0
   },
@@ -107,6 +107,60 @@
       "completed": 0,
       "inProgress": 0,
       "pending": 0
+    },
+    "rr21-checked-age-app-final.trx": {
+      "total": 50,
+      "executed": 50,
+      "passed": 49,
+      "failed": 1,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr21-checked-age-services-final.trx": {
+      "total": 66,
+      "executed": 66,
+      "passed": 66,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr21-checked-age-core-final.trx": {
+      "total": 21,
+      "executed": 21,
+      "passed": 21,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
     }
   },
   "test_scope_note": "Overlapping scopes are not summed. Native OS-guarded passes receive no native credit.",
@@ -166,6 +220,13 @@
     "ED-NEW-models-palette-12",
     "ED-NEW-models-palette-13",
     "ED-NEW-models-palette-14",
-    "ED-NEW-models-palette-15"
-  ]
+    "ED-NEW-models-palette-15",
+    "ED-NEW-models-palette-16"
+  ],
+  "final_clock_fix": "successful engine completion age, independent of palette digest/page construction",
+  "final_palette_tests": {
+    "passed": 29,
+    "failed": 0,
+    "scope": "palette slice of rr21-checked-age-app-final.trx"
+  }
 }

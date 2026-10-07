@@ -25,9 +25,10 @@ internal sealed class PaletteColoursController : IDisposable
     }
     internal PaletteDot? FindMaker(string name)=>engine.Current.Makers.Values.FirstOrDefault(m=>m.Name==name) is {} m?new(m.Id,m.Name,m.Heart):null;
     public void Attach(){if(attached||disposed)return;attached=true;facade=sharedFacade??new(engine,time:time);facade.Changed+=FacadeChanged;Tick();}
-    public void Detach(){if(!attached)return;attached=false;if(facade is {} old){old.Changed-=FacadeChanged;if(sharedFacade is null)old.Dispose();}facade=null;View=View with {Summary=[]};Changed?.Invoke();}
+    public void Detach(){if(!attached)return;attached=false;if(facade is {} old){old.Changed-=FacadeChanged;if(sharedFacade is null)old.Dispose();}facade=null;noChanges=false;View=View with {Summary=[]};Changed?.Invoke();}
     public void Tick(){if(!View.Running&&!offline){View=View with {Detail=Rest()};Changed?.Invoke();}}
-    private string Rest()=>noChanges?"Checked just now · no new models":$"Checked {(hasChecked?UpdatesProjector.Age(time.GetElapsedTime(checkedTick)):"never")} · {engine.Current.Models.Count} models from {engine.Current.Makers.Count} makers";
+    private string When()=>engine.LastCheckedAge is {} age?UpdatesProjector.Age(age):hasChecked?UpdatesProjector.Age(time.GetElapsedTime(checkedTick)):"never";
+    private string Rest()=>noChanges?"Checked just now · no new models":$"Checked {When()} · {engine.Current.Models.Count} models from {engine.Current.Makers.Count} makers";
     private PaletteDot[] Dots()=>engine.Current.Makers.Values.OrderBy(m=>m.Id switch {"anthropic"=>0,"openai"=>1,"google"=>2,"mistralai"=>3,_=>4}).ThenBy(m=>m.Id,StringComparer.Ordinal).Take(5).Select(m=>new PaletteDot(m.Id,m.Name,m.Heart)).ToArray();
     private string Running(int done,int total)=>$"Checking OpenRouter and {providerCount()} providers… {done} of {total} models";
     public Task Refresh()
@@ -66,7 +67,7 @@ internal sealed class PaletteColoursController : IDisposable
             var completed=progress.ModelsTotal>0?progress.ModelsCompleted:View.Completed;
             View=View with {Detail=Running(completed,total),Completed=completed,Total=total};
         }
-        View=View with {Dots=Dots()};Changed?.Invoke();
+        View=View with {Dots=Dots(),Detail=View.Running?View.Detail:Rest()};Changed?.Invoke();
     }
     public void Dispose(){Detach();disposed=true;}
 }

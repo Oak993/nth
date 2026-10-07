@@ -61,3 +61,8 @@ DONE for T9 Windows verification. OD-0127 Colours is now the LAST Appearance car
 ### Round 2 final refresh lifetime
 
 DONE. OD-0127 option A remains the last Appearance card, following the existing rise rule (ED-9 and the lead ruling). The controller now borrows the one process ModelShades facade; leaving the page clears its summary and removes its listener while the engine/facade stay alive. The new fake pipeline lifetime proof passes 1/1 in round2/rr21-shared-refresh.trx, and all palette tests pass 27/27 in the post-Strike replay. ED-NEW-models-palette-15. Exact text, Refresh/Refreshing… state, UpdatesProgressBar, offline preservation and dot/Reduce Motion guards continue to pass. All fourteen locked rise guards are unchanged and pass; the original native input fact requires user32/Windows.
+
+
+### Round 2 final resting-line clock correction
+
+ED-NEW-models-palette-16 (OD-0127) fixes "Checked {when}" to use the engine's actual successful-check time, including an automatic check that republishes no palette. The two fake-pipeline cases failed before the fix and now pass. Leaving the page releases the transient no-new-models outcome; returning shows the normal age/count line. The trailing card, styles, progress, dot motion and all original rise guards remain unchanged. Latest App scope: 49/50 with only the original user32 input failure, including all 29 palette cases; Core 21/21, Services 66/66; full build zero warnings/errors. RR-21 remains DONE; native visual/Windows acceptance remains listed in the final report.

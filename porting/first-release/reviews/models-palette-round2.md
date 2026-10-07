@@ -32,14 +32,15 @@ The original .12 s outer panel transition, callbacks/history guards, effect iden
 
 | Scope | Result | Receipt under `porting/evidence/models-palette/round2/` |
 | --- | --- | --- |
-| Final solution build | 0 warnings / 0 errors | `build-poststrike-verified.log` |
-| Core palette/rules/layering/traceability | 21 passed | `rr20-core-final-poststrike.trx` |
-| Services palette/catalogue/layering/traceability | 66 passed | `rr20-services-poststrike-final.trx` |
-| App fake palette/picker/Colours/real-card/slider/Skia/arrival | 27 passed | `rr20-palette-final.trx` |
+| Final solution build | 0 warnings / 0 errors | `build-checked-age-final.log` |
+| Core palette/rules/layering/traceability | 21 passed | `rr21-checked-age-core-final.trx` |
+| Services palette/catalogue/layering/traceability | 66 passed | `rr21-checked-age-services-final.trx` |
+| App fake palette/picker/Colours/real-card/slider/Skia/arrival/check age | 29 passed | palette slice of `rr21-checked-age-app-final.trx` |
+| Latest affected App palette/rise/traceability scope | 49 passed / 1 native input failure / 0 skipped | `rr21-checked-age-app-final.trx` |
 | Expanded original-record + merged Strike App replay | 525 passed / 4 failed / 0 skipped | `rr41-app-poststrike-final.trx` |
 | UI decoder/architecture + original colour/residual review | 7 passed / 5 failed / 0 skipped | `rr41-ui-residual-poststrike-final.trx` |
 
-Scopes overlap and are not summed. The four App failures are the original title-pixel comparison, `SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs` (user32 unavailable), the Windows `dotnet.exe` measurement-child setup, and the interactive native sixty-second Strike fact. The five UI failures cannot initialize `$Default` GlyphTypeface in this Linux fixture. No assertions, tolerances or references were changed to conceal those results. Native facts which merely return under an OS guard receive no native credit.
+Scopes overlap and are not summed. The expanded App/UI record replays preceded the last resting-age-only fix; the affected palette/rise/architecture scope was replayed afterward. ED-16 adds two initially failing fake cases and makes the resting line follow the actual successful engine check, including unchanged automatic checks, instead of page creation. It uses the existing facade/timer and preserves the no-new-models wording until page leave. The four App failures are the original title-pixel comparison, `SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs` (user32 unavailable), the Windows `dotnet.exe` measurement-child setup, and the interactive native sixty-second Strike fact. The five UI failures cannot initialize `$Default` GlyphTypeface in this Linux fixture. No assertions, tolerances or references were changed to conceal those results. Native facts which merely return under an OS guard receive no native credit.
 
 Test-first compile/behaviour reds remain alongside the green receipts, including exact IR-3 reproduction, source-chain failures, store locks/retries, two-maker concurrency, pack adoption, real picker/card/slider binding and arrival handoff. All model/logo HTTP was fake-only. Both final builds succeeded; the earlier failed parallel-MSBuild receipt is retained. The approved rule table/source SHA check passes.
 
@@ -53,4 +54,4 @@ RR-20 still needs the locked C21 clear living water and Stable Fluids ink arriva
 
 Windows must run the native picker/Colours glass/font/placement/scroll/progress/long-name/offline/leave-return/Reduce Motion/UIA checks; authentic codec/cache lock/adoption tests and separately authorized captured-real-source ten-root convergence; complete page-shell orb/fringe/refraction/inner-shade and ink/all-model ANGLE pixel comparisons; and quiet-PC actual GPU cadence/GC/performance, including the sixty-second server-GC Strike run. Linux manual/headless frames do not substitute for these proofs.
 
-Engineering decisions ED-NEW-models-palette-9..15 append byte-exact. OD-0127 and the locked source provenance remain in the evidence folder. **Verdict: NOT READY.**
+Engineering decisions ED-NEW-models-palette-9..16 append byte-exact. OD-0127 and the locked source provenance remain in the evidence folder. **Verdict: NOT READY.**

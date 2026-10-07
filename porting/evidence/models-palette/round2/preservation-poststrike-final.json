@@ -118,7 +118,7 @@
       "baseline_bytes": 1836128,
       "prefix_preserved": true,
       "baseline_sha256": "78301fbe7afb839a615b6e684a28aec5e4adbdb56a617150a30861c4b1edf36f",
-      "current_sha256": "e33dc6db9baacecc98aacac972fa09e6c793fb3437a04224a12ecbcb78b39691"
+      "current_sha256": "ead8c20fb9ca10e4f4e25ef2dd62c3f766037d2dc954f260b80fbb5c3eedbeac"
     },
     "whole_record_ledger": {
       "prefix_bytes": 282676,
@@ -131,5 +131,6 @@
   },
   "T37_premerge_modified_existing_test_paths": [
     "tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs"
-  ]
+  ],
+  "latest_followup": "ED-NEW-models-palette-16 adds two new tests and a diagnostic service/controller clock, without editing any existing test file or composer seam."
 }
