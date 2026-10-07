@@ -5,6 +5,7 @@ using Marrow.Services.Port.Skills.Fetch;
 
 namespace Marrow.Services.Tests.Port.Skills.Fetch;
 
+[Trait("Decision", "ED-NEW-designgaps-1")]
 public sealed class DesignGapsManualTests
 {
     [Fact]

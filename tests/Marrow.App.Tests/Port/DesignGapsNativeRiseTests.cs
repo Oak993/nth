@@ -10,13 +10,14 @@ using Marrow.UI.Chrome;
 namespace Marrow.App.Tests.Port;
 
 [Collection("Headless")]
+[Trait("Decision", "ED-NEW-designgapsfix-2")]
 public sealed class DesignGapsNativeRiseTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
     [Fact]
     public void The_native_root_stays_at_zero_during_hide_then_restores_after_hide_returns() => WithManager((_, manager) =>
     {
         using var platform = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform());
-        var graph = new DesignGapsNativePresentationTests.Platform();
+        var graph = new DesignGapsFakePlatform();
         using var attach = SettingsNativePresentation.Attach.Override(_ => SettingsNativePresentation.Bind(graph));
         using var rig = new SettingsRiseRig();
         manager.SettingsCloak = rig.Cloak;
@@ -42,7 +43,7 @@ public sealed class DesignGapsNativeRiseTests(HeadlessSession headless) : Settin
     public void A_native_surface_created_on_the_sixth_hidden_frame_gets_its_own_hidden_draw_before_G() => WithManager((_, manager) =>
     {
         using var platform = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform());
-        var graph = new DesignGapsNativePresentationTests.Platform();
+        var graph = new DesignGapsFakePlatform();
         var attempts = 0;
         using var required = SettingsNativePresentation.RequiresSurface.Override(_ => true);
         using var attach = SettingsNativePresentation.Attach.Override(_ => ++attempts < 6 ? null : SettingsNativePresentation.Bind(graph));
@@ -65,7 +66,7 @@ public sealed class DesignGapsNativeRiseTests(HeadlessSession headless) : Settin
     public void Native_blur_waits_hidden_then_follows_glass_and_close_uses_only_the_common_root() => WithManager((_, manager) =>
     {
         using var platform = Chrome.ReduceMotionPlatform.Override(new RenderingGeniePlatform());
-        var graph = new DesignGapsNativePresentationTests.Platform();
+        var graph = new DesignGapsFakePlatform();
         var native = graph._glSurface._window;
         using var attach = SettingsNativePresentation.Attach.Override(_ => SettingsNativePresentation.Bind(graph));
         using var rig = new SettingsRiseRig();

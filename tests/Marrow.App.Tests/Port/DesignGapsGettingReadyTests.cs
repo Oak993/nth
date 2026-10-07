@@ -6,6 +6,7 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Port;
 
 [Collection("Headless")]
+[Trait("Decision", "ED-NEW-designgaps-3")]
 public sealed class DesignGapsGettingReadyTests(HeadlessSession headless)
 {
     [Fact]
