@@ -3787,3 +3787,8 @@ Gates A 7 pass/5 fail (no E:/ pinned reference), B 8 pass, C 1 pass/1 fail/1 uni
 ## ED-NEW-models-palette-10 - RR-20 exact archived IR-3 position (2026-10-07)
 
 Lead ruling expressly retires ONLY `Assert.True(openai.Lookup("gpt-7-mini").Level>1);` in PaletteReferenceTests. OD-0063/0066 make the archived canvas-approved IR-3 authoritative. `porting/evidence/models-palette/round2/reproduce_ir3.py` reproduces `ir3-conflict.json`: gpt-7-mini is strength 1, level 1 of 4 when the supplied gpt-7 makes older members legacy. Replacement asserts the entire exact ModelPalettePosition(1,1,4). Every other byte of the test and every reference/tolerance stays intact. This is an explicit owner/lead exception to the standing no-assertion-edits rule, not an output-driven weakening.
+
+
+## ED-NEW-models-palette-9 - RR-21 trailing Appearance card (2026-10-07)
+
+OD-0127 approves the words and Appearance page, not a card slot. The lead ruling makes Colours the LAST card after Look, the existing rows, Wallpaper and App Zoom. Its title and card enter the unchanged SettingsRise traversal at indices 9 and 10, using the same curve and stagger. SettingsRiseTests and its 14 locked rise guards remain byte-exact; ChromeCard index 1 remains the original four-row card. PaletteColoursRiseTests first failed with Colours inserted before that card and now checks the trailing card, its hidden frame, exact curve and settled frame.
