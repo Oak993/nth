@@ -4201,3 +4201,6 @@ MAUI-001 Link fidelity follow-up: HTML2716/2741-2749 flies the account monogram 
 
 ## ED-NEW-ma-wave1-19
 MAUI-039/043: Settings account row is 46px (HTML142); the full 24/24 rename counter uses the locked hot token, including when opening an already-full name (HTML3867), rather than the generic danger red. No test changes.
+
+## ED-NEW-ma-wave1-20
+MAUI-049 DISPUTED-ACCEPTED composed proof: preserve the painter-only review test unchanged/red. Supplemental proof compares the actual incoming shared capsule face byte-for-byte with an independent shared capsule for plain plus all 12 styles, light/dark and Reduce Motion (52 cases), and pins parent composition, nonzero painted pixels, noninteractive ghost, exact locked placement/scale/opacity. No synthetic painter capsule or production Handshake source change.
