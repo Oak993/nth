@@ -322,7 +322,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         }
         active = current;
         resolution = resolved;
-        transcriber = new StreamingTranscriber(seams.Engine, resolved.Language);
+        transcriber = new StreamingTranscriber(seams.Engine, resolved.Language, current.LiveWords);
         shown = [];
         detectedLanguage = null;
         suppressSend = false;
@@ -447,7 +447,7 @@ public sealed class VoiceSession : IAudioCaptureSink
 
     private void PumpPasses()
     {
-        if (state != VoiceSessionState.Listening || passTask is not null || transcriber is not { } current) return;
+        if (state != VoiceSessionState.Listening || active?.LiveWords == false || passTask is not null || transcriber is not { } current) return;
         if (current.DuePass is not { } pass) return;
         var gen = generation;
         var wait = loadWait;

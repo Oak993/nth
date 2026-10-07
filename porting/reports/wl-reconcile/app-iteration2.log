@@ -1,0 +1,126 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:05:16.37]     Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "cloudsea") [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "cloudsea") [42 ms]
+  Error Message:
+   static/cloudsea/dynamic-dusk/Golden/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/dynamic-dusk/Golden/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/dynamic-dusk/Golden/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/dynamic-dusk/Golden/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/match-accent/Match accent/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/match-accent/Match accent/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/match-accent/Match accent/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/match-accent/Match accent/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/full-focus/Golden/dark/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/full-focus/Golden/light/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/perspective/Golden/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/perspective/Golden/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/intermediate-focus/Golden/dark/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/intermediate-focus/Golden/light/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/authored-focus/Golden/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+static/cloudsea/authored-focus/Golden/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: Static/cloudsea: error: program is too large
+1 error
+
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.WallpaperFidelityAssertions.Compare(String collection, String wallpaper, Boolean premium, ITestOutputHelper output) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityAssertions.cs:line 37
+   at Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(String wallpaper) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/StaticWallpaperFidelityTests.cs:line 19
+   at InvokeStub_StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:06:28.08]     Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "pleat") [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "pleat") [4 s]
+  Error Message:
+   animated/pleat/dynamic-dusk/coral/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000299 <= 0.010; max 0.314495 <= 0.080 at (93,76); reference f05827c24548666f56338cb8001ca023499ec40c2478fcb69cb07f2d5b74aa7a
+animated/pleat/dynamic-dusk/coral/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000288 <= 0.010; max 0.315667 <= 0.080 at (30,43); reference 0ec42de19cd7460aad27580ee45a7ce3f466640393dc782352b69e8704bd51fc
+animated/pleat/dynamic-dusk/coral/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000284 <= 0.010; max 0.329346 <= 0.080 at (30,43); reference b7af7adce183229e83ab8d7c6c66a3b41babdbfaf8c8283c60aa5ebb14c0a1c8
+animated/pleat/dynamic-dusk/coral/dark/t=32/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000286 <= 0.010; max 0.351375 <= 0.080 at (30,43); reference 82e2b415ac81a727550082d88532e8d2e50cf15eb94e2b175349a81a0ab236b8
+animated/pleat/dynamic-dusk/coral/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000221 <= 0.010; max 0.214761 <= 0.080 at (93,76); reference 63e726d98f796e47476efb07d968a93012f21c9bd0df2da9ec3ced75f866d1fa
+animated/pleat/dynamic-dusk/coral/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000231 <= 0.010; max 0.223817 <= 0.080 at (30,43); reference 4445b6b4a1166f1707746a29c22fa99827640e2165835da214e14019b725c428
+animated/pleat/dynamic-dusk/coral/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000224 <= 0.010; max 0.231047 <= 0.080 at (30,43); reference bd15b9fa20a5a42b39a831fa9299b894a7e05a1a1923ce84a6fbfc8aaf4d85be
+animated/pleat/dynamic-dusk/coral/light/t=32/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000230 <= 0.010; max 0.241914 <= 0.080 at (30,43); reference 78dba6ca226266fc53185963db00850560a894304e50028d094a8b3edd7cf97d
+animated/pleat/match-accent/match/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000280 <= 0.010; max 0.300765 <= 0.080 at (30,43); reference 6ddf700bd0a65e95836c3e878e5ad63e39d726cf8a331e1b92b8a2b83f5950eb
+animated/pleat/match-accent/match/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000277 <= 0.010; max 0.318035 <= 0.080 at (30,43); reference c078c194d4eab1d155a17133d27bd74c79c773fcae8f468406ce4dfb10dda183
+animated/pleat/match-accent/match/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000267 <= 0.010; max 0.337865 <= 0.080 at (30,43); reference e55b2d1dba989a59b9a03fdbcc9f85b3f69e7885c528530b0c45b408013f61eb
+animated/pleat/match-accent/match/dark/t=32/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000274 <= 0.010; max 0.358598 <= 0.080 at (30,43); reference 70ae564f6de6c880248e777b3afcaf800d60dd6beacdebb63fc93ae4b75a70c1
+animated/pleat/match-accent/match/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000213 <= 0.010; max 0.229835 <= 0.080 at (30,43); reference bd61444e695f584e3e1154144cf6e24fbaa4df283585350a2629e63ca433bb54
+animated/pleat/match-accent/match/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000229 <= 0.010; max 0.228863 <= 0.080 at (30,43); reference a2b0cd36ff7f0c839203841aba176674c72746c9e16302bbf104bba2d9208030
+animated/pleat/match-accent/match/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000225 <= 0.010; max 0.249357 <= 0.080 at (30,43); reference 9bc5fabec7dd8437a22a2022e2e37bdfdff7806f049af7d4d38da65a76416f50
+animated/pleat/match-accent/match/light/t=32/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000220 <= 0.010; max 0.249110 <= 0.080 at (30,43); reference ed4153c9e6a31966ed926ec8ade7bb0ddbab29f4a9abd9123781629a5db11429
+animated/pleat/perspective/coral/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000300 <= 0.010; max 0.310075 <= 0.080 at (26,65); reference ba4ab823c3afe69a6966b48c3363c17c25a4da075985528b03943f9b9e72a060
+animated/pleat/perspective/coral/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000286 <= 0.010; max 0.336304 <= 0.080 at (26,65); reference 2d49d1b2f96a61d92b8255d37a7c349efec5364f422e9aff6fc4f3dfdd9577b2
+animated/pleat/perspective/coral/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000224 <= 0.010; max 0.216389 <= 0.080 at (26,65); reference 0de5d0c84703d8bb30c6faf117ae8d7ffb4bf3408380515111736492e6f59730
+animated/pleat/perspective/coral/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000226 <= 0.010; max 0.230945 <= 0.080 at (26,65); reference 62003ba86668e549dafdedd279bc1e0b20a3f7b513ef4274c71e2685f8bf901d
+animated/pleat/authored-focus/coral/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000297 <= 0.010; max 0.334053 <= 0.080 at (30,43); reference 11ef0f7f61050d276daace0a771947b0546d348d7e39aeefdaac68d72fe26e8d
+animated/pleat/authored-focus/coral/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000290 <= 0.010; max 0.371041 <= 0.080 at (30,43); reference 5fa8b51b43f0022ba8c951cc8ac6f083b666e167c6b46288e98bd29c1da33773
+animated/pleat/authored-focus/coral/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000232 <= 0.010; max 0.230901 <= 0.080 at (30,43); reference 57496d7a62cfa7d8b8c249b15aea7d1cd4e18a188ce4278a5d7d4e43aabfaa38
+animated/pleat/authored-focus/coral/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000232 <= 0.010; max 0.251439 <= 0.080 at (30,43); reference 5c4e6f696e1ad7bbc0bfdcc0d6806fc6fd1253b7594da8d76b1ebc8e5ca07742
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.WallpaperFidelityAssertions.Compare(String collection, String wallpaper, Boolean premium, ITestOutputHelper output) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityAssertions.cs:line 37
+   at Marrow.App.Tests.Wallpapers.AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_dusk_accent_and_full_focus(String wallpaper) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/AnimatedWallpaperFidelityTests.cs:line 19
+   at InvokeStub_AnimatedWallpaperFidelityTests.Every_animated_wallpaper_matches_dusk_accent_and_full_focus(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Standard Output Messages:
+ animated/pleat/dynamic-dusk/coral/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000299 <= 0.010; max 0.314495 <= 0.080 at (93,76); reference f05827c24548666f56338cb8001ca023499ec40c2478fcb69cb07f2d5b74aa7a
+ animated/pleat/dynamic-dusk/coral/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000288 <= 0.010; max 0.315667 <= 0.080 at (30,43); reference 0ec42de19cd7460aad27580ee45a7ce3f466640393dc782352b69e8704bd51fc
+ animated/pleat/dynamic-dusk/coral/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000284 <= 0.010; max 0.329346 <= 0.080 at (30,43); reference b7af7adce183229e83ab8d7c6c66a3b41babdbfaf8c8283c60aa5ebb14c0a1c8
+ animated/pleat/dynamic-dusk/coral/dark/t=32/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000286 <= 0.010; max 0.351375 <= 0.080 at (30,43); reference 82e2b415ac81a727550082d88532e8d2e50cf15eb94e2b175349a81a0ab236b8
+ animated/pleat/dynamic-dusk/coral/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000221 <= 0.010; max 0.214761 <= 0.080 at (93,76); reference 63e726d98f796e47476efb07d968a93012f21c9bd0df2da9ec3ced75f866d1fa
+ animated/pleat/dynamic-dusk/coral/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000231 <= 0.010; max 0.223817 <= 0.080 at (30,43); reference 4445b6b4a1166f1707746a29c22fa99827640e2165835da214e14019b725c428
+ animated/pleat/dynamic-dusk/coral/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000224 <= 0.010; max 0.231047 <= 0.080 at (30,43); reference bd15b9fa20a5a42b39a831fa9299b894a7e05a1a1923ce84a6fbfc8aaf4d85be
+ animated/pleat/dynamic-dusk/coral/light/t=32/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000230 <= 0.010; max 0.241914 <= 0.080 at (30,43); reference 78dba6ca226266fc53185963db00850560a894304e50028d094a8b3edd7cf97d
+ animated/pleat/match-accent/match/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000280 <= 0.010; max 0.300765 <= 0.080 at (30,43); reference 6ddf700bd0a65e95836c3e878e5ad63e39d726cf8a331e1b92b8a2b83f5950eb
+ animated/pleat/match-accent/match/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000277 <= 0.010; max 0.318035 <= 0.080 at (30,43); reference c078c194d4eab1d155a17133d27bd74c79c773fcae8f468406ce4dfb10dda183
+ animated/pleat/match-accent/match/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000267 <= 0.010; max 0.337865 <= 0.080 at (30,43); reference e55b2d1dba989a59b9a03fdbcc9f85b3f69e7885c528530b0c45b408013f61eb
+ animated/pleat/match-accent/match/dark/t=32/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000274 <= 0.010; max 0.358598 <= 0.080 at (30,43); reference 70ae564f6de6c880248e777b3afcaf800d60dd6beacdebb63fc93ae4b75a70c1
+ animated/pleat/match-accent/match/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000213 <= 0.010; max 0.229835 <= 0.080 at (30,43); reference bd61444e695f584e3e1154144cf6e24fbaa4df283585350a2629e63ca433bb54
+ animated/pleat/match-accent/match/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000229 <= 0.010; max 0.228863 <= 0.080 at (30,43); reference a2b0cd36ff7f0c839203841aba176674c72746c9e16302bbf104bba2d9208030
+ animated/pleat/match-accent/match/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000225 <= 0.010; max 0.249357 <= 0.080 at (30,43); reference 9bc5fabec7dd8437a22a2022e2e37bdfdff7806f049af7d4d38da65a76416f50
+ animated/pleat/match-accent/match/light/t=32/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000220 <= 0.010; max 0.249110 <= 0.080 at (30,43); reference ed4153c9e6a31966ed926ec8ade7bb0ddbab29f4a9abd9123781629a5db11429
+ animated/pleat/full-focus/coral/dark/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000933 <= 0.010; max 0.005215 <= 0.080 at (100,0); reference feea7af3fc839afedc7a17c673278136457e1b40949016496e2ea36a40a31674
+ animated/pleat/full-focus/coral/dark/t=32/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000909 <= 0.010; max 0.005270 <= 0.080 at (99,0); reference 8f9d55563231a704474cba0386b9847303be8335d8d25e306fadb1958083529a
+ animated/pleat/full-focus/coral/light/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000784 <= 0.010; max 0.003382 <= 0.080 at (131,30); reference 9e7ce7b3a9cc2dd467b8a47d4b0f15363f48282252dcc5d60c0afb81e70e1cc3
+ animated/pleat/full-focus/coral/light/t=32/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000783 <= 0.010; max 0.003328 <= 0.080 at (153,72); reference 1fdf3149eae827ad802f481ccacdffa2bbec37a496a5c98c6e78674516b44523
+ animated/pleat/perspective/coral/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000300 <= 0.010; max 0.310075 <= 0.080 at (26,65); reference ba4ab823c3afe69a6966b48c3363c17c25a4da075985528b03943f9b9e72a060
+ animated/pleat/perspective/coral/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000286 <= 0.010; max 0.336304 <= 0.080 at (26,65); reference 2d49d1b2f96a61d92b8255d37a7c349efec5364f422e9aff6fc4f3dfdd9577b2
+ animated/pleat/perspective/coral/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000224 <= 0.010; max 0.216389 <= 0.080 at (26,65); reference 0de5d0c84703d8bb30c6faf117ae8d7ffb4bf3408380515111736492e6f59730
+ animated/pleat/perspective/coral/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000226 <= 0.010; max 0.230945 <= 0.080 at (26,65); reference 62003ba86668e549dafdedd279bc1e0b20a3f7b513ef4274c71e2685f8bf901d
+ animated/pleat/intermediate-focus/coral/dark/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000521 <= 0.010; max 0.032652 <= 0.080 at (38,53); reference 14e0f464340e96a1602a91526be2a037d0f2699382b9b8d6befcb40ec2276bc4
+ animated/pleat/intermediate-focus/coral/dark/t=32/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000530 <= 0.010; max 0.048630 <= 0.080 at (38,53); reference 6e522acda3b2fe210939b9897e737312c793dd018c4b505e8802eaf9445562ae
+ animated/pleat/intermediate-focus/coral/light/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000444 <= 0.010; max 0.022636 <= 0.080 at (38,53); reference 86564610d2bbba594ad3f728d2b5d72012d4d4b20260fe492ba3b8ca1125a045
+ animated/pleat/intermediate-focus/coral/light/t=32/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000457 <= 0.010; max 0.033806 <= 0.080 at (38,53); reference e8662afbb485ba379f7e4bbbe79f1698d9d0c0b6a9cd39daae37fd52f11b5ee6
+ animated/pleat/authored-focus/coral/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000297 <= 0.010; max 0.334053 <= 0.080 at (30,43); reference 11ef0f7f61050d276daace0a771947b0546d348d7e39aeefdaac68d72fe26e8d
+ animated/pleat/authored-focus/coral/dark/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000290 <= 0.010; max 0.371041 <= 0.080 at (30,43); reference 5fa8b51b43f0022ba8c951cc8ac6f083b666e167c6b46288e98bd29c1da33773
+ animated/pleat/authored-focus/coral/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000232 <= 0.010; max 0.230901 <= 0.080 at (30,43); reference 57496d7a62cfa7d8b8c249b15aea7d1cd4e18a188ce4278a5d7d4e43aabfaa38
+ animated/pleat/authored-focus/coral/light/t=32/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000232 <= 0.010; max 0.251439 <= 0.080 at (30,43); reference 5c4e6f696e1ad7bbc0bfdcc0d6806fc6fd1253b7594da8d76b1ebc8e5ca07742
+
+
+Attempting to cancel the build...

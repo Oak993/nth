@@ -1,0 +1,748 @@
+{
+  "browser": "151.0.7922.173",
+  "manifestSha256": "fda5a5fb47627cdfc50e6b8d5e6a40d9bef657b3e7413986aa7c6184295b8f64",
+  "referenceFrames": 5148,
+  "es2ExactDecompositionChecks": 262144,
+  "geometryChecks": [
+    {
+      "geometry": "tunnel-default",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-default",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-default",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    },
+    {
+      "geometry": "tunnel-perspective",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-perspective",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-perspective",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    },
+    {
+      "geometry": "stairwell-default",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-default",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-default",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    },
+    {
+      "geometry": "stairwell-perspective",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-perspective",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-perspective",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    }
+  ],
+  "failingPixels": [
+    {
+      "label": "static/tunnel/default/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.29136874433582466,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/default/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.1916971910056195,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/default/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.45146834703642286,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/default/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.2667090232364467,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/quiet/Pearl/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "7ca23eccec92e822848cfcb9163f8d22269ee543e22e6326e649b459c7af083d.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.3012201383538131,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/quiet/Pearl/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "7ca23eccec92e822848cfcb9163f8d22269ee543e22e6326e649b459c7af083d.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.18610895717706594,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/quiet/Pearl/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "7282e3647c93bfb1e6ab16427873ee4afdd76e01c34ef5f88b7122de65e549d4.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.4554195411932972,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/quiet/Pearl/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "7282e3647c93bfb1e6ab16427873ee4afdd76e01c34ef5f88b7122de65e549d4.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.2711340518490301,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/rich/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.29136874433582466,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/rich/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.1916971910056195,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/rich/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.45146834703642286,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/rich/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.2667090232364467,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "76e03c7c6cdb7c4af988be4c315bfaee28f1da9631c14269a31ed48ed12e83be.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.30618753856287095,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "76e03c7c6cdb7c4af988be4c315bfaee28f1da9631c14269a31ed48ed12e83be.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.20793263714333324,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "bb8146af7cd971c2a02eab6569a2c8adb2648fa8a976116bb114f1cd0dd8820b.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.3003625138347622,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "bb8146af7cd971c2a02eab6569a2c8adb2648fa8a976116bb114f1cd0dd8820b.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.20786708994411515,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "aa05b3f8a6f63d11c3ec696871f486c495508bdb83670da23e5f393faa6146c2.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.4878096123603599,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "aa05b3f8a6f63d11c3ec696871f486c495508bdb83670da23e5f393faa6146c2.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.26136806894526965,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "3acf29c5e28d49a9cdff226bfb074297ca882f4e3465d350edc6fc7dcc1da3df.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.4708038950524985,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "3acf29c5e28d49a9cdff226bfb074297ca882f4e3465d350edc6fc7dcc1da3df.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.26494669340586874,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "f16fae65f3b7247f2d3204a3fd5b4545f95bc6c66ec564c164e8d20ebd3c09fe.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.2981503064689765,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "f16fae65f3b7247f2d3204a3fd5b4545f95bc6c66ec564c164e8d20ebd3c09fe.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.18351613549722978,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]",
+      "reference": "429df5893f7b1534601bf94862bb0183cf30cf369e2f60bec82529a6f26f6829.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.2907028758482831,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]",
+      "reference": "429df5893f7b1534601bf94862bb0183cf30cf369e2f60bec82529a6f26f6829.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.189662886872245,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "b91a33d8f43f92d576694be4ec45ca0524dacb4ac70cec373110321f8346e887.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.45079415397164674,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "b91a33d8f43f92d576694be4ec45ca0524dacb4ac70cec373110321f8346e887.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.2643932859910945,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]",
+      "reference": "7225467349c1c3fa267a9e235f5b54135c3bb9f493063f0c2bfef7b9927f24f5.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.4541491154576348,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]",
+      "reference": "7225467349c1c3fa267a9e235f5b54135c3bb9f493063f0c2bfef7b9927f24f5.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.2455408655028898,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/perspective/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]",
+      "reference": "4ff65e3fea25f15ffd031cd29be6cee393481fa037cbc2d27ecbf194cf916a83.png",
+      "X": 62,
+      "Y": 45,
+      "Delta": 0.2994584428592594,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 5.304813385009766e-06,
+        "skia": -3.975629806518555e-05,
+        "predicted": 5.304813385009766e-06
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/perspective/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]",
+      "reference": "4ff65e3fea25f15ffd031cd29be6cee393481fa037cbc2d27ecbf194cf916a83.png",
+      "X": 128,
+      "Y": 64,
+      "Delta": 0.16731591740380247,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 5.125999450683594e-06,
+        "skia": -4.3272972106933594e-05,
+        "predicted": 5.066394805908203e-06
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/perspective/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]",
+      "reference": "9a959b07635c938027ae474d79d966a97873aa006e86f5e014f066d7faffc024.png",
+      "X": 129,
+      "Y": 44,
+      "Delta": 0.08131909870451684,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 4.26173210144043e-05,
+        "skia": -6.139278411865234e-06,
+        "predicted": 4.26173210144043e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/perspective/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]",
+      "reference": "9a959b07635c938027ae474d79d966a97873aa006e86f5e014f066d7faffc024.png",
+      "X": 62,
+      "Y": 45,
+      "Delta": 0.45501810793819536,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 5.304813385009766e-06,
+        "skia": -3.975629806518555e-05,
+        "predicted": 5.304813385009766e-06
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/perspective/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]",
+      "reference": "9a959b07635c938027ae474d79d966a97873aa006e86f5e014f066d7faffc024.png",
+      "X": 128,
+      "Y": 64,
+      "Delta": 0.18415866178612442,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 5.125999450683594e-06,
+        "skia": -4.3272972106933594e-05,
+        "predicted": 5.066394805908203e-06
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/intermediate-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]",
+      "reference": "a0604a4500e0b66c138be29b66d3b6ab73cc5518984508c3b90675773308f13f.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.11487966286339059,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/authored-focus/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.29136874433582466,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/authored-focus/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.1916971910056195,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/tunnel/authored-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453.png",
+      "X": 65,
+      "Y": 28,
+      "Delta": 0.45146834703642286,
+      "threshold": 0,
+      "sheet": 3,
+      "values": {
+        "swift": 2.5212764739990234e-05,
+        "skia": -2.4020671844482422e-05,
+        "predicted": 2.5212764739990234e-05
+      },
+      "referenceBranch": 3,
+      "beforeBranch": 4,
+      "predictedBranch": 3
+    },
+    {
+      "label": "static/tunnel/authored-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]",
+      "reference": "9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453.png",
+      "X": 152,
+      "Y": 67,
+      "Delta": 0.2667090232364467,
+      "threshold": 0,
+      "sheet": 0,
+      "values": {
+        "swift": -1.9073486328125e-06,
+        "skia": 2.2649765014648438e-05,
+        "predicted": -1.9073486328125e-06
+      },
+      "referenceBranch": 1,
+      "beforeBranch": 0,
+      "predictedBranch": 1
+    },
+    {
+      "label": "static/stairwell/perspective/Terracotta/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]",
+      "reference": "3b569de5a7392a48e262921362c00ed1485dcd5d862c38c3c613bf60541d19fb.png",
+      "X": 131,
+      "Y": 25,
+      "Delta": 0.08566000216112701,
+      "threshold": 0.05999999865889549,
+      "sheet": null,
+      "values": {
+        "swift": 0.059897541999816895,
+        "skia": 0.060013532638549805,
+        "predicted": 0.059897541999816895
+      },
+      "referenceBranch": 0,
+      "beforeBranch": 1,
+      "predictedBranch": 0
+    }
+  ],
+  "affectedFrames": 44,
+  "framePixelBranchChecks": 704000,
+  "failingFrames": 20
+}

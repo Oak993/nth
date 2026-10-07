@@ -18,7 +18,11 @@ public enum VoiceStopReason { Click, Cap, DeviceEvent, ComposerLeft, AnotherOrb 
 public enum VoiceNoteKind { Cancelled, NoSpeech, Blocked, NoMicrophone, CaptureFailed, ModelLoadFailed, EngineFailed }
 
 /// <summary>What a session reads when a click begins one: the two settings records, Windows' display language, the model to load.</summary>
-public sealed record VoiceSessionSettings(VoiceOrbSettings Orb, VoiceTypingSettings Typing, string? WindowsUiLanguage, SpeechModel? Model);
+public sealed record VoiceSessionSettings(VoiceOrbSettings Orb, VoiceTypingSettings Typing, string? WindowsUiLanguage, SpeechModel? Model)
+{
+    // VT-15, V-7.7: the hardware record is read once at the start, so a setting never changes a running session.
+    public bool LiveWords { get; init; } = true;
+}
 
 /// <summary>Why a batch of operations was sent: a live pass, the final pass, Landing's ink, or the withdraw after a cancel (V-8.6).</summary>
 public enum TranscriptUpdateKind { Live, Final, Landing, Withdraw }
