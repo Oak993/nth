@@ -15,9 +15,14 @@ namespace Marrow.App.Tests.Port.MultiAccount;
 [Trait("Rule", "R-TEST-4")]
 public sealed class LiveViewLifetimeTests(HeadlessSession headless)
 {
+    private static void LoadLogin() => System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+
     [Fact]
     public void The_production_link_host_mounts_and_suspends_its_real_model_on_detach_and_shutdown()
     {
+        // The login environment loads off the UI thread first, as every other ThreadRuntime rig test does: PrepareBootstrap waits
+        // on it synchronously, which inside OnUiThread deadlocks against its own continuation on Windows (ED-NEW-ma-wire-lead-1).
+        LoadLogin();
         headless.OnUiThread(() =>
         {
             using var reader = MultiAccountRouting.LimitsReader.Override((_, _, _) => Task.FromResult<PlanLimits?>(null));
