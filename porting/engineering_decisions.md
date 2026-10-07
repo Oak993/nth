@@ -4190,16 +4190,11 @@ MAUI-034/035/036/037/038: card explanation retains accessible full Text while em
 
 ## ED-NEW-ma-wave1-17
 MAUI-046/047: step defaults use the existing floating presenter, with real SmallSwitch binding for Same as the account and the existing effort card; no inline expansion. Minimum-two refusal follows HTML4466 300ms 0/-4/+4/0 keyframes with CSS ease per segment; Reduce Motion uses opacity feedback. Legacy inline-open assertion stays unchanged for lead disposition.
-<<<<<<< HEAD
-
-## ED-NEW-ma-wave1-18
-MAUI-001 Link fidelity follow-up: HTML2716/2741-2749 flies the account monogram from its actual rectangle, not the row number. Link adapter now anchors on retained row.LinkMark; no T16 file changed. New monogram proof failed alone twice first. The protected old number-origin assertion remains for lead disposition.
-=======
 
 
 ## ED-NEW-ma-wave2-15
 MAUI-005/008/009/011/015/050: popover shell padding is 6px; grip is 16x24; the number is an 18px rounded capsule with the final --seg token, .num semibold app font and disabled opacity applied to the whole pill; percentages use the retained app font; footer is a 1px divided Border with 8/8/6 padding, top margin4 and 16px line height. Bar fill follows the locked .6s (.32,.72,0,1) curve. Final .aoff grip opacity .42 is applied while the normal grip retains .8. Each new finding failed alone twice; all popover review except disputed 004 + existing popover cases except the documented old account-slider aria collision pass 37/37, build 0 warnings/errors. No tests changed.
->>>>>>> origin/codex/ma-wave2
 
-## ED-NEW-ma-wave1-19
-MAUI-039/043: Settings account row is 46px (HTML142); the full 24/24 rename counter uses the locked hot token, including when opening an already-full name (HTML3867), rather than the generic danger red. No test changes.
+
+## ED-NEW-ma-wave1-18
+MAUI-001 Link fidelity follow-up: HTML2716/2741-2749 flies the account monogram from its actual rectangle, not the row number. Link adapter now anchors on retained row.LinkMark; no T16 file changed. New monogram proof failed alone twice first. The protected old number-origin assertion remains for lead disposition.
