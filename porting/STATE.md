@@ -680,3 +680,10 @@ Branch codex/f-wl-1 from requested base 0eb930d1d6d4611ac6654564ea52b3409b465666
 ### T9 Batch 10: VT16 HELD after unchanged Windows failure
 
 Input 502b082e66730796da75f8297bf9fb8df43e3e0c; verification merge 342f24659e791616219d91e6af4df1f35328fb23. The existing cloud-row disabled-button assertion (VoiceTypingSettingsPageTests.cs:80) failed alone twice on the full group and passed alone twice after reverting only VT16 on an owned scratch branch. The VT16 merge is reverted; historical ED-390 / STATE append bytes remain intact. VT15, WL-fix and icon D remain. No assertion, tolerance, reference or production repair was made. Evidence: E:/Droppy/work/scratch/codex-merge-train/batch10/group/bisect-vt16/.
+
+
+## GAP-2 Windows finish - motion/placeholder/plate verified; palette decision pending (2026-10-07)
+
+Owner's local finish on codex/gap-2-fix after the required no-ff merge of origin/claude/verify-terminal-20261001 4e6e236c1. Tested production/test head e3601f4e2: final Windows build 0 warnings/errors; App GAP 7 pass / 1 fail / 0 skip twice; full Port.Settings/Customization 373 pass / 1 fail / 0 skip twice; ComposerView/attachment/Traceability 172 pass / 0 fail / 0 skip twice. Only failing identity is the retained GAP composer/preview palette equality. Motion follows the exact design curve at recorded quantized times, zero added margin, locked ease and 15 percent cap unchanged. Unchanged plate pixel comparison and both panel/attachment structure cases pass twice.
+
+NOT READY: palette is the sole open item in this commissioned App finish, awaiting owner adjudication from both verified Chrome appearances. Active Model light CSS inputs #A14827/#D47E58 remain identical in both; page state/background/ink/composer slot and pixels prove the appearance switched. Both palette tests remain unchanged as ordered. ED-NEW-gap2-windows-2/3/4; porting/first-release/reports/GAP-2-Windows/{Chrome-palette,Windows-verification}.md. No task, implementation unit, DONE marker, native/global release gate or owner visual acceptance is advanced.

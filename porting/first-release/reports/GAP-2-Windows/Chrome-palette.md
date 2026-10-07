@@ -35,6 +35,12 @@ The GAP equality requires composer dark `#CC6B47,#E0875F` and light `#B85A38,#CC
 
 ## Frozen captures and reproducibility
 
+An additional capture selects **Uiverse light > Colours > Model** through the page's actual controls. The visible caption is “Uiverse light · Claude colours · 12 s a turn”. Its rendered `.g-aura` has computed CSS inputs `--au-c1: rgb(161,72,39)` and `--au-c2: rgb(212,126,88)` in both appearances: the identical pair reaches the active light, not merely an unused model method. `chrome-claude-model.json` binds both PNG hashes, theme state, computed input values and sampled pixels. The original default-style captures above are untouched. `render-claude-model.cjs` repeats the focused scenario into a new empty directory and refuses to overwrite captures.
+
+![Dark active Model colors](claude-model-dark.png)
+
+![Light active Model colors](claude-model-light.png)
+
 ![Dark Claude preview menu](claude-dark.png)
 
 ![Light Claude preview menu](claude-light.png)
