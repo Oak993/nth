@@ -12,13 +12,16 @@
 #        for each identity whose pill has specks under V-T133's unchanged detector)
 #   2. python make-pill-design-refs.py <dump folder> [<design html> <options html>]
 # Needs Chrome (C:/Program Files/Google/Chrome/Application/chrome.exe), numpy and Pillow. It starts only its own Chrome processes (each exits after its screenshot).
-import sys, os, re, json, math, hashlib, subprocess, tempfile, shutil
+import sys, os, re, json, math, hashlib, subprocess, tempfile, shutil, base64
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.environ.get('PILL_REF_OUT') or os.path.join(HERE, 'ref-pill-design')
 CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+# T33 lead decision 1 (OD-0123/0125): exact upright 600 face embedded in Avalonia.Fonts.Inter 12.1.2.
+FONT = os.path.join(HERE, 'Inter-SemiBold.ttf')
+FONT_DATA = base64.b64encode(open(FONT, 'rb').read()).decode('ascii')
 DESIGN = sys.argv[2] if len(sys.argv) > 2 else 'E:/Droppy/work/voice/design/voice-composer.html'
 OPTIONS = sys.argv[3] if len(sys.argv) > 3 else 'E:/Droppy/work/design/decisions-2026-10-03/voice-options/voice-options.html'
 PAGE = open(DESIGN, encoding='utf-8').read().split('\n')
@@ -61,7 +64,8 @@ def render(tag, dump, work, ink):
 .vpill .pl{background-image:none!important;color:#000!important}''' if ink else ''
     fs = state['labels'][0]['fontSize']
     html = f'''<!doctype html><html><head><meta charset="utf-8"><style>
-:root{{--app:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;--ez:cubic-bezier(.2,.8,.2,1);{DARK if dark == 'True' else LIGHT}}}
+@font-face{{font-family:"Pill Inter";src:url(data:font/ttf;base64,{FONT_DATA}) format("truetype");font-style:normal;font-weight:600}}
+:root{{--app:"Pill Inter";--ez:cubic-bezier(.2,.8,.2,1);{DARK if dark == 'True' else LIGHT}}}
 html,body{{margin:0;padding:0;overflow:hidden;background:{'#fff' if ink else '#000'}}}
 *{{transition:none!important;animation:none!important}}
 {RULES}
@@ -125,7 +129,7 @@ if __name__ == '__main__':
     version = 'Chrome ' + ','.join(d for d in os.listdir(app) if re.fullmatch(r'\d+(\.\d+){3}', d))
     manifest = {
         'decision': 'OD-0125', 'generator': 'tests/fixtures/voice/make-pill-design-refs.py', 'chrome': version,
-        'sources': {'voice-composer.html': sha(DESIGN), 'voice-options.html': sha(OPTIONS)},
+        'sources': {'voice-composer.html': sha(DESIGN), 'voice-options.html': sha(OPTIONS), 'Inter-SemiBold.ttf': sha(FONT)},
         'identities': {t: {'render': f'render-{t}.png', 'ink': f'ink-{t}.png', 'crop': done[t]} for t in tags},
         'files': files,
     }
