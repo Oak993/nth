@@ -1,57 +1,68 @@
-# T37 Models and palette — Round 2 final lead-ruling report
+# T37 Models and palette — Round 2 report
 
-Branch: `codex/models-palette`. Verdict: **NOT READY**. This final report supersedes the initial Round 2 checkpoint preserved in `round2/summary-initial-round2.json` and Git history. Per-row reports retain their earlier text and append the ruling follow-ups.
+Branch: `codex/models-palette`. **Verdict: NOT READY for release acceptance.** This update replaces the previous checkpoint; earlier reports and receipts remain in Git history and the evidence folder.
 
-| Row | Result | Delivered and remaining |
+| Row | Result | Current scope |
 | --- | --- | --- |
-| RR-19 | **DONE** | Approved searchable OpenRouter picker is bound to the actual ModelList after T9 merged Strike. Exact search/fold/count clocks/keyboard/card geometry, Choose/Back/history restrictions and Hydra pair callbacks pass fake UI tests. Native glass/font/placement/scroll comparison remains a Windows acceptance need. |
-| RR-20 | **BLOCKED** | Exact archived IR-3 assertion conflict resolved. Complete pack/schema/offline baker, owner/baked authority, frozen reservations/epochs, aliases/tombstones/market boundary, snapshot 0/50 ms Prime, bounded automatic source chain/cache/refresh and all-model composition exist. New adapters feed precomputed rows and selected IR-3 uniforms into the retained Strike, including all five selected-model strands. Authentic first-cut bake evidence and complete visible C21 loading/ink/title/glow/Jewel/bubble-dial/effort-transition renderer remain; the original UI gate stays false. |
-| RR-21 | **DONE** | OD-0127 option A: Colours is the last Appearance card. Exact row/button/detail/progress/summary/offline/dot/Reduce Motion behaviour is fake tested. All fourteen original rise guards pass unchanged. Refresh and future gated cards borrow the single process facade; leaving the page clears the summary and only its own listener. |
-| RR-41 | **BLOCKED for whole-record acceptance; reconciliation complete** | Fifteen complete current records appended (45 JSONL total, preceding 30 byte-exact), including all fields/hashes/inherited qualifications/source methods/cases/residuals. Imported T14 IMPLEMENTED statuses are qualified code-only. No status is promoted; all fifteen whole-record acceptance values remain NOT_GRANTED. Native page-shell/independent proof, the unchanged title-pixel mismatch and five UI font failures remain. |
+| RR-19 | **DONE** | Approved searchable OpenRouter picker and actual ModelList seam remain bound. Mounted model and maker dots now read the shared snapshot and glide under Reduce Motion. Native placement/glass/font/scroll comparison needs Windows. |
+| RR-20 | **DONE implementation and authorised bake fallback** | Complete source-chain/pack/authority/Prime/IR-3 engine and visible snapshot renderer are enabled: real ComposerLights (OD-0089), chip, menu dots, all-model 8:5 tube/strands/title/glow, Jewel/refraction and effort motion. Pending/Router water, loading, v22 fluid/tracers/blur/settle, .8s arrival floor and three-second carried-neutral deadline are implemented. Authentic baked data and native look/performance acceptance remain owner-PC work. |
+| RR-21 | **ALREADY DONE** | OD-0127 option A stays the last Appearance card after all existing cards. Fake refresh/progress/summary/offline/lifetime tests and all fourteen unchanged rise guards pass. |
+| RR-41 | **BLOCKED for whole-record acceptance; reconciliation complete** | Fifteen full current records append to the JSONL, now 60 records. Every field, canonical hash, inherited implementation qualification, current method/source/case evidence and residual is retained. All fifteen acceptance values stay NOT_GRANTED; no parity/UI ledger status is promoted. |
 
-The rise ruling is implemented under ED-9, citing OD-0127: every original Appearance card retains its index; Colours joins the existing rise as the trailing card. ED-10 quotes and replaces only `Assert.True(openai.Lookup("gpt-7-mini").Level>1);` with the exact approved `ModelPalettePosition(1,1,4)` assertion. The archived `reproduce_ir3.py` / `ir3-conflict.json` and byte-derived rule-table check agree. Every other byte in that original test is preserved.
+The full standing branch at `51e39c929c5e6643c5251750685697b11faca9cd` was merged first as `f44096afb`. The merge preserves the entire standing engineering ledger and the exact two T37 insertion blocks from its first parent. The visible work is on top of that merged Strike. The design-sources branch was read without merging it. `visible-preservation.json` records the byte proof.
 
-T9 integration prerequisite was checked before binding: `origin/codex/strike` at `2d618f2177c1c7ad04b369e7a9fe66d2beaab630` is contained in standing `666097b04`. Merge `4f795ba37` imports only that approved Strike branch. Its ledger conflict was resolved by retaining the entire T37 prefix and appending Strike's exact 29,282-byte suffix. The design-sources branch was read without merging it.
+## Visible renderer and assertion rulings
 
-## EffortSlider seams
+Same provider/kind keeps the retained effect, startedAt, lanes/history and phase clocks. Re-spacing glides RGB stops, title, glow and s-driven dials over 1.2s; effort colour takes .3s and motion .6s. A delayed first frame samples the preceding glide at that frame's time. An unrelated snapshot preserves the running GPU from row and material. Known first frames draw directly, and ink plays only after Pending was shown. The arrival floor and three-second deadline use the shared clock, including a paused Reduce Motion timeline. Native blur-filter calls avoid managed wrappers in the glow glide. The worker runs the source's bounded simulation beside rendering and retires on leave.
 
-These are the complete T37 seams relative to merged Strike, **9 added / 3 removed lines**. The palette engine and adapters live in new files.
+ED-17 narrowly replaces the obsolete false/default-null UI gate assertions with true and a real default binding, retaining every other clock/mapping/pixel assertion. ED-20 quotes the original `Assert.Equal(Title(380), Title(400));`: approved ED-238/R6 letter timing continues until about .440s. Its stricter replacement requires a 380/400 difference and exact pixel equality at 480/500 and 500/600, and checks ten additional complete frames. Original morph curves, travel, duration, references and tolerances stay unchanged. Independent unchanged-rig evidence preceded that retirement. The earlier ED-10 IR-3 ranking ruling remains intact.
 
-| Current line | Seam |
-| --- | --- |
-| 129 | OpenRouter-only popup offset -10 px; existing Top placement retained. |
-| 399 | OpenRouter ModelList delegates to the approved picker; other providers retain their existing list. |
-| 332, 343–344 | Capture the existing card, call the guarded new binding, return it. |
-| 859, 1858 | Two partial declarations for new-file adapters. |
-| 1333 | Bind the precomputed target to the effect chosen by the existing identity rule. |
-| 2156 | Apply the carrier before caching the existing retained frame. |
+The five original UI font failures are repaired in production by registering bundled default-family mappings on Linux at WithSwiftFonts. The original Settings input failure is repaired by guarding the Windows user32 query on other platforms. Neither fixture nor assertion changed. Two original App failures explicitly need the Windows child host/interactive compositor. The expanded real-composer scope adds two Windows ICU dependencies; their assertions remain intact and their failures remain recorded.
 
-The original .12 s outer panel transition, callbacks/history guards, effect identity/start clock and Strike state remain. `LiquidTrack.cs` adds five narrow partial/carrier/uniform/program-selection seams (5 added / 4 removed lines); the unbound programs remain the existing programs. `LiquidStrike.cs` is byte-identical to merged Strike. `ModelShades.ApplyToUi` and its original false assertion remain unchanged. The renderer adapter does not claim the unfinished visible loading/title/glow/Jewel/bubble behaviour.
+## EffortSlider seam list
 
-## Tests and source preservation
+The engine and renderer implementations live in Port/ModelsPalette files. Relative to standing Strike, EffortSlider has **19 added / 5 removed lines**, covering:
 
-| Scope | Result | Receipt under `porting/evidence/models-palette/round2/` |
+- OpenRouter-only popup offset and ModelList picker delegation.
+- Capture/bind/return the existing card; partial declarations for card, slider and TrackEffect adapters.
+- Bind snapshot chip colours at the existing name/effort construction point.
+- Delegate material, fill samples and Jewel uniform colours from existing frame callbacks.
+- Bind the palette to the effect chosen by the existing identity rule.
+- Prepare retained bubble dials, apply the carrier before caching a frame, and retire palette timer/worker on detach.
+
+`LiquidTrack.cs` has **10 added / 6 removed lines**: partial/carrier/program/uniform seams plus loading/worker draw and disposal. Jewel adds renderer-only tail values and a glow delegation, preserving its original shader block. StrikeBubbleLanes has a narrow partial/dial seam; its default source vectors remain guarded. **LiquidStrike.cs is byte-identical to standing Strike.** Detailed file/byte checks are in `visible-preservation.json`.
+
+## Tests
+
+Receipts are under `porting/evidence/models-palette/round2/`. Scopes overlap and are not summed.
+
+| Scope | Result | Receipt |
 | --- | --- | --- |
-| Final solution build | 0 warnings / 0 errors | `build-checked-age-final.log` |
-| Core palette/rules/layering/traceability | 21 passed | `rr21-checked-age-core-final.trx` |
-| Services palette/catalogue/layering/traceability | 66 passed | `rr21-checked-age-services-final.trx` |
-| App fake palette/picker/Colours/real-card/slider/Skia/arrival/check age | 29 passed | palette slice of `rr21-checked-age-app-final.trx` |
-| Latest affected App palette/rise/traceability scope | 49 passed / 1 native input failure / 0 skipped | `rr21-checked-age-app-final.trx` |
-| Expanded original-record + merged Strike App replay | 525 passed / 4 failed / 0 skipped | `rr41-app-poststrike-final.trx` |
-| UI decoder/architecture + original colour/residual review | 7 passed / 5 failed / 0 skipped | `rr41-ui-residual-poststrike-final.trx` |
+| Final solution build | 0 warnings / 0 errors | `visible-build-last.log` |
+| Core palette/rules/ink/traceability/layering | 23 passed | `visible-core-checked.trx` |
+| Services palette/source chain/capture/pack/traceability/layering | 68 passed | `visible-services-checked.trx` |
+| App palette/picker/Colours/renderer/timing/rise/title/architecture | 63 passed | `visible-app-last.trx` |
+| UI morph/decoder/ComposerLights/native-call/architecture guards | 122 passed | `visible-ui-checked.trx` |
+| Expanded original effort/model-chip/Strike/real-composer scope | 483 passed / 4 Windows-dependent failures / 0 skipped | `visible-rr41-app-final.trx` |
 
-Scopes overlap and are not summed. The expanded App/UI record replays preceded the last resting-age-only fix; the affected palette/rise/architecture scope was replayed afterward. ED-16 adds two initially failing fake cases and makes the resting line follow the actual successful engine check, including unchanged automatic checks, instead of page creation. It uses the existing facade/timer and preserves the no-new-models wording until page leave. The four App failures are the original title-pixel comparison, `SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs` (user32 unavailable), the Windows `dotnet.exe` measurement-child setup, and the interactive native sixty-second Strike fact. The five UI failures cannot initialize `$Default` GlyphTypeface in this Linux fixture. No assertions, tolerances or references were changed to conceal those results. Native facts which merely return under an OS guard receive no native credit.
+The expanded scope preceded the last palette-only edge fixes; the affected App scope was rerun afterward. Reds remain for UI fonts, original title/input, numerical fluid rounding, delayed-frame RGB, unrelated-snapshot double blending, arrival floor and wave projection. New physics vectors independently execute the archived v22 makeInk at 240×10 and 480×20 for 1/60/180 steps. No original tolerance/reference was replaced. Of **8,347 existing merged test-tree files**, **8,343 are byte-identical**, with only the four explicitly recorded gate/title retirements changed in this continuation. SettingsRiseTests, LiquidStrike, both parity/UI ledgers and the source-only embedded pack remain byte-identical.
 
-Test-first compile/behaviour reds remain alongside the green receipts, including exact IR-3 reproduction, source-chain failures, store locks/retries, two-maker concurrency, pack adoption, real picker/card/slider binding and arrival handoff. All model/logo HTTP was fake-only. Both final builds succeeded; the earlier failed parallel-MSBuild receipt is retained. The approved rule table/source SHA check passes.
+Gate B passes all eight implemented checks (`visible-gate-b.log`). The earlier full-verifier receipt is NOT ACCEPTABLE: its configured E:/ pinned reference is unavailable and that invocation did not load the configured Linux dotnet host. The final configured standalone solution build above is green. Full requirement and Windows/native acceptance remain unavailable; repository-wide Gate D/E/F acceptance is not claimed.
 
-`preservation-poststrike-final.json` and `original-tests-poststrike-preserved.json` prove all **3,040 existing merged test-tree files** unchanged, identify the **71 T14 test paths imported at merge**, and prove the exact IR-3 assertion is the only original test change authored by T37 before that merge. SettingsRiseTests, the false UI gate guard, both original parity/UI ledgers and LiquidStrike match merged Strike byte-for-byte. The engineering/whole-record ledgers retain their prior byte prefixes. Earlier preservation manifests describe earlier checkpoints; they do not describe the later authorized Strike merge/seams.
+## Authentic bake command
 
-Gates: A 7 pass / 5 fail (configured E:/reference absent); B 8 pass; C 1 pass / 1 fail / 1 not implemented (26 inherited stubs). Requirements `--no-run` exits 2; its original tracked bytes were restored. These are repository-wide residuals, not a release acceptance claim for this branch.
+Official OpenRouter and Hugging Face CONNECT requests returned proxy **403**; actual URL/time/exit/header evidence is `official-source-access.json`. No real palette capture or fabricated seed/placeholder hash is committed. The embedded pack retains its existing source-only baseline.
 
-## Remaining code/data and Windows needs
+Run this single command on the owner's Windows PC from the repository root:
 
-RR-20 still needs the locked C21 clear living water and Stable Fluids ink arrival, the complete visible title/glow/Jewel and remaining bubble/effort transitions, and a genuine first-cut bake with official placeholder bytes/full hashes, source evidence and actual catalogue Date/Age boundary. The text mirror records placeholder sizes but does not supply their binary capture or full digest. The shipped baseline declares zero fabricated owner/baked/placeholder evidence; the offline manifest baker and verified synthetic fixture packs are implemented. It is not a complete real release bake. The closed UI gate is not retired by an unrelated ranking assertion ruling.
+```powershell
+powershell -NoProfile -File tools/colour-baseline/bake-release.ps1
+```
 
-Windows must run the native picker/Colours glass/font/placement/scroll/progress/long-name/offline/leave-return/Reduce Motion/UIA checks; authentic codec/cache lock/adoption tests and separately authorized captured-real-source ten-root convergence; complete page-shell orb/fringe/refraction/inner-shade and ink/all-model ANGLE pixel comparisons; and quiet-PC actual GPU cadence/GC/performance, including the sixty-second server-GC Strike run. Linux manual/headless frames do not substitute for these proofs.
+It builds the app, uses the same bounded official source pipeline and Skia decoder, captures raw response bytes with URLs/status/type/fetched dates/Date/Age/SHA-256, validates placeholder identities and public market boundary, then writes the pack, `capture.json` and `SHA256SUMS`. Only a successful capture replaces the embedded pack; no commit/push is performed. For subsequent append-only releases, add `-PreviousPack <previous-pack.json.gz>`. `PaletteLiveBakeTests` proves capture, raw evidence, pack roundtrip and failed-catalogue no-pack behavior with synthetic fixture bytes only.
 
-Engineering decisions ED-NEW-models-palette-9..16 append byte-exact. OD-0127 and the locked source provenance remain in the evidence folder. **Verdict: NOT READY.**
+## Windows and independent-review needs
+
+Run the two failed Strike facts: `StrikeChildGcEnvironmentTests.Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts` and `EffortSliderNativeFrameTests.Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor`. Run the two ICU-dependent real-composer facts in ComposerLightSlotTests and ComposerLightEvidenceTests. Run the six remaining referenced native cadence/kind/pause facts listed in the complete records, plus the native picker/Colours UIA/glass/font/placement/scroll/progress/long-name/offline/leave-return/Reduce Motion checks.
+
+Finish native page-shell/Jewel/orb/fringe/refraction/inner-shade, all-model/ink/effort/glide pixel comparisons; quiet-PC actual GPU cadence/GC and thirty-tube glide/arrival cost; authentic bake, codec/cache lock/adoption and captured-real-source convergence; and independent whole-record approval. Linux/headless frames and OS-guarded returns receive no native credit. **Verdict: NOT READY.**

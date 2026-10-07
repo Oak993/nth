@@ -1,0 +1,81 @@
+{
+  "base_merge": "f44096afbd6e52517008658bb0b65bc2d3118ea2",
+  "standing": "51e39c929c5e6643c5251750685697b11faca9cd",
+  "merged_complete_standing": true,
+  "ledger": {
+    "standing_bytes": 2178964,
+    "standing_sha256": "9bd9af848625d3b315115bbce95fd88480e0f395f2fefb17c9cf102fbc55aebe",
+    "ours_exact_insertions": [
+      {
+        "bytes": 20423,
+        "sha256": "2525b50b28446225999e1c03fcb2e2ad79f12633975db8af85fa8dcd2cc2f111"
+      },
+      {
+        "bytes": 9586,
+        "sha256": "ecb22f1efdf14dd3b37ee819c774f3fda77af7b9c386af752708d55884e4be7f"
+      }
+    ],
+    "merged_bytes": 2208973,
+    "merged_sha256": "eab498bf1fd201d8c312ce71d68000486634b0dd4d8ba1f5f116812a7b843d9e",
+    "append_only": true,
+    "added_bytes": 9082,
+    "current_sha256": "cca6bf6c7656f057cc41ca4743b744df1e4bd09d84d96ed39ebd809c583ecda1"
+  },
+  "tests": {
+    "tracked": 8347,
+    "unchanged": 8343,
+    "authorized_changes": [
+      {
+        "path": "tests/Marrow.App.Tests/Port/ModelsPalette/ModelShadesTests.cs",
+        "decision": "ED-NEW-models-palette-17",
+        "before_sha256": "054ffb031c07cd0d5c4b8cc0176b0d42c475de412f6ff56d1fca503eb530761b",
+        "after_sha256": "eb59104ae7c364c998a4a61efa69e5549c00511f3f25f9d26008d1652a582ef7"
+      },
+      {
+        "path": "tests/Marrow.App.Tests/Port/ModelsPalette/PaletteComposerBindingTests.cs",
+        "decision": "ED-NEW-models-palette-17",
+        "before_sha256": "5a9cd4e9212e996a42d9b6d46aa3438903c5fcff94ac92161139698eb3a124b9",
+        "after_sha256": "a1ea07f00c64b639128c7bd3fb7fdf098d1b43249d3cb232385f633566d11b0b"
+      },
+      {
+        "path": "tests/Marrow.App.Tests/Port/ModelsPalette/PaletteTrackBindingTests.cs",
+        "decision": "ED-NEW-models-palette-17",
+        "before_sha256": "46672fa43a32c2a69bb6e5dbab5cc9a02d6d9ebae76d43c4efb0b10e31a7ff85",
+        "after_sha256": "3bd23f56a2f1491e4495a884c8046c5b9f1637ce4864aedff23eae894aa5f9f1"
+      },
+      {
+        "path": "tests/Marrow.App.Tests/Views/Composer/EffortSliderTitleFramesTests.cs",
+        "decision": "ED-NEW-models-palette-20",
+        "before_sha256": "32b4414dfb0e2ece424626db36c906328e1f652bf3c609526b8d483a5165f8b6",
+        "after_sha256": "3a88f2a03f055435f80ccae699777ab6764718cf0cd154834a4bbc563aabc5b0"
+      }
+    ]
+  },
+  "protected": [
+    {
+      "path": "porting/parity_matrix.json",
+      "sha256": "b30aeff9eba7785a58e913166c8eccd63c545cb4c69bed047afa20ca3bea937b",
+      "unchanged": true
+    },
+    {
+      "path": "porting/ui_contract.json",
+      "sha256": "3fcf2c7508e179377ca5919d1536f15e1fdda522ea4d9f8c9abab73df31cf7e4",
+      "unchanged": true
+    },
+    {
+      "path": "src/Marrow.App/Views/Composer/LiquidStrike.cs",
+      "sha256": "2d30aeb04272f4ee319f26fb598169a97ac0ba984d966557f157be363cdc55a5",
+      "unchanged": true
+    },
+    {
+      "path": "tests/Marrow.App.Tests/Port/SettingsRiseTests.cs",
+      "sha256": "742aa3d852f3ec0ddd996e9e16e1b52bd99459aa0f909b73596e86e93ae92dd3",
+      "unchanged": true
+    },
+    {
+      "path": "src/Marrow.Services/Port/ModelsPalette/pack.v1.json.gz",
+      "sha256": "808c5aa507949c69242be3f43c7185e52c0feb4cddb5b3ff46baad448c5b5564",
+      "unchanged": true
+    }
+  ]
+}

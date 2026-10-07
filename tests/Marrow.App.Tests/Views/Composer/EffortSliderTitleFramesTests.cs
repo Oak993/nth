@@ -24,15 +24,17 @@ public sealed class EffortSliderTitleFramesTests(HeadlessSession headless)
         var folder = Path.Combine(root!, "effort-title-frames-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var frames = EffortTitleFramesRig.Render(new EffortTitleFramesRig.Study(folder, "high;0:xhigh", 20, 400, false, null));
-            Assert.Equal(Enumerable.Range(0, 21).Select(i => i * 20), frames.Times);
+            var frames = EffortTitleFramesRig.Render(new EffortTitleFramesRig.Study(folder, "high;0:xhigh", 20, 600, false, null));
+            Assert.Equal(Enumerable.Range(0, 31).Select(i => i * 20), frames.Times);
             Assert.Equal((330, 140), (frames.Width, frames.Height)); // the rig's window, at the headless scale of 1
             foreach (var ms in frames.Times)
                 Assert.Equal(frames.RowBytes * frames.Height, new FileInfo(Path.Combine(folder, $"t{ms:0000}.raw")).Length);
             Assert.True(frames.Title.Width > 0 && frames.Title.Height > 0);
             byte[] Title(int ms) => EffortTitleFramesRig.Crop(folder, ms, frames, frames.Title);
             Assert.NotEqual(Title(0), Title(100)); // the title moves while the change runs
-            Assert.Equal(Title(380), Title(400)); // and holds still once it is over (a plain colour: no drift)
+            Assert.NotEqual(Title(380), Title(400)); // the last letters still arrive at the approved snappy pace
+            Assert.Equal(Title(480), Title(500)); // after the last letter settles, a plain colour holds still
+            Assert.Equal(Title(500), Title(600)); // including a further five independently rendered frames
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     });

@@ -1,0 +1,140 @@
+{
+  "runs": [
+    {
+      "receipt": "porting/evidence/models-palette/round2/visible-app-last.trx",
+      "counters": {
+        "total": "63",
+        "executed": "63",
+        "passed": "63",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "receipt": "porting/evidence/models-palette/round2/visible-rr41-app-final.trx",
+      "counters": {
+        "total": "487",
+        "executed": "487",
+        "passed": "483",
+        "failed": "4",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "receipt": "porting/evidence/models-palette/round2/visible-ui-checked.trx",
+      "counters": {
+        "total": "122",
+        "executed": "122",
+        "passed": "122",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "receipt": "porting/evidence/models-palette/round2/visible-core-checked.trx",
+      "counters": {
+        "total": "23",
+        "executed": "23",
+        "passed": "23",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "receipt": "porting/evidence/models-palette/round2/visible-services-checked.trx",
+      "counters": {
+        "total": "68",
+        "executed": "68",
+        "passed": "68",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "failures": [
+    {
+      "test_name": "Marrow.App.Tests.Views.Composer.ComposerLightEvidenceTests.The_light_on_the_real_composer",
+      "outcome": "Failed",
+      "receipt": "porting/evidence/models-palette/round2/visible-rr41-app-final.trx",
+      "message": "System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: \n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory\n",
+      "stack": "   at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)\n   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321\n   at Marrow.App.Runtime.ComposerDraft.<>c.<get_IsEmpty>b__19_0(String character) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 175\n   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)\n   at Marrow.App.Runtime.ComposerDraft.get_IsEmpty() in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 174\n   at Marrow.App.Runtime.ThreadRuntime.<set_Draft>b__247_0(ComposerDraft _) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 594\n   at Marrow.Core.Port.ObservableModel.Set[T](T& field, T value, Action`1 didSet, String property) in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 46\n   at Marrow.App.Runtime.ThreadRuntime.set_Draft(ComposerDraft value) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 594\n   at Marrow.App.Tests.Views.Composer.ComposerLightEvidenceTests.<>c__DisplayClass7_0.<The_light_on_the_real_composer>b__9() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/ComposerLightEvidenceTests.cs:line 131\n   at Marrow.Testing.TestRuntime.<>c__DisplayClass15_0`1.<OnMain>b__0() in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 43\n   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\n--- End of stack trace from previous location ---\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\n   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99\n   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42\n   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110\n   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42\n   at Marrow.Testing.TestRuntime.OnMain[T](Func`1 body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 44\n   at Marrow.App.Tests.Views.Composer.ComposerLightEvidenceTests.<>c.<The_light_on_the_real_composer>b__7_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/ComposerLightEvidenceTests.cs:line 131\n   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()\n--- End of stack trace from previous location ---\n   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35\n   at Marrow.App.Tests.Views.Composer.ComposerLightEvidenceTests.The_light_on_the_real_composer() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/ComposerLightEvidenceTests.cs:line 93\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+    },
+    {
+      "test_name": "Marrow.App.Tests.Window.StrikeChildGcEnvironmentTests.Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts",
+      "outcome": "Failed",
+      "receipt": "porting/evidence/models-palette/round2/visible-rr41-app-final.trx",
+      "message": "System.InvalidOperationException : No existing dotnet SDK host was found in the current host, runtime installation or PATH.",
+      "stack": "   at Marrow.App.Tests.Fixtures.WindowManagerProcessProtocol.ResolveDotnetHost() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WindowManagerProcessProtocol.cs:line 101\n   at Marrow.App.Tests.Window.StrikeChildGcEnvironmentTests.Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts() in /workspace/marrow-port/tests/Marrow.App.Tests/Window/StrikeChildGcEnvironmentTests.cs:line 14\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+    },
+    {
+      "test_name": "Marrow.App.Tests.Views.Composer.ComposerLightSlotTests.The_light_follows_the_draft",
+      "outcome": "Failed",
+      "receipt": "porting/evidence/models-palette/round2/visible-rr41-app-final.trx",
+      "message": "System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: \n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/icu.dll: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libicu.dll: cannot open shared object file: No such file or directory\n",
+      "stack": "   at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)\n   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321\n   at Marrow.App.Runtime.ComposerDraft.<>c.<get_IsEmpty>b__19_0(String character) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 175\n   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)\n   at Marrow.App.Runtime.ComposerDraft.get_IsEmpty() in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 174\n   at Marrow.App.Runtime.ThreadRuntime.<set_Draft>b__247_0(ComposerDraft _) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 594\n   at Marrow.Core.Port.ObservableModel.Set[T](T& field, T value, Action`1 didSet, String property) in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 46\n   at Marrow.App.Runtime.ThreadRuntime.set_Draft(ComposerDraft value) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 594\n   at Marrow.App.Tests.Views.Composer.ComposerLightSlotTests.<>c__DisplayClass10_0.<The_light_follows_the_draft>b__3() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/ComposerLightSlotTests.cs:line 138\n   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\n--- End of stack trace from previous location ---\n   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)\n   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99\n   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42\n   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110\n   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42\n   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36\n   at Marrow.App.Tests.Views.Composer.ComposerLightSlotTests.<>c.<The_light_follows_the_draft>b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/ComposerLightSlotTests.cs:line 135\n   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()\n--- End of stack trace from previous location ---\n   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35\n   at Marrow.App.Tests.Views.Composer.ComposerLightSlotTests.The_light_follows_the_draft() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/ComposerLightSlotTests.cs:line 128\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+    },
+    {
+      "test_name": "Marrow.App.Tests.Window.Native.EffortSliderNativeFrameTests.Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor",
+      "outcome": "Failed",
+      "receipt": "porting/evidence/models-palette/round2/visible-rr41-app-final.trx",
+      "message": "System.InvalidOperationException : Native window tests require an interactive Windows x64 desktop.",
+      "stack": "   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WindowManagerNativeChildHost.cs:line 17\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member, Type factType) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WindowManagerNativeSession.cs:line 100\n   at Marrow.App.Tests.Window.Native.EffortSliderNativeFrameTests.Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor() in /workspace/marrow-port/tests/Marrow.App.Tests/Window/EffortSliderNativeFrameTests.cs:line 471\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+    }
+  ],
+  "native_credit": "NONE: Linux/headless/manual or guarded returns do not prove Windows pixels, UIA or actual GPU cadence"
+}
