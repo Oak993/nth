@@ -4,9 +4,8 @@
  *
  *   node porting/tools/verify.mjs [--json] [--gate A|B|C|D|E|F]
  *
- * Exits NONZERO if any mandatory check for a claimed gate fails, and nonzero while any
- * mandatory gate remains unimplemented. A gate that has not been built yet reports
- * NOT_IMPLEMENTED and fails; it never reports success by omission.
+ * Exits NONZERO if any mandatory check or exact-revision evidence requirement fails.
+ * C..F validate real artifacts and receipts; absent evidence fails rather than gaining credit.
  *
  * This file is written by the same agent that does the porting work and therefore proves
  * nothing on its own (contract section 3: "Do not claim these controls prove comprehension
@@ -436,18 +435,20 @@ check('B', 'no requirement silently depends on an unresolved unknown', () => {
   if (!specExists()) throw new Error('parity matrix missing');
   const unknowns = readFileSync(rel('porting/unknowns.md'), 'utf8');
   const openIds = new Set();
+  const knownIds = new Set();
   for (const block of unknowns.split(/^## /m)) {
     const id = (block.match(/^(UNK-\d+)/) || [])[1];
     if (!id) continue;
+    knownIds.add(id);
     if (/\*\*Status:\*\*\s*(OPEN|INVESTIGATING|BLOCKED_ON_OWNER|BLOCKED_ON_ACCESS)/.test(block)) openIds.add(id);
   }
   const m = readJson('porting/parity_matrix.json');
   const declared = (m.requirements || []).filter((r) => r.depends_on_unknown).length;
-  // Not a completeness proof: it checks that declared dependencies name a real open unknown.
+  // Retain dependency provenance after resolution; a closed entry remains a real named dependency.
   const bogus = (m.requirements || [])
-    .filter((r) => r.depends_on_unknown && !openIds.has(r.depends_on_unknown))
+    .filter((r) => r.depends_on_unknown && !knownIds.has(r.depends_on_unknown))
     .map((r) => `${r.id} -> ${r.depends_on_unknown}`);
-  if (bogus.length) throw new Error(`${bogus.length} requirement(s) name an unknown that is not open: ${bogus.slice(0, 4).join('; ')}`);
+  if (bogus.length) throw new Error(`${bogus.length} requirement(s) name an unknown with no record: ${bogus.slice(0, 4).join('; ')}`);
   return `${openIds.size} open unknowns, ${declared} requirement(s) declare a dependency`;
 });
 
