@@ -5,6 +5,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Port.Skills.Import;
 
+[Trait("Decision", "ED-NEW-designgapsfix-1")]
 public sealed class DesignGapsReplaceFilesystemTests
 {
     [Fact]

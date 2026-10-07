@@ -18,6 +18,7 @@ using Marrow.UI.Chrome;
 namespace Marrow.App.Tests.Port;
 
 [Collection("Headless")]
+[Trait("Decision", "ED-NEW-designgaps-5")]
 public sealed class DesignGapsSettingsCloseTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
     [Fact]

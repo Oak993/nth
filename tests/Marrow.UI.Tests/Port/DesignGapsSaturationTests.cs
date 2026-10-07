@@ -8,6 +8,7 @@ using Marrow.UI.Tests.Fixtures;
 namespace Marrow.UI.Tests.Port;
 
 [Collection("Headless")]
+[Trait("Decision", "ED-NEW-designgaps-3")]
 public sealed class DesignGapsSaturationTests(HeadlessSession headless)
 {
     [Theory]

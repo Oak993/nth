@@ -5,6 +5,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Port.Skills.Import;
 
+[Trait("Decision", "ED-NEW-designgaps-2")]
 public sealed class DesignGapsImportLatencyTests
 {
     [Fact]

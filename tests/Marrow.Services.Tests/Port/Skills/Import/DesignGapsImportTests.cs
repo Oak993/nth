@@ -8,6 +8,7 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Port.Skills.Import;
 
+[Trait("Decision", "ED-NEW-designgaps-2")]
 public sealed class DesignGapsImportTests
 {
     [Fact]
@@ -29,7 +30,7 @@ public sealed class DesignGapsImportTests
         using var f = new GenerationFixture();
         var item = f.Add("A1", "pdf");
         f.Open();
-        using var slow = new HeldSource();
+        using var slow = new DesignGapsHeldSource();
         using var service = new SkillGenerations(f.Paths, f.Store!, f.Protection, _ => [], slow);
         var start = Task.Run(() => service.Start("codex", "one", [item], f.Switches((item, true)), f.Budget));
         Assert.True(slow.Entered.Wait(TimeSpan.FromSeconds(5)));
@@ -64,18 +65,5 @@ public sealed class DesignGapsImportTests
         Assert.Equal(first.Id, Assert.Single(library.List()).Id);
         Assert.Equal(first.Id, Assert.Single(Directory.EnumerateDirectories(Path.Combine(home.SkillsRoot, "imported", "copies"))).Split(Path.DirectorySeparatorChar).Last());
         Assert.Equal(first.Id, Assert.Single(new ImportedSkillsLibrary(home.SkillsRoot, new ManualTimeProvider()).List()).Id);
-    }
-
-    private sealed class HeldSource : IImportedSkillSource, IDisposable
-    {
-        public ManualResetEventSlim Entered { get; } = new();
-        public ManualResetEventSlim Release { get; } = new();
-        public IReadOnlyList<ImportedGenerationSkill> Snapshot()
-        {
-            Entered.Set();
-            if (!Release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("test did not release the source");
-            return [];
-        }
-        public void Dispose() { Entered.Dispose(); Release.Dispose(); }
     }
 }
