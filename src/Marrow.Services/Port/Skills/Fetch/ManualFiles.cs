@@ -85,7 +85,16 @@ public static class ManualFiles
             var target = Path.Combine(folder, hash[..8] + ".part");
             // Callers run placement on a pool thread (LibraryController.CheckAgain).
             var turn = PartFileTurns.Take(target, CancellationToken.None).GetAwaiter().GetResult();
-            try { File.Move(temporary, target, overwrite: true); }
+            try
+            {
+                try { File.Move(temporary, target, overwrite: true); }
+                catch (UnauthorizedAccessException error) when (Directory.Exists(target))
+                {
+                    // Windows reports a directory occupying the publication path as access denied;
+                    // it is a file-name collision, not a credentials/permissions failure.
+                    throw new IOException("The publication path is occupied by a directory.", error);
+                }
+            }
             finally { PartFileTurns.Give(target, turn); }
             found.Add(hash); // only durable, successfully published inputs count
             return true;
