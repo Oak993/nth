@@ -1,0 +1,36 @@
+<Project>
+  <!-- RR-43: the existing app metadata remains the one release version/build source. -->
+  <PropertyGroup>
+    <MarrowMetadataSource>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)src/Marrow.App/AssemblyInfo.cs'))</MarrowMetadataSource>
+    <MarrowReleaseVersion>$([System.Text.RegularExpressions.Regex]::Match('$(MarrowMetadataSource)', 'AssemblyMetadata\(&quot;CFBundleShortVersionString&quot;,\s*&quot;([^&quot;]+)&quot;\)').Groups[1].Value)</MarrowReleaseVersion>
+    <MarrowReleaseBuild>$([System.Text.RegularExpressions.Regex]::Match('$(MarrowMetadataSource)', 'AssemblyMetadata\(&quot;CFBundleVersion&quot;,\s*&quot;([^&quot;]+)&quot;\)').Groups[1].Value)</MarrowReleaseBuild>
+    <Version>$(MarrowReleaseVersion)</Version>
+    <PackageVersion>$(MarrowReleaseVersion)</PackageVersion>
+    <AssemblyVersion>$(MarrowReleaseVersion).0</AssemblyVersion>
+    <FileVersion>$(MarrowReleaseVersion).$(MarrowReleaseBuild)</FileVersion>
+    <InformationalVersion>$(MarrowReleaseVersion)+build.$(MarrowReleaseBuild)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>Marrow</Product>
+    <Company>Marrow Code</Company>
+  </PropertyGroup>
+  <Target Name="ValidateMarrowReleaseMetadata" BeforeTargets="PrepareForBuild;CoreGenerateAssemblyInfo">
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(MarrowReleaseVersion)', '^\d+\.\d+\.\d+$'))"
+           Text="CFBundleShortVersionString must be a three-part numeric release version." />
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(MarrowReleaseBuild)', '^\d+$'))"
+           Text="CFBundleVersion must be a numeric release build." />
+    <Error Condition="$([System.Version]::Parse('$(FileVersion)').Revision) &gt; 65535"
+           Text="The release build exceeds the PE FileVersion revision range." />
+    <Error Condition="$([System.Version]::Parse('$(FileVersion)').Major) &gt; 65534 or $([System.Version]::Parse('$(FileVersion)').Minor) &gt; 65534 or $([System.Version]::Parse('$(FileVersion)').Build) &gt; 65534"
+           Text="The release version exceeds the assembly version component range." />
+    <Error Condition="'$(Version)' != '$(MarrowReleaseVersion)' or '$(AssemblyVersion)' != '$(MarrowReleaseVersion).0' or '$(FileVersion)' != '$(MarrowReleaseVersion).$(MarrowReleaseBuild)' or '$(Product)' != 'Marrow'"
+           Text="Release assembly metadata overrides disagree with the canonical Marrow release source." />
+    <Error Condition="'$(PackageVersion)' != '$(MarrowReleaseVersion)' or '$(InformationalVersion)' != '$(MarrowReleaseVersion)+build.$(MarrowReleaseBuild)' or '$(IncludeSourceRevisionInInformationalVersion)' != 'false'"
+           Text="Release package/product version must match the canonical version and build." />
+    <Error Condition="('$(MSBuildProjectName)' == 'Marrow.App' and '$(AssemblyTitle)' != 'Marrow') or ('$(MSBuildProjectName)' == 'Marrow.Setup' and '$(AssemblyTitle)' != 'Marrow Setup')"
+           Text="Release application/installer title must use the approved Marrow identity." />
+    <Error Condition="'$(Company)' != 'Marrow Code' or '$(GenerateAssemblyInfo)' == 'false' or '$(GenerateAssemblyVersionAttribute)' == 'false' or '$(GenerateAssemblyFileVersionAttribute)' == 'false' or '$(GenerateAssemblyInformationalVersionAttribute)' == 'false' or '$(GenerateAssemblyProductAttribute)' == 'false' or '$(GenerateAssemblyTitleAttribute)' == 'false' or '$(GenerateAssemblyCompanyAttribute)' == 'false'"
+           Text="Required Marrow release metadata generation cannot be disabled or given a different identity." />
+    <Error Condition="'$(MSBuildProjectName)' == 'Marrow.Setup' and '$(InstallerVersion)' != '' and '$(InstallerVersion)' != '$(MarrowReleaseVersion)'"
+           Text="InstallerVersion must equal the canonical release version." />
+  </Target>
+</Project>

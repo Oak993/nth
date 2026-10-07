@@ -8,7 +8,7 @@ import { captureBinding, sha256, validateBinding } from './evidence-binding.mjs'
 import { NEGATIVES } from './release-evidence.mjs';
 const root=process.cwd(),binding=captureBinding(root);validateBinding(binding,binding);
 const dir=resolve(root,'porting/verification/runs',`negative-${new Date().toISOString().replace(/[:.]/g,'-')}`);mkdirSync(dir,{recursive:true});
-const command=[process.execPath,'--test','--test-reporter=tap','porting/tools/tests/release-evidence.test.mjs'];
+const command=[process.execPath,'--test','--test-reporter=tap','porting/tools/tests/release-evidence.test.mjs','porting/tools/tests/release-package-identity.test.mjs','porting/tools/tests/release-package-artifacts.test.mjs'];
 const started_at=new Date().toISOString(),result=spawnSync(command[0],command.slice(1),{cwd:root,encoding:'utf8'});
 const output=`${result.stdout||''}${result.stderr||''}${result.error||''}`;writeFileSync(resolve(dir,'negative.txt'),output);
 if(result.status!==0||!/# fail 0\b/.test(output)||!/# pass [1-9]\d*\b/.test(output)||!/# skipped 0\b/.test(output))throw Error('negative control tests did not all pass without skips');

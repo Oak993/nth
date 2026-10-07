@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Directory.Release.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\Marrow.Core\Marrow.Core.csproj" />
@@ -18,6 +19,7 @@
     <Nullable>enable</Nullable>
     <!-- OD-0015: the Marrow icon, carried over from the owner's Marrow app (its resources/icon.svg and build/icon.ico). -->
     <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
+    <AssemblyTitle>Marrow</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>

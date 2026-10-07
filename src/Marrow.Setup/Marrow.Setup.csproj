@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Directory.Release.props" />
 
   <!--
     OD-0072, ED-247: the Marrow installer the owner shares. A small bootstrapper around Velopack's Setup.exe that first

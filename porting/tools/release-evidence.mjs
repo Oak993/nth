@@ -157,8 +157,16 @@ export function releaseContext(root=process.cwd()) {
  return {root,binding:captureBinding(root),records:ledgerRecords(root),scope,ownerDecisions,hash};
 }
 import * as bindingHelpers from './evidence-binding.mjs';
+import { canonicalPackageIdentity, validatePackageIdentity, validateInspectedBinaries } from './release-package-identity.mjs';
 export function checkSemanticGate(gate,root=process.cwd()) {
  const ctx=releaseContext(root),doc=json(root,'porting/verification/release-evidence.json');
  if(gate==='F'){validateRequirementReport(json(root,'porting/verification/requirements.json'),ctx);for(const prior of ['C','D','E'])validateSemanticGate(prior,doc,ctx);}
- return validateSemanticGate(gate,doc,ctx);
+ const result=validateSemanticGate(gate,doc,ctx);
+ if(gate==='E'||gate==='F') {
+  const inspection=JSON.parse(readFileSync(validateArtifact(root,doc.package.inspection),'utf8')),identity=canonicalPackageIdentity(root);
+  validatePackageIdentity(doc.package,inspection,identity);
+  const artifacts=doc.evidence.filter(e=>doc.package.build_evidence.includes(e.id)&&e.kind==='package-build').flatMap(e=>e.artifacts);
+  validateInspectedBinaries(doc.package,inspection,identity,root,artifacts);
+ }
+ return result;
 }

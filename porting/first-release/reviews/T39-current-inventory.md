@@ -24,7 +24,7 @@ UNK-0009's feed choice is resolved by OD-0062/0100; live check/download/swap/res
 | E | BLOCKED: package inspection, prerequisite/native and lifecycle artifacts absent; installer operations prohibited in T39 |
 | F | BLOCKED: antecedent gates and independent final parity review not accepted |
 
-The T39 row evidence lives in T39-RR-23/25/26/35/42/43.md. RR-23 and RR-35 inputs are complete; RR-25's genuine font marker and RR-26's final acceptance evidence remain blocked. RR-43 metadata alignment is pending at this tracking commit; its later row report must record source and compiled application checks before closure. Gates never gain acceptance from plan or IMPLEMENTED labels.
+The T39 row evidence lives in T39-RR-23/25/26/35/42/43.md. RR-23 and RR-35 inputs are complete; RR-25's genuine font marker and RR-26's final acceptance evidence remain blocked. RR-43 metadata inputs and compiled application PE checks are complete; its row report keeps setup PE inspection unverified because installer builds are prohibited. Gates never gain acceptance from plan or IMPLEMENTED labels.
 
 The following later source/record evidence supersedes historical “missing” claims without promoting those units to final acceptance:
 
