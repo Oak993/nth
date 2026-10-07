@@ -54,7 +54,6 @@ internal sealed class ImportArea : Decorator
                 detector.Start();
                 _ = detector.RefreshAsync();
             }
-            _ = model.Controller.RefreshImportedAsync();
             Sync();
         };
         DetachedFromVisualTree += (_, _) =>

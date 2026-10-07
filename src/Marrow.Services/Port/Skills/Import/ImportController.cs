@@ -61,9 +61,6 @@ public sealed class ImportController
 
     public string Summary { get { lock (gate) return summary; } }
 
-    /// <summary>Refreshes linked metadata off the UI caller, then notifies the page.</summary>
-    public Task RefreshImportedAsync() => Task.Run(() => { library.Refresh(); Raise(); });
-
     public IReadOnlyList<ImportedSkill> Imported => library.List();
 
     public IReadOnlyList<ImportGroup> Groups
