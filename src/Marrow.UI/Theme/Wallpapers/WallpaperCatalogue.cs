@@ -83,7 +83,7 @@ public static class WallpaperCatalogue
     /// <summary>Mechanical GLSL-subset translation, with the source host's coordinate/dither contract.</summary>
     public static string SkSL(WallpaperDefinition wall)
     {
-        var source = WallpaperShaderArithmetic.Translate(wall.Source);
+        var source = WallpaperBranchArithmetic.Translate(wall.Id, WallpaperShaderArithmetic.Translate(wall.Source));
         if (wall.Kind == WallpaperKind.Static)
         {
             source = source.Replace("void main()", "half4 main(float2 coord)", StringComparison.Ordinal)
@@ -108,7 +108,7 @@ public static class WallpaperCatalogue
                 + "uniform float2 u_tilt; uniform float u_tg; uniform float2 u_light; uniform float2 u_light0; uniform float u_lw; uniform float u_focus;\n"
             : "uniform float2 u_res; uniform float u_t; uniform float3 u_pal[6]; uniform float u_dark; uniform float2 u_opt; uniform float u_px;\n"
                 + "uniform float2 u_tilt; uniform float2 u_sun; uniform float u_focus; uniform float u_pan; uniform float u_dither;\n";
-        return header + WallpaperShaderArithmetic.Helpers + source;
+        return header + WallpaperShaderArithmetic.Helpers + WallpaperBranchArithmetic.Helpers(wall.Id) + source;
     }
 
     public static SKRuntimeEffect Compile(WallpaperDefinition wall) => SKRuntimeEffect.CreateShader(SkSL(wall), out var error)

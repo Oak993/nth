@@ -1,0 +1,140 @@
+
+Welcome to .NET 10.0!
+---------------------
+SDK Version: 10.0.401
+
+Telemetry
+---------
+The .NET tools collect usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the DOTNET_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your favorite shell.
+
+Read more about .NET CLI Tools telemetry: https://aka.ms/dotnet-cli-telemetry
+
+----------------
+Installed an ASP.NET Core HTTPS development certificate.
+To trust the certificate, run 'dotnet dev-certs https --trust'
+Learn about HTTPS: https://aka.ms/dotnet-https
+
+----------------
+Write your first app: https://aka.ms/dotnet-hello-world
+Find out what's new: https://aka.ms/dotnet-whats-new
+Explore documentation: https://aka.ms/dotnet-docs
+Report issues and find source on GitHub: https://github.com/dotnet/core
+Use 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli
+--------------------------------------------------------------------------------------
+  Determining projects to restore...
+  Restored /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 1.67 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Testing/Marrow.Testing.csproj (in 1.7 sec).
+  Restored /workspace/marrow-port/src/Marrow.Core/Marrow.Core.csproj (in 2 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/Marrow.Skills.PipelineWorker.csproj (in 4.83 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 3.15 sec).
+  Restored /workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj (in 3.29 sec).
+  Restored /workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj (in 6 ms).
+  Restored /workspace/marrow-port/src/Marrow.UI/Marrow.UI.csproj (in 8.3 sec).
+  Restored /workspace/marrow-port/src/Marrow.App/Marrow.App.csproj (in 6.59 sec).
+  Restored /workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj (in 3.47 sec).
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:05:09.22]     Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "stairwell") [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "stairwell") [1 s]
+  Error Message:
+   static/stairwell/perspective/Terracotta/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000080 <= 0.010; max 0.085660 <= 0.080 at (131,25); reference 3b569de5a7392a48e262921362c00ed1485dcd5d862c38c3c613bf60541d19fb
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.WallpaperFidelityAssertions.Compare(String collection, String wallpaper, Boolean premium, ITestOutputHelper output) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityAssertions.cs:line 37
+   at Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(String wallpaper) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/StaticWallpaperFidelityTests.cs:line 19
+   at InvokeStub_StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Standard Output Messages:
+ static/stairwell/dynamic-dusk/Terracotta/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000091 <= 0.010; max 0.051696 <= 0.080 at (62,97); reference ab7c793ead09b9eb096044460a663258d2fc4ee2d1d43aa934d93cefc3cf9e9c
+ static/stairwell/dynamic-dusk/Terracotta/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000087 <= 0.010; max 0.055094 <= 0.080 at (62,97); reference a77af453e32c4e5f7864327f38b21054262ed98c13c28d617842b19379b11b44
+ static/stairwell/dynamic-dusk/Terracotta/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000076 <= 0.010; max 0.071422 <= 0.080 at (62,97); reference b0682c552116e7f6251397f6e1e7d1d823d4aeee74e4841c787b5a7267590482
+ static/stairwell/dynamic-dusk/Terracotta/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000087 <= 0.010; max 0.073520 <= 0.080 at (62,97); reference dd02940a2ce4c1a5130923fe338d752a0352a2208be57a895336fcb019f49730
+ static/stairwell/match-accent/Match accent/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000084 <= 0.010; max 0.043961 <= 0.080 at (62,97); reference bde9cf0243a772efce51756995840e29183303595f1213b59f5228f9e65f72f8
+ static/stairwell/match-accent/Match accent/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000081 <= 0.010; max 0.046213 <= 0.080 at (62,97); reference 79c7f95422d580283d190b4b951454e0bcf981af02f9ea1b4ad204e477098e86
+ static/stairwell/match-accent/Match accent/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.073280 <= 0.080 at (62,97); reference 2d21e03f589139afcc2772c065470e63b7b26f77697906798f09aaab0094f425
+ static/stairwell/match-accent/Match accent/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000079 <= 0.010; max 0.074796 <= 0.080 at (62,97); reference 1d14c38b96a3e70490eb6fc3b66b4d8cdc6a1c17236f0477ff3ea8befe34c86c
+ static/stairwell/full-focus/Terracotta/dark/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.010063 <= 0.080 at (66,9); reference 326e1f4a658a03b3183d53147f7b7ce50d807557a09ff7a908a655c07d63a278
+ static/stairwell/full-focus/Terracotta/light/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000084 <= 0.010; max 0.009266 <= 0.080 at (67,79); reference d3644b4ca56f08e62e1698f299489c98a65ae5d6f6ace93a0444920399f82fb8
+ static/stairwell/perspective/Terracotta/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000088 <= 0.010; max 0.060950 <= 0.080 at (131,25); reference 640cdf456f174f776dcc91e7dc4a797ec7155b248f52373978150baad3f1571d
+ static/stairwell/perspective/Terracotta/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000080 <= 0.010; max 0.085660 <= 0.080 at (131,25); reference 3b569de5a7392a48e262921362c00ed1485dcd5d862c38c3c613bf60541d19fb
+ static/stairwell/intermediate-focus/Terracotta/dark/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000087 <= 0.010; max 0.010732 <= 0.080 at (62,97); reference 6b3aab9696d4a29c234be482e686d7be03f15f909668856f433006b1e766028a
+ static/stairwell/intermediate-focus/Terracotta/light/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000090 <= 0.010; max 0.017395 <= 0.080 at (62,97); reference 6b10455684aa5f7d12492559425b6ff939a8c2a267a05dd8f8f2349760116bd8
+ static/stairwell/authored-focus/Terracotta/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000089 <= 0.010; max 0.045716 <= 0.080 at (62,97); reference 9a147b8358ca89ef77e1dd0ff2a29eef87d9a3d2672be83bda7b0d66c6ef19a8
+ static/stairwell/authored-focus/Terracotta/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000076 <= 0.010; max 0.075616 <= 0.080 at (62,97); reference 62c4143396c72d89ad3b32e0576926286f9dc0a7f2c7fbca5a7566bbab8530d1
+
+
+[xUnit.net 00:05:25.25]     Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "tunnel") [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(wallpaper: "tunnel") [2 s]
+  Error Message:
+   static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000087 <= 0.010; max 0.306188 <= 0.080 at (65,28); reference 76e03c7c6cdb7c4af988be4c315bfaee28f1da9631c14269a31ed48ed12e83be
+static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000090 <= 0.010; max 0.300363 <= 0.080 at (65,28); reference bb8146af7cd971c2a02eab6569a2c8adb2648fa8a976116bb114f1cd0dd8820b
+static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000126 <= 0.010; max 0.487810 <= 0.080 at (65,28); reference aa05b3f8a6f63d11c3ec696871f486c495508bdb83670da23e5f393faa6146c2
+static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000124 <= 0.010; max 0.470804 <= 0.080 at (65,28); reference 3acf29c5e28d49a9cdff226bfb074297ca882f4e3465d350edc6fc7dcc1da3df
+static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.298150 <= 0.080 at (65,28); reference f16fae65f3b7247f2d3204a3fd5b4545f95bc6c66ec564c164e8d20ebd3c09fe
+static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000081 <= 0.010; max 0.290703 <= 0.080 at (65,28); reference 429df5893f7b1534601bf94862bb0183cf30cf369e2f60bec82529a6f26f6829
+static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000114 <= 0.010; max 0.450794 <= 0.080 at (65,28); reference b91a33d8f43f92d576694be4ec45ca0524dacb4ac70cec373110321f8346e887
+static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000119 <= 0.010; max 0.454149 <= 0.080 at (65,28); reference 7225467349c1c3fa267a9e235f5b54135c3bb9f493063f0c2bfef7b9927f24f5
+static/tunnel/perspective/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000088 <= 0.010; max 0.299458 <= 0.080 at (62,45); reference 4ff65e3fea25f15ffd031cd29be6cee393481fa037cbc2d27ecbf194cf916a83
+static/tunnel/perspective/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000120 <= 0.010; max 0.455018 <= 0.080 at (62,45); reference 9a959b07635c938027ae474d79d966a97873aa006e86f5e014f066d7faffc024
+static/tunnel/intermediate-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000121 <= 0.010; max 0.114880 <= 0.080 at (65,28); reference a0604a4500e0b66c138be29b66d3b6ab73cc5518984508c3b90675773308f13f
+static/tunnel/authored-focus/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.291369 <= 0.080 at (65,28); reference c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9
+static/tunnel/authored-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000113 <= 0.010; max 0.451468 <= 0.080 at (65,28); reference 9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.WallpaperFidelityAssertions.Compare(String collection, String wallpaper, Boolean premium, ITestOutputHelper output) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityAssertions.cs:line 37
+   at Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(String wallpaper) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/StaticWallpaperFidelityTests.cs:line 19
+   at InvokeStub_StaticWallpaperFidelityTests.Every_static_wallpaper_matches_dusk_accent_and_full_focus(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Standard Output Messages:
+ static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000087 <= 0.010; max 0.306188 <= 0.080 at (65,28); reference 76e03c7c6cdb7c4af988be4c315bfaee28f1da9631c14269a31ed48ed12e83be
+ static/tunnel/dynamic-dusk/Coral Reef/dark/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000090 <= 0.010; max 0.300363 <= 0.080 at (65,28); reference bb8146af7cd971c2a02eab6569a2c8adb2648fa8a976116bb114f1cd0dd8820b
+ static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000126 <= 0.010; max 0.487810 <= 0.080 at (65,28); reference aa05b3f8a6f63d11c3ec696871f486c495508bdb83670da23e5f393faa6146c2
+ static/tunnel/dynamic-dusk/Coral Reef/light/t=0/clock=15.25/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000124 <= 0.010; max 0.470804 <= 0.080 at (65,28); reference 3acf29c5e28d49a9cdff226bfb074297ca882f4e3465d350edc6fc7dcc1da3df
+ static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.298150 <= 0.080 at (65,28); reference f16fae65f3b7247f2d3204a3fd5b4545f95bc6c66ec564c164e8d20ebd3c09fe
+ static/tunnel/match-accent/Match accent/dark/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000081 <= 0.010; max 0.290703 <= 0.080 at (65,28); reference 429df5893f7b1534601bf94862bb0183cf30cf369e2f60bec82529a6f26f6829
+ static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000114 <= 0.010; max 0.450794 <= 0.080 at (65,28); reference b91a33d8f43f92d576694be4ec45ca0524dacb4ac70cec373110321f8346e887
+ static/tunnel/match-accent/Match accent/light/t=0/clock=18/accent=#D4501A/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000119 <= 0.010; max 0.454149 <= 0.080 at (65,28); reference 7225467349c1c3fa267a9e235f5b54135c3bb9f493063f0c2bfef7b9927f24f5
+ static/tunnel/full-focus/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000095 <= 0.010; max 0.011304 <= 0.080 at (65,28); reference eee501d896a38432d3bdfa532f58340b0285647b720c704335a2edf33969e2f4
+ static/tunnel/full-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=1/tilt=[0,0]: mean OKLab ΔE 0.000116 <= 0.010; max 0.014518 <= 0.080 at (65,28); reference 68ba585adb62a6118edf77c42c842f44a4bee5502acb65c7ee808db12cc66993
+ static/tunnel/perspective/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000088 <= 0.010; max 0.299458 <= 0.080 at (62,45); reference 4ff65e3fea25f15ffd031cd29be6cee393481fa037cbc2d27ecbf194cf916a83
+ static/tunnel/perspective/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0.65,-0.4]: mean OKLab ΔE 0.000120 <= 0.010; max 0.455018 <= 0.080 at (62,45); reference 9a959b07635c938027ae474d79d966a97873aa006e86f5e014f066d7faffc024
+ static/tunnel/intermediate-focus/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000096 <= 0.010; max 0.076245 <= 0.080 at (65,28); reference 1a6571e966e396ef0160d198c58a77cb8f899de222607c0036312dd55fa56b72
+ static/tunnel/intermediate-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0.37/tilt=[0,0]: mean OKLab ΔE 0.000121 <= 0.010; max 0.114880 <= 0.080 at (65,28); reference a0604a4500e0b66c138be29b66d3b6ab73cc5518984508c3b90675773308f13f
+ static/tunnel/authored-focus/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.291369 <= 0.080 at (65,28); reference c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9
+ static/tunnel/authored-focus/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000113 <= 0.010; max 0.451468 <= 0.080 at (65,28); reference 9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453
+
+
+[xUnit.net 00:07:37.23]     Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_its_approved_pack_references(wallpaper: "tunnel") [FAIL]
+  Failed Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_its_approved_pack_references(wallpaper: "tunnel") [836 ms]
+  Error Message:
+   static/tunnel/default/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.291369 <= 0.080 at (65,28); reference c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9
+static/tunnel/default/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000113 <= 0.010; max 0.451468 <= 0.080 at (65,28); reference 9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453
+static/tunnel/quiet/Pearl/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000090 <= 0.010; max 0.301220 <= 0.080 at (65,28); reference 7ca23eccec92e822848cfcb9163f8d22269ee543e22e6326e649b459c7af083d
+static/tunnel/quiet/Pearl/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000120 <= 0.010; max 0.455420 <= 0.080 at (65,28); reference 7282e3647c93bfb1e6ab16427873ee4afdd76e01c34ef5f88b7122de65e549d4
+static/tunnel/rich/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.291369 <= 0.080 at (65,28); reference c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9
+static/tunnel/rich/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000113 <= 0.010; max 0.451468 <= 0.080 at (65,28); reference 9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453
+  Stack Trace:
+     at Marrow.App.Tests.Wallpapers.WallpaperFidelityAssertions.Compare(String collection, String wallpaper, Boolean premium, ITestOutputHelper output) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityAssertions.cs:line 37
+   at Marrow.App.Tests.Wallpapers.StaticWallpaperFidelityTests.Every_static_wallpaper_matches_its_approved_pack_references(String wallpaper) in /workspace/marrow-port/tests/Marrow.App.Tests/Wallpapers/StaticWallpaperFidelityTests.cs:line 13
+   at InvokeStub_StaticWallpaperFidelityTests.Every_static_wallpaper_matches_its_approved_pack_references(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Standard Output Messages:
+ static/tunnel/default/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.291369 <= 0.080 at (65,28); reference c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9
+ static/tunnel/default/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000113 <= 0.010; max 0.451468 <= 0.080 at (65,28); reference 9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453
+ static/tunnel/quiet/Pearl/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000090 <= 0.010; max 0.301220 <= 0.080 at (65,28); reference 7ca23eccec92e822848cfcb9163f8d22269ee543e22e6326e649b459c7af083d
+ static/tunnel/quiet/Pearl/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000120 <= 0.010; max 0.455420 <= 0.080 at (65,28); reference 7282e3647c93bfb1e6ab16427873ee4afdd76e01c34ef5f88b7122de65e549d4
+ static/tunnel/rich/Coral Reef/dark/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000085 <= 0.010; max 0.291369 <= 0.080 at (65,28); reference c479b4a80cf75a251b7c7a21cf7ddc39a807a3e4f654f717b409a152fd1718c9
+ static/tunnel/rich/Coral Reef/light/t=0/clock=18/accent=#005FB8/focus=0/tilt=[0,0]: mean OKLab ΔE 0.000113 <= 0.010; max 0.451468 <= 0.080 at (65,28); reference 9f047d38c3e501e96bb0bff5ba30e5e72c768c3c067cf70809c5ce7b42554453
+
+
+Results File: /workspace/marrow-port/porting/reports/wl-fix/app-before.trx
+
+Failed!  - Failed:     3, Passed:   333, Skipped:     0, Total:   336, Duration: 11 m 26 s - Marrow.App.Tests.dll (net10.0)

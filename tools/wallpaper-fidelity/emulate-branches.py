@@ -104,6 +104,21 @@ def mix(x, y, t, backend):
     return mad(y-x, t, x) if backend == 'skia' else t*(y-x)+x
 
 
+def verify_es2_decomposition():
+    # ES2 has no bit reinterpretation. Scaling by exact powers of two recovers
+    # the identical normal binary32 mantissa/exponent, without log/exp intrinsics.
+    bits = np.random.default_rng(20).integers(0x00800000,0x7f800000,262144,dtype='uint32')
+    x = bits.view('float32'); m=x.copy(); exponent=np.zeros(x.shape,dtype='float32')
+    for n in [64,32,16,8,4,2,1]:
+        low=m<F(2.**(-n)); m[low]*=F(2.**n); exponent-=F(low)*F(n)
+    low=m<F(1);m[low]*=F(2);exponent-=F(low)
+    for n in [64,32,16,8,4,2,1]:
+        high=m>=F(2.**n);m[high]*=F(2.**(-n));exponent+=F(high)*F(n)
+    assert np.array_equal(m.view('uint32'),(bits&0x7fffff)|0x3f800000)
+    assert np.array_equal(exponent,F((bits>>23).astype('int32')-127))
+    return len(bits)
+
+
 def coordinates(tilt, tg):
     y, x = np.mgrid[:100, :160].astype('float32')
     px = ((x+F(.5))/F(160)-F(.5))*F(2)*F(160/100)
@@ -146,6 +161,7 @@ def main():
     parser.add_argument('--probes', type=Path, default=Path('/tmp/marrow-branch-probes'))
     parser.add_argument('--pixel-scan', type=Path)
     parser.add_argument('--report', type=Path)
+    parser.add_argument('--fixed', action='store_true', help='Validate live Skia probes after the production fix')
     args = parser.parse_args()
     if args.probes.suffix == '.zip':
         archive = zipfile.ZipFile(args.probes)
@@ -157,7 +173,8 @@ def main():
     manifest_bytes = (root/'tests/fixtures/wallpapers/reference/manifest.json').read_bytes()
     manifest = json.loads(manifest_bytes)
     report = {'browser': index['browser'], 'manifestSha256': hashlib.sha256(manifest_bytes).hexdigest(),
-        'referenceFrames': len(manifest['renders']), 'geometryChecks': [], 'failingPixels': []}
+        'referenceFrames': len(manifest['renders']), 'es2ExactDecompositionChecks':verify_es2_decomposition(),
+        'geometryChecks': [], 'failingPixels': []}
     models = {}
     for id in ['tunnel','stairwell']:
       for variant in ['default','perspective']:
@@ -168,12 +185,14 @@ def main():
         for backend in ['swift','skia']:
             live = np.frombuffer(read(name+'-'+('loop' if id=='tunnel' else 'distance')+'-'+backend+'.bin'),dtype='<f4').reshape(100,160,4)
             if id == 'tunnel':
-                distances = np.stack([tunnel(px,py,u['u_tilt'],backend,k)['d'] for k in range(5)])
+                distances = np.stack([tunnel(px,py,u['u_tilt'],backend,k,
+                    reference_power=args.fixed and backend=='skia',reference_angle=args.fixed and backend=='skia')['d'] for k in range(5)])
                 branches = np.argmax(np.concatenate([distances>0,np.ones((1,100,160),dtype=bool)]),axis=0)
                 actual = live[:,:,0].astype('int32')
                 models[name][backend] = (distances,branches)
             else:
-                f = stairwell(px,py,backend)['distance'][1]
+                f = stairwell(px,py,backend,reference_log=args.fixed and backend=='skia',
+                    reference_angle=args.fixed and backend=='skia')['distance'][1]
                 branches,actual = (f>=F(.06)).astype('int32'),live[:,:,2].astype('int32')
                 models[name][backend] = (f,branches)
             disagreements = int(np.count_nonzero(branches != actual))

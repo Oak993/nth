@@ -15,6 +15,15 @@ python tools/wallpaper-fidelity/emulate-branches.py \
   --probes /tmp/marrow-branch-probes --pixel-scan /tmp/marrow-pixel-scan.jsonl
 ```
 
+After applying the production fix, use `--fixed` with the new live probes to
+validate Skia's corrected evaluation against both the prediction and reference.
+The archived post-fix verification is:
+
+```sh
+python tools/wallpaper-fidelity/emulate-branches.py --fixed \
+  --probes porting/reports/wl-fix/branch-probes-after.zip
+```
+
 Set `DOTNET` for the probe runner if dotnet is elsewhere. The offline pre-fix
 proof is reproducible without a browser or .NET installation:
 
@@ -41,6 +50,13 @@ including their exact option and tilt inputs. It does not emulate the other
 5104 frames; the unchanged fidelity suite renders those. All 39 over-limit
 pixel occurrences in the 20 failing frames must have the reproduced original
 wrong branch and the predicted corrected reference branch.
+
+RuntimeEffect exposes ES2 and cannot use the reference implementation's bit
+casts. The production helper normalizes/reconstructs through exact
+powers-of-two scaling, verified against 262144 independently generated normal
+binary32 mantissa/exponent decompositions. Its polynomial operations remain
+separate binary32 mul/add. RGBA32F post-fix probes validate the resulting live
+branches on the complete grids.
 
 Arithmetic sources (Apache-2.0):
 

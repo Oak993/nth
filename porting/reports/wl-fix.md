@@ -48,4 +48,38 @@ batch's recorded SDK. No global.json exists in this checkout. Tests use
 disposable MARROW_PORT_DATA_DIR folders and exclude Native. Native Windows
 GPU execution is not implied by the Linux raster checks.
 
-Implementation and final test results will be recorded after the proof commit.
+Proof commit: `f5ae4578`. The production change is subsequent: translate
+Tunnel's authored `pow(t,.85)` and atan2, and Stairwell's log and atan2 to
+the proven reference polynomials. Colour-transfer powers and other wallpapers
+retain their existing arithmetic. No epsilon or coordinate-specific correction
+is used. ES2-compatible powers-of-two scaling reproduces the reference's
+mantissa/exponent decomposition exactly in 262144 independent normal-float
+checks; exp2 coefficient decimals round to the exact reference bit constants.
+
+The six added branch regressions are **6 failed before / 6 passed after**,
+with actual wrong-branch assertions in the red run. The corrected live float
+grids agree with the CPU prediction and the reference for every branch.
+The unchanged public-input bridge and metric now pass **44/44** affected
+frames, **zero** over-limit pixels, with maximum error **0.010424813332**
+(previous worst **0.487809612360**). After float grids and model checks are in
+`branch-probes-after.zip` and `branch-proof-after.json`.
+
+The baseline full gate reproduced **5128 passed / 20 failed / 5148 frames**,
+and **333 passed / 3 failed / 336 test cases** (`app-before.trx`). The offline
+reference integrity tool verifies all **5148** cases and **4428** PNGs, including
+original source hashes and the unchanged manifest hash
+`fda5a5fb47627cdfc50e6b8d5e6a40d9bef657b3e7413986aa7c6184295b8f64`.
+
+Independent read-only review required by contract section 15 was performed by
+`/root/branch_review`. It independently reran the offline CPU proof, checked
+the six unique causal values against archived live float outputs, traced
+Perspective through Normalize/controller/renderer, and reviewed the ES2
+helper code and coefficient bits. It found no blocking issue in the stated
+domain. Its attribution suggestion was applied by retaining the SwiftShader
+copyright and Apache-2.0 notice. It did not duplicate the expensive test run.
+
+Native Windows GPU precision/contraction remains unverified: the production
+visual handler passes a GPU context, while these checks use Linux raster
+surfaces. This report concerns the requested T20 arithmetic/fidelity gates;
+it does not close the held batch's unrelated WIC/custom-picture checks or
+claim whole-port acceptance. Full post-fix regression results follow below.
