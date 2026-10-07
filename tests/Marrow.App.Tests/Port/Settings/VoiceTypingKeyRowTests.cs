@@ -21,8 +21,8 @@ public sealed class VoiceTypingKeyRowTests(HeadlessSession headless)
     [Trait("Spec", "V-T47")]
     public void A_refused_protected_save_shows_the_Providers_refusal_and_detaching_clears_the_field() => VoiceTypingPageRig.Run(headless, scene =>
     {
-        var backend = Assert.IsType<AppSettingsCredentialBackend>(SecretStore.Shared.Current.Backend);
-        backend.RefuseWrites = true;
+        var backend = new AppSettingsCredentialBackend(() => true) { RefuseWrites = true };
+        using var secrets = SecretStore.Shared.Override(new SecretStore(backend));
         scene.Page.EngineControl.Select("cloud");
         scene.Page.KeyButton.Activate();
         scene.Advance(600);
