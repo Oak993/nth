@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Provider colours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.board{font-family:Geist,system-ui,sans-serif;color:#f4f6fb;--sub:rgba(244,246,251,.6);--card:rgba(255,255,255,.07);--edge:rgba(255,255,255,.16)}
+.board.light{color:#14161c;--sub:rgba(20,22,28,.58);--card:rgba(255,255,255,.55);--edge:rgba(255,255,255,.85)}
+.wall{position:absolute;inset:0;background:radial-gradient(900px 600px at 12% 8%,#2d5672 0%,transparent 60%),radial-gradient(800px 700px at 90% 35%,#7a5634 0%,transparent 55%),radial-gradient(1000px 800px at 45% 90%,#155f5f 0%,transparent 60%),#121b25}
+.board.light .wall{background:radial-gradient(900px 600px at 12% 8%,#a9cde6 0%,transparent 60%),radial-gradient(800px 700px at 90% 35%,#f1cfa8 0%,transparent 55%),radial-gradient(1000px 800px at 45% 90%,#9fd9d2 0%,transparent 60%),#e8edf2}
+.card{background:var(--card);border:1px solid var(--edge);border-radius:18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 20px 50px rgba(0,0,0,.22);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%)}
+.row{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:16px}
+.name{display:flex;flex-direction:column;gap:2px}
+.name b{font-size:14px;font-weight:600}
+.name span{font-size:11px;color:var(--sub);font-family:"Geist Mono",monospace}
+.tag{font-family:"Geist Mono",monospace;font-size:11px;padding:2px 7px;border-radius:6px;border:1px solid var(--edge);color:var(--sub)}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--sub)}
+.legend span{display:flex;align-items:center;gap:6px}
+
+/* The liquid tube: a glass channel filled with the provider's liquid, alive with currents, caustic light and bubbles. */
+.tube{position:relative;height:30px;border-radius:999px;overflow:hidden;background:rgba(0,0,0,.25);box-shadow:0 0 0 1px rgba(255,255,255,.18),0 6px 18px rgba(0,0,0,.28),0 1px 0 rgba(255,255,255,.25)}
+.tube::before{content:"";position:absolute;inset:0;border-radius:999px;z-index:5;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.34),inset 0 1px 1px rgba(255,255,255,.35),inset 0 -1px 1px rgba(0,0,0,.25)}
+.tube.big{height:40px}
+.liq{position:absolute;inset:0;border-radius:999px;animation:breathe 4.8s ease-in-out infinite}
+@keyframes breathe{0%,100%{filter:saturate(1) brightness(1)}50%{filter:saturate(1.12) brightness(1.06)}}
+.current{position:absolute;left:0;top:0;width:200%;height:100%;opacity:.55;mix-blend-mode:soft-light;animation:flow 7s linear infinite}
+.current.slow{opacity:.35;animation-duration:11s}
+.current path{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;filter:blur(2px)}
+@keyframes flow{to{transform:translateX(-50%)}}
+.caustic{position:absolute;inset:0;mix-blend-mode:overlay;opacity:.8;background:radial-gradient(38px 10px at 12% 38%,rgba(255,255,255,.55),transparent 70%),radial-gradient(54px 12px at 37% 66%,rgba(255,255,255,.4),transparent 70%),radial-gradient(44px 10px at 63% 34%,rgba(255,255,255,.5),transparent 70%),radial-gradient(60px 13px at 88% 62%,rgba(255,255,255,.38),transparent 70%);background-size:200% 100%;animation:caustic 6s ease-in-out infinite alternate}
+@keyframes caustic{0%{background-position:0% 0%}100%{background-position:-100% 6%}}
+.bub{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.72);background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.95) 0 16%,rgba(255,255,255,.14) 46%,transparent 72%);box-shadow:0 0 3px rgba(255,255,255,.25);opacity:0;animation:wander var(--d,3s) cubic-bezier(.35,.1,.55,1) infinite;animation-delay:var(--delay,0s)}
+.bub.dark{border-color:rgba(20,22,30,.5);background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.98) 0 18%,rgba(20,22,30,.06) 50%,transparent 72%)}
+@keyframes wander{0%{transform:translate(0,0) scale(var(--s0,.5));opacity:0}12%{opacity:var(--o,.9)}38%{transform:translate(var(--x1),var(--y1)) scale(var(--s1,.8))}70%{transform:translate(var(--x2),var(--y2)) scale(var(--s1,.9));opacity:var(--o,.9)}100%{transform:translate(var(--x3),var(--y3)) scale(var(--s2,1));opacity:0}}
+.liqwrap{position:absolute;inset:0;border-radius:999px;overflow:hidden}
+.liqwrap.glassS{filter:url(#glassS)}
+.liqwrap.glassB{filter:url(#glassB)}
+.gloss{position:absolute;inset:0;border-radius:999px;pointer-events:none;z-index:4;background:linear-gradient(180deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.04) 35%,transparent 55%,rgba(0,0,0,.18) 100%)}
+.oil{position:absolute;inset:0;mix-blend-mode:screen;opacity:.9;background:linear-gradient(110deg,transparent 18%,rgba(124,92,255,.38) 32%,rgba(40,220,210,.3) 42%,rgba(255,110,180,.28) 52%,rgba(255,220,140,.2) 60%,transparent 74%);background-size:260% 100%;animation:oil 6.5s ease-in-out infinite alternate}
+@keyframes oil{0%{background-position:100% 0}100%{background-position:0% 0}}
+.knob{position:absolute;right:2px;top:2px;width:26px;height:26px;border-radius:50%;z-index:6;background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.75) 0 14%,rgba(255,255,255,.08) 46%,rgba(255,255,255,.18) 78%,rgba(255,255,255,.4) 100%);-webkit-backdrop-filter:blur(1.5px) saturate(1.9) brightness(1.18) contrast(1.05);backdrop-filter:blur(1.5px) saturate(1.9) brightness(1.18) contrast(1.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),inset 1.5px 0 1px -0.5px rgba(255,90,140,.45),inset -1.5px 0 1px -0.5px rgba(90,170,255,.45),inset 0 -4px 6px rgba(0,0,0,.2),inset 0 3px 4px rgba(255,255,255,.45),0 2px 6px rgba(0,0,0,.14)}
+.tube.big .knob{width:36px;height:36px}
+
+.water{position:absolute;inset:0;background:linear-gradient(180deg,rgba(225,245,255,.20),rgba(190,225,245,.07) 45%,rgba(120,170,205,.16))}
+.ink{position:absolute;inset:0;width:100%;height:100%;filter:blur(0.8px)}
+.liq{transition:none}
+.replay{appearance:none;border:1px solid var(--edge);background:var(--card);color:inherit;font:inherit;font-size:12px;padding:5px 12px;border-radius:999px;cursor:pointer}
+.replay:hover{background:rgba(255,255,255,.14)}
+.loading{position:absolute;inset:0;transition:opacity .45s ease}
+.loading .shim{position:absolute;top:0;bottom:0;width:35%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:shim 1.1s ease-in-out infinite}
+.loading .pulse{position:absolute;top:15px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.8);animation:pulse 1.1s ease-in-out infinite}
+@keyframes shim{0%{left:-40%}100%{left:110%}}
+@keyframes pulse{0%,100%{transform:scale(.6);opacity:.35}50%{transform:scale(1);opacity:1}}
+.loadlabel{font-size:12px;color:var(--sub);font-family:"Geist Mono",monospace;position:relative;height:16px}
+.loadlabel span{position:absolute;left:0;top:0}
+.loadlabel span{transition:opacity .3s ease}
+.board.lite .liqwrap.glassS,.board.lite .liqwrap.glassB{filter:none}
+.board.lite .card{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(30,40,52,.82)}
+.board.lite .knob{-webkit-backdrop-filter:none;backdrop-filter:none}
+.board.lite .ink{filter:none}
+.tube.paused *{animation-play-state:paused!important}
+.glout{position:absolute;inset:0;width:100%;height:100%;border-radius:999px;pointer-events:none}
+.tube.gpu .liqwrap{visibility:hidden;filter:none!important}
+.board.gpu-pending .liqwrap{filter:none!important}
+.tube.gpu .liqwrap *{animation:none!important}
+@media (prefers-reduced-motion:reduce){.board *{animation:none!important}}
+</style>
+</helmet>
+<svg width="0" height="0" style="position: absolute"><filter id="glassS" color-interpolation-filters="sRGB" x="-10%" y="-70%" width="120%" height="240%"><feImage ref="{{mapSRef}}" result="map" preserveAspectRatio="none"></feImage><feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="B" scale="-36" result="dr"></feDisplacementMap><feColorMatrix in="dr" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"></feColorMatrix><feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="B" scale="-32" result="dg"></feDisplacementMap><feColorMatrix in="dg" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"></feColorMatrix><feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="B" scale="-28" result="db"></feDisplacementMap><feColorMatrix in="db" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"></feColorMatrix><feBlend in="r" in2="g" mode="screen" result="rg"></feBlend><feBlend in="rg" in2="b" mode="screen"></feBlend></filter><filter id="glassB" color-interpolation-filters="sRGB" x="-10%" y="-70%" width="120%" height="240%"><feImage ref="{{mapBRef}}" result="map" preserveAspectRatio="none"></feImage><feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="B" scale="-36" result="dr"></feDisplacementMap><feColorMatrix in="dr" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"></feColorMatrix><feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="B" scale="-32" result="dg"></feDisplacementMap><feColorMatrix in="dg" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"></feColorMatrix><feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="B" scale="-28" result="db"></feDisplacementMap><feColorMatrix in="db" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"></feColorMatrix><feBlend in="r" in2="g" mode="screen" result="rg"></feBlend><feBlend in="rg" in2="b" mode="screen"></feBlend></filter></svg>
+<div class="board {{themeClass}}" ref="{{boardRef}}" style="position: relative; width: 1280px; height: 2060px; overflow: hidden">
+<div class="wall"></div>
+<div style="position: relative; padding: 48px 72px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em">One colour per provider, every model in the track</h1>
+<p style="margin: 0; font-size: 14px; color: var(--sub); max-width: 980px">Each track is the effort slider at Max, as a glass tube of living liquid: currents and caustic light move through it and small bubbles rise. ChatGPT stays white and Claude stays orange (locked); DeepSeek, Meta and Gemini keep the Mac app's colours; the rest take their own brand's colour, or another where two would collide.</p>
+</div>
+
+<div class="card" style="padding: 24px 28px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; row-gap: 16px">
+<sc-for list="{{providers}}" as="p" hint-placeholder-count="14">
+<div class="row">
+<div class="name"><b>{{p.name}}</b><span>{{p.note}}</span></div>
+<div class="tube">
+<div class="liqwrap glassS">
+<div class="liq" style="{{p.fillStyle}}"></div>
+<svg class="current" viewBox="0 0 2000 30" preserveAspectRatio="none"><path d="{{wave1}}"></path></svg>
+<svg class="current slow" viewBox="0 0 2000 30" preserveAspectRatio="none"><path d="{{wave2}}"></path></svg>
+<div class="caustic"></div>
+<sc-if value="{{p.oil}}" hint-placeholder-val="{{false}}"><div class="oil"></div></sc-if>
+<sc-for list="{{p.bubbles}}" as="u" hint-placeholder-count="10"><span class="bub {{p.bubbleClass}}" style="{{u.style}}"></span></sc-for>
+</div>
+<div class="gloss"></div>
+<div class="knob"></div>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div class="card" style="padding: 26px 28px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: baseline; gap: 12px"><h2 style="margin: 0; font-size: 18px; font-weight: 600">Blends</h2><span style="font-size: 13px; color: var(--sub)">The leads sit at the knob end, the first lead right against the knob, each with a larger stretch; the workers fill the track to their left. The liquids run into one another, each model's current flowing through all of them.</span></div>
+<sc-for list="{{blends}}" as="b" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 12px"><span class="tag">{{b.count}}</span><b style="font-size: 14px">{{b.title}}</b><span style="font-size: 12px; color: var(--sub)">{{b.note}}</span></div>
+<div class="tube big">
+<div class="liqwrap glassB">
+<div class="liq" style="{{b.fillStyle}}"></div>
+<sc-if value="{{b.oil}}" hint-placeholder-val="{{false}}"><div class="oil" style="{{b.oilStyle}}"></div></sc-if>
+<svg class="current" viewBox="0 0 2000 40" preserveAspectRatio="none"><sc-for list="{{b.strands}}" as="s" hint-placeholder-count="3"><path d="{{s.d}}" style="stroke: {{s.color}}; stroke-width: 3"></path></sc-for></svg>
+<svg class="current slow" viewBox="0 0 2000 40" preserveAspectRatio="none"><path d="{{wave3}}"></path></svg>
+<div class="caustic"></div>
+<sc-for list="{{b.bubbles}}" as="u" hint-placeholder-count="16"><span class="bub" style="{{u.style}}"></span></sc-for>
+</div>
+<div class="gloss"></div>
+<div class="knob"></div>
+</div>
+<div class="legend"><sc-for list="{{b.legend}}" as="l" hint-placeholder-count="3"><span><i class="dot" style="background: {{l.color}}"></i>{{l.name}}</span></sc-for></div>
+</div>
+</sc-for>
+</div>
+
+<div class="card" style="padding: 26px 28px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 12px"><h2 style="margin: 0; font-size: 18px; font-weight: 600">A provider the app has no colour for yet</h2><span style="font-size: 13px; color: var(--sub)">For the 2–3 seconds the app reads the maker's logo, the tube shows it is loading; then its ink is released into the clear water at the knob end: clouds billow out and roll along the tube, thin at their fronts and dense behind, until the tube holds the colour, and it stays. Press Replay to watch it again.</span></div>
+<div class="tube big">
+<div class="loading" ref="{{loadingRef}}"><div class="shim"></div><span class="pulse" style="left: 30%"></span><span class="pulse" style="left: 48%; animation-delay: .18s"></span><span class="pulse" style="left: 66%; animation-delay: .36s"></span></div>
+<div class="liqwrap glassB">
+<div class="water"></div>
+<canvas class="ink" ref="{{inkRef}}"></canvas>
+<div class="liq" ref="{{solidRef}}" style="opacity: 0; background: linear-gradient(in oklab 90deg, #0b6e60 0%, #12a58c 55%, #3fe0c3 100%)"></div>
+<svg class="current" viewBox="0 0 2000 40" preserveAspectRatio="none"><path d="{{wave3}}"></path></svg>
+<div class="caustic"></div>
+<sc-for list="{{pourBubbles}}" as="u" hint-placeholder-count="16"><span class="bub" style="{{u.style}}"></span></sc-for>
+</div>
+<div class="gloss"></div>
+<div class="knob"></div>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><div class="loadlabel" style="flex-grow: 1"><span class="a" ref="{{labelARef}}">Reading the maker's colour…</span><span class="b" ref="{{labelBRef}}" style="opacity: 0">Colour found · a free shade of teal (example)</span></div><button class="replay" onClick="{{replay}}">Replay</button></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":true},"leadShare":{"editor":"range","default":1.6,"min":1,"max":2.5,"step":0.1},"$preview":{"width":1280,"height":2060}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    this.lite = coarse || (navigator.hardwareConcurrency || 8) <= 4;
+    if (this.lite && this.boardEl) this.boardEl.classList.add('lite');
+    if (this.boardEl && 'IntersectionObserver' in window) {
+      this.io = new IntersectionObserver((entries) => { for (const e of entries) e.target.classList.toggle('paused', !e.isIntersecting); }, { rootMargin: '80px' });
+      this.boardEl.querySelectorAll('.tube').forEach((el) => this.io.observe(el));
+    }
+    this.replay(); this.buildMaps(); this.initGL();
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); cancelAnimationFrame(this.glRaf); if (this.io) this.io.disconnect(); if (this.sim && this.sim.worker) this.sim.worker.postMessage({ cmd: 'stop' }); }
+  // Frames are paced evenly: the display's refresh is measured, and a frame is drawn on every n-th refresh, n the largest
+  // whole number that still gives at least 60 fps (60 or 75 Hz: every refresh; 120, 144 or 165 Hz: every 2nd; 240 Hz:
+  // every 4th), timed by the clock, so the rhythm is even (an uneven 2-3-2-3 rhythm reads as stutter even at a high
+  // average rate); when frames come slower than that, every one is drawn.
+  frameGate(now) {
+    if (this.gateNow === now) return this.gateResult;
+    if (this.gatePrev != null) {
+      const d = now - this.gatePrev;
+      if (d > 2 && d < 50) this.refreshMs = this.refreshMs == null ? d : Math.min(d, this.refreshMs * 0.9 + d * 0.1);
+    }
+    this.gatePrev = now;
+    const r = this.refreshMs || 1000 / 60, every = Math.max(1, Math.floor(1000 / 60 / r + 0.05));
+    const draw = this.gateLast == null || now - this.gateLast >= every * r - r / 2;
+    if (draw) this.gateLast = now;
+    this.gateNow = now; this.gateResult = draw;
+    return draw;
+  }
+  replay() {
+    cancelAnimationFrame(this.raf);
+    this.t0 = performance.now(); this.ink = null; this.lastNow = null; this.solidFrom = null;
+    if (this.solidEl) { this.solidEl.style.transition = 'none'; this.solidEl.style.opacity = 0; }
+    const step = (now) => { if (!this.frameGate(now) || this.frame(now) !== false) this.raf = requestAnimationFrame(step); };
+    this.raf = requestAnimationFrame(step);
+  }
+  // The glass: a displacement map (after rizzytoday/liquid-glass, MIT) whose red channel runs right to left and blue top
+  // to bottom, neutral grey in the middle, so the SVG filter bends the liquid only toward the tube's rounded rim, each
+  // colour channel by a slightly different amount (chromatic fringe). One map per tube size.
+  buildMaps() {
+    const make = (img, w, h, key) => {
+      if (!img || img.getAttribute('data-built')) return;
+      const padX = Math.ceil(w * 0.1), padY = Math.ceil(h * 0.7);
+      const c = document.createElement('canvas'); c.width = w + padX * 2; c.height = h + padY * 2;
+      const g = c.getContext('2d');
+      g.fillStyle = 'rgb(128,128,128)'; g.fillRect(0, 0, c.width, c.height);
+      g.save(); g.beginPath(); g.roundRect(padX, padY, w, h, h / 2); g.clip();
+      g.fillStyle = '#000'; g.fillRect(padX, padY, w, h);
+      // red rises to the right, so both rounded ends sample inward, into the liquid, never past its edge
+      const rg = g.createLinearGradient(padX, 0, padX + w, 0); rg.addColorStop(0, '#000'); rg.addColorStop(1, '#f00'); g.fillStyle = rg; g.fillRect(padX, padY, w, h);
+      g.globalCompositeOperation = 'difference';
+      const bg = g.createLinearGradient(0, padY, 0, padY + h); bg.addColorStop(0, '#000'); bg.addColorStop(1, '#00f'); g.fillStyle = bg; g.fillRect(padX, padY, w, h);
+      g.globalCompositeOperation = 'source-over';
+      const inset = Math.min(w, h) * 0.12;
+      g.filter = 'blur(' + Math.max(3, h * 0.16) + 'px)';
+      g.fillStyle = 'hsla(0,0%,50%,0.94)';
+      g.beginPath(); g.roundRect(padX + inset, padY + inset, w - inset * 2, h - inset * 2, (h - inset * 2) / 2); g.fill();
+      g.restore();
+      const uri = c.toDataURL();
+      img.setAttribute('href', uri); img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', uri); img.setAttribute('data-built', '1');
+      this['mapCanvas' + key] = c;
+    };
+    make(this.mapS, 354, 30, 'S');
+    make(this.mapB, 1080, 40, 'B');
+  }
+  // The new colour arrives as ink released into the clear water: a real fluid simulation (Stam, "Stable Fluids", 1999:
+  // pressure projection, semi-Lagrangian advection; vorticity confinement, Fedkiw et al. 2001, for the billowing curls;
+  // ink a little heavier than water). One source at the knob end keeps releasing ink into a gentle wavering jet; the
+  // clouds roll toward the far end, thin and translucent at their fronts (where tracer particles show the current) and
+  // dense behind, until the whole tube holds the colour. Then it stays.
+  makeInk(NX, NY, opts) {
+    const sc = NX / 360;
+    const o = Object.assign({ jet: 130 * sc, wobble: 0.7, eps: 15, sink: 5 * NY / 14, inject: 5, drift: 6 * sc, diffD: 0.000015 }, opts || {});
+    const W = NX + 2, size = W * (NY + 2);
+    const IX = (i, j) => i + W * j;
+    const u = new Float32Array(size), v = new Float32Array(size), u0 = new Float32Array(size), v0 = new Float32Array(size);
+    const d = new Float32Array(size), d0 = new Float32Array(size);
+    const p = new Float32Array(size), div = new Float32Array(size), curl = new Float32Array(size);
+    const bnd = (b, x) => {
+      for (let i = 1; i <= NX; i++) { x[IX(i, 0)] = b === 2 ? -x[IX(i, 1)] : x[IX(i, 1)]; x[IX(i, NY + 1)] = b === 2 ? -x[IX(i, NY)] : x[IX(i, NY)]; }
+      for (let j = 1; j <= NY; j++) { x[IX(0, j)] = b === 1 ? -x[IX(1, j)] : x[IX(1, j)]; x[IX(NX + 1, j)] = b === 1 ? -x[IX(NX, j)] : x[IX(NX, j)]; }
+    };
+    const advect = (b, dd, d0a, uu, vv, dt) => {
+      for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) {
+        let x = i - dt * uu[IX(i, j)], y = j - dt * vv[IX(i, j)];
+        if (x < 0.5) x = 0.5; if (x > NX + 0.5) x = NX + 0.5; if (y < 0.5) y = 0.5; if (y > NY + 0.5) y = NY + 0.5;
+        const i0 = x | 0, j0 = y | 0, s1 = x - i0, s0 = 1 - s1, t1 = y - j0, t0 = 1 - t1;
+        dd[IX(i, j)] = s0 * (t0 * d0a[IX(i0, j0)] + t1 * d0a[IX(i0, j0 + 1)]) + s1 * (t0 * d0a[IX(i0 + 1, j0)] + t1 * d0a[IX(i0 + 1, j0 + 1)]);
+      }
+      bnd(b, dd);
+    };
+    const project = () => {
+      for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) { div[IX(i, j)] = -0.5 * (u[IX(i + 1, j)] - u[IX(i - 1, j)] + v[IX(i, j + 1)] - v[IX(i, j - 1)]); p[IX(i, j)] = 0; }
+      bnd(0, div); bnd(0, p);
+      for (let k = 0; k < 24; k++) { for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) p[IX(i, j)] = (div[IX(i, j)] + p[IX(i - 1, j)] + p[IX(i + 1, j)] + p[IX(i, j - 1)] + p[IX(i, j + 1)]) / 4; bnd(0, p); }
+      for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) { u[IX(i, j)] -= 0.5 * (p[IX(i + 1, j)] - p[IX(i - 1, j)]); v[IX(i, j)] -= 0.5 * (p[IX(i, j + 1)] - p[IX(i, j - 1)]); }
+      bnd(1, u); bnd(2, v);
+    };
+    const diffuse = (b, x, x0, a) => { for (let k = 0; k < 4; k++) { for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / (1 + 4 * a); bnd(b, x); } };
+    let time = 0, releasing = true;
+    const step = (dt) => {
+      time += dt;
+      if (releasing) {
+        // puffs: the release pulses, so each pulse rolls up into its own cloud
+        const puff = 0.35 + 0.65 * Math.pow(Math.max(0, Math.sin(time * 2.3)), 2);
+        const jc = (NY + 1) / 2 + Math.sin(time * 1.7) * NY * 0.18 + Math.sin(time * 4.1) * NY * 0.06;
+        const deep = Math.max(3, Math.round(NX / 90));
+        for (let j = 1; j <= NY; j++) {
+          const w = Math.exp(-Math.pow((j - jc) / (NY * 0.2), 2));
+          for (let i = NX - deep; i <= NX; i++) { u[IX(i, j)] += (-o.jet * puff * w - u[IX(i, j)]) * 0.35; v[IX(i, j)] += Math.sin(time * 6 + j) * o.wobble * w; d[IX(i, j)] += o.inject * w * puff * dt * 4 * (14 / NY); }
+        }
+      }
+      for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) { const k = IX(i, j); u[k] -= o.drift * dt * 2; v[k] += o.sink * dt * Math.min(2, d[k]); }
+      for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) curl[IX(i, j)] = 0.5 * (v[IX(i + 1, j)] - v[IX(i - 1, j)] - u[IX(i, j + 1)] + u[IX(i, j - 1)]);
+      for (let j = 2; j < NY; j++) for (let i = 2; i < NX; i++) {
+        let nx = (Math.abs(curl[IX(i + 1, j)]) - Math.abs(curl[IX(i - 1, j)])) * 0.5, ny = (Math.abs(curl[IX(i, j + 1)]) - Math.abs(curl[IX(i, j - 1)])) * 0.5;
+        const len = Math.sqrt(nx * nx + ny * ny) + 1e-5; nx /= len; ny /= len;
+        const w = curl[IX(i, j)]; u[IX(i, j)] += o.eps * dt * ny * w; v[IX(i, j)] -= o.eps * dt * nx * w;
+      }
+      bnd(1, u); bnd(2, v);
+      project();
+      u0.set(u); v0.set(v);
+      advect(1, u, u0, u0, v0, dt); advect(2, v, v0, u0, v0, dt);
+      project();
+      d0.set(d); diffuse(0, d, d0, o.diffD * NX * NY * dt);
+      d0.set(d); advect(0, d, d0, u, v, dt);
+    };
+    const vel = (x, y) => {
+      if (x < 0.5) x = 0.5; if (x > NX + 0.5) x = NX + 0.5; if (y < 0.5) y = 0.5; if (y > NY + 0.5) y = NY + 0.5;
+      const i0 = x | 0, j0 = y | 0, s1 = x - i0, t1 = y - j0, s0 = 1 - s1, t0 = 1 - t1;
+      const f = (a) => s0 * (t0 * a[IX(i0, j0)] + t1 * a[IX(i0, j0 + 1)]) + s1 * (t0 * a[IX(i0 + 1, j0)] + t1 * a[IX(i0 + 1, j0 + 1)]);
+      return [f(u), f(v), f(d)];
+    };
+    return { step, vel, d, u, v, IX, NX, NY, set releasing(b) { releasing = b; } };
+  }
+  // The ink lives in a Web Worker: it runs the fluid and paints each picture there, on its own canvas, and hands the page
+  // the finished picture (an ImageBitmap: a handle to an image already on the graphics side, passed without copying). The
+  // page only puts that picture on screen, so nothing the ink does can hold up a frame or leave garbage behind. Each
+  // displayed frame asks for exactly the steps its time calls for (two at 60 fps), so the ink moves evenly. The worker
+  // belongs to the page, not to one mount, and warms itself while the tube shows it is loading. Where a browser cannot
+  // paint in a worker, the page runs the same fluid and painter itself.
+  inkSimulator(NX, NY) {
+    const h = this.lite ? 1 / 30 : 1 / 60;
+    let sim = window.__inkSim;
+    if (sim && sim.NX === NX && sim.NY === NY && sim.worker) { sim.latest = null; sim.waiting = false; sim.owed = 0; return sim; }
+    sim = { worker: null, ready: false, latest: null, h, NX, NY };
+    try {
+      if (typeof OffscreenCanvas === 'undefined') throw new Error('no OffscreenCanvas');
+      const body = `
+const host = { lite: ${!!this.lite}, inkColour };
+let ink = null, h = 1 / 60, simT = 0, big = null, bg = null, soft = null, sg = null, W = 0, H = 0, dpr = 1;
+function newInk(NX, NY) {
+  const off = new OffscreenCanvas(NX, NY), octx = off.getContext('2d');
+  return { f: makeInk(NX, NY), off, octx, img: octx.createImageData(NX, NY), doneAt: null };
+}
+function size(m) {
+  W = m.W; H = m.H; dpr = m.dpr;
+  big = new OffscreenCanvas(Math.max(1, Math.round(W * dpr)), Math.max(1, Math.round(H * dpr)));
+  bg = big.getContext('2d');
+  soft = new OffscreenCanvas(big.width, big.height);
+  sg = soft.getContext('2d');
+}
+// the picture under the ink canvas's CSS blur(0.8px), done once here instead of in every pixel of every frame on screen
+function softened() {
+  sg.setTransform(1, 0, 0, 1, 0, 0); sg.clearRect(0, 0, soft.width, soft.height);
+  sg.filter = 'blur(' + (0.8 * dpr) + 'px)'; sg.drawImage(big, 0, 0); sg.filter = 'none';
+  return soft.transferToImageBitmap();
+}
+function frame(steps) {
+  for (let k = 0; k < steps; k++) { ink.f.step(h); simT += h; }
+  bg.setTransform(dpr, 0, 0, dpr, 0, 0);
+  paintInk.call(host, ink, bg, W, H, ink.f.NX, ink.f.NY, steps * h);
+  const bitmap = softened();
+  postMessage({ simT, solidCells: ink.solidCells, bitmap }, [bitmap]);
+}
+onmessage = (e) => {
+  const m = e.data;
+  if (m.cmd === 'prepare') {
+    size(m); h = m.h;
+    const w = newInk(m.NX, m.NY);
+    for (let k = 0; k < 6; k++) { w.f.step(h); bg.setTransform(dpr, 0, 0, dpr, 0, 0); paintInk.call(host, w, bg, W, H, m.NX, m.NY, h); }
+    softened().close();
+    postMessage({ ready: true });
+  }
+  else if (m.cmd === 'size') size(m);
+  else if (m.cmd === 'start') { ink = newInk(m.NX, m.NY); h = m.h; simT = 0; }
+  else if (m.cmd === 'advance') { if (ink) frame(m.steps); }
+  else if (m.cmd === 'settle') { if (ink) ink.f.releasing = false; }
+  else if (m.cmd === 'stop') { ink = null; }
+};`;
+      const src = 'const makeInk = function ' + this.makeInk.toString() + ';\n'
+        + 'const paintInk = function ' + this.paintInk.toString() + ';\n'
+        + 'const inkColour = function ' + this.inkColour.toString() + ';\n' + body;
+      const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      sim.worker = new Worker(url);
+      sim.worker.onerror = () => { sim.ready = false; sim.worker = null; };
+      window.__inkSim = sim;
+    } catch (e) { sim.worker = null; }
+    // the page side: keep only the newest picture; a picture never shown is released at once
+    if (sim.worker) sim.worker.onmessage = (e) => {
+      if (e.data.ready) { sim.ready = true; return; }
+      sim.waiting = false;
+      if (sim.latest && sim.latest.bitmap && sim.latest !== sim.shown) sim.latest.bitmap.close();
+      sim.latest = e.data;
+    };
+    return sim;
+  }
+  // the canvas the ink is drawn on, its size in px and its pixel ratio, for the worker
+  inkSize(W, H, dpr) { return { W, H, dpr: Math.min(2, dpr) }; }
+  newInk(NX, NY) {
+    const off = document.createElement('canvas'); off.width = NX; off.height = NY;
+    const octx = off.getContext('2d');
+    return { f: this.makeInk(NX, NY), off, octx, img: octx.createImageData(NX, NY), doneAt: null };
+  }
+  // the ink's picture for this frame: the density field coloured and outlined, then the tracers at the cloud fronts
+  paintInk(ink, g, W, H, NX, NY, simDt) {
+    // the ink: alpha rises with density (thin at the fronts, solid behind); thin ink is lighter, dense ink deeper
+    const f = ink.f, data = ink.img.data;
+    // each column's colour, worked out once per width (not once per cell per frame: no garbage to collect mid-animation)
+    if (ink.colsW !== W) {
+      ink.colsW = W; ink.cols = new Float32Array(NX * 3);
+      for (let i = 1; i <= NX; i++) ink.cols.set(this.inkColour((i - 0.5) / NX * W, W), (i - 1) * 3);
+    }
+    const cols = ink.cols;
+    let solidCells = 0;
+    for (let j = 1; j <= NY; j++) for (let i = 1; i <= NX; i++) {
+      const dd = Math.max(0, f.d[f.IX(i, j)]), a = 1 - Math.exp(-1.6 * dd);
+      if (a > 0.97) solidCells++;
+      const r = cols[(i - 1) * 3], gg = cols[(i - 1) * 3 + 1], b = cols[(i - 1) * 3 + 2];
+      // the billows' edges catch the light: a soft outline where the density changes fast
+      const gx = f.d[f.IX(Math.min(NX, i + 1), j)] - f.d[f.IX(Math.max(1, i - 1), j)], gy = f.d[f.IX(i, Math.min(NY, j + 1))] - f.d[f.IX(i, Math.max(1, j - 1))];
+      const edge = Math.min(1, Math.sqrt(gx * gx + gy * gy) * 0.9) * (1 - a * 0.6);
+      const lift = 0.3 * (1 - a) + 0.28 * edge, deep = 0.12 * Math.min(1, dd / 3);
+      const k = ((j - 1) * NX + (i - 1)) * 4;
+      data[k] = (r + (255 - r) * lift) * (1 - deep); data[k + 1] = (gg + (255 - gg) * lift) * (1 - deep); data[k + 2] = (b + (255 - b) * lift) * (1 - deep); data[k + 3] = a * 255;
+    }
+    ink.octx.putImageData(ink.img, 0, 0);
+    g.clearRect(0, 0, W, H);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(ink.off, 0, 0, W, H);
+    // tracers: fine particles riding the current, seen where the ink is still thin (the cloud fronts). They live in one
+    // fixed block of numbers (x, y, life, radius), oldest first, and each column's colour is worked out once: drawing
+    // them makes no garbage, so no collection ever pauses the ink however many are alive.
+    const cw = W / NX, ch = H / NY, cap = this.lite ? 260 : 700;
+    if (!ink.tp || ink.tp.length !== cap * 4) { ink.tp = new Float32Array(cap * 4); ink.tn = 0; }
+    if (ink.tstyleW !== W) {
+      ink.tstyleW = W; ink.tstyle = [];
+      for (let i = 0; i <= NX + 1; i++) {
+        const c = this.inkColour(Math.min(NX, Math.max(0, i)) * cw, W);
+        ink.tstyle.push('rgb(' + ((c[0] + 255) / 2 | 0) + ',' + ((c[1] + 255) / 2 | 0) + ',' + ((c[2] + 255) / 2 | 0) + ')');
+      }
+    }
+    const tp = ink.tp;
+    ink.spawn = (ink.spawn || 0) + simDt * 60 * (this.lite ? 3 : 7);
+    if (ink.doneAt !== null) ink.spawn = 0;
+    for (; ink.spawn >= 1; ink.spawn--) {
+      if (ink.tn === cap) { tp.copyWithin(0, 4, cap * 4); ink.tn--; }   // the oldest makes way, as before
+      const o = ink.tn * 4;
+      tp[o] = NX - 1 - Math.random() * 4; tp[o + 1] = 1 + Math.random() * NY; tp[o + 2] = 2.5 + Math.random() * 3; tp[o + 3] = 0.5 + Math.random() * 1.1;
+      ink.tn++;
+    }
+    let keep = 0;
+    for (let q = 0; q < ink.tn; q++) {
+      const o = q * 4;
+      const vel = f.vel(tp[o], tp[o + 1]);
+      const x = tp[o] + vel[0] * simDt, y = tp[o + 1] + vel[1] * simDt, life = tp[o + 2] - simDt, rad = tp[o + 3];
+      const a = 1 - Math.exp(-1.6 * Math.max(0, vel[2]));
+      const vis = Math.min(1, a / 0.2) * (1 - Math.min(1, Math.max(0, (a - 0.55) / 0.35)));
+      if (vis > 0.02) {
+        g.globalAlpha = vis * 0.8;
+        g.fillStyle = ink.tstyle[Math.min(NX + 1, Math.max(0, Math.round(x)))];
+        g.beginPath(); g.arc((x - 0.5) * cw, (y - 0.5) * ch, rad, 0, Math.PI * 2); g.fill();
+      }
+      if (life > 0 && x > 0.5) { const k = keep * 4; tp[k] = x; tp[k + 1] = y; tp[k + 2] = life; tp[k + 3] = rad; keep++; }
+    }
+    ink.tn = keep;
+    g.globalAlpha = 1;
+    ink.solidCells = solidCells;
+  }
+  // the solid colour's opacity on the GPU path: the same half-second CSS "ease" the DOM layer uses, without asking the
+  // browser for computed styles every frame
+  solidOpacity(now) {
+    if (this.solidFrom == null) return 0;
+    return this.bezier(0.25, 0.1, 0.25, 1, Math.min(1, (now - this.solidFrom) / 500));
+  }
+  inkColour(x, W) {
+    const stops = [[11, 110, 96], [18, 165, 140], [63, 224, 195]];
+    const q = Math.max(0, Math.min(1, x / W)) * 2, i = Math.min(1, Math.floor(q)), f = q - i;
+    const a = stops[i], b = stops[i + 1];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+  }
+  frame(now) {
+    const c = this.inkCanvas;
+    if (!c) return true;
+    const dpr = window.devicePixelRatio || 1;
+    const W = c.clientWidth, H = c.clientHeight;
+    if (!W || !H) return true;
+    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+    const g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const t = (now - this.t0) / 1000;
+    const show = (el, on) => { if (el) el.style.opacity = on ? 1 : 0; };
+    const NX = this.lite ? 240 : 480, NY = this.lite ? 10 : 20;
+    if (t < 2.3) {
+      show(this.loadingEl, true); show(this.labelA, true); show(this.labelB, false);
+      g.clearRect(0, 0, W, H);
+      if (this.solidEl) this.solidEl.style.opacity = 0;
+      if (this.ink && this.ink.worker && this.sim && this.sim.worker) this.sim.worker.postMessage({ cmd: 'stop' });
+      if (this.sim) this.sim.latest = null;
+      this.ink = null; this.solidFrom = null;
+      // While the tube shows it is loading, the simulator gets ready (in its worker) and the painter runs on a throwaway
+      // fluid, one small piece per frame, unseen: the browser has then compiled everything, so the ink's first visible
+      // frames are as quick as the rest. Where there is no worker, the simulation warms the same way, a step a frame.
+      if (!this.sim) {
+        this.sim = this.inkSimulator(NX, NY);
+        if (this.sim.worker && !this.sim.ready && !this.sim.preparing) {
+          this.sim.preparing = true;
+          this.sim.worker.postMessage({ cmd: 'prepare', NX, NY, h: this.sim.h, ...this.inkSize(W, H, dpr) });
+        }
+      }
+      if (t > 0.4 && (this.warmFrames || 0) < 6) {
+        this.warmFrames = (this.warmFrames || 0) + 1;
+        if (!this.warmInk) {
+          this.warmInk = this.newInk(NX, NY);
+          const off = document.createElement('canvas'); off.width = Math.max(1, Math.round(W * dpr)); off.height = Math.max(1, Math.round(H * dpr));
+          this.warmCtx = off.getContext('2d'); this.warmCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        if (!this.sim.worker) { this.warmInk.f.step(this.sim.h); this.paintInk(this.warmInk, this.warmCtx, W, H, NX, NY, 1 / 60); }
+      }
+      return true;
+    }
+    show(this.loadingEl, false); show(this.labelA, false); show(this.labelB, true);
+    // The ink runs on real time, at INK_SPEED times the pace it was tuned at: the same fixed steps as before, only more
+    // of them per frame, so the clouds evolve exactly as they did, just sooner. A late frame counts as at most two
+    // frames' time, so the ink then runs a touch slower for that moment instead of leaping ahead.
+    const INK_SPEED = 2;
+    const sim = this.sim || (this.sim = this.inkSimulator(NX, NY));
+    const useWorker = !!(sim.worker && sim.ready);
+    if (!this.ink) {
+      this.ink = this.newInk(NX, NY);
+      this.ink.worker = useWorker;
+      if (useWorker) {
+        sim.worker.postMessage({ cmd: 'size', ...this.inkSize(W, H, dpr) });
+        sim.worker.postMessage({ cmd: 'start', NX, NY, h: sim.h }); sim.waiting = false; sim.owed = 0; sim.latest = null;
+      }
+    }
+    const ink = this.ink;
+    let simDt = 0;
+    // the steps this frame's time calls for: exactly as when the page ran the fluid itself (two a frame at 60 fps)
+    const real = this.lastNow == null ? 1 / 60 : Math.min(1 / 30, Math.max(0, (now - this.lastNow) / 1000));
+    this.lastNow = now;
+    if (ink.worker) {
+      // Lockstep: each displayed frame asks the worker for this frame's steps and draws the picture it sent back for
+      // the previous frame. The ink so moves the same amount every frame, like a fluid on the page, while the work runs
+      // beside it. If the worker is still busy, the steps are owed and asked for with the next frame.
+      ink.acc = (ink.acc || 0) + real * INK_SPEED;
+      const steps = Math.min(4, Math.floor(ink.acc / sim.h)); ink.acc -= steps * sim.h;
+      if (ink.acc > sim.h) ink.acc = sim.h;
+      sim.owed = Math.min(4, (sim.owed || 0) + steps);  // a busy machine slows the ink a touch; it never makes it lurch
+      if (!sim.waiting && sim.owed > 0) { sim.worker.postMessage({ cmd: 'advance', steps: sim.owed }); sim.owed = 0; sim.waiting = true; }
+      const pic = sim.latest;
+      if (!pic || pic === sim.shown) return true;      // nothing new yet: the last picture stands
+      // show it: the GPU path takes the picture straight into its texture; without the GPU path it is drawn on the canvas
+      if (sim.shown && sim.shown.bitmap) sim.shown.bitmap.close();
+      sim.shown = pic; this.inkBitmap = pic.bitmap;
+      if (!this.gl) { c.style.filter = 'none'; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height); g.drawImage(pic.bitmap, 0, 0, c.width, c.height); }
+      simDt = Math.max(0, pic.simT - (ink.simT || 0));
+      ink.simT = pic.simT; ink.solidCells = pic.solidCells;
+    } else {
+      const f = ink.f, h = sim.h;
+      ink.acc = (ink.acc || 0) + real * INK_SPEED;
+      for (let n = 0; ink.acc >= h && n < 4; n++) { f.step(h); ink.acc -= h; simDt += h; }
+      if (ink.acc > h) ink.acc = h;
+      ink.simT = (ink.simT || 0) + simDt;
+      this.inkBitmap = null;
+      this.paintInk(ink, g, W, H, NX, NY, simDt);
+    }
+    // full: stop releasing, let the last swirls settle, then hold the colour
+    this.inkVersion = (this.inkVersion || 0) + 1;
+    if (ink.doneAt === null && ink.solidCells >= NX * NY * 0.995) {
+      ink.doneAt = ink.simT;
+      if (ink.worker) sim.worker.postMessage({ cmd: 'settle' }); else ink.f.releasing = false;
+    }
+    if (ink.doneAt !== null && ink.simT - ink.doneAt > 1.5) {
+      // the solid colour takes over in a soft half second, so the hand-off never shows
+      if (this.solidEl) { this.solidEl.style.transition = 'opacity .5s ease'; this.solidEl.style.opacity = 1; }
+      this.solidFrom = now;
+      if (ink.worker) sim.worker.postMessage({ cmd: 'stop' });
+      return false;
+    }
+    return true;
+  }
+  // ---------------------------------------------------------------------------------------------------------------
+  // The tubes on the GPU. The look is defined by the CSS above (the liquid, its currents, the caustic light, the oil, the
+  // bubbles, all bent by the glass filter with its colour fringe); the browser runs that SVG filter on the CPU, three
+  // passes per tube per frame, which held the page near 30 fps. Here one shared WebGL2 context draws every visible tube
+  // with the same mathematics: the same gradient stops interpolated in OKLab, the CSS blend modes (soft-light, overlay,
+  // screen) by their W3C formulas, the same keyframes and easing for every bubble, the currents rasterized from the very
+  // same SVG, and the same displacement map (the canvas buildMaps draws) applied per colour channel at -36/-32/-28.
+  // The DOM layers stay as the fallback (no WebGL2, or the light mode on phones).
+  initGL() {
+    if (this.lite || this.gl || !this.boardEl) return;
+    this.boardEl.classList.add('gpu-pending');
+    // The context, its compiled program and its textures belong to the page, not to this mount: when the canvas viewer
+    // rebuilds the board (a click can do it), the new mount takes them over at once, with no compile and no flicker.
+    const shared = window.__liquidGL;
+    if (shared && !shared.gl.isContextLost()) { this.attachGL(shared); return; }
+    const glc = document.createElement('canvas');
+    const gl = glc.getContext('webgl2', { premultipliedAlpha: true, alpha: true, antialias: false, preserveDrawingBuffer: true });
+    if (!gl) return;
+    // while the GPU path gets ready (a fraction of a second), the CSS tubes skip their glass filter: that filter is the
+    // slow path, and nothing should run it in the meantime; it comes back only if the GPU path fails
+    const fail = () => { if (this.boardEl) this.boardEl.classList.remove('gpu-pending'); };
+    const VS = `#version 300 es
+in vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }`;
+    const FS = `#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2 size;          // the tube, CSS px
+uniform float dpr;
+uniform sampler2D mapTex;   // the glass displacement map, over the filter region (-10% -70% 120% 240%)
+uniform sampler2D inkTex;  // the ink's picture, already blurred 0.8 px (the CSS blur) where it was painted
+uniform vec4 curA;          // the first current: on, opacity, offset (px), viewBox height
+uniform vec4 curB;          // the slow current: the same
+uniform int nStrands;       // the first current's strokes (one, or one per model in a blend)
+uniform vec4 strandShape[6];// amplitude, cycles, phase, stroke width (viewBox units)
+uniform vec4 strandColor[6];// premultiplied colour
+uniform vec4 waveB;         // the slow current's stroke: amplitude, cycles, phase, width (white)
+uniform sampler2D gradTex;  // the liquid's gradient, one texel per device pixel, interpolated in OKLab on the CPU
+uniform vec2 breathe;       // saturate, brightness
+uniform float liqOpacity;
+uniform float inkVisible;    // 0 once the solid colour covers the ink completely
+uniform float caustic;      // the caustic tile's x offset (px)
+uniform vec4 oil;           // x: on, y: left px, z: width px, w: tile offset (px)
+uniform float oilMask; uniform float oilFirst;
+uniform float ink;          // 1 for the ink tube: water, then the ink canvas, then the solid liquid
+uniform int nBub; uniform vec4 bubA[24]; uniform vec4 bubB[24];
+uniform float refract;      // 1: the glass filter is on
+
+vec3 saturateBright(vec3 c, float s, float b){
+  vec3 r = vec3(dot(c, vec3(0.213+0.787*s, 0.715-0.715*s, 0.072-0.072*s)),
+                dot(c, vec3(0.213-0.213*s, 0.715+0.285*s, 0.072-0.072*s)),
+                dot(c, vec3(0.213-0.213*s, 0.715-0.715*s, 0.072+0.928*s)));
+  return clamp(clamp(r, 0.0, 1.0) * b, 0.0, 1.0);
+}
+// W3C compositing: a blended source (premultiplied) over a premultiplied backdrop
+vec3 softLight(vec3 cb, vec3 cs){
+  vec3 d = mix(sqrt(cb), ((16.0*cb - 12.0)*cb + 4.0)*cb, step(cb, vec3(0.25)));
+  return mix(cb + (2.0*cs - 1.0)*(d - cb), cb - (1.0 - 2.0*cs)*cb*(1.0 - cb), step(cs, vec3(0.5)));
+}
+vec3 overlayB(vec3 cb, vec3 cs){ return mix(cs + (2.0*cb - 1.0) - cs*(2.0*cb - 1.0), 2.0*cs*cb, step(cb, vec3(0.5))); }
+vec3 screenB(vec3 cb, vec3 cs){ return cb + cs - cb*cs; }
+vec4 blendOver(vec4 dst, vec4 src, int mode){
+  if (src.a <= 0.0) return dst;
+  vec3 cs = src.rgb / src.a; vec3 cb = dst.a > 0.0 ? dst.rgb / dst.a : vec3(0.0);
+  vec3 bl = mode == 1 ? softLight(cb, cs) : mode == 2 ? overlayB(cb, cs) : mode == 3 ? screenB(cb, cs) : cs;
+  vec3 mixed = (1.0 - dst.a) * cs + dst.a * bl;
+  return vec4(src.a * mixed + (1.0 - src.a) * dst.rgb, src.a + dst.a * (1.0 - src.a));
+}
+vec4 over(vec4 dst, vec4 src){ return src + dst * (1.0 - src.a); }
+float capsuleDist(vec2 p, vec2 s){
+  float r = s.y * 0.5; vec2 a = vec2(r, r), b = vec2(max(r, s.x - r), r);
+  vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba)/max(dot(ba, ba), 1e-4), 0.0, 1.0);
+  return length(pa - ba*h) - r;
+}
+float ellipseAlpha(vec2 uv, vec2 c, vec2 r, float a){ float t = length((uv - c)/r); return a * max(0.0, 1.0 - t/0.7); }
+// one CSS radial-gradient bubble: background, then border, under a soft white shadow, all inside the element's opacity
+float erf(float x){ float a = 0.147, x2 = x*x; float r = sqrt(1.0 - exp(-x2*(1.2732395 + a*x2)/(1.0 + a*x2))); return x < 0.0 ? -r : r; }
+// a blurred SVG stroke along a sine, in the current's own viewBox (2000 units over twice the tube): the stroke's width
+// across the curve, under the Gaussian of stdDeviation 2 units, exactly as the SVG draws it on a gently curving line
+float strand(vec2 p, float offset, float vbH, vec4 shape){
+  float u = (p.x + offset) / (2.0 * size.x) * 2000.0;
+  float v = p.y / size.y * vbH;
+  float k = 3.14159265 * shape.y / 1000.0;
+  float yc = vbH * 0.5 + shape.x * sin(u * k + shape.z);
+  float slope = shape.x * k * cos(u * k + shape.z);   // in the viewBox's own units, where the SVG blur is round
+  float d = abs(v - yc) / sqrt(1.0 + slope * slope);
+  float w = shape.w * 0.5, s = 2.0 * 1.41421356;
+  return clamp(0.5 * (erf((d + w) / s) - erf((d - w) / s)), 0.0, 1.0);
+}
+vec4 bubble(vec2 p, vec4 A, vec4 B){
+  float outer = B.x, sz = outer - 2.0, R0 = outer * 0.5, sc = A.z; float px = 1.0/(dpr*sc);
+  vec2 q = (p - A.xy)/sc + vec2(R0);             // local border-box coordinates
+  float d = length(q - vec2(R0)) - R0;            // < 0 inside the circle
+  float inside = clamp(0.5 - d/px, 0.0, 1.0);
+  // box-shadow 0 0 3px: the circle blurred by a gaussian of sigma 1.5, drawn outside the border box only
+  float g = 0.5 * (1.0 - erf(d/(1.5*1.41421356)));
+  vec4 col = vec4(1.0) * (0.25 * g * (1.0 - inside));
+  bool dark = B.y > 0.5;
+  // background: circle at 32% 28% of the padding box, farthest-corner
+  vec2 c0 = vec2(1.0 + 0.32*sz, 1.0 + 0.28*sz); float rad = length(vec2(0.68*sz, 0.72*sz));
+  float t = length(q - c0)/max(rad, 1e-3);
+  vec4 bg;
+  if (!dark){
+    vec4 s0 = vec4(1.0)*0.95, s1 = vec4(1.0)*0.14, s2 = vec4(0.0);
+    bg = t <= 0.16 ? s0 : t <= 0.46 ? mix(s0, s1, (t-0.16)/0.30) : t <= 0.72 ? mix(s1, s2, (t-0.46)/0.26) : s2;
+  } else {
+    vec4 s0 = vec4(1.0)*0.98, s1 = vec4(vec3(20.0,22.0,30.0)/255.0, 1.0)*0.06, s2 = vec4(0.0);
+    bg = t <= 0.18 ? s0 : t <= 0.50 ? mix(s0, s1, (t-0.18)/0.32) : t <= 0.72 ? mix(s1, s2, (t-0.50)/0.22) : s2;
+  }
+  col = over(col, bg * inside);
+  float ring = clamp(0.5 - d/px, 0.0, 1.0) * clamp(0.5 + (d + 1.0)/px, 0.0, 1.0);
+  vec4 bc = dark ? vec4(vec3(20.0,22.0,30.0)/255.0, 1.0)*0.5 : vec4(1.0)*0.72;
+  col = over(col, bc * ring);
+  return col * A.w;
+}
+vec4 content(vec2 p){
+  float cov = clamp(0.5 - capsuleDist(p, size)*dpr, 0.0, 1.0);
+  if (cov <= 0.0) return vec4(0.0);
+  vec4 c = vec4(0.0);
+  if (ink > 0.5 && inkVisible > 0.5){
+    float tw = clamp(p.y/size.y, 0.0, 1.0);
+    vec4 w0 = vec4(225.0,245.0,255.0,0.0)/255.0; w0.a = 0.20; w0.rgb *= w0.a;
+    vec4 w1 = vec4(190.0,225.0,245.0,0.0)/255.0; w1.a = 0.07; w1.rgb *= w1.a;
+    vec4 w2 = vec4(120.0,170.0,205.0,0.0)/255.0; w2.a = 0.16; w2.rgb *= w2.a;
+    c = tw <= 0.45 ? mix(w0, w1, tw/0.45) : mix(w1, w2, (tw-0.45)/0.55);
+    // the ink's picture, already under its CSS blur(0.8px)
+    if (p.x >= 0.0 && p.y >= 0.0 && p.x <= size.x && p.y <= size.y) c = over(c, textureLod(inkTex, p / size, 0.0));
+  }
+  if (liqOpacity > 0.0){
+    vec3 g = saturateBright(textureLod(gradTex, vec2(clamp(p.x/size.x, 0.0, 1.0), 0.5), 0.0).rgb, breathe.x, breathe.y);
+    c = over(c, vec4(g, 1.0) * liqOpacity);
+  }
+  // the oil, in the blends drawn before the currents
+  for (int pass = 0; pass < 2; pass++){
+    bool oilNow = oil.x > 0.5 && ((pass == 0 && oilFirst > 0.5) || (pass == 1 && oilFirst < 0.5));
+    if (pass == 0){
+      if (oilNow) {
+        float lx = p.x - oil.y;
+        if (lx >= 0.0 && lx <= oil.z){
+          float tw = 2.6*oil.z, th = size.y;
+          float u = mod(lx - oil.w, tw), v = p.y;
+          float ang = radians(110.0); vec2 dir = vec2(sin(ang), -cos(ang));
+          float L = abs(tw*sin(ang)) + abs(th*cos(ang));
+          float t = dot(vec2(u, v) - vec2(tw, th)*0.5, dir)/L + 0.5;
+          vec4 s0 = vec4(0.0), s1 = vec4(124.0,92.0,255.0,0.0)/255.0, s2 = vec4(40.0,220.0,210.0,0.0)/255.0, s3 = vec4(255.0,110.0,180.0,0.0)/255.0, s4 = vec4(255.0,220.0,140.0,0.0)/255.0;
+          s1.a=0.38; s1.rgb*=s1.a; s2.a=0.30; s2.rgb*=s2.a; s3.a=0.28; s3.rgb*=s3.a; s4.a=0.20; s4.rgb*=s4.a;
+          vec4 g = t <= 0.18 ? s0 : t <= 0.32 ? mix(s0, s1, (t-0.18)/0.14) : t <= 0.42 ? mix(s1, s2, (t-0.32)/0.10) : t <= 0.52 ? mix(s2, s3, (t-0.42)/0.10) : t <= 0.60 ? mix(s3, s4, (t-0.52)/0.08) : t <= 0.74 ? mix(s4, s0, (t-0.60)/0.14) : s0;
+          float m = 1.0;
+          if (oilMask > 0.5){ float f = lx/oil.z; m = f < 0.3 ? f/0.3 : f > 0.7 ? (1.0 - f)/0.3 : 1.0; }
+          c = blendOver(c, g * 0.9 * m, 3);
+        }
+      }
+      if (curA.x > 0.5){
+        vec4 sa = vec4(0.0);
+        for (int i = 0; i < 6; i++){ if (i >= nStrands) break; sa = over(sa, strandColor[i] * strand(p, curA.z, curA.w, strandShape[i])); }
+        c = blendOver(c, sa * curA.y, 1);
+      }
+      if (curB.x > 0.5) c = blendOver(c, vec4(1.0) * (strand(p, curB.z, curB.w, waveB) * curB.y), 1);
+      // the caustic light: four soft ellipses on a 200% tile, overlay at 0.8
+      {
+        float tw = 2.0*size.x, th = size.y; vec2 uv = vec2(mod(p.x - caustic, tw), p.y);
+        float a1 = ellipseAlpha(uv, vec2(0.12*tw, 0.38*th), vec2(38.0, 10.0), 0.55);
+        float a2 = ellipseAlpha(uv, vec2(0.37*tw, 0.66*th), vec2(54.0, 12.0), 0.40);
+        float a3 = ellipseAlpha(uv, vec2(0.63*tw, 0.34*th), vec2(44.0, 10.0), 0.50);
+        float a4 = ellipseAlpha(uv, vec2(0.88*tw, 0.62*th), vec2(60.0, 13.0), 0.38);
+        float a = 1.0 - (1.0-a1)*(1.0-a2)*(1.0-a3)*(1.0-a4);
+        c = blendOver(c, vec4(1.0) * a * 0.8, 2);
+      }
+    } else if (oilNow) {
+      float lx = p.x - oil.y;
+      if (lx >= 0.0 && lx <= oil.z){
+        float tw = 2.6*oil.z, th = size.y;
+        float u = mod(lx - oil.w, tw), v = p.y;
+        float ang = radians(110.0); vec2 dir = vec2(sin(ang), -cos(ang));
+        float L = abs(tw*sin(ang)) + abs(th*cos(ang));
+        float t = dot(vec2(u, v) - vec2(tw, th)*0.5, dir)/L + 0.5;
+        vec4 s0 = vec4(0.0), s1 = vec4(124.0,92.0,255.0,0.0)/255.0, s2 = vec4(40.0,220.0,210.0,0.0)/255.0, s3 = vec4(255.0,110.0,180.0,0.0)/255.0, s4 = vec4(255.0,220.0,140.0,0.0)/255.0;
+        s1.a=0.38; s1.rgb*=s1.a; s2.a=0.30; s2.rgb*=s2.a; s3.a=0.28; s3.rgb*=s3.a; s4.a=0.20; s4.rgb*=s4.a;
+        vec4 g = t <= 0.18 ? s0 : t <= 0.32 ? mix(s0, s1, (t-0.18)/0.14) : t <= 0.42 ? mix(s1, s2, (t-0.32)/0.10) : t <= 0.52 ? mix(s2, s3, (t-0.42)/0.10) : t <= 0.60 ? mix(s3, s4, (t-0.52)/0.08) : t <= 0.74 ? mix(s4, s0, (t-0.60)/0.14) : s0;
+        c = blendOver(c, g * 0.9, 3);
+      }
+    }
+  }
+  for (int i = 0; i < 24; i++){
+    if (i >= nBub) break;
+    vec4 A = bubA[i];
+    if (A.w <= 0.003) continue;
+    float reach = (bubB[i].x * 0.5 + 6.0) * A.z;
+    if (abs(p.x - A.x) > reach || abs(p.y - A.y) > reach) continue;
+    c = over(c, bubble(p, A, bubB[i]));
+  }
+  return c * cov;
+}
+void main(){
+  vec2 p = vec2(gl_FragCoord.x, size.y*dpr - gl_FragCoord.y) / dpr;
+  if (refract < 0.5){ o = content(p); return; }
+  vec2 muv = vec2((p.x/size.x + 0.1)/1.2, (p.y/size.y + 0.7)/2.4);
+  vec4 m = textureLod(mapTex, muv, 0.0);
+  vec2 off = vec2(m.r - 0.5, m.b - 0.5);
+  vec4 r = content(p - 36.0*off), g = content(p - 32.0*off), b = content(p - 28.0*off);
+  vec4 res = vec4(r.r, g.g, b.b, 1.0 - (1.0 - r.a)*(1.0 - g.a)*(1.0 - b.a));
+  float cov = clamp(0.5 - capsuleDist(p, size)*dpr, 0.0, 1.0);
+  o = res * cov;
+}`;
+    const parallel = gl.getExtension('KHR_parallel_shader_compile');
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    const vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+    const prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    // the driver compiles in the background; the page keeps animating and checks back each frame
+    const whenLinked = (done) => {
+      if (parallel && !gl.getProgramParameter(prog, parallel.COMPLETION_STATUS_KHR)) { requestAnimationFrame(() => whenLinked(done)); return; }
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn(gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs), gl.getProgramInfoLog(prog)); fail(); return; }
+      done();
+    };
+    whenLinked(() => { window.__liquidGL = this.buildShared(gl, glc, prog); this.attachGL(window.__liquidGL); });
+  }
+  buildShared(gl, glc, prog) {
+    gl.useProgram(prog);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const U = {}; for (const n of ['size', 'dpr', 'mapTex', 'inkTex', 'gradTex', 'nStrands', 'strandShape', 'strandColor', 'waveB', 'inkVisible', 'curA', 'curB', 'breathe', 'liqOpacity', 'caustic', 'oil', 'oilMask', 'oilFirst', 'ink', 'nBub', 'bubA', 'bubB', 'refract']) U[n] = gl.getUniformLocation(prog, n);
+    gl.uniform1i(U.mapTex, 0); gl.uniform1i(U.inkTex, 3); gl.uniform1i(U.gradTex, 4);
+    const tex = (src) => {
+      const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      if (src) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      return t;
+    };
+    const empty = tex(null); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    return { gl, glc, U, tex, empty, maps: {}, svgCache: new Map() };
+  }
+  attachGL(shared) {
+    if (!this.boardEl) return;
+    // the GPU's clock starts where the CSS animations' did, so the hand-over from a CSS tube to its GPU twin is seamless
+    const cssAnim = this.boardEl.getAnimations ? this.boardEl.getAnimations({ subtree: true }).find((a) => a.currentTime != null) : null;
+    const t0 = cssAnim ? performance.now() - cssAnim.currentTime : performance.now();
+    this.gl = { ...shared, tubes: [], t0 };
+    this.glTick = (now) => {
+      if (this.frameGate(now)) this.renderGL(now);
+      this.glRaf = requestAnimationFrame(this.glTick);
+    };
+    this.glRaf = requestAnimationFrame(this.glTick);
+  }
+  // a CSS colour as written or as the browser serializes it (#rrggbb, #rgb, rgb(), rgba()), to [r, g, b] 0..255
+  cssRGB(s) {
+    s = s.trim();
+    let m = /^#([0-9a-f]{6})$/i.exec(s);
+    if (m) { const n = parseInt(m[1], 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+    m = /^#([0-9a-f]{3})$/i.exec(s);
+    if (m) return [...m[1]].map((h) => parseInt(h + h, 16));
+    m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(s);
+    if (m) return [+m[1], +m[2], +m[3]];
+    return null;
+  }
+  // the colour stops of a CSS linear-gradient, in any serialization: [[css colour, position 0..1 or null], ...]
+  gradientStops(text) {
+    const at = text.indexOf('linear-gradient(');
+    if (at < 0) return null;
+    let depth = 0, i = at + 'linear-gradient('.length, start = i;
+    const parts = [];
+    for (; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '(') depth++;
+      else if (ch === ')') { if (depth === 0) break; depth--; }
+      else if (ch === ',' && depth === 0) { parts.push(text.slice(start, i)); start = i + 1; }
+    }
+    parts.push(text.slice(start, i));
+    const stops = [];
+    for (const p of parts) {
+      const s = p.trim();
+      if (/^(to |in |-?[\d.]+(deg|turn|rad|grad))/i.test(s)) continue;   // the direction and interpolation space
+      const m = /^(#[0-9a-f]{3,6}|rgba?\([^)]*\))\s*(-?[\d.]+%)?$/i.exec(s);
+      if (!m) return null;
+      stops.push([m[1], m[2] ? parseFloat(m[2]) / 100 : null]);
+    }
+    return stops.length ? stops : null;
+  }
+  // CSS colour to OKLab
+  toLab(css) {
+    const rgb = this.cssRGB(css);
+    if (!rgb) return null;
+    const c = rgb.map((v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    const l = Math.cbrt(0.4122214708 * c[0] + 0.5363325363 * c[1] + 0.0514459929 * c[2]);
+    const m = Math.cbrt(0.2119034982 * c[0] + 0.6806995451 * c[1] + 0.1073969566 * c[2]);
+    const s = Math.cbrt(0.0883024619 * c[0] + 0.2817188376 * c[1] + 0.6299787005 * c[2]);
+    return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s, 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+  }
+  // what a tube draws, read from its own DOM, so the GPU draws exactly what the CSS describes
+  describeTube(tube) {
+    const G = this.gl, wrap = tube.querySelector('.liqwrap');
+    if (!wrap) return null;
+    const W = wrap.offsetWidth, H = wrap.offsetHeight;
+    if (!W || !H) return null;
+    const d = { tube, wrap, W, H, big: tube.classList.contains('big') };
+    const liq = wrap.querySelector('.liq');
+    d.liq = liq;
+    d.stops = [];
+    if (liq) {
+      const parsed = this.gradientStops(liq.getAttribute('style') || '') || this.gradientStops(getComputedStyle(liq).backgroundImage);
+      if (!parsed) return null;                                   // unreadable: this tube keeps its CSS drawing
+      const n = parsed.length;
+      for (let i = 0; i < n; i++) {
+        const lab = this.toLab(parsed[i][0]);
+        if (!lab || lab.some((v) => !isFinite(v))) return null;
+        d.stops.push([...lab, parsed[i][1] ?? (n === 1 ? 0 : i / (n - 1))]);
+      }
+    }
+    d.ink = !!wrap.querySelector('.ink');
+    d.inkCanvas = wrap.querySelector('canvas.ink');
+    const oilEl = wrap.querySelector('.oil');
+    d.oil = null;
+    if (oilEl) {
+      const cs = getComputedStyle(oilEl), l = parseFloat(cs.left) || 0, r = parseFloat(cs.right) || 0;
+      const mask = (cs.maskImage && cs.maskImage !== 'none') || (cs.webkitMaskImage && cs.webkitMaskImage !== 'none');
+      d.oil = { left: l, width: W - l - r, mask: !!mask };
+      d.oilFirst = !!(oilEl.previousElementSibling && oilEl.previousElementSibling.classList.contains('liq'));
+    }
+    // the currents: each SVG path is a sine sampled every 20 units; its amplitude, cycles and phase are read back from the
+    // path itself (least squares, exact for a sine), with its stroke colour and width, so the shader draws the same strokes
+    d.currents = [...wrap.querySelectorAll('svg.current')].slice(0, 2).map((svg) => {
+      const slow = svg.classList.contains('slow');
+      const vbH = Number(svg.getAttribute('viewBox').split(/[\s,]+/)[3]);
+      const strands = [...svg.querySelectorAll('path')].slice(0, 6).map((p) => {
+        const nums = (p.getAttribute('d').match(/-?[\d.]+/g) || []).map(Number);
+        const pts = []; for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1] - vbH / 2]);
+        let best = null;
+        for (let cyc = 1; cyc <= 8; cyc++) {
+          const k = Math.PI * cyc / 1000; let ss = 0, sc = 0, cc = 0, ys = 0, yc = 0;
+          for (const [x, y] of pts) { const s = Math.sin(k * x), c = Math.cos(k * x); ss += s * s; sc += s * c; cc += c * c; ys += y * s; yc += y * c; }
+          const det = ss * cc - sc * sc; if (Math.abs(det) < 1e-9) continue;
+          const A = (ys * cc - yc * sc) / det, B = (yc * ss - ys * sc) / det;
+          let err = 0; for (const [x, y] of pts) { const r = y - A * Math.sin(k * x) - B * Math.cos(k * x); err += r * r; }
+          if (!best || err < best.err) best = { err, amp: Math.hypot(A, B), cyc, phase: Math.atan2(B, A) };
+        }
+        const style = p.getAttribute('style') || '';
+        const stroke = (/stroke:\s*([^;]+)/.exec(style) || [0, '#ffffff'])[1].trim();
+        const width = parseFloat((/stroke-width:\s*([\d.]+)/.exec(style) || [0, '5'])[1]);
+        const rgb = this.cssRGB(stroke) || [255, 255, 255];
+        return { amp: best ? best.amp : 0, cyc: best ? best.cyc : 1, phase: best ? best.phase : 0, width, rgb };
+      });
+      return { strands, vbH, opacity: slow ? 0.35 : 0.55, period: slow ? 11 : 7 };
+    });
+    // the GPU tube's bubbles: as many as the CSS tube has, each living rise after rise, every rise new (see riseOf)
+    const bubs = wrap.querySelectorAll('.bub');
+    d.bubbleCount = Math.min(24, bubs.length);
+    d.bubbleDark = bubs.length > 0 && bubs[0].classList.contains('dark');
+    d.seed = [...this.boardEl.querySelectorAll('.tube')].indexOf(tube) + 1;
+    d.lanes = [];
+    // the drawing surface, where the liquid was
+    const out = document.createElement('canvas');
+    out.className = 'glout';
+    wrap.insertAdjacentElement('afterend', out);
+    d.ready = false;                                   // the CSS tube stays until the GPU one has every layer
+    d.out = out; d.ctx = out.getContext('2d');
+    return d;
+  }
+  // the CSS gradient, interpolated in OKLab exactly as the browser does, sampled at every device pixel's centre
+  gradientTexture(d, pw, existing) {
+    const G = this.gl, gl = G.gl;
+    if (!d.stops.length) return null;
+    const px = new Uint8Array(pw * 4);
+    const lin = (v) => v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+    const toRGB = ([L, A, B]) => {
+      const l = Math.pow(L + 0.3963377774 * A + 0.2158037573 * B, 3), m = Math.pow(L - 0.1055613458 * A - 0.0638541728 * B, 3), s = Math.pow(L - 0.0894841775 * A - 1.2914855480 * B, 3);
+      return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s]
+        .map((v) => Math.round(255 * lin(Math.min(1, Math.max(0, v)))));
+    };
+    const S = d.stops;
+    for (let x = 0; x < pw; x++) {
+      const t = (x + 0.5) / pw;
+      let c;
+      if (t <= S[0][3]) c = S[0];
+      else if (t >= S[S.length - 1][3]) c = S[S.length - 1];
+      else {
+        let i = 1; while (i < S.length - 1 && t > S[i][3]) i++;
+        const a = S[i - 1], b = S[i], f = b[3] > a[3] ? (t - a[3]) / (b[3] - a[3]) : 1;
+        c = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+      }
+      px.set([...toRGB(c), 255], x * 4);
+    }
+    const tex = existing || G.tex(null);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, pw, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    return tex;
+  }
+  glScale(tube) {
+    const r = tube.getBoundingClientRect(), w = tube.offsetWidth || 1;
+    return Math.min(2, Math.max(1, (window.devicePixelRatio || 1) * (r.width / w)));
+  }
+  // A bubble's rises never repeat: rise k of bubble i in tube s is drawn from its own seed (s, i, k): its size (mostly
+  // tiny, some small, a few medium), how far it rises, whether it drifts with the current or wanders up to one side, its
+  // three waypoints, its speed, its brightness, where along its stretch of the tube it starts (each bubble keeps one
+  // stretch, so they stay spread out; now and then one starts anywhere), and the pause before its next rise. Durations
+  // and pauses are random, so the bubbles never fall into step and the pattern never comes round again.
+  riseOf(s, i, k, n, W, H) {
+    let x = (Math.imul(s, 73856093) ^ Math.imul(i + 1, 19349663) ^ Math.imul(k + 7, 83492791)) >>> 0 || 1;
+    const r = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return (x % 100000) / 100000; };
+    for (let w = 0; w < 3; w++) r();
+    const kind = r();
+    const size = kind < 0.6 ? 1.4 + r() * 1.6 : kind < 0.9 ? 3 + r() * 2 : 5 + r() * 3;
+    const up = H * (0.55 + r() * 0.8);
+    const side = (r() - 0.5) * 2;
+    const flow = r() < 0.25;
+    const x1 = flow ? 14 + r() * 24 : side * (4 + r() * 10);
+    const x2 = flow ? 30 + r() * 40 : side * (2 + r() * 14) + (r() - 0.5) * 10;
+    const x3 = flow ? 50 + r() * 60 : (r() - 0.5) * 30;
+    const y1 = -(up * (0.2 + r() * 0.2)), y2 = -(up * (0.45 + r() * 0.25)), y3 = -up;
+    const dur = (flow ? 3.6 : 1.8) + r() * 3.2;
+    const slot = (i * 7) % n;
+    const at = r() < 0.2 ? 3 + r() * 92 : 3 + ((slot + r()) / n) * 92;
+    const outer = size + 2;
+    return {
+      cx: W * at / 100 - (flow ? x3 / 2 : 0) + outer / 2, cy: H - (-6 + r() * (H * 0.45)) - outer / 2, outer,
+      dur, o: 0.55 + r() * 0.4, s0: 0.35 + r() * 0.3, s1: 0.7 + r() * 0.3, s2: 0.9 + r() * 0.35,
+      x1, y1, x2, y2, x3, y3, gap: r() * 1.4,
+    };
+  }
+  // where bubble i of a tube is at time T: its current rise (or nothing, between rises)
+  bubbleNow(d, i, T) {
+    const n = d.bubbleCount;
+    let lane = d.lanes[i];
+    if (!lane || T < lane.start) {
+      // the first rise is already under way when the page opens, at a random point of it
+      const first = this.riseOf(d.seed, i, 0, n, d.W, d.H);
+      lane = d.lanes[i] = { k: 0, rise: first, start: -this.riseOf(d.seed, i, 1000, n, d.W, d.H).gap / 1.4 * first.dur };
+    }
+    while (T >= lane.start + lane.rise.dur + lane.rise.gap) {
+      lane.start += lane.rise.dur + lane.rise.gap; lane.k++;
+      lane.rise = this.riseOf(d.seed, i, lane.k, n, d.W, d.H);
+    }
+    const b = lane.rise, p = (T - lane.start) / b.dur;
+    if (p < 0 || p >= 1) return null;
+    const seg = (keys, vals) => {
+      let j = 0; while (j < keys.length - 2 && p > keys[j + 1]) j++;
+      const f = this.bezier(0.35, 0.1, 0.55, 1, (p - keys[j]) / (keys[j + 1] - keys[j]));
+      return vals[j].map((v, q) => v + (vals[j + 1][q] - v) * f);
+    };
+    const [tx, ty, s] = seg([0, 0.38, 0.70, 1], [[0, 0, b.s0], [b.x1, b.y1, b.s1], [b.x2, b.y2, b.s1], [b.x3, b.y3, b.s2]]);
+    const [o] = seg([0, 0.12, 0.70, 1], [[0], [b.o], [b.o], [0]]);
+    return { x: b.cx + tx, y: b.cy + ty, s, o, outer: b.outer };
+  }
+  // CSS cubic-bezier timing, solved for x
+  bezier(x1, y1, x2, y2, x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    let t = x;
+    for (let i = 0; i < 8; i++) { const fx = ((ax * t + bx) * t + cx) * t - x, dx = (3 * ax * t + 2 * bx) * t + cx; if (Math.abs(fx) < 1e-6 || Math.abs(dx) < 1e-6) break; t -= fx / dx; }
+    let lo = 0, hi = 1;
+    if (Math.abs(((ax * t + bx) * t + cx) * t - x) > 1e-5) { t = x; for (let i = 0; i < 30; i++) { const fx = ((ax * t + bx) * t + cx) * t; if (fx < x) lo = t; else hi = t; t = (lo + hi) / 2; } }
+    return ((ay * t + by) * t + cy) * t;
+  }
+
+  renderGL(now) {
+    const G = this.gl, gl = G.gl, U = G.U;
+    if (!G.queue || G.tubes.some((d) => !d.out.isConnected || !d.wrap.isConnected)) {
+      G.tubes.forEach((d) => { d.out.remove(); d.tube.classList.remove('gpu'); });
+      G.tubes = [];
+      G.queue = [...this.boardEl.querySelectorAll('.tube')];
+    }
+    // every tube in view is set up at once, so they all switch together in this very frame (no flicker); the ones out
+    // of view follow a couple a frame
+    if (G.queue.length) {
+      const inView = G.queue.filter((tube) => !tube.classList.contains('paused'));
+      const now2 = inView.length ? inView : G.queue.slice(0, 2);
+      for (const tube of now2) { const d = this.describeTube(tube); if (d) G.tubes.push(d); }
+      G.queue = G.queue.filter((tube) => !now2.includes(tube));
+    }
+    for (const big of [false, true]) {
+      const key = big ? 'B' : 'S', c = big ? this.mapCanvasB : this.mapCanvasS;
+      if (c && !G.maps[key]) G.maps[key] = G.tex(c);
+    }
+    const T = (now - G.t0) / 1000;
+    const ease = (x) => this.bezier(0.42, 0, 0.58, 1, x);
+    const tri = (t, period) => { const q = (t / period) % 2; return q <= 1 ? q : 2 - q; };
+    // breathe: 0% and 100% at (1, 1), 50% at (1.12, 1.06), each half eased in-out
+    const bp = (T % 4.8) / 4.8, bh = bp < 0.5 ? ease(bp / 0.5) : 1 - ease((bp - 0.5) / 0.5);
+    const breathe = [1 + 0.12 * bh, 1 + 0.06 * bh];
+    for (const d of G.tubes) {
+      if (d.tube.classList.contains('paused')) continue;
+      const map = G.maps[d.big ? 'B' : 'S'];
+      if (!map) continue;
+      if (!d.ready) {
+        d.ready = true;
+        d.pendingSwap = true;                            // shown after this frame is drawn, so no blank frame appears
+      }
+      const dpr = this.glScale(d.tube);
+      const pw = Math.round(d.W * dpr), ph = Math.round(d.H * dpr);
+      if (d.out.width !== pw || d.out.height !== ph) { d.out.width = pw; d.out.height = ph; }
+      if (G.glc.width < pw) G.glc.width = pw;
+      if (G.glc.height < ph) G.glc.height = ph;
+      gl.viewport(0, 0, pw, ph);
+      gl.uniform2f(U.size, d.W, d.H); gl.uniform1f(U.dpr, dpr);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, map);
+      // the currents slide left at a constant pace: translateX 0 to -50 % of their 200 % width
+      const ca = d.currents[0], cb = d.currents[1];
+      if (ca) {
+        gl.uniform4f(U.curA, 1, ca.opacity, ((T % ca.period) / ca.period) * d.W, ca.vbH);
+        const shape = d.shapeA || (d.shapeA = new Float32Array(24)), color = d.colorA || (d.colorA = new Float32Array(24));
+        ca.strands.forEach((s, i) => { shape.set([s.amp, s.cyc, s.phase, s.width], i * 4); color.set([s.rgb[0] / 255, s.rgb[1] / 255, s.rgb[2] / 255, 1], i * 4); });
+        gl.uniform1i(U.nStrands, ca.strands.length); gl.uniform4fv(U.strandShape, shape); gl.uniform4fv(U.strandColor, color);
+      } else gl.uniform4f(U.curA, 0, 0, 0, 1);
+      if (cb && cb.strands[0]) {
+        const s = cb.strands[0];
+        gl.uniform4f(U.curB, 1, cb.opacity, ((T % cb.period) / cb.period) * d.W, cb.vbH);
+        gl.uniform4f(U.waveB, s.amp, s.cyc, s.phase, s.width);
+      } else gl.uniform4f(U.curB, 0, 0, 0, 1);
+      gl.activeTexture(gl.TEXTURE3);
+      if (d.ink && d.inkCanvas && d.inkCanvas.width > 1) {
+        if (!d.inkTex) d.inkTex = G.tex(null);
+        gl.bindTexture(gl.TEXTURE_2D, d.inkTex);
+        if (d.inkSeen !== this.inkVersion) {             // upload only a new ink frame
+          d.inkSeen = this.inkVersion;
+          gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+          let src = this.inkBitmap;
+          if (!src) {
+            // no worker: blur the page's own ink canvas once, as its CSS does
+            const k = d.inkSoft || (d.inkSoft = document.createElement('canvas'));
+            if (k.width !== d.inkCanvas.width || k.height !== d.inkCanvas.height) { k.width = d.inkCanvas.width; k.height = d.inkCanvas.height; }
+            const kg = k.getContext('2d'); kg.clearRect(0, 0, k.width, k.height);
+            kg.filter = 'blur(' + (0.8 * (d.inkCanvas.width / d.W)) + 'px)'; kg.drawImage(d.inkCanvas, 0, 0); kg.filter = 'none';
+            src = k;
+          }
+          try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); } catch (e) { /* a picture already released: the next one follows */ }
+        }
+      } else gl.bindTexture(gl.TEXTURE_2D, G.empty);
+      gl.uniform1f(U.ink, d.ink ? 1 : 0);
+      const solidOpacity = d.ink ? this.solidOpacity(now) : 0;
+      gl.uniform1f(U.inkVisible, solidOpacity >= 1 ? 0 : 1);
+      gl.activeTexture(gl.TEXTURE4);
+      if (!d.gradTex || d.gradTexWidth !== pw) { d.gradTex = this.gradientTexture(d, pw, d.gradTex); d.gradTexWidth = pw; }
+      gl.bindTexture(gl.TEXTURE_2D, d.gradTex || G.empty);
+      gl.uniform2f(U.breathe, breathe[0], breathe[1]);
+      const liqOpacity = !d.liq ? 0 : d.ink ? this.solidOpacity(now) : 1;
+      gl.uniform1f(U.liqOpacity, d.stops.length ? liqOpacity : 0);
+      // caustic: background-position 0 to -100 % of (W - 2W), 6 s ease-in-out, alternating
+      gl.uniform1f(U.caustic, d.W * ease(tri(T, 6)));
+      if (d.oil) {
+        const op = ease(tri(T, 6.5));                 // background-position 100 % to 0 %
+        gl.uniform4f(U.oil, 1, d.oil.left, d.oil.width, -1.6 * d.oil.width * (1 - op));
+        gl.uniform1f(U.oilMask, d.oil.mask ? 1 : 0); gl.uniform1f(U.oilFirst, d.oilFirst ? 1 : 0);
+      } else gl.uniform4f(U.oil, 0, 0, 0, 0);
+      const A = d.bubA || (d.bubA = new Float32Array(96)), B = d.bubB || (d.bubB = new Float32Array(96));
+      A.fill(0); B.fill(0);
+      for (let i = 0; i < d.bubbleCount; i++) {
+        const st = this.bubbleNow(d, i, T);
+        if (!st) continue;
+        A[i * 4] = st.x; A[i * 4 + 1] = st.y; A[i * 4 + 2] = st.s; A[i * 4 + 3] = st.o;
+        B[i * 4] = st.outer; B[i * 4 + 1] = d.bubbleDark ? 1 : 0;
+      }
+      gl.uniform1i(U.nBub, d.bubbleCount); gl.uniform4fv(U.bubA, A); gl.uniform4fv(U.bubB, B);
+      gl.uniform1f(U.refract, 1);
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      d.ctx.clearRect(0, 0, pw, ph);
+      d.ctx.drawImage(G.glc, 0, G.glc.height - ph, pw, ph, 0, 0, pw, ph);
+      if (d.pendingSwap) { d.pendingSwap = false; d.tube.classList.add('gpu'); }
+    }
+  }
+  renderVals() {
+    const dark = this.props.dark ?? true;
+    // A small seeded generator: every tube gets its own bubbles, and the page looks the same each time it opens.
+    const rng = (seed) => { let s = (seed >>> 0) || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; };
+    const bubbleSet = (seed, count, height) => {
+      const r = rng(seed * 7919 + 17);
+      const out = [];
+      for (let i = 0; i < count; i++) {
+        const kind = r();
+        const size = kind < 0.6 ? 1.4 + r() * 1.6 : kind < 0.9 ? 3 + r() * 2 : 5 + r() * 3; // mostly tiny, some small, a few medium
+        const up = height * (0.55 + r() * 0.8);
+        const side = (r() - 0.5) * 2;
+        const flow = r() < 0.25; // a quarter drift along with the current; the rest rise and wander
+        const x1 = flow ? 14 + r() * 24 : side * (4 + r() * 10);
+        const x2 = flow ? 30 + r() * 40 : side * (2 + r() * 14) + (r() - 0.5) * 10;
+        const x3 = flow ? 50 + r() * 60 : (r() - 0.5) * 30;
+        const y1 = -(up * (0.2 + r() * 0.2));
+        const y2 = -(up * (0.45 + r() * 0.25));
+        const y3 = -up;
+        const dur = (flow ? 3.6 : 1.8) + r() * 3.2;
+        // spread evenly: each bubble owns one stretch of the tube (visited in a scattered order) and sits at a random
+        // point inside it; a bubble that drifts with the current starts half its drift earlier, so none bunch up
+        const slot = (i * 7) % count, at = 3 + ((slot + 0.2 + 0.6 * r()) / count) * 92;
+        const style = 'left: calc(' + at.toFixed(1) + '% - ' + (flow ? x3 / 2 : 0).toFixed(1) + 'px); bottom: ' + (-6 + r() * (height * 0.45)).toFixed(1) + 'px; width: ' + size.toFixed(1) + 'px; height: ' + size.toFixed(1) + 'px; '
+          + '--d: ' + dur.toFixed(2) + 's; --delay: ' + (-r() * dur).toFixed(2) + 's; --o: ' + (0.55 + r() * 0.4).toFixed(2) + '; '
+          + '--s0: ' + (0.35 + r() * 0.3).toFixed(2) + '; --s1: ' + (0.7 + r() * 0.3).toFixed(2) + '; --s2: ' + (0.9 + r() * 0.35).toFixed(2) + '; '
+          + '--x1: ' + x1.toFixed(1) + 'px; --y1: ' + y1.toFixed(1) + 'px; --x2: ' + x2.toFixed(1) + 'px; --y2: ' + y2.toFixed(1) + 'px; --x3: ' + x3.toFixed(1) + 'px; --y3: ' + y3.toFixed(1) + 'px';
+        out.push({ style });
+      }
+      return out;
+    };
+    const P = {
+      chatgpt: { name: 'ChatGPT / Codex', note: 'locked · silver-white', stops: ['#ffffff', '#eef0f5', '#d9dbe3'], title: '#f4f6fb', dark: true },
+      claude: { name: 'Claude', note: 'locked · terracotta', stops: ['#b85a38', '#cc6b47', '#e0875f'], title: '#ed946f' },
+      deepseek: { name: 'DeepSeek', note: 'Mac app · indigo blue', stops: ['#2a45e0', '#3d5cfa', '#6a82ff'], title: '#7d94ff' },
+      meta: { name: 'Meta', note: 'Mac app · azure', stops: ['#0054c4', '#0070ec', '#2b95ff'], title: '#4fa3ff' },
+      gemini: { name: 'Gemini (Antigravity)', note: 'Mac app · Gemini sweep', stops: ['#4285f5', '#9c73cc', '#d96670'], title: '#9c73cc' },
+      cursor: { name: 'Cursor', note: 'brand #F54E00 · ember', stops: ['#d93f00', '#f54e00', '#ff8040'], title: '#ff8a4c' },
+      grok: { name: 'Grok', note: 'brand black · liquid obsidian', stops: ['#030304', '#121218', '#26262e'], title: '#d4d6de', oil: true },
+      opencode: { name: 'OpenCode', note: 'mono brand · terminal green', stops: ['#168a3a', '#25b34f', '#45dc6c'], title: '#5be07f' },
+      opencodego: { name: 'OpenCode Go', note: 'Go gopher cyan', stops: ['#007ea3', '#00a4cd', '#3ccbec'], title: '#4fd0ee' },
+      zai: { name: 'Z.ai', note: 'brand navy + electric blue', stops: ['#0a1630', '#14306e', '#2f6bff'], title: '#6e98ff' },
+      devin: { name: 'Devin', note: 'brand teal #5ECFB1', stops: ['#239377', '#3cbc9b', '#6fdcbf'], title: '#7fe3c9' },
+      copilot: { name: 'Copilot', note: 'brand purple to peach', stops: ['#8534f3', '#d25ab4', '#f4a876'], title: '#c898fd' },
+      commandcode: { name: 'Command Code', note: 'brand deep indigo', stops: ['#24157e', '#2e1b9c', '#6145dc'], title: '#a98bff' },
+      pi: { name: 'Pi', note: 'brand black-red · crimson', stops: ['#a30c25', '#c8102e', '#ec5560'], title: '#ff6b7a' },
+    };
+    const order = ['chatgpt', 'claude', 'deepseek', 'meta', 'gemini', 'cursor', 'grok', 'opencode', 'opencodego', 'zai', 'devin', 'copilot', 'commandcode', 'pi'];
+    const providers = order.map((k, pi) => {
+      const p = P[k];
+      return { name: p.name, note: p.note, oil: !!p.oil, bubbleClass: p.dark ? 'dark' : '', bubbles: bubbleSet(pi + 1, 11, 30), fillStyle: 'background: linear-gradient(in oklab 90deg, ' + p.stops.join(', ') + ')' };
+    });
+    const wave = (h, phase, amp, cycles) => {
+      let d = 'M0 ' + h / 2;
+      for (let x = 0; x <= 2000; x += 20) d += ' L' + x + ' ' + (h / 2 + amp * Math.sin((x / 1000) * Math.PI * cycles + phase)).toFixed(1);
+      return d;
+    };
+    const leadShare = this.props.leadShare ?? 1.6;
+    // The owner's formula (OD-0048): leads at the knob end, the first lead right against the knob, each lead taking
+    // leadShare times a worker's stretch; the workers fill the rest of the track to the left. The liquids run into one
+    // another over a soft band (about 30 % of each stretch on either side), never a hard edge.
+    let blendSeed = 100;
+    const blend = (leads, workers, count, title, note) => {
+      blendSeed += 13;
+      const seed = blendSeed;
+      const keys = workers.slice().reverse().concat(leads.slice().reverse());
+      const isLead = keys.map((_, i) => i >= workers.length);
+      const weights = isLead.map((l) => (l ? leadShare : 1));
+      const total = weights.reduce((a, w) => a + w, 0);
+      const stops = [];
+      let at = 0;
+      let oilFrom = null, oilTo = null;
+      keys.forEach((k, i) => {
+        const s = P[k].stops;
+        const from = (at / total) * 100, to = ((at + weights[i]) / total) * 100, w = to - from;
+        at += weights[i];
+        // One mid tone at the heart of each stretch (held over its middle third); between two hearts the liquids mix
+        // over the whole distance, interpolated in OKLab so no grey band or cut line appears.
+        if (i === 0) stops.push(s[1] + ' 0%');
+        stops.push(s[1] + ' ' + (from + w / 3).toFixed(1) + '%');
+        stops.push(s[1] + ' ' + (to - w / 3).toFixed(1) + '%');
+        if (i === keys.length - 1) stops.push(s[1] + ' 100%');
+        if (P[k].oil) { oilFrom = from; oilTo = to; }
+      });
+      return {
+        count, title, note, bubbles: bubbleSet(seed, 18, 40),
+        fillStyle: 'background: linear-gradient(in oklab 90deg, ' + stops.join(', ') + ')',
+        oil: oilFrom !== null,
+        oilStyle: oilFrom === null ? '' : 'left: ' + Math.max(0, oilFrom - 6).toFixed(1) + '%; right: ' + Math.max(0, 100 - oilTo - 6).toFixed(1) + '%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent)',
+        strands: keys.map((k, i) => ({ d: wave(40, (i * Math.PI * 2) / keys.length, isLead[i] ? 10 : 6, 4), color: P[k].title })),
+        legend: leads.map((k, i) => ({ name: 'Lead ' + (i + 1) + ' · ' + P[k].name, color: P[k].stops[2] })).concat(workers.map((k) => ({ name: 'Worker · ' + P[k].name, color: P[k].stops[2] }))),
+      };
+    };
+    const blends = [
+      blend(['claude'], ['chatgpt'], '1 lead + 1 worker', 'Claude leads, ChatGPT works', 'a pair, as the Mac app has today'),
+      blend(['chatgpt'], ['claude', 'gemini'], '1 lead + 2 workers', 'ChatGPT leads, Claude and Gemini work', 'new'),
+      blend(['claude', 'grok'], ['deepseek', 'cursor'], '2 leads + 2 workers', 'Claude and Grok lead, DeepSeek and Cursor work', 'new'),
+      blend(['chatgpt', 'claude', 'gemini'], ['devin', 'pi'], '3 leads + 2 workers', 'ChatGPT, Claude and Gemini lead, Devin and Pi work', 'new'),
+      blend(['gemini'], ['claude', 'chatgpt', 'grok', 'pi'], '1 lead + 4 workers', 'Gemini leads, four workers', 'new'),
+    ];
+    return {
+      themeClass: dark ? 'dark' : 'light', providers, blends, boardRef: (el) => { this.boardEl = el; }, inkRef: (el) => { this.inkCanvas = el; }, solidRef: (el) => { this.solidEl = el; }, loadingRef: (el) => { this.loadingEl = el; }, labelARef: (el) => { this.labelA = el; }, labelBRef: (el) => { this.labelB = el; }, mapSRef: (el) => { this.mapS = el; this.buildMaps(); }, mapBRef: (el) => { this.mapB = el; this.buildMaps(); }, replay: () => this.replay(), pourBubbles: bubbleSet(999, 16, 40),
+      wave1: wave(30, 0, 5, 4), wave2: wave(30, 2, 7, 2), wave3: wave(40, 1, 8, 2),
+    };
+  }
+}
+</script>
+</body>
+</html>

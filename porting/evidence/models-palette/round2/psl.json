@@ -1,0 +1,10 @@
+{
+  "source": "OpenJDK 21 installed ICANN PSL snapshot",
+  "source_path": "/etc/java-21-openjdk/security/public_suffix_list.dat",
+  "source_sha256": "16b42002aa6f83a7763c4cdbd399ecf738460377d447e362884495545afd60a3",
+  "rules": 6870,
+  "icann_sha256": "8522bd85b41faad6c227febc6ba6955bffd02450ab5e11bf646f52270a4daead",
+  "upstream": "https://publicsuffix.org/list/public_suffix_list.dat",
+  "license": "MPL-2.0",
+  "network_fetched": false
+}

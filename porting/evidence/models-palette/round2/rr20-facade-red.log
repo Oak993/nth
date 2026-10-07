@@ -1,0 +1,13 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/ModelShadesTests.cs(15,60): error CS0246: The type or namespace name 'ModelShades' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/ModelShadesTests.cs(23,67): error CS0103: The name 'ModelShades' does not exist in the current context [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/ModelShadesTests.cs(17,33): error xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/ModelShadesTests.cs(18,59): error xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]

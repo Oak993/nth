@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="897e5752-b9e9-41b4-b4e0-23985001db8a" name="@a39ab932e15a 2026-10-07 10:10:01" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T10:10:01.4258862+00:00" queuing="2026-10-07T10:10:01.4258862+00:00" start="2026-10-07T10:09:59.8810010+00:00" finish="2026-10-07T10:10:02.2945173+00:00" />
+  <TestSettings name="default" id="92cf1a19-e2bf-4873-951f-935c03674333">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_10_10_01" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b1546b70-1e33-4353-bfa8-b7760a0baa76" testId="1c040638-f644-03cb-4aa6-d069cfefea7a" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.Transparent_and_tiny_images_are_misses_and_white_tiles_are_mono" computerName="a39ab932e15a" duration="00:00:00.0181802" startTime="2026-10-07T10:10:01.3719042+00:00" endTime="2026-10-07T10:10:01.3719557+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b1546b70-1e33-4353-bfa8-b7760a0baa76" />
+    <UnitTestResult executionId="3e407e8d-8205-4122-abff-6821a14e740c" testId="d684d423-5422-cfa2-57f4-88a3cec48290" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.All_global_lineups_match_the_reference_in_ten_shuffled_instances" computerName="a39ab932e15a" duration="00:00:00.3233731" startTime="2026-10-07T10:10:01.8542066+00:00" endTime="2026-10-07T10:10:02.1777560+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3e407e8d-8205-4122-abff-6821a14e740c" />
+    <UnitTestResult executionId="989030a3-6c26-4c5e-9d62-3ce8e325ba76" testId="40b526d9-cdb6-bb9f-1bb1-fe474706443b" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests.Routing_aliases_and_anchored_words_are_culture_independent" computerName="a39ab932e15a" duration="00:00:00.0236868" startTime="2026-10-07T10:10:01.2986346+00:00" endTime="2026-10-07T10:10:01.2991911+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="989030a3-6c26-4c5e-9d62-3ce8e325ba76" />
+    <UnitTestResult executionId="b7f4ede1-8df3-479a-a13b-d2168bfc089a" testId="f04fe6e7-ccf5-0331-ade4-e198f81c20cd" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.The_v22_blend_reverses_workers_and_leads_and_holds_each_shaded_heart_over_its_middle_third" computerName="a39ab932e15a" duration="00:00:00.0106157" startTime="2026-10-07T10:10:01.3709971+00:00" endTime="2026-10-07T10:10:01.3717544+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b7f4ede1-8df3-479a-a13b-d2168bfc089a" />
+    <UnitTestResult executionId="125c6d98-391d-4bf8-87a1-708e5dd691c5" testId="2844e62e-b982-7a03-68b7-0da6f12b45f8" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_solo_model_fills_the_tube_and_an_empty_selection_has_no_spans" computerName="a39ab932e15a" duration="00:00:00.0098705" startTime="2026-10-07T10:10:01.2991260+00:00" endTime="2026-10-07T10:10:01.2994192+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="125c6d98-391d-4bf8-87a1-708e5dd691c5" />
+    <UnitTestResult executionId="acf94abe-c70c-4363-815f-2299aabf2e67" testId="9653ffd8-4c73-f0e5-31d4-8271b731e029" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests.Domain_votes_use_the_icann_suffix_and_reject_aggregators_and_guessed_domains" computerName="a39ab932e15a" duration="00:00:00.0543420" startTime="2026-10-07T10:10:01.2146822+00:00" endTime="2026-10-07T10:10:01.2952878+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="acf94abe-c70c-4363-815f-2299aabf2e67" />
+    <UnitTestResult executionId="c44a6dc2-dfe2-46d4-b47e-8782ba2a7cdf" testId="66521dd1-d54d-c61b-3f9f-81361550ed1b" testName="Marrow.Core.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" computerName="a39ab932e15a" duration="00:00:00.0459954" startTime="2026-10-07T10:10:01.4088008+00:00" endTime="2026-10-07T10:10:01.4544575+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c44a6dc2-dfe2-46d4-b47e-8782ba2a7cdf" />
+    <UnitTestResult executionId="6d0d4035-edf6-4552-ab4f-6c8d3157b83e" testId="15241b0a-85a5-c21f-50d7-0c235fe36be5" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_pair_has_exactly_the_approved_one_point_six_lead_share" computerName="a39ab932e15a" duration="00:00:00.0414351" startTime="2026-10-07T10:10:01.2162160+00:00" endTime="2026-10-07T10:10:01.2635178+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6d0d4035-edf6-4552-ab4f-6c8d3157b83e" />
+    <UnitTestResult executionId="b64b4239-77ca-448d-83ea-c4be9d8bd84b" testId="45f31a99-c553-91db-2b27-0e9e1730db56" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.Collision_search_is_order_free_and_does_not_see_other_post_pack_makers" computerName="a39ab932e15a" duration="00:00:00.1423470" startTime="2026-10-07T10:10:01.3720738+00:00" endTime="2026-10-07T10:10:01.4916675+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b64b4239-77ca-448d-83ea-c4be9d8bd84b" />
+    <UnitTestResult executionId="02741d7a-44a0-4cc4-9db1-9a7231014fe5" testId="88ab18f1-f01e-0dd2-d8e7-156d715fcd46" testName="Marrow.Core.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" computerName="a39ab932e15a" duration="00:00:00.1099281" startTime="2026-10-07T10:10:01.2170762+00:00" endTime="2026-10-07T10:10:01.3715387+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="02741d7a-44a0-4cc4-9db1-9a7231014fe5" />
+    <UnitTestResult executionId="d2ab353d-a2a6-4a86-9522-04314b62dc46" testId="e64b859c-1ad8-64b4-d822-8f4a75e566dd" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference" computerName="a39ab932e15a" duration="00:00:00.1711998" startTime="2026-10-07T10:10:01.6850855+00:00" endTime="2026-10-07T10:10:01.8539366+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d2ab353d-a2a6-4a86-9522-04314b62dc46" />
+    <UnitTestResult executionId="78244a46-bc9c-4f72-a2ac-befa69ed6435" testId="464c43c1-66a6-29b4-88eb-5ec4e3ee844a" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_perceptual_level_matches_reference_and_meets_the_point_zero_two_floor" computerName="a39ab932e15a" duration="00:00:00.4665450" startTime="2026-10-07T10:10:01.2162568+00:00" endTime="2026-10-07T10:10:01.6825210+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="78244a46-bc9c-4f72-a2ac-befa69ed6435" />
+    <UnitTestResult executionId="e6aa0a01-1683-4093-9e5b-f5d5c403fdd2" testId="2ee19760-0711-1411-d485-2583a69f9bbb" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests.Draft_swatches_cannot_be_mistaken_for_baked_seed_authority" computerName="a39ab932e15a" duration="00:00:00.0025647" startTime="2026-10-07T10:10:01.2993464+00:00" endTime="2026-10-07T10:10:01.2995455+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e6aa0a01-1683-4093-9e5b-f5d5c403fdd2" />
+    <UnitTestResult executionId="3f64926c-7226-41a8-a4cd-c37a956c6cdd" testId="b3df5fc2-4019-9948-c700-98ebc2d0d92f" testName="Marrow.Core.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" computerName="a39ab932e15a" duration="00:00:00.0822032" startTime="2026-10-07T10:10:01.3716958+00:00" endTime="2026-10-07T10:10:01.4083609+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3f64926c-7226-41a8-a4cd-c37a956c6cdd" />
+    <UnitTestResult executionId="25fc9cbb-ca73-4ffd-bd7c-133732028930" testId="0bdc0913-b82c-81d9-aeb7-9a3e86818084" testName="Marrow.Core.Tests.LayeringTests.Core_references_no_UI_framework" computerName="a39ab932e15a" duration="00:00:00.0002132" startTime="2026-10-07T10:10:01.3713754+00:00" endTime="2026-10-07T10:10:01.3714269+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="25fc9cbb-ca73-4ffd-bd7c-133732028930" />
+    <UnitTestResult executionId="f0401904-c195-4098-9690-d66ea6927a2a" testId="d06ca410-0b44-4ca9-7176-ff255dece5a0" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Models_of_the_same_maker_keep_their_own_spans" computerName="a39ab932e15a" duration="00:00:00.0006885" startTime="2026-10-07T10:10:01.2989063+00:00" endTime="2026-10-07T10:10:01.2989678+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f0401904-c195-4098-9690-d66ea6927a2a" />
+    <UnitTestResult executionId="a5ed6634-7ca3-4322-ba76-cac5452d73ac" testId="facf7e86-03bd-0c0c-3da5-ad6aed844814" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.Logo_seed_uses_integer_grid_and_recomputes_from_its_64_by_64_evidence" computerName="a39ab932e15a" duration="00:00:00.0268403" startTime="2026-10-07T10:10:01.4968886+00:00" endTime="2026-10-07T10:10:01.5186679+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a5ed6634-7ca3-4322-ba76-cac5452d73ac" />
+    <UnitTestResult executionId="b9a27de7-1b68-41cc-9a0e-49215fd829f1" testId="e9af768a-7b23-7a8e-4c80-517348a916f0" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity" computerName="a39ab932e15a" duration="00:00:00.0424141" startTime="2026-10-07T10:10:02.1780247+00:00" endTime="2026-10-07T10:10:02.2272868+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b9a27de7-1b68-41cc-9a0e-49215fd829f1">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure
+Expected: True
+Actual:   False</Message>
+          <StackTrace>   at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs:line 76
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5ca4df82-f4ce-47de-a64f-70035fa8a0f2" testId="b16abf77-2ba2-8490-f7d3-73bb45c6736c" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Every_model_has_a_span_with_workers_left_and_the_first_lead_at_the_knob" computerName="a39ab932e15a" duration="00:00:00.0253494" startTime="2026-10-07T10:10:01.2951767+00:00" endTime="2026-10-07T10:10:01.2987196+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5ca4df82-f4ce-47de-a64f-70035fa8a0f2" />
+    <UnitTestResult executionId="a5fa5975-6d75-4c39-8fe1-f25b55381bfc" testId="b1e64a51-8e72-0c7f-346b-0d10538b3a1e" testName="Marrow.Core.Tests.LayeringTests.Core_references_no_other_Marrow_layer" computerName="a39ab932e15a" duration="00:00:00.0016954" startTime="2026-10-07T10:10:01.3707988+00:00" endTime="2026-10-07T10:10:01.3710530+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a5fa5975-6d75-4c39-8fe1-f25b55381bfc" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="e64b859c-1ad8-64b4-d822-8f4a75e566dd">
+      <Execution id="d2ab353d-a2a6-4a86-9522-04314b62dc46" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.LayeringTests.Core_references_no_UI_framework" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="0bdc0913-b82c-81d9-aeb7-9a3e86818084">
+      <Execution id="25fc9cbb-ca73-4ffd-bd7c-133732028930" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.LayeringTests" name="Core_references_no_UI_framework" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.The_v22_blend_reverses_workers_and_leads_and_holds_each_shaded_heart_over_its_middle_third" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="f04fe6e7-ccf5-0331-ade4-e198f81c20cd">
+      <Execution id="b7f4ede1-8df3-479a-a13b-d2168bfc089a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests" name="The_v22_blend_reverses_workers_and_leads_and_holds_each_shaded_heart_over_its_middle_third" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Every_model_has_a_span_with_workers_left_and_the_first_lead_at_the_knob" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="b16abf77-2ba2-8490-f7d3-73bb45c6736c">
+      <Execution id="5ca4df82-f4ce-47de-a64f-70035fa8a0f2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="Every_model_has_a_span_with_workers_left_and_the_first_lead_at_the_knob" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests.Draft_swatches_cannot_be_mistaken_for_baked_seed_authority" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="2ee19760-0711-1411-d485-2583a69f9bbb">
+      <Execution id="e6aa0a01-1683-4093-9e5b-f5d5c403fdd2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests" name="Draft_swatches_cannot_be_mistaken_for_baked_seed_authority" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests.Routing_aliases_and_anchored_words_are_culture_independent" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="40b526d9-cdb6-bb9f-1bb1-fe474706443b">
+      <Execution id="989030a3-6c26-4c5e-9d62-3ce8e325ba76" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests" name="Routing_aliases_and_anchored_words_are_culture_independent" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="66521dd1-d54d-c61b-3f9f-81361550ed1b">
+      <Execution id="c44a6dc2-dfe2-46d4-b47e-8782ba2a7cdf" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.TraceabilityTests" name="Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_solo_model_fills_the_tube_and_an_empty_selection_has_no_spans" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="2844e62e-b982-7a03-68b7-0da6f12b45f8">
+      <Execution id="125c6d98-391d-4bf8-87a1-708e5dd691c5" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="A_solo_model_fills_the_tube_and_an_empty_selection_has_no_spans" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_pair_has_exactly_the_approved_one_point_six_lead_share" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="15241b0a-85a5-c21f-50d7-0c235fe36be5">
+      <Execution id="6d0d4035-edf6-4552-ab4f-6c8d3157b83e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="A_pair_has_exactly_the_approved_one_point_six_lead_share" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.Collision_search_is_order_free_and_does_not_see_other_post_pack_makers" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="45f31a99-c553-91db-2b27-0e9e1730db56">
+      <Execution id="b64b4239-77ca-448d-83ea-c4be9d8bd84b" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests" name="Collision_search_is_order_free_and_does_not_see_other_post_pack_makers" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.Transparent_and_tiny_images_are_misses_and_white_tiles_are_mono" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="1c040638-f644-03cb-4aa6-d069cfefea7a">
+      <Execution id="b1546b70-1e33-4353-bfa8-b7760a0baa76" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests" name="Transparent_and_tiny_images_are_misses_and_white_tiles_are_mono" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests.Domain_votes_use_the_icann_suffix_and_reject_aggregators_and_guessed_domains" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="9653ffd8-4c73-f0e5-31d4-8271b731e029">
+      <Execution id="acf94abe-c70c-4363-815f-2299aabf2e67" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteIdentityTests" name="Domain_votes_use_the_icann_suffix_and_reject_aggregators_and_guessed_domains" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="b3df5fc2-4019-9948-c700-98ebc2d0d92f">
+      <Execution id="3f64926c-7226-41a8-a4cd-c37a956c6cdd" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.TraceabilityTests" name="Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="88ab18f1-f01e-0dd2-d8e7-156d715fcd46">
+      <Execution id="02741d7a-44a0-4cc4-9db1-9a7231014fe5" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.TraceabilityTests" name="Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.LayeringTests.Core_references_no_other_Marrow_layer" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="b1e64a51-8e72-0c7f-346b-0d10538b3a1e">
+      <Execution id="a5fa5975-6d75-4c39-8fe1-f25b55381bfc" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.LayeringTests" name="Core_references_no_other_Marrow_layer" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_perceptual_level_matches_reference_and_meets_the_point_zero_two_floor" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="464c43c1-66a6-29b4-88eb-5ec4e3ee844a">
+      <Execution id="78244a46-bc9c-4f72-a2ac-befa69ed6435" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="Every_perceptual_level_matches_reference_and_meets_the_point_zero_two_floor" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="e9af768a-7b23-7a8e-4c80-517348a916f0">
+      <Execution id="b9a27de7-1b68-41cc-9a0e-49215fd829f1" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.All_global_lineups_match_the_reference_in_ten_shuffled_instances" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="d684d423-5422-cfa2-57f4-88a3cec48290">
+      <Execution id="3e407e8d-8205-4122-abff-6821a14e740c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="All_global_lineups_match_the_reference_in_ten_shuffled_instances" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests.Logo_seed_uses_integer_grid_and_recomputes_from_its_64_by_64_evidence" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="facf7e86-03bd-0c0c-3da5-ad6aed844814">
+      <Execution id="a5ed6634-7ca3-4322-ba76-cac5452d73ac" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteDerivationTests" name="Logo_seed_uses_integer_grid_and_recomputes_from_its_64_by_64_evidence" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Models_of_the_same_maker_keep_their_own_spans" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="d06ca410-0b44-4ca9-7176-ff255dece5a0">
+      <Execution id="f0401904-c195-4098-9690-d66ea6927a2a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="Models_of_the_same_maker_keep_their_own_spans" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="1c040638-f644-03cb-4aa6-d069cfefea7a" executionId="b1546b70-1e33-4353-bfa8-b7760a0baa76" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d684d423-5422-cfa2-57f4-88a3cec48290" executionId="3e407e8d-8205-4122-abff-6821a14e740c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="40b526d9-cdb6-bb9f-1bb1-fe474706443b" executionId="989030a3-6c26-4c5e-9d62-3ce8e325ba76" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f04fe6e7-ccf5-0331-ade4-e198f81c20cd" executionId="b7f4ede1-8df3-479a-a13b-d2168bfc089a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2844e62e-b982-7a03-68b7-0da6f12b45f8" executionId="125c6d98-391d-4bf8-87a1-708e5dd691c5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9653ffd8-4c73-f0e5-31d4-8271b731e029" executionId="acf94abe-c70c-4363-815f-2299aabf2e67" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="66521dd1-d54d-c61b-3f9f-81361550ed1b" executionId="c44a6dc2-dfe2-46d4-b47e-8782ba2a7cdf" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="15241b0a-85a5-c21f-50d7-0c235fe36be5" executionId="6d0d4035-edf6-4552-ab4f-6c8d3157b83e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="45f31a99-c553-91db-2b27-0e9e1730db56" executionId="b64b4239-77ca-448d-83ea-c4be9d8bd84b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="88ab18f1-f01e-0dd2-d8e7-156d715fcd46" executionId="02741d7a-44a0-4cc4-9db1-9a7231014fe5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e64b859c-1ad8-64b4-d822-8f4a75e566dd" executionId="d2ab353d-a2a6-4a86-9522-04314b62dc46" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="464c43c1-66a6-29b4-88eb-5ec4e3ee844a" executionId="78244a46-bc9c-4f72-a2ac-befa69ed6435" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2ee19760-0711-1411-d485-2583a69f9bbb" executionId="e6aa0a01-1683-4093-9e5b-f5d5c403fdd2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b3df5fc2-4019-9948-c700-98ebc2d0d92f" executionId="3f64926c-7226-41a8-a4cd-c37a956c6cdd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0bdc0913-b82c-81d9-aeb7-9a3e86818084" executionId="25fc9cbb-ca73-4ffd-bd7c-133732028930" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d06ca410-0b44-4ca9-7176-ff255dece5a0" executionId="f0401904-c195-4098-9690-d66ea6927a2a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="facf7e86-03bd-0c0c-3da5-ad6aed844814" executionId="a5ed6634-7ca3-4322-ba76-cac5452d73ac" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e9af768a-7b23-7a8e-4c80-517348a916f0" executionId="b9a27de7-1b68-41cc-9a0e-49215fd829f1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b16abf77-2ba2-8490-f7d3-73bb45c6736c" executionId="5ca4df82-f4ce-47de-a64f-70035fa8a0f2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b1e64a51-8e72-0c7f-346b-0d10538b3a1e" executionId="a5fa5975-6d75-4c39-8fe1-f25b55381bfc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="20" executed="20" passed="19" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.11]   Discovering: Marrow.Core.Tests
+[xUnit.net 00:00:00.82]   Discovered:  Marrow.Core.Tests
+[xUnit.net 00:00:00.87]   Starting:    Marrow.Core.Tests
+[xUnit.net 00:00:01.93]       Assert.True() Failure
+[xUnit.net 00:00:01.93]       Expected: True
+[xUnit.net 00:00:01.93]       Actual:   False
+[xUnit.net 00:00:01.93]       Stack Trace:
+[xUnit.net 00:00:01.93]         /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs(76,0): at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity()
+[xUnit.net 00:00:01.93]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:01.93]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.93]   Finished:    Marrow.Core.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:10:02.2332444+00:00">
+        <Text>[xUnit.net 00:00:01.93]     Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

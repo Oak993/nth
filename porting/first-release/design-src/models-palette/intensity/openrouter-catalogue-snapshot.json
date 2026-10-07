@@ -1,0 +1,5990 @@
+{
+"source": "https://openrouter.ai/api/v1/models, fetched 2026-10-02 (same fetch as openrouter-models.json)",
+"models": {
+"apodex/apodex-1.1-mini:free": {
+"created": 1790875335,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"unbiased/pareto-26.10-preview": {
+"created": 1790863623,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-6.1-sol-pro": {
+"created": 1790702886,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6.1-sol": {
+"created": 1790702882,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"anthropic/claude-sonnet-5.5": {
+"created": 1790618686,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-sonnet-5.5:batch": {
+"created": 1790618686,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"typesafe/jev-router": {
+"created": 1790363560,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": null
+},
+"perceptron/perceptron-mk1.5": {
+"created": 1790352661,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "high"
+}
+},
+"fireworks/ember-1": {
+"created": 1790208461,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"z-ai/glm-5.3-prime": {
+"created": 1790199651,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"qwen/qwen3.8-max-prime": {
+"created": 1790191228,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "xhigh"
+}
+},
+"stealth/space-bunny-alpha": {
+"created": 1790174884,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "max"
+}
+},
+"aion-labs/aion-3.5-mini": {
+"created": 1790170962,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"aion-labs/aion-3.5": {
+"created": 1790170961,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"upstage/solar-mini4": {
+"created": 1790160358,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"cohere/command-a-plus": {
+"created": 1790102896,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/gpt-6-luna-pro": {
+"created": 1790100791,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-luna-pro:batch": {
+"created": 1790100791,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-luna": {
+"created": 1790100786,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-luna:batch": {
+"created": 1790100786,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-sol-pro": {
+"created": 1790100781,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-sol-pro:batch": {
+"created": 1790100781,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-sol": {
+"created": 1790100775,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-sol:batch": {
+"created": 1790100775,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"anthropic/claude-opus-5.5": {
+"created": 1790094732,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-opus-5.5:batch": {
+"created": 1790094732,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"xiaomi/mimo-v2.6-pro-ultraspeed": {
+"created": 1790021267,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"xiaomi/mimo-v2.6-flash": {
+"created": 1790021264,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"xiaomi/mimo-v2.6-pro": {
+"created": 1790021259,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"x-ai/grok-4.7": {
+"created": 1790007541,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"qwen/qwen3.8-omni-flash": {
+"created": 1789959954,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true
+}
+},
+"prism-ml/ternary-bonsai-2-27b": {
+"created": 1789754046,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"medium"
+],
+"default_effort": "xhigh"
+}
+},
+"z-ai/glm-5.3-flashx": {
+"created": 1789744020,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"unbiased/pareto": {
+"created": 1789686178,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"~deepseek/deepseek-pro-latest": {
+"created": 1789399174,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"~deepseek/deepseek-flash-latest": {
+"created": 1789399150,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"inference-net/schematron-v2-turbo": {
+"created": 1789176949,
+"supported_parameters": [],
+"reasoning": null
+},
+"inference-net/schematron-v2-small": {
+"created": 1789176933,
+"supported_parameters": [],
+"reasoning": null
+},
+"~openai/gpt-astra-latest": {
+"created": 1789130932,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"~openai/gpt-sol-latest": {
+"created": 1789130928,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"~openai/gpt-terra-latest": {
+"created": 1789130925,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"~openai/gpt-luna-latest": {
+"created": 1789130922,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"sakana/fugu-ultra-v2": {
+"created": 1789105383,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high"
+],
+"default_effort": "xhigh"
+}
+},
+"sakana/fugu-max": {
+"created": 1789104771,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high"
+],
+"default_effort": "high"
+}
+},
+"inclusionai/ling-3.0-flash-vl": {
+"created": 1789056114,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"deepseek/deepseek-v4.1-flash": {
+"created": 1789021285,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"deepseek/deepseek-v4.1-flash:batch": {
+"created": 1789021285,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"inception/mercury-2.5": {
+"created": 1788892137,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"nex-agi/nex-n2.5-mini": {
+"created": 1788890061,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"none"
+],
+"default_effort": "high"
+}
+},
+"nex-agi/nex-n2.5-pro": {
+"created": 1788890050,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"none"
+],
+"default_effort": "high"
+}
+},
+"openai/gpt-6-astra": {
+"created": 1788552838,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-astra:batch": {
+"created": 1788552838,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-astra-pro": {
+"created": 1788552835,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-6-astra-pro:batch": {
+"created": 1788552835,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"inclusionai/ling-3.0-flash-sante:free": {
+"created": 1788545946,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"qwen/qwen3.8-max-0902": {
+"created": 1788469704,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "xhigh"
+}
+},
+"meta/muse-spark-1.3-contributor": {
+"created": 1788381519,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"meta/muse-spark-1.3": {
+"created": 1788378359,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.8-flash": {
+"created": 1788362056,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.8-flash:batch": {
+"created": 1788362056,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"anthropic/claude-fable-5.1": {
+"created": 1788285838,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-fable-5.1:batch": {
+"created": 1788285838,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"ibm-granite/granite-4.2-8b": {
+"created": 1788206780,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"low",
+"none"
+],
+"default_effort": "high"
+}
+},
+"tencent/hy4-preview": {
+"created": 1787897375,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"low",
+"none"
+],
+"default_effort": "high"
+}
+},
+"inclusionai/ling-3.0-flash-fin": {
+"created": 1787846290,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"~z-ai/glm-flash-latest": {
+"created": 1787817633,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"qwen/qwen3.8-flash": {
+"created": 1787773060,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true
+}
+},
+"z-ai/glm-5.3-flash": {
+"created": 1787752741,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"z-ai/glm-5.3-flash:batch": {
+"created": 1787752741,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"meta/muse-spark-1.2-contributor": {
+"created": 1787336476,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"deepseek/deepseek-v4-flash-vision-exp": {
+"created": 1787311563,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"tencent/hy-mt2-1.8b": {
+"created": 1787231581,
+"supported_parameters": [],
+"reasoning": null
+},
+"tencent/hy-mt2-30b-a3b": {
+"created": 1787231561,
+"supported_parameters": [],
+"reasoning": null
+},
+"~z-ai/glm-latest": {
+"created": 1787151053,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"tencent/hy-mt2-7b": {
+"created": 1787148797,
+"supported_parameters": [],
+"reasoning": null
+},
+"z-ai/glm-5.3": {
+"created": 1787086655,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"z-ai/glm-5.3:batch": {
+"created": 1787086655,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"qwen/qwen3.8-27b": {
+"created": 1786722910,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"medium",
+"low"
+],
+"default_effort": "xhigh"
+}
+},
+"qwen/qwen3.8-27b:free": {
+"created": 1786722910,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"medium",
+"low"
+],
+"default_effort": "xhigh"
+}
+},
+"dots-studio/dots-3-note-preview:free": {
+"created": 1786680361,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-3.7-flash": {
+"created": 1786640581,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.7-flash:batch": {
+"created": 1786640581,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"bytedance-seed/seed-2-1-turbo": {
+"created": 1786552176,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3.8-2.4t-a95b": {
+"created": 1786551702,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"medium",
+"low"
+],
+"default_effort": "xhigh"
+}
+},
+"bytedance-seed/seed-2.0-code": {
+"created": 1786550701,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"deepseek/deepseek-v4-pro-0813": {
+"created": 1786549364,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"x-ai/grok-4.6": {
+"created": 1786548957,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"liquid/lfm-2.5-2.6b:free": {
+"created": 1786470519,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"nvidia/nemotron-3.5-lightning": {
+"created": 1786452751,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"nvidia/nemotron-3.5-lightning:free": {
+"created": 1786452751,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"sakana/sakana-namazu": {
+"created": 1786410129,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"none"
+],
+"default_effort": "high"
+}
+},
+"upstage/solar-pro4": {
+"created": 1786371636,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"meta/muse-glimmer-30b": {
+"created": 1786302394,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"meta/muse-spark-1.2": {
+"created": 1785959287,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"~deepseek/deepseek-v4-flash-latest": {
+"created": 1785606009,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"deepseek/deepseek-v4-flash-0731": {
+"created": 1785478908,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "high"
+}
+},
+"thinkingmachines/inkling-small": {
+"created": 1785443117,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "high"
+}
+},
+"thinkingmachines/inkling-small:free": {
+"created": 1785443117,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "high"
+}
+},
+"qwen/qwen3.7-flash": {
+"created": 1785190561,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true
+}
+},
+"anthropic/claude-opus-5": {
+"created": 1784912544,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-opus-5:batch": {
+"created": 1784912544,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"inclusionai/ling-3.0-flash": {
+"created": 1784818580,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"poolside/laguna-s-2.1": {
+"created": 1784652683,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"poolside/laguna-s-2.1:free": {
+"created": 1784652683,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"google/gemini-3.6-flash": {
+"created": 1784646733,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.6-flash:batch": {
+"created": 1784646733,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.5-flash-lite": {
+"created": 1784646726,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"google/gemini-3.5-flash-lite:batch": {
+"created": 1784646726,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"meituan/longcat-2.0": {
+"created": 1784554658,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true
+}
+},
+"thinkingmachines/inkling": {
+"created": 1784325956,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "high"
+}
+},
+"thinkingmachines/inkling:free": {
+"created": 1784325956,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "high"
+}
+},
+"openrouter/auto-beta": {
+"created": 1784311165,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": null
+},
+"moonshotai/kimi-k3": {
+"created": 1784215858,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"moonshotai/kimi-k3:batch": {
+"created": 1784215858,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"meta/muse-spark-1.1": {
+"created": 1784215741,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"kwaipilot/kat-coder-pro-v2.5": {
+"created": 1783714589,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-5.6-luna-pro": {
+"created": 1783590867,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-luna-pro:batch": {
+"created": 1783590867,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-luna": {
+"created": 1783590864,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-luna:batch": {
+"created": 1783590864,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-terra-pro": {
+"created": 1783590861,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-terra-pro:batch": {
+"created": 1783590861,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-terra": {
+"created": 1783590857,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-terra:batch": {
+"created": 1783590857,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-sol-pro": {
+"created": 1783590854,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-sol-pro:batch": {
+"created": 1783590854,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-sol": {
+"created": 1783590850,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.6-sol:batch": {
+"created": 1783590850,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"x-ai/grok-4.5": {
+"created": 1783523154,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"~x-ai/grok-latest": {
+"created": 1783519360,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"aion-labs/aion-3.0-mini": {
+"created": 1783443096,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"aion-labs/aion-3.0": {
+"created": 1783443095,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"tencent/hy3": {
+"created": 1783344048,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"low",
+"none"
+],
+"default_effort": "high"
+}
+},
+"poolside/laguna-xs-2.1": {
+"created": 1783002429,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"poolside/laguna-xs-2.1:free": {
+"created": 1783002429,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"anthropic/claude-sonnet-5": {
+"created": 1782843083,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-sonnet-5:batch": {
+"created": 1782843083,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"google/gemini-3.1-flash-lite-image": {
+"created": 1782837225,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"sakana/fugu-ultra": {
+"created": 1782276303,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high"
+],
+"default_effort": "xhigh"
+}
+},
+"google/gemini-3.1-flash-image": {
+"created": 1781754065,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"google/gemini-3-pro-image": {
+"created": 1781754054,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"cohere/north-mini-code:free": {
+"created": 1781723748,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"z-ai/glm-5.2": {
+"created": 1781631930,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high"
+],
+"default_effort": "high"
+}
+},
+"openrouter/fusion": {
+"created": 1781371647,
+"supported_parameters": [],
+"reasoning": null
+},
+"moonshotai/kimi-k2.7-code": {
+"created": 1781266361,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true
+}
+},
+"~anthropic/claude-fable-latest": {
+"created": 1781029944,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-fable-5": {
+"created": 1781007515,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-fable-5:batch": {
+"created": 1781007515,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"nvidia/nemotron-3.5-content-safety": {
+"created": 1780581864,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"nvidia/nemotron-3.5-content-safety:free": {
+"created": 1780581864,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"nvidia/nemotron-3-ultra-550b-a55b": {
+"created": 1780551208,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true,
+"supported_efforts": [
+"high",
+"medium"
+],
+"default_effort": "high"
+}
+},
+"nvidia/nemotron-3-ultra-550b-a55b:free": {
+"created": 1780551208,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true,
+"supported_efforts": [
+"high",
+"medium"
+],
+"default_effort": "high"
+}
+},
+"qwen/qwen3.7-plus": {
+"created": 1780491783,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"minimax/minimax-m3": {
+"created": 1780245374,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"stepfun/step-3.7-flash": {
+"created": 1779985069,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"anthropic/claude-opus-4.8": {
+"created": 1779905091,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-opus-4.8:batch": {
+"created": 1779905091,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"qwen/qwen3.7-max": {
+"created": 1779376861,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"x-ai/grok-build-0.1": {
+"created": 1779298123,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"google/gemini-3.5-flash": {
+"created": 1779193800,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.5-flash:batch": {
+"created": 1779193800,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"perceptron/perceptron-mk1": {
+"created": 1778597029,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-3.1-flash-lite": {
+"created": 1778168828,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"google/gemini-3.1-flash-lite:batch": {
+"created": 1778168828,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"openai/gpt-chat-latest": {
+"created": 1778000212,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"x-ai/grok-4.3": {
+"created": 1777591821,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "low"
+}
+},
+"x-ai/grok-4.3:batch": {
+"created": 1777591821,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "low"
+}
+},
+"mistralai/mistral-medium-3-5": {
+"created": 1777570439,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"none"
+],
+"default_effort": "high"
+}
+},
+"mistralai/mistral-medium-3-5:batch": {
+"created": 1777570439,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"none"
+],
+"default_effort": "high"
+}
+},
+"nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {
+"created": 1777393095,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true
+}
+},
+"~anthropic/claude-haiku-latest": {
+"created": 1777318492,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"~openai/gpt-mini-latest": {
+"created": 1777318471,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"~google/gemini-pro-latest": {
+"created": 1777318451,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"~moonshotai/kimi-latest": {
+"created": 1777318428,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"max",
+"high",
+"low"
+],
+"default_effort": "max"
+}
+},
+"~google/gemini-flash-latest": {
+"created": 1777318398,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"~anthropic/claude-sonnet-latest": {
+"created": 1777318368,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"qwen/qwen3.5-plus-20260420": {
+"created": 1777261368,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3.6-flash": {
+"created": 1777261362,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3.6-35b-a3b": {
+"created": 1777260255,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"qwen/qwen3.6-max-preview": {
+"created": 1777260242,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"qwen/qwen3.6-27b": {
+"created": 1777255064,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"openai/gpt-5.5-pro": {
+"created": 1777051896,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.5-pro:batch": {
+"created": 1777051896,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.5": {
+"created": 1777051893,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.5:batch": {
+"created": 1777051893,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"deepseek/deepseek-v4-pro": {
+"created": 1777000679,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"xhigh",
+"high"
+],
+"default_effort": "high"
+}
+},
+"deepseek/deepseek-v4-flash": {
+"created": 1777000666,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"xhigh",
+"high"
+],
+"default_effort": "high"
+}
+},
+"tencent/hy3-preview": {
+"created": 1776878150,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"low",
+"none"
+],
+"default_effort": "high"
+}
+},
+"xiaomi/mimo-v2.5-pro": {
+"created": 1776874273,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"xiaomi/mimo-v2.5": {
+"created": 1776874269,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/gpt-5.4-image-2": {
+"created": 1776797528,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"~anthropic/claude-opus-latest": {
+"created": 1776795361,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"openrouter/pareto-code": {
+"created": 1776747900,
+"supported_parameters": [],
+"reasoning": null
+},
+"moonshotai/kimi-k2.6": {
+"created": 1776699402,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"anthropic/claude-opus-4.7": {
+"created": 1776351100,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-opus-4.7:batch": {
+"created": 1776351100,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"max",
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"z-ai/glm-5.1": {
+"created": 1775578025,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"google/gemma-4-26b-a4b-it": {
+"created": 1775227989,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false
+}
+},
+"google/gemma-4-26b-a4b-it:free": {
+"created": 1775227989,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false
+}
+},
+"google/gemma-4-31b-it": {
+"created": 1775148486,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false
+}
+},
+"google/gemma-4-31b-it:free": {
+"created": 1775148486,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false
+}
+},
+"qwen/qwen3.6-plus": {
+"created": 1775133557,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"z-ai/glm-5v-turbo": {
+"created": 1775061458,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"arcee-ai/trinity-large-thinking": {
+"created": 1775058318,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"x-ai/grok-4.20-multi-agent": {
+"created": 1774979158,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"x-ai/grok-4.20": {
+"created": 1774979019,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false
+}
+},
+"google/lyria-3-pro-preview": {
+"created": 1774907286,
+"supported_parameters": [],
+"reasoning": null
+},
+"google/lyria-3-clip-preview": {
+"created": 1774907255,
+"supported_parameters": [],
+"reasoning": null
+},
+"rekaai/reka-edge": {
+"created": 1774026965,
+"supported_parameters": [
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"minimax/minimax-m2.7": {
+"created": 1773836697,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"openai/gpt-5.4-nano": {
+"created": 1773748187,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.4-nano:batch": {
+"created": 1773748187,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.4-mini": {
+"created": 1773748178,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.4-mini:batch": {
+"created": 1773748178,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"mistralai/mistral-small-2603": {
+"created": 1773695685,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"high",
+"none"
+],
+"default_effort": "high"
+}
+},
+"mistralai/mistral-small-2603:batch": {
+"created": 1773695685,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"high",
+"none"
+],
+"default_effort": "high"
+}
+},
+"z-ai/glm-5-turbo": {
+"created": 1773583573,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"nvidia/nemotron-3-super-120b-a12b": {
+"created": 1773245239,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true,
+"supported_efforts": [
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"nvidia/nemotron-3-super-120b-a12b:free": {
+"created": 1773245239,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supports_max_tokens": true,
+"supported_efforts": [
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"bytedance-seed/seed-2.0-lite": {
+"created": 1773157231,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"qwen/qwen3.5-9b": {
+"created": 1773152396,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/gpt-5.4-pro": {
+"created": 1772734366,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.4-pro:batch": {
+"created": 1772734366,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.4": {
+"created": 1772734352,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.4:batch": {
+"created": 1772734352,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"inception/mercury-2": {
+"created": 1772636275,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.1-flash-lite-preview": {
+"created": 1772512673,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"bytedance-seed/seed-2.0-mini": {
+"created": 1772131107,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.1-flash-image-preview": {
+"created": 1772119558,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"minimal"
+],
+"default_effort": "minimal"
+}
+},
+"qwen/qwen3.5-35b-a3b": {
+"created": 1772053822,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3.5-27b": {
+"created": 1772053810,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3.5-122b-a10b": {
+"created": 1772053789,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3.5-flash-02-23": {
+"created": 1772053776,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-3.1-pro-preview-customtools": {
+"created": 1772045923,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.3-codex": {
+"created": 1771959164,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"aion-labs/aion-2.0": {
+"created": 1771881306,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"google/gemini-3.1-pro-preview": {
+"created": 1771509627,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3.1-pro-preview:batch": {
+"created": 1771509627,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"anthropic/claude-sonnet-4.6": {
+"created": 1771342990,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"anthropic/claude-sonnet-4.6:batch": {
+"created": 1771342990,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"qwen/qwen3.5-plus-02-15": {
+"created": 1771229416,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3.5-397b-a17b": {
+"created": 1771223018,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"minimax/minimax-m2.5": {
+"created": 1770908502,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"z-ai/glm-5": {
+"created": 1770829182,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"qwen/qwen3-max-thinking": {
+"created": 1770671901,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"anthropic/claude-opus-4.6": {
+"created": 1770219050,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supports_max_tokens": true,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"anthropic/claude-opus-4.6:batch": {
+"created": 1770219050,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supports_max_tokens": true,
+"supported_efforts": [
+"max",
+"high",
+"medium",
+"low"
+],
+"default_effort": "high"
+}
+},
+"qwen/qwen3-coder-next": {
+"created": 1770164101,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openrouter/free": {
+"created": 1769917427,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": null
+},
+"stepfun/step-3.5-flash": {
+"created": 1769728337,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"moonshotai/kimi-k2.5": {
+"created": 1769487076,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"upstage/solar-pro-3": {
+"created": 1769481200,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"minimax/minimax-m2-her": {
+"created": 1769177239,
+"supported_parameters": [],
+"reasoning": null
+},
+"writer/palmyra-x5": {
+"created": 1769003823,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-audio": {
+"created": 1768862569,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-audio-mini": {
+"created": 1768859419,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"z-ai/glm-4.7-flash": {
+"created": 1768833913,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"openai/gpt-5.2-codex": {
+"created": 1768409315,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"bytedance-seed/seed-1.6-flash": {
+"created": 1766505011,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"bytedance-seed/seed-1.6": {
+"created": 1766504997,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"minimax/minimax-m2.1": {
+"created": 1766454997,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"z-ai/glm-4.7": {
+"created": 1766378014,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"google/gemini-3-flash-preview": {
+"created": 1765987078,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"google/gemini-3-flash-preview:batch": {
+"created": 1765987078,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"nvidia/nemotron-3-nano-30b-a3b": {
+"created": 1765731275,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/gpt-5.2-chat": {
+"created": 1765389783,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-5.2-pro": {
+"created": 1765389780,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.2-pro:batch": {
+"created": 1765389780,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.2": {
+"created": 1765389775,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.2:batch": {
+"created": 1765389775,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "medium"
+}
+},
+"mistralai/devstral-2512": {
+"created": 1765285419,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"relace/relace-search": {
+"created": 1765213560,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"z-ai/glm-4.6v": {
+"created": 1765207462,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openrouter/bodybuilder": {
+"created": 1764903653,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-5.1-codex-max": {
+"created": 1764878934,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"xhigh",
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"amazon/nova-2-lite-v1": {
+"created": 1764696672,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/ministral-14b-2512": {
+"created": 1764681735,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/ministral-8b-2512": {
+"created": 1764681654,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/ministral-8b-2512:batch": {
+"created": 1764681654,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/ministral-3b-2512": {
+"created": 1764681560,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/mistral-large-2512": {
+"created": 1764624472,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/mistral-large-2512:batch": {
+"created": 1764624472,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"deepseek/deepseek-v3.2": {
+"created": 1764594642,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": false
+}
+},
+"anthropic/claude-opus-4.5": {
+"created": 1764010580,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"anthropic/claude-opus-4.5:batch": {
+"created": 1764010580,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-3-pro-image-preview": {
+"created": 1763653797,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"openai/gpt-5.1": {
+"created": 1763060305,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "none"
+}
+},
+"openai/gpt-5.1:batch": {
+"created": 1763060305,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"none"
+],
+"default_effort": "none"
+}
+},
+"openai/gpt-5.1-codex": {
+"created": 1763060298,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5.1-codex-mini": {
+"created": 1763057820,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"moonshotai/kimi-k2-thinking": {
+"created": 1762440622,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"default_enabled": true
+}
+},
+"amazon/nova-premier-v1": {
+"created": 1761950332,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"perplexity/sonar-pro-search": {
+"created": 1761854366,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"mistralai/voxtral-small-24b-2507": {
+"created": 1761835144,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-oss-safeguard-20b": {
+"created": 1761752836,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"minimax/minimax-m2": {
+"created": 1761252093,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"qwen/qwen3-vl-32b-instruct": {
+"created": 1761231332,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"ibm-granite/granite-4.0-h-micro": {
+"created": 1760927695,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-5-image-mini": {
+"created": 1760624583,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"anthropic/claude-haiku-4.5": {
+"created": 1760547638,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"anthropic/claude-haiku-4.5:batch": {
+"created": 1760547638,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3-vl-8b-thinking": {
+"created": 1760463746,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"qwen/qwen3-vl-8b-instruct": {
+"created": 1760463308,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-5-image": {
+"created": 1760447986,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"google/gemini-2.5-flash-image": {
+"created": 1759870431,
+"supported_parameters": [],
+"reasoning": null
+},
+"qwen/qwen3-vl-30b-a3b-thinking": {
+"created": 1759794479,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"qwen/qwen3-vl-30b-a3b-instruct": {
+"created": 1759794476,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-5-pro": {
+"created": 1759776663,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high"
+],
+"default_effort": "high"
+}
+},
+"openai/gpt-5-pro:batch": {
+"created": 1759776663,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high"
+],
+"default_effort": "high"
+}
+},
+"z-ai/glm-4.6": {
+"created": 1759235576,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"anthropic/claude-sonnet-4.5": {
+"created": 1759161676,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"anthropic/claude-sonnet-4.5:batch": {
+"created": 1759161676,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"deepseek/deepseek-v3.2-exp": {
+"created": 1759150481,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"thedrummer/cydonia-24b-v4.1": {
+"created": 1758931878,
+"supported_parameters": [],
+"reasoning": null
+},
+"relace/relace-apply-3": {
+"created": 1758891572,
+"supported_parameters": [],
+"reasoning": null
+},
+"qwen/qwen3-vl-235b-a22b-thinking": {
+"created": 1758668690,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"qwen/qwen3-vl-235b-a22b-instruct": {
+"created": 1758668687,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"qwen/qwen3-max": {
+"created": 1758662808,
+"supported_parameters": [
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3-coder-plus": {
+"created": 1758662707,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"deepseek/deepseek-v3.1-terminus": {
+"created": 1758548275,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3-coder-flash": {
+"created": 1758115536,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"qwen/qwen3-next-80b-a3b-thinking": {
+"created": 1757612284,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"qwen/qwen3-next-80b-a3b-instruct": {
+"created": 1757612213,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"qwen/qwen-plus-2025-07-28": {
+"created": 1757347599,
+"supported_parameters": [
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"moonshotai/kimi-k2-0905": {
+"created": 1757021147,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"qwen/qwen3-30b-a3b-thinking-2507": {
+"created": 1756399192,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"nousresearch/hermes-4-405b": {
+"created": 1756235463,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"deepseek/deepseek-chat-v3.1": {
+"created": 1755779628,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/mistral-medium-3.1": {
+"created": 1755095639,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/mistral-medium-3.1:batch": {
+"created": 1755095639,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"z-ai/glm-4.5v": {
+"created": 1754922288,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/gpt-5": {
+"created": 1754587413,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5:batch": {
+"created": 1754587413,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5-mini": {
+"created": 1754587407,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5-mini:batch": {
+"created": 1754587407,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5-nano": {
+"created": 1754587402,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-5-nano:batch": {
+"created": 1754587402,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low",
+"minimal"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-oss-120b": {
+"created": 1754414231,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-oss-120b:batch": {
+"created": 1754414231,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-oss-20b": {
+"created": 1754414229,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"openai/gpt-oss-20b:batch": {
+"created": 1754414229,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high",
+"medium",
+"low"
+],
+"default_effort": "medium"
+}
+},
+"anthropic/claude-opus-4.1": {
+"created": 1754411591,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"anthropic/claude-opus-4.1:batch": {
+"created": 1754411591,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/codestral-2508": {
+"created": 1754079630,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/codestral-2508:batch": {
+"created": 1754079630,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"qwen/qwen3-coder-30b-a3b-instruct": {
+"created": 1753972379,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"qwen/qwen3-30b-a3b-instruct-2507": {
+"created": 1753806965,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"z-ai/glm-4.5": {
+"created": 1753471347,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"z-ai/glm-4.5-air": {
+"created": 1753471258,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3-235b-a22b-thinking-2507": {
+"created": 1753449557,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"qwen/qwen3-coder": {
+"created": 1753230546,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"bytedance/ui-tars-1.5-7b": {
+"created": 1753205056,
+"supported_parameters": [],
+"reasoning": null
+},
+"google/gemini-2.5-flash-lite": {
+"created": 1753200276,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-2.5-flash-lite:batch": {
+"created": 1753200276,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3-235b-a22b-2507": {
+"created": 1753119555,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"moonshotai/kimi-k2": {
+"created": 1752263252,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"cognitivecomputations/dolphin-mistral-24b-venice-edition": {
+"created": 1752094966,
+"supported_parameters": [],
+"reasoning": null
+},
+"tencent/hunyuan-a13b-instruct": {
+"created": 1751987664,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"morph/morph-v3-large": {
+"created": 1751910858,
+"supported_parameters": [],
+"reasoning": null
+},
+"morph/morph-v3-fast": {
+"created": 1751910002,
+"supported_parameters": [],
+"reasoning": null
+},
+"baidu/ernie-4.5-vl-424b-a47b": {
+"created": 1751300903,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/mistral-small-3.2-24b-instruct": {
+"created": 1750443016,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"minimax/minimax-m1": {
+"created": 1750200414,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-2.5-flash": {
+"created": 1750172488,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-2.5-flash:batch": {
+"created": 1750172488,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-2.5-pro": {
+"created": 1750169544,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"google/gemini-2.5-pro:batch": {
+"created": 1750169544,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"openai/o3-pro": {
+"created": 1749598352,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"google/gemini-2.5-pro-preview": {
+"created": 1749137257,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"deepseek/deepseek-r1-0528": {
+"created": 1748455170,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"anthropic/claude-sonnet-4": {
+"created": 1747930371,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/mistral-medium-3": {
+"created": 1746627341,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"meta-llama/llama-guard-4-12b": {
+"created": 1745975193,
+"supported_parameters": [],
+"reasoning": null
+},
+"qwen/qwen3-30b-a3b": {
+"created": 1745878604,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"qwen/qwen3-8b": {
+"created": 1745876632,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false,
+"default_enabled": true
+}
+},
+"qwen/qwen3-14b": {
+"created": 1745876478,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3-32b": {
+"created": 1745875945,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"qwen/qwen3-235b-a22b": {
+"created": 1745875757,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/o4-mini-high": {
+"created": 1744824212,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high"
+],
+"default_effort": "high"
+}
+},
+"openai/o3": {
+"created": 1744823457,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/o3:batch": {
+"created": 1744823457,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/o4-mini": {
+"created": 1744820942,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/o4-mini:batch": {
+"created": 1744820942,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/gpt-4.1": {
+"created": 1744651385,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4.1:batch": {
+"created": 1744651385,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4.1-mini": {
+"created": 1744651381,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4.1-mini:batch": {
+"created": 1744651381,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4.1-nano": {
+"created": 1744651369,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4.1-nano:batch": {
+"created": 1744651369,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"meta-llama/llama-4-maverick": {
+"created": 1743881822,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"meta-llama/llama-4-scout": {
+"created": 1743881519,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"deepseek/deepseek-chat-v3-0324": {
+"created": 1742824755,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/o1-pro": {
+"created": 1742423211,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/mistral-small-3.1-24b-instruct": {
+"created": 1742238937,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"google/gemma-3-4b-it": {
+"created": 1741905510,
+"supported_parameters": [],
+"reasoning": null
+},
+"google/gemma-3-12b-it": {
+"created": 1741902625,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"cohere/command-a": {
+"created": 1741894342,
+"supported_parameters": [],
+"reasoning": null
+},
+"rekaai/reka-flash-3": {
+"created": 1741812813,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"google/gemma-3-27b-it": {
+"created": 1741756359,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"thedrummer/skyfall-36b-v2": {
+"created": 1741636566,
+"supported_parameters": [],
+"reasoning": null
+},
+"perplexity/sonar-reasoning-pro": {
+"created": 1741313308,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"perplexity/sonar-pro": {
+"created": 1741312423,
+"supported_parameters": [],
+"reasoning": null
+},
+"perplexity/sonar-deep-research": {
+"created": 1741311246,
+"supported_parameters": [
+"include_reasoning",
+"reasoning"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/mistral-saba": {
+"created": 1739803239,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/o3-mini-high": {
+"created": 1739372611,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true,
+"supported_efforts": [
+"high"
+],
+"default_effort": "high"
+}
+},
+"aion-labs/aion-rp-llama-3.1-8b": {
+"created": 1738696718,
+"supported_parameters": [],
+"reasoning": null
+},
+"qwen/qwen2.5-vl-72b-instruct": {
+"created": 1738410311,
+"supported_parameters": [],
+"reasoning": null
+},
+"qwen/qwen-plus": {
+"created": 1738409840,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/o3-mini": {
+"created": 1738351721,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"openai/o3-mini:batch": {
+"created": 1738351721,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"mistralai/mistral-small-24b-instruct-2501": {
+"created": 1738255409,
+"supported_parameters": [],
+"reasoning": null
+},
+"perplexity/sonar": {
+"created": 1738013808,
+"supported_parameters": [],
+"reasoning": null
+},
+"deepseek/deepseek-r1": {
+"created": 1737381095,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": true
+}
+},
+"minimax/minimax-01": {
+"created": 1736915462,
+"supported_parameters": [],
+"reasoning": null
+},
+"microsoft/phi-4": {
+"created": 1736489872,
+"supported_parameters": [],
+"reasoning": null
+},
+"deepseek/deepseek-chat": {
+"created": 1735241320,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"sao10k/l3.3-euryale-70b": {
+"created": 1734535928,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/o1": {
+"created": 1734459999,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": {
+"mandatory": false
+}
+},
+"cohere/command-r7b-12-2024": {
+"created": 1734158152,
+"supported_parameters": [],
+"reasoning": null
+},
+"meta-llama/llama-3.3-70b-instruct": {
+"created": 1733506137,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"amazon/nova-lite-v1": {
+"created": 1733437363,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"amazon/nova-micro-v1": {
+"created": 1733437237,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"amazon/nova-pro-v1": {
+"created": 1733436303,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4o-2024-11-20": {
+"created": 1732127594,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/mistral-large-2407": {
+"created": 1731978415,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"qwen/qwen-2.5-coder-32b-instruct": {
+"created": 1731368400,
+"supported_parameters": [],
+"reasoning": null
+},
+"thedrummer/unslopnemo-12b": {
+"created": 1731103448,
+"supported_parameters": [],
+"reasoning": null
+},
+"anthracite-org/magnum-v4-72b": {
+"created": 1729555200,
+"supported_parameters": [],
+"reasoning": null
+},
+"qwen/qwen-2.5-7b-instruct": {
+"created": 1729036800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"meta-llama/llama-3.2-1b-instruct": {
+"created": 1727222400,
+"supported_parameters": [],
+"reasoning": null
+},
+"meta-llama/llama-3.2-3b-instruct": {
+"created": 1727222400,
+"supported_parameters": [],
+"reasoning": null
+},
+"qwen/qwen-2.5-72b-instruct": {
+"created": 1726704000,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"cohere/command-r-08-2024": {
+"created": 1724976000,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"cohere/command-r-plus-08-2024": {
+"created": 1724976000,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"sao10k/l3.1-euryale-70b": {
+"created": 1724803200,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"nousresearch/hermes-3-llama-3.1-70b": {
+"created": 1723939200,
+"supported_parameters": [],
+"reasoning": null
+},
+"nousresearch/hermes-3-llama-3.1-405b": {
+"created": 1723766400,
+"supported_parameters": [],
+"reasoning": null
+},
+"sao10k/l3-lunaris-8b": {
+"created": 1723507200,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-4o-2024-08-06": {
+"created": 1722902400,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"meta-llama/llama-3.1-70b-instruct": {
+"created": 1721692800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"meta-llama/llama-3.1-8b-instruct": {
+"created": 1721692800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/mistral-nemo": {
+"created": 1721347200,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4o-mini": {
+"created": 1721260800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4o-mini-2024-07-18": {
+"created": 1721260800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4o-mini:batch": {
+"created": 1721260800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"google/gemma-2-27b-it": {
+"created": 1720828800,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-4o": {
+"created": 1715558400,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4o-2024-05-13": {
+"created": 1715558400,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4o:batch": {
+"created": 1715558400,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/mixtral-8x22b-instruct": {
+"created": 1713312000,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"microsoft/wizardlm-2-8x22b": {
+"created": 1713225600,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-4-turbo": {
+"created": 1712620800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4-turbo:batch": {
+"created": 1712620800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mistralai/mistral-large": {
+"created": 1708905600,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-3.5-turbo-0613": {
+"created": 1706140800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openrouter/auto": {
+"created": 1699401600,
+"supported_parameters": [
+"include_reasoning",
+"reasoning",
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-3.5-turbo-instruct": {
+"created": 1695859200,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-3.5-turbo-16k": {
+"created": 1693180800,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"mancer/weaver": {
+"created": 1690934400,
+"supported_parameters": [],
+"reasoning": null
+},
+"undi95/remm-slerp-l2-13b": {
+"created": 1689984000,
+"supported_parameters": [],
+"reasoning": null
+},
+"gryphe/mythomax-l2-13b": {
+"created": 1688256000,
+"supported_parameters": [],
+"reasoning": null
+},
+"openai/gpt-3.5-turbo": {
+"created": 1685232000,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-3.5-turbo:batch": {
+"created": 1685232000,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+},
+"openai/gpt-4": {
+"created": 1685232000,
+"supported_parameters": [
+"tools"
+],
+"reasoning": null
+}
+}
+}
