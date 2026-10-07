@@ -652,7 +652,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
 
     // PORT-ONLY: DL-6 child-only PATH insertion; shared by all Copilot connections (sessions and probes).
     private static Dictionary<string, string> ChildEnvironment(IReadOnlyDictionary<string, string> environment) =>
-        ShimPath.ForChild(environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
+        ProviderCustomCommands.ForChild(environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
 
     // :480-483, extracted unchanged for the DL-11 byte-identity test.
     private static List<string> LaunchArguments()

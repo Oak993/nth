@@ -12,7 +12,7 @@ public static class OpenCodeSkillWiring
     /// ProviderRegistry.Environment result for OpenCode (MCP content already merged). Returns a new dictionary; the input is untouched.</summary>
     public static Dictionary<string, string> Apply(IReadOnlyDictionary<string, string> environment, OpenCodeSkillLaunch launch, IReadOnlyDictionary<string, string> mcpEnvironment)
     {
-        var child = ShimPath.ForChild(environment, launch.DataRoot); // DL-6: addons\bin on PATH, nothing else changes
+        var child = ProviderCustomCommands.ForChild(environment, launch.DataRoot); // DL-6: addons\bin on PATH, nothing else changes
         var mcp = mcpEnvironment.TryGetValue(Variable, out var content) ? content : null;
         // The MCP JSON replaces an inherited variable (Mac behaviour); otherwise the inherited one is source 6 and the base.
         var inherited = mcp is null && environment.TryGetValue(Variable, out var own) && own.Length != 0 ? own : null;

@@ -12,7 +12,7 @@ public static class CodexChildEnvironment
     public static Ambient<CodexChildRoot> Root { get; } = new(new CodexChildRoot(StorageRoot));
 
     public static IReadOnlyDictionary<string, string> Apply(IReadOnlyDictionary<string, string> environment) =>
-        Root.Current.Resolve() is { Length: > 0 } root ? ShimPath.ForChild(environment, root) : environment;
+        Root.Current.Resolve() is { Length: > 0 } root ? ProviderCustomCommands.ForChild(environment, root) : environment;
 
     private static string? StorageRoot()
     {

@@ -9,7 +9,7 @@ namespace Marrow.Services.Port.Skills.Generations;
 
 /// <summary>One coordinator per root owner (SkillsStore, or SK-8's SkillsPipeline through IGenerationStore). Pool-thread work: copying and hashing never run on a UI executor here.</summary>
 public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, IStoreProtection? protection = null, Func<string, IReadOnlyList<ExistingSkill>>? clashSource = null,
-    IImportedSkillSource? importedSource = null) : IDisposable
+    IImportedSkillSource? importedSource = null, IOwnPluginSource? ownPluginSource = null) : IDisposable
 {
     private readonly object gate = new();
     private readonly ChatGenerationPaths chatPaths = new(paths);
@@ -177,12 +177,14 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             }
             // SK-18 (OD-0118): skills the user brought in from other apps join the catalogue's, after it: a catalogue skill keeps a name, a provider's own skills still win a clash, the same budget applies.
             // Their on/off is the imported library's own (they are not catalogue items), and an empty source changes nothing: the key below is then exactly what it always was.
+            var ownPlugins = ownPluginSource?.SnapshotPlugins() ?? [];
+            var importedAvailable = importedSource?.Snapshot() ?? [];
             var importedChosen = new List<(ImportedGenerationSkill Skill, GenerationSkill Meta)>();
-            foreach (var imported in (importedSource?.Snapshot() ?? []).OrderBy(i => i.Name, StringComparer.Ordinal))
+            foreach (var imported in importedAvailable.OrderBy(i => i.Name, StringComparer.Ordinal))
             {
                 if (!SkillName.IsValid(imported.Name) || string.IsNullOrWhiteSpace(imported.Description) || imported.Description.Any(char.IsControl) || !imported.Files.ContainsKey("SKILL.md")) continue;
                 if (GenerationFilters.Clashes(provider, imported.Name, user) || usedNames.Contains(imported.Name)) continue;
-                var meta = new GenerationSkill("import", imported.Name, imported.Id, imported.Description, SkillGroup.Other, 1_000, false);
+                var meta = new GenerationSkill(imported.PluginId ?? "import", imported.Name, imported.Id, imported.Description, SkillGroup.Other, 1_000, false);
                 var cost = imported.Name.Length + imported.Description.Length + 3;
                 if (cost > room) { leftOut.Add(meta.Id); continue; }
                 room -= cost;
@@ -226,15 +228,35 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
                         AddFile(root + "/" + file.Path[(skill.SourcePath.Length + 1)..], ReadPinned(item.Store, file));
                 }
             }
+            var ownPluginEntries = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (GenerationFilters.PluginLoading(provider)) foreach (var plugin in ownPlugins)
+            {
+                // Codex-only manifests still contribute ordinary skills; do not claim their hooks are Claude-compatible.
+                if (!plugin.Files.ContainsKey(".claude-plugin/plugin.json")) continue;
+                var root = "plugins/" + plugin.Id;
+                pluginRoots.Add(root);
+                ownPluginEntries.Add(root, ImportedFingerprint(new(plugin.Id, plugin.Id, "", plugin.Files)));
+                foreach (var (path, bytes) in plugin.Files)
+                {
+                    var owningSkill = importedAvailable.OrderByDescending(s => s.PluginPath?.Length ?? 0).FirstOrDefault(s => s.PluginId == plugin.Id && (s.PluginPath!.Length == 0 || path.StartsWith(s.PluginPath + "/", StringComparison.Ordinal)));
+                    if (owningSkill is not null && !importedChosen.Any(c => c.Skill.Id == owningSkill.Id)) continue;
+                    // Unreadable skill metadata cannot bypass the budget through an otherwise valid plugin.
+                    if (owningSkill is null && (path == "SKILL.md" || path.EndsWith("/SKILL.md", StringComparison.Ordinal))) continue;
+                    AddFile(root + "/" + path, bytes);
+                }
+                foreach (var (skill, meta) in importedChosen.Where(c => c.Skill.PluginId == plugin.Id))
+                    locations.Add(meta.Id, root + "/" + (skill.PluginPath!.Length == 0 ? "" : skill.PluginPath + "/") + "SKILL.md");
+            }
             foreach (var (imported, meta) in importedChosen)
             {
-                var root = (GenerationFilters.PluginLoading(provider) ? "skills/" : "") + imported.Name;
+                if (locations.ContainsKey(meta.Id)) continue;
+                var root = (provider == "agy" && imported.Id.StartsWith("own-", StringComparison.Ordinal) ? ".agents/skills/" : GenerationFilters.PluginLoading(provider) ? "skills/" : "") + imported.Name;
                 locations.Add(meta.Id, root + "/SKILL.md");
                 foreach (var (relative, bytes) in imported.Files.OrderBy(f => f.Key, StringComparer.Ordinal)) AddFile(root + "/" + relative, bytes);
             }
             var entries = chosen.Select(s => s.Id + "@" + verified.Single(i => i.Store.Catalogue.Id == s.ItemId).Store.Pin).Order(StringComparer.Ordinal).ToArray();
             // The switch for non-skill plugin contents also changes the resulting entry list and therefore the content key.
-            var pluginEntries = pluginRoots.Order(StringComparer.Ordinal).Select(r => r + "@" + verified.Single(i => r == "plugins/" + i.Store.Catalogue.Id || r.StartsWith("plugins/" + i.Store.Catalogue.Id + "/", StringComparison.Ordinal)).Store.Pin).ToArray();
+            var pluginEntries = pluginRoots.Order(StringComparer.Ordinal).Select(r => r + "@" + (ownPluginEntries.TryGetValue(r, out var ownPin) ? ownPin : verified.Single(i => r == "plugins/" + i.Store.Catalogue.Id || r.StartsWith("plugins/" + i.Store.Catalogue.Id + "/", StringComparison.Ordinal)).Store.Pin)).ToArray();
             var importedEntries = importedChosen.Select(c => c.Meta.Id + "@" + ImportedFingerprint(c.Skill)).Order(StringComparer.Ordinal).ToArray();
             var identity = importedEntries.Length == 0
                 ? JsonSerializer.SerializeToUtf8Bytes(new { version = switches.Version, entries, plugins = pluginEntries })
