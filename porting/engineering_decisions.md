@@ -5325,3 +5325,33 @@ Source fact: OpenAICompatibleSession.cs:972 builds the real payload from local f
 Test-first retained behavioral failures: listed optional fee rejected before the evidence extension; future tool payloads reached the in-process fake before the dispatch guard; a missing source initially escaped model isolation. New tests inspect 252 real payloads (seven exact models, nine effort inputs, tools on/off, ordinary/Hydra heads; built-in, skill and MCP functions), then reject future search/native/unknown options before HTTP. Source-hash review binds each provider's real builder, provider override, transport guard and regression tests. A changed/missing/partial/wrong-provider proof leaves that model unfilled; installed runtime guard independently rejects future native tool payloads. A generic optional flag and other listed fees still reject absent-fee evidence.
 
 Public token-pricing and linked public billing docs retain reviewed full visible-body hashes and new raw capture/date/SHA receipts. Only the two explicitly identified Meta/Z.ai account transaction dashboard URLs are separate from public billing terms, with the distinction recorded; no unseen account content is treated as price evidence. Public terms cannot be classified this way and Login bodies still fail billing reviews. All seven provable Meta/Z.ai prices are generated, request fee zero by complete-list evidence with quoted excluded tool charges. Both DeepSeek models remain unfilled for lack of explicit USD, not inferred from $. Highest applicable token rates and conditional cache-storage guards are unchanged. No price hand-edit, model message, login, credentials entry, CLI settings/config change, reference write, installer or app launch.
+
+
+## ED-604 - RR-23 approved VC++ prerequisite (2026-10-07)
+
+ENGINEERING DECISION: package-windows.ps1 passes --framework vcredist143-x64 to vpk pack, as OD-0104 item 1 explicitly requires. The shipped Whisper natives import MSVCP140, VCRUNTIME140, VCRUNTIME140_1 and VCOMP140 (ED-287 / VT-0 pin evidence). This changes only the package input; no installer was built or run, signed or published. Clean Windows 11 CPU/Vulkan loading remains a required release check. The prior ledger bytes are untouched.
+
+
+## ED-605 - RR-25 dead member and stale marker correction (2026-10-07)
+
+ENGINEERING DECISION: remove AutoContinue.HandOff, exactly as PR-RUNTIME-263 NOT_APPLICABLE_WITH_EVIDENCE and dead_code.md entry 22 already require: B3 deleted its only caller, LimitResumeBadge; no C# caller exists. Active usage-limit notices still use NoticeRow and Wait/Resume. Correct 23 historical source-comment marker claims against real implementations and existing tests (T39-RR-25.md). No test, scanner, reference or tolerance changed; unrelated STOPs and missing semantic acceptance remain visible. Independent read-only reviewer review_release corroborated the symbol/test map. Original ledger bytes preserved.
+
+
+## ED-606 - RR-26 evidence runners (2026-10-07)
+
+ENGINEERING DECISION: implement semantic C..F as fail-closed, per-ID artifact/receipt validators under the existing single verifier. Bind every tracked input outside run outputs, B3/tree, HEAD, src/tests trees, commands, exits, environments, times and artifact hashes. Derive requirements from unchanged test traits plus per-project TRX/discovery/logs; partial or stale results cannot satisfy D. Mechanical first-release scope supplements PR/UI records, including each multi-account checklist bullet and late rulings. Independent review found binding/coverage/visual/package receipt gaps; they were repaired with isolated negative controls. No existing test, assertion, tolerance, reference or quarantine guard changed. Read porting/verification/README.md for exact schemas and limitations. Authentic native/Windows/final evidence remains BLOCKED; runners alone are not release acceptance. Original ledger bytes preserved.
+
+
+## ED-607 - RR-35 SDK, dependencies and tools (2026-10-07)
+
+ENGINEERING DECISION: pin SDK 10.0.401 without roll-forward and runtime 10.0.12, enforce locked restores, retain 31 content-hashed locks for all 29 projects and two real AOT/trim variants, and use local vpk 1.2.161 with content verification. Historical P11 stays 1.2.158: its PackageVersion Include becomes Update to remove duplicate central entries without changing its version. P1 keeps its original explicit versions via restore-only override. Explicit win-x64 AOT and non-AOT offline restores remove host/graph ambiguity found in independent review. New restore script builds nothing; package preflight remains after notes validation. No existing test/reference/assertion changed. Full locked restores and negative changed-graph rejection recorded in T39-RR-35.md. Prior ledger bytes preserved.
+
+
+## ED-608 - RR-42 current tracking and exact corrections (2026-10-07)
+
+ENGINEERING DECISION: publish one current inventory without rewriting historical checkpoints. STATE is byte-exact append only. Replace just 13 unknown Status paragraphs: 12 already-resolved decisions now RESOLVED; UNK-0009 retains access/live-release blocking while feed choice is resolved. Exact old/new bytes are retained in T39-RR-42-ledger-corrections.json and reverse reconstruction equals the original file. All remaining discussion/rulings are unchanged historical context. Correct only the two-line BUILD-PLAN snapshot header; preserve its plan and source obligations. Gate B now validates dependencies against known unknown entries, retaining resolved provenance rather than demanding stale OPEN flags; acceptance still holds unresolved dependencies partial. Owner decisions are wholly unchanged, especially reserved, missing OD-0029/0030 provenance. No requirement, existing test/reference/assertion/status promoted. Counts/limits are in T39-current-inventory.md/JSON. Original ED bytes preserved.
+
+
+## ED-609 - RR-43 canonical PE metadata (2026-10-07)
+
+ENGINEERING DECISION: derive app/setup Version 1.7.0, assembly 1.7.0.0, file 1.7.0.21 and informational 1.7.0+build.21 from unchanged AssemblyInfo CFBundle literals. Product/title Marrow and author/company Marrow Code follow OD-0002/0008/0072; Setup title is Marrow Setup. Copyright/legal source stays byte-exact. Reject mismatched installer/assembly versions and disabled metadata generation; bind Gate E/F inspection to canonical version/build/runtime and both PE identities. New identity-negative controls are test-first and do not alter earlier tests. Release win-x64 application builds with zero warnings/errors and real DLL/native EXE resources match (T39-RR-43-app-pe.json). Setup is property/validation evaluation only: no installer build/run/sign/publish, so final setup PE proof stays UNVERIFIED. Prior ledger bytes preserved.

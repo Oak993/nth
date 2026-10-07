@@ -4,9 +4,8 @@
  *
  *   node porting/tools/verify.mjs [--json] [--gate A|B|C|D|E|F]
  *
- * Exits NONZERO if any mandatory check for a claimed gate fails, and nonzero while any
- * mandatory gate remains unimplemented. A gate that has not been built yet reports
- * NOT_IMPLEMENTED and fails; it never reports success by omission.
+ * Exits NONZERO if any mandatory check or exact-revision evidence requirement fails.
+ * C..F validate real artifacts and receipts; absent evidence fails rather than gaining credit.
  *
  * This file is written by the same agent that does the porting work and therefore proves
  * nothing on its own (contract section 3: "Do not claim these controls prove comprehension
@@ -19,6 +18,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { REF, PINNED_SHA, PINNED_TREE } from './baseline.mjs';
+import { captureBinding } from './evidence-binding.mjs';
+import { checkSemanticGate, releaseContext, validateRequirementReport } from './release-evidence.mjs';
 
 const ROOT = process.cwd();
 
@@ -28,6 +29,8 @@ const onlyGate = (() => {
   const i = args.indexOf('--gate');
   return i >= 0 ? args[i + 1] : null;
 })();
+
+if (onlyGate && !['A','B','C','D','E','F'].includes(onlyGate)) throw new Error('unknown gate; expected A..F');
 
 const results = [];
 let hardFail = false;
@@ -432,18 +435,20 @@ check('B', 'no requirement silently depends on an unresolved unknown', () => {
   if (!specExists()) throw new Error('parity matrix missing');
   const unknowns = readFileSync(rel('porting/unknowns.md'), 'utf8');
   const openIds = new Set();
+  const knownIds = new Set();
   for (const block of unknowns.split(/^## /m)) {
     const id = (block.match(/^(UNK-\d+)/) || [])[1];
     if (!id) continue;
+    knownIds.add(id);
     if (/\*\*Status:\*\*\s*(OPEN|INVESTIGATING|BLOCKED_ON_OWNER|BLOCKED_ON_ACCESS)/.test(block)) openIds.add(id);
   }
   const m = readJson('porting/parity_matrix.json');
   const declared = (m.requirements || []).filter((r) => r.depends_on_unknown).length;
-  // Not a completeness proof: it checks that declared dependencies name a real open unknown.
+  // Retain dependency provenance after resolution; a closed entry remains a real named dependency.
   const bogus = (m.requirements || [])
-    .filter((r) => r.depends_on_unknown && !openIds.has(r.depends_on_unknown))
+    .filter((r) => r.depends_on_unknown && !knownIds.has(r.depends_on_unknown))
     .map((r) => `${r.id} -> ${r.depends_on_unknown}`);
-  if (bogus.length) throw new Error(`${bogus.length} requirement(s) name an unknown that is not open: ${bogus.slice(0, 4).join('; ')}`);
+  if (bogus.length) throw new Error(`${bogus.length} requirement(s) name an unknown with no record: ${bogus.slice(0, 4).join('; ')}`);
   return `${openIds.size} open unknowns, ${declared} requirement(s) declare a dependency`;
 });
 
@@ -517,70 +522,36 @@ check('C', 'no temporary stub remains in the implementation', () => {
   return 'no stubs in src/';
 });
 
-// Gate D's floor, not its ceiling: the solution builds with warnings as errors and every test passes,
-// with none skipped. Skipped counts as failed, because contract section 18 forbids equating SKIPPED
-// with acceptance. Visual comparison, persistence and cancellation checks are still to be built.
+// Gate D runs the four solution test projects and dependencies, never Marrow.Setup.
+// --no-run validates captured evidence only. No packaging, installer execution, signing or publication.
 check('D', 'the solution builds and every test passes, none skipped', () => {
-  if (!existsSync(rel('Marrow.sln'))) return { status: 'FAIL', detail: 'no Marrow.sln yet' };
-  const dotnet = existsSync('C:/Program Files/dotnet/dotnet.exe') ? 'C:/Program Files/dotnet/dotnet.exe' : 'dotnet';
-  const run = (args) => {
-    try {
-      return { ok: true, out: execFileSync(dotnet, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26 }) };
-    } catch (e) {
-      return { ok: false, out: `${e.stdout || ''}${e.stderr || ''}` };
-    }
-  };
-  const b = run(['build', 'Marrow.sln', '-c', 'Debug', '-v', 'q', '--nologo']);
-  if (!b.ok) {
-    const errs = b.out.split('\n').filter((l) => /error/.test(l)).slice(0, 6);
-    throw new Error(`build failed:\n    ${errs.join('\n    ')}`);
+  if (!args.includes('--no-run')) {
+    try { execFileSync(process.execPath, ['porting/tools/req_verify.mjs'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 }); }
+    catch (e) { throw new Error(`test/evidence run failed: ${String(e.stdout || e.message).split('\n').slice(-5).join(' ')}`); }
   }
-  const t = run(['test', 'Marrow.sln', '--no-build', '-v', 'q', '--nologo']);
-  let passed = 0, failed = 0, skipped = 0;
-  for (const m of t.out.matchAll(/Failed:\s*(\d+),\s*Passed:\s*(\d+),\s*Skipped:\s*(\d+)/g)) {
-    failed += Number(m[1]); passed += Number(m[2]); skipped += Number(m[3]);
-  }
-  if (!t.ok || failed) throw new Error(`${failed} test(s) failed, ${passed} passed`);
-  if (skipped) throw new Error(`${skipped} test(s) SKIPPED; a skipped test is not a pass`);
-  if (!passed) throw new Error('no tests ran');
-  return `build clean with warnings as errors; ${passed} tests passed, 0 failed, 0 skipped`;
+  const doc = readJson('porting/verification/requirements.json');
+  return validateRequirementReport(doc, releaseContext(ROOT));
 });
 
-// Gate D proper: every applicable requirement VERIFIED by a passing, source-bound test run.
-// Status comes from porting/tools/req_verify.mjs, which derives it from test traits and a TRX run
-// bound to the current HEAD with a clean src/ and tests/. This check never runs the tests itself;
-// it refuses a stale or unbound result instead, so a green report always names the code it tested.
-check('D', 'every applicable requirement is VERIFIED by a bound test run', () => {
-  const p = rel('porting/verification/requirements.json');
-  if (!existsSync(p)) throw new Error('no requirement verification yet: run node porting/tools/req_verify.mjs');
-  const doc = JSON.parse(readFileSync(p, 'utf8'));
-  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
-  const dirty = execFileSync('git', ['status', '--porcelain', '--', 'src', 'tests'], { cwd: ROOT, encoding: 'utf8' }).trim();
-  if (doc.run.head !== head || dirty || !doc.run.bound_to_current_head) {
-    throw new Error(`verification is not bound to the current tree (run at ${String(doc.run.head).slice(0, 8)}, HEAD ${head.slice(0, 8)}${dirty ? ', src/tests dirty' : ''}); rerun req_verify.mjs`);
-  }
-  if (doc.run.baseline !== PINNED_SHA) throw new Error(`verification ran against baseline ${doc.run.baseline}, pinned is ${PINNED_SHA}`);
-  const outstanding = Object.entries(doc.requirements)
-    .filter(([, r]) => !['VERIFIED', 'BLOCKED', 'RETIRED'].includes(r.status));
-  if (outstanding.length) {
-    const by = outstanding.reduce((a, [, r]) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
-    throw new Error(`VERIFIED ${doc.verified}/${doc.applicable}; outstanding ${outstanding.length} ${JSON.stringify(by)}: ${outstanding.slice(0, 8).map(([id]) => id).join(', ')}`);
-  }
-  return `VERIFIED ${doc.verified}/${doc.applicable} applicable requirements`;
-});
+check('D', 'every applicable requirement is VERIFIED by a bound test run', () =>
+  validateRequirementReport(readJson('porting/verification/requirements.json'), releaseContext(ROOT)));
 
-const PENDING = [
+const SEMANTIC = [
   ['C', 'no fake-success paths, dead controls or unapproved product changes'],
   ['D', 'interaction tests, visual comparison, persistence/restart and cancellation evidence per verification_method'],
   ['E', 'packaged artifact installs, launches, cleans up children, upgrades and uninstalls'],
   ['F', 'independent parity review with no unresolved required discrepancy'],
 ];
-for (const [gate, name] of PENDING) {
-  check(gate, name, () => ({
-    status: 'NOT_IMPLEMENTED',
-    detail: 'gate not built yet; it fails by design rather than passing by omission',
-  }));
-}
+for (const [gate, name] of SEMANTIC) check(gate, name, () => checkSemanticGate(gate, ROOT));
+
+// An isolated final gate must also see the actual A..E checks, including marker/quarantine guards.
+check('F', 'all antecedent gates pass at this exact revision', () => {
+  for (const gate of ['A','B','C','D','E']) {
+    try { execFileSync(process.execPath, ['porting/tools/verify.mjs','--gate',gate,'--json','--no-run'], {cwd:ROOT,encoding:'utf8',maxBuffer:1<<26}); }
+    catch { throw new Error(`antecedent Gate ${gate} fails; final acceptance is incomplete`); }
+  }
+  return 'A..E pass at the current exact revision';
+});
 
 // ---------------------------------------------------------------- report
 
@@ -588,6 +559,7 @@ const counts = results.reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; 
 
 if (asJson) {
   console.log(JSON.stringify({
+    implementation: captureBinding(ROOT),
     pinned_sha: PINNED_SHA,
     pinned_tree: PINNED_TREE,
     reference: REF,
