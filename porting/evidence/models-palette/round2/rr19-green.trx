@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="427c0b53-f8c8-4fcd-ac10-a834f2313a25" name="@a39ab932e15a 2026-10-07 09:15:40" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T09:15:40.8616951+00:00" queuing="2026-10-07T09:15:40.8616952+00:00" start="2026-10-07T09:15:37.6950405+00:00" finish="2026-10-07T09:15:40.8671666+00:00" />
+  <TestSettings name="default" id="1826de0e-6fe3-475d-b631-d237a3f3918e">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_09_15_40" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="4b46e63b-fa15-4290-8768-ee6641fd3558" testId="1f0375fc-fc96-1a02-752d-5901d7dd7599" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" computerName="a39ab932e15a" duration="00:00:00.5080893" startTime="2026-10-07T09:15:40.2378359+00:00" endTime="2026-10-07T09:15:40.7287616+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b46e63b-fa15-4290-8768-ee6641fd3558" />
+    <UnitTestResult executionId="0ad1612c-f080-4b19-9d23-0659c59dfcef" testId="ada485af-f23c-d7de-dc16-8cbd3165079c" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" computerName="a39ab932e15a" duration="00:00:00.0472210" startTime="2026-10-07T09:15:40.7382953+00:00" endTime="2026-10-07T09:15:40.7763085+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0ad1612c-f080-4b19-9d23-0659c59dfcef" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ada485af-f23c-d7de-dc16-8cbd3165079c">
+      <Execution id="0ad1612c-f080-4b19-9d23-0659c59dfcef" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests" name="Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="1f0375fc-fc96-1a02-752d-5901d7dd7599">
+      <Execution id="4b46e63b-fa15-4290-8768-ee6641fd3558" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests" name="The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="1f0375fc-fc96-1a02-752d-5901d7dd7599" executionId="4b46e63b-fa15-4290-8768-ee6641fd3558" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ada485af-f23c-d7de-dc16-8cbd3165079c" executionId="0ad1612c-f080-4b19-9d23-0659c59dfcef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="2" executed="2" passed="2" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.38]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.78]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.82]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.66]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

@@ -35,3 +35,16 @@ Verification on Linux, .NET 10.0.401 / Avalonia 12.1.2, isolated data directory:
 
 Commands and TRX receipts are stored in `porting/evidence/models-palette/rr19/`.
 No existing tests, references or assertions changed. No EffortSlider seam.
+
+
+## Round 2 — 2026-10-07
+
+**DONE (implementation and additive handoff; native validation is T9's).** ED-NEW-models-palette-5 supersedes the source-access blocker above. The mirror's approved Main.dc.html, capture.js and probe.js are copied byte-for-byte under `design-src/models-palette/openrouter-picker/`; their origin commit and SHA-256 are in `evidence/models-palette/round2/sources.json`. No design branch was merged.
+
+The real standalone control implements the 330 px card, maker grouping and literal source glyphs; invariant all-word search across name/ID/maker; clear/refocus; retained rows with .34 s source folding/opacity/scale/card-height curves; the separate count-out/count-in clocks and singular counts; empty-state words; top-match highlight, arrows and Return. Hover/press and edge masks use the source timings. The source requests smooth nearest keyboard scrolling but gives no numerical browser duration. The port uses the card's .34 s ease on the shared frame clock, retargeting from the displayed offset and landing immediately under Reduce Motion; exact native/browser duration comparison still needs Windows.
+
+Linux: three actual headless picker tests pass in `rr21-app-final3.trx`, including manual-clock source-curve checks, all rows retained while filtered, keyboard selection, zero/one/many counts and clear. Initial missing-type red is `rr19-red.log`. Every HTTP prerequisite uses the existing fake API tests; no models API was contacted.
+
+The lead ruling expressly forbids an EffortSlider edit. Delivered additive seam (in the dependent palette commit): `ModelPickerSeam.Create(entries, selected, hasHistory, choose, back, colour)` and `Place(popup)`. After T14/Strike, bind the model-only list at EffortSlider.cs:304, retaining Choose at :353, Back, history/provider restrictions, pair selection at :305-309 and the outer .12 s page transition. Pass the existing EffortBrand heart; do not enable draft model shades. Place uses Top/-10 px, and the popup must retain that clearance as height changes. This branch changes ZERO bytes in the three Strike-owned files.
+
+Windows needs: native above-chip placement and monitor-edge flip while search/card height changes; glass and Inter/Cascadia/source SVG rendering; hover/press/focus and smooth keyboard scrolling; selection/back/history/Hydra after seam integration. These are explicitly uncredited by the fake/headless proofs. This row's delivered implementation does not open RR-20 or RR-41 acceptance.
