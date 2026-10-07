@@ -20,12 +20,12 @@ internal sealed class MultiAccountUsageView : Decorator
     private readonly CrossfadeSlot slot = new();
     private readonly AnimatedScalar slide;
     private Control? page;
-    internal MultiAccountUsageView(UsagePanelModel model)
+    internal MultiAccountUsageView(UsagePanelModel model, bool ownsModel = false)
     {
         this.model = model; Child = slot; ClipToBounds = true; MinWidth = 240;
         slide = new AnimatedScalar(this, 0, x => { if (page is not null) page.RenderTransform = CapsuleMotion.Reduce(this) ? null : new TranslateTransform(x, 0); });
         Refresh(); AttachedToVisualTree += (_, _) => model.Changed += OnChanged;
-        DetachedFromVisualTree += (_, _) => model.Changed -= OnChanged;
+        DetachedFromVisualTree += (_, _) => { model.Changed -= OnChanged; if (ownsModel) model.Dispose(); };
         KeyDown += (_, e) => { if (e.Key != Key.Escape) return; if (AllShown) Go(false); else CloseRequested?.Invoke(); e.Handled = true; };
     }
     internal bool AllShown { get; private set; }

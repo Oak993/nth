@@ -1,6 +1,8 @@
 // PORT-ONLY: multi-account step 3a (OD-0115 composer=A). The composer's place for the account capsule: nothing (and no room) until the thread has a second account of its service or a pill relay, then THE capsule in the style Customization picked.
 // A new style crossfades in place. The slot shows and passes the click on; it opens nothing (the account popover is the next unit's) and starts nothing in the engine.
 using Avalonia.Controls;
+using Marrow.App.Port.Skills.Pages;
+using Marrow.App.Views.Settings;
 using Marrow.Core.Port.MultiAccount.Capsule;
 using Marrow.UI.Port;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
@@ -14,6 +16,7 @@ internal sealed class ComposerCapsuleSlot : Decorator
     private readonly Func<CapsuleSubject?> subject;
     private bool handshake;
     private Guid? standby;
+    private bool inSync;
     private AccountCapsule? capsule;
     private AnimatedScalar? fade;
 
@@ -51,6 +54,22 @@ internal sealed class ComposerCapsuleSlot : Decorator
         Refresh();
     }
 
+    internal void SetInSync(bool ready) { inSync = ready; Refresh(); }
+
+    private void Tick(AccountCapsule target)
+    {
+        var mark = target.Children.OfType<TextBlock>().FirstOrDefault(text => text.Tag is "account-in-sync");
+        if (mark is null)
+        {
+            mark = LibraryUi.Text("✓", 9, secondary: true);
+            mark.Tag = "account-in-sync"; mark.IsHitTestVisible = false;
+            mark.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right;
+            mark.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom;
+            mark.Named("In sync", "account-in-sync"); target.Children.Add(mark);
+        }
+        mark.IsVisible = inSync;
+    }
+
     private static void OnMain(Action action)
     {
         if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) action();
@@ -81,11 +100,13 @@ internal sealed class ComposerCapsuleSlot : Decorator
             Child = made;
             IsVisible = true;
             made.Apply(wanted, animate: false);
+            Tick(made);
             if (replacing) FadeIn(made);
             return;
         }
         IsVisible = true;
         capsule.Apply(wanted);
+        Tick(capsule);
     }
 
     // a new style crossfades in place (the page's swapIn: fadeIn 220 ms under Reduce Motion, else it grows in from .86)

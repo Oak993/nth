@@ -273,6 +273,8 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                 var candidate = incoming.TakeSession();
                 try { runtime.AdoptHandshakeSession(candidate, incoming.SessionId, incoming.Configuration, relay, resumeReply, pinAccount: manualSelection is not null); }
                 catch { candidate.OnEvent = null; candidate.Stop(); throw; }
+                runtime.RecordAccountHandoff(final, original, target.Account.Name,
+                    ready: incoming.Kind == StandbyKind.Injected || incoming.ReadBackRequested);
                 prepared = null;
                 preparedTarget = null;
             });
@@ -339,6 +341,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                     standby.Warm?.Stop();
                     runtime.AdoptDeferredAccount(standby.Configuration, preamble, relay, pinAccount: manualSelection is not null);
                 }
+                runtime.RecordAccountHandoff(final, package, target.Account.Name, ready: false);
                 deferredPrepared = null;
                 preparedTarget = null;
                 return true;

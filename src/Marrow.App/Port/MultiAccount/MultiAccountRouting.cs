@@ -220,21 +220,32 @@ public sealed partial class MultiAccountRouting
         return route;
     }
 
-    public async Task AnswerAsync(Guid thread, IReadOnlyList<Choice> choices, RememberScope scope)
+    public async Task AnswerAsync(Guid thread, IReadOnlyList<Choice> choices, RememberScope scope, CancellationToken ct = default)
     {
         MainActor.AssumeIsolated();
+        ct.ThrowIfCancellationRequested();
         if (app.ApiKeys.TryAnswer(thread, choices, scope)) return;
         var route = routes.GetValueOrDefault(thread) ?? throw new InvalidOperationException("No account card is waiting for this conversation.");
         // Preserve this caller's rejection without making it the predecessor of other cards or cleanup.
         var enableHandshake = route.State?.Request is { FirstTime: true } request && request.Kinds.Contains(DecisionKind.OnLimit)
             && choices.Any(choice => choice.Kind == DecisionKind.OnLimit && choice.Value == DecisionValues.Switch);
-        await route.Machine.AnswerAsync(choices, scope, route.Cancellation.Token,
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(ct, route.Cancellation.Token);
+        await route.Machine.AnswerAsync(choices, scope, cancellation.Token,
             () => { if (enableHandshake) app.Settings.AccountHandshakeEnabled = true; });
     }
 
     internal bool CanSwitchAtAccountStep(Guid thread) => !ManualSelectionPending(thread) && !app.ApiKeys.AwaitingChoice(thread)
         && routes.TryGetValue(thread, out var route) && route.Machine.Phase == HandshakePhase.InSync
         && route.State?.Reason is HandshakeReason.NearLimit or HandshakeReason.EarlierAccountBack;
+
+    internal Task SwitchNowAsync(Guid thread)
+    {
+        MainActor.AssumeIsolated();
+        var route = routes.GetValueOrDefault(thread) ?? throw new InvalidOperationException("This conversation is no longer waiting.");
+        var work = route.Machine.SwitchNowAsync(route.Cancellation.Token);
+        TrackOperation(work);
+        return work;
+    }
 
     internal async Task SwitchAtAccountStepAsync(Guid thread, CancellationToken ct)
     {
