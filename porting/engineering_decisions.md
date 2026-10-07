@@ -3726,3 +3726,8 @@ ENGINEERING DECISION (T9 batch 9 integration): join trial-H asynchronous develop
 Batch 9 compile witness: first combined Services build failed CS0103 (catalogue) after the SK18/W3 host constructor conflict union omitted W3's catalogue parameter. Restored that exact parameter and options.Catalogue argument; preserved the incoming catalogue property, imported library, shared downloads and terms. This is a compile-time merge-resolution correction, not a behavior acceptance red; initial logs at 31f7685 remain archived. No test changed.
 
 Batch 9 byte-integrity repair: Git inserted the incoming SK14/SK16 STATE note into an older seam and introduced one ED blank line at that seam. A byte-preserving line diff proved both ledgers differed from batch8 only by insertions. Moved all inserted bytes to the end, restoring the exact b091a44c5 prefixes without replacing/deleting/normalizing any original or incoming contribution. Runtime source/tests/build inputs are unchanged; full suite snapshot remains 2476a0fb1, and final Traceability/static checks repeat after this documentation-only commit.
+
+
+## ED-NEW-release-pack-1 - RR-23 approved VC++ prerequisite (2026-10-07)
+
+ENGINEERING DECISION: package-windows.ps1 passes --framework vcredist143-x64 to vpk pack, as OD-0104 item 1 explicitly requires. The shipped Whisper natives import MSVCP140, VCRUNTIME140, VCRUNTIME140_1 and VCOMP140 (ED-287 / VT-0 pin evidence). This changes only the package input; no installer was built or run, signed or published. Clean Windows 11 CPU/Vulkan loading remains a required release check. The prior ledger bytes are untouched.

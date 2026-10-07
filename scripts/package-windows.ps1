@@ -132,6 +132,7 @@ Invoke-Native 'vpk pack' {
         --packAuthors $PackAuthors `
         --icon $icon `
         --runtime $Runtime `
+        --framework vcredist143-x64 `
         --shortcuts StartMenu `
         --outputDir $releasesDir `
         @notesArgs
