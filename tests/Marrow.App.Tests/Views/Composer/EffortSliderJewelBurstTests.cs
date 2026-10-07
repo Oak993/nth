@@ -62,8 +62,9 @@ public sealed class EffortSliderJewelBurstTests(HeadlessSession headless)
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var effect = new TrackEffect(new TrackLook(TrackLook.Kind.Fast, brand)) { TrackWidth = 298 };
         effect.Measure(new Size(298, 34)); effect.Arrange(new Rect(0, 0, 298, 34));
-        var seen = new List<BubbleBurst>();
-        effect.Bursts.OnBurst = seen.Add;
+        var seen = new List<StrikeBurst>(); var expected=new List<StrikeBurst>();
+        var geometry=effect.StrikeGeometryFor(new Size(298,34)); var storm=new StrikeStorm(effect.StrikeSeed); var clock=new StrikeFastClock();
+        var lanes=new StrikeBubbleLanes($"{effect.Bubbles(298,34).Seed},9,3,1",298,34); var oracle=new StrikeContacts(effect.StrikeSeed,lanes,clock); var ink=StrikeInk.Of(JewelLiquid.Of(brand));
         var time = typeof(TrackEffect).GetField("time", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         var x = 777u;
         double Next() { x = unchecked(x * 1103515245 + 12345); return (x >> 8) / 16777216.0; }
@@ -74,14 +75,17 @@ public sealed class EffortSliderJewelBurstTests(HeadlessSession headless)
             t += Next() < 0.01 ? 0.5 : 0.01 + 0.06 * Next();
             time.SetValue(effect, t);
             using (var context = bitmap.CreateDrawingContext()) effect.Child!.Render(context);
+            Assert.True(((LiquidTrack.ILiveSource)effect).TryFrame(out var frame));
+            seen.AddRange(frame.MixContacts!.NewBursts.Take(frame.MixContacts.NewCount));
+            var f=storm.Resolve(geometry,t+effect.StrikeOffset,t,1,ink.Amount); oracle.Process(geometry,storm.Plans,f,t,effect.StrikeOffset,ink.Amount);
+            expected.AddRange(oracle.NewBursts.Take(oracle.NewCount));
             if (double.IsNaN(first)) first = t;
             last = t;
         }
-        var geometry = effect.StrikeGeometryFor(new Size(298, 34));
-        var contacts = JewelFixtures.Contacts(geometry, effect.StrikeSeed, effect.Bubbles(298, 34).Seed, 298, first - 6, last);
-        Assert.True(contacts.Count > 40, $"the run has contacts ({contacts.Count})");
-        Assert.True(contacts.Count == seen.Count && contacts.Zip(seen).All(p => Math.Abs(p.First.T - p.Second.T) < 1e-9 && p.First.Lane == p.Second.I && p.First.Rise == p.Second.Rise),
-            $"rule {contacts.Count}: {string.Join(" ", contacts.Take(8))}; track {seen.Count}: {string.Join(" ", seen.Take(8).Select(b => (b.T, b.I, b.Rise)))}");
+        Assert.True(expected.Count > 40, $"the run has contacts ({expected.Count})");
+        Assert.True(expected.Count == seen.Count && expected.Zip(seen).All(p => Math.Abs(p.First.T - p.Second.T) < 1e-9 && p.First.Lane == p.Second.Lane && p.First.Rise == p.Second.Rise),
+            $"rule {expected.Count}; track {seen.Count}"); // SPEC B-05/B-07 replaces A2 centre contacts.
+        Assert.Equal(expected,seen); // stronger: every burst field/order, beyond the retained 1e-9/key assertion.
     });
 
     [Fact]

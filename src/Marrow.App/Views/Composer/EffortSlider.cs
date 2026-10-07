@@ -926,6 +926,12 @@ public sealed class EffortSlider : Decorator
     internal readonly JewelOrb Orb;
     internal readonly KnobSignal Signal = new();
     internal readonly JewelUniforms Uniforms = new();
+    private readonly object jewelGate = new();
+    private JewelScene? jewelScene;
+    private sealed record JewelScene(JewelMaterial Material, TrackEffect? Effect, StrikeGeometry? Geometry, double Gain,
+        bool Reduce, bool Dark, double Scaling, double X, double Width, SKColor[] Along, float Lift);
+    internal bool JewelPaused => ReduceMotion || !FrontMonitor.Shared.Current.IsVisible;
+
 
     public EffortSlider(int count, Binding<int> index, string accessibilityTitle, bool fastMode = false, EffortBrand brand = EffortBrand.Purple, EffortPairBrand? pair = null,
         EffortBrand? fadeFrom = null, bool compactHandshake = false)
@@ -1131,7 +1137,7 @@ public sealed class EffortSlider : Decorator
         // the gem flows while shown; under reduce motion it is still, so frames run only while something moves (the
         // springs, a fade, the light on its way to the bolt's: coming up with a fast effect's own fade and the flare's two
         // stages, or letting go after fast mode); the springs and a fade always run to their end
-        if (springing || fadeFromMaterial is not null || visible && (!ReduceMotion || LightMoves)) RequestFrame();
+        if (springing || fadeFromMaterial is not null || visible && (!orbView.OnRenderThread && !ReduceMotion || ReduceMotion && LightMoves)) RequestFrame();
         else lastFrame = null; // idle until something asks again
     }
 
@@ -1168,31 +1174,54 @@ public sealed class EffortSlider : Decorator
             foreach (var child in effects.Children) if (child is TrackEffect fading) fading.Redraw();
         }
         else Material = material;
-        if (!ReferenceEquals(recolored, Material)) { Orb.Recolor(Material); recolored = Material; }
         LayoutTrack();
-        // the lightning's signal, read where the tube draws it: the current fast effect's own clock, scaled by its opacity,
-        // and the bolt leaving where the tube draws it this frame, from the fill's width LayoutTrack has just set (the
-        // effect's own bounds follow at the next layout pass; jewel-knob.html:808-822 tick(): stepSlider sets tl.exAt,
-        // then drawAll draws the bolt from it and signal() reads it, on the same frame)
+        // Main posts geometry and appearance only when an intent or a spring changes them.
+        // The retained knob resolves the signal and flowing gem where it is drawn.
         var effect = currentEffect is { } current && TrackEffect.IsFast(current.Look) ? current : null;
-        if (effect is not null)
-        {
-            var strikeTime = reduce ? Strike.StillTime(effect.StrikeSeed) : effect.TimeAt(SwiftDate.Now);
-            var drawn = double.IsNaN(fill.Width) ? effect.Bounds.Size : new Size(fill.Width, trackSide);
-            Signal.Read(effect.StrikeGeometryFor(drawn), effect.StrikeSeed, strikeTime, time, effect.Opacity);
-        }
-        else Signal.Read(null, 0, 0, time);
+        var drawn = effect is null ? default : double.IsNaN(fill.Width) ? effect.Bounds.Size : new Size(fill.Width, trackSide);
+        var geometry = effect?.StrikeGeometryFor(drawn);
+        var gain = effect?.Opacity ?? 0;
         var dark = ActualThemeVariant != ThemeVariant.Light;
         var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-        var (size, perPx) = JewelOrb.RenderSize(thumbSide, scaling);
-        Orb.Frame(time, Signal.Charge * Material.FxCharge, Signal.Flare * Material.FxFlare, Signal.ExitAngle, reduce, size, perPx, dark, Uniforms);
-        Uniforms.Values[110] = JewelOrb.Supersampled(thumbSide, scaling) ? 2 : 1;
         var along = FillColours();
-        // the ring refracts the page's locked scene colours (jewel-knob.html --scenePane and --sceneEmpty)
-        Uniforms.SetPage(thumbSide, 0.26, shownX, Bounds.Width, trackSide,
-            dark ? new SKColor(0x14, 0x1d, 0x27) : new SKColor(0xe6, 0xeb, 0xf1), dark ? new SKColor(0x11, 0x18, 0x20) : new SKColor(0xd1, 0xd8, 0xde), along);
-        Uniforms.Lift = (float)LiftAmount;
+        var lift = (float)LiftAmount;
+        var previousScene = Volatile.Read(ref jewelScene);
+        if (previousScene is null || !ReferenceEquals(previousScene.Material, Material) || !ReferenceEquals(previousScene.Effect, effect) ||
+            previousScene.Geometry != geometry || previousScene.Gain != gain || previousScene.Reduce != reduce || previousScene.Dark != dark ||
+            previousScene.Scaling != scaling || previousScene.X != shownX || previousScene.Width != Bounds.Width ||
+            !ReferenceEquals(previousScene.Along, along) || previousScene.Lift != lift)
+        {
+            effect?.PrepareScene(drawn);
+            Volatile.Write(ref jewelScene, new JewelScene(Material, effect, geometry, gain, reduce, dark, scaling,
+                shownX, Bounds.Width, along, lift));
+        }
+        if (!orbView.OnRenderThread || reduce) ResolveJewel(Uniforms.Values, time, SwiftDate.Now);
         orbView.InvalidateVisual();
+    }
+
+    internal void ResolveJewel(float[] into) => ResolveJewel(into, (SwiftClock.Now - born).TotalSeconds, SwiftDate.Now);
+
+    private void ResolveJewel(float[] into, double time, DateTimeOffset date)
+    {
+        if (Volatile.Read(ref jewelScene) is not { } s) return;
+        lock (jewelGate)
+        {
+            if (!ReferenceEquals(recolored, s.Material)) { Orb.Recolor(s.Material); recolored = s.Material; }
+            if (s.Effect is { } effect)
+            {
+                effect.ReadMixSignal(Signal, time, s.Gain, orbView.OnRenderThread ? null : date);
+            }
+            else Signal.Read(null, 0, 0, time);
+            var (size, perPx) = JewelOrb.RenderSize(thumbSide, s.Scaling);
+            Orb.Frame(time, Signal.Charge * s.Material.FxCharge, Signal.Flare * s.Material.FxFlare, Signal.ExitAngle,
+                s.Reduce, size, perPx, s.Dark, Uniforms);
+            Uniforms.Values[110] = JewelOrb.Supersampled(thumbSide, s.Scaling) ? 2 : 1;
+            Uniforms.SetPage(thumbSide, 0.26, s.X, s.Width, trackSide,
+                s.Dark ? new SKColor(0x14, 0x1d, 0x27) : new SKColor(0xe6, 0xeb, 0xf1),
+                s.Dark ? new SKColor(0x11, 0x18, 0x20) : new SKColor(0xd1, 0xd8, 0xde), s.Along);
+            Uniforms.Lift = s.Lift;
+            if (!ReferenceEquals(into, Uniforms.Values)) Array.Copy(Uniforms.Values, into, into.Length);
+        }
     }
 
     // the fill's colours along its length (5 samples), as the ring refracts them: the liquid's stops (every look draws
@@ -1282,7 +1311,7 @@ public sealed class EffortSlider : Decorator
             }
             else
             {
-                var fresh = NewEffect(look);
+                var fresh = NewEffect(look,previous);
                 fresh.Opacity = 0;
                 effects.Children.Add(fresh);
                 currentEffect = fresh;
@@ -1306,12 +1335,14 @@ public sealed class EffortSlider : Decorator
     }
 
     // OD-0090: an effect made while a model change's colours fade starts in the old maker's liquid and lightning
-    private TrackEffect NewEffect(TrackLook look)
+    private TrackEffect NewEffect(TrackLook look,TrackEffect? previous=null)
     {
         var effect = new TrackEffect(look);
+        if(previous is not null && previous.Look.Brand==look.Brand) effect.InheritTube(previous);
+        effect.PropertyChanged += (_, change) => { if (change.Property == OpacityProperty && orbView.OnRenderThread) RequestFrame(); };
         // (0.2 s under reduce motion, as the knob: the still effect is drawn again each frame of the fade by the slider)
         if (fadeFrom is { } from && fadeFromMaterial is not null)
-            effect.FadeFrom(LiquidSpec.For(look with { Brand = from }), StrikeTint.For(from), fadeStart, ColourFade);
+            effect.FadeFrom(LiquidSpec.For(look with { Brand = from }), StrikeTint.For(from), fadeStart, ColourFade, StrikeInk.Of(JewelLiquid.Of(from)));
         return effect;
     }
 
@@ -1350,7 +1381,24 @@ public sealed class JewelKnobView : Control
         giveBack = op => { lock (free) if (free.Count < 4) free.Push(op); };
         IsHitTestVisible = false;
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
+        if (FrameClock.Source.Current is IRenderFrameSourceProvider)
+        {
+            timeline = new AnimationTimeline(() => new AnimationTimelineSchedule(1.0 / 60, owner.JewelPaused), _ =>
+            {
+                if (!RenderFrameSource.InvalidateTicking()) InvalidateVisual();
+            }, this);
+            AttachedToVisualTree += (_, _) => timeline.Appear();
+            DetachedFromVisualTree += (_, _) => timeline.Disappear();
+            PropertyChanged += (_, change) =>
+            {
+                if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) timeline.Reschedule();
+            };
+        }
     }
+
+    private readonly AnimationTimeline? timeline;
+    private JewelKnobOperation? live;
+    internal bool OnRenderThread => timeline?.Source is RenderFrameSource;
 
     /// <summary>How far the knob's shadows reach past its box, px.</summary>
     internal const double ShadowReach = 40;
@@ -1373,6 +1421,13 @@ public sealed class JewelKnobView : Control
         base.Render(context);
         Recorded++;
         var values = owner.Uniforms.Values;
+        if (OnRenderThread)
+        {
+            live ??= new JewelKnobOperation(new Rect(Bounds.Size).Inflate(ShadowReach), new Rect(Bounds.Size),
+                (float[])values.Clone(), Cpu, update: owner.ResolveJewel);
+            context.Custom(live);
+            return;
+        }
         if (values[0] <= 0) return;
         JewelKnobOperation? op;
         lock (free) free.TryPop(out op);
@@ -1788,37 +1843,71 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
 
     // :1024-1026 var effectIdentity: AnyHashable
     public object EffectIdentity => Pair is { } pair ? this with { TrackLookKind = Kind.Plain, Pair = pair } : this;
+
+    // ED-248 review 2: the record's generated description printed every public property, EffectIdentity too, which is the
+    // look itself (solo) or another look (pair) whose description prints its EffectIdentity again: ToString recursed until
+    // the stack overflowed. A Swift struct describes its stored properties (kind, brand, pair), and so does this.
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append("TrackLookKind = ").Append(TrackLookKind).Append(", Brand = ").Append(Brand).Append(", Pair = ").Append(Pair);
+        return true;
+    }
 }
 
 /// <summary>:1039-1347 <c>struct TrackEffect: View</c>.</summary>
-public sealed class TrackEffect : Decorator
+public sealed class TrackEffect : Decorator, LiquidTrack.ILiveSource
 {
     private TrackLook look = null!;
     private readonly DateTimeOffset startedAt = SwiftDate.Now;
     private readonly EffectCanvas canvas;
-    private double time;
+    private double time; // seconds since the track appeared, as of its last draw (written where the timeline drew)
+    private long draws;
     /// <param name="look">:1040 <c>let look: TrackLook</c>.</param>
     // :1045-1072 body
     public TrackEffect(TrackLook look)
     {
         this.look = look;
         canvas = new EffectCanvas(this);
+        live = new LiquidTrack.Live(this);
         Child = canvas;
         IsHitTestVisible = false; AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :1070-1071
         UseLayoutRounding = false; canvas.UseLayoutRounding = false; // OD-0090: it ends where the knob's far edge is, to the fraction
-        AttachedToVisualTree += (_, _) => { if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window) FrontMonitor.Shared.Current.Observe(window); };
+        AttachedToVisualTree += (_, _) => { if (appeared) Volatile.Write(ref startRequest, 1); appeared=true; if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window) FrontMonitor.Shared.Current.Observe(window); };
+        // ED-248 review 2 (OD-0069): the timeline's frames come on the render thread (FrameClock.TimelineView, onRenderThread),
+        // where an update only moves the clock and marks the track's area: the same tick redraws the track's one recorded
+        // operation at the new time (LiquidTrack.Live). Main records the track again only when what it draws changes.
         this.TimelineView(() => new AnimationTimelineSchedule(
             1.0 / 60, // :1049 (30 for a solo supercharged track); DEVIATION OD-0051: that track is now liquid and runs at 60
             EnvironmentValues.GetAccessibilityReduceMotion(this) || !FrontMonitor.Shared.Current.IsVisible), date =>
         {
-            time = (date - startedAt).TotalSeconds; canvas.InvalidateVisual();
-        }); // :1049-1068
+            Volatile.Write(ref time, (date - startedAt).TotalSeconds);
+            Interlocked.Increment(ref draws);
+            if (!RenderFrameSource.InvalidateTicking()) canvas.InvalidateVisual();
+        }, onRenderThread: true); // :1049-1068
         // OD-0073: Reduce Motion turned on or off at run time shows the fast look's still (or lets it run) at once
         PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) canvas.InvalidateVisual(); };
+        // ED-248 review 2: what the track draws is recorded again when the theme or the size changes (no longer every frame)
+        ActualThemeVariantChanged += (_, _) => canvas.InvalidateVisual();
+        canvas.SizeChanged += (_, _) => canvas.InvalidateVisual();
+        this.Track(() => FrontMonitor.Shared.Current.IsVisible, visible =>
+        {
+            if (visible && mixClock is not null) Volatile.Write(ref startRequest, 1);
+        }); // SPEC B-09 / P:1391-1434: a retained tube shown again waits for a clean frame.
+        // ED-248 review: the liquid's surfaces live as long as the track is in a window; leaving it hands them to the render
+        // thread to dispose
+        DetachedFromVisualTree += (_, _) => { if(ownsLayers) layers?.Retire(); layers = null; scene = null; };
     }
 
     // :1024-1026 pair kind changes preserve this view's clock and trait cache.
-    internal void SetLook(TrackLook value) { look = value; canvas.InvalidateVisual(); }
+    internal void SetLook(TrackLook value)
+    {
+        if (look.Brand != value.Brand)
+        {
+            var at = TimeAt(SwiftDate.Now)+mixPageOrigin; inkFrom = scene is { } s ? InkAt(s, at) : StrikeInk.Of(JewelLiquid.Of(look.Brand)); inkStart = at;
+            Volatile.Write(ref startRequest, 1);
+        }
+        look = value; canvas.InvalidateVisual();
+    }
 
     /// <summary>Draws again now (a colour fade while its own timeline is paused under reduce motion).</summary>
     internal void Redraw() => canvas.InvalidateVisual();
@@ -1838,7 +1927,11 @@ public sealed class TrackEffect : Decorator
     /// previous maker's (<paramref name="spec"/>, <paramref name="tint"/>) over <paramref name="duration"/> s from
     /// <paramref name="start"/>, smoothstep; the page fades the incoming liquid layer's opacity over the outgoing one.
     /// </summary>
-    internal void FadeFrom(LiquidSpec spec, StrikeTint tint, DateTimeOffset start, double duration) => fade = (spec, tint, start, duration);
+    internal void FadeFrom(LiquidSpec spec, StrikeTint tint, DateTimeOffset start, double duration, StrikeInk? ink = null)
+    {
+        fade = (spec, tint, start, duration);
+        if (ink is { } from) { inkFrom = from; inkStart = (start - startedAt).TotalSeconds+mixPageOrigin; }
+    }
 
     /// <summary>How far a colour fade has gone at this effect's <paramref name="time"/> (1: none, or done).</summary>
     internal double FadeAt(double time)
@@ -1884,16 +1977,56 @@ public sealed class TrackEffect : Decorator
     /// <summary>OD-0073: fast mode (below the top, or at it) draws Strike over the liquid.</summary>
     internal static bool IsFast(TrackLook look) => look.TrackLookKind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion;
 
-    private readonly LiquidPace pace = new();
+    /// <summary>How often the timeline has drawn (on main or on the render thread; tests count the frames with it).</summary>
+    internal long Draws => Interlocked.Read(ref draws);
+
+    /// <summary>The track's time as of its last draw, seconds since it appeared.</summary>
+    internal double Time => Volatile.Read(ref time);
+
     private StrikeChannels? strikes;
+    private LiquidTrack.LiquidLayers? layers;
+    private TrackLook? specLook;
+    private LiquidSpec? spec;
+    private readonly LiquidTrack.Live live;
+    private Scene? scene;
+    private StrikeStorm? mixStorm;
+    private StrikeBubbleLanes? mixLanes;
+    private StrikeContacts? mixContacts;
+    private StrikeFastClock? mixClock;
+    private StrikeReentry? reentry;
+    private bool mixFast;
+    private int startRequest;
+    private bool appeared,ownsLayers=true;
+    private double mixPageOrigin;
+    private StrikeInk? inkFrom;
+    private double inkStart;
+    private double resolvedPageTime = double.NaN;
+    private Scene? resolvedScene;
+    private LiquidTrack.Frame cachedFrame;
+    internal IStrikeDraws StrikeDraws { get; set; } = CryptoStrikeDraws.Shared;
+    internal double StrikeOffset => (reentry?.Offset ?? 0)+mixPageOrigin;
+    internal double StrikeFrameTime { get; private set; }
+    internal bool StrikeStartPending => Volatile.Read(ref startRequest) != 0 || reentry?.Pending == true;
+
+    /// <summary>The track's drawing state kept across frames (ED-248 review), made on its first liquid frame.</summary>
+    internal LiquidTrack.LiquidLayers? Layers => layers;
+
+    // the look's liquid, made again only when the look changes (not every frame)
+    private LiquidSpec SpecFor(TrackLook value)
+    {
+        if (spec is null || !ReferenceEquals(specLook, value)) { specLook = value; spec = LiquidSpec.For(value); }
+        return spec;
+    }
 
     /// <summary>This track's Strike seed (the board's seed * 97 + 13 over the track's own number).</summary>
     internal int StrikeSeed => unchecked(bubbleSeed * 97 + 13);
 
-    /// <summary>The knob's centre, in from the liquid's end, and its radius (the slider's knob: 48 px since OD-0090, centred on
-    /// the fill's end less 24). The Strike channel leaves the knob where the page's does; its sparks start inside the knob.</summary>
-    internal double KnobInset { get; set; } = EffortSlider.ThumbSize / 2;
-    internal double KnobRadius { get; set; } = EffortSlider.ThumbSize / 2;
+    /// <summary>The knob's centre, in from the liquid's end, and its radius (the slider's knob: 42 px, centred on the fill's
+    /// end less 21). The Strike channel leaves the knob's centre; its sparks start inside the knob.</summary>
+    internal double KnobInset { get => knobInset; set { if (knobInset != value) { knobInset = value; canvas.InvalidateVisual(); } } }
+    internal double KnobRadius { get => knobRadius; set { if (knobRadius != value) { knobRadius = value; canvas.InvalidateVisual(); } } }
+    private double knobInset = EffortSlider.ThumbSize / 2, knobRadius = EffortSlider.ThumbSize / 2;
+
 
     /// <summary>
     /// Where the bolt leaves for a knob centred at <paramref name="knob"/> (jewel-knob.html:593 stepSlider, tl.exAt =
@@ -1904,26 +2037,38 @@ public sealed class TrackEffect : Decorator
 
     internal StrikeGeometry StrikeGeometryFor(Size size)
     {
-        // kept while the size and the knob hold (a frame asks for it several times: no new record a frame, ED-252)
-        var exit = ExitAt(size.Width - KnobInset);
-        if (geometry is { } kept && kept.Width == size.Width && kept.Height == size.Height && kept.Knob == exit && kept.KnobRadius == KnobRadius) return kept;
-        return geometry = new StrikeGeometry(size.Width, size.Height, exit, KnobRadius);
+        return new StrikeGeometry(Math.Max(TrackWidth, size.Width), size.Height, ExitAt(size.Width - KnobInset), KnobRadius);
     }
 
-    private StrikeGeometry? geometry;
+
 
     /// <summary>
     /// The whole track's width (the slider sets it; the effect itself spans only the filled part). The liquid's currents,
     /// light and bubbles keep the track's scale, so moving the knob never stretches them.
     /// </summary>
-    internal double TrackWidth { get; set; }
+    internal double TrackWidth { get => trackWidth; set { if (trackWidth != value) { trackWidth = value; canvas.InvalidateVisual(); } } }
+    private double trackWidth;
 
     private BubbleLanes? bubbles;
 
     /// <summary>OD-0078: this track's bursts (fast mode), with lanes of their own.</summary>
     internal BubbleBursts Bursts { get; } = new();
-    private readonly int bubbleSeed = System.Threading.Interlocked.Increment(ref bubbleSeeds);
+    private int bubbleSeed = System.Threading.Interlocked.Increment(ref bubbleSeeds);
     private static int bubbleSeeds;
+
+    // Keep Swift's replacement-view identity/local clock, while the source Strike tube continues across a kind toggle.
+    internal void InheritTube(TrackEffect previous)
+    {
+        if(previous.layers is not {} heldLayers) return;
+        lock(heldLayers)
+        {
+            layers=heldLayers; previous.ownsLayers=false;
+            mixPageOrigin=previous.mixPageOrigin+previous.Time;
+            bubbleSeed=previous.bubbleSeed; mixStorm=previous.mixStorm; mixLanes=previous.mixLanes; mixContacts=previous.mixContacts;
+            mixClock=previous.mixClock; mixFast=previous.mixFast; reentry=previous.reentry;
+            mixLaneWidth=previous.mixLaneWidth; mixLaneHeight=previous.mixLaneHeight;
+        }
+    }
 
     // each track keeps its own seeded bubbles, every rise new, started again only when the track's size changes
     internal BubbleLanes Bubbles(double track, double height)
@@ -1949,53 +2094,128 @@ public sealed class TrackEffect : Decorator
 
     private static bool SameStops(LiquidSpec a, LiquidSpec b) => a.Stops().SequenceEqual(b.Stops());
 
+    /// <summary>
+    /// ED-248 review 2: what the track draws apart from the time, resolved on main when it records the track: the liquid's
+    /// size, spec, gradient, bubbles and strand colours, the Strike's channels, geometry and tint, and the kept layers.
+    /// </summary>
+    private sealed record Scene(Size Size, double Track, LiquidSpec Spec, SkiaSharp.SKColor[] Gradient, BubbleLanes? Bubbles, bool DarkBubbles,
+        IReadOnlyList<Color> Strands, bool Fast, bool Still, StrikeChannels? Strikes, StrikeGeometry Geometry, StrikeTint Tint, int Seed,
+        LiquidTrack.LiquidLayers Layers, SkiaSharp.SKColor[]? FromGradient, StrikeTint FromTint,
+        double FadeStart, double FadeDuration, double IntentTime, StrikeInk Ink, StrikeInk? InkFrom, double InkStart);
+
+    private static StrikeInk InkAt(Scene s, double t) => s.InkFrom is { } from ? StrikeInk.Mix(from, s.Ink, Strike.Ss(0, s.Still ? 0.2 : 0.6, t - s.InkStart)) : s.Ink;
+
+    internal void ReadMixSignal(KnobSignal signal, double knobTime, double gain, DateTimeOffset? drawingDate = null)
+    {
+        if (scene is not { } s) { signal.Read(null, 0, 0, knobTime, gain); return; }
+        lock (s.Layers)
+        {
+            // A CPU renderer resolves during its frame callback, before another callback may update the tube's timeline.
+            // Both use that frame's date; the retained GPU renderer reads the timeline after its callbacks have completed.
+            if (drawingDate is { } date && !s.Still) Volatile.Write(ref time,TimeAt(date));
+            if (((LiquidTrack.ILiveSource)this).TryFrame(out var f)) signal.ReadMix(s.Geometry, mixStorm!.Plans, StrikeFrameTime, knobTime, gain * (f.Mix?.Opacity ?? 0));
+        }
+    }
+
+    Rect LiquidTrack.ILiveSource.Bounds => new(Volatile.Read(ref scene)?.Size ?? default);
+
+    // where the live operation is drawn (the render thread; main for a snapshot): the scene at the track's current time,
+    // resolved under the layers' lock (the pace and the strike channels change as frames are drawn)
+    bool LiquidTrack.ILiveSource.TryFrame(out LiquidTrack.Frame frame)
+    {
+        if (Volatile.Read(ref scene) is not { } s) { frame = default; return false; }
+        var t = Volatile.Read(ref time)+mixPageOrigin;
+        lock (s.Layers)
+        {
+            if (ReferenceEquals(resolvedScene, s) && resolvedPageTime == t && Volatile.Read(ref startRequest) == 0) { frame = cachedFrame; return true; }
+            mixStorm ??= new StrikeStorm(s.Seed); reentry ??= new StrikeReentry(s.Seed, StrikeDraws);
+            if (mixClock is null) { mixClock = new StrikeFastClock(s.Fast); mixFast = s.Fast; }
+            else if (mixFast != s.Fast)
+            {
+                if (s.Fast) reentry.FastOn(s.IntentTime, mixClock.FastAt(s.IntentTime));
+                mixClock.SetFast(s.Fast, s.IntentTime, s.Still); mixFast = s.Fast;
+            }
+            if (Interlocked.Exchange(ref startRequest, 0) != 0) reentry.Request();
+            if (!s.Still) reentry.BeforeFrame(t);
+            if (mixLanes is null || mixLaneWidth != s.Track || mixLaneHeight != s.Size.Height)
+            {
+                var normal=Math.Clamp((int)Strike.Round(s.Track/32),4,24); var nucleation=(int)Strike.Round(normal/3d);
+                mixLanes = new StrikeBubbleLanes(bubbleSeed.ToString(System.Globalization.CultureInfo.InvariantCulture) + $",{normal},{nucleation},1", s.Track, s.Size.Height);
+                mixContacts = new StrikeContacts(s.Seed, mixLanes, mixClock); mixLaneWidth = s.Track; mixLaneHeight = s.Size.Height;
+            }
+            var flowTime = s.Still ? 0 : mixClock.ClockC(t);
+            var flow = new LiquidFlow(flowTime / 7, flowTime / 11, flowTime / 6);
+            var mix = s.FromGradient is null ? 1 : Math.Clamp(((s.Still ? s.IntentTime : t) - s.FadeStart) / s.FadeDuration, 0, 1);
+            mix = mix * mix * (3 - 2 * mix);
+            var ink = InkAt(s, s.Still ? s.IntentTime : t);
+            StrikeFrameTime = s.Still ? StrikeMix.Timing(1, s.Seed).At + 0.035 : t + reentry.Offset;
+            var resolved = mixStorm.Resolve(s.Geometry, StrikeFrameTime, s.Still ? 0 : t, s.Still ? s.Fast ? 1 : 0 : mixClock.FastAt(t), ink.Amount);
+            if (!s.Still) { mixContacts!.Process(s.Geometry, mixStorm.Plans, resolved, t, reentry.Offset, ink.Amount); mixContacts.ResolveLight(s.Geometry, resolved, t); }
+            frame = new LiquidTrack.Frame(s.Size, s.Track, s.Still ? 0 : t, s.Gradient, s.Spec, null, false, s.Strands, flow, null, ink.Amount, Layers: s.Layers, PreviousGradient: mix < 1 ? s.FromGradient : null, GradientMix: mix,
+                Mix: resolved, MixGeometry: s.Geometry, MixInk: ink, MixLanes: mixLanes, FastClock: mixClock, MixContacts: mixContacts, MixStill: s.Still, MixSeed: s.Seed);
+            resolvedScene = s; resolvedPageTime = t; cachedFrame = frame;
+            return true;
+        }
+    }
+    private double mixLaneWidth, mixLaneHeight;
+
+    /// <summary>How often main has recorded the track (tests: once per change of what it draws, never per frame).</summary>
+    internal int Recordings { get; private set; }
+
+    // main, recording the track: the scene for what it draws now, kept while nothing in it changes
+    private void Record(DrawingContext context, Size size)
+    {
+        Recordings++;
+        PrepareScene(size);
+        if (scene is not null) context.Custom(live);
+    }
+
+    // UI intent snapshot: the knob can resolve before the track's first raster recording.
+    internal void PrepareScene(Size size)
+    {
+        if(size.Width<=8) { scene=null; return; }
+        var look = this.look;
+        if (!IsLiquid(look)) { scene = null; return; }
+        // DEVIATION OD-0048 / OD-0051: the liquid tube replaces the source's fusion (:1054-1056) and particles; its
+        // sweeping sheen is gone (no artificial shine). DEVIATION OD-0073 (ED-248): fast mode, below the top or at it,
+        // is Strike over the liquid, in place of the source's streaks and bolts (:1057-1064), its currents 1.5x.
+        var spec = SpecFor(look);
+        var track = Math.Max(TrackWidth, size.Width);
+        var darkBubbles = look.Pair is null && look.IsLightFill; // the canvas's white liquid has dark-rimmed bubbles
+        var fast = IsFast(look);
+        var still = fast && EnvironmentValues.GetAccessibilityReduceMotion(this);
+        var theme = canvas.ActualThemeVariant;
+        if (fast) strikes ??= new StrikeChannels(StrikeSeed); // ED-248 review: resolved on the render thread, where its reused buffers stay
+        layers ??= new LiquidTrack.LiquidLayers();
+        var row = Gradient(spec, size.Width, theme);
+        SkiaSharp.SKColor[]? fromRow = null;
+        var fromTint = default(StrikeTint);
+        double colourStart = 0, colourDuration = 1;
+        if (fade is { } f)
+        {
+            if (fadeGradientFor is not { } key || key.Pixels != row.Length || key.Theme != theme || !key.Spec.Equals(f.Spec))
+            {
+                fadeGradientFor = (f.Spec, row.Length, theme);
+                fadeGradient = LiquidTrack.GradientFor(f.Spec, row.Length, theme);
+            }
+            fromRow = fadeGradient; fromTint = f.Tint;
+            colourStart = (f.Start - startedAt).TotalSeconds+mixPageOrigin;
+            colourDuration = EnvironmentValues.GetAccessibilityReduceMotion(this) ? 0.2 : f.Duration;
+        }
+        var next = new Scene(size, track, spec, row, still ? null : Bubbles(track, size.Height), darkBubbles,
+            layers.StrandColors(spec, theme), fast, still, fast ? strikes : null, StrikeGeometryFor(size), StrikeTint.For(look.Brand), StrikeSeed, layers, fromRow, fromTint, colourStart, colourDuration, TimeAt(SwiftDate.Now)+mixPageOrigin, StrikeInk.Of(JewelLiquid.Of(look.Brand)), inkFrom, inkStart);
+        if (scene is null || !scene.Equals(next)) Volatile.Write(ref scene, next); // (records compare their lists by reference)
+    }
+
     private sealed class EffectCanvas(TrackEffect owner) : Control
     {
         public override void Render(DrawingContext context)
         {
             base.Render(context);
             var size = Bounds.Size;
-            if (size.Width <= 8) return; // :1053
-            var look = owner.look; var time = owner.time;
-            if (!IsLiquid(look)) return;
-            // DEVIATION OD-0048 / OD-0051: the liquid tube replaces the source's fusion (:1054-1056) and particles; its
-            // sweeping sheen is gone (no artificial shine). DEVIATION OD-0073 (ED-248): fast mode, below the top or at it,
-            // is Strike over the liquid, in place of the source's streaks and bolts (:1057-1064), its currents 1.5x.
-            var spec = LiquidSpec.For(look);
-            var track = Math.Max(owner.TrackWidth, size.Width);
-            var darkBubbles = DarkBubbles(look);
-            var fast = IsFast(look);
-            // reduce motion stills the fast look as the canvas does: every animation stopped (the liquid at rest, no
-            // bubbles), one frame of the lightning 35 ms into strike 1
-            var still = fast && EnvironmentValues.GetAccessibilityReduceMotion(owner);
-            IReadOnlyList<StrikeOp>? strike = null;
-            // the fade runs on the wall clock (a reduce-motion still has a frozen time)
-            var (gradient, tint) = owner.Colours(spec, size.Width, ActualThemeVariant, owner.TimeAt(SwiftDate.Now));
-            IReadOnlyList<BubbleBurst>? rings = null;
-            IReadOnlyCollection<(int, int)>? popped = null;
-            if (fast)
-            {
-                owner.strikes ??= new StrikeChannels(owner.StrikeSeed);
-                var geometry = owner.StrikeGeometryFor(size);
-                var scene = owner.strikes.Scene(geometry, still ? Strike.StillTime(owner.StrikeSeed) : time, tint);
-                strike = scene;
-                if (!still)
-                {
-                    // OD-0078: every bubble the strike touches bursts on the spot (contacts between frames, in time order)
-                    owner.Bursts.Process(owner.strikes, geometry, owner.StrikeSeed, owner.bubbleSeed, track, time);
-                    if (owner.Bursts.Recent.Count > 0)
-                    {
-                        var lit = new List<StrikeOp>(scene);
-                        owner.Bursts.Light(lit, geometry, tint, time);
-                        strike = lit;
-                        rings = owner.Bursts.Recent.ToArray();
-                    }
-                    popped = owner.Bursts.Dead();
-                }
-            }
-            LiquidTrack.Draw(context, size, track, still ? 0 : time, spec, gradient,
-                still ? null : owner.Bubbles(track, size.Height), darkBubbles, ActualThemeVariant, still ? default(LiquidFlow) : owner.pace.At(time, fast), strike,
-                fast ? tint.Ink : 0, rings, popped); // OD-0090: in fast mode the bubbles on a pale liquid take the pale-liquid look by its ink
+            if (size.Width <= 8) { owner.scene = null; return; } // :1053
+            owner.Record(context, size);
+
         }
     }
 }
