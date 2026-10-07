@@ -10,6 +10,7 @@ using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Settings;
+using Marrow.Services.Port.Skills.Host;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
 namespace Marrow.App.Port.Skills.Pages;
@@ -26,12 +27,22 @@ internal interface ICustomAddBackend
     Task Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel);
 }
 
-internal sealed record CustomAddServices(Func<CustomAddKind, ICustomAddBackend?> For);
+internal sealed record CustomAddServices(Func<CustomAddKind, ICustomAddBackend?> For, CustomOwnModel? Own = null);
 
 internal static class CustomAddSeams
 {
-    // BLOCKED RR-18: the current host has no custom Folder/ZIP/GitHub validation + install API for these three kinds.
-    public static Ambient<CustomAddServices> Backends { get; } = new(new CustomAddServices(_ => null));
+    internal static CustomAddServices For(Marrow.Services.Port.Skills.Custom.CustomSources sources)
+    {
+        var own = new CustomOwnModel(sources);
+        var adapters = Enum.GetValues<CustomAddKind>().ToDictionary(k => k, _ => (ICustomAddBackend)new CustomAddUiBackend(sources, own));
+        return new(kind => adapters[kind], own);
+    }
+    internal static CustomAddServices Default()
+    {
+        try { return For(SkillsSeams.Host.Current.CustomSources); }
+        catch (SwiftTrapException) { return new(_ => null); }
+    }
+    public static Ambient<CustomAddServices> Backends { get; } = new(Default);
 }
 
 internal sealed class CustomAddSheet : Border
@@ -53,6 +64,7 @@ internal sealed class CustomAddSheet : Border
     private string? location;
     private string phase = "open";
     private int generation;
+    private bool dismissed;
     private IReadOnlyList<CustomAddCandidate> candidates = [];
     private readonly Dictionary<string, CustomAddRow> rows = [];
     private readonly Dictionary<CustomAddSource, Button> sourceButtons = [];
@@ -116,7 +128,7 @@ internal sealed class CustomAddSheet : Border
         if (backend is null) ((StackPanel)Child).Children.Insert(1, LibraryUi.Text(Marrow.Core.Port.Skills.Pages.LibraryWords.Unavailable, 12, secondary: true, wrap: true));
         ApplySource();
         ApplyButtons();
-        DetachedFromVisualTree += (_, _) => { generation++; cancellation.Cancel(); };
+        DetachedFromVisualTree += (_, _) => Cancel();
     }
 
     internal TextBox Location { get; }
@@ -154,6 +166,7 @@ internal sealed class CustomAddSheet : Border
     {
         if (phase is "checking" or "adding" or "done") return;
         generation++;
+        await ReleaseCandidates();
         source = next;
         location = null;
         phase = "open";
@@ -190,6 +203,7 @@ internal sealed class CustomAddSheet : Border
         var chosen = await pick(source);
         if (expected != generation || cancellation.IsCancellationRequested) return;
         if (chosen is null) { ApplyPrimary(); return; }
+        await ReleaseCandidates();
         location = chosen;
         phase = "open";
         rows.Clear(); candidates = [];
@@ -217,7 +231,11 @@ internal sealed class CustomAddSheet : Border
         try
         {
             var foundItems = await backend!.Check(new CustomAddRequest(kind, source, ChosenLocation!, name.Text ?? "", command.Text ?? ""), cancellation.Token);
-            if (expected != generation || cancellation.IsCancellationRequested) return;
+            if (expected != generation || cancellation.IsCancellationRequested)
+            {
+                if (backend is ICustomAddLifetime lifetime) await lifetime.Discard(foundItems);
+                return;
+            }
             candidates = foundItems;
             if (candidates.All(c => c.Problem is not null)) { Fail(NoItems()); return; }
             phase = "list";
@@ -335,9 +353,22 @@ internal sealed class CustomAddSheet : Border
 
     internal void Dismiss()
     {
+        if (dismissed) return;
+        dismissed = true;
+        Cancel();
+        close();
+    }
+    private void Cancel()
+    {
         generation++;
         cancellation.Cancel();
-        close();
+        _ = ReleaseCandidates();
+    }
+    private async Task ReleaseCandidates()
+    {
+        var old = candidates;
+        candidates = [];
+        if (backend is ICustomAddLifetime lifetime) await lifetime.Discard(old);
     }
 }
 

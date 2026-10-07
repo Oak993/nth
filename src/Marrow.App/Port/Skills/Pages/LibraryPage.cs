@@ -25,6 +25,11 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
 
     private readonly LibraryModel? model;
     private readonly LibrarySection section;
+    private readonly CustomAddKind ownKind;
+    private readonly CustomOwnModel? own;
+    private readonly Dictionary<string, CustomOwnRow> ownRows = [];
+    private readonly Dictionary<string, CustomOwnDetail> ownDetails = [];
+    private readonly Control ownHeading = LibraryUi.Text("Your own", 11, secondary: true);
     private readonly CzCrossfadeText listing = new("") { FontSize = 12, Secondary = true };
     private readonly StackPanel rows = new() { Spacing = 2 };
     private readonly Dictionary<string, LibraryRowView> rowViews = [];
@@ -42,6 +47,8 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
     protected LibraryPage(LibrarySection section, bool tools = false)
     {
         this.section = section;
+        ownKind = tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills;
+        own = CustomAddSeams.Backends.Current.Own;
         model = tools ? SkillsPageSeams.Controllers.Current.Tools() : SkillsPageSeams.Controllers.Current.For(section);
         ChromeAccessories = model is null ? [] : [new CustomAddAction(tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills)];
         downloadAll = PlainControls.Button(downloadAllWords, OpenDownloadAll);
@@ -84,6 +91,8 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
 
         this.Track(() => model.Revision, _ => Refresh());
         this.Track(() => model.DialogHidden, _ => SyncDialog(model.Dialog));
+        if (own is not null) this.Track(() => own.Revision, _ => Refresh());
+        AttachedToVisualTree += (_, _) => { if (own is not null) _ = own.Perform(own.Refresh); };
         AttachedToVisualTree += (_, _) => SyncDialog(model.Dialog); // a page built again finds the run it left and shows its dialog, unless the user hid it
         DetachedFromVisualTree += (_, _) => CloseSheet();
         Refresh();
@@ -118,6 +127,8 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
     internal DialogSheet? Sheet => sheet;
 
     internal StackPanel RowStack => rows;
+    internal IReadOnlyDictionary<string, CustomOwnRow> OwnRows => ownRows;
+    internal IReadOnlyDictionary<string, CustomOwnDetail> OwnDetails => ownDetails;
 
     private static Control Footer(ResetArea? reset = null)
     {
@@ -142,22 +153,47 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         var controller = model.Controller;
         var all = controller.Rows;
         var selectedId = controller.SelectedId;
+        var ownSelected = own?.Selected(ownKind);
 
         listing.SetText(controller.Listing);
 
         var wanted = new List<Control>();
         foreach (var row in all)
         {
-            if (!rowViews.TryGetValue(row.Id, out var view)) rowViews[row.Id] = view = new LibraryRowView(model, row);
-            view.Apply(row, row.Id == selectedId);
+            if (!rowViews.TryGetValue(row.Id, out var view)) rowViews[row.Id] = view = new LibraryRowView(model, row, () => own?.Select(ownKind, null));
+            view.Apply(row, ownSelected is null && row.Id == selectedId);
             wanted.Add(view);
+        }
+        if (own is not null)
+        {
+            var owned = own.Items(ownKind);
+            foreach (var stale in ownRows.Keys.Where(id => !owned.Any(i => i.Id == id)).ToArray())
+            { ownRows.Remove(stale); ownDetails.Remove(stale); }
+            if (owned.Count > 0) wanted.Add(ownHeading);
+            foreach (var item in owned)
+            {
+                if (!ownRows.TryGetValue(item.Id, out var view)) ownRows[item.Id] = view = new CustomOwnRow(own, ownKind, item);
+                view.Apply(item, ownSelected == item.Id);
+                wanted.Add(view);
+            }
         }
         for (var i = rows.Children.Count - 1; i >= 0; i--)
             if (!wanted.Contains(rows.Children[i])) rows.Children.RemoveAt(i);
         for (var i = 0; i < wanted.Count; i++)
             if (i >= rows.Children.Count || !ReferenceEquals(rows.Children[i], wanted[i])) rows.Children.Insert(i, wanted[i]);
 
-        if (selectedId is not null && all.FirstOrDefault(r => r.Id == selectedId) is { } selected)
+        if (own is not null && own.Items(ownKind).FirstOrDefault(i => i.Id == ownSelected) is { } ownItem)
+        {
+            if (!ownDetails.TryGetValue(ownItem.Id, out var ownDetail)) ownDetails[ownItem.Id] = ownDetail = new CustomOwnDetail(own, ownKind, ownItem);
+            ownDetail.Apply(ownItem);
+            if (shownDetail != ownItem.Id)
+            {
+                var first = shownDetail is null;
+                shownDetail = ownItem.Id;
+                detailSlot.Show(ownDetail, first ? null : LibraryUi.Ease(this, LibraryUi.Fade));
+            }
+        }
+        else if (selectedId is not null && all.FirstOrDefault(r => r.Id == selectedId) is { } selected)
         {
             if (!details.TryGetValue(selectedId, out var detail)) details[selectedId] = detail = new DetailView(model, selected);
             detail.Apply(selected, controller.RemoveAsked(selectedId));
