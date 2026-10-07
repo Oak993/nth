@@ -4222,3 +4222,15 @@ T15-review-rulings.md ruling 5 / MAUI-054, HTML3772-3774: carry detected LocalSe
 
 ## ED-NEW-ma-wave1-26
 T15-review-rulings.md ruling 6 / review metadata: replace only Feature=T26 with Feature=MA-8, the valid ID already used by the multi-account Settings view tests. Traceability regex/tests are untouched; original review metadata failed alone twice (review-final-traceability evidence). Assertions, tolerances and other traits are unchanged.
+
+## ED-NEW-ma-wave1-27
+T15-review-rulings.md ruling 7 / MAUI-040: retire only legacy assertion "Assert.True(row.Opacity < 1);" in ModelsAccountsViewTests.An_account_turned_off_dims_and_says_off. Final HTML1459 applies .45 only to .aname/.awk/.num, preserving bright switch/menu. All remaining assertions stay unchanged; final word opacity is covered by MAUI-040. The old assertion failed alone twice before this authorized retirement.
+
+## ED-NEW-ma-wave1-28
+T15-review-rulings.md ruling 8 / MAUI-024: retire the two Pro/Max20x theory instances of "Assert.Equal("Start the Handshake at this share of the limit", AutomationProperties.GetName(panel!.Slider.Slider));". Locked HTML2635 instead says "Handshake point for this account", pinned by review024. Preserve every slider-range, store, plan and reset assertion (retain nullable suppression on the following access after removal). Both old instances failed alone twice.
+
+## ED-NEW-ma-wave1-29
+T15-review-rulings.md ruling 9 / MAUI-024: audited T16 documented old slider-aria collision. It is exactly the same AccountPopoverDialogTests Pro/Max20x assertion retired under ruling8, conflicting with locked HTML2635. No second assertion is retired, no additional test is loosened and no production defect is hidden. Existing review024 replaces it with exact final aria.
+
+## ED-NEW-ma-wave1-30
+T15-review-rulings.md ruling 10 / LimitCardView corner census: required wave2/review merges already include T16 ED-NEW-ma-wave2-14. Both radius14 shapes use production RoundedRectangle(14, Continuous); the 22px segmented CzButton gets its existing capsule radius (11px ends) without a raw override. No new production change needed. Census table/assertions remain byte-exact; prior card+census18/18 and final unchanged census rerun verify the merged state.

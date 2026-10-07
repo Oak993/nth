@@ -59,9 +59,10 @@ public sealed class AccountPopoverDialogTests(HeadlessSession headless)
         MultiAccountHarness.Run(headless, rig, () => panel = new AccountHandshakePanel(rig.Accounts, a.Id, "Claude", ProviderKind.Claude), h =>
         {
             Assert.Contains("near " + start + "% on this plan", h.Words());
-            Assert.Equal("Start the Handshake at this share of the limit", AutomationProperties.GetName(panel!.Slider.Slider));
-            for (var n = 80; n <= 99; n++) { panel.SetPoint(new HandshakePoint(n)); Assert.Equal(n, rig.Accounts.Get(a.Id).Defaults.HandshakePoint!.Percentage); }
-            panel.UseDefault(); Assert.Null(rig.Accounts.Get(a.Id).Defaults.HandshakePoint);
+            // Retired generic slider aria in both Pro/Max20x cases: T15-review-rulings.md #8 / ED-NEW-ma-wave1-28.
+            // HTML2635 / MAUI-024 pins "Handshake point for this account"; slider/store assertions stay.
+            for (var n = 80; n <= 99; n++) { panel!.SetPoint(new HandshakePoint(n)); Assert.Equal(n, rig.Accounts.Get(a.Id).Defaults.HandshakePoint!.Percentage); }
+            panel!.UseDefault(); Assert.Null(rig.Accounts.Get(a.Id).Defaults.HandshakePoint);
         });
     }
     [Fact, Trait("Rule", "R-TEST-4")]
