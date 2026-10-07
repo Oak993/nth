@@ -1,0 +1,106 @@
+Test run for /workspace/wl-review-baseline/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.65]     Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_every_static_wallpaper_test_class_names_its_build_unit [FAIL]
+[xUnit.net 00:00:01.72]     Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_the_dynamic_clock_has_the_pages_minute_resolution_not_seconds [FAIL]
+[xUnit.net 00:00:01.80]     Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_a_palette_retarget_during_a_running_fade_follows_the_pages_point_three_second_ease_out [FAIL]
+[xUnit.net 00:00:01.95]     Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_no_dynamic_dark_ground_is_brown_at_any_key_hour [FAIL]
+  Failed Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_every_static_wallpaper_test_class_names_its_build_unit [11 ms]
+  Error Message:
+   no [Trait("Feature", "WL-4")]: StaticWallpaperCacheTests, StaticWallpaperFocusTests, StaticWallpaperMotionTests, StaticWallpaperTests, StaticWallpaperViewTests
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_every_static_wallpaper_test_class_names_its_build_unit() in /workspace/wl-review-baseline/tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperPageParityTests.cs:line 93
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_the_dynamic_clock_has_the_pages_minute_resolution_not_seconds [107 ms]
+  Error Message:
+   Assert.All() Failure: 17 out of 18 items in the collection did not pass.
+[0]:  Item:  Tuple (0.407785058, 0.407682627)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00010243058204650879
+[1]:  Item:  Tuple (0.117026426, 0.11719428)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00016785413026809692
+[2]:  Item:  Tuple (-0.129076257, -0.129060954)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 1.5303492546081543E-05
+[3]:  Item:  Tuple (0.488575399, 0.488472968)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00010243058204650879
+[4]:  Item:  Tuple (0.200846747, 0.200806409)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 4.0337443351745605E-05
+[5]:  Item:  Tuple (-0.0468958914, -0.0467229635)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00017292797565460205
+[6]:  Item:  Tuple (0.576458871, 0.576356411)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00010246038436889648
+[7]:  Item:  Tuple (0.215686589, 0.215598479)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 8.8110566139221191E-05
+[8]:  Item:  Tuple (0.0857589245, 0.0859167799)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00015785545110702515
+[9]:  Item:  Tuple (0.67695576, 0.676853299)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00010246038436889648
+[10]: Item:  Tuple (0.108249895, 0.108063199)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00018669664859771729
+[11]: Item:  Tuple (0.137176603, 0.137157708)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 1.8894672393798828E-05
+[12]: Item:  Tuple (0.778620958, 0.778518498)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00010246038436889648
+[13]: Item:  Tuple (0.0225897096, 0.022461772)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00012793764472007751
+[14]: Item:  Tuple (0.158880323, 0.158860758)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 1.9565224647521973E-05
+[15]: Item:  Tuple (0.277070254, 0.276967824)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 0.00010243058204650879
+[16]: Item:  Tuple (0.0365871787, 0.0366522484)
+      Error: Assert.InRange() Failure: Value not in range
+             Range:  (0 - 1.0000000000000001E-05)
+             Actual: 6.5069645643234253E-05
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_the_dynamic_clock_has_the_pages_minute_resolution_not_seconds() in /workspace/wl-review-baseline/tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperPageParityTests.cs:line 62
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_a_palette_retarget_during_a_running_fade_follows_the_pages_point_three_second_ease_out [56 ms]
+  Error Message:
+   step 1 after the retarget (the page eases out in 0.3 s): palette[0] page 0.299915 port 0.300297
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.Close(JsonElement step, WallpaperRenderer renderer, String what) in /workspace/wl-review-baseline/tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperPageParityTests.cs:line 100
+   at Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_a_palette_retarget_during_a_running_fade_follows_the_pages_point_three_second_ease_out() in /workspace/wl-review-baseline/tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperPageParityTests.cs:line 46
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_no_dynamic_dark_ground_is_brown_at_any_key_hour [147 ms]
+  Error Message:
+   27 brown Dynamic dark grounds, e.g. corolla/Blush@3: L 0.223 C 0.027 h 20.8; corolla/Blush@6: L 0.286 C 0.031 h 21.6; satin/Rose Gold@12: L 0.201 C 0.049 h 21.7; satin/Rose Gold@15: L 0.192 C 0.052 h 25.3; satin/Rose Gold@18: L 0.184 C 0.054 h 28.9
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.REVIEW_StaticWallpaperPageParityTests.REVIEW_no_dynamic_dark_ground_is_brown_at_any_key_hour() in /workspace/wl-review-baseline/tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperPageParityTests.cs:line 80
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/review-ui-red-scoped.trx
+
+Failed!  - Failed:     4, Passed:    90, Skipped:     0, Total:    94, Duration: 18 s - Marrow.UI.Tests.dll (net10.0)

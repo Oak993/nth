@@ -31,4 +31,9 @@
     <ProjectReference Include="..\Marrow.Services.Tests\Marrow.Services.Tests.csproj" />
   </ItemGroup>
 
+  <!-- WL-5: checked-in, offline source-oracle fixtures. No generator runs during build or test. -->
+  <ItemGroup>
+    <None Include="..\fixtures\wallpapers\reference\**\*" Link="fixtures\wallpapers\reference\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -17,6 +17,12 @@
     <AvaloniaResource Include="Assets/Images/**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- OD-0110: ship the source catalogue verbatim; shaders are mechanically translated at load time. -->
+    <EmbeddedResource Include="../../porting/first-release/design-src/wallpaper-library/static/wallpapers.json" LogicalName="Marrow.Wallpapers.static.json" />
+    <EmbeddedResource Include="../../porting/first-release/design-src/wallpaper-library/animated/wallpapers.json" LogicalName="Marrow.Wallpapers.animated.json" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

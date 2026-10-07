@@ -1,0 +1,134 @@
+{
+  "decision": "OD-0112",
+  "browser": "151.0.7922.173",
+  "flags": [
+    "--disable-gpu",
+    "--disable-dev-shm-usage",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-default-apps",
+    "--disable-sync",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--force-color-profile=srgb",
+    "--force-device-scale-factor=1",
+    "--host-resolver-rules=MAP * ~NOTFOUND"
+  ],
+  "browserName": "Chromium",
+  "lockedBrowser": {
+    "name": "Chromium",
+    "version": "151.0.7922.173"
+  },
+  "platform": {
+    "system": "Linux",
+    "machine": "x86_64"
+  },
+  "playwright": "1.62.0",
+  "launch": {
+    "headless": true,
+    "chromiumSandbox": false,
+    "defaultArgs": "Playwright 1.62.0 Chromium defaults"
+  },
+  "sources": {
+    "porting/first-release/design-src/app-icon/src/iconkit.js": "930efb3d74ba7913e863139b8bda322ccd7d26ed67d40662c389480ab18d0b75",
+    "porting/first-release/design-src/app-icon/src/icons-a-j/D-aurora.js": "a5b97966a4ba80020123536074ded566b3e2818a15fd0a3de023cf06a2feb0b2",
+    "porting/first-release/design-src/app-icon/app-icon.html": "78755d39fa860445fe4e0f92b63d16a0a9fb4686301cd6aa122bca0d8c120b05",
+    "porting/first-release/design-src/app-icon/src/ICON-MODULE.md": "6201e9fbb69872bac240c2fa6be8c071b097d94e9c5c59e1f293d0a92d201d9f",
+    "porting/tools/generate_app_icon_d.py": "d9d8b91a7ecc9a0edf74ec6595c813b54d703e4fc72d3c4501e6e94ea7cf3b94"
+  },
+  "theme": "dark",
+  "dpr": 1,
+  "acceptedStillOracles": {
+    "tests/fixtures/aurora/chrome/png/16-dark-still-0.png": "7f13605f418c8f6089f8087ba633bdf02635c8b933e1ca43835a598dc414687e",
+    "tests/fixtures/aurora/chrome/png/24-dark-still-0.png": "c5aadb5703b2581a943387faf11fcd6fdf0e2fe3b6cea48bb05dab780d01dfcf",
+    "tests/fixtures/aurora/chrome/png/32-dark-still-0.png": "2577777dedeb34c43d03f48449283d918e9c00db4ca30cf93cb3e558c6fcf0e4",
+    "tests/fixtures/aurora/chrome/png/48-dark-still-0.png": "9f3de2e752d582deb6f70c5f62856000223f3d1b17856aacacbc8793083ac24c",
+    "tests/fixtures/aurora/chrome/png/64-dark-still-0.png": "ea3d7a26ac9e31e113e30eaa6cfdb97783deddbe23edd01bcedb1ee179907ee4",
+    "tests/fixtures/aurora/chrome/png/256-dark-still-0.png": "e31048f89e5fb0571e908a5b8941999af7807df42326ce016578aa880f40b71f",
+    "tests/fixtures/aurora/chrome/png/512-dark-still-0.png": "2833c700a1bec5db954fd0edc3045708bc1a821e0f8d4cb47958036408097008"
+  },
+  "time": {
+    "launch": 1,
+    "idle": 0,
+    "still": true
+  },
+  "ico": {
+    "sizes": [
+      16,
+      20,
+      24,
+      32,
+      40,
+      48,
+      64,
+      96,
+      128,
+      256
+    ],
+    "encoding": "verbatim Canvas PNG, 32-bit RGBA"
+  },
+  "appPngSize": 512,
+  "attributionPngSizes": [
+    256,
+    512
+  ],
+  "attributionCrop": "IconKit.box(size), transformed to fill output; no post-render resampling",
+  "outputs": {
+    "porting/first-release/design-src/app-icon/generated/icon-128.png": {
+      "sha256": "e50fd75d1cc6285fc42e3d7ca0c6214e37a09d6ef5d1d439245a835f708f4c3c",
+      "bytes": 26212
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-16.png": {
+      "sha256": "7f13605f418c8f6089f8087ba633bdf02635c8b933e1ca43835a598dc414687e",
+      "bytes": 842
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-20.png": {
+      "sha256": "ccd9b282cdcd1b8e0709c259118ae4a5b407b33bdee1bd32343e35add51004b3",
+      "bytes": 1119
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-24.png": {
+      "sha256": "c5aadb5703b2581a943387faf11fcd6fdf0e2fe3b6cea48bb05dab780d01dfcf",
+      "bytes": 1382
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-256.png": {
+      "sha256": "e31048f89e5fb0571e908a5b8941999af7807df42326ce016578aa880f40b71f",
+      "bytes": 83646
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-32.png": {
+      "sha256": "2577777dedeb34c43d03f48449283d918e9c00db4ca30cf93cb3e558c6fcf0e4",
+      "bytes": 1967
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-40.png": {
+      "sha256": "fe97502c638c22fd1bf4282f6f4c56036ef841f8edba1a4ca5ef7d760b2fadbb",
+      "bytes": 3865
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-48.png": {
+      "sha256": "9f3de2e752d582deb6f70c5f62856000223f3d1b17856aacacbc8793083ac24c",
+      "bytes": 5088
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-64.png": {
+      "sha256": "ea3d7a26ac9e31e113e30eaa6cfdb97783deddbe23edd01bcedb1ee179907ee4",
+      "bytes": 8429
+    },
+    "porting/first-release/design-src/app-icon/generated/icon-96.png": {
+      "sha256": "6b7c16830ab4f7d05f3197c6f7bb24491f5e0a1e12c689fcbe2fab7046032c39",
+      "bytes": 16254
+    },
+    "src/Marrow.App/Assets/icon.ico": {
+      "sha256": "12044f67b81822249476314dae02308b58f94df90b50b483ab7f0d1ab20ef9e4",
+      "bytes": 148970
+    },
+    "src/Marrow.App/Assets/icon.png": {
+      "sha256": "2833c700a1bec5db954fd0edc3045708bc1a821e0f8d4cb47958036408097008",
+      "bytes": 280372
+    },
+    "src/Marrow.UI/Assets/Images/marrow-icon.png": {
+      "sha256": "9596225755adc853eedebf423bc8b815f474bcaf278ecff9a1f7877e3f4011e9",
+      "bytes": 93732
+    },
+    "src/Marrow.UI/Assets/Images/marrow-icon@2x.png": {
+      "sha256": "3aae230159f6c67ecdf4a1d17396dd013810f2dbca0ccf6ad7f1833a3eca3ccf",
+      "bytes": 317844
+    }
+  }
+}

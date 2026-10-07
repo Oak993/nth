@@ -31,7 +31,7 @@ public sealed class StreamingTranscriber
 
     private readonly ISpeechEngine engine;
     private readonly string language;
-    private readonly bool processingOnly;
+    private readonly bool liveWords;
     private readonly List<float> audio = [];
     private readonly List<(long Start, long End)> speechSpans = [];
     private readonly List<(string Text, double Start, double End)> committed = [];
@@ -47,11 +47,11 @@ public sealed class StreamingTranscriber
     private bool cleared;
     private string? detectedLanguage;
 
-    public StreamingTranscriber(ISpeechEngine engine, string language, bool processingOnly = false)
+    public StreamingTranscriber(ISpeechEngine engine, string language, bool liveWords = true)
     {
         this.engine = engine;
         this.language = language;
-        this.processingOnly = processingOnly;
+        this.liveWords = liveWords;
     }
 
     /// <summary>All the audio appended so far.</summary>
@@ -82,7 +82,7 @@ public sealed class StreamingTranscriber
     {
         if (cleared || samples.Length == 0) return;
         var from = total;
-        if (!processingOnly && !SpeechInBuffer)
+        if (!SpeechInBuffer)
         {
             // No speech in the buffer: it trails the newest audio by the overlap, so silence is dropped (V-7.4) and speech starts 0.1 s in.
             var keep = (long)Math.Round(OverlapSeconds * SampleRate);
@@ -98,7 +98,7 @@ public sealed class StreamingTranscriber
             else speechSpans.Add((from, total));
         }
         else silenceRun += samples.Length;
-        if (!processingOnly) TrimFront();
+        TrimFront();
     }
 
     /// <summary>The pass that may start now, if any (V-7.3 gating, V-7.4 long pause).</summary>
@@ -106,7 +106,7 @@ public sealed class StreamingTranscriber
     {
         get
         {
-            if (processingOnly || cleared || running || !SpeechInBuffer) return null;
+            if (cleared || running || !SpeechInBuffer) return null;
             if (silenceRun >= (long)Math.Round(LongPauseSeconds * SampleRate)) return TranscriberPass.LongPause;
             if (total - lastPassStartTotal >= (long)Math.Round(MinNewAudioSeconds * SampleRate)) return TranscriberPass.Live;
             return null;
@@ -147,19 +147,9 @@ public sealed class StreamingTranscriber
         running = true;
         try
         {
-            // V-18.1/V-18.2: the cloud gets the complete recording once, after stop, including pauses. Local window/padding and VAD timestamp filtering do not apply to
-            // cloud words (OpenAI returns no word times). The cap limits this in-memory recording to five minutes.
-            var (start, samples) = processingOnly ? (0L, audio.ToArray()) : Window(total, padSilence: true);
+            var (start, samples) = Window(total, padSilence: true);
             var hypothesis = await engine.TranscribeAsync(samples, Request(start, DecodeMode.Final), cancellationToken);
             if (cleared) return Unchanged();
-            if (processingOnly)
-            {
-                detectedLanguage = hypothesis.Language;
-                var next = hypothesis.Words.Select(word => new TranscriptWord(word.Text, true)).ToList();
-                var ops = TranscriptOps.Diff(words, next);
-                words = next;
-                return new TranscriptDelta(ops, words, 0, detectedLanguage);
-            }
             return ApplyFinal(hypothesis, start);
         }
         finally
@@ -200,7 +190,8 @@ public sealed class StreamingTranscriber
     {
         var start = bufferStart;
         var maximum = (long)Math.Round(WindowSeconds * SampleRate);
-        if (end - start > maximum) start = end - maximum;
+        // V-7.7: the after-stop path has no earlier committed passes. Its final decode must retain the entire recording.
+        if (liveWords && end - start > maximum) start = end - maximum;
         var pad = padSilence ? (int)Math.Round(FinalSilenceSeconds * SampleRate) : 0;
         var samples = new float[(int)(end - start) + pad];
         audio.CopyTo((int)(start - audioBase), samples, 0, (int)(end - start));
