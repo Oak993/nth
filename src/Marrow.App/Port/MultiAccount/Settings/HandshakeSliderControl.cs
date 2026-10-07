@@ -3,6 +3,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Input;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Port;
@@ -25,6 +26,21 @@ internal sealed class HandshakeSliderControl : Decorator
     {
         this.read = read;
         slider = new EffortSlider(HandshakeStops.Count, new Binding<int>(() => { _ = pulse.Revision; return HandshakeStops.IndexOf(read()); }, i => write(HandshakeStops.At(i))), title, false, brand);
+        slider.Focusable = true;
+        slider.KeyDown += (_, e) =>
+        {
+            if (locked || e.KeyModifiers != KeyModifiers.None) return;
+            var at = HandshakeStops.IndexOf(read());
+            int? next = e.Key switch
+            {
+                Key.Right or Key.Up => Math.Min(HandshakeStops.Count - 1, at + 1),
+                Key.Left or Key.Down => Math.Max(0, at - 1),
+                Key.Home => 0,
+                Key.End => HandshakeStops.Count - 1,
+                _ => null,
+            };
+            if (next is { } index) { write(HandshakeStops.At(index)); e.Handled = true; }
+        };
         slider.Width = 220;
         slider.VerticalAlignment = VerticalAlignment.Center;
         value.VerticalAlignment = VerticalAlignment.Center;

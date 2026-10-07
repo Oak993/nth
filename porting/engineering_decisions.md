@@ -4151,3 +4151,8 @@ Tests: the initial Core Plan allocation probe failed alone twice at 32,352 B/fra
 ## ED-NEW-ma-wave1-10
 
 MAUI-018/042/060/061: both Settings reorder handlers accept only the primary button and use a 300ms opacity transition instead of translation under Reduce Motion (locked HTML 467/1993/2024). The use switch names the live account, not Rename (3846). No engine, test or oracle changes.
+
+
+## ED-NEW-ma-wave1-11
+
+MAUI-025: the existing Handshake EffortSlider now handles unmodified arrows, Home and End through the same point binding; locked sliders remain outside keyboard/pointer actions. HTML 2613-2617. No tests changed.
