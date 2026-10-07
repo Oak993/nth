@@ -9,10 +9,18 @@ public sealed class VoiceFirstRun(VoicePreparation preparation, VoiceSpeedQuesti
 {
     private static readonly ConditionalWeakTable<AppSettings, VoiceFirstRun> All = new();
     private VoicePrepItem? progress;
+    private readonly Lock progressGate = new();
+    private int progressGeneration;
 
     public VoiceSpeedQuestion Question { get; } = question;
     public VoicePrepItem? Progress => Volatile.Read(ref progress);
     public event Action? Changed;
+    internal void Cancel()
+    {
+        lock (progressGate) { ++progressGeneration; Volatile.Write(ref progress, null); }
+        Question.Cancel();
+        Changed?.Invoke();
+    }
     internal bool CanListen => Question.State is not (VoiceQuestionState.Yes or VoiceQuestionState.Slow)
         && preparation.IsPrepared(out var record) && VoicePreparation.UsableResult(record) && !preparation.NeedsSlowAnswer(record!);
 
@@ -25,17 +33,23 @@ public sealed class VoiceFirstRun(VoicePreparation preparation, VoiceSpeedQuesti
     {
         if (Question.State == VoiceQuestionState.Slow) return false;
         if (CanListen) return true;
-        await Question.AtOrbAsync(new ImmediateProgress(this), cancellationToken);
+        int generation;
+        lock (progressGate) { generation = ++progressGeneration; Volatile.Write(ref progress, null); }
+        await Question.AtOrbAsync(new ImmediateProgress(this, generation), cancellationToken);
         return false;
     }
 
     public SpeechModel? Model(string? id) => ModelCatalog.Find(id) is { } file ? new SpeechModel(file.Id, models.PathFor(file)) : null;
 
-    private sealed class ImmediateProgress(VoiceFirstRun owner) : IProgress<VoicePrepItem>
+    private sealed class ImmediateProgress(VoiceFirstRun owner, int generation) : IProgress<VoicePrepItem>
     {
         public void Report(VoicePrepItem item)
         {
-            Volatile.Write(ref owner.progress, item);
+            lock (owner.progressGate)
+            {
+                if (generation != owner.progressGeneration) return;
+                Volatile.Write(ref owner.progress, item);
+            }
             owner.Changed?.Invoke();
         }
     }

@@ -654,7 +654,7 @@ public sealed class ComposerTextView : Decorator
             var inField = string.IsNullOrEmpty(text.Value);
             column.SetVoiceNote(error, inField, inField);
         }
-        releaseNotes = new VoiceReleaseNotes(voice.Session, () => text.Value, Downloading, () => false,
+        releaseNotes = new VoiceReleaseNotes(voice.Session, () => text.Value, Downloading, () => composer.VoicePills?.Pill.ShowsDownload == true,
             ProcessorFeatureSeams.Current.Current, Show, VoiceErrorAnnouncements.For(voice.Session).Say);
     }
 
