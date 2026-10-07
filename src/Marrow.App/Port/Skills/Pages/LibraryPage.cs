@@ -183,7 +183,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         if (!dialog.IsOpen)
         {
             CloseSheet();
-            model.DialogHidden = false;
+            if (model.DialogHidden) model.DialogHidden = false;
             return;
         }
         if (model.DialogHidden) { CloseSheet(); return; }

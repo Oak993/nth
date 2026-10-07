@@ -1,0 +1,408 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.73]     Marrow.App.Tests.Port.Skills.SkillsUninstallHookTests.The_registered_callback_unlocks_and_deletes_the_skills_data_of_the_data_root_and_keeps_enabled_json [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsUninstallHookTests.The_registered_callback_unlocks_and_deletes_the_skills_data_of_the_data_root_and_keeps_enabled_json [11 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.SkillsUninstallHookTests.The_registered_callback_unlocks_and_deletes_the_skills_data_of_the_data_root_and_keeps_enabled_json() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsUninstallHookTests.cs:line 42
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.97]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft [6 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.App.Runtime.ComposerDraft.<>c.<get_IsEmpty>b__19_0(String character) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 173
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.App.Runtime.ComposerDraft.get_IsEmpty() in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 172
+   at Marrow.App.Runtime.ThreadRuntime.<set_Draft>b__186_0(ComposerDraft _) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 584
+   at Marrow.Core.Port.ObservableModel.Set[T](T& field, T value, Action`1 didSet, String property) in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 46
+   at Marrow.App.Runtime.ThreadRuntime.set_Draft(ComposerDraft value) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 584
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.<>c__DisplayClass6_0.<R3_sends_S1_immediately_and_preserves_composer_draft>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 51
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.Main(Action action) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 35
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R3_sends_S1_immediately_and_preserves_composer_draft() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 51
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.10]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again [FAIL]
+[xUnit.net 00:00:02.12]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again [11 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Unable to load shared library 'icu.dll' or one of "···
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Failure_keeps_S1_reason_and_Retry_runs_again() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 95
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done [8 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: Continuing
+Actual:   Failed
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.Progress_exposes_bytes_and_checking_before_done() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 115
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.16]     Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Completed) [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(status: Completed) [37 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuNative.HasBinaryProperty(Int32 codePoint, Int32 property)
+   at Marrow.Core.Port.SwiftCharacter.IsWhitespace(String character) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftString.cs:line 321
+   at Marrow.Core.Models.FollowUpPrompt.<>c.<get_IsEmpty>b__23_0(String character) in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at System.Linq.Enumerable.Any[TSource](IEnumerable`1 source, Func`2 predicate)
+   at Marrow.Core.Models.FollowUpPrompt.get_IsEmpty() in /workspace/marrow-port/src/Marrow.Core/Models/Timeline.cs:line 224
+   at Marrow.App.Runtime.ThreadRuntime.DrainFollowUps(TurnStatus status) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 1487
+   at Marrow.App.Runtime.ThreadRuntime.FinishTurn(TurnStatus status, Nullable`1 requestedTurnID) in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 2404
+   at Marrow.App.Runtime.ThreadRuntime.<>c__DisplayClass462_1.<<Handle>b__12>d.MoveNext() in /workspace/marrow-port/src/Marrow.App/Runtime/ThreadRuntime.cs:line 4019
+--- End of stack trace from previous location ---
+   at Marrow.Core.Port.TaskHandle.Run(CancellationToken token, Func`1 body, TaskCompletionSource source, Boolean throwing) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 197
+   at System.Threading.Tasks.Task.<>c.<ThrowAsync>b__124_0(Object state)
+   at Marrow.Testing.ManualMainLoop.LoopContext.<>c__DisplayClass2_0.<Post>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 120
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass13_0.<RunUntil>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 70
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntil(Func`1 condition, Nullable`1 timeout) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 66
+   at Marrow.App.Tests.Fixtures.SkillsOfferRig.End(TurnStatus status) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SkillsOfferRig.cs:line 55
+   at Marrow.App.Tests.Port.Skills.SkillsOfferFlowTests.R2_queues_S1_once_and_sends_after_turn_ends(TurnStatus status) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferFlowTests.cs:line 44
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.90]     Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.A_chat_without_an_offer_flow_draws_no_card_or_caption [FAIL]
+[xUnit.net 00:00:03.92]     Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.A_chat_with_an_offer_flow_draws_its_card_and_caption_inline_in_the_reply_after_the_rows_and_the_card_shows_an_offer_made_for_it [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.A_chat_without_an_offer_flow_draws_no_card_or_caption [118 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.uloc_forLanguageTag(String tag, Byte[] buffer, Int32 capacity, Int32& parsed, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.<>c__DisplayClass32_0.<ForLanguageTag>b__0(Byte[] b, Int32 c, Int32& s) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1083
+   at Marrow.Core.Port.IcuFormatting.ReadChars(CharWriter write) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1056
+   at Marrow.Core.Port.IcuFormatting.ForLanguageTag(String tag) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1083
+   at Marrow.Core.Port.SwiftFormatters.DefaultLocaleIdentifier() in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 566
+   at Marrow.Core.Port.Autoupdating`1.get_Current() in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 30
+   at Marrow.UI.Common.RelativeTime.Duration(TimeSpan interval) in /workspace/marrow-port/src/Marrow.UI/Common/Components.cs:line 70
+   at Marrow.App.Views.Chat.HydraProgressBar.Refresh() in /workspace/marrow-port/src/Marrow.App/Views/Chat/HydraProgressBar.cs:line 519
+   at Marrow.App.Views.Chat.HydraProgressBar..ctor(ThreadRuntime runtime, DateTimeOffset startedAt, Nullable`1 finishedAt, Status status, SwiftColor tint, IReadOnlyList`1 entries) in /workspace/marrow-port/src/Marrow.App/Views/Chat/HydraProgressBar.cs:line 240
+   at Marrow.App.Views.Chat.WorkingIndicator.<>c__DisplayClass18_1.<.ctor>g__Draw|5(Boolean force) in /workspace/marrow-port/src/Marrow.App/Views/Chat/ThreadTimeline.cs:line 1731
+   at Marrow.App.Views.Chat.WorkingIndicator..ctor(ThreadRuntime runtime, DateTimeOffset startedAt, UInt64 seed, ValueList`1 thinkingSteps, ValueList`1 liveWork, ValueList`1 turnEntries, Boolean showsCard, Nullable`1 finishedAt, Boolean chronological, String workingDirectory) in /workspace/marrow-port/src/Marrow.App/Views/Chat/ThreadTimeline.cs:line 1774
+   at Marrow.App.Views.Chat.WorkingBlockView.Apply(ValueTuple`3 values) in /workspace/marrow-port/src/Marrow.App/Views/Chat/ThreadTimeline.cs:line 1937
+   at Marrow.UI.Port.Tracked`1..ctor(Func`1 value, Action`1 apply) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 55
+   at Marrow.UI.Port.ViewLifetime.<>c__DisplayClass0_0`2.<Track>b__0(Object _, VisualTreeAttachmentEventArgs _) in /workspace/marrow-port/src/Marrow.UI/Port/ViewLifetime.cs:line 19
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.Grid.MeasureOverride(Size constraint)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding)
+   at Avalonia.Controls.Decorator.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Border.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Presenters.ContentPresenter.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.<>c__DisplayClass4_0.<MountTimeline>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 36
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.MountTimeline(ThreadRuntimeTurnRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 36
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.<>c.<A_chat_without_an_offer_flow_draws_no_card_or_caption>b__6_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 71
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.A_chat_without_an_offer_flow_draws_no_card_or_caption() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 66
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.A_chat_with_an_offer_flow_draws_its_card_and_caption_inline_in_the_reply_after_the_rows_and_the_card_shows_an_offer_made_for_it [18 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.uloc_forLanguageTag(String tag, Byte[] buffer, Int32 capacity, Int32& parsed, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.<>c__DisplayClass32_0.<ForLanguageTag>b__0(Byte[] b, Int32 c, Int32& s) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1083
+   at Marrow.Core.Port.IcuFormatting.ReadChars(CharWriter write) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1056
+   at Marrow.Core.Port.IcuFormatting.ForLanguageTag(String tag) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1083
+   at Marrow.Core.Port.SwiftFormatters.DefaultLocaleIdentifier() in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 566
+   at Marrow.Core.Port.Autoupdating`1.get_Current() in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 30
+   at Marrow.UI.Common.RelativeTime.Duration(TimeSpan interval) in /workspace/marrow-port/src/Marrow.UI/Common/Components.cs:line 70
+   at Marrow.App.Views.Chat.HydraProgressBar.Refresh() in /workspace/marrow-port/src/Marrow.App/Views/Chat/HydraProgressBar.cs:line 519
+   at Marrow.App.Views.Chat.HydraProgressBar..ctor(ThreadRuntime runtime, DateTimeOffset startedAt, Nullable`1 finishedAt, Status status, SwiftColor tint, IReadOnlyList`1 entries) in /workspace/marrow-port/src/Marrow.App/Views/Chat/HydraProgressBar.cs:line 240
+   at Marrow.App.Views.Chat.WorkingIndicator.<>c__DisplayClass18_1.<.ctor>g__Draw|5(Boolean force) in /workspace/marrow-port/src/Marrow.App/Views/Chat/ThreadTimeline.cs:line 1731
+   at Marrow.App.Views.Chat.WorkingIndicator..ctor(ThreadRuntime runtime, DateTimeOffset startedAt, UInt64 seed, ValueList`1 thinkingSteps, ValueList`1 liveWork, ValueList`1 turnEntries, Boolean showsCard, Nullable`1 finishedAt, Boolean chronological, String workingDirectory) in /workspace/marrow-port/src/Marrow.App/Views/Chat/ThreadTimeline.cs:line 1774
+   at Marrow.App.Views.Chat.WorkingBlockView.Apply(ValueTuple`3 values) in /workspace/marrow-port/src/Marrow.App/Views/Chat/ThreadTimeline.cs:line 1937
+   at Marrow.UI.Port.Tracked`1..ctor(Func`1 value, Action`1 apply) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 55
+   at Marrow.UI.Port.ViewLifetime.<>c__DisplayClass0_0`2.<Track>b__0(Object _, VisualTreeAttachmentEventArgs _) in /workspace/marrow-port/src/Marrow.UI/Port/ViewLifetime.cs:line 19
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Layout.Layoutable.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Input.InputElement.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Controls.Control.OnAttachedToVisualTreeCore(VisualTreeAttachmentEventArgs e)
+   at Avalonia.Visual.SetVisualParent(Visual value)
+   at Avalonia.Visual.SetVisualParent(IList children, Visual parent)
+   at Avalonia.Visual.VisualChildrenChanged(Object sender, NotifyCollectionChangedEventArgs e)
+   at Avalonia.Collections.AvaloniaList`1.NotifyAdd(T item, Int32 index)
+   at Avalonia.Collections.AvaloniaList`1.Add(T item)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild(Object content)
+   at Avalonia.Controls.Presenters.ContentPresenter.UpdateChild()
+   at Avalonia.Controls.Presenters.ContentPresenter.ApplyTemplate()
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.Grid.MeasureOverride(Size constraint)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding)
+   at Avalonia.Controls.Decorator.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Border.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Presenters.ContentPresenter.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.<>c__DisplayClass4_0.<MountTimeline>b__1() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 36
+   at Marrow.Testing.ManualMainLoop.<>c.<TryRunOne>b__16_0(Object w) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Testing.ManualMainLoop.TryRunOne() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 99
+   at Marrow.Testing.ManualMainLoop.<>c__DisplayClass12_0.<RunUntilIdle>b__0() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.ManualMainLoop.Pump(Action body) in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 110
+   at Marrow.Testing.ManualMainLoop.RunUntilIdle() in /workspace/marrow-port/tests/Marrow.Testing/ManualMainLoop.cs:line 42
+   at Marrow.Testing.TestRuntime.OnMain(Action body) in /workspace/marrow-port/tests/Marrow.Testing/TestRuntime.cs:line 36
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.MountTimeline(ThreadRuntimeTurnRig rig) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 36
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.<>c.<A_chat_with_an_offer_flow_draws_its_card_and_caption_inline_in_the_reply_after_the_rows_and_the_card_shows_an_offer_made_for_it>b__5_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 47
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Skills.SkillsOfferTimelineNativeTests.A_chat_with_an_offer_flow_draws_its_card_and_caption_inline_in_the_reply_after_the_rows_and_the_card_shows_an_offer_made_for_it() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsOfferTimelineNativeTests.cs:line 42
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.96]     Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Skills) [FAIL]
+[xUnit.net 00:00:03.97]     Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Plugins) [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Skills) [8 ms]
+  Error Message:
+   Marrow.Core.Port.SwiftTrapException : Incorrect actor executor assumption; expected the main actor.
+  Stack Trace:
+     at Marrow.Core.Port.MainActor.AssumeIsolated() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 30
+   at Marrow.Core.Port.MainActorModel.CheckIsolation() in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 111
+   at Marrow.Core.Port.ObservableModel.Set[T](T& field, T value, Action`1 didSet, String property) in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 42
+   at Marrow.App.Port.Skills.Pages.LibraryModel.set_DialogHidden(Boolean value) in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryModel.cs:line 55
+   at Marrow.App.Port.Skills.Pages.LibraryPage.SyncDialog(RunView dialog) in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryPage.cs:line 186
+   at Marrow.App.Port.Skills.Pages.LibraryPage.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryPage.cs:line 176
+   at Marrow.App.Port.Skills.Pages.LibraryPage..ctor(LibrarySection section, Boolean tools) in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryPage.cs:line 89
+   at Marrow.App.Port.Settings.SkillsSettingsPage..ctor() in /workspace/marrow-port/src/Marrow.App/Port/Settings/SkillsSettingsPage.cs:line 14
+   at Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.<>c__DisplayClass3_0.<REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/REVIEW_Sk16UnboundControlsTests.cs:line 44
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(LibrarySection section) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/REVIEW_Sk16UnboundControlsTests.cs:line 38
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Plugins) [15 ms]
+  Error Message:
+   Marrow.Core.Port.SwiftTrapException : Incorrect actor executor assumption; expected the main actor.
+  Stack Trace:
+     at Marrow.Core.Port.MainActor.AssumeIsolated() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 30
+   at Marrow.Core.Port.MainActorModel.CheckIsolation() in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 111
+   at Marrow.Core.Port.ObservableModel.Set[T](T& field, T value, Action`1 didSet, String property) in /workspace/marrow-port/src/Marrow.Core/Port/Observation.cs:line 42
+   at Marrow.App.Port.Skills.Pages.LibraryModel.set_DialogHidden(Boolean value) in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryModel.cs:line 55
+   at Marrow.App.Port.Skills.Pages.LibraryPage.SyncDialog(RunView dialog) in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryPage.cs:line 186
+   at Marrow.App.Port.Skills.Pages.LibraryPage.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryPage.cs:line 176
+   at Marrow.App.Port.Skills.Pages.LibraryPage..ctor(LibrarySection section, Boolean tools) in /workspace/marrow-port/src/Marrow.App/Port/Skills/Pages/LibraryPage.cs:line 89
+   at Marrow.App.Port.Settings.PluginsSettingsPage..ctor() in /workspace/marrow-port/src/Marrow.App/Port/Settings/PluginsSettingsPage.cs:line 14
+   at Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.<>c__DisplayClass3_0.<REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/REVIEW_Sk16UnboundControlsTests.cs:line 44
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(LibrarySection section) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/REVIEW_Sk16UnboundControlsTests.cs:line 38
+   at InvokeStub_REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /tmp/skills-ui-evidence/skills-ui-final.trx
+
+Failed!  - Failed:     9, Passed:   231, Skipped:     0, Total:   240, Duration: 16 s - Marrow.App.Tests.dll (net10.0)
