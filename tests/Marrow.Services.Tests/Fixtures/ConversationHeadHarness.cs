@@ -13,6 +13,7 @@ public sealed class ConversationHeadHarness : IConversationHeadHost
     public List<IReadOnlyList<ConversationHeadAccount>> Confirmations { get; } = [];
     public Func<CancellationToken, Task<bool>> Confirm { get; set; } = _ => Task.FromResult(true);
     public Task<string>? ContextWait { get; set; }
+    public Action<ConversationHeadFlight>? OnRun { get; set; }
     public event Action<Guid>? AccountsChanged;
 
     public ConversationHeadHarness() => Rows.Add(new(Active, ProviderKind.Claude, "Claude Max 1", true, true));
@@ -35,6 +36,7 @@ public sealed class ConversationHeadHarness : IConversationHeadHost
         if (!permitted()) throw new InvalidOperationException("Account is unavailable.");
         var flight = new ConversationHeadFlight(request, text, permitted, ct);
         Flights.Add(flight);
+        OnRun?.Invoke(flight);
         return flight.Result.Task.WaitAsync(ct);
     }
     public Task PostCombinedAsync(Guid thread, Guid round, string text, string byline, CancellationToken ct)
