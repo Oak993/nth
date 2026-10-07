@@ -763,3 +763,8 @@ Branch codex/ma-e1 from origin/claude/ma-engine 2fc98c90; authorized no-ff merge
 ### T17 MA-3b-E1 item 2 (2026-10-07)
 
 OpinionsEngine now implements IOpinionsPort: one-message parallel Answer/Opinion heads, everyone with room including Local, immutable stream snapshots, isolated round cancellation, original-account Combine with byline and one append attempt. Scoped Services checks 31/31; tests-first and independent-review publication race recorded in ED-NEW-ma-e1-2. Broad Linux Services finished 4141 passed / 1288 failed / 52 skipped (5481 total). Next: OD-0120 remembered confirmation/unchecked checkbox, concrete no-tools runner, source revision hardening; job W binding remains separate.
+
+
+### T17 MA-3b-E1 item 3 (2026-10-07)
+
+OD-0120 consent/persistence and an actual Avalonia modal are implemented: unchecked Don't ask again, explicit Send, no persistence on refusal/cancellation, directed service-pair scope, corrupt preference preservation. Automatic Handshake/key switching remain off until their own consent. Concrete fresh text-only head adapter is supplied; unsupported CLI model heads fail safely rather than inheriting standby capability. Private API pool binding/spend accounting and pinned no-fallback routing are required at real dispatch. Independent review's missing cap binding is fixed. Green: Core 351/351, Services 69/69, App headless dialog/modal/Traceability 7/7; App compiled on Linux with EnableWindowsTargeting. All E1 tests are offline fakes; existing tests/assertions untouched. Next: context-revision and completed-last-answer guards, final mandatory project runs/report. Job W wiring and real Windows validation remain; ED-NEW-ma-e1-3 records safe provider restriction and proposed confirmation wording.
