@@ -26,7 +26,7 @@ internal sealed class AskOthersChips : Decorator
             row.Children.Add(LibraryUi.Text("Ask also: ", 11, secondary: true));
             foreach (var account in picked)
             {
-                if (row.Children.Count > 1) row.Children.Add(LibraryUi.Text("·", 11, secondary: true));
+                if (row.Children.Count > 1) row.Children.Add(LibraryUi.Text("\u00B7", 11, secondary: true));
                 var hue = AccountMarkColors.Of(account);
                 row.Children.Add(new Border { Padding = new Thickness(5, 0), Background = new SolidColorBrush(Color.FromArgb(61, hue.R, hue.G, hue.B)), BorderBrush = new SolidColorBrush(Color.FromArgb(153, hue.R, hue.G, hue.B)), BorderThickness = new Thickness(1), Child = LibraryUi.Text(account.Mono, 9.5, weight: SwiftFont.Weight.Bold) }.RoundedRectangle(8, RoundedCornerStyle.Continuous));
             }

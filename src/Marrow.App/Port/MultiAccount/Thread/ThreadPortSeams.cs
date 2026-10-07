@@ -12,6 +12,9 @@ internal static class ThreadPortSeams
         var owner = app.LiveAccountPorts;
         Offer.SetProcessDefault(owner.Ports);
         Usage.MultiAccountUsageSeams.Offer.SetProcessDefault(owner.Usage);
+        Link.LinkComposerSeams.Offer.SetProcessDefault(owner.LinkModel);
+        Opinions.AskOthersComposerSeams.Offer.SetProcessDefault(owner.AskOthers);
+        Opinions.OpinionTimelineSeams.Offer.SetProcessDefault(owner.Timeline);
         Cards.MultiAccountCardSeams.Offer.SetProcessDefault(thread => new(
             () => app.AccountRouting.SwitchNowAsync(thread),
             () => app.ExistingRuntime(thread)?.AccountHandoff));

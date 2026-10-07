@@ -17,4 +17,5 @@ public sealed partial class AppModel
 public sealed partial class AppSettings
 {
     internal ConversationTransferConsent ConversationConsent(IConversationTransferPrompt prompt) => new(defaults, prompt);
+    internal Marrow.Core.Port.MultiAccount.Opinions.OtherServiceConsentStore ViewConversationConsent() => new(defaults);
 }

@@ -12,7 +12,7 @@ using Marrow.Services.Port.MultiAccount;
 namespace Marrow.App.Port.MultiAccount.Thread;
 
 // T25 W: one app owner; no test doubles or fabricated reports are installed in production.
-internal sealed class LiveThreadPorts : IDisposable
+internal sealed partial class LiveThreadPorts : IDisposable
 {
     private readonly AppModel app;
     private readonly AppAccountActions actions;
@@ -22,7 +22,8 @@ internal sealed class LiveThreadPorts : IDisposable
     private readonly HashSet<Guid> retired = [];
     private long nextRevision;
     private bool disposed;
-    internal LiveThreadPorts(AppModel app, IConversationTransferPrompt? prompt = null)
+    internal LiveThreadPorts(AppModel app, IConversationTransferPrompt? prompt = null,
+        Func<IConversationHeadHost, IConversationHeadHost>? decorateHeads = null)
     {
         MainActor.AssumeIsolated(); this.app = app; actions = new(app);
         host = new(app.Providers, Active, Revision, HeadAccounts, ContextAsync,
@@ -30,7 +31,8 @@ internal sealed class LiveThreadPorts : IDisposable
                 new(new(account.ToString("D"), app.Settings.Accounts.Get(account).Service.Id, app.Settings.Accounts.DefaultName(account))),
                 useComposerSettings: Active(thread) == account),
             app.Settings.ConversationConsent(prompt ?? new ConversationTransferPrompt()), PostCombinedAsync, app.ApiKeys.BindPrivate);
-        Links = new(host); Opinions = new(host);
+        var heads = decorateHeads?.Invoke(host) ?? host;
+        Links = new(heads); Opinions = new(heads);
         Ports = new(Account, new LiveCardPort(app.AccountRouting), Links, Opinions);
         app.PropertyChanged += AppChanged;
         app.Settings.PropertyChanged += ConfigurationChanged;
@@ -86,7 +88,9 @@ internal sealed class LiveThreadPorts : IDisposable
     {
         MainActor.AssumeIsolated(); ct.ThrowIfCancellationRequested();
         if (disposed || retired.Contains(thread) || app.Thread(thread) is null) throw new OperationCanceledException();
-        app.Runtime(thread).AppendCombinedOpinion(round, text, byline, ct);
+        var entry = app.Runtime(thread).AppendCombinedOpinion(round, text, byline, ct);
+        if (opinionEntries.TryGetValue((thread, round), out var association))
+            opinionEntries[(thread, round)] = association with { Combined = entry, Byline = byline };
         return Task.CompletedTask;
     }
     internal UsagePanelModel? Usage(ProviderKind provider)
@@ -107,6 +111,7 @@ internal sealed class LiveThreadPorts : IDisposable
     }
     internal void Detach(Guid thread)
     {
+        DisposeViews(thread);
         retired.Add(thread);
         if (revisions.Remove(thread, out var value)) value.Runtime.PropertyChanged -= RuntimeChanged;
         host.NotifyAccountsChanged(thread);
@@ -144,6 +149,7 @@ internal sealed class LiveThreadPorts : IDisposable
     public void Dispose()
     {
         if (disposed) return; disposed = true;
+        foreach (var thread in views.Keys.ToArray()) DisposeViews(thread);
         Links.Dispose(); Opinions.Dispose();
         foreach (var port in accounts.Values) port.Dispose();
         foreach (var value in revisions.Values) value.Runtime.PropertyChanged -= RuntimeChanged;

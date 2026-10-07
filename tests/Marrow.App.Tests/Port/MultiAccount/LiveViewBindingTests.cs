@@ -6,11 +6,13 @@ using Marrow.App.Tests.Fixtures;
 namespace Marrow.App.Tests.Port.MultiAccount;
 
 [Trait("Rule", "R-TEST-4")]
+[Collection("Headless")]
 public sealed class LiveViewBindingTests
 {
     [Fact]
     public void The_composed_app_offers_the_link_model()
     {
+        using var reader = Marrow.App.Runtime.MultiAccountRouting.LimitsReader.Override((_, _, _) => Task.FromResult<Marrow.Services.Providers.PlanLimits?>(null));
         using var rig = new ThreadRuntimeTurnRig();
         rig.H.Main.OnMain(() =>
         {
@@ -23,6 +25,7 @@ public sealed class LiveViewBindingTests
     [Fact]
     public void The_composed_app_offers_opinion_entry_associations()
     {
+        using var reader = Marrow.App.Runtime.MultiAccountRouting.LimitsReader.Override((_, _, _) => Task.FromResult<Marrow.Services.Providers.PlanLimits?>(null));
         using var rig = new ThreadRuntimeTurnRig();
         rig.H.Main.OnMain(() =>
         {

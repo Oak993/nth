@@ -375,6 +375,8 @@ public sealed class ComposerView : Decorator
 
     private readonly ThreadRuntime runtime;
     private readonly string? workingDirectory; // :120
+    private readonly Marrow.App.Port.MultiAccount.Opinions.AskOthersView? askOthers;
+    private ComposerDraft? opinionDraft;
     private readonly bool compactModelChip;
     private readonly bool takesFocusOnAppear; // :123
     private readonly ComposerController controller = new(); // :126
@@ -476,7 +478,13 @@ public sealed class ComposerView : Decorator
         insetPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         fadePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         scalePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
-        Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
+        askOthers = Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
+        if (askOthers is not null) askOthers.Sent += (_, _) =>
+        {
+            // A confirmation may finish after the user edits the draft. Clear only the draft actually submitted.
+            if (opinionDraft is { } sent && runtime.Draft == sent) runtime.Draft = new ComposerDraft();
+            opinionDraft = null;
+        };
         if (VoiceFeature.Enabled)
         {
             voice = new ComposerVoiceController(new ComposerVoiceHost(() => Model.Settings, DraftSelection, ReplaceDraft, Send));
@@ -1036,6 +1044,13 @@ public sealed class ComposerView : Decorator
         if (runtime.Draft.IsEmpty) return; // :371
         historyIndex = null; // :372
         state.Suggestions = new SuggestionState(); // :373
+        if (!runtime.IsRunning && askOthers?.HasSelection == true)
+        {
+            opinionDraft = runtime.Draft;
+            var message = opinionDraft.OutgoingText;
+            _ = MainActor.Spawn(() => askOthers.SendAsync(message));
+            return;
+        }
         // :375-378 Return while the turn runs stops it and sends right away. With heads at work it queues instead (a
         // head takes it, or it waits for the lead): the heads run inside the lead's session, and a stop would kill them.
         if (runtime.IsRunning) runtime.InterruptAndSend();

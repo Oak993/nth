@@ -13,7 +13,10 @@ internal static class LinkComposerHost
     {
         var existing = AccountPopoverHost.With(slot, runtime);
         if (LinkComposerSeams.Offer.Current(runtime.ThreadID) is not { } model) return existing;
-        return With(slot, existing, model);
+        var control = With(slot, existing, model);
+        control.AttachedToVisualTree += (_, _) => model.Resume();
+        control.DetachedFromVisualTree += (_, _) => model.Dispose();
+        return control;
     }
     internal static Control With(ComposerCapsuleSlot slot, Control existing, LinkUpModel model)
     {

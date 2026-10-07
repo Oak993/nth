@@ -14,14 +14,25 @@ public sealed partial class ThreadRuntime
             package.Bring == Marrow.Core.Accounts.Bring.AiSummary ? "A summary by AI" : null, [],
             summary.FilePath, summary.FilePath is null ? null : "Full conversation archive", ready ? "In sync" : null);
     }
-    internal void AppendCombinedOpinion(Guid round, string text, string byline, CancellationToken ct)
+    internal string AppendCombinedOpinion(Guid round, string text, string byline, CancellationToken ct)
     {
         MainActor.AssumeIsolated(); ct.ThrowIfCancellationRequested();
         var id = "opinion-combined-" + round.ToString("N");
-        if (Entries.Any(entry => entry.Item.Id == id)) return;
+        if (Entries.Any(entry => entry.Item.Id == id)) return id;
         Append(new TimelineItem(null, new TimelineItem.Content.Assistant(new AssistantMessage { Text = text + "\n\n" + byline }), id));
         SaveNow();
+        return id;
     }
+    internal string AppendOpinionPrompt(string message, CancellationToken ct)
+    {
+        MainActor.AssumeIsolated(); ct.ThrowIfCancellationRequested();
+        if (Phase != RuntimePhase.Idle || IsReverting) throw new InvalidOperationException("Wait for the current turn before asking others.");
+        var id = "opinion-prompt-" + Guid.NewGuid().ToString("N");
+        Append(new TimelineItem(null, new TimelineItem.Content.User(new UserMessage { Text = message, Attachments = Draft.Attachments }), id));
+        SaveNow(); return id;
+    }
+    internal void RemoveOpinionPrompt(string entry) { MainActor.AssumeIsolated(); Remove(entry); SaveNow(); }
+    internal void OpinionAssociationsChanged() { MainActor.AssumeIsolated(); Notify(nameof(Entries)); }
     private void CheckCompletedAccountAnswer(Guid turn, Guid author)
     {
         var items = Entries.Where(entry => entry.Item.TurnID == turn).Select(entry => entry.Item.TimelineItemContent).ToArray();
