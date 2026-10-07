@@ -4187,3 +4187,6 @@ MAUI-027/028/029/030/031/032: Usage B restores the 12px header, 15px current-acc
 
 ## ED-NEW-ma-wave2-14
 MAUI-034/035/036/037/038: card explanation retains accessible full Text while emphasizing Finish now and Stop in semibold; Remember divider is 1px, the primary ink follows --pacInk in both themes, gauge follows --hot, and notes have the locked tile/rim capsule with 4px/11px padding and 11.5px/16px text. Shared card shape helpers route the segmented container through the continuous outline; existing CzButton capsule radius clamps to the 22px height without a redundant raw-radius assignment. The inherited raw-corner census now passes. Each finding failed alone twice; final card review excluding owner-disputed 033 + existing cards + unchanged census 18/18, build 0 warnings/errors. No tests changed.
+
+## ED-NEW-ma-wave1-17
+MAUI-046/047: step defaults use the existing floating presenter, with real SmallSwitch binding for Same as the account and the existing effort card; no inline expansion. Minimum-two refusal follows HTML4466 300ms 0/-4/+4/0 keyframes with CSS ease per segment; Reduce Motion uses opacity feedback. Legacy inline-open assertion stays unchanged for lead disposition.
