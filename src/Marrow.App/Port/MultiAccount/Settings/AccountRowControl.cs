@@ -36,6 +36,7 @@ internal sealed class AccountRowControl : Decorator
     private readonly TextBlock numberText;
     private readonly TextBlock nameText;
     private readonly StackPanel usageBox;
+    private readonly StackPanel words;
     private readonly Action openHandshake;
     private readonly SettingsSwitch toggle;
     private readonly OpacityTransition dragFade;
@@ -84,7 +85,7 @@ internal sealed class AccountRowControl : Decorator
         this.openHandshake = openHandshake;
         var more = new Panel { Width = 22, Height = 22, VerticalAlignment = VerticalAlignment.Center, Children = { moreButton, handshakeHost } };
 
-        var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { nameSlot, subtitle } };
+        words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { nameSlot, subtitle } };
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,18,*,Auto,44,22"), ColumnSpacing = 8, Height = RowHeight };
         grip.VerticalAlignment = VerticalAlignment.Center;
         foreach (var (control, column) in new (Control, int)[] { (grip, 0), (numberText, 1), (words, 2), (usageBox, 3), (toggle, 4), (more, 5) })
@@ -131,7 +132,7 @@ internal sealed class AccountRowControl : Decorator
         usage.SetText(next.UsageText);
         bar.Set(next.WeekFraction ?? 0, animate);
         bar.IsVisible = next.WeekFraction is not null;
-        Opacity = next.Enabled ? 1 : 0.55;
+        words.Opacity = usageBox.Opacity = numberText.Opacity = next.Enabled ? 1 : .45;
         AutomationProperties.SetName(this, next.Number + ". " + next.Name);
     }
 

@@ -4170,3 +4170,12 @@ MAUI P2 popover/layout: 003/006/007/010/012/013/014/058/059 now use the locked r
 
 ## ED-NEW-ma-wave2-12
 MAUI-016/017/062/063/064: the production popover grip waits for 5px, carries at 1.02 scale, measures the retained rows' pitch, applies the page's edge rubber band and glides displaced neighbours over .34s (.32,.72,0,1). Drop records current visual tops and compensates the new order before settling; the carried row uses the locked mass-1 spring(240,19), the same 1/1200 Euler integration, 44 rounded samples and linear interpolation as HTML :1671-1684 / :1983. Reduce Motion uses opacity without translation. Existing keyboard and persistent store order remain. Each new case failed alone twice; final five review plus four existing reorder cases 9/9, build 0 warnings/errors. No test bytes changed.
+
+## ED-NEW-ma-wave1-14
+MAUI-041/051/052: equal-to-general Settings points do not add a quiet note (OD-0119). Queued real Handshake events retain the locked Standby 1000 ms and In sync 1400 ms intervals (HTML 3039). Existing short-interval tests remain unchanged; conflicting assertions are reported separately.
+
+## ED-NEW-ma-wave1-15
+MAUI-040: apply final HTML 1459 off opacity .45 to Settings words, usage and number only, preserving bright switch/menu and independent Reduce Motion drag feedback.
+
+## ED-NEW-ma-wave1-16
+MAUI-044/045/048/055: Pill steps carry the real account monogram, including custom initials, instead of a provider icon. The shared composer Fast bolt is before the model with Fast mode aria. Off dims name/mark/number only to .45 (HTML1468); locked slider states how to reach the active top slider (HTML2622).
