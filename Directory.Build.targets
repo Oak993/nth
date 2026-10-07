@@ -1,0 +1,13 @@
+<Project>
+  <!-- RR-35: these existing project-reference / packaging switches change the NuGet graph.
+       Keep both real configurations locked instead of allowing one restore to overwrite the other. -->
+  <PropertyGroup>
+    <RuntimeIdentifier Condition="'$(MSBuildProjectName)' == 'Marrow.Shim' and '$(PublishAot)' == 'true'">win-x64</RuntimeIdentifier>
+    <NuGetLockFilePath Condition="'$(MSBuildProjectName)' == 'Marrow.Shim' and '$(PublishAot)' == 'true'">$(MSBuildProjectDirectory)/packages.aot.lock.json</NuGetLockFilePath>
+    <NuGetLockFilePath Condition="'$(MSBuildProjectName)' == 'Marrow.Setup' and '$(PublishTrimmed)' == 'true'">$(MSBuildProjectDirectory)/packages.publish.lock.json</NuGetLockFilePath>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Pin the .NET runtime only; the Windows SDK reference pack has its own version. -->
+    <FrameworkReference Update="Microsoft.NETCore.App" RuntimeFrameworkVersion="10.0.12" />
+  </ItemGroup>
+</Project>
