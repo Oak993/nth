@@ -160,6 +160,25 @@ public sealed class GlassMaterialLiquidLookTests(HeadlessSession headless)
         Assert.Equal(pixels(10, 10), pixels(45, 80)); // and nothing past it
     });
 
+    [Fact]
+    [Trait("Decision", "ED-570")] // the voice pill's glass alone draws no contact line outside its edge; every other glass keeps it
+    public void A_glass_that_asks_for_no_contact_line_draws_none_outside_its_edge_and_keeps_its_rim_and_the_rest_keep_the_line() => headless.OnUiThread(() =>
+    {
+        var flat = () => new Panel { Background = new SolidColorBrush(Color.FromRgb(128, 128, 128)) };
+        var other = Render(flat(), Piece(Panel, 160, 120), Brushes.Black);
+        var quiet = Piece(Panel, 160, 120);
+        SwiftGlass.SetEffect(quiet, GlassEffect.Regular(Panel).WithoutContactLine());
+        var plain = Render(flat(), quiet, Brushes.Black);
+        // The instrument: the same glass without the flag still has its dark line at the side (the test above), and the pixel beside it is the backdrop alone.
+        Assert.True(other(47, 80).G <= 128 - 50, $"other glass keeps the contact line {other(47, 80)}");
+        // The flagged glass leaves the pixels just outside its edge as the backdrop is: the side, the top, the bottom, and the whole 1.25 pt skin beyond.
+        foreach (var (x, y) in new[] { (47, 80), (46, 80), (128, 19), (128, 140), (209, 80), (208, 80) })
+            Assert.True(plain(x, y) == other(10, 10), $"no contact line at ({x}, {y}): {plain(x, y)} against the backdrop {other(10, 10)}");
+        // Everything inside the edge is the glass as it was: the rim light, the inner edge and the body.
+        foreach (var (x, y) in new[] { (128, 20), (128, 21), (128, 139), (48, 80), (54, 80), (128, 80), (207, 80) })
+            Assert.True(plain(x, y) == other(x, y), $"inside the edge ({x}, {y}): {plain(x, y)} against {other(x, y)}");
+    });
+
     // Where along the ramp the glass read each channel at (x, y), in levels (= pixels of the ramp), from the ramp and its reverse:
     // a = (k s + f)(1 - h) + h and b = (k (1 - s) + f)(1 - h) + h with the same film f, light h and pass-through k, so the
     // light the rim and the inner edge add falls out. k is measured on two interior points, k + 2f on the deep point.

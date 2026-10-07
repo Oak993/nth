@@ -4,4 +4,4 @@ using Marrow.Core.Port.Voice.Orb;
 namespace Marrow.UI.Port.Voice.Orb;
 
 /// <summary>The scene's input, plus the clock the view's frames are timed with.</summary>
-public sealed record VoiceOrbSnapshot(OrbSceneInput Input, TimeProvider Clock);
+public sealed record VoiceOrbSnapshot(OrbSceneInput Input, TimeProvider Clock, double? ManualOrigin = null);

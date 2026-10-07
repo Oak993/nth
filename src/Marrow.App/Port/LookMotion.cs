@@ -47,7 +47,7 @@ internal sealed class LookMotion
     public event Action? Frame;
 
     /// <summary>Whether transitions are stilled now (Reduce Motion, or no frame clock to run them).</summary>
-    public bool Still => !FrameClock.IsBound || EnvironmentValues.GetAccessibilityReduceMotion(owner);
+    public bool Still => !FrameClock.IsBound || EnvironmentValues.GetAccessibilityReduceMotion(owner) || Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion; // the system setting too, as AnimatedScalar reads it (VT-12)
 
     /// <summary>Is anything moving.</summary>
     public bool IsMoving => moving.Count > 0;

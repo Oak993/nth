@@ -24,6 +24,7 @@ using Marrow.App.Views.Usage;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
+using Marrow.Core.Port.Voice.Session;
 using Marrow.Core.Port.Voice.Transcript;
 using Marrow.Core.Support;
 using Marrow.Services.Git;
@@ -81,9 +82,25 @@ public sealed class ComposerArea : Decorator
 
         // :28-31 the tab slot and the pill, the tab drawn under the pill's top 14 points.
         var group = new StackPanel { Orientation = Orientation.Vertical, Spacing = -ThreadChangesTab.Overlap };
-        group.Children.Add(new TabSlot(runtime, diffPopover, showsChanges)); // :29
+        var tabs = new TabSlot(runtime, diffPopover, showsChanges);
+        group.Children.Add(tabs); // :29
         var pill = new ComposerView(runtime, workingDirectory, compactModelChip, takesFocusOnAppear);
         group.Children.Add(pill); // :30
+        // PORT-ONLY (voice-SPEC V-12.7; VT-12): the floating pill fades any line it crosses (the tab above the composer) out over 0.16 s and back over 0.25 s after 0.05 s
+        var fade = new LookMotion(group);
+        var crossed = new LookNumber(fade, 1);
+        fade.Frame += () => tabs.Opacity = crossed.Value;
+        void Cross()
+        {
+            var floating = pill.VoiceFloatRect(group);
+            var line = tabs.IsVisible && tabs.Bounds.Width > 0 && tabs.TranslatePoint(default, group) is { } at ? new Rect(at, tabs.Bounds.Size) : (Rect?)null;
+            var hit = floating is { } pillRect && line is { } lineRect && pillRect.Intersects(lineRect);
+            if (hit) crossed.To(0, LookCurve.Ease(0.16));
+            else crossed.To(1, LookCurve.Ease(0.25), 0.05);
+        }
+        pill.VoiceFloatChanged += Cross;
+        tabs.LayoutUpdated += (_, _) => Cross();
+        pill.LayoutUpdated += (_, _) => Cross();
 
         // :32-38 two backgrounds; the later one sits behind the earlier.
         var layers = new Grid();
@@ -395,6 +412,10 @@ public sealed class ComposerView : Decorator
     private readonly AnimatedScalar scalePlace;
     private readonly Canvas outsideHost = new() { ClipToBounds = false };
     private readonly ComposerVoiceController? voice;
+    private readonly VoicePillSlot? pillSlot; // PORT-ONLY (VT-12): the listening pill's layer, under the text and the controls
+    private readonly VoiceLanguageQuestion? question; // PORT-ONLY (VT-12): the language question over the composer
+    private readonly Canvas questionHost = new() { ClipToBounds = false };
+    private readonly AnimatedScalar? insetRight; // V-12.6: the text column's right inset, eased
     private ComposerAttachButton? insideAttach;
     private ComposerAttachButton? outsideAttach;
     private Grid? layers;
@@ -481,6 +502,23 @@ public sealed class ComposerView : Decorator
         {
             voice = new ComposerVoiceController(new ComposerVoiceHost(() => Model.Settings, DraftSelection, ReplaceDraft, Send));
             root.Children.Add(new VoiceAnnouncer(voice) { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top });
+            // PORT-ONLY (voice-SPEC V-13.3, V-12.2, V-12.11; VT-12): the glow over the composer's glass and under its content, the listening pill under the text and the controls (the orb stands over
+            // it), the language question over the composer
+            layers.Children.Insert(1, new VoiceGlowLayer(voice));
+            pillSlot = new VoicePillSlot(voice);
+            layers.Children.Insert(2, pillSlot);
+            insetRight = new AnimatedScalar(this, 0, inset => textColumn.Margin = new Thickness(0, 4, inset, 4));
+            pillSlot.InsetTargetChanged += target => insetRight.Set(target, LookCurve.Ez(0.42)); // V-12.6: the text's right edge eases over 0.42 s ez
+            question = new VoiceLanguageQuestion();
+            questionHost.Children.Add(question);
+            root.Children.Add(questionHost);
+            question.Answered += voice.AnswerLanguage;
+            question.Dismissed += voice.DismissQuestion;
+            this.Track(() => voice.State == VoiceSessionState.Asking, asking =>
+            {
+                if (asking) question.Open();
+                else question.Close();
+            });
         }
         // :187-189 .geometryGroup(): the pill's width glides as the panels take or give room, and the text view and the
         // controls move as one with the glass. The port animates no frame of its own on a width change, so the row's
@@ -633,6 +671,12 @@ public sealed class ComposerView : Decorator
         Grid.SetColumn(made, 1);
         row.Children.Add(made);
         controls = made;
+        if (made.OrbSlot is { } orbSlot)
+        {
+            pillSlot?.Attach(orbSlot); // PORT-ONLY (VT-12): the pill and the question hang from the orb's slot
+            question?.Attach(orbSlot, root);
+            if (question is not null) question.ReturnFocus = () => orbSlot.HitTarget.Focus();
+        }
         MakeAttachButtons(value.RecentDownloadsPicker);
         ShowAttach(true);
     }
@@ -1174,6 +1218,26 @@ public sealed class ComposerView : Decorator
 
     internal ComposerVoiceController? Voice => voice;
 
+    /// <summary>PORT-ONLY (VT-12): the listening pill's layer (null without voice typing).</summary>
+    internal VoicePillSlot? VoicePills => pillSlot;
+
+    /// <summary>PORT-ONLY (VT-12): the language question (null without voice typing).</summary>
+    internal VoiceLanguageQuestion? LanguageQuestion => question;
+
+    /// <summary>PORT-ONLY (VT-12, V-12.7): the open floating pill's rectangle in <paramref name="relativeTo"/>'s coordinates, null when none is open.</summary>
+    internal Rect? VoiceFloatRect(Visual relativeTo)
+    {
+        if (pillSlot?.FloatTarget is not { } rect || pillSlot.TranslatePoint(rect.TopLeft, relativeTo) is not { } origin) return null;
+        return new Rect(origin, rect.Size);
+    }
+
+    /// <summary>PORT-ONLY (VT-12, V-12.7): the floating pill opened, closed or moved.</summary>
+    internal event Action? VoiceFloatChanged
+    {
+        add { if (pillSlot is not null) pillSlot.FloatTargetChanged += value; }
+        remove { if (pillSlot is not null) pillSlot.FloatTargetChanged -= value; }
+    }
+
     // :475-485 The built-in commands, then the provider's, ranked for the query (Provider.swift:306-323).
     private ValueList<Suggestion> CommandSuggestions(string matching)
     {
@@ -1662,6 +1726,9 @@ internal sealed class ComposerControls : Decorator
     private readonly ContextMeter? meter;
     private readonly SendButton send;
 
+    /// <summary>PORT-ONLY (VT-12): the voice orb's slot, null without voice typing.</summary>
+    internal VoiceOrbSlot? OrbSlot { get; }
+
     /// <summary>:613-623 the inputs a re-evaluated body is handed. The views below keep their state (the chip's open popover, the
     /// ring's popover) and take the new values.</summary>
     internal void Update(ChatThread thread, bool goesToHead, bool queueGoesToHead, ProviderKind? headsProvider)
@@ -1683,7 +1750,7 @@ internal sealed class ComposerControls : Decorator
         ComposerVoiceController? voice = null)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 }; // :626
-        if (voice is not null) row.Children.Add(new VoiceOrbSlot(voice)); // V-14.2: the orb, where the attachment was
+        if (voice is not null) row.Children.Add(OrbSlot = new VoiceOrbSlot(voice)); // V-14.2: the orb, where the attachment was
         // PORT-ONLY (OD-0115 composer=A, step 3a): the account capsule, only with a second account of the service or a pill relay; it sits before the model chip
         if (Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Offer.Current(runtime) is { } capsuleSlot) { capsuleSlot.VerticalAlignment = VerticalAlignment.Center; row.Children.Add(Marrow.App.Port.MultiAccount.Handshake.HandshakeCapsuleHost.With(Marrow.App.Port.MultiAccount.Link.LinkComposerHost.With(capsuleSlot, runtime), capsuleSlot, runtime)); }
         row.Children.Add(slot = new ModelEffortSlot(runtime, thread, compact)); // :647
