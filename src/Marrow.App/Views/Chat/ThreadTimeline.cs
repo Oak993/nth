@@ -249,6 +249,7 @@ public sealed class ThreadTimeline : Decorator
                     // PORT-ONLY (SK-14, ED-384 item 16): Offer A is an inline card in the reply, so a chat with a skills offer flow draws its card, and the caption line it leaves, after the rows and before the end sentinel; both take no room while there is nothing to say.
                     Marrow.App.Port.Skills.SkillsOfferRows.Append(body, runtime, TimelineMetrics.RowSpacing);
                     Marrow.App.Port.MultiAccount.Cards.MultiAccountCardRows.Append(body, runtime, TimelineMetrics.RowSpacing);
+                    Marrow.App.Port.MultiAccount.Opinions.OpinionAnswerRows.Append(body, runtime, TimelineMetrics.RowSpacing, () => rowViews.Values.Select(item => (item.Block, item.Row)).ToArray());
                     body.Children.Add(sentinel);
                 }
                 Button? earlier = hidden == 0 ? null : drawnEarlier is Button shown && earlierHidden == hidden ? shown : EarlierPill(hidden, () => { LoadEarlier(drawnBlocks); Draw(); });
