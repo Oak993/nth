@@ -11,7 +11,7 @@ namespace Marrow.App.Tests.Fixtures;
 public static class UpstreamSettingsPages
 {
     public static readonly IReadOnlyList<SettingsPage> PortAdded =
-        [SettingsPage.Customization, SettingsPage.VoiceTyping, SettingsPage.Updates, SettingsPage.Plugins, SettingsPage.Skills];
+        [SettingsPage.Customization, SettingsPage.VoiceTyping, SettingsPage.Updates, SettingsPage.Plugins, SettingsPage.Skills, SettingsPage.Pills];
 
     public static IReadOnlyList<SettingsPage> All { get; } = SwiftEnum<SettingsPage>.AllCases.Where(page => !PortAdded.Contains(page)).ToList();
 }

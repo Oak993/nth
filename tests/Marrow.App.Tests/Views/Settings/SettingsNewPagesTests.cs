@@ -31,9 +31,9 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     {
         var pages = SwiftEnum<SettingsPage>.AllCases;
         Assert.Equal(
-            ["general", "hydra", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "models", "sourceControl", "shortcuts", "archive", "about"],
+            ["general", "hydra", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "models", "pills", "sourceControl", "shortcuts", "archive", "about"],
             pages.Select(page => page.Id));
-        Assert.Equal(["customization", "voiceTyping", "updates", "plugins", "skills"], NewPages.Select(page => page.Id));
+        Assert.Equal(["customization", "voiceTyping", "updates", "plugins", "skills", "pills"], NewPages.Select(page => page.Id));
         Assert.Equal(pages.ToList().IndexOf(SettingsPage.Plugins) + 1, pages.ToList().IndexOf(SettingsPage.Skills));
         Assert.Equal(SettingsPage.Appearance, pages[2]);
         Assert.Equal(SettingsPage.Customization, pages[3]);
@@ -53,13 +53,14 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     [Trait("Decision", "ED-251")] // CZ-T2 / CZ-2.1: titles, symbols and the Q-CZ-4 search words, exactly
     public void Titles_symbols_and_keywords_are_the_specs()
     {
-        Assert.Equal(["Customization", "Voice typing", "Updates", "Plugins", "Skills"], NewPages.Select(page => page.Title));
-        Assert.Equal(["sparkles", "waveform", "arrow.triangle.2.circlepath", "powerplug", "wand.and.sparkles"], NewPages.Select(page => page.Symbol));
+        Assert.Equal(["Customization", "Voice typing", "Updates", "Plugins", "Skills", "Pills"], NewPages.Select(page => page.Title));
+        Assert.Equal(["sparkles", "waveform", "arrow.triangle.2.circlepath", "powerplug", "wand.and.sparkles", "pill.fill"], NewPages.Select(page => page.Symbol));
         Assert.Equal(["light", "glow", "beam", "composer", "effects", "customization", "orb", "voice", "dots", "uiverse", "aura"], SettingsPage.Customization.Keywords);
         Assert.Equal(["voice", "dictation", "microphone", "mic", "whisper", "speech", "transcribe", "language", "model", "hardware"], SettingsPage.VoiceTyping.Keywords);
         Assert.Equal(["updates", "update", "version", "latest", "upgrade", "check now", "restart"], SettingsPage.Updates.Keywords);
         Assert.Equal(["plugins", "plugin", "download", "install", "add"], SettingsPage.Plugins.Keywords);
         Assert.Equal(["skills", "skill", "download", "install", "add", "slash"], SettingsPage.Skills.Keywords);
+        Assert.Equal(["pills", "pill", "accounts", "chain", "sequence", "handshake", "fallback", "switch"], SettingsPage.Pills.Keywords); // MA-8, T11 step 2
     }
 
     [Fact]
@@ -110,7 +111,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         (SettingsPage Page, string Type, bool Ready)[] shells =
         [
             (SettingsPage.Customization, "CustomizationSettingsPage", true), (SettingsPage.VoiceTyping, "VoiceTypingSettingsPage", true),
-            (SettingsPage.Updates, "UpdatesSettingsPage", true), (SettingsPage.Plugins, "PluginsSettingsPage", true), (SettingsPage.Skills, "SkillsSettingsPage", true), // UE-4 and SK-15 supply the ready page bodies.
+            (SettingsPage.Updates, "UpdatesSettingsPage", true), (SettingsPage.Plugins, "PluginsSettingsPage", true), (SettingsPage.Skills, "SkillsSettingsPage", true), (SettingsPage.Pills, "PillsSettingsPage", true), // UE-4, SK-15 and MA-8 supply the ready page bodies.
         ];
         foreach (var (page, name, ready) in shells)
         {
@@ -141,6 +142,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
             Assert.IsType<UpdatesSettingsPage>(SettingsView.PageFor(SettingsPage.Updates, "", ""));
             Assert.IsType<PluginsSettingsPage>(SettingsView.PageFor(SettingsPage.Plugins, "", ""));
             Assert.IsType<SkillsSettingsPage>(SettingsView.PageFor(SettingsPage.Skills, "", ""));
+            Assert.IsType<PillsSettingsPage>(SettingsView.PageFor(SettingsPage.Pills, "", "")); // MA-8
             Assert.True(SettingsView.HasChromeControls(SettingsPage.Customization, new CustomizationSettingsPage()));   // its chrome row carries the Preview control (CZ-3.2)
             Assert.False(SettingsView.HasChromeControls(SettingsPage.VoiceTyping, new VoiceTypingSettingsPage()));      // no chrome accessory (V-16.3)
             Assert.False(SettingsView.HasChromeControls(SettingsPage.Updates, new UpdatesSettingsPage()));

@@ -1,0 +1,118 @@
+{
+  "task": "T17 MA-3b-E1",
+  "branch": "codex/ma-e1",
+  "source_head": "9242fc3140a548dd9b98e34dc557fd4ea060ba2e",
+  "sdk": "10.0.401",
+  "avalonia": "12.1.2",
+  "verdict": "NOT READY for release",
+  "focused_filters": {
+    "core": "(FullyQualifiedName~Accounts|FullyQualifiedName~Port.MultiAccount.Thread|FullyQualifiedName~ConversationTransferConsent|FullyQualifiedName~Traceability)&FullyQualifiedName!~Native",
+    "services": "(FullyQualifiedName~LinkEngine|FullyQualifiedName~LinkAvailability|FullyQualifiedName~OpinionsEngine|FullyQualifiedName~TextOnlyAccountHead|FullyQualifiedName~AccountConversationHeadHost|FullyQualifiedName~ConversationHeadKeyBinding|FullyQualifiedName~ConversationHeadPricing|FullyQualifiedName~ConversationHeadRevision|FullyQualifiedName~CompletedLinkAnswer|FullyQualifiedName~OpinionOutcome|FullyQualifiedName~CombineRevision|FullyQualifiedName~HandshakeStandbySession|FullyQualifiedName~ContextTransferConsent|FullyQualifiedName~Traceability)&FullyQualifiedName!~Native",
+    "app": "(FullyQualifiedName~Views.MultiAccount.Shared|FullyQualifiedName~ConversationTransferDialog|FullyQualifiedName~ConversationTransferPrompt|FullyQualifiedName~Traceability)&FullyQualifiedName!~Native"
+  },
+  "counts": {
+    "core-baseline": {
+      "passed": 1821,
+      "failed": 198,
+      "skipped": 0,
+      "total": 2019
+    },
+    "services-baseline": {
+      "passed": 4141,
+      "failed": 1288,
+      "skipped": 52,
+      "total": 5481
+    },
+    "core-e1-final": {
+      "passed": 351,
+      "failed": 0,
+      "skipped": 0,
+      "total": 351
+    },
+    "services-e1-final": {
+      "passed": 84,
+      "failed": 0,
+      "skipped": 0,
+      "total": 84
+    },
+    "app-e1-final": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "total": 16
+    },
+    "core-project-final": {
+      "passed": 3566,
+      "failed": 459,
+      "skipped": 0,
+      "total": 4025
+    },
+    "services-project-final": {
+      "passed": 4199,
+      "failed": 1288,
+      "skipped": 52,
+      "total": 5539
+    },
+    "hardening-red": {
+      "passed": 0,
+      "failed": 8,
+      "skipped": 0,
+      "total": 8
+    },
+    "link-availability-red": {
+      "passed": 1,
+      "failed": 3,
+      "skipped": 0,
+      "total": 4
+    },
+    "pricing-red": {
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0,
+      "total": 3
+    },
+    "services-e1-repeat-1": {
+      "passed": 84,
+      "failed": 0,
+      "skipped": 0,
+      "total": 84
+    },
+    "services-e1-repeat-2": {
+      "passed": 84,
+      "failed": 0,
+      "skipped": 0,
+      "total": 84
+    },
+    "services-e1-repeat-3": {
+      "passed": 84,
+      "failed": 0,
+      "skipped": 0,
+      "total": 84
+    },
+    "services-e1-repeat-4": {
+      "passed": 84,
+      "failed": 0,
+      "skipped": 0,
+      "total": 84
+    },
+    "services-e1-repeat-5": {
+      "passed": 84,
+      "failed": 0,
+      "skipped": 0,
+      "total": 84
+    }
+  },
+  "aborted_runs": [
+    "core-baseline",
+    "core-project-final"
+  ],
+  "services_failed_test_names_unchanged": true,
+  "services_failed_names_sha256": "8fbccf252a09bc6201f3f1787763028cf9ff1ac2b6eb3f2cc5edefe76d2d177d",
+  "new_e1_services_cases_in_broad_run": {
+    "passed": 58,
+    "failed": 0,
+    "skipped": 0
+  },
+  "existing_test_files_unchanged_after_authorized_base_merge": true,
+  "raw_trx_directory": "/tmp/marrow-ma-e1-results"
+}

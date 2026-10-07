@@ -112,6 +112,8 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         Speech = new SpeechSections(settings, () => SettingsNavigation.Shared.RequestedPage = SettingsPage.VoiceTyping);
         Rest.Children.Add(Speech.Section);
         WindowsDisplayLanguage.Watch(this, Speech.Apply); // the Language row names the display language under language default C
+        // PORT-ONLY (multi-account step 3a, OD-0115, OD-0119): "Pill in the composer" follows the sticky sections, where the pinned block has let go; Speech stays the first section there (CZ-3.5.3), so it goes after Speech
+        Rest.Children.Add(new Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection(settings.CapsuleStyle));
 
         // the chrome row's Preview state control is the session's pick (CZ-3.2, CZ-4.6); the session can move it too (touching Working dots)
         PreviewStatePick.SelectionChanged += id => { if (!echoing) session.Pick(StateOf(id)); };

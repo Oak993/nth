@@ -16,6 +16,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     private Func<Task<HandshakeCostObservation?>>? observeUsage;
     private Func<bool>? canTransfer;
     private bool needsReadBack;
+    private Action<string>? textProgress;
     private bool ready;
     private bool ownsSession = true;
     private bool stopped;
@@ -99,7 +100,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         _ = await RunTextTurnAsync("[Marrow Handshake] These recorded facts were missing from your read-back. Retain them without taking actions:\n"
             + string.Join("\n", gaps), true, ct);
 
-    public Task<string?> TextTurnAsync(string prompt, CancellationToken ct) => RunTextTurnAsync(prompt, true, ct);
+    public Task<string?> TextTurnAsync(string prompt, CancellationToken ct, Action<string>? progress = null) => RunTextTurnAsync(prompt, true, ct, progress: progress);
 
     public async Task<string?> WriteIncomingLightBriefingAsync(HandoffSummary summary, CancellationToken ct)
     {
@@ -139,7 +140,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
 
     public ValueTask DisposeAsync() { if (ownsSession) Stop(); return ValueTask.CompletedTask; }
 
-    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct, string? model = null)
+    private async Task<string?> RunTextTurnAsync(string text, bool readBack, CancellationToken ct, string? model = null, Action<string>? progress = null)
     {
         await gate.WaitAsync(ct);
         try
@@ -148,6 +149,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
                 throw new InvalidOperationException("The standby is unavailable for text-only transfer.");
             ready = false;
             needsReadBack = readBack;
+            textProgress = progress;
             messages.Clear();
             messageOrder.Clear();
             completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -171,7 +173,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             return answer;
         }
         catch { if (ownsSession) Stop(); throw; }
-        finally { completion = null; gate.Release(); }
+        finally { completion = null; textProgress = null; gate.Release(); }
     }
 
     private void Collect(ProviderEvent value)
@@ -179,6 +181,11 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         if (stopped || !ownsSession) return;
         if (value is ProviderEvent.Models catalog) { reportedModels = catalog.Value; return; }
         if (value is ProviderEvent.Exited exit) { Fail(exit.Error ?? "The standby exited."); return; }
+        // A restricted head must also refuse an action during startup or between completed turns.
+        if (value is ProviderEvent.ToolStarted or ProviderEvent.ToolOutput or ProviderEvent.ToolUpdated
+            or ProviderEvent.Approval or ProviderEvent.Question or ProviderEvent.AgentStarted or ProviderEvent.AgentEvent
+            or ProviderEvent.AgentProgress or ProviderEvent.AgentFinished)
+        { Fail("The standby attempted an action during text-only context transfer."); return; }
         if (completion is null) return;
         switch (value)
         {
@@ -216,6 +223,8 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     {
         if (!messages.ContainsKey(id)) messageOrder.Add(id);
         messages[id] = append ? messages.GetValueOrDefault(id, "") + text : text;
+        try { textProgress?.Invoke(string.Join("\n", messageOrder.Select(key => messages[key]).Where(part => part.Length > 0))); }
+        catch (Exception error) { Fail(error.Message); }
     }
 
     private void Fail(string reason)
