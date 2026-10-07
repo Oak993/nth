@@ -4146,3 +4146,8 @@ Tests: the initial Core Plan allocation probe failed alone twice at 32,352 B/fra
 ## ED-NEW-ma-wave1-9
 - MA-5-1 (brief alias MA-3b-5-1): audit acceptance exercises actual popover, usage B, Settings accounts, account defaults, Pill editor and capsule aria over real in-memory stores and job-0 fakes. Fast on/off is a yellow bolt only; spoken Fast mode remains allowed. Report-driven No 5-hour claims cover Claude/Codex/OpenRouter/Local, unknown usage, plan changes and live flag changes.
 - Eleven cases passed initially against the existing implementation; no fabricated red and no production changes required for this audit. No claims are made for the separately owned cloud opinion/Combine views or native appearance.
+
+
+## ED-NEW-ma-wave1-10
+
+MAUI-018/042/060/061: both Settings reorder handlers accept only the primary button and use a 300ms opacity transition instead of translation under Reduce Motion (locked HTML 467/1993/2024). The use switch names the live account, not Rename (3846). No engine, test or oracle changes.
