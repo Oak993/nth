@@ -19,3 +19,8 @@ Tests were added before implementation. The first Services build failed because 
 Windows run: repeat the fake installer and mounted-control tests; exercise a dummy open-file handle refusing the directory swap; compare CUDA A at 100/125/150/200%, light/dark, Reduce Motion and screen-reader focus/live progress. The exact entry paths in the pinned real NVIDIA archives and a complete CUDA loader restart remain native resource acceptance work: this task downloaded no CUDA archive, model or native DLL and exercised no GPU. Do not treat Linux fake acceptance as that native proof.
 
 Engineering entry: ED-NEW-voice-gaps-1. Independent review found and corrected receipt pin identity, shared lifetime/reevaluation, UI-thread hashing and locked geometry. Other threads' source, tests and references remain untouched.
+
+
+## Round 2 (2026-10-07)
+
+**ALREADY DONE; awaiting T9.** Lead ruling `45096401f90e1d0ae74a9e156cb9f0cb3fa67e60:R-gaps-round2.md`, T34, accepts RR-10 as done. No RR-10 implementation was changed in Round 2. The final affected App run rechecks its fake offer/installer boundary and mounted controls: 121/121 across the combined scope. The Services voice run remains 491 passed, 12 Windows-native skips. T9 owns the native CUDA companion publication/loader/backend and Windows rendering acceptance listed above.

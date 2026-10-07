@@ -153,8 +153,7 @@ public sealed class ComposerController
             var text = textView.Text ?? "";
             var start = Math.Min(Math.Min(textView.SelectionStart, textView.SelectionEnd), text.Length);
             var end = Math.Min(Math.Max(textView.SelectionStart, textView.SelectionEnd), text.Length);
-            var typeface = new Typeface(textView.FontFamily, textView.FontStyle, textView.FontWeight);
-            using var layout = new TextLayout(text, typeface, textView.FontSize, null, textWrapping: TextWrapping.Wrap, maxWidth: contentWidth);
+            using var layout = textView.CreateComposerLayout(text, contentWidth);
             var first = layout.HitTestTextPosition(start);
             var last = end > start ? layout.HitTestTextPosition(end) : first;
             var width = Math.Abs(last.Top - first.Top) > 0.5 ? 0 : Math.Abs(last.Left - first.Left); // the first line's own rect only
@@ -224,6 +223,12 @@ public sealed class ComposerNSTextView : TextBox
     private Avalonia.Controls.Presenters.TextPresenter? hiddenPresenter;
 
     public string? LiveText { get; set; }
+
+    // V-8.3/V-8.9: measurement, the actual editor and the animated picture use one paragraph factory.
+    internal TextLayout CreateComposerLayout(string text, double width, IBrush? foreground = null, IReadOnlyList<Avalonia.Utilities.ValueSpan<TextRunProperties>>? spans = null) =>
+        ComposerParagraphLayout.Create(text, new Typeface(FontFamily, FontStyle, FontWeight, FontStretch), FontSize, foreground,
+            TextAlignment, TextWrapping, FlowDirection, width, lineHeight: LineHeight, letterSpacing: Avalonia.Controls.Documents.TextElement.GetLetterSpacing(this),
+            features: Avalonia.Controls.Documents.TextElement.GetFontFeatures(this), spans: spans);
 
     /// <summary>True while <see cref="EnterDictation"/> has hidden the editor's own drawing of its text.</summary>
     public bool TextHidden => hiddenPresenter is not null;
@@ -303,6 +308,8 @@ public sealed class ComposerNSTextView : TextBox
         // prediction and writing tools: Avalonia's TextBox has no such platform feature to begin with, so there
         // is nothing this control needs to disable (naturally scoped: no other field gains one either).
         TextWrapping = TextWrapping.Wrap; // :263-264 isHorizontallyResizable = false, autoresizingMask = [.width]
+        // Before natural paragraph bases, Start with the LTR control base was physically left. Preserve that alignment when an individual paragraph is RTL (V-8.9).
+        TextAlignment = TextAlignment.Left;
         AcceptsReturn = false; // :332-341 Return is always handled explicitly below, never a default newline
         AcceptsTab = true; // :346-347 an unhandled Tab still inserts a literal tab character
         BorderThickness = new Thickness(0);
@@ -312,11 +319,12 @@ public sealed class ComposerNSTextView : TextBox
         // scroll view around it (ComposerTextView.scroll, :273) scrolls what passes the fixed height.
         Template = new Avalonia.Controls.Templates.FuncControlTemplate<TextBox>((box, scope) =>
         {
-            var presenter = new Avalonia.Controls.Presenters.TextPresenter
+            var presenter = new ComposerParagraphPresenter
             {
                 Name = "PART_TextPresenter",
                 [!Avalonia.Controls.Presenters.TextPresenter.TextProperty] = box[!TextBox.TextProperty],
                 [!Avalonia.Controls.Presenters.TextPresenter.TextWrappingProperty] = box[!TextBox.TextWrappingProperty],
+                [!Avalonia.Controls.Presenters.TextPresenter.TextAlignmentProperty] = box[!TextBox.TextAlignmentProperty],
                 [!Avalonia.Controls.Presenters.TextPresenter.SelectionStartProperty] = box[!TextBox.SelectionStartProperty],
                 [!Avalonia.Controls.Presenters.TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
                 [!Avalonia.Controls.Presenters.TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
@@ -705,10 +713,8 @@ public sealed class ComposerTextView : Decorator
     private void UpdateHeight()
     {
         if (textView.Bounds.Width <= 24) return; // :361
-        var typeface = new Typeface(textView.FontFamily, textView.FontStyle, textView.FontWeight);
-        using var layout = new TextLayout(
-            textView.LiveText ?? textView.Text ?? "", typeface, textView.FontSize, null,
-            textWrapping: TextWrapping.Wrap, maxWidth: textView.Bounds.Width); // :363-372
+        using var layout = textView.CreateComposerLayout(textView.LiveText ?? textView.Text ?? "",
+            Math.Max(1, textView.Bounds.Width - textView.Padding.Left - textView.Padding.Right)); // :363-372
         var contentHeight = layout.Height;
         var total = Math.Ceiling(Math.Max(18, contentHeight) + textView.Padding.Top + textView.Padding.Bottom); // :374
         if (Math.Abs(height.Value - total) > 0.5) height.Value = total; // :375

@@ -56,3 +56,29 @@ Independent source review was performed under PORT_CONTRACT §15 and found the c
 ## Integrity
 
 Both ledgers are appended in binary mode. Their original base prefixes remain byte-identical, including mixed CRLF/LF. Each row appends its own entry and checks `git diff --stat`. Ownership comparison against all four named branches finds no protected source/test/reference edit; shared ledgers are touched only by the explicitly requested appends. No existing test file differs from the base, and no reference image or tolerance was altered. Only `codex/voice-gaps` is pushed, without force.
+
+
+## Round 2 (2026-10-07)
+
+**READY for T9 Windows verification**, as defined by `45096401f90e1d0ae74a9e156cb9f0cb3fa67e60:R-gaps-round2.md`. This supersedes Round 1's RR-12 implementation blocker. It does not claim full release/native text acceptance.
+
+| Row | Round 2 result |
+| --- | --- |
+| RR-10 | ALREADY DONE under the lead ruling; native acceptance awaits T9 |
+| RR-11 | BLOCKED here; stopped per lead, handed to T33 after VT-12 READY; requires local VT-12/VT-16 fixes |
+| RR-12 | DONE implementation; paragraph/editor sharing and wrapped shaped-cluster motion complete; only Windows proof remains |
+
+| Round 2 run | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: |
+| Core voice + traceability | 656 | 0 | 0 |
+| Services voice + traceability | 491 | 0 | 12 |
+| Combined affected App + traceability | 121 | 0 | 0 |
+| Unchanged ComposerDictation/ComposerTextView tests | 26 | 24 | 0 |
+
+The affected App filter adds `DictationFragment`, `DictationClusterParityTests`, `DictationParagraphLifecycleTests` and `ComposerParagraphLayoutTests` to the Round 1 64-test filter. All 57 new checks pass, with actual CPU text rendering and fake scheduling/preferences. The original composer run's 24 failures are 19 glyphTypeface creation failures (6 default, 13 Inter) and 5 missing user32.dll calls; none is behavior acceptance or a changed assertion. Core/Services full-suite baseline limitations remain as documented in Round 1; full native suites are on the Windows list. See RR-12's **Needs Windows — T9** list for the exact remaining text proof and integration matrix, and RR-10's native CUDA list. RR-11 is the lead's T33 handoff, not further work in this branch.
+
+Test-first sequence: wrapped/paragraph/caret red 1/7 passed; line-based reflow red 37/38; native glyph-cluster green 38/38; font-feature red 5/6; line-height/spacing red 5/7; terminal LF/CRLF red before native leading-line repair; final 121/121. New fixture compilation and oracle arithmetic corrections were retained in evidence and are not counted as behavior witnesses. No existing test/fixture/assertion/reference/tolerance was changed. Independent contract section 15 review cleared final implementation for T9 after verifying all repairs, isolated style invalidation and unchanged Urdu guards.
+
+Gates: B passes 8/8; protected paths unchanged against HEAD. E:/ reference checks are unavailable, regardless of the script's printed clean sentence. Gate A/full solution/Gate D/native release acceptance remain Windows work. All application dependencies in these checks are fake/scripted; there is no real CUDA/model download, network, GPU, microphone or model execution. The throwaway ICU ABI forwarder and explicit Linux font do not prove native Windows rendering.
+
+Integrity: ED-NEW-voice-gaps-4 and STATE append in binary mode; original Round 2 prefixes (STATE 85,736 bytes; ED 1,789,298 bytes) retain their exact hashes and mixed newline bytes. A comparison against all four protected branches finds no owned file overlap (shared ledgers excluded because the user explicitly authorized appends). No original test path from the task base differs. The mirror was read without merging. Only codex/voice-gaps is pushed without force. The new RR-12 implementation and reports form one Round 2 row commit.

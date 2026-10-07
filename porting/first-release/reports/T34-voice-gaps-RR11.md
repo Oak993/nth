@@ -23,3 +23,8 @@ This base has no pill download presentation, so the notes adapter's suppression 
 Windows run: repeat note/bridge/countdown fake tests and mounted error test; test every link against actual Windows Settings/Marrow rows and a screen reader; verify error movement/expiry/retry through detached/reattached composers. After owner integration, mount and render Countdown C at 270 s, thresholds 15/5 s, 30/10 s announcements and cap completion, for light/dark, scale factors and Reduce Motion; verify preparation-note suppression. No microphone, model or network is needed for these fake tests.
 
 Engineering entry: ED-NEW-voice-gaps-2. Final validation and limitations are in `T34-voice-gaps-validation.md`.
+
+
+## Round 2 (2026-10-07)
+
+**BLOCKED here; stopped and handed to T33 by the lead.** `45096401f90e1d0ae74a9e156cb9f0cb3fa67e60:R-gaps-round2.md`, T34: "Stop RR-11 here. The lead hands it to T33 after VT-12 is READY." Exact countdown and preparation/cloud hooks depend on local `codex/vt-12-finish` (T33) and `codex/vt-16-fix` (T16). No RR-11 production file was edited in Round 2; no dependency branch was merged. Existing notes/countdown tests were rerun unchanged in the 121/121 combined affected App run. Their green results do not close the integration handoff.
