@@ -21,23 +21,24 @@ internal sealed class MultiAccountCardRows : Decorator
     private readonly ICardPort port;
     private readonly Func<IReadOnlyList<ThreadAccount>> accounts;
     private readonly double above;
+    private readonly MultiAccountCardContext? context;
     private readonly CrossfadeSlot slot = new();
     private DecisionRequest? request;
     internal LimitCardView? Card { get; private set; }
-    private MultiAccountCardRows(Guid thread, ICardPort port, Func<IReadOnlyList<ThreadAccount>> accounts, double above)
+    private MultiAccountCardRows(Guid thread, ICardPort port, Func<IReadOnlyList<ThreadAccount>> accounts, double above, MultiAccountCardContext? context)
     {
-        this.thread = thread; this.port = port; this.accounts = accounts; this.above = above; Child = slot;
+        this.thread = thread; this.port = port; this.accounts = accounts; this.above = above; this.context = context; Child = slot; slot.Show(new Border(), null);
         AttachedToVisualTree += (_, _) => { port.Changed += Changed; Apply(port.State(thread)); };
         DetachedFromVisualTree += (_, _) => port.Changed -= Changed;
     }
-    internal static MultiAccountCardRows Append(Panel body, Guid thread, ICardPort port, Func<IReadOnlyList<ThreadAccount>> accounts, double above)
+    internal static MultiAccountCardRows Append(Panel body, Guid thread, ICardPort port, Func<IReadOnlyList<ThreadAccount>> accounts, double above, MultiAccountCardContext? context = null)
     {
-        var host = new MultiAccountCardRows(thread, port, accounts, above); body.Children.Add(host); return host;
+        var host = new MultiAccountCardRows(thread, port, accounts, above, context); body.Children.Add(host); return host;
     }
     internal static bool Append(Panel body, ThreadRuntime runtime, double above)
     {
         var seams = ThreadPortSeams.Offer.Current; if (seams.Cards is not { } cards) return false;
-        Append(body, runtime.ThreadID, cards, () => SwiftEnum<ProviderKind>.AllCases.SelectMany(service => seams.Account(runtime.ThreadID, service)?.Accounts ?? []).ToArray(), above); return true;
+        Append(body, runtime.ThreadID, cards, () => SwiftEnum<ProviderKind>.AllCases.SelectMany(service => seams.Account(runtime.ThreadID, service)?.Accounts ?? []).ToArray(), above, MultiAccountCardSeams.Offer.Current(runtime.ThreadID)); return true;
     }
     private void Changed(object? sender, HandshakeEvent state)
     {
@@ -46,9 +47,19 @@ internal sealed class MultiAccountCardRows : Decorator
     }
     private void Apply(HandshakeEvent? state)
     {
-        if (state?.Request is not { } next) return;
+        if (state?.Request is not { } next)
+        {
+            if (state is null || state.To == HandshakePhase.Idle) { request = null; Show(null); }
+            else if (state.To == HandshakePhase.Waiting)
+            {
+                request = null; var waiting = new LimitCardModel(state, accounts(), port, context?.Zone); Show(new LimitCardNote(waiting.Title, context));
+            }
+            // The card port clears Request while an answer completes. Asking is not a completed handoff.
+            return;
+        }
         if (request == next) return;
-        request = next; var model = new LimitCardModel(state, accounts(), port); Card = new LimitCardView(model); Card.Answered += () => Show(null);
+        request = next; var model = new LimitCardModel(state, accounts(), port, context?.Zone); Card = new LimitCardView(model);
+        Card.Answered += () => Show(model.AfterNote is { } note ? new LimitCardNote(note, context) : null);
         Show(Card);
     }
     private void Show(Control? control)
