@@ -10,7 +10,7 @@ using Marrow.Core.Port.Voice.Transcript;
 namespace Marrow.Services.Port.Voice.Cloud;
 
 /// <summary><see cref="ISpeechEngine"/> over OpenAI's audio transcription endpoint.</summary>
-public sealed class OpenAiTranscriber : ISpeechEngine, IDisposable
+public sealed class OpenAiTranscriber : IProcessingSpeechEngine, IDisposable
 {
     /// <summary>V-18.1: the endpoint.</summary>
     public static readonly Uri Endpoint = new("https://api.openai.com/v1/audio/transcriptions");
@@ -53,9 +53,15 @@ public sealed class OpenAiTranscriber : ISpeechEngine, IDisposable
     /// </summary>
     public Task LoadAsync(SpeechModel model, EngineLoadOptions options, CancellationToken cancellationToken)
     {
-        if (keys.Read() is null) throw new OpenAiTranscriptionException(CloudNote.KeyMissing);
+        cancellationToken.ThrowIfCancellationRequested();
+        ValidateReady();
         if (!string.IsNullOrWhiteSpace(model.Id)) this.model = model.Id;
         return Task.CompletedTask;
+    }
+
+    public void ValidateReady()
+    {
+        if (keys.Read() is null) throw new OpenAiTranscriptionException(CloudNote.KeyMissing);
     }
 
     /// <summary>V-18.1: stream true where the model supports it. ED-311: the gpt- models do; whisper-1 does not.</summary>
