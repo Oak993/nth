@@ -81,17 +81,28 @@ public sealed class GapCustomizationAcceptanceTests(HeadlessSession headless)
             read = () => rig.Page.Stage!.Preview.HintOpacity;
             rig.Do(() => rig.Page.PreviewStatePick.Select("typing"));
         }
-        var frames = FrameCurves.Sample(rig, read, 24);
+        var start = rig.Get(() => SwiftClock.Now);
+        var frameStart = rig.Frames.Now;
+        var frames = new List<double> { rig.Get(read) };
+        var times = new List<TimeSpan> { TimeSpan.Zero };
+        for (var i = 1; i <= 24; i++)
+        {
+            rig.Advance(FrameCurves.FrameMs, settle: false);
+            var elapsed = rig.Get(() => SwiftClock.Now - start);
+            Assert.Equal(rig.Frames.Now - frameStart, elapsed);
+            frames.Add(rig.Get(read));
+            times.Add(elapsed);
+        }
         Assert.Equal(1, frames[0]);
         Assert.Equal(0, frames[^1]);
         for (var i = 1; i < frames.Count; i++)
         {
             Assert.True(frames[i] <= frames[i - 1], transition + ": opacity reverses");
-            // OD-0126: detail out keeps the approved 0.1 s CSS ease; its source-oracle step at this 60 Hz frame is allowed with no extra margin.
-            var designStep = transition == "detail out"
-                ? FrameCurves.Bezier(FrameCurves.Ease, Math.Min(1, i * FrameCurves.FrameMs / 1000 / .1))
-                    - FrameCurves.Bezier(FrameCurves.Ease, Math.Min(1, (i - 1) * FrameCurves.FrameMs / 1000 / .1))
-                : 0;
+            // OD-0126 applies to all GAP-2 motion: locked CSS ease at the actual
+            // rendered times, with no added margin. Detail is .1 s; placeholder .15 s.
+            var seconds = transition == "detail out" ? .1 : .15;
+            var designStep = GapDetailFrameOracle.Opacity(times[i - 1], seconds)
+                - GapDetailFrameOracle.Opacity(times[i], seconds);
             var step = frames[i - 1] - frames[i];
             Assert.True(step <= .15 + 1e-9 || step <= designStep,
                 $"{transition}, frame {i} at 60 Hz: step {step:F9} exceeds 0.15 of the travel and the approved design step {designStep:F9}");
