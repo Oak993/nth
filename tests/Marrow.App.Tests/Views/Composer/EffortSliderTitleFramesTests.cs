@@ -32,9 +32,9 @@ public sealed class EffortSliderTitleFramesTests(HeadlessSession headless)
             Assert.True(frames.Title.Width > 0 && frames.Title.Height > 0);
             byte[] Title(int ms) => EffortTitleFramesRig.Crop(folder, ms, frames, frames.Title);
             Assert.NotEqual(Title(0), Title(100)); // the title moves while the change runs
-            Assert.NotEqual(Title(380), Title(400)); // the last letters still arrive at the approved snappy pace
-            Assert.Equal(Title(480), Title(500)); // after the last letter settles, a plain colour holds still
-            Assert.Equal(Title(500), Title(600)); // including a further five independently rendered frames
+            Assert.Equal(Title(380), Title(400)); // and holds still once it is over (a plain colour: no drift)
+            Assert.NotEqual(Title(420), Title(440)); // the last letter lands at .4397 s (ED-NEW-models-palette-20's snappy pace)
+            foreach (var ms in frames.Times.Where(ms => ms >= 460)) Assert.Equal(Title(460), Title(ms)); // then every frame holds still
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     });

@@ -10,8 +10,8 @@ public sealed class PaletteTitleTimingTests(HeadlessSession headless)
         var root=Path.Combine(Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")!,"title-timing");
         var f=EffortTitleFramesRig.Render(new(root,"high;0:xhigh",20,600,false,null));
         File.WriteAllText(Path.Combine(root,"crop.json"),System.Text.Json.JsonSerializer.Serialize(f.Title));
-        Assert.NotEqual(EffortTitleFramesRig.Crop(root,380,f,f.Title),EffortTitleFramesRig.Crop(root,400,f,f.Title));
-        Assert.Equal(EffortTitleFramesRig.Crop(root,480,f,f.Title),EffortTitleFramesRig.Crop(root,500,f,f.Title));
-        Assert.Equal(EffortTitleFramesRig.Crop(root,500,f,f.Title),EffortTitleFramesRig.Crop(root,600,f,f.Title));
+        Assert.Equal(EffortTitleFramesRig.Crop(root,380,f,f.Title),EffortTitleFramesRig.Crop(root,400,f,f.Title));
+        Assert.NotEqual(EffortTitleFramesRig.Crop(root,420,f,f.Title),EffortTitleFramesRig.Crop(root,440,f,f.Title));
+        foreach(var ms in f.Times.Where(ms=>ms>=460))Assert.Equal(EffortTitleFramesRig.Crop(root,460,f,f.Title),EffortTitleFramesRig.Crop(root,ms,f,f.Title));
     });
 }
