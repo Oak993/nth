@@ -4179,3 +4179,7 @@ MAUI-040: apply final HTML 1459 off opacity .45 to Settings words, usage and num
 
 ## ED-NEW-ma-wave1-16
 MAUI-044/045/048/055: Pill steps carry the real account monogram, including custom initials, instead of a provider icon. The shared composer Fast bolt is before the model with Fast mode aria. Off dims name/mark/number only to .45 (HTML1468); locked slider states how to reach the active top slider (HTML2622).
+
+
+## ED-NEW-ma-wave2-13
+MAUI-027/028/029/030/031/032: Usage B restores the 12px header, 15px current-account name and 5-hour window label above the reported No 5-hour limit state. Navigation measures the full view width: incoming All accounts starts at +100%, outgoing current at -28%; reverse navigation mirrors the same page positions. Translation uses .45s (.32,.72,0,1); opacity uses .3s CSS ease (.25,.1,.25,1), including Reduce Motion with no translation. All six findings failed alone twice; six review plus five existing Usage B cases 11/11, build 0 warnings/errors. No tests changed.
