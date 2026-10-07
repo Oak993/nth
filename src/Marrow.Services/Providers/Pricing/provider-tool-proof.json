@@ -8,16 +8,16 @@
       "sources": [
         {
           "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
-          "line": 972,
-          "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+          "line": 1086,
+          "sourceSha256": "d19fd1fa3f0995f40d5d6b251fbbfee6df6f33102f1c750559d3193ce1abc9f8",
           "dispatchGuardLines": [
-            730,
-            1021
+            752,
+            1092
           ],
           "localFunctionDefinitionLines": [
-            145,
-            906,
-            1925
+            146,
+            973,
+            1997
           ]
         },
         {
@@ -28,7 +28,7 @@
         {
           "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
           "line": 11,
-          "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+          "sourceSha256": "e5cf1086eddc6f402516944721f4fce3d6853fcdbe3007a40e1d5c340deae7ad"
         },
         {
           "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
@@ -40,7 +40,12 @@
         "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
         "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
       ],
-      "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+      "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests.",
+      "mergeReview": {
+        "scope": "ED-634 actual MA-gaps / MA-prices merge interaction; inspected preserved local-function-only builders, both dispatch guards and fake transport refusal; unchanged ProviderToolBillingGuardTests plus caller-price contracts pass13/13 twice. No price/capture/quote regeneration.",
+        "evidence": "standing/06-final/preflight-isolation/merged-price-guard-1.log and -2.log",
+        "headBeforeProofUpdate": "624abad9f3ce457fa49610a0fbf660aa66dd4e85"
+      }
     },
     {
       "service": "zai",
@@ -49,16 +54,16 @@
       "sources": [
         {
           "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
-          "line": 972,
-          "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+          "line": 1086,
+          "sourceSha256": "d19fd1fa3f0995f40d5d6b251fbbfee6df6f33102f1c750559d3193ce1abc9f8",
           "dispatchGuardLines": [
-            730,
-            1021
+            752,
+            1092
           ],
           "localFunctionDefinitionLines": [
-            145,
-            906,
-            1925
+            146,
+            973,
+            1997
           ]
         },
         {
@@ -69,7 +74,7 @@
         {
           "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
           "line": 11,
-          "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+          "sourceSha256": "e5cf1086eddc6f402516944721f4fce3d6853fcdbe3007a40e1d5c340deae7ad"
         },
         {
           "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
@@ -81,7 +86,12 @@
         "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
         "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
       ],
-      "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+      "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests.",
+      "mergeReview": {
+        "scope": "ED-634 actual MA-gaps / MA-prices merge interaction; inspected preserved local-function-only builders, both dispatch guards and fake transport refusal; unchanged ProviderToolBillingGuardTests plus caller-price contracts pass13/13 twice. No price/capture/quote regeneration.",
+        "evidence": "standing/06-final/preflight-isolation/merged-price-guard-1.log and -2.log",
+        "headBeforeProofUpdate": "624abad9f3ce457fa49610a0fbf660aa66dd4e85"
+      }
     }
   ]
 }
