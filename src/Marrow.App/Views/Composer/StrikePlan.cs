@@ -155,6 +155,88 @@ public sealed class StrikePlan
     public double[] SparkPoints { get; } = new double[8];
     public double? SparkAt { get; internal set; }
     public bool SparkBlocked { get; internal set; }
+    internal StrikePlumeBuffer Plume { get; } = new();
+    internal StrikeContactBuffer Contacts { get; } = new();
+
+    // E:567-571,841-858; P:590-599. Cached with the geometry-tagged slot.
+    public StrikeContactBuffer ContactEvents()
+    {
+        var result = Contacts; if (result.Ready) return result;
+        result.Count = 0; var prev = 0; var prevFork = 0; var timing = Timing;
+        for (var j = 1; j <= timing.Steps; j++)
+        {
+            var q = Math.Min(1, j / (double)timing.Steps) * timing.Reach; var tip = Strike.Round(q * LastMain);
+            var e = result.Next(-timing.Lead + (j - 1) * timing.Lead / timing.Steps);
+            e.Add(0, Math.Max(0, prev - 1), tip); prev = tip;
+            if (ChannelCount > 1)
+            {
+                var fork = Channels[1]; var m = q * LastMain;
+                var ft = m <= fork.Split ? -1 : Strike.Round(Math.Min(1, (m - fork.Split) / Math.Max(1, LastMain * timing.Reach - fork.Split)) * timing.Reach * (fork.Count / 2 - 1));
+                if (ft > 0) { e.Add(1, Math.Max(0, prevFork - 1), ft); prevFork = ft; }
+            }
+        }
+        var all = result.Next(0); all.Add(0, 0, Extent);
+        if (ChannelCount > 1) all.Add(1, 0, Channels[1].Count / 2 - 1);
+        for (var b = 0; b < BranchCount; b++) if (Branches[b].At <= Extent) all.Add(b + 2, 0, Branches[b].Count / 2 - 1);
+        Span<int> times = stackalloc int[10]; var count = 0;
+        for (var i = 0; i < timing.FlickerCount; i++) if (timing.Flicker(i).At > 0) InsertTime(times, ref count, Strike.Round(timing.Flicker(i).At * 1000));
+        for (var i = 1; i <= 6; i++) InsertTime(times, ref count, i * 50);
+        for (var i = 0; i < count; i++)
+        {
+            var e = result.Next(times[i] / 1000.0); e.Count = all.Count;
+            Array.Copy(all.Segments, e.Segments, all.Count);
+        }
+        result.Ready = true; return result;
+    }
+
+    private static void InsertTime(Span<int> times, ref int count, int time)
+    {
+        var at = 0; while (at < count && times[at] < time) at++;
+        if (at < count && times[at] == time) return;
+        for (var i = count; i > at; i--) times[i] = times[i - 1];
+        times[at] = time; count++;
+    }
+}
+
+public readonly record struct StrikeContactSegment(int Reference, int First, int Last);
+
+public sealed class StrikeContactEvent
+{
+    public double Age { get; internal set; }
+    public int Count { get; internal set; }
+    public StrikeContactSegment[] Segments { get; } = new StrikeContactSegment[10];
+    internal void Add(int reference, int first, int last)
+    {
+        if (Count == Segments.Length)
+        {
+#if DEBUG
+            throw new InvalidOperationException("Strike event segment capacity exceeded");
+#else
+            return;
+#endif
+        }
+        Segments[Count++] = new(reference, first, last);
+    }
+}
+
+public sealed class StrikeContactBuffer
+{
+    public StrikeContactEvent[] Items { get; } = new StrikeContactEvent[24];
+    public int Count { get; internal set; }
+    internal bool Ready;
+    public StrikeContactBuffer() { for (var i = 0; i < Items.Length; i++) Items[i] = new(); }
+    internal StrikeContactEvent Next(double age)
+    {
+        if (Count == Items.Length)
+        {
+#if DEBUG
+            throw new InvalidOperationException("Strike event capacity exceeded");
+#else
+            Count--;
+#endif
+        }
+        var e = Items[Count++]; e.Age = age; e.Count = 0; return e;
+    }
 }
 
 // SPEC 4.4: maxima over the four specified geometries +25%, rounded up; eight primary/twin slots.
@@ -314,6 +396,7 @@ public sealed class StrikePlans
 
     private void Build(StrikePlan p, StrikeGeometry g, StrikeTiming timing, StrikeTiming parent)
     {
+        p.Plume.Ready = false; p.Contacts.Ready = false;
         var k = timing.K; double H(int salt) => Strike.Hash(k, unchecked(seed * 13 + salt));
         var main = p.Channels[0]; p.ChannelCount = 1; p.Timing = timing; p.Geometry = g;
         var sd = unchecked(seed * 41 + k * 3 + 1); var sb = unchecked(k * 11 + seed * 7 + 5);

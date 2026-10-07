@@ -640,3 +640,5 @@ ST-0 retained frame integration and server-GC/zero-main repairs are implemented 
 T14 ST-1 checkpoint A-01..A-06 (ED-NEW-strike-2): immutable vectors/generator copied and SHA-pinned; exact shared maths/ease/Mix timing and four 100000-strike statistics green. Vector tests 9/9; unchanged A2 plus Traceability scope 43/43; zero-warning/error build. Production still A2, no assertions replaced. Remaining Phase A and ST-2/ST-3 remain incomplete; quiet-PC gate pending.
 
 T14 Strike A-07/A-08 partial checkpoint (ED-NEW-strike-3): retained plan geometry/orb/spark vectors and zero-byte ring pass. Production Mix/plume/ink/starts/contact wiring and remaining proofs are incomplete; all 15 assigned record closures remain open.
+
+T14 A-09/A-10 checkpoint (ED-NEW-strike-4): retained plume geometry and expanded contact-event oracles green, production wiring still incomplete. No assigned parity/UI record is closed.
