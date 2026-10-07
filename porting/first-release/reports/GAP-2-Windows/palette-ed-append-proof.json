@@ -1,0 +1,8 @@
+{
+  "file": "porting/engineering_decisions.md",
+  "before_bytes": 1835105,
+  "append_bytes": 4055,
+  "prefix_exact": true,
+  "before_sha256": "0bf2070cc9b5e21c51e79a8077e462750697e1dab01c7c9409c5baf1eb434ecc",
+  "after_sha256": "e988e126d2293d22b998d8ec5680d35d09b2185b5d2044a636e70ced54f68049"
+}
