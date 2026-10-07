@@ -1,0 +1,439 @@
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:23.57]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.With_no_wallpaper_installed_the_drag_flag_starts_no_render [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.With_no_wallpaper_installed_the_drag_flag_starts_no_render [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<With_no_wallpaper_installed_the_drag_flag_starts_no_render>b__9_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 170
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.With_no_wallpaper_installed_the_drag_flag_starts_no_render() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 167
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:43.59]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.After_the_wallpaper_is_removed_a_softness_change_during_a_drag_brings_nothing_back [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.After_the_wallpaper_is_removed_a_softness_change_during_a_drag_brings_nothing_back [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<After_the_wallpaper_is_removed_a_softness_change_during_a_drag_brings_nothing_back>b__6_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 98
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.After_the_wallpaper_is_removed_a_softness_change_during_a_drag_brings_nothing_back() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 95
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:01:03.61]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.Assigning_the_same_drag_flag_again_starts_no_render [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.Assigning_the_same_drag_flag_again_starts_no_render [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<Assigning_the_same_drag_flag_again_starts_no_render>b__8_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 154
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.Assigning_the_same_drag_flag_again_starts_no_render() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 151
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:01:23.62]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_softness_drag_renders_the_half_size_copy_live_and_ends_with_one_full_size_render [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_softness_drag_renders_the_half_size_copy_live_and_ends_with_one_full_size_render [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<A_softness_drag_renders_the_half_size_copy_live_and_ends_with_one_full_size_render>b__7_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 117
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_softness_drag_renders_the_half_size_copy_live_and_ends_with_one_full_size_render() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 114
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:01:43.63]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.With_a_wallpaper_a_softness_change_re_renders_at_full_size_unanimated [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.With_a_wallpaper_a_softness_change_re_renders_at_full_size_unanimated [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<With_a_wallpaper_a_softness_change_re_renders_at_full_size_unanimated>b__3_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 36
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.With_a_wallpaper_a_softness_change_re_renders_at_full_size_unanimated() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 33
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:02:03.65]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_burst_of_softness_values_in_a_drag_renders_once_and_that_render_is_the_newest_value [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_burst_of_softness_values_in_a_drag_renders_once_and_that_render_is_the_newest_value [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<A_burst_of_softness_values_in_a_drag_renders_once_and_that_render_is_the_newest_value>b__10_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 189
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_burst_of_softness_values_in_a_drag_renders_once_and_that_render_is_the_newest_value() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 186
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:02:03.68]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_drag_started_before_any_render_has_cached_the_copies_falls_back_to_a_full_render [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_drag_started_before_any_render_has_cached_the_copies_falls_back_to_a_full_render [25 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<A_drag_started_before_any_render_has_cached_the_copies_falls_back_to_a_full_render>b__11_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 220
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_drag_started_before_any_render_has_cached_the_copies_falls_back_to_a_full_render() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 213
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:02:23.72]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_live_frame_that_finishes_after_the_drag_ended_is_never_published [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_live_frame_that_finishes_after_the_drag_ended_is_never_published [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<A_live_frame_that_finishes_after_the_drag_ended_is_never_published>b__12_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 245
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.A_live_frame_that_finishes_after_the_drag_ended_is_never_published() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 241
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:02:43.73]     Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.An_out_of_range_softness_re_renders_at_the_clamped_value [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.An_out_of_range_softness_re_renders_at_the_clamped_value [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.<>c.<An_out_of_range_softness_re_renders_at_the_clamped_value>b__4_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 61
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreSoftnessTests.An_out_of_range_softness_re_renders_at_the_clamped_value() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreSoftnessTests.cs:line 58
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:03:03.74]     Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.The_render_also_keeps_a_1600_pixel_preview_copy_for_the_drag [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.The_render_also_keeps_a_1600_pixel_preview_copy_for_the_drag [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.<>c.<The_render_also_keeps_a_1600_pixel_preview_copy_for_the_drag>b__3_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreRenderTests.cs:line 35
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.The_render_also_keeps_a_1600_pixel_preview_copy_for_the_drag() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreRenderTests.cs:line 32
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:03:24.14]     Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.A_render_of_the_old_file_that_finishes_after_a_new_picture_was_installed_is_dropped [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.A_render_of_the_old_file_that_finishes_after_a_new_picture_was_installed_is_dropped [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.<>c.<A_render_of_the_old_file_that_finishes_after_a_new_picture_was_installed_is_dropped>b__5_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreRenderTests.cs:line 71
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.A_render_of_the_old_file_that_finishes_after_a_new_picture_was_installed_is_dropped() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreRenderTests.cs:line 67
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:03:44.18]     Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.A_full_render_is_the_3200_pixel_copy_and_is_blurred_only_above_zero_softness [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.A_full_render_is_the_3200_pixel_copy_and_is_blurred_only_above_zero_softness [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.<>c.<A_full_render_is_the_3200_pixel_copy_and_is_blurred_only_above_zero_softness>b__2_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreRenderTests.cs:line 16
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreRenderTests.A_full_render_is_the_3200_pixel_copy_and_is_blurred_only_above_zero_softness() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreRenderTests.cs:line 13
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:03:44.22]     Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.Installing_stores_only_the_file_name_under_wallpaperFile_and_a_restart_shows_the_same_picture [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.Installing_stores_only_the_file_name_under_wallpaperFile_and_a_restart_shows_the_same_picture [8 ms]
+  Error Message:
+   Assert.IsType() Failure: Value is null
+Expected: typeof(string)
+Actual:   null
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.<>c.<Installing_stores_only_the_file_name_under_wallpaperFile_and_a_restart_shows_the_same_picture>b__8_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStorePersistenceTests.cs:line 125
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.Installing_stores_only_the_file_name_under_wallpaperFile_and_a_restart_shows_the_same_picture() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStorePersistenceTests.cs:line 116
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:04:04.35]     Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.A_stored_file_that_exists_is_the_wallpaper_at_once_and_its_render_arrives_later [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.A_stored_file_that_exists_is_the_wallpaper_at_once_and_its_render_arrives_later [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.<>c.<A_stored_file_that_exists_is_the_wallpaper_at_once_and_its_render_arrives_later>b__5_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStorePersistenceTests.cs:line 70
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStorePersistenceTests.A_stored_file_that_exists_is_the_wallpaper_at_once_and_its_render_arrives_later() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStorePersistenceTests.cs:line 59
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:04:24.36]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Remove_cancels_the_render_deletes_the_file_clears_the_name_and_fades_out_over_a_quarter_second [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Remove_cancels_the_render_deletes_the_file_clears_the_name_and_fades_out_over_a_quarter_second [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<Remove_cancels_the_render_deletes_the_file_clears_the_name_and_fades_out_over_a_quarter_second>b__11_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 216
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Remove_cancels_the_render_deletes_the_file_clears_the_name_and_fades_out_over_a_quarter_second() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 213
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:04:44.38]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_pick_that_is_not_a_picture_reports_its_sentence_and_changes_nothing_else [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_pick_that_is_not_a_picture_reports_its_sentence_and_changes_nothing_else [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<A_pick_that_is_not_a_picture_reports_its_sentence_and_changes_nothing_else>b__7_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 120
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_pick_that_is_not_a_picture_reports_its_sentence_and_changes_nothing_else() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 117
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:05:04.39]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_copy_that_fails_reports_could_not_use_that_picture_and_leaves_the_current_wallpaper [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_copy_that_fails_reports_could_not_use_that_picture_and_leaves_the_current_wallpaper [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<A_copy_that_fails_reports_could_not_use_that_picture_and_leaves_the_current_wallpaper>b__8_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 143
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_copy_that_fails_reports_could_not_use_that_picture_and_leaves_the_current_wallpaper() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 140
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:05:24.41]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Installing_raises_the_flag_clears_the_error_and_cancels_the_render_in_flight [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Installing_raises_the_flag_clears_the_error_and_cancels_the_render_in_flight [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<Installing_raises_the_flag_clears_the_error_and_cancels_the_render_in_flight>b__3_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 23
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Installing_raises_the_flag_clears_the_error_and_cancels_the_render_in_flight() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 20
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:05:24.48]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Install_decodes_at_up_to_3200_pixels_blurred_at_the_softness_it_started_with_and_springs_in [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Install_decodes_at_up_to_3200_pixels_blurred_at_the_softness_it_started_with_and_springs_in [61 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<Install_decodes_at_up_to_3200_pixels_blurred_at_the_softness_it_started_with_and_springs_in>b__5_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 85
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Install_decodes_at_up_to_3200_pixels_blurred_at_the_softness_it_started_with_and_springs_in() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 74
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:05:44.50]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Remove_clears_the_wallpaper_even_when_its_file_cannot_be_deleted [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Remove_clears_the_wallpaper_even_when_its_file_cannot_be_deleted [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<Remove_clears_the_wallpaper_even_when_its_file_cannot_be_deleted>b__12_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 247
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Remove_clears_the_wallpaper_even_when_its_file_cannot_be_deleted() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 244
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:05:44.51]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_picture_that_cannot_be_decoded_leaves_no_copy_and_no_stored_name [FAIL]
+[xUnit.net 00:05:44.52]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Install_copies_the_picture_into_the_library_as_wallpaper_uuid_with_its_lower_cased_extension [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_picture_that_cannot_be_decoded_leaves_no_copy_and_no_stored_name [15 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<A_picture_that_cannot_be_decoded_leaves_no_copy_and_no_stored_name>b__9_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 181
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_picture_that_cannot_be_decoded_leaves_no_copy_and_no_stored_name() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 164
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Install_copies_the_picture_into_the_library_as_wallpaper_uuid_with_its_lower_cased_extension [8 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<Install_copies_the_picture_into_the_library_as_wallpaper_uuid_with_its_lower_cased_extension>b__4_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 50
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.Install_copies_the_picture_into_the_library_as_wallpaper_uuid_with_its_lower_cased_extension() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 41
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:06:04.53]     Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_successful_install_replaces_the_previous_file_and_stored_name [FAIL]
+  Failed Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_successful_install_replaces_the_previous_file_and_stored_name [20 s]
+  Error Message:
+   timed out waiting for: the start-up render
+  Stack Trace:
+     at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.WaitFor(Func`1 condition, String what, Int32 seconds) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 109
+   at Marrow.UI.Tests.Fixtures.WallpaperStoreRig.Loaded(List`1& published, String& file, Int32 width, Int32 height, Double softness) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/WallpaperStoreRig.cs:line 94
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.<>c.<A_successful_install_replaces_the_previous_file_and_stored_name>b__6_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 103
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Theme.WallpaperStoreInstallTests.A_successful_install_replaces_the_previous_file_and_stored_name() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/WallpaperStoreInstallTests.cs:line 100
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/ui-existing-wallpaper.trx
+
+Failed!  - Failed:    23, Passed:    36, Skipped:     0, Total:    59, Duration: 6 m 2 s - Marrow.UI.Tests.dll (net10.0)

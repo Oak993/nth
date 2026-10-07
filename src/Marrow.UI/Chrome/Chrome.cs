@@ -19,6 +19,7 @@ using Marrow.Core.Port;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
+using Marrow.UI.Theme.Wallpapers;
 
 // Source: DroppyCode/UI/Chrome/Chrome.swift (B3 52bc792), :1-1137. B3 delta (lane A25, ED-200, PR-WIN-202,
 // UI-WIN-005, UI-WIN-052): ChromeCard gains `lazy: Bool = false` (:1006-1027, was B2 :1006-1021, +6); WindowDragArea
@@ -336,11 +337,13 @@ namespace Marrow.UI.Chrome
     /// </summary>
     public sealed class WindowBackdrop : Decorator
     {
-        private enum Base { Wallpaper, Solid, Glass }
+        private enum Base { Wallpaper, LibraryWallpaper, Solid, Glass }
 
         private readonly Panel group = new(); // :225 Group
         private double opacity;
         private IImage? wallpaper;
+        private WallpaperSelection library = new();
+        private WallpaperView? libraryView;
         private readonly bool overAppContent;
         private Base? drawn;
         private Control? baseView;
@@ -388,6 +391,16 @@ namespace Marrow.UI.Chrome
             var end = layer.Opacity;
             layer.Opacity = start;
             stopTurn = AppearanceTurn.Run(this, progress => layer.Opacity = start + (end - start) * progress);
+        }
+
+        /// <summary>OD-0110: a library backdrop shares the custom picture's glass and opacity, preserving the picture underneath.</summary>
+        public void UpdateLibrary(WallpaperSelection selection)
+        {
+            var hadLibrary = library.Kind != WallpaperKind.None;
+            library = WallpaperLibraryStore.Normalize(selection);
+            if (hadLibrary != (library.Kind != WallpaperKind.None))
+                Transaction.WithAnimation(Animation.EaseInOut(duration: .3), Draw);
+            else Draw();
         }
 
         /// <summary>
@@ -448,13 +461,14 @@ namespace Marrow.UI.Chrome
             stopTurn = static () => { };
             var isDark = PlainControls.IsDark(ActualThemeVariant); // :219
             var isSolid = IsSolid(opacity); // :220-224
-            var next = wallpaper is not null ? Base.Wallpaper : isSolid ? Base.Solid : Base.Glass; // :226, :249, :251
+            var next = library.Kind != WallpaperKind.None ? Base.LibraryWallpaper : wallpaper is not null ? Base.Wallpaper : isSolid ? Base.Solid : Base.Glass; // :226, :249, :251
             if (next != drawn)
             {
                 if (baseView is { } old) SwiftTransition.Remove(group, old);
                 baseView = next switch
                 {
                     Base.Wallpaper => WallpaperBase(),
+                    Base.LibraryWallpaper => WallpaperBase(true),
                     Base.Solid => SolidBase(),
                     Base.Glass => GlassBase(),
                     _ => throw new UnreachableException(),
@@ -467,6 +481,7 @@ namespace Marrow.UI.Chrome
                 picture.Source = image; // :234
                 picture.Opacity = opacity; // :238
             }
+            if (libraryView is not null) { libraryView.Selection = library; libraryView.Opacity = opacity; }
             if (scrim is not null) { scrimGlide ??= new AnimatedScalar(this, 0, value => { if (scrim is { } layer) layer.Opacity = value; }); scrimGlide.Set(Scrim(opacity, isDark), null); } // :258 (a running glide stops here)
             if (wallpaperOverlay is { } overlay)
             {
@@ -477,14 +492,15 @@ namespace Marrow.UI.Chrome
         }
 
         // :226-248 The picture rides over the desktop: the setting is its own opacity, and no scrim is drawn here.
-        private Control WallpaperBase()
+        private Control WallpaperBase(bool builtIn = false)
         {
-            picture = new Image { Stretch = Stretch.UniformToFill }; // :235, :237 .resizable().aspectRatio(contentMode: .fill)
-            RenderOptions.SetBitmapInterpolationMode(picture, BitmapInterpolationMode.HighQuality); // :236 .interpolation(.high)
+            libraryView = builtIn ? new WallpaperView { Selection = library } : null;
+            picture = builtIn ? null : new Image { Stretch = Stretch.UniformToFill }; // :235, :237 .resizable().aspectRatio(contentMode: .fill)
+            if (picture is not null) RenderOptions.SetBitmapInterpolationMode(picture, BitmapInterpolationMode.HighQuality); // :236 .interpolation(.high)
             scrim = null;
             var clip = Fill(); // :232 shape.fill(.clear)
             clip.ClipToBounds = true; // :240 .clipShape(shape)
-            clip.Child = picture; // :233 .overlay
+            clip.Child = (Control?)libraryView ?? picture; // :233 .overlay
             // :241-247 `.overlay { if !isSolid { shape.fill(.clear).glassEffect(in: shape) } }`: over the picture the app
             // draws its own backdrop, where OD-0005 calls for the app-drawn material (ADR-0002 Glass (b)); Draw lays the
             // glass layer (GlassLayer) in this overlay while the setting is below 0.98.
@@ -496,6 +512,7 @@ namespace Marrow.UI.Chrome
         private Control SolidBase()
         {
             picture = null;
+            libraryView = null;
             scrim = null;
             wallpaperOverlay = null;
             var solid = Fill();
@@ -507,6 +524,7 @@ namespace Marrow.UI.Chrome
         private Control GlassBase()
         {
             picture = null;
+            libraryView = null;
             wallpaperOverlay = null;
             // :252-254 `shape.fill(.clear).glassEffect(in: shape)`: with no wallpaper the window shows the desktop, and
             // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app paints

@@ -1,0 +1,6 @@
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+WARNING: Overwriting results file: /workspace/marrow-port/porting/reports/wl-reconcile/core-traceability-final.trx
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/core-traceability-final.trx
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 234 ms - Marrow.Core.Tests.dll (net10.0)

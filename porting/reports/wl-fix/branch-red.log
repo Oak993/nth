@@ -1,0 +1,72 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.41]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Stairwell_keeps_the_tilted_reference_pixel_below_the_shadow_threshold [FAIL]
+[xUnit.net 00:00:01.55]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 129, y: 44, perspective: True, sheet: 3) [FAIL]
+[xUnit.net 00:00:01.67]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 128, y: 64, perspective: True, sheet: 3) [FAIL]
+[xUnit.net 00:00:01.80]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 62, y: 45, perspective: True, sheet: 3) [FAIL]
+[xUnit.net 00:00:01.96]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 65, y: 28, perspective: False, sheet: 3) [FAIL]
+[xUnit.net 00:00:02.11]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 152, y: 67, perspective: False, sheet: 1) [FAIL]
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Stairwell_keeps_the_tilted_reference_pixel_below_the_shadow_threshold [44 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   255
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Stairwell_keeps_the_tilted_reference_pixel_below_the_shadow_threshold() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperBranchParityTests.cs:line 34
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 129, y: 44, perspective: True, sheet: 3) [137 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 153
+Actual:   204
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Int32 x, Int32 y, Boolean perspective, Int32 sheet) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperBranchParityTests.cs:line 24
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 128, y: 64, perspective: True, sheet: 3) [125 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 153
+Actual:   204
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Int32 x, Int32 y, Boolean perspective, Int32 sheet) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperBranchParityTests.cs:line 24
+   at InvokeStub_WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 62, y: 45, perspective: True, sheet: 3) [128 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 153
+Actual:   204
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Int32 x, Int32 y, Boolean perspective, Int32 sheet) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperBranchParityTests.cs:line 24
+   at InvokeStub_WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 65, y: 28, perspective: False, sheet: 3) [153 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 153
+Actual:   204
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Int32 x, Int32 y, Boolean perspective, Int32 sheet) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperBranchParityTests.cs:line 24
+   at InvokeStub_WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(x: 152, y: 67, perspective: False, sheet: 1) [148 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 51
+Actual:   0
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Int32 x, Int32 y, Boolean perspective, Int32 sheet) in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperBranchParityTests.cs:line 24
+   at InvokeStub_WallpaperBranchParityTests.Tunnel_selects_the_reference_sheet_at_every_original_branch_failure(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+WARNING: Overwriting results file: /workspace/marrow-port/porting/reports/wl-fix/branch-red.trx
+Results File: /workspace/marrow-port/porting/reports/wl-fix/branch-red.trx
+
+Failed!  - Failed:     6, Passed:     0, Skipped:     0, Total:     6, Duration: 752 ms - Marrow.UI.Tests.dll (net10.0)

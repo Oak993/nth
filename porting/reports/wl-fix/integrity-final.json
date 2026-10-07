@@ -1,0 +1,53 @@
+{
+  "base": "fa74d2afce279017e89d9670b61dce17c3765c2c",
+  "unchanged": [
+    {
+      "scope": "tests/fixtures/wallpapers/reference",
+      "existingFiles": 4429,
+      "byteIdentical": true
+    },
+    {
+      "scope": "porting/first-release/design-src/wallpaper-library",
+      "existingFiles": 111,
+      "byteIdentical": true
+    },
+    {
+      "scope": "tests/Marrow.App.Tests/Wallpapers",
+      "existingFiles": 13,
+      "byteIdentical": true
+    },
+    {
+      "scope": "tests/Marrow.UI.Tests/Theme/Wallpapers",
+      "existingFiles": 23,
+      "byteIdentical": true
+    },
+    {
+      "scope": "porting/owner_decisions.md",
+      "existingFiles": 1,
+      "byteIdentical": true
+    }
+  ],
+  "ledgers": [
+    {
+      "file": "porting/engineering_decisions.md",
+      "baseBytes": 1405714,
+      "baseSha256": "4c8f95e6a1acfb8b0663e0fb61d30c3b88d1406c369748fee647b97b60ee5575",
+      "currentBytes": 1409387,
+      "prefixPreserved": true,
+      "baseCRLF": 0,
+      "baseLF": 2961,
+      "currentSha256": "88d268dd3acfe6dc566831c70fcb72118794e9441966e32c63f33bfe80ca9084"
+    },
+    {
+      "file": "porting/STATE.md",
+      "baseBytes": 44653,
+      "baseSha256": "f3a6596d69ed99082a68fd00598c9239110034349395cb97d507be79b2039d70",
+      "currentBytes": 45965,
+      "prefixPreserved": true,
+      "baseCRLF": 419,
+      "baseLF": 516,
+      "currentSha256": "d3abb7eed2d8f9609eaccc5477ea8cea7ec07cdf6918f2080ce9bccd54354299"
+    }
+  ],
+  "productionRevision": "24706fa725bf8bd198265c4426ba7f229d9cbc12"
+}

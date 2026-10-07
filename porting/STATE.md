@@ -655,3 +655,17 @@ Affected fake suites: Core voice 656 pass, Services voice 473 pass / 5 Windows s
 
 
 T23 final evidence supplement: f11ca528 repairs duplicate parenting caught by the new orb regression. Final App logic + Welcome/DetailView + traceability 100/100 pass at 0344a55d; Core traceability/new session regressions 6/6, Services traceability 3/3. Mounted orb reaches the Windows user32 popup boundary and needs Windows. Required broad Windows suites, pinned reference and packaged composition checks remain: NOT READY. This supplement appends bytes; prior entries remain exact.
+
+
+## WL-1 engine handoff (2026-10-05)
+
+Branch codex/f-wl-1 from requested base 0eb930d1d6d4611ac6654564ea52b3409b465666. Engine, resources, catalogue, compositor backdrop and saved selection are implemented; upstream None and custom-image behavior are retained. Scoped CPU tests: 307 new + 71 existing = 378 passing, no skipped; App builds with no warnings/errors. App Linux tests: 80 pass/95 fail, exactly the same outcomes as the requested base. Native Windows/GPU/WIC and visual/cost checks remain unverified. Final Settings library UI is the next separate unit. No queue status or whole-port parity claim. See porting/reports/codex-wl-1.md, its evidence JSON/ZIP, and the appended ED-396 section (including one later shared-options test-first-ordering exception). Only codex/f-wl-1 is authorized for push; no packaging/signing/publication/installer.
+
+
+[WALLPAPER][WL-RECONCILE] 2026-10-05. Branch codex/wl-reconcile starts at codex/f-wl-1 51447ee99, reconciles cloud/f-wl-3 f8fbb675d, codex/f-wl-4 b95251ee8 and codex/f-wl-5 d0d72fb1c, and preserves every wallpaper REVIEW artifact from cloud/review-wl-4-5 4930bebd5 byte-exact. One environment/selection/renderer/view/wake/store serves the approved 90 static and 72 animated wallpapers. The locked snapshot is unchanged; an explicit hash-bound derived-page patch resolves no-brown consistently. The full oracle has 5,148 cases with no size pruning. Decision: ED-397. Evidence and readiness/counts: porting/reports/wl-reconcile.md and porting/reports/wl-reconcile/. Only codex/wl-reconcile is authorized for push; no full-port/native Windows acceptance is claimed.
+
+[WALLPAPER][T20-WL-FIX] 2026-10-07. codex/wl-fix starts at held fa74d2afce279017e89d9670b61dce17c3765c2c. ED-398 checks in the independent CPU/live branch proof before production edits. 39 over-limit pixel occurrences in 20 frames; approximate pow/log and atan2 are causal. Perspective wiring matches the reference. Proof and next repair: porting/reports/wl-fix.md. Only codex/wl-fix is authorized for push.
+
+[WALLPAPER][T20-WL-FIX] 2026-10-07. ED-399 applies the proven reference arithmetic after f5ae4578. Six branch regressions and 44 affected frame comparisons pass; all corrected live grid branches match the reference. Full post-fix matrix remains the next gate; Windows GPU and inherited WIC acceptance are not claimed. Only codex/wl-fix may be pushed.
+
+[WALLPAPER][T20-WL-FIX] 2026-10-07. ED-400: READY for requested T20 raster fidelity. At tested production 24706fa7, full 5148-frame matrix, App 339 and UI 1239 cases pass with zero failures/skips; all 5104 unrelated measurements are identical. Source/fixture/assertion bytes and ledger prefixes remain intact. Native Windows GPU and inherited WIC acceptance are unverified. Final evidence: porting/reports/wl-fix.md and wl-fix/results-final.json. Proof f5ae4578 precedes fix 24706fa7. Push only codex/wl-fix without force.

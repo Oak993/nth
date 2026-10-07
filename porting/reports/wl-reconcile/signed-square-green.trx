@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="37f84eb3-7c90-4ca5-85cf-2d9ac43d40b4" name="@1909c9b16337 2026-10-05 12:30:13" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T12:30:13.9874962+00:00" queuing="2026-10-05T12:30:13.9874962+00:00" start="2026-10-05T12:30:11.6263339+00:00" finish="2026-10-05T12:30:13.9938490+00:00" />
+  <TestSettings name="default" id="b193cad2-c67d-44e8-8945-48538d7ff97e">
+    <Deployment runDeploymentRoot="_1909c9b16337_2026-10-05_12_30_13" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="ea10123e-9a43-406b-8c04-b36005e2bec7" testId="394c77c3-0e99-5a56-f29e-8141e8bd6cff" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperShaderArithmeticTests.The_signed_square_in_the_approved_bell_and_glint_profiles_is_symmetric" computerName="1909c9b16337" duration="00:00:00.0581485" startTime="2026-10-05T12:30:13.8550969+00:00" endTime="2026-10-05T12:30:13.8632215+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ea10123e-9a43-406b-8c04-b36005e2bec7" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperShaderArithmeticTests.The_signed_square_in_the_approved_bell_and_glint_profiles_is_symmetric" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="394c77c3-0e99-5a56-f29e-8141e8bd6cff">
+      <Execution id="ea10123e-9a43-406b-8c04-b36005e2bec7" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperShaderArithmeticTests" name="The_signed_square_in_the_approved_bell_and_glint_profiles_is_symmetric" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="394c77c3-0e99-5a56-f29e-8141e8bd6cff" executionId="ea10123e-9a43-406b-8c04-b36005e2bec7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.20]   Discovering: Marrow.UI.Tests
+[xUnit.net 00:00:01.60]   Discovered:  Marrow.UI.Tests
+[xUnit.net 00:00:01.64]   Starting:    Marrow.UI.Tests
+[xUnit.net 00:00:01.75]   Finished:    Marrow.UI.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

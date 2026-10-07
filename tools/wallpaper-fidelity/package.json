@@ -1,0 +1,14 @@
+{
+  "name": "marrow-wallpaper-fidelity",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "verify": "node generate.mjs --verify",
+    "check": "node check.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.57.0",
+    "pngjs": "7.0.0"
+  }
+}

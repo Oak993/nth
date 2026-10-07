@@ -145,7 +145,7 @@ internal sealed class SettingsRiseLayout
                 Walk(inner, items, ref first);
                 return;
             case Decorator { Child: { } inner } decorator when decorator is not Border && !DrawsItself(decorator):
-                Walk(inner!, items, ref first);
+                Walk(inner!, items, ref first); // The Child pattern above already excludes null (WL-1 build unblock).
                 return;
             default:
                 items.Add([node]);

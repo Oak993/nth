@@ -1,0 +1,64 @@
+{
+  "base": "51447ee9966c1016714e466d10353b92f2a59968",
+  "review": "4930bebd5",
+  "reviewFiles": {
+    "porting/reports/review-wl-4-5.md": {
+      "sha256": "6d6f75dcb302c36a8c8f81eb43e6dbe34ffc10d639772fbc875f1ff327b1dedc",
+      "byteIdentical": true
+    },
+    "tests/Marrow.App.Tests/Wallpapers/REVIEW_WallpaperFidelityGateTests.cs": {
+      "sha256": "9e3701547aab954a5e9dd15131140cbe77cf59e693527711b4fb79822396cf64",
+      "byteIdentical": true
+    },
+    "tests/Marrow.UI.Tests/Fixtures/REVIEW_StaticWallpaperRetarget.cjs": {
+      "sha256": "df387c66925241f1514018884260cdb85d97ade5671eeccf97f62b701a301984",
+      "byteIdentical": true
+    },
+    "tests/Marrow.UI.Tests/Fixtures/REVIEW_static-retarget.json": {
+      "sha256": "0480e14f1ba10aa2cf75a0a88e9c1451ee820e302d9d0ebb5b6e17aa747aeeec",
+      "byteIdentical": true
+    },
+    "tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperPageParityTests.cs": {
+      "sha256": "4dd2762b5022b60d60b83beb7f225fe53c68391676a241c809bbc045aa7fe53a",
+      "byteIdentical": true
+    },
+    "tests/Marrow.UI.Tests/Theme/Wallpapers/REVIEW_StaticWallpaperRenderTests.cs": {
+      "sha256": "6019456e442e04f70baef4d03417bac11c2435f382e458579fb98db2f47df4e5",
+      "byteIdentical": true
+    }
+  },
+  "engineeringPrefix": {
+    "bytes": 1397190,
+    "sha256": "befaf1d939e6d75f2c4246c9f598e09c90c0b1ea1e4572442371b7e325859431",
+    "byteIdentical": true,
+    "newBlockCount": 1,
+    "appendedBlockBytes": 8524
+  },
+  "lockedSnapshotDiffBytes": 0,
+  "porting/STATE.md": {
+    "sha256": "f3a6596d69ed99082a68fd00598c9239110034349395cb97d507be79b2039d70",
+    "crlf": 419,
+    "lfOnly": 97,
+    "basePrefixByteIdentical": true
+  },
+  "porting/owner_decisions.md": {
+    "sha256": "e79a4c145344d651f21f9af5f57955ac6531a7718fbe8c41f209f0cafff4e0af",
+    "crlf": 599,
+    "lfOnly": 457,
+    "basePrefixByteIdentical": true
+  },
+  "inheritedTests": {
+    "tests/Marrow.Services.Tests/Port/Skills/Host/REVIEW_SkillsHostGcTests.cs": {
+      "sha256": "645b61018b64a4d7d83bf14799ef88cccbff49d1d4e1f31c01599f6a74fe8529",
+      "byteIdentical": true
+    },
+    "tests/Marrow.Services.Tests/Port/Skills/Host/SkillsHostCompositionTests.cs": {
+      "sha256": "039c120d23355602b78b401a24bcff356ebbcc23743c1d971d12f473b00a8e7a",
+      "byteIdentical": true
+    },
+    "tests/Marrow.Services.Tests/Port/Skills/Host/SkillsHostOrphanTests.cs": {
+      "sha256": "1565b35d810e1d34e181b7ed63a064554f1ecfe3a63e17199d0fe549326a585c",
+      "byteIdentical": true
+    }
+  }
+}

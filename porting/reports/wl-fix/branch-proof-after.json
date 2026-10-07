@@ -1,0 +1,83 @@
+{
+  "browser": "151.0.7922.173",
+  "manifestSha256": "fda5a5fb47627cdfc50e6b8d5e6a40d9bef657b3e7413986aa7c6184295b8f64",
+  "referenceFrames": 5148,
+  "es2ExactDecompositionChecks": 262144,
+  "geometryChecks": [
+    {
+      "geometry": "tunnel-default",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-default",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-default",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    },
+    {
+      "geometry": "tunnel-perspective",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-perspective",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "tunnel-perspective",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    },
+    {
+      "geometry": "stairwell-default",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-default",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-default",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    },
+    {
+      "geometry": "stairwell-perspective",
+      "backend": "swift",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-perspective",
+      "backend": "skia",
+      "pixels": 16000,
+      "branchDisagreementsWithLive": 0
+    },
+    {
+      "geometry": "stairwell-perspective",
+      "backend": "predicted-fix",
+      "pixels": 16000,
+      "branchDisagreementsWithReference": 0
+    }
+  ],
+  "failingPixels": [],
+  "affectedFrames": 44,
+  "framePixelBranchChecks": 704000
+}

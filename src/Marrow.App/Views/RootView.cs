@@ -296,6 +296,7 @@ public sealed class RootView : Decorator
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.HoldsTrafficLights, _ => UpdateChrome()); // :65
         this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsDragging, _ => UpdateChrome()); // :65
         this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, _ => UpdateBackdrop()); // :64
+        this.Track(() => Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.Current.Selection, value => backdrop.UpdateLibrary(value));
         this.Track(() => WallpaperStore.Shared.Current.Image, _ => UpdateBackdrop()); // :64
         this.Track(() => AppEnvironment.GetAppModel(this).IsCommandPalettePresented, _ => UpdatePalette()); // :72-76
         this.Track(() => AppEnvironment.GetAppModel(this).Alert, _ => UpdateAlert()); // :80-91

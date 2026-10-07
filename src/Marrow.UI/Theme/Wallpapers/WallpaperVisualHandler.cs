@@ -1,0 +1,75 @@
+using Avalonia;
+using Avalonia.Media;
+using Avalonia.Rendering.Composition;
+using Avalonia.Skia;
+using Marrow.UI.Port;
+using SkiaSharp;
+
+namespace Marrow.UI.Theme.Wallpapers;
+
+/// <summary>Owns all mutable shader and cache state on the render thread.</summary>
+internal sealed class WallpaperVisualHandler : CompositionCustomVisualHandler, IFrameSource
+{
+    private WallpaperSnapshot? snapshot;
+    private WallpaperRenderer? renderer;
+    private WallpaperPlayback? playback;
+    private Action<TimeSpan>? frame;
+    private bool registered, stopped;
+    private readonly SKPaint opacityPaint = new();
+
+    public override void OnMessage(object message)
+    {
+        if (message is WallpaperVisualStop)
+        {
+            stopped = true; playback?.Dispose(); renderer?.Dispose(); opacityPaint.Dispose(); frame = null; return;
+        }
+        if (stopped) return;
+        if (message is WallpaperWake) { playback?.Wake(); return; }
+        if (message is not WallpaperSnapshot next) return;
+        if (renderer is null)
+        {
+            renderer = new(next.Selection, next.Dark, next.Environment); playback = new(renderer, this, Invalidate);
+        }
+        else
+        {
+            if (next.Environment is { } environment && snapshot?.Environment != environment) renderer.SetEnvironment(environment);
+            renderer.Set(next.Selection, next.Dark);
+        }
+        snapshot = next; renderer.Visible = next.Visible; renderer.ReduceMotion = next.ReduceMotion;
+        playback!.Refresh(); Invalidate();
+    }
+
+    public void RequestFrame(Action<TimeSpan> callback)
+    {
+        frame = callback;
+        if (registered || stopped) return;
+        registered = true; RegisterForNextAnimationFrameUpdate();
+    }
+    public void CancelFrame(Action<TimeSpan> callback) { if (ReferenceEquals(frame, callback)) frame = null; }
+    public override void OnAnimationFrameUpdate()
+    {
+        registered = false; var callback = frame; frame = null;
+        if (stopped || snapshot is not { } s) return;
+        callback?.Invoke(TimeSpan.FromSeconds(s.Clock.GetTimestamp() / (double)s.Clock.TimestampFrequency));
+    }
+    public override Rect GetRenderBounds() => snapshot is { } s ? new Rect(s.Size) : default;
+    public override void OnRender(ImmediateDrawingContext context)
+    {
+        if (stopped || renderer is null || snapshot is not { Visible: true } s) return;
+        var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
+        if (feature is null) return;
+        using var lease = feature.Lease();
+        var canvas = lease.SkCanvas; var matrix = canvas.TotalMatrix;
+        var scale = (float)Math.Max(1, Math.Sqrt(matrix.ScaleX * matrix.ScaleX + matrix.SkewY * matrix.SkewY));
+        canvas.Save();
+        if (lease.CurrentOpacity < 1)
+        {
+            opacityPaint.Color = SKColors.White.WithAlpha((byte)Math.Clamp(Math.Round(lease.CurrentOpacity * 255), 0, 255));
+            canvas.SaveLayer(opacityPaint);
+        }
+        canvas.Scale(1 / scale);
+        renderer.Draw(canvas, (int)Math.Ceiling(s.Size.Width * scale), (int)Math.Ceiling(s.Size.Height * scale), scale, lease.GrContext);
+        if (lease.CurrentOpacity < 1) canvas.Restore();
+        canvas.Restore();
+    }
+}

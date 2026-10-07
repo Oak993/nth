@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="746e1c7e-50af-4351-980c-a1dafaf45c27" name="@1909c9b16337 2026-10-05 13:18:59" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T13:18:59.7871399+00:00" queuing="2026-10-05T13:18:59.7871399+00:00" start="2026-10-05T13:18:56.7752806+00:00" finish="2026-10-05T13:18:59.7925239+00:00" />
+  <TestSettings name="default" id="840c77ad-ef13-417d-aa18-ed8d9cda1a82">
+    <Deployment runDeploymentRoot="_1909c9b16337_2026-10-05_13_18_59" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="0bd969d0-c4bc-471f-9ac1-e383c15ed131" testId="223649e3-1d57-68bc-a8ee-9fd5ca55b476" testName="Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written" computerName="1909c9b16337" duration="00:00:00.1162001" startTime="2026-10-05T13:18:59.6044902+00:00" endTime="2026-10-05T13:18:59.6894181+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0bd969d0-c4bc-471f-9ac1-e383c15ed131">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "medusa"
+Actual:   "borealis"
+           ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperReconcileTests.cs:line 56
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="223649e3-1d57-68bc-a8ee-9fd5ca55b476">
+      <Execution id="0bd969d0-c4bc-471f-9ac1-e383c15ed131" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests" name="Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="223649e3-1d57-68bc-a8ee-9fd5ca55b476" executionId="0bd969d0-c4bc-471f-9ac1-e383c15ed131" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.24]   Discovering: Marrow.UI.Tests
+[xUnit.net 00:00:01.85]   Discovered:  Marrow.UI.Tests
+[xUnit.net 00:00:01.93]   Starting:    Marrow.UI.Tests
+[xUnit.net 00:00:02.10]       Assert.Equal() Failure: Strings differ
+[xUnit.net 00:00:02.10]                  ↓ (pos 0)
+[xUnit.net 00:00:02.10]       Expected: "medusa"
+[xUnit.net 00:00:02.10]       Actual:   "borealis"
+[xUnit.net 00:00:02.10]                  ↑ (pos 0)
+[xUnit.net 00:00:02.10]       Stack Trace:
+[xUnit.net 00:00:02.10]         /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperReconcileTests.cs(56,0): at Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written()
+[xUnit.net 00:00:02.10]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.10]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.12]   Finished:    Marrow.UI.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="1909c9b16337" outcome="Error" timestamp="2026-10-05T13:18:59.6937497+00:00">
+        <Text>[xUnit.net 00:00:02.10]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

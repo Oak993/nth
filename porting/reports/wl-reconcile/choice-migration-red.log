@@ -1,0 +1,23 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.10]     Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written [FAIL]
+  Failed Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written [116 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "medusa"
+Actual:   "borealis"
+           ↑ (pos 0)
+  Stack Trace:
+     at Marrow.UI.Tests.Theme.Wallpapers.WallpaperReconcileTests.Every_migrated_or_remembered_choice_is_canonical_before_a_sibling_is_written() in /workspace/marrow-port/tests/Marrow.UI.Tests/Theme/Wallpapers/WallpaperReconcileTests.cs:line 56
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/choice-migration-red.trx
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 116 ms - Marrow.UI.Tests.dll (net10.0)
