@@ -1,0 +1,8 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Results File: /tmp/skills-ui-round2/round2-linux-5.trx
+
+Passed!  - Failed:     0, Passed:   236, Skipped:     0, Total:   236, Duration: 20 s - Marrow.App.Tests.dll (net10.0)

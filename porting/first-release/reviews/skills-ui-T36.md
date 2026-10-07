@@ -46,3 +46,46 @@ Linux SDK 10.0.100 solution build, Debug with EnableWindowsTargeting=true: zero 
 - Native dark/light, Narrator/focus, required 100/125/150/200% DPI and Reduce Motion for all changed surfaces. Compare to the locked design; no substitute tolerances or reference updates.
 
 Release verdict: **NOT READY**. The commits are partial implementation with explicit remaining gaps, not a release-ready declaration.
+
+
+## Round 2 — lead rulings, 2026-10-07
+
+Ruling read from `origin/claude/lead-rulings:R-gaps-round2.md`, general section and T36. READY in this section means ready for T9's Windows verification; it is not full release acceptance. The Round 1 findings above remain historical evidence.
+
+| Row | Round 2 status | Result / remaining work |
+| --- | --- | --- |
+| RR-17 | DONE | Independent locked arrival opacity/movement with 120 ms delay, 450 ms delayed ring/check, compact popup opacity .22 s and movement .32 s, retained state folds with .34/.26 s curves. Outside-click/deactivation dismissal uses the same motion; interrupted close resumes from the drawn state. Compact completion/failure faces, inline progress and 26 px enlarge face completed. Both sidebar mounts and enlarge-to-original-run remain covered. Native acceptance belongs to T9. |
+| RR-18 | BLOCKED | Real Check/Add is bound to T35's API, including Folder/ZIP/public GitHub repository, exact checked tokens, cancellation/discard, retry, persisted Your own rows and actual provenance, own enable/remove, plugin generations and command registration. Tools Download all remains bound to original catalogue kinds through the existing host. The locked optional GitHub subtree path is still unsupported by the service; this is a functional gap, beyond Windows proof. |
+| RR-44 | DONE | Whole offer surface collapse, truthful known bytes/unknown-total spinner and omitted unknown percentage remain covered. T35's ordered start reservation is merged and exercised through the same host download service used by the UI. |
+
+No row was ALREADY DONE at the task's branch point. No new service/core/runtime implementation was authored by T36; those files are byte-identical to the merged T35 branch `a0437bbf`. T35 API `ca504ef5`, ordered starts `ef5ac4d2` and own command/plugin composition `a0437bbf` were merged, with engineering-ledger conflicts resolved by retaining all existing UI bytes and appending only the new backend records.
+
+RR-17 code: `SkillsProgressPill.cs`, `SkillsMotion.cs`, `SkillsCompactBody.cs`, `SkillsCompactFold.cs`; optional motion hook in `ViewLifetime.cs`, outside-dismiss routing in `PlainControls.cs`/`PopoverHost.cs`. Clock tests solve the CSS curve independently at fixed times; they do not relax the timing or compare only end states. The user's explicit approval corrects only the new Round 1 `SkillsProgressPillTests.cs:85` assertion, quoted in ED-NEW-skills-ui-6: zero movement at 100/120 ms, then 0.7791312484017134 at 220 ms. ED-8 corrects ED-6's expanded transcription to the literal CSS `transition-delay:.12s`. Baseline tests, references and tolerances are unchanged.
+
+RR-18 code: `CustomAddUiBackend.cs`, `CustomOwnModel.cs`, `CustomOwnRow.cs`, `CustomOwnDetail.cs`, `CustomAddSheet.cs` and `LibraryPage.cs`. IO and registry mutations run off the UI thread; successful Add refreshes the app-lifetime own model before claiming the item is under Your own. Service snapshots and copied payloads remain separate from managed catalogue state and provider imports. Full commit/location provenance is displayed without invented versions/licences.
+
+RR-18 blocker, with code proof: the locked sheet promises `GitHub link (owner/repo, optional path)` (`sd-page.js`, mirrored by `CustomAddSheet.cs:184`); the UI forwards the complete path. T35's `CustomSourcePaths.cs:79-95` accepts only `^[A-Za-z0-9_-]+/[A-Za-z0-9_.-]+$` and rejects `owner/repository/skills`. Its API note explicitly says branch/path URLs are unsupported. Stripping the path would add the wrong items and lose requested provenance. T35 needs subtree selection within the pinned archive, retaining the full input path/commit and exact validated tokens; T36 can then use the existing adapter unchanged. No backend-owned file was edited to bypass this boundary.
+
+RR-44 binding: `HostLibraryBackend.cs:34` uses `SkillsFirstInstall(host.Downloads)`; `SkillsDownloads.Join` now reserves its scheduler start inside the same gate as flight creation. The imported regression delays the first observer, requests a second item, and requires actual fake start order S1 then S3.
+
+Round 2 Linux verification (SDK 10.0.100, Debug, EnableWindowsTargeting=true; all functional tests use fakes, no live downloads/network):
+
+- Merged solution build: zero warnings, zero errors.
+- Final targeted App presentation/motion/Add/offer/formatter cases: 32/32 passed, zero skips.
+- Final selected UI popup cases: 54/54 passed, zero skips, including two additive custom-dismiss/reopen regressions and unchanged default-popup/card/content-swap cases.
+- Final custom-source, command/plugin composition and ordered-start Services cases: 25/25 passed, zero skips.
+- Five serial final App Linux selections: 236/236 passed each, zero skips. This selection includes Port.Skills, library/import/settings/update-pill and traceability cases; it excludes only the existing SkillsOfferFlowTests, SkillsOfferTimelineNativeTests and SkillsUninstallHookTests Windows paths. It does not substitute for the complete five-run Windows suite.
+- Gate B: eight passes. The complete Linux verify attempt cannot establish Gate A (missing pinned E:/Droppy reference), Gate D's default Windows build/requirement acceptance or the unimplemented remaining gates; it reports 8 FAIL / 16 PASS / 4 NOT_IMPLEMENTED. Its raw output is retained, alongside the successful explicit Linux-targeting solution build.
+- Source audit: no baseline test modified; the sole modified Round 1 test is the approved arrival correction. Engineering and STATE ledger Round 1 prefixes remain byte-identical (1,795,078 and 84,714 bytes). Scope checks show Core/Services/runtime match the merged T35 branch. No force push or other branch push.
+
+Raw red/green logs and TRX: `first-release/evidence/skills-ui/round2/`. The compact completion test first failed for the missing check; the fold test first failed for its absent type; outside dismissal first failed because native light-dismiss could close instantly; reopening first failed because the custom Open motion was not resumed. Original failures are retained. ED-NEW-skills-ui-5 through -11 record the Round 2 work and the approved test correction.
+
+Windows-run needs for T9:
+
+- Run the complete intended Windows build/test configurations and the full suite five times, including the three excluded App classes, import regressions, all custom-source/command/plugin composition and ordered-start cases, using fakes.
+- Capture both approved pill locations and compact popup in dark/light and required DPI modes. Verify locked dimensions, glass/tip/anchoring, typography/strings and source curves; test outside click, owner deactivation, Escape, rapid close/reopen, enlarge to the same run/page, completion/failure persistence, Pause/Resume/Cancel/Retry/Close and Reduce Motion.
+- Verify real Windows native Folder and ZIP selection/cancellation and ZIP filter; typed GitHub validation; tool Name/Command and bundle validation; candidate selection, parallel progress, retry, Done, restart, provenance, own switches/remove/original preservation and provider command/plugin use with fake providers.
+- Verify optional Tools library/detail and its Download all, terms/progress/cancel/failure/completion; offer-card known/unknown progress and all terminal collapses. Check Narrator/focus/keyboard and 100/125/150/200% DPI without changing references or tolerances.
+- Restore the pinned reference and run the mandatory acceptance/protected checks. Resolve unrelated release gate gaps through their owning work. Optional GitHub paths need a backend implementation before RR-18 can pass its corresponding Windows scenario.
+
+Round 2 verdict: **NOT READY** — RR-18's optional GitHub path remains a concrete API integration gap. RR-17 and RR-44 are ready for T9's Windows verification.

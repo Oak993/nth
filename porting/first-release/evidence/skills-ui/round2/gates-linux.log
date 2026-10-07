@@ -1,0 +1,98 @@
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+Droppy Code -> Windows port verification
+pinned source 52bc7926097cd622d08d6294e0d8b08a48c7516e
+reference     E:/Droppy/reference/droppy-code-v1.7.0
+
+Gate A
+  [FAIL] reference checkout is at the pinned commit
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 rev-parse HEAD
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] reference tree hash matches the pinned tree
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 rev-parse HEAD^{tree}
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] reference working tree is unmodified
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 status --porcelain
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] inventory reconciles against the pinned git tree
+         Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 ls-files
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+  [FAIL] every inventory sha256 matches the file on disk
+         ENOENT: no such file or directory, open 'E:/Droppy/reference/droppy-code-v1.7.0/.commandcode/taste/taste.md'
+  [PASS] every first-party file is marked READ
+         441/441 read
+  [PASS] read ledger has exactly one record per inventory path
+         441 records, 1:1 with inventory
+  [PASS] ledger digests match the pinned inventory digests
+         441 ledger digests match
+  [PASS] text-file coverage reaches the true last line
+         all text files covered end to end
+  [PASS] binary assets carry an inspection record
+         30 binary assets inspected
+  [PASS] no generic finding reused across different files
+         every purpose is file-specific
+  [PASS] every critic finding has been adjudicated
+         1079 findings adjudicated across 10 families
+Gate C
+  [PASS] no quarantined behavior is implemented while its owner decision is open
+         no open quarantine entries
+Gate B
+  [PASS] architecture record exists and is substantive
+         63015 bytes, 194 source citations
+  [PASS] parity matrix exists with well-formed requirements
+         3992 requirements across 20 areas
+  [PASS] every cited source path exists in the pinned inventory
+         all cited source paths exist at 52bc7926; all cited port artifacts exist on disk
+  [PASS] UI contract exists with well-formed records
+         1057 UI records
+  [PASS] quarantined behavior is not marked ready to implement
+         no open quarantine entries
+  [PASS] no requirement silently depends on an unresolved unknown
+         15 open unknowns, 36 requirement(s) declare a dependency
+  [PASS] every completeness-audit finding has been adjudicated
+         83 findings adjudicated across 4 scopes
+  [PASS] platform adaptation register covers the identified boundaries
+         21 adaptation entries
+Gate C
+  [FAIL] no temporary stub remains in the implementation
+         26 stub(s) remain:
+    src/Marrow.App/Runtime/AutoContinue.cs:113 NotImplementedException
+    src/Marrow.App/Runtime/AutoContinue.cs:113 MARROW_STUB marker
+    src/Marrow.App/Views/RootView.cs:49 MARROW_STUB marker
+    src/Marrow.App/Views/Settings/SettingsView.cs:37 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:40 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:55 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:66 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:75 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:77 MARROW_STUB marker
+    src/Marrow.Core/Models/Hydra.cs:12 MARROW_STUB marker
+    src/Marrow.Core/Models/Hydra.cs:27 MARROW_STUB marker
+    src/Marrow.Core/Models/Hydra.cs:56 MARROW_STUB marker
+    ... and 14 more
+Gate D
+  [FAIL] the solution builds and every test passes, none skipped
+         build failed:
+    
+  [FAIL] every applicable requirement is VERIFIED by a bound test run
+         no requirement verification yet: run node porting/tools/req_verify.mjs
+Gate C
+  [TODO] no fake-success paths, dead controls or unapproved product changes
+         gate not built yet; it fails by design rather than passing by omission
+Gate D
+  [TODO] interaction tests, visual comparison, persistence/restart and cancellation evidence per verification_method
+         gate not built yet; it fails by design rather than passing by omission
+Gate E
+  [TODO] packaged artifact installs, launches, cleans up children, upgrades and uninstalls
+         gate not built yet; it fails by design rather than passing by omission
+Gate F
+  [TODO] independent parity review with no unresolved required discrepancy
+         gate not built yet; it fails by design rather than passing by omission
+
+FAIL=8  PASS=16  NOT_IMPLEMENTED=4
+RESULT: NOT ACCEPTABLE (mandatory checks unmet)
