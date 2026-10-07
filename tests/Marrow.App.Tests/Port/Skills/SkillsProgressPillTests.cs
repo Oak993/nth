@@ -82,7 +82,11 @@ public sealed class SkillsProgressPillTests(HeadlessSession headless)
         h.Settle();
         Assert.Equal(0, pill.Revealed);
         h.Step(100);
-        Assert.InRange(pill.Revealed, 0.001, 0.999);
+        Assert.Equal(0, pill.Revealed); // Approved Round 2 correction: CSS:459 holds the arrival for .12s.
+        h.Step(20);
+        Assert.Equal(0, pill.Revealed);
+        h.Step(100);
+        Assert.Equal(.7791312484017134, pill.Revealed, 6); // --ez(.25): .1s into the locked .4s movement.
         h.Step(500);
         Assert.Equal(1, pill.Revealed);
         h.Controller.StopRun();
