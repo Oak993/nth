@@ -397,6 +397,154 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
     // programs. Both launches share one folder under the run's data folder (never the user's). Recorded: jewel-cache.txt.
     private static string SharedProgramCache() => Path.Combine(RunFolder(), "jewel-gpu-programs");
 
+    [Fact]
+    [Trait("Decision", "ED-248")]
+    public void A_steady_jewel_slider_delivers_no_frame_clock_callbacks_on_main()
+    {
+        native.Run(_ =>
+        {
+            var (window, source, slider) = native.OnUi(() =>
+            {
+                var window = new Avalonia.Controls.Window { Width = 380, Height = 110, ShowInTaskbar = false };
+                native.Register(window);
+                window.Template = new FuncControlTemplate<Avalonia.Controls.Window>((owner, _) => new ContentPresenter { Content = owner.Content });
+                var source = new StrikeMeasurementFrameSource(new AvaloniaFrameSource(window));
+                FrameClock.Source.SetProcessDefault(source);
+                var selected = 3;
+                var slider = new EffortSlider(4, new Binding<int>(() => selected, value => selected = value), "Max", true, EffortBrand.Claude) { Width = 298 };
+                window.Content = slider; window.Show(); window.Activate();
+                return (window, source, slider);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            Thread.Sleep(5000);
+            var before = native.OnUi(() => source.MainFrames);
+            var gpu = JewelKnobOperation.GpuFrames;
+            Thread.Sleep(3000);
+            Assert.True(JewelKnobOperation.GpuFrames > gpu, "the GPU knob must keep animating");
+            var delivered = native.OnUi(() => source.MainFrames) - before;
+            File.WriteAllText(Record("strike-main-sources.json"), System.Text.Json.JsonSerializer.Serialize(
+                source.RenderSources.Select(s => new { periodMs = s.RefreshPeriod?.TotalMilliseconds, ticks = s.Ticks, refresh = s.Refresh })));
+
+            Assert.True(delivered == 0, $"steady slider delivered {delivered} main callbacks in three seconds");
+        }, factType: typeof(EffortSliderNativeFrameTests));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-248")]
+    public void Both_retained_slider_sources_keep_sixty_updates_per_second_without_refresh_drift()
+    {
+        native.Run(_ =>
+        {
+            var (window, source, slider) = native.OnUi(() =>
+            {
+                var window = new Avalonia.Controls.Window { Width = 380, Height = 110, ShowInTaskbar = false };
+                native.Register(window);
+                window.Template = new FuncControlTemplate<Avalonia.Controls.Window>((owner, _) => new ContentPresenter { Content = owner.Content });
+                var source = new StrikeMeasurementFrameSource(new AvaloniaFrameSource(window));
+                FrameClock.Source.SetProcessDefault(source);
+                var selected = 3;
+                var slider = new EffortSlider(4, new Binding<int>(() => selected, value => selected = value), "Max", true, EffortBrand.Claude) { Width = 298 };
+                window.Content = slider; window.Show(); window.Activate();
+                return (window, source, slider);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            Thread.Sleep(5000);
+            var effect = native.OnUi(() => Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>()));
+            var before = effect.Draws;
+            var gpu = JewelKnobOperation.GpuFrames;
+            Thread.Sleep(3000);
+            var count = effect.Draws - before;
+            var jewel = JewelKnobOperation.GpuFrames - gpu;
+            File.WriteAllText(Record("strike-native-cadence.json"), System.Text.Json.JsonSerializer.Serialize(new
+            {
+                count, jewel, sources = source.RenderSources.Select(s => new { periodMs = s.RefreshPeriod?.TotalMilliseconds, ticks = s.Ticks, refresh = s.Refresh })
+            }));
+            Assert.InRange(count, 174, 183);
+            Assert.InRange(jewel, 174, 183);
+        }, factType: typeof(EffortSliderNativeFrameTests));
+    }
+    // ST-0 diagnostic under shared-PC load; the lead's quiet-window gate remains separate.
+    [Fact]
+    [Trait("Decision", "ED-248")]
+    public void Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor()
+    {
+        native.Run(_ =>
+        {
+            Assert.True(System.Runtime.GCSettings.IsServerGC, "the child must enable server GC before runtime startup");
+            Assert.Null(Environment.GetEnvironmentVariable("DOTNET_GCHeapAffinitizeMask"));
+            var (window, source, slider) = native.OnUi(() =>
+            {
+                var window = new Avalonia.Controls.Window { Width = 380, Height = 110, ShowInTaskbar = false };
+                native.Register(window);
+                window.Template = new FuncControlTemplate<Avalonia.Controls.Window>((owner, _) => new ContentPresenter { Content = owner.Content });
+                var source = new StrikeMeasurementFrameSource(new AvaloniaFrameSource(window));
+                FrameClock.Source.SetProcessDefault(source);
+                var selected = 3;
+                var slider = new EffortSlider(4, new Binding<int>(() => selected, value => selected = value), "Max", true, EffortBrand.Claude) { Width = 298 };
+                window.Content = slider; window.Show(); window.Activate();
+                return (window, source, slider);
+            });
+            N.Until(() => native.OnUi(() => window.IsActive), "the measurement window never became active");
+            Thread.Sleep(5000);
+            var probe = new StrikeTickMeasurement();
+            var before = native.OnUi(() =>
+            {
+                probe.Effect = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+                Assert.NotEmpty(source.RenderSources);
+                var visual = Avalonia.Rendering.Composition.ElementComposition.GetElementVisual(slider)!.Compositor.CreateCustomVisual(probe);
+                Avalonia.Rendering.Composition.ElementComposition.SetElementChildVisual(slider, visual);
+                probe.Active = window.IsActive;
+                window.PropertyChanged += (_, change) => { if (change.Property == WindowBase.IsActiveProperty) probe.Active = window.IsActive; };
+                probe.On = true;
+                visual.SendHandlerMessage(StrikeTickMeasurement.Start);
+                return (UiBytes: GC.GetAllocatedBytesForCurrentThread(), Main: source.MainFrames,
+                    Records: probe.Effect.Recordings, Thread: Environment.CurrentManagedThreadId);
+            });
+            var collections = new[] { GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2) };
+            var gpu = JewelKnobOperation.GpuFrames;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            Thread.Sleep(60000);
+            probe.On = false;
+            var seconds = watch.Elapsed.TotalSeconds;
+            var after = native.OnUi(() => (UiBytes: GC.GetAllocatedBytesForCurrentThread(), Main: source.MainFrames, Records: probe.Effect.Recordings, Active: window.IsActive));
+            var n = probe.Count;
+            Assert.True(n > 600, "the real compositor did not deliver measurement ticks");
+            Assert.NotEqual(before.Thread, probe.Thread);
+            Assert.True(JewelKnobOperation.GpuFrames > gpu, "the knob must use the real GPU");
+            var draws = probe.Draws[n - 1] - probe.Draws[0];
+            var intervals = Enumerable.Range(1, n - 1).Select(i => probe.Bytes[i] - probe.Bytes[i - 1]).OrderDescending().ToArray();
+            var drawn = intervals.Take((int)draws).Order().ToArray();
+            var quiet = intervals.Skip((int)draws).Order().ToArray();
+            var gaps = new List<double>();
+            var last = probe.Stamps[0];
+            for (var i = 1; i < n; i++) if (probe.Draws[i] != probe.Draws[i - 1])
+            {
+                gaps.Add(System.Diagnostics.Stopwatch.GetElapsedTime(last, probe.Stamps[i]).TotalMilliseconds); last = probe.Stamps[i];
+            }
+            gaps.Add(System.Diagnostics.Stopwatch.GetElapsedTime(last, probe.Stamps[n - 1]).TotalMilliseconds);
+            var report = new
+            {
+                gate = "INFORMATIVE_UNDER_SHARED_PC_LOAD", serverGc = System.Runtime.GCSettings.IsServerGC,
+                seconds, ticks = n, draws, updatesPerSecond = draws / seconds,
+                inactiveTicks = probe.InactiveTicks, activeAtEnd = after.Active,
+                sources = source.RenderSources.Select(s => new { ticks = s.Ticks, refresh = s.Refresh, periodMs = s.RefreshPeriod?.TotalMilliseconds }),
+                mainFrames = after.Main - before.Main, uiBytes = after.UiBytes - before.UiBytes,
+                uiBytesPerSecond = (after.UiBytes - before.UiBytes) / seconds, recordings = after.Records - before.Records,
+                renderThread = probe.Thread, uiThread = before.Thread,
+                drawnMedianBytes = drawn.Length == 0 ? 0 : drawn[drawn.Length / 2],
+                quietMedianBytes = quiet.Length == 0 ? 0 : quiet[quiet.Length / 2],
+                longestObservedContentGapMs = gaps.Count == 0 ? 0 : gaps.Max(),
+                collections = Enumerable.Range(0, 3).Select(i => GC.CollectionCount(i) - collections[i]).ToArray(),
+                gpuKnobFrames = JewelKnobOperation.GpuFrames - gpu,
+                quietWindow = false, nativeLockHeld = true,
+                presentationCapture = "not measured; compositor update gaps are not DXGI present intervals"
+            };
+            var encoded = System.Text.Json.JsonSerializer.SerializeToElement(report);
+            File.WriteAllText(Record("strike-st0-gate-failures.json"), System.Text.Json.JsonSerializer.Serialize(StrikeMeasurementGate.Failures(encoded)));
+            File.WriteAllText(Record("strike-st0-load.json"), System.Text.Json.JsonSerializer.Serialize(report, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        }, factType: typeof(EffortSliderNativeFrameTests));
+    }
+
     // the run's data folder (it outlives the native child, whose own temp folder is removed with it)
     private static string RunFolder()
     {

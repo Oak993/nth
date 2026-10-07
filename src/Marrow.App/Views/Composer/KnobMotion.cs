@@ -158,7 +158,7 @@ public sealed class KnobSignal
     /// </summary>
     public int Strikes(StrikeGeometry g, int seed, double t)
     {
-        if (!Equals(exitsFor, g)) { exits.Clear(); exitsFor = g; }
+        if (exitsFor != g) { exits.Clear(); exitsFor = g; }
         count = 0;
         var k0 = (int)Math.Floor(t / Strike.Period);
         for (var k = k0 - 2; k <= k0 + 1; k++)
@@ -192,7 +192,7 @@ public sealed class KnobSignal
         double charge = 0, flare = 0;
         var phase = KnobPhase.Rest;
         double? phaseAt = null;
-        var n = g is null ? 0 : Strikes(g, seed, t);
+        var n = g is null ? 0 : Strikes(g.Value, seed, t);
         // orbAim(g, list, 0, 1): the exit angles averaged on the circle, each weighted by its envelope
         double sx = 0, sy = 0, latest = double.NegativeInfinity, th = ExitAngle;
         for (var i = 0; i < n; i++)

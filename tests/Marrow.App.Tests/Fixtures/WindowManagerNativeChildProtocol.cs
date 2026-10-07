@@ -86,6 +86,9 @@ internal static class WindowManagerNativeChildProtocol
         values["APPDATA"] = Path.Combine(run, "roaming");
         values["NUGET_PACKAGES"] = Path.Combine(run, "nuget");
         values["DOTNET_HOST_PATH"] = dotnet;
+        // ST-0: the test runtime starts before App.csproj can affect GC mode.
+        values["DOTNET_gcServer"] = "1";
+        values["DOTNET_gcConcurrent"] = "1";
         values["DOTNET_CLI_HOME"] = Path.Combine(run, "home");
         // SDK first-use must not create certificates or alter the user's tools PATH.
         values["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false";
