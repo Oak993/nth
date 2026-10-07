@@ -31,10 +31,12 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     public string Prepare(string provider, IEnumerable<GenerationItem> items, SkillSwitches switches, GenerationBudget budget,
         IEnumerable<ExistingSkill>? existing = null, bool global = true)
     {
+        var imported = importedSource?.Snapshot() ?? [];
+        var ownPlugins = ownPluginSource?.SnapshotPlugins() ?? [];
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."));
+            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."), imported, ownPlugins);
             var cacheKey = provider + "/" + plan.Key;
             if (global) globalKeys[provider] = plan.Key;
             Evict(provider, plan.Key);
@@ -48,6 +50,8 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     public Generation Start(string provider, string chatId, IEnumerable<GenerationItem> items, SkillSwitches switches,
         GenerationBudget budget, IEnumerable<ExistingSkill>? existing = null)
     {
+        var imported = importedSource?.Snapshot() ?? [];
+        var ownPlugins = ownPluginSource?.SnapshotPlugins() ?? [];
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
@@ -55,7 +59,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             if (chatId.Contains('/', StringComparison.Ordinal)) throw new ArgumentException("A chat id is one safe path component.", nameof(chatId));
             var liveKey = provider + "/" + chatId;
             if (live.Contains(liveKey)) throw new InvalidOperationException("This chat already has a live generation.");
-            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."));
+            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."), imported, ownPlugins);
             var parent = ProviderRoot(provider);
             var target = paths.RequireManaged(Path.Combine(parent, chatPaths.Get(provider, chatId)));
             var previous = target;
@@ -128,7 +132,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     }
 
     private GenerationPlan Compose(string provider, IEnumerable<GenerationItem> source, SkillSwitches switches,
-        GenerationBudget budget, IEnumerable<ExistingSkill> existing)
+        GenerationBudget budget, IEnumerable<ExistingSkill> existing, IReadOnlyList<ImportedGenerationSkill> importedSnapshot, IReadOnlyList<OwnGenerationPlugin> ownPlugins)
     {
         GenerationFilters.RequireProvider(provider);
         if (string.IsNullOrWhiteSpace(switches.Version)) throw new ArgumentException("A reviewed catalogue release version is required.", nameof(switches));
@@ -153,8 +157,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             var chosen = new List<GenerationSkill>();
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var room = budget.Room(user);
-            var ownPlugins = ownPluginSource?.SnapshotPlugins() ?? [];
-            var importedAvailable = importedSource?.Snapshot() ?? [];
+            var importedAvailable = importedSnapshot;
             var importedChosen = new List<(ImportedGenerationSkill Skill, GenerationSkill Meta)>();
             void ChooseImported(ImportedGenerationSkill imported)
             {
@@ -421,10 +424,12 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     public GenerationListing Listing(string provider, IEnumerable<GenerationItem> items, SkillSwitches switches, GenerationBudget budget,
         IEnumerable<ExistingSkill>? existing = null)
     {
+        var imported = importedSource?.Snapshot() ?? [];
+        var ownPlugins = ownPluginSource?.SnapshotPlugins() ?? [];
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."));
+            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."), imported, ownPlugins);
             var key = provider + "/" + plan.Key;
             if (!listings.TryGetValue(key, out var generation))
             {

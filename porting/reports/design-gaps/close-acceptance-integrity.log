@@ -1,0 +1,8 @@
+PASS porting/engineering_decisions.md: exact 1791498-byte prefix; SHA-256 a570dbe1862136f14743d7541265bdbdd6c4e58f0dfb8c2bb15bfb2fcf26eabc; 2128 appended bytes
+PASS porting/STATE.md: exact 84858-byte prefix; SHA-256 46ae12c7bafff73c6eb9c7d4036ad89db6ae39c3de274fd01c5061202fcbe0d0; 937 appended bytes
+PASS SettingsRiseTests.cs: only the authorized assertion changed; every other byte retained.
+PASS porting/probes/design-gaps-native/DesignGapsNative.csproj: byte-identical; SHA-256 68be48be2aea3eaee08f5c50a36964e0b8a91b359e0f6e745ecbc09fd64ab652
+PASS porting/probes/design-gaps-native/Program.cs: byte-identical; SHA-256 1aca9d0256e4ff1da0705e89eb5e1e140a0fd270586bcb4b09ccf3199aaeb417
+PASS porting/probes/design-gaps-native/README.md: byte-identical; SHA-256 f7908bba52088dd3ed2eb15690baf265e0cc2d869395449a4365a38cc75ee75b
+PASS porting/owner_decisions.md: byte-identical; SHA-256 c08e93fcc1d5c1a509557be6129a9b5d7500c3032e104b60881c40615b0f09a4
+PASS no runtime implementation changed in this follow-up.

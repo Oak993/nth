@@ -29,8 +29,8 @@ namespace Marrow.App.Port.FirstRun;
 //      launch's boot hand-over (ED-103) is its transition in; the sheet never appears by itself.
 //  (3) The glass is the app's (SwiftGlass.Regular, as HydraPanel and CommandPalette use it), not the page's CSS frost; its top is
 //      taller than the window's edge so the square top the page draws is the window's own edge.
-//  (4) The pane's saturation (0.6 returning to 1) is not drawn: Avalonia 12.1.2 has no saturation effect (only blur and shadow); the
-//      blur and the dimming carry the look. UNVERIFIED against the page's frames; tracked in porting/STATE.md.
+//  (4) RR-37: the pane's saturation (0.6 returning to 1) is drawn by RootView's live Skia SaturationLayer, alongside
+//      the approved blur and dimming. Native cost and full design-frame comparison still need Windows evidence.
 //  (5) Reduce motion stills every transition here (the sheet is an addition beyond the Mac: the lead's rule of 2026-10-04, ED-084): each
 //      goes to its end at once; the 0.15 s hold stays (the page keeps it), the spinner turns on (ED-231).
 //  (6) The line under the title is the page's one line in Segoe UI Variable; in the app's own font (Inter, wider) it would leave "once." alone

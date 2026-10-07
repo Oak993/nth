@@ -1,0 +1,4 @@
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.6.2': No such file or directory
+protected paths unchanged against HEAD; reference checkout clean
