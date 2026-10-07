@@ -15,9 +15,14 @@ namespace Marrow.App.Tests.Port.MultiAccount;
 [Trait("Rule", "R-TEST-4")]
 public sealed class LiveComposerSendTests(HeadlessSession headless)
 {
+    private static void LoadLogin() => System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+
     [Fact]
     public void The_composer_send_uses_the_opinion_engine_and_clears_only_the_sent_draft()
     {
+        // The login environment loads off the UI thread first, as every other ThreadRuntime rig test does: PrepareBootstrap waits
+        // on it synchronously, which inside OnUiThread deadlocks against its own continuation on Windows (ED-643).
+        LoadLogin();
         headless.OnUiThread(() =>
         {
             using var reader = MultiAccountRouting.LimitsReader.Override((_, _, _) => Task.FromResult<PlanLimits?>(null));

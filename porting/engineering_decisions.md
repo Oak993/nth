@@ -5631,3 +5631,10 @@ Keep all historical ledger bytes; exact owner-authorized census row appended to 
 Census addendum (T9 replacement gate): ContinuousCornerSitesTests' table gains OpinionRoundView's 26 pt Combine button, CornerRadius(13), classed Capsule (r = h / 2). Census and Traceability pass twice alone on the combined tree.
 
 Keep all historical ledger bytes; exact owner-authorized census row appended to the existing union, with unchanged census logic and assertions. No new full sweep.
+
+
+## ED-643 - Lead-supplied cold login fixture correction (ENGINEERING DECISION)
+
+Login-environment addendum (T9 replacement gate): LiveComposerSendTests and LiveViewLifetimeTests built ThreadRuntimeTurnRig inside HeadlessSession.OnUiThread, where AppModelFixtures.PrepareBootstrap waits synchronously on LoginEnvironment.Load() and deadlocked to its 2-minute bound on Windows. Each now loads it off the UI thread first through a LoadLogin() helper, the pattern of the 60 other ThreadRuntime rig tests (e.g. SkillsOfferMountTests.LoadLogin). No assertion or bound changed; both classes 5/5 twice alone (under 1 s).
+
+T9: merge exact owner-authorized head 85e3d2aac; preserve every assertion and bound. The two Windows cold-process failures occurred before behavior assertions. Re-run only these two classes twice alone and Traceability, per the lead ruling; no additional full sweep. Historical ledger bytes are retained.
