@@ -61,8 +61,7 @@ internal sealed class LinkPopoverColumns : Decorator
     {
         if (model.Accounts.FirstOrDefault(a => a.Id == id) is not { } account) return;
         var row = popover.Rows.Single(r => r.AccountId == id);
-        var pin = row.GetLogicalDescendants().OfType<Button>().First(b => LibraryUi.IdOf(b) == "popover-pin-" + id.ToString("N"));
-        var source = ((Grid)pin.Content!).Children.First(c => Grid.GetColumn(c) == 1); var end = target();
+        var source = row.LinkMark; var end = target();
         if (end is null) { model.Complete(id); Refresh(); return; } // exact page missing-anchor fast path.
         Flight?.Stop();
         ownerLayer = OverlayLayer.GetOverlayLayer(end);

@@ -4190,3 +4190,6 @@ MAUI-034/035/036/037/038: card explanation retains accessible full Text while em
 
 ## ED-NEW-ma-wave1-17
 MAUI-046/047: step defaults use the existing floating presenter, with real SmallSwitch binding for Same as the account and the existing effort card; no inline expansion. Minimum-two refusal follows HTML4466 300ms 0/-4/+4/0 keyframes with CSS ease per segment; Reduce Motion uses opacity feedback. Legacy inline-open assertion stays unchanged for lead disposition.
+
+## ED-NEW-ma-wave1-18
+MAUI-001 Link fidelity follow-up: HTML2716/2741-2749 flies the account monogram from its actual rectangle, not the row number. Link adapter now anchors on retained row.LinkMark; no T16 file changed. New monogram proof failed alone twice first. The protected old number-origin assertion remains for lead disposition.
