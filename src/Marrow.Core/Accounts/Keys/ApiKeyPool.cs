@@ -27,7 +27,6 @@ public sealed class ApiKeyPool
     private readonly Dictionary<Guid, string> pins = [];
     private readonly Dictionary<Guid, Rotation> rotations = [];
     private readonly HashSet<(string Key, int Month)> capped = [];
-    private readonly Dictionary<Guid, (string Key, double Usd)> activeReservations = [];
 
     public ApiKeyPool(string service, IApiKeyStore store, IApiKeyCredits credits, IApiKeySpend spend, TimeProvider clock, ApiKeyPoolOptions? options = null, IKeyMovePolicy? moves = null)
     {
@@ -118,11 +117,7 @@ public sealed class ApiKeyPool
         entry.Allowed && HasSecret(entry) && !IsOut(entry.Id, now) && !OverCap(entry, now);
 
     private bool OverCap(ApiKeyEntry entry, DateTimeOffset now) =>
-        entry.MonthlyCapUsd is { } cap && BudgetSpend(entry.Id, Month(now).Start)
-            - activeReservations.Values.Where(item => item.Key == entry.Id).Sum(item => item.Usd) >= cap;
-
-    private double BudgetSpend(string keyId, DateTimeOffset since) => spend is IApiKeyReservedSpend durable
-        ? durable.BudgetSince(keyId, since) : spend.SpendSince(keyId, since);
+        entry.MonthlyCapUsd is { } cap && spend.SpendSince(entry.Id, Month(now).Start) >= cap;
 
     private bool IsOut(string keyId, DateTimeOffset now)
     {
@@ -163,7 +158,6 @@ public sealed class ApiKeyPool
             if (outs.TryGetValue(entry.Id, out var state) && state.Until > now) back = state.Until;
             if (OverCap(entry, now))
             {
-                if (spend is IApiKeyReservedSpend durable && durable.HasUnsettled(entry.Id)) continue;
                 var next = Month(now).Next;
                 back = back is { } b && b > next ? b : next;
             }
@@ -177,31 +171,8 @@ public sealed class ApiKeyPool
 
     private void Raise(ApiKeyEvent e) => Changed?.Invoke(this, e);
 
-    private sealed class Rotation(ApiKeyPool pool, Guid threadId, KeyChoice? initial) : IApiKeyRotation, IApiKeyContinuation, IApiKeyBudget
+    private sealed class Rotation(ApiKeyPool pool, Guid threadId, KeyChoice? initial) : IApiKeyRotation, IApiKeyContinuation
     {
-        public IApiKeyBudget Budget => this;
-        public bool RequiresPrice(string keyId)
-        {
-            lock (pool.gate) return pool.store.Keys(pool.service).FirstOrDefault(key => key.Id == keyId) is not { MonthlyCapUsd: null };
-        }
-        public IApiKeyReservation? Reserve(string keyId, double? maximumUsd)
-        {
-            lock (pool.gate)
-            {
-                if (retired || current?.Id != keyId || pool.store.Keys(pool.service).FirstOrDefault(key => key.Id == keyId) is not { } entry
-                    || !pool.Usable(entry, pool.clock.GetUtcNow())) return null;
-                if (maximumUsd is { } amount && (!double.IsFinite(amount) || amount < 0)) return null;
-                if (entry.MonthlyCapUsd is { } cap && (maximumUsd is not { } bound || !double.IsFinite(cap) || cap < 0
-                    || pool.BudgetSpend(keyId, pool.Month(pool.clock.GetUtcNow()).Start) + bound > cap
-                    || pool.spend is not IApiKeyReservedSpend)) return null;
-                var request = Guid.NewGuid();
-                var at = pool.clock.GetUtcNow();
-                if (pool.spend is IApiKeyReservedSpend durable) durable.Hold(request, keyId, maximumUsd, at);
-                pool.activeReservations.Add(request, (keyId, maximumUsd ?? 0));
-                return new Reservation(pool, threadId, current, request, at, () => !retired && current?.Id == keyId);
-            }
-        }
-
         private readonly HashSet<string> tried = [];
         private KeyChoice? current;
         // The key the thread was last on: leaving it because it ran out or hit its cap is a forced move (OD-0116); leaving it because the user turned it off is not.
@@ -427,51 +398,6 @@ public sealed class ApiKeyPool
         {
             pool.uses[choice.Id] = pool.uses.GetValueOrDefault(choice.Id) + 1;
             return choice;
-        }
-    }
-
-    private sealed class Reservation(ApiKeyPool pool, Guid thread, KeyChoice key, Guid request, DateTimeOffset at, Func<bool> owns) : IApiKeyReservation
-    {
-        private bool completed;
-        public bool CanDispatch
-        {
-            get
-            {
-                lock (pool.gate)
-                {
-                    var entry = pool.store.Keys(pool.service).FirstOrDefault(item => item.Id == key.Id);
-                    return !completed && owns() && entry is not null && pool.Usable(entry, pool.clock.GetUtcNow())
-                        && (entry.MonthlyCapUsd is not { } cap || pool.BudgetSpend(key.Id, pool.Month(pool.clock.GetUtcNow()).Start) <= cap);
-                }
-            }
-        }
-        public void CancelBeforeDispatch()
-        {
-            lock (pool.gate)
-            {
-                if (completed) return;
-                if (pool.spend is IApiKeyReservedSpend durable) durable.Cancel(request);
-                pool.activeReservations.Remove(request);
-                completed = true;
-            }
-        }
-        public void Complete(double? actualUsd)
-        {
-            ApiKeyEvent? raised = null;
-            lock (pool.gate)
-            {
-                if (completed) return;
-                if (actualUsd is not { } usd || !double.IsFinite(usd) || usd < 0) { pool.activeReservations.Remove(request); completed = true; return; }
-                if (pool.spend is IApiKeyReservedSpend durable) durable.Settle(request, usd);
-                else pool.spend.Add(key.Id, usd, at);
-                pool.activeReservations.Remove(request);
-                completed = true;
-                var now = pool.clock.GetUtcNow();
-                var entry = pool.store.Keys(pool.service).FirstOrDefault(item => item.Id == key.Id);
-                if (entry is not null && pool.OverCap(entry, now) && pool.capped.Add((key.Id, pool.Month(now).Index)))
-                    raised = pool.Event(ApiKeyEventKind.CapReached, thread, key, null, null, null, $"{key.Nickname} reached its monthly cap.");
-            }
-            if (raised is not null) pool.Raise(raised);
         }
     }
 }

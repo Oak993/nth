@@ -6,7 +6,6 @@ namespace Marrow.Services.Port.MultiAccount;
 internal sealed class PinnedConversationKeyRotation(IApiKeyRotation inner, Guid account) : IApiKeyRotation, IDisposable
 {
     public string? StopReason => inner.StopReason;
-    public IApiKeyBudget? Budget => inner.Budget;
     public string? ContinuedOn => null;
     public void AllowMoveOnce() => throw new InvalidOperationException("A checking or opinion head cannot move to another account.");
     public KeyChoice? Current()
