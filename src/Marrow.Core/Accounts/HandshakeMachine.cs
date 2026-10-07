@@ -110,7 +110,7 @@ public sealed class HandshakeMachine(
             switch (phase)
             {
                 case HandshakePhase.Idle: await IdleTickAsync(ct); break;
-                case HandshakePhase.InSync when host.AtSafePoint: await SwitchNowAsync(ct); break;
+                case HandshakePhase.InSync when host.AtSafePoint: await CommitPreparedSwitchAsync(ct); break;
                 case HandshakePhase.Waiting: await WaitTickAsync(ct); break;
             }
         }
@@ -134,6 +134,21 @@ public sealed class HandshakeMachine(
         finally { gate.Release(); }
     }
 
+    /// <summary>The waiting note's explicit Switch now action; unresolved transfer choices still ask.</summary>
+    public async Task SwitchNowAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (phase != HandshakePhase.Waiting) throw new InvalidOperationException("This conversation is no longer waiting.");
+            answers[DecisionKind.OnLimit] = DecisionValues.Switch;
+            answerPolicies[DecisionKind.OnLimit] = StoredPolicy(DecisionKind.OnLimit);
+            SetPhase(HandshakePhase.Idle);
+            await HardLimitAsync(host.ActiveAccountId, waitUntil, ct);
+        }
+        finally { gate.Release(); }
+    }
+
     /// <summary>The user's answer to a <see cref="HandshakeEventKind.DecisionRequested"/> card: the choices, and the one Remember line for all of them.</summary>
     public async Task AnswerAsync(IReadOnlyList<Choice> choices, RememberScope scope, CancellationToken ct, Action? onAccepted = null)
     {
@@ -148,10 +163,13 @@ public sealed class HandshakeMachine(
             foreach (var choice in choices)
             {
                 if (!card.Kinds.Contains(choice.Kind)) throw new ArgumentException($"The card did not ask {choice.Kind}.", nameof(choices));
-                if (choice.Value == DecisionValues.Ask) throw new ArgumentException("A card cannot be answered with Ask me.", nameof(choices));
+                if (choice.Value == DecisionValues.Ask && !(choice.Kind == DecisionKind.OnLimit
+                    && choices.Count == 1 && card.Kinds.Contains(DecisionKind.OnLimit) && Get(DecisionKind.OnLimit).FirstTime))
+                    throw new ArgumentException("Only the first-time limit card offers Ask me each time.", nameof(choices));
             }
             var preset = choices.Any(choice => choice.Kind == DecisionKind.OnLimit && choice.Value == DecisionValues.Switch);
-            var stays = choices.Any(choice => choice.Kind is DecisionKind.OnLimit or DecisionKind.OtherService && choice.Value == DecisionValues.Wait
+            var stays = choices.Any(choice => choice.Kind == DecisionKind.OnLimit && choice.Value == DecisionValues.Ask
+                || choice.Kind is DecisionKind.OnLimit or DecisionKind.OtherService && choice.Value == DecisionValues.Wait
                 || choice.Kind == DecisionKind.EarlierAccount && choice.Value == DecisionValues.Stay);
             foreach (var kind in card.Kinds)
                 if (!choices.Any(choice => choice.Kind == kind) && !stays
@@ -507,7 +525,7 @@ public sealed class HandshakeMachine(
             linking = null;
         }
 
-        if (host.AtSafePoint) await SwitchNowAsync(ct);
+        if (host.AtSafePoint) await CommitPreparedSwitchAsync(ct);
     }
 
     private bool Deferred(SwitchTarget to) => standby?.Kind == StandbyKind.Deferred || host is IDeferredDeliveryHost deferred && deferred.DeliversDeferred(to);
@@ -524,7 +542,7 @@ public sealed class HandshakeMachine(
             throw new InvalidOperationException("Permission for context transfer changed.");
     }
 
-    private async Task SwitchNowAsync(CancellationToken ct)
+    private async Task CommitPreparedSwitchAsync(CancellationToken ct)
     {
         // PORT-ONLY: ED-403. Preparation cannot retain permission to use a row turned Off meanwhile.
         if (target is null || Find(target.Account.Id) is not { Enabled: true }
@@ -586,7 +604,9 @@ public sealed class HandshakeMachine(
     private void Ask(Pending card, bool firstTime, string? incoming)
     {
         pending = card;
-        var request = new DecisionRequest(threadId, card.Kinds, firstTime, card.AccountId, incoming, card.ResetsAt);
+            // Once OnLimit is "Ask", unresolved payload choices belong to the normal limit card.
+            var request = new DecisionRequest(threadId, card.Kinds,
+                firstTime && !(card.Kinds.Contains(DecisionKind.OnLimit) && !Get(DecisionKind.OnLimit).FirstTime), card.AccountId, incoming, card.ResetsAt);
         SetPhase(HandshakePhase.Asking);
         Emit(HandshakeEventKind.DecisionRequested, phase, phase, request, incomingOverride: incoming);
     }
@@ -594,7 +614,7 @@ public sealed class HandshakeMachine(
     private Resolution Get(DecisionKind kind, string? pillValue = null)
     {
         if (answers.TryGetValue(kind, out var value) && answerPolicies.GetValueOrDefault(kind) == StoredPolicy(kind))
-            return new Resolution(kind, value, ResolutionSource.Thread, FirstTime: false);
+            return new Resolution(kind, value == DecisionValues.Ask ? null : value, ResolutionSource.Thread, FirstTime: false);
         answers.Remove(kind);
         answerPolicies.Remove(kind);
         return decisions.Resolve(threadId, kind, pillValue);

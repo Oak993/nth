@@ -62,15 +62,6 @@ public sealed class LinkUpModel : IDisposable
         if (flight is { } id && !CanLink(id)) { flight = null; remember = false; }
         Changed?.Invoke();
     }
-    public void Resume()
-    {
-        if (observing) return; observing = true;
-        foreach (var account in accounts) account.Changed += Refresh; port.Changed += LinksChanged;
-        Refresh();
-    }
-    public void Dispose()
-    {
-        if (!observing) return; observing = false;
-        foreach (var account in accounts) account.Changed -= Refresh; port.Changed -= LinksChanged;
-    }
+    public void Resume() { if (observing) return; observing = true; foreach (var account in accounts) account.Changed += Refresh; port.Changed += LinksChanged; Refresh(); }
+    public void Dispose() { if (!observing) return; observing = false; foreach (var account in accounts) account.Changed -= Refresh; port.Changed -= LinksChanged; Pending = null; flight = null; remember = false; DontAskAgain = false; }
 }

@@ -14,7 +14,6 @@ internal static class AskOthersComposerMount
     {
         if (textColumn.Child is not StackPanel stack) return null;
         var model = AskOthersComposerSeams.Offer.Current(runtime.ThreadID);
-        var owned = model is null;
         if (model is null)
         {
             var ports = ThreadPortSeams.Offer.Current;
@@ -24,7 +23,7 @@ internal static class AskOthersComposerMount
             if (model is null) return null;
         }
         var view = new AskOthersView(model) { VerticalAlignment = VerticalAlignment.Bottom };
-        if (owned) { var lifetime = model; view.AttachedToVisualTree += (_, _) => lifetime.Resume(); view.DetachedFromVisualTree += (_, _) => lifetime.Dispose(); }
+        var lifetime = model; view.AttachedToVisualTree += (_, _) => lifetime.Resume(); view.DetachedFromVisualTree += (_, _) => lifetime.Dispose();
         stack.Children.Insert(0, view.Chips);
         textColumn.Child = null;
         var field = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };

@@ -16,12 +16,11 @@ internal static class LinkComposerHost
     {
         var existing = AccountPopoverHost.With(slot, runtime);
         var model = LinkComposerSeams.Offer.Current(runtime.ThreadID);
-        var owned = model is null;
         if (model is null && runtime.Thread is { } thread)
             model = ThreadPortSeams.Offer.Current.CreateLinkModel(runtime.ThreadID, thread.Provider, new OtherServiceConsentStore(UserDefaults.Standard.Current));
         if (model is null) return existing;
         var view = With(slot, existing, model);
-        if (owned) { var lifetime = model; view.AttachedToVisualTree += (_, _) => lifetime.Resume(); view.DetachedFromVisualTree += (_, _) => lifetime.Dispose(); }
+        var lifetime = model; view.AttachedToVisualTree += (_, _) => lifetime.Resume(); view.DetachedFromVisualTree += (_, _) => lifetime.Dispose();
         return view;
     }
     internal static Control With(ComposerCapsuleSlot slot, Control existing, LinkUpModel model)

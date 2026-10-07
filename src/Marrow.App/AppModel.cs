@@ -1462,6 +1462,7 @@ public sealed partial class AppModel : MainActorModel
             var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1332-1334
             DiskWriter.Shared.WriteSynchronously(library, Storage.LibraryURL); // AppModel.swift:1335
         }
+        DisposeThreadPorts();
         foreach (var runtime in runtimes.Values)
         {
             runtime.CancelPersistence(); // AppModel.swift:1336-1337

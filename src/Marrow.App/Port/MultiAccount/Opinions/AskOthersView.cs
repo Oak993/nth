@@ -18,6 +18,8 @@ internal sealed class AskOthersView : Decorator
     internal AskOthersList? List { get; private set; }
     internal OtherServiceConfirmation? Confirmation { get; private set; }
     internal string? LastAskedNote => model.LastAskedNote;
+    internal bool HasSelection => model.Picked.Count > 0 || model.Confirmation is not null || model.Busy;
+    private readonly TextBlock failure = new() { IsVisible = false, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     internal event Action<string, Guid?>? Sent;
     internal AskOthersView(AskOthersModel model)
     {
@@ -26,15 +28,22 @@ internal sealed class AskOthersView : Decorator
         Button.Width = Button.Height = 28; Button.Focusable = true; Button.Named(model.ButtonAria, "ask-others-button"); ToolTip.SetTip(Button, model.ButtonTitle);
         ListPopup = PlainControls.Popover(Button, new Binding<bool>(() => state.List, v => state.List = v), () => List = new(model, () => state.List = false));
         ConfirmPopup = PlainControls.Popover(Button, new Binding<bool>(() => state.Confirm, v => { state.Confirm = v; if (!v && model.Confirmation is not null && !model.Busy) _ = model.ConfirmAsync(false); }), () =>
-            Confirmation = new(model.Confirmation?.Text ?? "", "Ask others", model.SetDontAskAgain, accepted => MainActor.Spawn(async () => { await model.ConfirmAsync(accepted); Changed(); })));
-        Child = new Panel { Children = { Button, ListPopup, ConfirmPopup } };
+            Confirmation = new(model.Confirmation?.Text ?? "", "Ask others", model.SetDontAskAgain, accepted => MainActor.Spawn(async () => { await Submit(() => model.ConfirmAsync(accepted)); Changed(); })));
+        Child = new StackPanel { Children = { new Panel { Children = { Button, ListPopup, ConfirmPopup } }, failure } };
         AttachedToVisualTree += (_, _) => { model.Changed += Changed; Refresh(); };
         DetachedFromVisualTree += (_, _) => { model.Changed -= Changed; state.List = state.Confirm = false; };
         Refresh();
     }
     internal async Task<AskSendResult> SendAsync(string message, CancellationToken ct = default)
     {
-        state.List = false; var result = await model.SendAsync(message, ct); Changed(); return result;
+        state.List = false; var result = await Submit(() => model.SendAsync(message, ct)); Changed(); return result;
+    }
+    private async Task<AskSendResult> Submit(Func<Task<AskSendResult>> send)
+    {
+        failure.IsVisible = false;
+        try { return await send(); }
+        catch (OperationCanceledException) { return AskSendResult.Canceled; }
+        catch (Exception error) { failure.Text = error.Message; failure.IsVisible = true; return AskSendResult.Canceled; }
     }
     private void Changed() { if (Dispatcher.UIThread.CheckAccess()) Refresh(); else Dispatcher.UIThread.Post(Refresh); }
     private Guid? notified;

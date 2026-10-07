@@ -106,6 +106,12 @@ public sealed class AppApiKeyRotation : IAsyncApiKeyRotation, IDisposable
         if (disposed || !owns() || pin() is not null || !ReferenceEquals(request, Request)) throw new CancellationError();
     }
     public void EndAnswer() => answering = false;
+    internal void AskEachTime()
+    {
+        if (State?.Request is not { FirstTime: true } request) throw new InvalidOperationException("No first-time card is waiting.");
+        State = State with { Request = request with { FirstTime = false } };
+        owner.Publish(State);
+    }
     public void Answer(bool allow, Resolution policy, bool wait = false)
     {
         acceptedPolicy = policy;

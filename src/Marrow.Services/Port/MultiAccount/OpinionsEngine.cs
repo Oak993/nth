@@ -51,7 +51,11 @@ public sealed class OpinionsEngine : IOpinionsPort, IDisposable
     public IReadOnlyList<Guid> EveryoneWithRoom(Guid thread) => Array.AsReadOnly(host.Accounts(thread)
         .Where(account => account.Id != host.ActiveAccount(thread) && account.Enabled && account.HasRoom).Select(account => account.Id).Distinct().ToArray());
 
-    public async Task<Guid> AskAsync(Guid thread, string message, IReadOnlyList<Guid> accounts, CancellationToken ct = default)
+    public Task<Guid> AskAsync(Guid thread, string message, IReadOnlyList<Guid> accounts, CancellationToken ct = default)
+        => AskAsync(thread, message, accounts, null, ct);
+
+    // The app associates the committed prompt and its metadata before any streaming notification can mount a row.
+    public async Task<Guid> AskAsync(Guid thread, string message, IReadOnlyList<Guid> accounts, Action<Guid>? started, CancellationToken ct = default)
     {
         if (accounts.Count == 0) throw new ArgumentException("At least one other account is needed.", nameof(accounts));
         if (string.IsNullOrWhiteSpace(message)) throw new ArgumentException("A message is required.", nameof(message));
@@ -86,6 +90,7 @@ public sealed class OpinionsEngine : IOpinionsPort, IDisposable
                 rounds.Add(round);
                 preparing.Remove(preparation);
             }
+            started?.Invoke(round.Id);
             _ = RunRoundAsync(round);
             Changed?.Invoke(thread);
             return round.Id;
