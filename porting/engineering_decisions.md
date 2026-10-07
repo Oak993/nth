@@ -4128,3 +4128,7 @@ Tests first absent APIs red; functional capsule/status/click/sound cases 3/3, re
 ## ED-NEW-ma-wave1-6
 - MA-3b-6 App: locked page :4795-4871, OD-0115 opinions B and OD-0120. New button/list/chips/confirmation views; one optional ComposerView Install seam mounts beside attachment within its text column. W owns the real send gate and per-sent-message note attachment; Sent(note, round) supplies that association.
 - ENGINEERING DECISION: the page predates OD-0120 and supplies no confirmation action words. Use Cancel and Ask others (Link for the shared link confirmation), disclosure verbatim from the other-service card, and an unchecked plain checkbox. Unbound seam draws no new composer UI. Existing T16 views are reused without edits.
+
+## ED-NEW-ma-wave1-7
+- T16 MA-4-2 request: HandshakeFrameSnapshot is a value struct. ReadFrame(dark) caches account strings and usage on engine events or explicit RefreshAccounts; it calls neither the account callback nor the allocating geometry API. Plan remains the inspection/oracle API and refreshes current accounts. Renderer retains its own buffers.
+- Sound recipe instances and queue capacity are allocated outside frame sampling. Existing phase/minimum-time/RM/readiness/tick semantics unchanged. Acceptance measures 0 B across 10,000 warmed samples per phase and no account callback reads; existing geometry oracle and sound tests stay unchanged. W/T16 must call RefreshAccounts on usage/account changes, not per frame.
