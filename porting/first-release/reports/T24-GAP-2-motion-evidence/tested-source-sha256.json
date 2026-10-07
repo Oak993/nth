@@ -1,0 +1,95 @@
+{
+  "baseline": "4f0f2ac07eb135609c2751c356c3c1355b9c964a",
+  "tested_merge": "6621f2c794a5ee36daff1349e42a5e6a49390989",
+  "files": [
+    {
+      "path": "tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs",
+      "baseline_sha256": "90d491756b26a7ff7a5368617a5d6537829e767a3d13a812f2464153ba5681b9",
+      "tested_sha256": "90d491756b26a7ff7a5368617a5d6537829e767a3d13a812f2464153ba5681b9",
+      "byte_identical": true
+    },
+    {
+      "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs",
+      "baseline_sha256": "306fffdd5f2aedd6f863db60530637e5fdef2a48523469211f240606c5074f97",
+      "tested_sha256": "306fffdd5f2aedd6f863db60530637e5fdef2a48523469211f240606c5074f97",
+      "byte_identical": true
+    },
+    {
+      "path": "tests/Marrow.App.Tests/Fixtures/FrameCurves.cs",
+      "baseline_sha256": "8ea7739fa3c4690bc1dcefa809c30fa03d50522b6a9938494dd3f0b8e39f80bc",
+      "tested_sha256": "8ea7739fa3c4690bc1dcefa809c30fa03d50522b6a9938494dd3f0b8e39f80bc",
+      "byte_identical": true
+    },
+    {
+      "path": "porting/first-release/design-src/customization/gen.py",
+      "baseline_sha256": "dd4a77ec9f8ed1ad4ee1581b19cf614db3aeb19f9b4f35d83c5e81b0400741de",
+      "tested_sha256": "dd4a77ec9f8ed1ad4ee1581b19cf614db3aeb19f9b4f35d83c5e81b0400741de",
+      "byte_identical": true
+    },
+    {
+      "path": "src/Marrow.UI/Port/Settings/CzControls/CzCrossfadeText.cs",
+      "baseline_sha256": "aab5ab6666cd36cd0d7e258ff68e7d9d0e1375f8713059ed079bc84b4286f117",
+      "tested_sha256": "13cd862ae31c3cb2a592f85beca6bdf4b2d92468e2a4d36ba481ae4d5691faaf",
+      "byte_identical": false
+    },
+    {
+      "path": "src/Marrow.UI/Port/Settings/CzControls/CzMotion.cs",
+      "baseline_sha256": "a2b9ffe9a082eb877981022b40920f25e93237a03b09b768700a06882ce02e24",
+      "tested_sha256": "dfd51623eca613368a27b34ec4c9ee757e7c2addb646f0dd5414ab3e59181102",
+      "byte_identical": false
+    },
+    {
+      "path": "src/Marrow.UI/Port/Settings/CzControls/CzNumber.cs",
+      "baseline_sha256": "4f16ff077d98e9c691eba1f356286bb0a077e7b271205504a75fc1440ac77e77",
+      "tested_sha256": "4f16ff077d98e9c691eba1f356286bb0a077e7b271205504a75fc1440ac77e77",
+      "byte_identical": true
+    },
+    {
+      "path": "src/Marrow.UI/Port/SwiftAnimation.cs",
+      "baseline_sha256": "ba0a48bdba50cffb41d7644656fae63ada13fc93bd3b081fe9f22a91e1348aac",
+      "tested_sha256": "ba0a48bdba50cffb41d7644656fae63ada13fc93bd3b081fe9f22a91e1348aac",
+      "byte_identical": true
+    },
+    {
+      "path": "src/Marrow.App/Port/Settings/ComposerPreview.cs",
+      "baseline_sha256": "62538f83e8b09a593df98be0d3413cfd6c1dabc08597460a07fee3bcfb0e95bd",
+      "tested_sha256": "556fc844197716ac852416383393b3dededc7e644000249bd752b19a1d12c464",
+      "byte_identical": false
+    },
+    {
+      "path": "tests/Marrow.App.Tests/Fixtures/CustomizationPageRig.cs",
+      "baseline_sha256": "ab94a2a3233c898f7e06ccbbadad101025df78f01ff8b13a01bcb569b7bfe21e",
+      "tested_sha256": "82cf72a85bfbec55ac48e0aac6ec077b8532c92c7742225460391327918f3f8e",
+      "byte_identical": false
+    },
+    {
+      "path": "porting/first-release/customization-SPEC.md",
+      "baseline_sha256": "581e7485847228cbef8850640dbb1ee7b7baba8485a6983b688592f9f0b308ad",
+      "tested_sha256": "fd4664b5b471decc2ee3193aa6a5b988382a7a7687f5606e777d0d5f545b2865",
+      "byte_identical": false
+    }
+  ],
+  "immutable_motion_spec_clauses": {
+    "CZ-12.9": {
+      "byte_identical": true,
+      "sha256": "d521499787651432d0d1128d07962c67848c0dc31a7bb9da0786ec7de9b1ef01"
+    },
+    "CZ-14.1": {
+      "byte_identical": true,
+      "sha256": "032efc8bdbb96b8045b45a26986be90d032cf067a1f00fbd970c3c559b4005c0"
+    },
+    "| CZ-T40": {
+      "byte_identical": true,
+      "sha256": "04e8079bb1cf795221a60ca0c279d30a122be27842d3fb8b4fcabaa4e5bea2d5"
+    }
+  },
+  "mac_source": {
+    "pin": "52bc7926097cd622d08d6294e0d8b08a48c7516e",
+    "path": "DroppyCode/App/Views/Composer/ComposerView.swift",
+    "url": "https://gitlab.com/droppyformac1/droppy-code/-/raw/52bc7926097cd622d08d6294e0d8b08a48c7516e/DroppyCode/App/Views/Composer/ComposerView.swift",
+    "verified_git_blob": "8908f160078c06dcb182548b7fb6a30663a3b24b",
+    "raw_lf_sha256": "a08d92b64128bdc6cc49dece92d6690e4c12c66b288e6e57803167003215f6ae",
+    "inventory_crlf_sha256": "3c4312c1e5102f1bc8f0e488fcf09adc5ecd443fc77835d73629f0dba96006e1",
+    "detail_fade_authority": "owner-approved Customization CSS addition; no Mac detail-out Swift animation"
+  }
+}

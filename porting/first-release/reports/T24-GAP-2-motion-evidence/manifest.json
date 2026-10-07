@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "verdict": "NOT READY",
+  "run_date": "2026-10-07",
+  "user_timezone": "Asia/Riyadh",
+  "recorded_utc": "2026-10-07T05:10:51.724063+00:00",
+  "baseline_commit": "4f0f2ac07eb135609c2751c356c3c1355b9c964a",
+  "tested_merge_commit": "6621f2c794a5ee36daff1349e42a5e6a49390989",
+  "environment": {
+    "os": "Linux x64",
+    "sdk": "10.0.100",
+    "dotnet_runtime": "10.0.0",
+    "avalonia": "12.1.2",
+    "windows_rendering": "NOT RUN"
+  },
+  "production_fix_applied": false,
+  "source_curve_matches": true,
+  "smoothness_cap_passes": false,
+  "checker_exit": 1,
+  "artifacts": [
+    {
+      "path": "CustomizationMotionTests-command.json",
+      "bytes": 383,
+      "sha256": "cd7c327eb54b57c7675a922a4ca49d3153e5b258c4ce7332bd66c1ecff4a5435"
+    },
+    {
+      "path": "CustomizationMotionTests.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "CustomizationMotionTests.log",
+      "bytes": 8509,
+      "sha256": "95923bce510bac25af590e808235069bcc9a5e13ca9d900e3aab4a5f6c45c16a"
+    },
+    {
+      "path": "CustomizationMotionTests.trx",
+      "bytes": 27046,
+      "sha256": "230eaa8bbe6ee0b253e25340169c653e7f16b3296ff0379b888e8c568d192558"
+    },
+    {
+      "path": "GapCustomizationAcceptanceTests-command.json",
+      "bytes": 397,
+      "sha256": "39e18fbfad24ac80d788031697017970e64bf16ae33daa6af86fd203db4038b8"
+    },
+    {
+      "path": "GapCustomizationAcceptanceTests.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+    },
+    {
+      "path": "GapCustomizationAcceptanceTests.log",
+      "bytes": 9273,
+      "sha256": "79f6bb211cf81cf7c48c05026047d7fdd8d0c6fdbc7f9b25e3742a755d8405e8"
+    },
+    {
+      "path": "GapCustomizationAcceptanceTests.trx",
+      "bytes": 26514,
+      "sha256": "e06fe9f6171fc155d7e088e00b36e0462154f6d1d3b2b425b18c2f90e6f9a2ca"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1648,
+      "sha256": "18edab9ff783f7a74020b004a3755271a403823fdbecf6f9e10e19ec87012ab7"
+    },
+    {
+      "path": "after-page.csv",
+      "bytes": 6552,
+      "sha256": "642b82ebe94136b1fd9f9a387fdc21c5758b96b9155741e9cb357ae2666fa3e7"
+    },
+    {
+      "path": "after.csv",
+      "bytes": 5062,
+      "sha256": "cc436b16d2440916fa53aace5f0db08547aaeeb9a076a2830654b308ee8d3e55"
+    },
+    {
+      "path": "after.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "baseline-app-build-block.log",
+      "bytes": 354,
+      "sha256": "72ea3db501abcbe6eb6c2c90eae9ee9c4bda946eaee0c7d6b4bb9d2e7f23f918"
+    },
+    {
+      "path": "before.csv",
+      "bytes": 5137,
+      "sha256": "8c1c1ef4fbb69978eb19d94bf4f2527751517503354234edd1d9a5721c1dea9c"
+    },
+    {
+      "path": "build.log",
+      "bytes": 3210,
+      "sha256": "9fbb2b2fe5d1abdcbaf96a77231417e8eb93170cd2ab6658559c6a6aa4507c8b"
+    },
+    {
+      "path": "check-frames.py",
+      "bytes": 2962,
+      "sha256": "2f5836bce21baf1fff45c95a3c32ce1518a083f5f4c482e4c355b436d79649ac"
+    },
+    {
+      "path": "commands.json",
+      "bytes": 3057,
+      "sha256": "59eb57b18000929fbbc04f91a70964cdc58a1f2e845ed76318f1a6fa48d364cd"
+    },
+    {
+      "path": "core-clock.log",
+      "bytes": 1606,
+      "sha256": "369c977cd0947f52754d62bc9fd07d379e3997b2d64672226c08c6f38d50f5e6"
+    },
+    {
+      "path": "core-clock.trx",
+      "bytes": 35414,
+      "sha256": "a1b99253b64ca129193d5131916a781bb515155e76ebb4bb0c76f684be05880c"
+    },
+    {
+      "path": "cpu-probe.cs.txt",
+      "bytes": 2106,
+      "sha256": "4b25a7aaa9cf1b4b70e92d2dc5f6e78cc118420cb9bd15ed82b796cb6652b007"
+    },
+    {
+      "path": "cpu-probe.csproj.txt",
+      "bytes": 461,
+      "sha256": "c1a8be0a3205567d5583796de170e39be3f3041839c208028d8caefe6be5a9de"
+    },
+    {
+      "path": "detail-out.log",
+      "bytes": 4491,
+      "sha256": "10b9370e2489a3e3e708c69ce0911882d81eb3304329544f37811aff0fcac001"
+    },
+    {
+      "path": "detail-out.trx",
+      "bytes": 12118,
+      "sha256": "b6058ef21da323fcfa4baa1e679ca59057fb01f07e319ec0429ee9c1d9137f5f"
+    },
+    {
+      "path": "frame-check.json",
+      "bytes": 6508,
+      "sha256": "b5fc867f415ca38fdc946402dd39e3bbcedc1a89c857be8fcbfd13bdd1377162"
+    },
+    {
+      "path": "gate-A.log",
+      "bytes": 2347,
+      "sha256": "d5680a0514d5fcee01145b30b9ec6f50e889d258d005ded63364e06e826d0d90"
+    },
+    {
+      "path": "gate-B.log",
+      "bytes": 1079,
+      "sha256": "d438ffbf40b3d464bce128abb6905a99f1c5e4b6438980dd081855d92852e63b"
+    },
+    {
+      "path": "independent-review.md",
+      "bytes": 1361,
+      "sha256": "7e932d5d619efbc59c73288eb1b9781413ec05468598d2a15d3341c669f75234"
+    },
+    {
+      "path": "investigation-ledger-bytes.json",
+      "bytes": 805,
+      "sha256": "61ccee24dc4b53030aedcfcc3c6beb3102d2912a8263e5bef2ce50e3327be2f7"
+    },
+    {
+      "path": "merge-ledger-bytes.json",
+      "bytes": 1704,
+      "sha256": "f90d7b58908ecc193cd8803c2479474eb95ff2436dfcc2267d30ddc9c5d65b05"
+    },
+    {
+      "path": "page-probe.cs.txt",
+      "bytes": 3726,
+      "sha256": "97cca0638db28a01e2705aa02384afdbbfbe566dc9b19674bf01cb9058207726"
+    },
+    {
+      "path": "page-probe.csproj.txt",
+      "bytes": 401,
+      "sha256": "18631b71bab2aed2002641a9dec09d1d4cdb05ceb5c85227a4d06838b494c33a"
+    },
+    {
+      "path": "run-probe.py",
+      "bytes": 1443,
+      "sha256": "91622ccf75fd8b0cbcfe00bf441880e1e5146c9bb962fd7892602baa7d004043"
+    },
+    {
+      "path": "tested-source-sha256.json",
+      "bytes": 4514,
+      "sha256": "26f11170695cdd5d35956f1b0c3f9c03a50f6ed0ea0c132395ff3c17c64b6c5e"
+    },
+    {
+      "path": "ui-motion.log",
+      "bytes": 968,
+      "sha256": "f72c8ed92163204b24db19f9e9801c7ae613d19752959eea02e362ebca7392f2"
+    },
+    {
+      "path": "ui-motion.trx",
+      "bytes": 145218,
+      "sha256": "412b72020317547513d944fbb9e99d603680039561ecf22ab3f81b10d7c0bcd3"
+    }
+  ]
+}

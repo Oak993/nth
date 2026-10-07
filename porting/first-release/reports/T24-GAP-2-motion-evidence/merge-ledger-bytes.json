@@ -1,0 +1,57 @@
+[
+  {
+    "path": "porting/engineering_decisions.md",
+    "original_prefix_bytes": 1441968,
+    "original_prefix_sha256": "7987e78c1a6f53a701ea729f89cf3e9268872e6be56bb12781c933050376fee5",
+    "incoming_segments": [
+      {
+        "kind": "replace",
+        "incoming_first_line": 2878,
+        "incoming_last_line": 2878,
+        "bytes": 715,
+        "sha256": "6e80fd2828096ac70eaeb879ab5429856aa0faa47d1b3d9e405e3dabb2e6946d"
+      },
+      {
+        "kind": "insert",
+        "incoming_first_line": 2980,
+        "incoming_last_line": 3728,
+        "bytes": 344462,
+        "sha256": "6af4b283b50020822a676e6c248def3fa8a878067d20c8fe0d8916ec0c69cc60"
+      }
+    ],
+    "merged_bytes": 1787396,
+    "original_crlf": 0,
+    "merged_crlf": 10
+  },
+  {
+    "path": "porting/STATE.md",
+    "original_prefix_bytes": 47870,
+    "original_prefix_sha256": "20df2e9f381a2c82c0eea5c5bb341ea3e129e5c555abb933e83145ac59d69390",
+    "incoming_segments": [
+      {
+        "kind": "replace",
+        "incoming_first_line": 94,
+        "incoming_last_line": 94,
+        "bytes": 603,
+        "sha256": "c051d39c818c5451d7476d6e36f136150139f4942ccd52b7beb2c0c8fb941e55"
+      },
+      {
+        "kind": "insert",
+        "incoming_first_line": 100,
+        "incoming_last_line": 115,
+        "bytes": 13679,
+        "sha256": "4f0af3438f23b20bd3b6e3baa0b3a62826415405d1567f249d3d2863fdae5061"
+      },
+      {
+        "kind": "insert",
+        "incoming_first_line": 531,
+        "incoming_last_line": 635,
+        "bytes": 22229,
+        "sha256": "a254f2e23a7833fdf2b7e94ebce41977915b677d6ea8296a0fa3b9719e759ab7"
+      }
+    ],
+    "merged_bytes": 84757,
+    "original_crlf": 419,
+    "merged_crlf": 445
+  }
+]

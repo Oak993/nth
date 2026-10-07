@@ -1,0 +1,222 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5788e7b8-6f78-4b07-8237-1dab6a2d706e" name="@9e233ac65b1d 2026-10-07 05:01:28" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T05:01:28.7497004+00:00" queuing="2026-10-07T05:01:28.7497005+00:00" start="2026-10-07T05:01:23.1409340+00:00" finish="2026-10-07T05:01:37.0750344+00:00" />
+  <TestSettings name="default" id="fa10d36f-a397-4a8b-bb6e-5471225e5ea9">
+    <Deployment runDeploymentRoot="_9e233ac65b1d_2026-10-07_05_01_28" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="0d8b4a5f-3bb9-4add-bd93-964eb9c2713f" testId="f2df086f-c0dc-f615-85eb-4d85ffec7615" testName="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_preview_states_transitions_follow_their_curves_on_the_frame_clock" computerName="9e233ac65b1d" duration="00:00:05.9055267" startTime="2026-10-07T05:01:29.9726482+00:00" endTime="2026-10-07T05:01:35.8530525+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0d8b4a5f-3bb9-4add-bd93-964eb9c2713f" />
+    <UnitTestResult executionId="5409ff2b-167a-41db-9528-c82344782091" testId="cbad2f12-9547-b07a-fe4e-8220c93dbd68" testName="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_style_glyphs_turn_while_seen_and_stop_under_reduce_motion" computerName="9e233ac65b1d" duration="00:00:00.6433917" startTime="2026-10-07T05:01:36.3309614+00:00" endTime="2026-10-07T05:01:36.8986991+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5409ff2b-167a-41db-9528-c82344782091" />
+    <UnitTestResult executionId="0759dab6-39fe-48e9-ab45-883e6c79242c" testId="961a16b4-f417-0978-3e4c-e96f1deaab5a" testName="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.Under_reduce_motion_every_transition_lands_at_once" computerName="9e233ac65b1d" duration="00:00:00.4188165" startTime="2026-10-07T05:01:35.8542427+00:00" endTime="2026-10-07T05:01:36.2466398+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0759dab6-39fe-48e9-ab45-883e6c79242c">
+      <Output>
+        <ErrorInfo>
+          <Message>System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Medium. Stretch: Normal</Message>
+          <StackTrace>   at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection&amp; resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteMeasurePass()
+   at Avalonia.Layout.LayoutManager.InnerLayoutPass()
+   at Avalonia.Layout.LayoutManager.ExecuteLayoutPass()
+   at Avalonia.Layout.LayoutManager.ExecuteQueuedLayoutPass()
+   at Avalonia.Media.MediaContext.FireInvokeOnRenderCallbacks()
+   at Avalonia.Media.MediaContext.RenderCore()
+   at Avalonia.Media.MediaContext.Render()
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.ResetForUnitTests()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass14_0.&lt;EnsureIsolatedApplication&gt;b__0()
+   at Avalonia.Reactive.Disposable.AnonymousDisposable.Dispose()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Settings.CustomizationMotionTests.Under_reduce_motion_every_transition_lands_at_once() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs:line 149
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="aa7805ad-8559-40e3-a890-05945c06875d" testId="c891acfb-3dcb-d5c4-0ffc-741161543fa4" testName="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_pages_row_transitions_follow_their_curves_on_the_frame_clock" computerName="9e233ac65b1d" duration="00:00:01.1955207" startTime="2026-10-07T05:01:28.7262563+00:00" endTime="2026-10-07T05:01:29.9218207+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aa7805ad-8559-40e3-a890-05945c06875d">
+      <Output>
+        <ErrorInfo>
+          <Message>System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Medium. Stretch: Normal</Message>
+          <StackTrace>   at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection&amp; resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteMeasurePass()
+   at Avalonia.Layout.LayoutManager.InnerLayoutPass()
+   at Avalonia.Layout.LayoutManager.ExecuteLayoutPass()
+   at Avalonia.Layout.LayoutManager.ExecuteQueuedLayoutPass()
+   at Avalonia.Media.MediaContext.FireInvokeOnRenderCallbacks()
+   at Avalonia.Media.MediaContext.RenderCore()
+   at Avalonia.Media.MediaContext.Render()
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.ResetForUnitTests()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass14_0.&lt;EnsureIsolatedApplication&gt;b__0()
+   at Avalonia.Reactive.Disposable.AnonymousDisposable.Dispose()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_pages_row_transitions_follow_their_curves_on_the_frame_clock() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs:line 23
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5e32bec6-479d-4be0-a10a-115dd735dc44" testId="8a4870fc-70ce-9968-2d9d-f92b3720bfc8" testName="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_preview_makers_transitions_follow_their_curves_on_the_frame_clock" computerName="9e233ac65b1d" duration="00:00:02.5050179" startTime="2026-10-07T05:01:26.3297348+00:00" endTime="2026-10-07T05:01:28.6986713+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5e32bec6-479d-4be0-a10a-115dd735dc44" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_preview_states_transitions_follow_their_curves_on_the_frame_clock" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="f2df086f-c0dc-f615-85eb-4d85ffec7615">
+      <Execution id="0d8b4a5f-3bb9-4add-bd93-964eb9c2713f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.CustomizationMotionTests" name="The_preview_states_transitions_follow_their_curves_on_the_frame_clock" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_preview_makers_transitions_follow_their_curves_on_the_frame_clock" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="8a4870fc-70ce-9968-2d9d-f92b3720bfc8">
+      <Execution id="5e32bec6-479d-4be0-a10a-115dd735dc44" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.CustomizationMotionTests" name="The_preview_makers_transitions_follow_their_curves_on_the_frame_clock" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_style_glyphs_turn_while_seen_and_stop_under_reduce_motion" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="cbad2f12-9547-b07a-fe4e-8220c93dbd68">
+      <Execution id="5409ff2b-167a-41db-9528-c82344782091" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.CustomizationMotionTests" name="The_style_glyphs_turn_while_seen_and_stop_under_reduce_motion" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_pages_row_transitions_follow_their_curves_on_the_frame_clock" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c891acfb-3dcb-d5c4-0ffc-741161543fa4">
+      <Execution id="aa7805ad-8559-40e3-a890-05945c06875d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.CustomizationMotionTests" name="The_pages_row_transitions_follow_their_curves_on_the_frame_clock" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.CustomizationMotionTests.Under_reduce_motion_every_transition_lands_at_once" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="961a16b4-f417-0978-3e4c-e96f1deaab5a">
+      <Execution id="0759dab6-39fe-48e9-ab45-883e6c79242c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.CustomizationMotionTests" name="Under_reduce_motion_every_transition_lands_at_once" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f2df086f-c0dc-f615-85eb-4d85ffec7615" executionId="0d8b4a5f-3bb9-4add-bd93-964eb9c2713f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cbad2f12-9547-b07a-fe4e-8220c93dbd68" executionId="5409ff2b-167a-41db-9528-c82344782091" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="961a16b4-f417-0978-3e4c-e96f1deaab5a" executionId="0759dab6-39fe-48e9-ab45-883e6c79242c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c891acfb-3dcb-d5c4-0ffc-741161543fa4" executionId="aa7805ad-8559-40e3-a890-05945c06875d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8a4870fc-70ce-9968-2d9d-f92b3720bfc8" executionId="5e32bec6-479d-4be0-a10a-115dd735dc44" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="5" executed="5" passed="3" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.0)
+[xUnit.net 00:00:00.34]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:02.21]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:02.28]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:06.37]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Medium. Stretch: Normal
+[xUnit.net 00:00:06.37]       Stack Trace:
+[xUnit.net 00:00:06.37]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties)
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties, RentedList`1 results)
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection&amp; resolvedFlowDirection)
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+[xUnit.net 00:00:06.37]            at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+[xUnit.net 00:00:06.37]            at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+[xUnit.net 00:00:06.37]            at Avalonia.Controls.TextBlock.get_TextLayout()
+[xUnit.net 00:00:06.37]            at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+[xUnit.net 00:00:06.37]            at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+[xUnit.net 00:00:06.37]            at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+[xUnit.net 00:00:06.37]            at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+[xUnit.net 00:00:06.37]            at Avalonia.Layout.LayoutManager.ExecuteMeasurePass()
+[xUnit.net 00:00:06.37]            at Avalonia.Layout.LayoutManager.InnerLayoutPass()
+[xUnit.net 00:00:06.37]            at Avalonia.Layout.LayoutManager.ExecuteLayoutPass()
+[xUnit.net 00:00:06.37]            at Avalonia.Layout.LayoutManager.ExecuteQueuedLayoutPass()
+[xUnit.net 00:00:06.37]            at Avalonia.Media.MediaContext.FireInvokeOnRenderCallbacks()
+[xUnit.net 00:00:06.37]            at Avalonia.Media.MediaContext.RenderCore()
+[xUnit.net 00:00:06.37]            at Avalonia.Media.MediaContext.Render()
+[xUnit.net 00:00:06.37]            at Avalonia.Threading.DispatcherOperation.InvokeCore()
+[xUnit.net 00:00:06.37]            at Avalonia.Threading.DispatcherOperation.Execute()
+[xUnit.net 00:00:06.37]            at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+[xUnit.net 00:00:06.37]            at Avalonia.Threading.Dispatcher.ResetForUnitTests()
+[xUnit.net 00:00:06.37]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass14_0.&lt;EnsureIsolatedApplication&gt;b__0()
+[xUnit.net 00:00:06.37]            at Avalonia.Reactive.Disposable.AnonymousDisposable.Dispose()
+[xUnit.net 00:00:06.37]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:06.37]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:06.37]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:06.40]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs(23,0): at Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_pages_row_transitions_follow_their_curves_on_the_frame_clock()
+[xUnit.net 00:00:06.40]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:06.40]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:12.68]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Medium. Stretch: Normal
+[xUnit.net 00:00:12.68]       Stack Trace:
+[xUnit.net 00:00:12.68]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties)
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties, RentedList`1 results)
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection&amp; resolvedFlowDirection)
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+[xUnit.net 00:00:12.68]            at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+[xUnit.net 00:00:12.68]            at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+[xUnit.net 00:00:12.68]            at Avalonia.Controls.TextBlock.get_TextLayout()
+[xUnit.net 00:00:12.68]            at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+[xUnit.net 00:00:12.68]            at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+[xUnit.net 00:00:12.68]            at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+[xUnit.net 00:00:12.68]            at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+[xUnit.net 00:00:12.68]            at Avalonia.Layout.LayoutManager.ExecuteMeasurePass()
+[xUnit.net 00:00:12.68]            at Avalonia.Layout.LayoutManager.InnerLayoutPass()
+[xUnit.net 00:00:12.68]            at Avalonia.Layout.LayoutManager.ExecuteLayoutPass()
+[xUnit.net 00:00:12.68]            at Avalonia.Layout.LayoutManager.ExecuteQueuedLayoutPass()
+[xUnit.net 00:00:12.68]            at Avalonia.Media.MediaContext.FireInvokeOnRenderCallbacks()
+[xUnit.net 00:00:12.68]            at Avalonia.Media.MediaContext.RenderCore()
+[xUnit.net 00:00:12.68]            at Avalonia.Media.MediaContext.Render()
+[xUnit.net 00:00:12.68]            at Avalonia.Threading.DispatcherOperation.InvokeCore()
+[xUnit.net 00:00:12.68]            at Avalonia.Threading.DispatcherOperation.Execute()
+[xUnit.net 00:00:12.68]            at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+[xUnit.net 00:00:12.68]            at Avalonia.Threading.Dispatcher.ResetForUnitTests()
+[xUnit.net 00:00:12.68]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass14_0.&lt;EnsureIsolatedApplication&gt;b__0()
+[xUnit.net 00:00:12.68]            at Avalonia.Reactive.Disposable.AnonymousDisposable.Dispose()
+[xUnit.net 00:00:12.68]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:12.68]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:12.68]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:12.68]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs(149,0): at Marrow.App.Tests.Port.Settings.CustomizationMotionTests.Under_reduce_motion_every_transition_lands_at_once()
+[xUnit.net 00:00:12.68]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:12.68]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:12.68]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:12.68]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:13.36]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="9e233ac65b1d" outcome="Error" timestamp="2026-10-07T05:01:29.9266294+00:00">
+        <Text>[xUnit.net 00:00:06.35]     Marrow.App.Tests.Port.Settings.CustomizationMotionTests.The_pages_row_transitions_follow_their_curves_on_the_frame_clock [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="9e233ac65b1d" outcome="Error" timestamp="2026-10-07T05:01:36.2546056+00:00">
+        <Text>[xUnit.net 00:00:12.68]     Marrow.App.Tests.Port.Settings.CustomizationMotionTests.Under_reduce_motion_every_transition_lands_at_once [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

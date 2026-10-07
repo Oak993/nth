@@ -1,0 +1,108 @@
+{
+  "working_directory": "/workspace/marrow-port",
+  "commands": {
+    "build": [
+      "/tmp/gap2-dotnet/dotnet",
+      "build",
+      "tests/Marrow.App.Tests/Marrow.App.Tests.csproj",
+      "-p:EnableWindowsTargeting=true"
+    ],
+    "ui": [
+      "/tmp/gap2-dotnet/dotnet",
+      "test",
+      "tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj",
+      "-p:EnableWindowsTargeting=true",
+      "--filter",
+      "(FullyQualifiedName~SwiftAnimation|FullyQualifiedName~FrameClock|FullyQualifiedName~CzControls)&FullyQualifiedName!~Native",
+      "--logger",
+      "trx;LogFileName=ui-motion.trx",
+      "--results-directory",
+      "/tmp/gap2-t24-ui"
+    ],
+    "core": [
+      "/tmp/gap2-dotnet/dotnet",
+      "test",
+      "tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj",
+      "-p:EnableWindowsTargeting=true",
+      "--filter",
+      "(FullyQualifiedName~Clock|FullyQualifiedName~ContinuousInstant|FullyQualifiedName~TestRuntime)&FullyQualifiedName!~Native",
+      "--logger",
+      "trx;LogFileName=core-clock.trx",
+      "--results-directory",
+      "/tmp/gap2-t24-core"
+    ],
+    "detail": [
+      "/tmp/gap2-dotnet/dotnet",
+      "test",
+      "tests/Marrow.App.Tests/Marrow.App.Tests.csproj",
+      "--no-build",
+      "--no-restore",
+      "-p:EnableWindowsTargeting=true",
+      "--filter",
+      "FullyQualifiedName~GapCustomizationAcceptanceTests.GAP_Each_transition&DisplayName~detail&FullyQualifiedName!~Native",
+      "--logger",
+      "trx;LogFileName=detail-out.trx",
+      "--results-directory",
+      "/tmp/gap2-t24-detail"
+    ],
+    "baseline_cpu": [
+      "/tmp/gap2-dotnet/dotnet",
+      "run",
+      "--project",
+      "/tmp/gap2-baseline-probe/frame-probe.csproj",
+      "-p:EnableWindowsTargeting=true",
+      "--",
+      "before"
+    ],
+    "merged_cpu": [
+      "/tmp/gap2-dotnet/dotnet",
+      "run",
+      "--project",
+      "/tmp/gap2-after-cpu-probe/frame-probe.csproj",
+      "-p:EnableWindowsTargeting=true",
+      "--",
+      "after"
+    ],
+    "merged_page": [
+      "/tmp/gap2-dotnet/dotnet",
+      "run",
+      "--no-build",
+      "--project",
+      "/tmp/gap2-frame-probe/frame-probe.csproj",
+      "-p:EnableWindowsTargeting=true",
+      "--",
+      "after"
+    ],
+    "frame_check": [
+      "python3",
+      "porting/first-release/reports/T24-GAP-2-motion-evidence/check-frames.py"
+    ],
+    "gate_A": [
+      "node",
+      "porting/tools/verify.mjs",
+      "--gate",
+      "A"
+    ],
+    "gate_B": [
+      "node",
+      "porting/tools/verify.mjs",
+      "--gate",
+      "B"
+    ],
+    "icu_bridge": [
+      "gcc",
+      "-shared",
+      "-fPIC",
+      "porting/first-release/reports/GAP-2-evidence/icu-aliases.S",
+      "-Wl,--no-undefined",
+      "-Wl,-l:libicuuc.so.76",
+      "-o",
+      "/tmp/gap2-native/libicu.dll.so"
+    ]
+  },
+  "process_overrides": {
+    "LD_LIBRARY_PATH": "/tmp/gap2-native for App tests/page capture; not needed by CPU-only capture",
+    "MARROW_PORT_DATA_DIR": "separate disposable /tmp/gap2-* paths for each run",
+    "PATH": "/tmp/gap2-dotnet first for existing run-slices.py"
+  }
+}

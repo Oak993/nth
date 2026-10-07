@@ -1,0 +1,262 @@
+{
+  "verdict": "NOT READY",
+  "baseline_equals_after": true,
+  "page_equals_isolated_scalar": true,
+  "threshold": 0.15,
+  "ideal_detail_frame_1_opacity": 0.7793262554181708,
+  "curve_test_frame_1_upper_bound": 0.7993272554181708,
+  "gap_test_frame_1_lower_bound": 0.849999999,
+  "disjoint_frame_1_constraints": true,
+  "checks": [
+    {
+      "stage": "before",
+      "path": "direct-control",
+      "transition": "detail-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.3551876407271656,
+      "violations": [
+        {
+          "frame": 1,
+          "elapsed_ms": 16.6666,
+          "step_fraction": 0.22067229993979443
+        },
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.3551876407271656
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.226541458625647
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "path": "scalar",
+      "transition": "detail-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.3551876407271656,
+      "violations": [
+        {
+          "frame": 1,
+          "elapsed_ms": 16.6666,
+          "step_fraction": 0.22067229993979443
+        },
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.3551876407271656
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.226541458625647
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "path": "scalar",
+      "transition": "placeholder-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.23340432065090078,
+      "violations": [
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.23340432065090078
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.22982638633381347
+        },
+        {
+          "frame": 4,
+          "elapsed_ms": 66.6664,
+          "step_fraction": 0.16529630046426103
+        }
+      ]
+    },
+    {
+      "stage": "after",
+      "path": "direct-control",
+      "transition": "detail-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.3551876407271656,
+      "violations": [
+        {
+          "frame": 1,
+          "elapsed_ms": 16.6666,
+          "step_fraction": 0.22067229993979443
+        },
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.3551876407271656
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.226541458625647
+        }
+      ]
+    },
+    {
+      "stage": "after",
+      "path": "scalar",
+      "transition": "detail-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.3551876407271656,
+      "violations": [
+        {
+          "frame": 1,
+          "elapsed_ms": 16.6666,
+          "step_fraction": 0.22067229993979443
+        },
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.3551876407271656
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.226541458625647
+        }
+      ]
+    },
+    {
+      "stage": "after",
+      "path": "scalar",
+      "transition": "placeholder-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.23340432065090078,
+      "violations": [
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.23340432065090078
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.22982638633381347
+        },
+        {
+          "frame": 4,
+          "elapsed_ms": 66.6664,
+          "step_fraction": 0.16529630046426103
+        }
+      ]
+    },
+    {
+      "stage": "after-page",
+      "path": "page",
+      "transition": "detail-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.3551876407271656,
+      "violations": [
+        {
+          "frame": 1,
+          "elapsed_ms": 16.6666,
+          "step_fraction": 0.22067229993979443
+        },
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.3551876407271656
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.226541458625647
+        }
+      ]
+    },
+    {
+      "stage": "after-page",
+      "path": "page",
+      "transition": "placeholder-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.23340432065090078,
+      "violations": [
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.23340432065090078
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.22982638633381347
+        },
+        {
+          "frame": 4,
+          "elapsed_ms": 66.6664,
+          "step_fraction": 0.16529630046426103
+        }
+      ]
+    },
+    {
+      "stage": "after-page",
+      "path": "scalar",
+      "transition": "detail-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.3551876407271656,
+      "violations": [
+        {
+          "frame": 1,
+          "elapsed_ms": 16.6666,
+          "step_fraction": 0.22067229993979443
+        },
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.3551876407271656
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.226541458625647
+        }
+      ]
+    },
+    {
+      "stage": "after-page",
+      "path": "scalar",
+      "transition": "placeholder-out",
+      "all_25_frames_present": true,
+      "source_curve_matches": true,
+      "max_step_fraction": 0.23340432065090078,
+      "violations": [
+        {
+          "frame": 2,
+          "elapsed_ms": 33.3332,
+          "step_fraction": 0.23340432065090078
+        },
+        {
+          "frame": 3,
+          "elapsed_ms": 49.9998,
+          "step_fraction": 0.22982638633381347
+        },
+        {
+          "frame": 4,
+          "elapsed_ms": 66.6664,
+          "step_fraction": 0.16529630046426103
+        }
+      ]
+    }
+  ]
+}
