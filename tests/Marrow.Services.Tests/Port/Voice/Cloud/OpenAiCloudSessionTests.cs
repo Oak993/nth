@@ -9,6 +9,7 @@ namespace Marrow.Services.Tests.Port.Voice.Cloud;
 public sealed class OpenAiCloudSessionTests
 {
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T113")]
     public void Without_a_key_the_cloud_note_is_raised_before_the_microphone_records()
@@ -25,6 +26,7 @@ public sealed class OpenAiCloudSessionTests
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T110")]
     public void Listening_sends_nothing_and_stop_sends_the_complete_recording_in_one_request()
@@ -45,6 +47,7 @@ public sealed class OpenAiCloudSessionTests
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T111")]
     public void SSE_deltas_reach_the_session_during_Processing_and_the_done_text_corrects_them()
@@ -66,6 +69,7 @@ public sealed class OpenAiCloudSessionTests
     }
 
     [Theory]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T112")]
     [InlineData(401, CloudNote.KeyRefused)]

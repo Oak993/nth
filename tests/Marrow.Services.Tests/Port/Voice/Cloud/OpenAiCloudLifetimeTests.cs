@@ -9,6 +9,7 @@ namespace Marrow.Services.Tests.Port.Voice.Cloud;
 public sealed class OpenAiCloudLifetimeTests
 {
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T113")]
     public void Removing_the_key_after_a_successful_session_prevents_the_next_capture_even_with_a_cached_load()
@@ -29,6 +30,7 @@ public sealed class OpenAiCloudLifetimeTests
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T111")]
     public void A_delta_is_visible_before_done_and_cancelling_the_read_cannot_change_the_next_session()

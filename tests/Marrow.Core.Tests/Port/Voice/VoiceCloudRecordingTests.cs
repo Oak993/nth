@@ -9,6 +9,7 @@ namespace Marrow.Core.Tests.Port.Voice;
 public sealed class VoiceCloudRecordingTests
 {
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T110")]
     public void A_cloud_session_waits_for_stop_and_decodes_all_audio_including_pauses()
@@ -36,6 +37,7 @@ public sealed class VoiceCloudRecordingTests
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T111")]
     public void Cancelling_cloud_Listening_sends_nothing_and_clears_the_recording()

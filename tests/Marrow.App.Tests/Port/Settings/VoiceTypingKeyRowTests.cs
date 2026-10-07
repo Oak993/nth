@@ -17,6 +17,7 @@ public sealed class VoiceTypingKeyRowTests(HeadlessSession headless)
     private static TextBox Field(VoiceTypingSettingsPage page) => Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(page.KeyFold));
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T47")]
     public void A_refused_protected_save_shows_the_Providers_refusal_and_detaching_clears_the_field() => VoiceTypingPageRig.Run(headless, scene =>
@@ -38,6 +39,7 @@ public sealed class VoiceTypingKeyRowTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T47")]
     public void The_cloud_key_row_opens_a_masked_accessible_field_and_Cancel_clears_and_closes_it() => VoiceTypingPageRig.Run(headless, scene =>
@@ -63,6 +65,7 @@ public sealed class VoiceTypingKeyRowTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T47")]
     public void Editing_replaces_the_protected_key_and_blank_removes_it_without_a_settings_copy() => VoiceTypingPageRig.Run(headless, scene =>
@@ -82,6 +85,7 @@ public sealed class VoiceTypingKeyRowTests(HeadlessSession headless)
     }, arrange: _ => Assert.True(new VoiceKeyStore().Save("sk-existing-vt16")));
 
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T47")]
     public void The_Providers_eye_reveals_and_hides_and_switching_to_local_clears_the_field() => VoiceTypingPageRig.Run(headless, scene =>

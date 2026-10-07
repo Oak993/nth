@@ -15,6 +15,7 @@ namespace Marrow.App.Tests.Port.Voice;
 public sealed class VoiceCloudWordOrderTests
 {
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
     [Trait("Feature", "VT-16")]
     [Trait("Spec", "V-T111")]
     public void A_done_correction_cannot_run_before_the_word_it_corrects_has_arrived()
