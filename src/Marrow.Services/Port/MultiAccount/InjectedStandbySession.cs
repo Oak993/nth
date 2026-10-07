@@ -47,10 +47,12 @@ public sealed partial class InjectedStandbySession : IAdoptableStandby
         if (session is not IStandbyInjectionSession injector)
             throw new NotSupportedException("This service cannot load context as history without a model turn.");
         var standby = new InjectedStandbySession(session, injector, configuration, canTransfer);
+        Task<string>? start = null;
         try
         {
             ct.ThrowIfCancellationRequested();
-            standby.SessionId = await injector.StartInjectedStandby(ct).WaitAsync(ct);
+            start = injector.StartInjectedStandby(ct);
+            standby.SessionId = await start.WaitAsync(ct);
             if (string.IsNullOrWhiteSpace(standby.SessionId)) throw new InvalidOperationException("The standby did not report its session identity.");
             if (standby.FaultReason is not null || !session.IsRunning) throw new InvalidOperationException("The standby exited while starting.");
             return standby;
@@ -58,7 +60,20 @@ public sealed partial class InjectedStandbySession : IAdoptableStandby
         catch
         {
             standby.Release();
+            if (start is not null) _ = DiscardLateStartAsync(start, session, injector);
             throw;
+        }
+    }
+
+    private static async Task DiscardLateStartAsync(Task<string> start, ProviderSession session, IStandbyInjectionSession injector)
+    {
+        try { await start; }
+        catch { /* A failed start still releases anything it opened after cancellation. */ }
+        finally
+        {
+            try { await injector.DiscardStandby(); }
+            catch { /* The process must stop even if the waiting history cannot be deleted. */ }
+            finally { session.Stop(); }
         }
     }
 

@@ -4035,3 +4035,8 @@ UNVERIFIED and the weakest of the three injections: the research could not confi
 ### ED-NEW-ma-review-2: recheck consent before every injected part
 
 [T19][MULTI-ACCOUNT][CONSENT] OD-0116/OD-0120. Confirmed with a scripted injection fake: a rebuilt context and changed briefing produce two injections. Revoking the transfer grant during the first still transmitted the second briefing; the test observed three total injections instead of two. Recheck canTransfer at each injection boundary. InjectedStandbyConsentReviewTests was red before this one-line fix and passes afterward, with all 15 unchanged InjectedStandbySessionTests cases (16/16). No CLI/network/model, no existing test edits, no ledger byte normalization.
+
+
+### ED-NEW-ma-review-3: retire injected sessions that start after cancellation
+
+[T19][MULTI-ACCOUNT][LIFECYCLE] OD-0116. Confirmed with a gated injection fake that ignores cancellation during startup: cancelling StartAsync released the still-unstarted session, but its later startup completion made it live again with no owner. Retain and observe the start task; after every failed/cancelled start, discard again when startup finishes and always stop the session even if deletion fails. The retained task is observed even if completion races the first release. InjectedStandbyCancellationReviewTests was red (late cleanup never occurred) before repair. Revised implementation: 20/20 injection, consent and traceability cases passed in the combined 36/36 run with OpenCode handover tests. No real CLI/network/model, existing tests unchanged, ledger prefix preserved.
