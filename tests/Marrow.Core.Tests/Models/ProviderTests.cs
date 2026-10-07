@@ -26,7 +26,7 @@ public sealed class ProviderTests
     // ED-234: ProviderKind.OpenRouter has no Swift case (OD-0049, OD-0060). The records below describe the fourteen cases of
     // Provider.swift:3-18, so they range over those; the OpenRouter case is proven by ProviderOpenRouterTests.
     private static IReadOnlyList<ProviderKind> SourceCases { get; } =
-        [.. SwiftEnum<ProviderKind>.AllCases.Where(kind => kind != ProviderKind.OpenRouter)];
+        [.. SwiftEnum<ProviderKind>.AllCases.Where(kind => kind is not (ProviderKind.OpenRouter or ProviderKind.Local))]; // OD-0114 / ED-410
 
     // PR-PROVREG-001: :3-18. Exactly 14 cases in source declaration order, with these rawValues, and
     // Id == rawValue (:19).

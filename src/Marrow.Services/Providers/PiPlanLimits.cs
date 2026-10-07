@@ -1,5 +1,6 @@
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Port.Usage;
 
 // Source: DroppyCode/Services/Providers/PiPlanLimits.swift (B3 52bc792), :1-115.
 // ED-168: URLSession, URLSessionConfiguration, URLRequest, URLResponse, HTTPURLResponse, URLError and URLCache
@@ -19,14 +20,14 @@ public static class PiPlanLimits
 
     /// <summary>Every OAuth login Pi holds that still has a live token, in sorted provider order.</summary>
     // :11-41
-    public static Task<PlanLimits?> Read(IReadOnlyDictionary<string, string> environment) =>
-        Read(environment, null, null);
+    public static Task<PlanLimits?> Read(IReadOnlyDictionary<string, string> environment, bool reportThrottling = false) =>
+        Read(environment, null, null, reportThrottling);
 
     /// <summary>PORT-ONLY test seam: <see cref="Read(IReadOnlyDictionary{string, string})"/> with the two
     /// endpoint URLs overridable so a test can point them at a loopback server (R-TEST-10); production callers
     /// always take the single-argument overload above, which passes null for both.</summary>
     internal static async Task<PlanLimits?> Read(IReadOnlyDictionary<string, string> environment,
-        Uri? anthropicUsageUrl, Uri? codexUsageUrl)
+        Uri? anthropicUsageUrl, Uri? codexUsageUrl, bool reportThrottling = false)
     {
         var file = SwiftPath.AppendingPathComponent(PiCLI.ConfigDirectoryPath(environment), "auth.json"); // :12
         if (SwiftTry.Optional(() => File.ReadAllBytes(file)) is not { } data // :13
@@ -54,11 +55,11 @@ public static class PiPlanLimits
             PlanLimits? limits; // :27
             if (key == "anthropic") // :28
             {
-                limits = await ReadAnthropic(token, anthropicUsageUrl); // :29
+                limits = await ReadAnthropic(token, anthropicUsageUrl, reportThrottling); // :29
             }
             else if (key == "openai-codex" || key == "openai") // :30
             {
-                limits = await ReadCodex(token, codexUsageUrl); // :31
+                limits = await ReadCodex(token, codexUsageUrl, reportThrottling); // :31
             }
             else
             {
@@ -78,13 +79,15 @@ public static class PiPlanLimits
 
     /// <summary>Anthropic's OAuth usage endpoint answers the same shape Claude Code reads itself.</summary>
     // :43-57
-    private static async Task<PlanLimits?> ReadAnthropic(string token, Uri? usageUrl)
+    private static async Task<PlanLimits?> ReadAnthropic(string token, Uri? usageUrl, bool reportThrottling)
     {
         var request = new URLRequest(usageUrl ?? AnthropicUsageURL, timeoutInterval: 15); // :45
         request = request.SetValue("Bearer " + token, forHTTPHeaderField: "Authorization"); // :46
         request = request.SetValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta"); // :47
         request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :48
-        if (await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request)) is not { } exchange || // :49
+        var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
+        if (reportThrottling && result?.Response is HTTPURLResponse response) LimitsPollException.ThrowIfThrottled(response);
+        if (result is not { } exchange || // :49
             exchange.Response is not HTTPURLResponse http || http.StatusCode != 200 || // :50
             JSONValue.Parse(exchange.Data) is not { } json || // :51
             PlanLimitsReader.ParseClaudeUsage(json, json["limits"]?.JSONValueArray ?? [], planName: null, titlePrefix: "Claude") is not { } limits) // :52
@@ -99,7 +102,7 @@ public static class PiPlanLimits
 
     /// <summary>The usage payload behind ChatGPT's quota display, with its primary and secondary windows.</summary>
     // :59-79
-    private static async Task<PlanLimits?> ReadCodex(string token, Uri? usageUrl)
+    private static async Task<PlanLimits?> ReadCodex(string token, Uri? usageUrl, bool reportThrottling)
     {
         var request = new URLRequest(usageUrl ?? CodexUsageURL, timeoutInterval: 15); // :61
         request = request.SetValue("Bearer " + token, forHTTPHeaderField: "Authorization"); // :62
@@ -109,7 +112,9 @@ public static class PiPlanLimits
         {
             request = request.SetValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id"); // :66
         }
-        if (await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request)) is not { } exchange || // :68
+        var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
+        if (reportThrottling && result?.Response is HTTPURLResponse response) LimitsPollException.ThrowIfThrottled(response);
+        if (result is not { } exchange || // :68
             exchange.Response is not HTTPURLResponse http || http.StatusCode != 200 || // :69
             JSONValue.Parse(exchange.Data) is not { } json) // :70
         {
@@ -155,6 +160,7 @@ public static class PiPlanLimits
         return new PlanLimits.Window // :94-99
         {
             Id = id,
+            DurationMinutes = windowSeconds / 60, // OD-0114 / ED-406
             Title = "Codex \U000000B7 " + PlanLimitsReader.WindowTitle(windowSeconds / 60), // U+00B7 MIDDLE DOT; integer division (:96)
             Percent = percent,
             ResetsAt = resetsAt,

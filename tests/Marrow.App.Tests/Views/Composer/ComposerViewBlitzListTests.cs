@@ -141,8 +141,8 @@ public sealed class ComposerViewBlitzListTests(HeadlessSession headless)
                 Assert.True(only.Command!.IsBuiltIn);
                 Assert.Equal("Summarize the conversation to free up context", only.Command.Detail);
             }
-            Assert.Equal(sevenSource.Append(ProviderKind.OpenRouter).Order().ToArray(), offered.Order().ToArray());
-            Assert.Equal(7, offered.Count(provider => provider != ProviderKind.OpenRouter));
+            Assert.Equal(sevenSource.Append(ProviderKind.OpenRouter).Append(ProviderKind.Local).Order().ToArray(), offered.Order().ToArray()); // ED-410
+            Assert.Equal(7, offered.Count(provider => provider is not (ProviderKind.OpenRouter or ProviderKind.Local)));
         });
     }
 

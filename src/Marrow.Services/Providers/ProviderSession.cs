@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Linq;
 using Marrow.Core.Models;
+using Marrow.Core.Port.Accounts;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
@@ -34,12 +35,17 @@ public sealed record TurnInput
 // :22-47. Everything a provider session needs to launch.
 public sealed record SessionConfiguration
 {
+    // PORT-ONLY: OD-0114 / ED-404; null only for legacy call sites/test fixtures.
+    public Guid? AccountId { get; init; }
+    public HandshakePoint? AccountHandshakePoint { get; init; }
     public required ProviderKind Provider { get; init; }                 // :23
     public SwiftURL? Executable { get; init; }                           // :24
     public required SwiftURL WorkingDirectory { get; init; }             // :25
     public required ValueMap<string, string> Environment { get; init; }  // :26
     public string? ResumeID { get; init; }                               // :27
     public string? ResumeAt { get; init; }                               // :28
+    // DEVIATION OD-0114 / ED-407: supported Codex path resume, only set by a version-gated handoff.
+    public string? ResumePath { get; init; }
     public string? Model { get; init; }                                  // :29
     public string? Effort { get; init; }                                 // :30
     public bool FastMode { get; init; }                                  // :31
@@ -148,7 +154,7 @@ public abstract record ProviderEvent
     public sealed record Notice(global::Marrow.Core.Models.Notice Value) : ProviderEvent;     // :106
 
     /// <summary>The account's usage limit is spent; the turn stops until it resets, at the time given when known.</summary>
-    public sealed record UsageLimit(DateTimeOffset? ResetsAt) : ProviderEvent;                // :107-108
+    public sealed record UsageLimit(DateTimeOffset? ResetsAt, UsageAccountKey? Account = null) : ProviderEvent;                // :107-108
 
     public sealed record ModeChanged(InteractionMode Value) : ProviderEvent;                  // :109
     public sealed record Models(ValueList<ModelOption> Value, string? Current) : ProviderEvent; // :110

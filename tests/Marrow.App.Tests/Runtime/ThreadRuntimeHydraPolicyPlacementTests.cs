@@ -16,12 +16,14 @@ public sealed class ThreadRuntimeHydraPolicyPlacementTests
 {
     private const string Text = "Audit the module";
 
-    public static TheoryData<ProviderKind> EveryProvider() => new(Enum.GetValues<ProviderKind>());
+    // ED-410: this scripted rig predates endpoint binding. Local is covered by the fake-loopback runtime test
+    // and the all-provider policy predicate test; retain every original source/OpenRouter scenario here.
+    public static TheoryData<ProviderKind> EveryProvider() => new(Enum.GetValues<ProviderKind>().Where(provider => provider != ProviderKind.Local).ToArray());
 
     // The union the Swift predicate names, with the port's OpenRouter (an API-key provider like Deepseek, Meta and Zai).
     private static bool KeepsPolicy(ProviderKind provider) =>
         provider is ProviderKind.Claude or ProviderKind.Codex or ProviderKind.Copilot
-            or ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter;
+            or ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local;
 
     private static ThreadRuntimeTurnRig Rig(ProviderKind provider, HydraPair? pair = null) =>
         new(provider,

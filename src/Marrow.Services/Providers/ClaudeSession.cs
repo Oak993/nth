@@ -52,7 +52,7 @@ namespace Marrow.Services.Providers;
 // in part 1 because Control (:301-309, needed by PR-PROVCLI-019) and the readTask
 // (PR-PROVCLI-017) both depend on it; PR-PROVCLI-061, which fully exercises it, belongs to a
 // later part.
-public sealed class ClaudeSession : ProviderSession
+public sealed partial class ClaudeSession : ProviderSession
 {
     // :15-19
     private sealed record PendingTool
@@ -201,10 +201,10 @@ public sealed class ClaudeSession : ProviderSession
             arguments.Add("--effort");
             arguments.Add(effort);
         }
-        if (configuration.FastMode) // :93
+        if (handshakeAgent is not null || configuration.FastMode) // :93; OD-0114 temporary flag layer, never a settings file.
         {
             arguments.Add("--settings");
-            arguments.Add("{\"fastMode\":true}");
+            arguments.Add(HandshakeLaunchSettings());
         }
         // Connected servers from Settings are the only MCP servers the session sees. :94-96
         if (MCPProviderConfig.ClaudeConfigPath() is { } mcpConfig)
@@ -244,7 +244,7 @@ public sealed class ClaudeSession : ProviderSession
             if (hydra.RunsNatively) // :106-112
             {
                 arguments.Add("--agents");
-                arguments.Add(HydraPrompts.ClaudeAgents(hydra).CompactString);
+                arguments.Add(HandshakeAgents(HydraPrompts.ClaudeAgents(hydra)).CompactString);
                 hydraPolicy = HydraPrompts.Policy(ProviderKind.Claude, hydra);
                 if (options.Contains("--forward-subagent-text")) arguments.Add("--forward-subagent-text");
                 // Uncapped, the CLI keeps its own limit on heads at once. :111-112
@@ -258,6 +258,11 @@ public sealed class ClaudeSession : ProviderSession
                 arguments.Add("Agent");
                 arguments.Add("Task");
             }
+        }
+        if (handshakeAgent is not null && configuration.Hydra?.RunsNatively != true)
+        {
+            arguments.Add("--agents");
+            arguments.Add(HandshakeAgents(JSONValue.FromDictionaryLiteral()).CompactString);
         }
         // Exactly one combined system prompt segment for every session, Hydra or not. :121-128
         arguments.Add("--append-system-prompt");
@@ -419,6 +424,7 @@ public sealed class ClaudeSession : ProviderSession
     /// HandleSystem below, its subtypes) without a live child process (see the file header note).</summary>
     internal void Handle(JSONValue message) // :330-384
     {
+        if (RejectHandshakeAction(message)) return;
         var normalized = new List<ToolEvent>();
         skillEvents.Handle(message, normalized.Add, SkillItemId);
         // A head's message names the tool call that spawned it; the lead's carries null. :332
@@ -818,6 +824,7 @@ public sealed class ClaudeSession : ProviderSession
         switch (message["subtype"]?.JSONValueString)
         {
             case "init": // :388-392
+                if (handshakeAgent is not null && !VerifyHandshakeIdentity(message)) return;
                 if (message["session_id"]?.JSONValueString is { } newSessionID &&
                     (sessionID is not { } currentSessionID || !SwiftString.Equal(newSessionID, currentSessionID)))
                 {
@@ -943,6 +950,7 @@ public sealed class ClaudeSession : ProviderSession
             skillWarningShown = true;
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = "A Marrow skill file changed during this chat; new chats are not affected" }));
         }
+        if (handshakeAgent is not null) await CheckHandshakePolicyAsync();
         runtimeMode = input.RuntimeMode; // :216
         var mode = ModeName(input.RuntimeMode, input.InteractionMode); // :217
         if (!SwiftString.Equal(mode, permissionMode)) // :218-221
@@ -953,7 +961,10 @@ public sealed class ClaudeSession : ProviderSession
         if (!NullableModelEqual(input.Model, model)) // :222-226
         {
             var wire = input.Model is { } requestedModel && SwiftString.Equal(requestedModel, "default") ? null : input.Model;
-            _ = await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(wire)))));
+            if (handshakeAgent is not null)
+                await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(wire))));
+            else
+                _ = await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(wire)))));
             model = input.Model;
         }
         var content = new List<JSONValue>(); // :227
@@ -964,6 +975,8 @@ public sealed class ClaudeSession : ProviderSession
                 ("source", JSONValue.FromDictionaryLiteral(("type", "base64"), ("media_type", image.MimeType), ("data", base64)))));
         }
         content.Add(JSONValue.FromDictionaryLiteral(("type", "text"), ("text", input.Text))); // :234
+        if (handshakeAgent is not null && CanTransferContext?.Invoke() == false)
+            throw new InvalidOperationException("Permission to transfer this conversation changed.");
         WriteUserMessage(new JSONValue.Array(new ValueList<JSONValue>(content))); // :235
     }
 

@@ -3,6 +3,7 @@ using Marrow.App.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.Services.Port.Usage;
 
 namespace Marrow.App.Runtime;
 
@@ -38,6 +39,15 @@ public sealed class AutoContinue : MainActorModel
     // :30-36
     private readonly WeakReference<AppModel> app;
     private readonly Dictionary<Guid, DateTimeOffset?> noted = [];
+    private readonly Dictionary<Guid, UsageAccountKey> notedAccounts = [];
+    private readonly Dictionary<Guid, UsageAccountKey> waitingAccounts = [];
+
+    // DEVIATION OD-0114 / ED-406: account-store composition; absent explicit readers fail closed.
+    public Func<UsageAccountKey, Task<PlanLimits?>>? ReadAccountLimits { get; set; }
+    public AccountLimitsScheduler? UsageLimits { get; set; }
+    internal Func<DateTimeOffset, string>? FormatForTesting { get; set; }
+    public Func<Guid, UsageAccountKey?>? CurrentAccount { get; set; }
+    public UsageAccountKey? LimitedAccount(Guid threadID) => notedAccounts.GetValueOrDefault(threadID) ?? waitingAccounts.GetValueOrDefault(threadID);
     private readonly Dictionary<Guid, TaskHandle> waits = [];
     private readonly Dictionary<Guid, Guid> waitTokens = [];
     private readonly Dictionary<Guid, DateTimeOffset> resumeValues = [];
@@ -55,9 +65,20 @@ public sealed class AutoContinue : MainActorModel
     // :43-47. Swift: noteLimit(_:resetsAt:).
     public void NoteLimit(Guid threadID, DateTimeOffset? resetsAt)
     {
-        // :44-46
-        if (noted.TryGetValue(threadID, out var existing) && existing is not null && resetsAt is null) return;
+        NoteLimitCore(threadID, resetsAt, null);
+    }
+
+    public void NoteLimit(Guid threadID, DateTimeOffset? resetsAt, UsageAccountKey account) =>
+        NoteLimitCore(threadID, resetsAt, account);
+
+    private void NoteLimitCore(Guid threadID, DateTimeOffset? resetsAt, UsageAccountKey? account)
+    {
+        if (account is not null && UsageLimits is { } scheduler) _ = scheduler.LimitReachedAsync(account);
+        // :44-46; an unknown reset only preserves a timed note belonging to the same account.
+        if (notedAccounts.GetValueOrDefault(threadID) == account && noted.TryGetValue(threadID, out var existing) && existing is not null && resetsAt is null) return;
         noted[threadID] = resetsAt;
+        if (account is null) notedAccounts.Remove(threadID);
+        else notedAccounts[threadID] = account;
     }
 
     // :51-64. Swift: turnFinished(_:status:continues:).
@@ -65,6 +86,7 @@ public sealed class AutoContinue : MainActorModel
     {
         // :52
         if (!noted.Remove(threadID, out var note)) return false;
+        notedAccounts.Remove(threadID, out var limitedAccount);
 
         // :53-54
         if (!TryGetApp(out var appModel)
@@ -72,7 +94,8 @@ public sealed class AutoContinue : MainActorModel
             || status != TurnStatus.Failed
             || continues
             || appModel.Thread(threadID) is not { } thread
-            || thread.IsHydraHead)
+            || thread.IsHydraHead
+            || limitedAccount is { } sourceAccount && sourceAccount.Provider != thread.Provider)
         {
             return false;
         }
@@ -80,6 +103,8 @@ public sealed class AutoContinue : MainActorModel
         // :55-63
         if (waits.TryGetValue(threadID, out var previousWait)) previousWait.Cancel();
         outcomeValues.Remove(threadID);
+        var account = limitedAccount ?? UsageAccountKey.Default(thread.Provider);
+        waitingAccounts[threadID] = account;
         UpdateOutcomes();
         var turnID = appModel.ExistingRuntime(threadID)?.Turns.Count > 0
             ? appModel.ExistingRuntime(threadID)!.Turns[appModel.ExistingRuntime(threadID)!.Turns.Count - 1].Id
@@ -90,7 +115,7 @@ public sealed class AutoContinue : MainActorModel
         waits[threadID] = MainActor.Spawn(async () =>
         {
             if (weakSelf.TryGetTarget(out var self))
-                await self.Wait(threadID, turnID, note, thread.Provider, token);
+                await self.Wait(threadID, turnID, note, thread.Provider, token, account);
         });
         return true;
     }
@@ -102,10 +127,20 @@ public sealed class AutoContinue : MainActorModel
         if (waits.TryGetValue(threadID, out var wait)) wait.Cancel();
         waits.Remove(threadID);
         waitTokens.Remove(threadID);
+        waitingAccounts.Remove(threadID);
+        if (notedAccounts.Remove(threadID, out var cancelledAccount) && !cancelledAccount.IsDefault) noted.Remove(threadID);
         resumeValues.Remove(threadID);
         UpdateResumesAt();
         outcomeValues[threadID] = new LimitOutcome.Cancelled();
         UpdateOutcomes();
+    }
+
+    // ED-403: a first-time card and a switch have one limit owner, including migrated/default accounts.
+    public void TakeLimitOwnership(Guid threadID)
+    {
+        Cancel(threadID);
+        noted.Remove(threadID);
+        notedAccounts.Remove(threadID);
     }
 
     // :78-85. LimitHandoff is not ported; leave this member unchanged.
@@ -113,12 +148,12 @@ public sealed class AutoContinue : MainActorModel
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/AutoContinue.swift:78");
 
     // :87-121
-    private async Task Wait(Guid threadID, Guid? turnID, DateTimeOffset? resetsAt, ProviderKind provider, Guid token)
+    private async Task Wait(Guid threadID, Guid? turnID, DateTimeOffset? resetsAt, ProviderKind provider, Guid token, UsageAccountKey account)
     {
         // :88-92
         if (!TryGetApp(out var appModel)) return;
         var resolvedReset = resetsAt;
-        if (resolvedReset is null) resolvedReset = await ReadResetTime(provider);
+        if (resolvedReset is null) resolvedReset = account.IsDefault && UsageLimits is null ? await ReadResetTime(account.Provider) : await ReadAccountResetTime(account);
         if (SwiftTask.IsCancelled || !IsCurrentWait(threadID, token)) return;
 
         // :93-99
@@ -129,6 +164,7 @@ public sealed class AutoContinue : MainActorModel
             Notify(threadID, "Usage limit reached. Send a message to continue.");
             waits.Remove(threadID);
             waitTokens.Remove(threadID);
+            waitingAccounts.Remove(threadID);
             return;
         }
 
@@ -138,7 +174,7 @@ public sealed class AutoContinue : MainActorModel
         if (resumeAt < floor) resumeAt = floor;
         resumeValues[threadID] = resumeAt;
         UpdateResumesAt();
-        var when = Format(resumeAt);
+        var when = FormatForTesting is { } format ? format(resumeAt) : Format(resumeAt);
         Notice(threadID, Marrow.Core.Models.Notice.Level.Info, "Usage limit reached. Continuing automatically at " + when + ".", limitMark: true);
         Notify(threadID, "Usage limit reached. Continuing at " + when + ".");
         await SwiftTask.TrySleep(TimeSpan.FromSeconds((resumeAt - SwiftDate.Now).TotalSeconds));
@@ -149,8 +185,10 @@ public sealed class AutoContinue : MainActorModel
         UpdateResumesAt();
         waits.Remove(threadID);
         waitTokens.Remove(threadID);
+        waitingAccounts.Remove(threadID);
 
-        if (!appModel.Settings.AutoContinueAfterLimit
+        if (ResolveCurrentAccount(appModel, threadID) != account
+            || !appModel.Settings.AutoContinueAfterLimit
             || appModel.ExistingRuntime(threadID) is not { } runtime
             || runtime.IsRunning
             || (runtime.Turns.Count > 0 ? runtime.Turns[runtime.Turns.Count - 1].Id : (Guid?)null) != turnID)
@@ -173,6 +211,47 @@ public sealed class AutoContinue : MainActorModel
         if (prompt is not null) runtime.SendFollowUpNow(prompt.Id);
     }
 
+    private UsageAccountKey? ResolveCurrentAccount(AppModel model, Guid threadID)
+    {
+        if (CurrentAccount is { } resolve) return resolve(threadID);
+        if (model.Thread(threadID) is not { } thread) return null;
+        var sessionAccount = model.ExistingRuntime(threadID)?.UsageAccount;
+        return sessionAccount?.Provider == thread.Provider ? sessionAccount : UsageAccountKey.Default(thread.Provider);
+    }
+
+    private async Task<DateTimeOffset?> ReadAccountResetTime(UsageAccountKey account)
+    {
+        // Explicit accounts never use Settings' provider-global key or Registry's provider-global environment.
+        try
+        {
+            PlanLimits? limits = null;
+            if (UsageLimits is { } scheduler)
+            {
+                await scheduler.LimitReachedAsync(account);
+                limits = scheduler.Snapshot(account)?.Limits;
+            }
+            else if (ReadAccountLimits is { } read) limits = await read(account);
+            return SpentReset(limits);
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            // A rejected, throttled or cancelled account read supplies no reset. Wait checks cancellation
+            // before emitting the source's unknown-reset warning; no other account's quota is consulted.
+            return null;
+        }
+    }
+
+    private static DateTimeOffset? SpentReset(PlanLimits? limits)
+    {
+        PlanLimits.Window? spent = null;
+        foreach (var window in limits?.Windows ?? ValueList<PlanLimits.Window>.Empty)
+        {
+            if (window.ResetsAt is not { } reset || reset <= SwiftDate.Now) continue;
+            if (spent is null || window.Percent > spent.Percent) spent = window;
+        }
+        return spent is null || spent.Percent < 95 ? null : spent.ResetsAt;
+    }
+
     // :123-142
     private async Task<DateTimeOffset?> ReadResetTime(ProviderKind provider)
     {
@@ -191,14 +270,7 @@ public sealed class AutoContinue : MainActorModel
             limits = await PlanLimitsReader.Read(provider, executable, appModel.Providers.Environment(provider));
         }
 
-        PlanLimits.Window? spent = null;
-        foreach (var window in limits?.Windows ?? ValueList<PlanLimits.Window>.Empty)
-        {
-            if (window.ResetsAt is not { } reset || reset <= SwiftDate.Now) continue;
-            if (spent is null || window.Percent > spent.Percent) spent = window;
-        }
-        if (spent is null || spent.Percent < 95) return null;
-        return spent.ResetsAt;
+        return SpentReset(limits);
     }
 
     // :144-148

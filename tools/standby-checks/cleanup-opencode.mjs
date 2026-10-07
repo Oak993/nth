@@ -1,0 +1,23 @@
+// T28: native read/export/delete of ONLY the empty warm-fallback session created by the check.
+import { spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+const evidencePath = resolve(process.argv[2]);
+const proof = JSON.parse(readFileSync(evidencePath, 'utf8'));
+if (proof.service !== 'opencode' || !/^ses_[A-Za-z0-9]+$/.test(proof.sessionId) || !proof.warmQuiet) throw Error('No quiet probe session');
+const exe = join(process.env.LOCALAPPDATA, 'Programs/@opencodedesktop/resources/opencode-cli.exe');
+const run = args => spawnSync(exe, args, { cwd: proof.cwd, env: { ...process.env, MARROW_PORT_DATA_DIR: join(proof.cwd, 'port-data') }, windowsHide: true, encoding: 'utf8', timeout: 30000 });
+const exported = run(['session', 'export', '--standalone', proof.sessionId]);
+proof.exportExit = exported.status;
+if (exported.status !== 0) throw Error('Export failed: ' + exported.stderr);
+const session = JSON.parse(exported.stdout);
+proof.exportedSession = session;
+const info = session.info ?? session.session;
+if (info?.id !== proof.sessionId || resolve(info.location?.directory ?? info.directory ?? '') !== resolve(proof.cwd) || !Array.isArray(session.messages) || session.messages.length !== 0) throw Error('Export is not this empty disposable session');
+const deleted = run(['session', 'delete', '--standalone', proof.sessionId]);
+proof.deleteExit = deleted.status; proof.deleteOutput = deleted.stdout;
+const absent = run(['session', 'export', '--standalone', proof.sessionId]);
+proof.exportAfterDeleteExit = absent.status; proof.exportAfterDeleteOutput = absent.stderr || absent.stdout;
+proof.sessionDeleted = deleted.status === 0 && absent.status !== 0;
+writeFileSync(evidencePath, JSON.stringify(proof, null, 2) + '\n');
+console.log(JSON.stringify({ sessionId: proof.sessionId, sessionDeleted: proof.sessionDeleted, exportExit: proof.exportExit, deleteExit: proof.deleteExit, absentExit: absent.status }));

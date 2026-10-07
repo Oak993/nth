@@ -55,6 +55,7 @@ public enum SettingsPage
     [RawValue("plugins")] Plugins, // PORT-ONLY OD-0099 Sections C
     [RawValue("skills")] Skills, // PORT-ONLY OD-0099 Sections C
     [RawValue("models")] Models, // :11
+    [RawValue("pills")] Pills, // PORT-ONLY OD-0114, OD-0117 (T11 step 2): directly below Models, always listed
     [RawValue("sourceControl")] SourceControl, // :12
     [RawValue("shortcuts")] Shortcuts, // :13
     [RawValue("archive")] Archive, // :14
@@ -74,7 +75,7 @@ public static class SettingsPageExtensions
         {
             SettingsPage.General => "General", SettingsPage.Hydra => "Hydra", SettingsPage.Appearance => "Appearance",
             SettingsPage.Customization => "Customization", SettingsPage.VoiceTyping => "Voice typing", SettingsPage.Updates => "Updates",
-            SettingsPage.Plugins => "Plugins", SettingsPage.Skills => "Skills",
+            SettingsPage.Plugins => "Plugins", SettingsPage.Skills => "Skills", SettingsPage.Pills => "Pills",
             SettingsPage.Providers => "Providers", SettingsPage.Mcp => "MCP", SettingsPage.Models => "Models",
             SettingsPage.SourceControl => "Source control", SettingsPage.Shortcuts => "Shortcuts", SettingsPage.Archive => "Archive", SettingsPage.About => "About",
         };
@@ -88,7 +89,7 @@ public static class SettingsPageExtensions
             SettingsPage.Shortcuts => "command", SettingsPage.Archive => "archivebox", SettingsPage.About => "info.circle",
             // PORT-ONLY (CZ-2.1, CZ-2.1.1): names the symbol catalogue resolves (the last four through its port-added list)
             SettingsPage.Customization => "sparkles", SettingsPage.VoiceTyping => "waveform", SettingsPage.Updates => "arrow.triangle.2.circlepath",
-            SettingsPage.Plugins => "powerplug", SettingsPage.Skills => "wand.and.sparkles",
+            SettingsPage.Plugins => "powerplug", SettingsPage.Skills => "wand.and.sparkles", SettingsPage.Pills => "pill.fill",
         };
 
         // :51-64 var tint: Color
@@ -99,7 +100,7 @@ public static class SettingsPageExtensions
             SettingsPage.SourceControl => new(0.345, 0.337, 0.839), SettingsPage.Shortcuts => new(0.32, 0.48, 0.93),
             SettingsPage.Archive => Chrome.Orange, SettingsPage.About => new(0.204, 0.780, 0.349),
             // PORT-ONLY (CZ-2.1.2): the port sidebar never draws a Tint (SidebarIconBadge draws in the label colour); these arms are unused.
-            SettingsPage.Customization or SettingsPage.VoiceTyping or SettingsPage.Updates or SettingsPage.Plugins or SettingsPage.Skills => Chrome.Gray,
+            SettingsPage.Customization or SettingsPage.VoiceTyping or SettingsPage.Updates or SettingsPage.Plugins or SettingsPage.Skills or SettingsPage.Pills => Chrome.Gray,
         };
 
         // :66-79 var keywords: [String]
@@ -120,6 +121,8 @@ public static class SettingsPageExtensions
             SettingsPage.Updates => new[] { "updates", "update", "version", "latest", "upgrade", "check now", "restart" },
             SettingsPage.Plugins => new[] { "plugins", "plugin", "download", "install", "add" },
             SettingsPage.Skills => new[] { "skills", "skill", "download", "install", "add", "slash" },
+            // PORT-ONLY T11 step 2: ENGINEERING DECISION, the page's own name and what a person would type to find it (the owner's page names no words).
+            SettingsPage.Pills => new[] { "pills", "pill", "accounts", "chain", "sequence", "handshake", "fallback", "switch" },
         });
 
         // PORT-ONLY (first-release SA-1, OD-0103; the pattern of voice-SPEC V-2.6): whether the page unit has built it. A page that is not
@@ -127,7 +130,7 @@ public static class SettingsPageExtensions
         public bool IsReady => page switch
         {
             SettingsPage.Customization => CustomizationSettingsPage.IsReady, SettingsPage.VoiceTyping => VoiceTypingSettingsPage.IsReady,
-            SettingsPage.Updates => UpdatesSettingsPage.IsReady, SettingsPage.Plugins => PluginsSettingsPage.IsReady, SettingsPage.Skills => SkillsSettingsPage.IsReady,
+            SettingsPage.Updates => UpdatesSettingsPage.IsReady, SettingsPage.Plugins => PluginsSettingsPage.IsReady, SettingsPage.Skills => SkillsSettingsPage.IsReady, SettingsPage.Pills => PillsSettingsPage.IsReady,
             _ => true,
         };
     }
@@ -147,6 +150,15 @@ public sealed class SettingsNavigation : MainActorModel
     {
         get => Read(requestedPage);
         set => Set(ref requestedPage, value);
+    }
+
+    // PORT-ONLY (T11 step 2): a provider's section of the Providers page asked for from outside ("Usage details", "Keys and order"); set before RequestedPage, read and used up when the Providers page is built.
+    private ProviderKind? requestedProvider;
+
+    public ProviderKind? RequestedProvider
+    {
+        get => Read(requestedProvider);
+        set => Set(ref requestedProvider, value);
     }
 }
 
@@ -335,7 +347,7 @@ public sealed class SettingsView : Decorator
         SettingsPage.Mcp => new MCPSettingsPage(mcpSearch), SettingsPage.Models => new ModelsSettingsPage(modelSearch), SettingsPage.Hydra => new HydraSettingsPage(),
         SettingsPage.SourceControl => new SourceControlSettingsPage(), SettingsPage.Shortcuts => new ShortcutsSettingsPage(), SettingsPage.Archive => new ArchiveSettingsPage(), SettingsPage.About => new AboutSettingsPage(),
         SettingsPage.Customization => new CustomizationSettingsPage(), SettingsPage.VoiceTyping => new VoiceTypingSettingsPage(), SettingsPage.Updates => new UpdatesSettingsPage(),
-        SettingsPage.Plugins => new PluginsSettingsPage(), SettingsPage.Skills => new SkillsSettingsPage(),
+        SettingsPage.Plugins => new PluginsSettingsPage(), SettingsPage.Skills => new SkillsSettingsPage(), SettingsPage.Pills => new PillsSettingsPage(),
     };
 
     // :270-272 the pages that carry controls in the chrome row; a port-added page says so itself (ISettingsPageChrome).
@@ -750,11 +762,26 @@ internal sealed class ProvidersSettingsPage : Decorator
         private ValueMap<ProviderKind, bool> expansion = ValueMap<ProviderKind, bool>.Empty;
         public ValueMap<ProviderKind, bool> Expansion { get => Read(expansion); set => Set(ref expansion, value); }
     }
+    private ViewState? shown;
+
+    /// <summary>The service the page was asked to bring into view, once it has (PORT-ONLY, T11 step 2).</summary>
+    internal ProviderKind? Revealed { get; private set; }
+
+    internal bool IsOpen(ProviderKind provider) => shown is { } view && view.Expansion.TryGetValue(provider, out var open) && open;
+
     // :592-614 body
     public ProvidersSettingsPage()
     {
         var state = new ViewState();
+        shown = state;
         var stack = new StackPanel { Spacing = Chrome.SectionSpacing }; Child = stack; // :598-600
+        // PORT-ONLY (T11 step 2): a service asked for by "Usage details" or "Keys and order" is opened and brought into view; the request is used up here
+        var wanted = SettingsNavigation.Shared.RequestedProvider;
+        if (wanted is { } asked)
+        {
+            SettingsNavigation.Shared.RequestedProvider = null;
+            state.Expansion = state.Expansion.Mutating(map => map[asked] = true);
+        }
         var sections = new ForEach<ProviderKind, ProviderKind>(stack, provider => provider, provider => new ProviderSettingsSection(provider,
             new Binding<bool>(() => { if (state.Expansion.TryGetValue(provider, out var value)) return value; var registry = AppEnvironment.GetAppModel(this).Providers; _ = registry.Statuses; return registry.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; },
                 value => state.Expansion = state.Expansion.Mutating(map => map[provider] = value))), (_, _) => { }); // :605-610
@@ -762,6 +789,12 @@ internal sealed class ProvidersSettingsPage : Decorator
         {
             bool Configured(ProviderKind provider) => AppEnvironment.GetAppModel(this).Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; // :593-597
             sections.Apply(SwiftEnum<ProviderKind>.AllCases.Where(Configured).Concat(SwiftEnum<ProviderKind>.AllCases.Where(provider => !Configured(provider))).ToArray()); // :604
+            if (wanted is { } reveal && stack.Children.OfType<ProviderSettingsSection>().FirstOrDefault(section => section.Provider == reveal) is { } target)
+            {
+                wanted = null;
+                Revealed = reveal;
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => target.BringIntoView());
+            }
         });
     }
 }
@@ -770,6 +803,7 @@ internal sealed class ProvidersSettingsPage : Decorator
 internal sealed class ProviderSettingsSection : Decorator
 {
     private readonly ProviderKind provider;
+    internal ProviderKind Provider => provider; // PORT-ONLY (T11 step 2)
     private TaskHandle? keyCheck; // :627
     // :624-626
     private sealed class ViewState : MainActorModel
