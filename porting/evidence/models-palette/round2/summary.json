@@ -1,76 +1,171 @@
 {
   "branch": "codex/models-palette",
-  "build": {
-    "warnings": 0,
-    "errors": 0,
-    "receipt": "build-final2.log"
+  "integration": {
+    "merge": "4f795ba37",
+    "Strike": "2d618f2177c1c7ad04b369e7a9fe66d2beaab630",
+    "standing_contains_Strike": "666097b04"
   },
   "rows": {
-    "RR-19": "DONE (standalone control + additive handoff)",
+    "RR-19": "DONE",
     "RR-20": "BLOCKED",
-    "RR-21": "BLOCKED (visible control implemented)",
-    "RR-41": "BLOCKED"
+    "RR-21": "DONE",
+    "RR-41": "BLOCKED (reconciliation complete, whole-record acceptance not granted)"
+  },
+  "verdict": "NOT READY",
+  "build": {
+    "receipt": "build-poststrike-verified.log",
+    "warnings": 0,
+    "errors": 0
   },
   "receipts": {
-    "rr20-core-final3.trx": {
-      "total": 20,
-      "passed": 19,
-      "failed": 1,
-      "notExecuted": 0
+    "rr41-app-poststrike-final.trx": {
+      "total": 529,
+      "executed": 529,
+      "passed": 525,
+      "failed": 4,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
     },
-    "rr20-services-verified.trx": {
-      "total": 42,
-      "passed": 42,
-      "failed": 0,
-      "notExecuted": 0
-    },
-    "rr21-control-verified.trx": {
-      "total": 19,
-      "passed": 19,
-      "failed": 0,
-      "notExecuted": 0
-    },
-    "rr21-final.trx": {
-      "total": 49,
-      "passed": 35,
-      "failed": 14,
-      "notExecuted": 0
-    },
-    "rr41-app-round2.trx": {
-      "total": 326,
-      "passed": 326,
-      "failed": 0,
-      "notExecuted": 0
-    },
-    "rr41-app-residual-round2.trx": {
-      "total": 5,
-      "passed": 4,
-      "failed": 1,
-      "notExecuted": 0
-    },
-    "rr41-ui-round2.trx": {
+    "rr41-ui-residual-poststrike-final.trx": {
       "total": 12,
+      "executed": 12,
       "passed": 7,
       "failed": 5,
-      "notExecuted": 0
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr20-palette-final.trx": {
+      "total": 27,
+      "executed": 27,
+      "passed": 27,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr20-core-final-poststrike.trx": {
+      "total": 21,
+      "executed": 21,
+      "passed": 21,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr20-services-poststrike-final.trx": {
+      "total": 66,
+      "executed": 66,
+      "passed": 66,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
     }
   },
-  "effortSliderEditedLines": [],
+  "test_scope_note": "Overlapping scopes are not summed. Native OS-guarded passes receive no native credit.",
+  "remaining_RR20": [
+    "authentic first-cut placeholder/image/seed evidence and catalogue Date/Age boundary bake",
+    "locked C21 clear living water/Stable Fluids ink arrival",
+    "complete visible title/glow/Jewel and remaining bubble-dial/effort-transition integration",
+    "ModelShades.ApplyToUi remains false; original guard preserved"
+  ],
+  "Windows_needs": [
+    "native picker/Colours fonts, glass, placement, scroll, motion, UIA",
+    "authentic codecs/filesystem locks/release-pack adoption and separately authorised captured-real-source ten-root replay",
+    "complete locked page-shell/Jewel/ink/all-model ANGLE comparison and quiet-PC real cadence/GC/performance"
+  ],
   "seams": [
-    "after Strike, bind ModelPickerSeam.Create/Place, preserve Choose/Back/history/Hydra/.12s outer page transition",
-    "ModelShades frozen reads + PaletteGlide + PaletteArrangement supplied; ApplyToUi remains false"
+    {
+      "seam": "OpenRouter popup -10 px offset",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 129
+    },
+    {
+      "seam": "approved ModelList delegation",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 399
+    },
+    {
+      "seam": "guarded card Attach and return",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 343
+    },
+    {
+      "seam": "EffortSlider partial declaration",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 859
+    },
+    {
+      "seam": "retained effect handoff",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 1333
+    },
+    {
+      "seam": "TrackEffect partial declaration",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 1858
+    },
+    {
+      "seam": "retained frame handoff",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 2156
+    }
   ],
-  "verdict": "NOT READY",
-  "network": "in-process fake only; no real models/logo API",
-  "originalTestsReferencesTolerancesAssertions": "unchanged from ae9b3177",
-  "wholeRecordEvidenceAppended": 15,
-  "linuxLimits": [
-    "5 unchanged UI title tests cannot create $Default glyphTypeface",
-    "unchanged 380/400ms title-frame equality still fails; untouched-base reproduction retained",
-    "Windows source reference unavailable to Gate A"
-  ],
-  "newAcceptanceFailures": [
-    "strict archived-IR3/new-generation expectation conflict (1)",
-    "OD-0127 Colours card conflicts with unchanged old-card-position rise fixture (14)"
+  "preservation": "preservation-poststrike-final.json",
+  "decision_ids": [
+    "ED-NEW-models-palette-9",
+    "ED-NEW-models-palette-10",
+    "ED-NEW-models-palette-11",
+    "ED-NEW-models-palette-12",
+    "ED-NEW-models-palette-13",
+    "ED-NEW-models-palette-14",
+    "ED-NEW-models-palette-15"
   ]
 }

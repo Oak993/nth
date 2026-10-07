@@ -1,0 +1,44 @@
+{
+  "relative_to": "4f795ba37",
+  "added_lines": 9,
+  "removed_lines": 3,
+  "seams": [
+    {
+      "seam": "OpenRouter popup -10 px offset",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 129
+    },
+    {
+      "seam": "approved ModelList delegation",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 399
+    },
+    {
+      "seam": "guarded card Attach and return",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 343
+    },
+    {
+      "seam": "EffortSlider partial declaration",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 859
+    },
+    {
+      "seam": "retained effect handoff",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 1333
+    },
+    {
+      "seam": "TrackEffect partial declaration",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 1858
+    },
+    {
+      "seam": "retained frame handoff",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 2156
+    }
+  ],
+  "LiquidTrack": "five narrow carrier/partial/uniform/program-selection seams, 5 added/4 removed",
+  "LiquidStrike": "byte-identical to merged Strike"
+}
