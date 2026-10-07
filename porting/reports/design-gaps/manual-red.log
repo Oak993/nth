@@ -1,0 +1,42 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.24]     Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Failed_publication_is_not_counted_and_removes_its_temporary_file [FAIL]
+[xUnit.net 00:00:01.30]     Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Placement_waits_for_the_downloaders_turn_for_both_entrypoints [FAIL]
+[xUnit.net 00:00:01.33]     Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.The_bytes_published_are_the_bytes_hashed_from_one_opening [FAIL]
+  Failed Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Failed_publication_is_not_counted_and_removes_its_temporary_file [74 ms]
+  Error Message:
+   Assert.Empty() Failure: Collection was not empty
+Collection: ["e389b3f73501152fe50d80fa8b622fcc5841498b8fee9913d6"···]
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Failed_publication_is_not_counted_and_removes_its_temporary_file() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/DesignGapsManualTests.cs:line 61
+   at Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Failed_publication_is_not_counted_and_removes_its_temporary_file() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/DesignGapsManualTests.cs:line 62
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Placement_waits_for_the_downloaders_turn_for_both_entrypoints [57 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Placement_waits_for_the_downloaders_turn_for_both_entrypoints() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/DesignGapsManualTests.cs:line 32
+   at Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.Placement_waits_for_the_downloaders_turn_for_both_entrypoints() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/DesignGapsManualTests.cs:line 18
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.The_bytes_published_are_the_bytes_hashed_from_one_opening [33 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 1
+Actual:   2
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.The_bytes_published_are_the_bytes_hashed_from_one_opening() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/DesignGapsManualTests.cs:line 48
+   at Marrow.Services.Tests.Port.Skills.Fetch.DesignGapsManualTests.The_bytes_published_are_the_bytes_hashed_from_one_opening() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Fetch/DesignGapsManualTests.cs:line 51
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     3, Passed:     0, Skipped:     0, Total:     3, Duration: 181 ms - Marrow.Services.Tests.dll (net10.0)
