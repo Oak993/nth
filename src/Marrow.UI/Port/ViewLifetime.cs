@@ -89,6 +89,12 @@ public static class Presentation
 
     public static readonly AttachedProperty<IPopoverMotion?> MotionProperty =
         AvaloniaProperty.RegisterAttached<Popup, IPopoverMotion?>("Motion", typeof(Presentation));
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, Action> motionDismiss = new();
+
+    internal static void DismissMotion(Popup popup)
+    {
+        if (motionDismiss.TryGetValue(popup, out var dismiss)) dismiss();
+    }
 
     internal static void OpenMotion(Popup popup, Control content)
     {
@@ -106,6 +112,8 @@ public static class Presentation
     /// </summary>
     public static void SetPresented(Popup popup, bool presented, Visual anchor, Action dismiss)
     {
+        if (presented && popup.GetValue(MotionProperty) is not null) motionDismiss.AddOrUpdate(popup, dismiss);
+        else motionDismiss.Remove(popup);
         if (presented) WindowTransients.Show(popup, anchor, dismiss);
         else WindowTransients.Hide(popup);
         Presenter.Current.SetPresented(popup, presented);
