@@ -1,0 +1,33 @@
+  Determining projects to restore...
+  Restored /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 930 ms).
+  Restored /workspace/marrow-port/src/Marrow.Core/Marrow.Core.csproj (in 5 ms).
+  Restored /workspace/marrow-port/tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj (in 132 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Testing/Marrow.Testing.csproj (in 5 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/Marrow.Skills.PipelineWorker.csproj (in 5.26 sec).
+  Restored /workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj (in 6.37 sec).
+  Restored /workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj (in 6.38 sec).
+  Restored /workspace/marrow-port/src/Marrow.App/Marrow.App.csproj (in 6.38 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj (in 49 ms).
+  Restored /workspace/marrow-port/src/Marrow.UI/Marrow.UI.csproj (in 5 ms).
+  Restored /workspace/marrow-port/src/Marrow.Setup/Marrow.Setup.csproj (in 1 ms).
+  Restored /workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 54 ms).
+  Restored /workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj (in 4.75 sec).
+  Marrow.Setup -> /workspace/marrow-port/src/Marrow.Setup/bin/Debug/net10.0-windows/Marrow.Setup.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:01:52.59
