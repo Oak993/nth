@@ -148,10 +148,13 @@ public sealed class HandshakeMachine(
             foreach (var choice in choices)
             {
                 if (!card.Kinds.Contains(choice.Kind)) throw new ArgumentException($"The card did not ask {choice.Kind}.", nameof(choices));
-                if (choice.Value == DecisionValues.Ask) throw new ArgumentException("A card cannot be answered with Ask me.", nameof(choices));
+                if (choice.Value == DecisionValues.Ask && !(choice.Kind == DecisionKind.OnLimit
+                    && choices.Count == 1 && card.Kinds.Contains(DecisionKind.OnLimit) && Get(DecisionKind.OnLimit).FirstTime))
+                    throw new ArgumentException("Only the first-time limit card offers Ask me each time.", nameof(choices));
             }
             var preset = choices.Any(choice => choice.Kind == DecisionKind.OnLimit && choice.Value == DecisionValues.Switch);
-            var stays = choices.Any(choice => choice.Kind is DecisionKind.OnLimit or DecisionKind.OtherService && choice.Value == DecisionValues.Wait
+            var stays = choices.Any(choice => choice.Kind == DecisionKind.OnLimit && choice.Value == DecisionValues.Ask
+                || choice.Kind is DecisionKind.OnLimit or DecisionKind.OtherService && choice.Value == DecisionValues.Wait
                 || choice.Kind == DecisionKind.EarlierAccount && choice.Value == DecisionValues.Stay);
             foreach (var kind in card.Kinds)
                 if (!choices.Any(choice => choice.Kind == kind) && !stays
@@ -586,7 +589,9 @@ public sealed class HandshakeMachine(
     private void Ask(Pending card, bool firstTime, string? incoming)
     {
         pending = card;
-        var request = new DecisionRequest(threadId, card.Kinds, firstTime, card.AccountId, incoming, card.ResetsAt);
+            // Once OnLimit is "Ask", unresolved payload choices belong to the normal limit card.
+            var request = new DecisionRequest(threadId, card.Kinds,
+                firstTime && !(card.Kinds.Contains(DecisionKind.OnLimit) && !Get(DecisionKind.OnLimit).FirstTime), card.AccountId, incoming, card.ResetsAt);
         SetPhase(HandshakePhase.Asking);
         Emit(HandshakeEventKind.DecisionRequested, phase, phase, request, incomingOverride: incoming);
     }
@@ -594,7 +599,7 @@ public sealed class HandshakeMachine(
     private Resolution Get(DecisionKind kind, string? pillValue = null)
     {
         if (answers.TryGetValue(kind, out var value) && answerPolicies.GetValueOrDefault(kind) == StoredPolicy(kind))
-            return new Resolution(kind, value, ResolutionSource.Thread, FirstTime: false);
+            return new Resolution(kind, value == DecisionValues.Ask ? null : value, ResolutionSource.Thread, FirstTime: false);
         answers.Remove(kind);
         answerPolicies.Remove(kind);
         return decisions.Resolve(threadId, kind, pillValue);
