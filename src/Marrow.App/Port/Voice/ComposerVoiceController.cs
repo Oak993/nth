@@ -33,6 +33,7 @@ public sealed class ComposerVoiceController : MainActorModel
     private bool dictationOpen;
     private bool setupOpen;
     private bool preparing;
+    private VoiceListeningStyle liveStyle;
 
     public ComposerVoiceController(ComposerVoiceHost host)
     {
@@ -64,6 +65,16 @@ public sealed class ComposerVoiceController : MainActorModel
     {
         get => Read(state);
         private set => Set(ref state, value);
+    }
+
+    /// <summary>
+    /// How this session shows that it listens: the listening style (Pill, Cross or Float) as it was when listening began. A change of the setting takes effect with the next session (V-15), so the pill,
+    /// the cross and the orb's lift read this and not the setting while the session is live.
+    /// </summary>
+    public VoiceListeningStyle LiveStyle
+    {
+        get => Read(liveStyle);
+        private set => Set(ref liveStyle, value);
     }
 
     /// <summary>True while Listening or Processing: Esc cancels, the editor is read-only, the capture is open (V-14.4, V-8.5).</summary>
@@ -167,6 +178,12 @@ public sealed class ComposerVoiceController : MainActorModel
         });
     }
 
+    /// <summary>An answer of the language question (V-12.11): stored at once, then listening begins with it.</summary>
+    public void AnswerLanguage(string code) => Session.AnswerLanguage(code);
+
+    /// <summary>Esc or a click outside the question (V-12.11): it closes with nothing stored and nothing started.</summary>
+    public void DismissQuestion() => Session.DismissQuestion();
+
     /// <summary>Esc or the cross (V-14.4): cancels a live session, says so, and does nothing otherwise.</summary>
     public bool Cancel()
     {
@@ -193,9 +210,13 @@ public sealed class ComposerVoiceController : MainActorModel
 
     private void OnState(VoiceSessionState from, VoiceSessionState to)
     {
+        if (to == VoiceSessionState.Listening) LiveStyle = OrbSettings.ListeningStyle;
         State = to;
         switch (to)
         {
+            case VoiceSessionState.Asking:
+                Say(VoiceAnnouncements.LanguageQuestion); // V-12.11
+                break;
             case VoiceSessionState.Listening:
                 var began = host.Selection();
                 original = began;

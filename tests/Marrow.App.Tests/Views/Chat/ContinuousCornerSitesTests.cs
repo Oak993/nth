@@ -68,6 +68,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/Settings/PreviewStepper.cs", "11", 1, Circle), // CZ-3 (ED-335): the 22 x 22 stepper, a circle by construction
         ("Marrow.App/Port/Settings/PreviewSwitchChip.cs", "14", 1, Capsule), // CZ-3 (ED-335): the 28 pt chip of the preview model switch, r = h / 2
         ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-343): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
+        ("Marrow.App/Port/Voice/VoiceLanguageQuestion.cs", "CardRadius", 2, Circular), // VT-12 (V-12.11, ED-292): the design-page question card's 14 px border radius, not a Swift shape (glass and rim)
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),

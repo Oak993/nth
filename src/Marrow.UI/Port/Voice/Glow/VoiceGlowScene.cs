@@ -49,6 +49,8 @@ public sealed class VoiceGlowScene
     /// <summary>Steps the fade and (while the glow runs) the driver to <paramref name="now"/> (seconds, monotonic).</summary>
     public void Advance(double now, VoiceGlowInput input)
     {
+        // A delayed composition sample cannot replay behind a frame already prepared by the injected clock.
+        if (lastNow is { } previousTime && now < previousTime) return;
         var dt = lastNow is { } last ? Math.Max(0, now - last) : 0;
         lastNow = now;
 
