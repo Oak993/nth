@@ -1,0 +1,64 @@
+{
+  "head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+  "unchanged": {
+    "tests/Marrow.App.Tests/Port/Settings/GapComposerPreviewRenderTests.cs": {
+      "byte_exact": true,
+      "sha256": "778fcf7c792d46984b7cf5630229b8e6c6b29ae4679c14709d0c0db23eb6339f"
+    },
+    "tests/Marrow.App.Tests/Fixtures/FrameCurves.cs": {
+      "byte_exact": true,
+      "sha256": "8ea7739fa3c4690bc1dcefa809c30fa03d50522b6a9938494dd3f0b8e39f80bc"
+    },
+    "src/Marrow.App/Views/Composer/ComposerLightSlot.cs": {
+      "byte_exact": true,
+      "sha256": "870ebbba89529479558f3906e6a942b1153c063ceee44d75089e423953dd3786"
+    },
+    "src/Marrow.App/Views/Composer/EffortSlider.cs": {
+      "byte_exact": true,
+      "sha256": "091daa56aa376c77680794bf79566dc9dc37e7d9cdd8f3c4260d74070bd16feb"
+    },
+    "src/Marrow.UI/Port/Settings/CzControls/CzMotion.cs": {
+      "byte_exact": true,
+      "sha256": "dfd51623eca613368a27b34ec4c9ee757e7c2addb646f0dd5414ab3e59181102"
+    },
+    "src/Marrow.UI/Port/Settings/CzControls/CzCrossfadeText.cs": {
+      "byte_exact": true,
+      "sha256": "13cd862ae31c3cb2a592f85beca6bdf4b2d92468e2a4d36ba481ae4d5691faaf"
+    },
+    "tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs": {
+      "byte_exact": true,
+      "sha256": "0391869f2f81928f437efa0ae0f894a585ffc05ce783a6ea4e5d7b2f6e6dfd4e"
+    },
+    "src/Marrow.App/Views/Composer/ComposerView.cs": {
+      "byte_exact": true,
+      "sha256": "41b063f44d85ed45a71bd0922ba9ea3920293c68cad7da03e9cc4eaf6fc62766"
+    },
+    "src/Marrow.App/Port/Settings/ComposerLightPalettes.cs": {
+      "byte_exact": true,
+      "sha256": "c11dabaaf550dc15bf288f7f2bf27be0fdcf73e29d6f68bc63483e258849b53c"
+    }
+  },
+  "ledgers": {
+    "porting/owner_decisions.md": {
+      "input_prefix_exact": true,
+      "input_bytes": 199088,
+      "head_bytes": 199088,
+      "sha256": "c08e93fcc1d5c1a509557be6129a9b5d7500c3032e104b60881c40615b0f09a4"
+    },
+    "porting/engineering_decisions.md": {
+      "input_prefix_exact": true,
+      "input_bytes": 1789050,
+      "head_bytes": 1839160,
+      "sha256": "e988e126d2293d22b998d8ec5680d35d09b2185b5d2044a636e70ced54f68049"
+    },
+    "porting/STATE.md": {
+      "input_prefix_exact": true,
+      "input_bytes": 85978,
+      "head_bytes": 96876,
+      "sha256": "eea5f1f141c7fdea994668b9fb8f6ba2aa4cbe6f9b35d6349dd62a8c9ae6050d"
+    }
+  },
+  "palette_predicate_byte_exact": true,
+  "preceding_five_preview_tests_byte_exact": true,
+  "ledger_location": "working tree and index; byte-exact input prefixes"
+}

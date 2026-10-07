@@ -143,6 +143,7 @@ public sealed class SkillsHostCompositionTests
     }
 
     [Fact]
+    [Trait("Spec", "DL-16")]
     public async Task Reset_through_the_host_removes_what_is_installed_and_keeps_enabled_json_and_the_accepted_terms()
     {
         using var rig = new PipelineRig(nonOpen: true, skillset: true, disclosure: true, root: SkillsHostRig.FreshRoot());

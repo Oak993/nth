@@ -1,0 +1,204 @@
+{
+  "status": "Existing real slot preserved under explicit owner instruction; independent approved 14-maker stops plus its pair rule",
+  "source_files": [
+    {
+      "path": "E:\\Droppy\\work\\design\\effort-liquid-approved-v15.dc.html",
+      "sha256": "db6dfa91c4accad61fb75b41f1df594a554bed0c7099df9e49afd51d1236d26b"
+    },
+    {
+      "path": "E:\\Droppy\\work\\design\\composer-lights\\playground\\src\\logic.js",
+      "sha256": "502b8b321b274a2543e50c131449d890e47737d9a858d48382f9504c74ca8a2f"
+    },
+    {
+      "path": "E:\\Droppy\\work\\design\\composer-lights\\playground\\src\\gen.py",
+      "sha256": "916562e41e609a6914b2878ebece8ea7a57fdc80b9c23aed61b977520ece5165"
+    }
+  ],
+  "rule": "OD-0089 maker pair; current slot: dark mid/light, light deep/mid",
+  "makers": [
+    {
+      "maker": "OpenAI",
+      "dark": [
+        "#EEF0F5",
+        "#D9DBE3"
+      ],
+      "light": [
+        "#FFFFFF",
+        "#EEF0F5"
+      ],
+      "canvas_line": 360
+    },
+    {
+      "maker": "Claude",
+      "dark": [
+        "#CC6B47",
+        "#E0875F"
+      ],
+      "light": [
+        "#B85A38",
+        "#CC6B47"
+      ],
+      "canvas_line": 361
+    },
+    {
+      "maker": "DeepSeek",
+      "dark": [
+        "#3D5CFA",
+        "#6A82FF"
+      ],
+      "light": [
+        "#2A45E0",
+        "#3D5CFA"
+      ],
+      "canvas_line": 362
+    },
+    {
+      "maker": "Meta",
+      "dark": [
+        "#0070EC",
+        "#2B95FF"
+      ],
+      "light": [
+        "#0054C4",
+        "#0070EC"
+      ],
+      "canvas_line": 363
+    },
+    {
+      "maker": "Gemini",
+      "dark": [
+        "#9C73CC",
+        "#D96670"
+      ],
+      "light": [
+        "#4285F5",
+        "#9C73CC"
+      ],
+      "canvas_line": 364
+    },
+    {
+      "maker": "Cursor",
+      "dark": [
+        "#F54E00",
+        "#FF8040"
+      ],
+      "light": [
+        "#D93F00",
+        "#F54E00"
+      ],
+      "canvas_line": 365
+    },
+    {
+      "maker": "Grok",
+      "dark": [
+        "#121218",
+        "#26262E"
+      ],
+      "light": [
+        "#030304",
+        "#121218"
+      ],
+      "canvas_line": 366
+    },
+    {
+      "maker": "OpenCode",
+      "dark": [
+        "#25B34F",
+        "#45DC6C"
+      ],
+      "light": [
+        "#168A3A",
+        "#25B34F"
+      ],
+      "canvas_line": 367
+    },
+    {
+      "maker": "OpenCodeGo",
+      "dark": [
+        "#00A4CD",
+        "#3CCBEC"
+      ],
+      "light": [
+        "#007EA3",
+        "#00A4CD"
+      ],
+      "canvas_line": 368
+    },
+    {
+      "maker": "Zai",
+      "dark": [
+        "#14306E",
+        "#2F6BFF"
+      ],
+      "light": [
+        "#0A1630",
+        "#14306E"
+      ],
+      "canvas_line": 369
+    },
+    {
+      "maker": "Devin",
+      "dark": [
+        "#3CBC9B",
+        "#6FDCBF"
+      ],
+      "light": [
+        "#239377",
+        "#3CBC9B"
+      ],
+      "canvas_line": 370
+    },
+    {
+      "maker": "Copilot",
+      "dark": [
+        "#D25AB4",
+        "#F4A876"
+      ],
+      "light": [
+        "#8534F3",
+        "#D25AB4"
+      ],
+      "canvas_line": 371
+    },
+    {
+      "maker": "CommandCode",
+      "dark": [
+        "#2E1B9C",
+        "#6145DC"
+      ],
+      "light": [
+        "#24157E",
+        "#2E1B9C"
+      ],
+      "canvas_line": 372
+    },
+    {
+      "maker": "Pi",
+      "dark": [
+        "#C8102E",
+        "#EC5560"
+      ],
+      "light": [
+        "#A30C25",
+        "#C8102E"
+      ],
+      "canvas_line": 373
+    }
+  ],
+  "literal_playground_discrepancies": {
+    "OpenAI_light": [
+      "#8D94A5",
+      "#A9AEBB"
+    ],
+    "Gemini_light": [
+      "#8A5FC0",
+      "#D96670"
+    ]
+  },
+  "literal_playground_makers": [
+    "Claude",
+    "OpenAI",
+    "Gemini",
+    "DeepSeek"
+  ]
+}

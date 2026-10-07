@@ -5,6 +5,7 @@ using Marrow.Services.Port.Skills.Generations;
 namespace Marrow.Services.Tests.Port.Skills.Generations;
 
 [Trait("Feature", "SK-9")]
+[Trait("Spec", "DL-9")]
 public sealed class ClashScannerTests
 {
     [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-user-project-scans

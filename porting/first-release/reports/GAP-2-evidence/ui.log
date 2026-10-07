@@ -1,0 +1,6 @@
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+WARNING: Overwriting results file: /tmp/GAP-2-evidence/ui.trx
+Results File: /tmp/GAP-2-evidence/ui.trx
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 456 ms - Marrow.UI.Tests.dll (net10.0)

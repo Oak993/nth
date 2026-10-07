@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // test can never reach the real data folder (R-TEST-9); a corrupt file fails closed and is never replaced by an empty state. ONDEMAND-PLAN.md DL-19:
 // "app restart during a download resumes from the .part on the next Download press, never on its own", so a state read from disk settles every
 // in-flight item (ED-295).
+[Trait("Spec", "DL-7")]
 public sealed class AddonsStateStoreTests
 {
     [Fact]

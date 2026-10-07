@@ -6,6 +6,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (DL-3, section 3.3 and 3.9): every artifact's length must equal the pinned size and its SHA-256 the pinned hash; a mismatch deletes the
 // partial file and fails with "The file didn't match its checksum."; the destination is never touched by a failed download.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderVerifyTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(60_000, seed: 7);

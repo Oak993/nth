@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // "1-64 lowercase letters, digits and single hyphens, and the name must equal the folder name".
 // UNVERIFIED: that a name may not start or end with a hyphen is the lead's reading of the specification; agentskills.io was not reachable from
 // the build machine (egress proxy), so this rule is recorded as an ED and the rest is the plan's own wording.
+[Trait("Spec", "DL-1")]
 public sealed class SkillsCatalogueSkillNamesTests
 {
     [Theory]

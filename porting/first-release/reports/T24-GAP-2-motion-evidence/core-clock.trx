@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="0d45cf1a-14f6-47f4-a489-763fb2ce0905" name="@9e233ac65b1d 2026-10-07 05:02:58" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T05:02:58.1770996+00:00" queuing="2026-10-07T05:02:58.1770996+00:00" start="2026-10-07T05:02:56.6081990+00:00" finish="2026-10-07T05:02:58.3322031+00:00" />
+  <TestSettings name="default" id="79b8b491-5cb7-42ad-8325-0d6791c5974e">
+    <Deployment runDeploymentRoot="_9e233ac65b1d_2026-10-07_05_02_58" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="1b8225cc-59fa-4ed2-8f86-9a6717c42818" testId="d8f36fc7-645f-a9c0-2c3b-cc0c2996a0f8" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Auto_values_ignore_what_is_set" computerName="9e233ac65b1d" duration="00:00:00.0442827" startTime="2026-10-07T05:02:58.0396284+00:00" endTime="2026-10-07T05:02:58.0742098+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1b8225cc-59fa-4ed2-8f86-9a6717c42818" />
+    <UnitTestResult executionId="b3ca0ddf-387c-4c8f-9f61-03b46f98378f" testId="10f58de9-4068-d6a7-ff79-2baf94c7e3f9" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.The_clock_integrates_every_phase_as_the_playground" computerName="9e233ac65b1d" duration="00:00:00.0045097" startTime="2026-10-07T05:02:58.0321410+00:00" endTime="2026-10-07T05:02:58.0394050+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b3ca0ddf-387c-4c8f-9f61-03b46f98378f" />
+    <UnitTestResult executionId="e6587dff-73cd-4340-83e7-cd1b65403517" testId="1f9d85a0-4184-dad3-826a-a4c0bfd40bb0" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;respondTyping&quot;, so: 0.16640000000000005, io: 0.26880000000000004, bo: 0.15360000000000001, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" computerName="9e233ac65b1d" duration="00:00:00.0000156" startTime="2026-10-07T05:02:58.1211371+00:00" endTime="2026-10-07T05:02:58.1211715+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e6587dff-73cd-4340-83e7-cd1b65403517" />
+    <UnitTestResult executionId="6522e371-e2a9-4048-b92a-32a9334daa54" testId="381a132a-8070-38d9-9645-5bfde08edaf8" testName="Marrow.Core.Tests.Port.TimingShapeTests.Date_now_reads_the_same_clock_the_timers_run_on" computerName="9e233ac65b1d" duration="00:00:00.0241926" startTime="2026-10-07T05:02:57.9779360+00:00" endTime="2026-10-07T05:02:58.0140894+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6522e371-e2a9-4048-b92a-32a9334daa54" />
+    <UnitTestResult executionId="7db9e2d6-dd56-43e0-b94f-b4435ccd67c7" testId="3659fd16-b442-6ab3-69bb-ed658e9e9071" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;default&quot;, so: 0.26000000000000001, io: 0.41999999999999998, bo: 0.23999999999999999, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" computerName="9e233ac65b1d" duration="00:00:00.0000167" startTime="2026-10-07T05:02:58.1208490+00:00" endTime="2026-10-07T05:02:58.1208845+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7db9e2d6-dd56-43e0-b94f-b4435ccd67c7" />
+    <UnitTestResult executionId="fcf1d550-2c0b-4cd7-8905-8c3290434430" testId="2532871d-9c4f-915e-7208-bf18d34abf1b" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;pkg&quot;, so: 0.26000000000000001, io: 0.41999999999999998, bo: 0.23999999999999999, br: 1.3, sat: 1.2, hr: 30, dur: 1.96)" computerName="9e233ac65b1d" duration="00:00:00.0000649" startTime="2026-10-07T05:02:58.1204922+00:00" endTime="2026-10-07T05:02:58.1205650+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fcf1d550-2c0b-4cd7-8905-8c3290434430" />
+    <UnitTestResult executionId="59ac5caf-c4ed-4c5d-8474-0e24d4973a5e" testId="feb98615-3620-478b-c4e8-d8b1ef44581b" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.The_window_radius_eases_over_point_22_seconds" computerName="9e233ac65b1d" duration="00:00:00.0149337" startTime="2026-10-07T05:02:58.0318862+00:00" endTime="2026-10-07T05:02:58.0319541+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="59ac5caf-c4ed-4c5d-8474-0e24d4973a5e" />
+    <UnitTestResult executionId="e7979698-cfa8-4309-af82-d297eafeda82" testId="02aa3957-4cf5-27b6-8569-186ad595c7e4" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;po&quot;, so: 1.96, io: 1.04, bo: 0.41999999999999998, br: 1.7, sat: 0.59999999999999998, hr: 30, dur: 2.2999999999999998)" computerName="9e233ac65b1d" duration="00:00:00.0000597" startTime="2026-10-07T05:02:58.1210458+00:00" endTime="2026-10-07T05:02:58.1210815+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e7979698-cfa8-4309-af82-d297eafeda82" />
+    <UnitTestResult executionId="95ae0fad-b907-43c6-8b20-824577769602" testId="4643b2c1-21f8-2c36-4326-d3c2f083b41c" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;pi&quot;, so: 1.54, io: 0.44, bo: 0.66000000000000003, br: 0.75, sat: 1.2, hr: 30, dur: 2.2999999999999998)" computerName="9e233ac65b1d" duration="00:00:00.0006483" startTime="2026-10-07T05:02:58.1198717+00:00" endTime="2026-10-07T05:02:58.1199586+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="95ae0fad-b907-43c6-8b20-824577769602" />
+    <UnitTestResult executionId="91d17430-647c-4764-90d4-7e217aeeeb73" testId="a588756c-45fa-975a-5fc8-c11f14be3403" testName="Marrow.Core.Tests.Port.Downloads.FakeDownloadFaultTests.A_slow_trickle_sends_one_chunk_per_interval_of_the_servers_clock" computerName="9e233ac65b1d" duration="00:00:00.2143638" startTime="2026-10-07T05:02:58.0317398+00:00" endTime="2026-10-07T05:02:58.2249997+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="91d17430-647c-4764-90d4-7e217aeeeb73" />
+    <UnitTestResult executionId="b95cebc2-7d6d-4526-bbcd-a30f880110c0" testId="114f3559-049e-2839-7855-4a777c7abc7a" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Reduce_motion_stills_every_phase" computerName="9e233ac65b1d" duration="00:00:00.0003674" startTime="2026-10-07T05:02:58.1225751+00:00" endTime="2026-10-07T05:02:58.1226213+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b95cebc2-7d6d-4526-bbcd-a30f880110c0" />
+    <UnitTestResult executionId="acf6adae-63be-46a0-95d0-2a68f040311b" testId="b26bd9cc-9e05-508f-871e-034d3fe1e70a" testName="Marrow.Core.Tests.Port.HttpProcessStateTests.A_cached_answer_on_the_shared_session_goes_stale_when_its_max_age_elapses_on_SwiftClock" computerName="9e233ac65b1d" duration="00:00:00.0464962" startTime="2026-10-07T05:02:58.2253281+00:00" endTime="2026-10-07T05:02:58.2722553+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="acf6adae-63be-46a0-95d0-2a68f040311b" />
+    <UnitTestResult executionId="b723474c-cace-4902-8d51-161b589fdf5f" testId="e448bc7f-df38-88d7-b42a-256b367393f2" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;line&quot;, so: 1.1399999999999999, io: 0.69999999999999996, bo: 0.80000000000000004, br: 1.3, sat: 1.2, hr: 13, dur: 5.6097099621689788)" computerName="9e233ac65b1d" duration="00:00:00.0000665" startTime="2026-10-07T05:02:58.1207504+00:00" endTime="2026-10-07T05:02:58.1207859+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b723474c-cace-4902-8d51-161b589fdf5f" />
+    <UnitTestResult executionId="717fa3d0-324c-4c48-aa12-ec0136ee41de" testId="9569ff93-2f11-0fc0-2b4a-d822f9265cd2" testName="Marrow.Core.Tests.Port.HttpStoreTests.An_answer_fresh_by_Expires_is_served_from_the_cache_until_that_lifetime_elapses_on_SwiftClock" computerName="9e233ac65b1d" duration="00:00:00.1623061" startTime="2026-10-07T05:02:57.9779144+00:00" endTime="2026-10-07T05:02:58.1466232+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="717fa3d0-324c-4c48-aa12-ec0136ee41de" />
+    <UnitTestResult executionId="d60a765a-6bab-4d54-ba04-d32bd9ecc743" testId="81a14548-5722-f22b-9708-a91a021b9ded" testName="Marrow.Core.Tests.Port.HttpStoreTests.A_cookie_with_Expires_expires_at_that_date_on_SwiftClock" computerName="9e233ac65b1d" duration="00:00:00.0104971" startTime="2026-10-07T05:02:58.1734327+00:00" endTime="2026-10-07T05:02:58.1866674+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d60a765a-6bab-4d54-ba04-d32bd9ecc743" />
+    <UnitTestResult executionId="e9076c44-adfa-4e7a-8bfa-dfc449961c28" testId="0d66cc2a-78a5-f018-4154-a88d83ef0be8" testName="Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released" computerName="9e233ac65b1d" duration="00:00:00.0240422" startTime="2026-10-07T05:02:57.9762540+00:00" endTime="2026-10-07T05:02:58.0328583+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e9076c44-adfa-4e7a-8bfa-dfc449961c28">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Throws() Failure: No exception was thrown
+Expected: typeof(System.IO.IOException)</Message>
+          <StackTrace>   at Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/FileOpsTests.cs:line 187
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="1db12147-6027-4df9-af51-41c523b40269" testId="aa681769-d3a8-20be-f195-6f72e9d86feb" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;mono&quot;, so: 0.13, io: 0.20999999999999999, bo: 0.12, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" computerName="9e233ac65b1d" duration="00:00:00.0000564" startTime="2026-10-07T05:02:58.1206482+00:00" endTime="2026-10-07T05:02:58.1206830+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1db12147-6027-4df9-af51-41c523b40269" />
+    <UnitTestResult executionId="faba39a0-421d-421d-a78e-5e04c45eeb85" testId="10df540d-f8b1-e3cc-d60b-e94626be58e9" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;respondRest&quot;, so: 0.11440000000000002, io: 0.18480000000000002, bo: 0.10560000000000001, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" computerName="9e233ac65b1d" duration="00:00:00.0000996" startTime="2026-10-07T05:02:58.1209516+00:00" endTime="2026-10-07T05:02:58.1209882+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="faba39a0-421d-421d-a78e-5e04c45eeb85" />
+    <UnitTestResult executionId="7c1742d7-c3f1-4393-af78-8bf7a660a7f9" testId="54725419-e722-095b-ac07-c785bb9669ea" testName="Marrow.Core.Tests.Port.HttpStoreTests.A_cookie_with_Max_Age_expires_after_that_many_seconds_on_SwiftClock" computerName="9e233ac65b1d" duration="00:00:00.0274110" startTime="2026-10-07T05:02:58.1468111+00:00" endTime="2026-10-07T05:02:58.1731865+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7c1742d7-c3f1-4393-af78-8bf7a660a7f9" />
+    <UnitTestResult executionId="ba2693dc-1198-4a96-a088-d94e70894592" testId="be3df694-ba63-c652-abf4-50c82c927b54" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.A_light_line_clock_mixes_the_light_oscillators" computerName="9e233ac65b1d" duration="00:00:00.0011578" startTime="2026-10-07T05:02:58.1212691+00:00" endTime="2026-10-07T05:02:58.1213081+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ba2693dc-1198-4a96-a088-d94e70894592" />
+    <UnitTestResult executionId="675e7ea9-615c-4455-ad09-9f0262fffb8e" testId="1a375673-899d-35e4-98f6-2cd2af14cfcf" testName="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;defaultLight&quot;, so: 0.12, io: 0.26000000000000001, bo: 0.34000000000000002, br: 1.3, sat: 1.5, hr: 30, dur: 3.6925526856823869)" computerName="9e233ac65b1d" duration="00:00:00.0031289" startTime="2026-10-07T05:02:58.0746231+00:00" endTime="2026-10-07T05:02:58.0774636+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="675e7ea9-615c-4455-ad09-9f0262fffb8e" />
+    <UnitTestResult executionId="bf341eb6-d555-48c6-aaa5-da02f274f024" testId="9636923f-1b60-c798-8b79-94778e53e238" testName="Marrow.Core.Tests.Port.Voice.VoiceGlowDriverTests.The_hue_drifts_with_the_cosine_of_the_clock" computerName="9e233ac65b1d" duration="00:00:00.0241840" startTime="2026-10-07T05:02:57.9778262+00:00" endTime="2026-10-07T05:02:58.0062437+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bf341eb6-d555-48c6-aaa5-da02f274f024" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Reduce_motion_stills_every_phase" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="114f3559-049e-2839-7855-4a777c7abc7a">
+      <Execution id="b95cebc2-7d6d-4526-bbcd-a30f880110c0" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Reduce_motion_stills_every_phase" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;po&quot;, so: 1.96, io: 1.04, bo: 0.41999999999999998, br: 1.7, sat: 0.59999999999999998, hr: 30, dur: 2.2999999999999998)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="02aa3957-4cf5-27b6-8569-186ad595c7e4">
+      <Execution id="e7979698-cfa8-4309-af82-d297eafeda82" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;pkg&quot;, so: 0.26000000000000001, io: 0.41999999999999998, bo: 0.23999999999999999, br: 1.3, sat: 1.2, hr: 30, dur: 1.96)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="2532871d-9c4f-915e-7208-bf18d34abf1b">
+      <Execution id="fcf1d550-2c0b-4cd7-8905-8c3290434430" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;defaultLight&quot;, so: 0.12, io: 0.26000000000000001, bo: 0.34000000000000002, br: 1.3, sat: 1.5, hr: 30, dur: 3.6925526856823869)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="1a375673-899d-35e4-98f6-2cd2af14cfcf">
+      <Execution id="675e7ea9-615c-4455-ad09-9f0262fffb8e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.Downloads.FakeDownloadFaultTests.A_slow_trickle_sends_one_chunk_per_interval_of_the_servers_clock" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="a588756c-45fa-975a-5fc8-c11f14be3403">
+      <Execution id="91d17430-647c-4764-90d4-7e217aeeeb73" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.Downloads.FakeDownloadFaultTests" name="A_slow_trickle_sends_one_chunk_per_interval_of_the_servers_clock" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;default&quot;, so: 0.26000000000000001, io: 0.41999999999999998, bo: 0.23999999999999999, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="3659fd16-b442-6ab3-69bb-ed658e9e9071">
+      <Execution id="7db9e2d6-dd56-43e0-b94f-b4435ccd67c7" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;respondRest&quot;, so: 0.11440000000000002, io: 0.18480000000000002, bo: 0.10560000000000001, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="10df540d-f8b1-e3cc-d60b-e94626be58e9">
+      <Execution id="faba39a0-421d-421d-a78e-5e04c45eeb85" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;pi&quot;, so: 1.54, io: 0.44, bo: 0.66000000000000003, br: 0.75, sat: 1.2, hr: 30, dur: 2.2999999999999998)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="4643b2c1-21f8-2c36-4326-d3c2f083b41c">
+      <Execution id="95ae0fad-b907-43c6-8b20-824577769602" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.The_clock_integrates_every_phase_as_the_playground" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="10f58de9-4068-d6a7-ff79-2baf94c7e3f9">
+      <Execution id="b3ca0ddf-387c-4c8f-9f61-03b46f98378f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="The_clock_integrates_every_phase_as_the_playground" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;respondTyping&quot;, so: 0.16640000000000005, io: 0.26880000000000004, bo: 0.15360000000000001, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="1f9d85a0-4184-dad3-826a-a4c0bfd40bb0">
+      <Execution id="e6587dff-73cd-4340-83e7-cd1b65403517" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.TimingShapeTests.Date_now_reads_the_same_clock_the_timers_run_on" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="381a132a-8070-38d9-9645-5bfde08edaf8">
+      <Execution id="6522e371-e2a9-4048-b92a-32a9334daa54" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.TimingShapeTests" name="Date_now_reads_the_same_clock_the_timers_run_on" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.HttpStoreTests.An_answer_fresh_by_Expires_is_served_from_the_cache_until_that_lifetime_elapses_on_SwiftClock" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="9569ff93-2f11-0fc0-2b4a-d822f9265cd2">
+      <Execution id="717fa3d0-324c-4c48-aa12-ec0136ee41de" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.HttpStoreTests" name="An_answer_fresh_by_Expires_is_served_from_the_cache_until_that_lifetime_elapses_on_SwiftClock" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.HttpStoreTests.A_cookie_with_Expires_expires_at_that_date_on_SwiftClock" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="81a14548-5722-f22b-9708-a91a021b9ded">
+      <Execution id="d60a765a-6bab-4d54-ba04-d32bd9ecc743" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.HttpStoreTests" name="A_cookie_with_Expires_expires_at_that_date_on_SwiftClock" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="0d66cc2a-78a5-f018-4154-a88d83ef0be8">
+      <Execution id="e9076c44-adfa-4e7a-8bfa-dfc449961c28" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.FileOpsTests" name="An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.HttpProcessStateTests.A_cached_answer_on_the_shared_session_goes_stale_when_its_max_age_elapses_on_SwiftClock" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="b26bd9cc-9e05-508f-871e-034d3fe1e70a">
+      <Execution id="acf6adae-63be-46a0-95d0-2a68f040311b" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.HttpProcessStateTests" name="A_cached_answer_on_the_shared_session_goes_stale_when_its_max_age_elapses_on_SwiftClock" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.HttpStoreTests.A_cookie_with_Max_Age_expires_after_that_many_seconds_on_SwiftClock" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="54725419-e722-095b-ac07-c785bb9669ea">
+      <Execution id="7c1742d7-c3f1-4393-af78-8bf7a660a7f9" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.HttpStoreTests" name="A_cookie_with_Max_Age_expires_after_that_many_seconds_on_SwiftClock" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.A_light_line_clock_mixes_the_light_oscillators" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="be3df694-ba63-c652-abf4-50c82c927b54">
+      <Execution id="ba2693dc-1198-4a96-a088-d94e70894592" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="A_light_line_clock_mixes_the_light_oscillators" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;line&quot;, so: 1.1399999999999999, io: 0.69999999999999996, bo: 0.80000000000000004, br: 1.3, sat: 1.2, hr: 13, dur: 5.6097099621689788)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="e448bc7f-df38-88d7-b42a-256b367393f2">
+      <Execution id="b723474c-cace-4902-8d51-161b589fdf5f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Auto_values_ignore_what_is_set" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="d8f36fc7-645f-a9c0-2c3b-cc0c2996a0f8">
+      <Execution id="1b8225cc-59fa-4ed2-8f86-9a6717c42818" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Auto_values_ignore_what_is_set" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.Voice.VoiceGlowDriverTests.The_hue_drifts_with_the_cosine_of_the_clock" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="9636923f-1b60-c798-8b79-94778e53e238">
+      <Execution id="bf341eb6-d555-48c6-aaa5-da02f274f024" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.Voice.VoiceGlowDriverTests" name="The_hue_drifts_with_the_cosine_of_the_clock" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.Resolved_props_are_beamEff(name: &quot;mono&quot;, so: 0.13, io: 0.20999999999999999, bo: 0.12, br: 1.3, sat: 1.2, hr: 30, dur: 3.6925526856823869)" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="aa681769-d3a8-20be-f195-6f72e9d86feb">
+      <Execution id="1db12147-6027-4df9-af51-41c523b40269" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="Resolved_props_are_beamEff" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests.The_window_radius_eases_over_point_22_seconds" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="feb98615-3620-478b-c4e8-d8b1ef44581b">
+      <Execution id="59ac5caf-c4ed-4c5d-8474-0e24d4973a5e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Models.ComposerLights.ComposerLightClockTests" name="The_window_radius_eases_over_point_22_seconds" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="d8f36fc7-645f-a9c0-2c3b-cc0c2996a0f8" executionId="1b8225cc-59fa-4ed2-8f86-9a6717c42818" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="10f58de9-4068-d6a7-ff79-2baf94c7e3f9" executionId="b3ca0ddf-387c-4c8f-9f61-03b46f98378f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1f9d85a0-4184-dad3-826a-a4c0bfd40bb0" executionId="e6587dff-73cd-4340-83e7-cd1b65403517" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="381a132a-8070-38d9-9645-5bfde08edaf8" executionId="6522e371-e2a9-4048-b92a-32a9334daa54" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3659fd16-b442-6ab3-69bb-ed658e9e9071" executionId="7db9e2d6-dd56-43e0-b94f-b4435ccd67c7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2532871d-9c4f-915e-7208-bf18d34abf1b" executionId="fcf1d550-2c0b-4cd7-8905-8c3290434430" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="feb98615-3620-478b-c4e8-d8b1ef44581b" executionId="59ac5caf-c4ed-4c5d-8474-0e24d4973a5e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="02aa3957-4cf5-27b6-8569-186ad595c7e4" executionId="e7979698-cfa8-4309-af82-d297eafeda82" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4643b2c1-21f8-2c36-4326-d3c2f083b41c" executionId="95ae0fad-b907-43c6-8b20-824577769602" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a588756c-45fa-975a-5fc8-c11f14be3403" executionId="91d17430-647c-4764-90d4-7e217aeeeb73" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="114f3559-049e-2839-7855-4a777c7abc7a" executionId="b95cebc2-7d6d-4526-bbcd-a30f880110c0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b26bd9cc-9e05-508f-871e-034d3fe1e70a" executionId="acf6adae-63be-46a0-95d0-2a68f040311b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e448bc7f-df38-88d7-b42a-256b367393f2" executionId="b723474c-cace-4902-8d51-161b589fdf5f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9569ff93-2f11-0fc0-2b4a-d822f9265cd2" executionId="717fa3d0-324c-4c48-aa12-ec0136ee41de" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="81a14548-5722-f22b-9708-a91a021b9ded" executionId="d60a765a-6bab-4d54-ba04-d32bd9ecc743" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0d66cc2a-78a5-f018-4154-a88d83ef0be8" executionId="e9076c44-adfa-4e7a-8bfa-dfc449961c28" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="aa681769-d3a8-20be-f195-6f72e9d86feb" executionId="1db12147-6027-4df9-af51-41c523b40269" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="10df540d-f8b1-e3cc-d60b-e94626be58e9" executionId="faba39a0-421d-421d-a78e-5e04c45eeb85" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="54725419-e722-095b-ac07-c785bb9669ea" executionId="7c1742d7-c3f1-4393-af78-8bf7a660a7f9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="be3df694-ba63-c652-abf4-50c82c927b54" executionId="ba2693dc-1198-4a96-a088-d94e70894592" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1a375673-899d-35e4-98f6-2cd2af14cfcf" executionId="675e7ea9-615c-4455-ad09-9f0262fffb8e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9636923f-1b60-c798-8b79-94778e53e238" executionId="bf341eb6-d555-48c6-aaa5-da02f274f024" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="22" executed="22" passed="21" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.0)
+[xUnit.net 00:00:00.12]   Discovering: Marrow.Core.Tests
+[xUnit.net 00:00:00.84]   Discovered:  Marrow.Core.Tests
+[xUnit.net 00:00:00.92]   Starting:    Marrow.Core.Tests
+[xUnit.net 00:00:01.00]       Assert.Throws() Failure: No exception was thrown
+[xUnit.net 00:00:01.00]       Expected: typeof(System.IO.IOException)
+[xUnit.net 00:00:01.00]       Stack Trace:
+[xUnit.net 00:00:01.00]         /workspace/marrow-port/tests/Marrow.Core.Tests/Port/FileOpsTests.cs(187,0): at Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released()
+[xUnit.net 00:00:01.00]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.24]   Finished:    Marrow.Core.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="9e233ac65b1d" outcome="Error" timestamp="2026-10-07T05:02:58.0365690+00:00">
+        <Text>[xUnit.net 00:00:01.00]     Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

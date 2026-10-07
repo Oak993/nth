@@ -7,6 +7,7 @@ using Marrow.Services.Tests.Port.Skills.Store.Fixtures;
 namespace Marrow.Services.Tests.Port.Skills.Store;
 
 // PORT-ONLY: adversarial cases for PLAN 2.1/DL-5, added before the boundary repairs.
+[Trait("Spec", "DL-5")]
 public sealed class StoreLifecycleReviewTests
 {
     [Fact]

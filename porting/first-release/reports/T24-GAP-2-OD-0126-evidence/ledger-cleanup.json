@@ -1,0 +1,22 @@
+[
+  {
+    "path": "porting/engineering_decisions.md",
+    "staging_commit": "285b6b7a",
+    "staging_bytes": 1786423,
+    "staging_sha256": "c0981ce8111187b55a44c86f35e4d0eb72270a086a4a18d31099740968735481",
+    "retained_gap2_append_bytes": 1410,
+    "retained_gap2_append_sha256": "d42a0723f583bfa4bf2b3ddf7010bc0a08178f21bd85af39543d8bd4bff0e1a9",
+    "staging_prefix_exact": true,
+    "duplicate_import_blocks_absent": true
+  },
+  {
+    "path": "porting/STATE.md",
+    "staging_commit": "285b6b7a",
+    "staging_bytes": 83771,
+    "staging_sha256": "8ca90dcf3c00ce3cf6905ceb16b38895dae26af583813c9c277da39e27795694",
+    "retained_gap2_append_bytes": 1265,
+    "retained_gap2_append_sha256": "5948f1deb836e90223feb2e30b3f74da3b325c6abc5d60f4917786f1ddbda309",
+    "staging_prefix_exact": true,
+    "duplicate_import_blocks_absent": true
+  }
+]

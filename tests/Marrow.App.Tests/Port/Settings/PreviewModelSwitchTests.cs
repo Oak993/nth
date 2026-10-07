@@ -32,6 +32,7 @@ public sealed class PreviewModelSwitchTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T32, CZ-4.5.1
+    [Trait("Spec", "CZ-T32")]
     public void The_steppers_are_named_wrap_around_the_list_and_the_chips_name_follows_the_pick() => headless.OnUiThread(() =>
     {
         var (session, control, host) = Make();
@@ -56,6 +57,7 @@ public sealed class PreviewModelSwitchTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T32, CZ-4.5.1, CZ-14.1: the chip's width eases to the new name over 0.3 s while the name crossfades; reduce motion lands at once
+    [Trait("Spec", "CZ-T32")]
     public void The_chips_width_eases_to_the_new_name_and_reduce_motion_lands_at_once() => headless.OnUiThread(() =>
     {
         var (session, control, host) = Make();
@@ -84,6 +86,7 @@ public sealed class PreviewModelSwitchTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T33, CZ-4.5.2: the clamp of the list's height
+    [Trait("Spec", "CZ-T33")]
     public void The_lists_height_is_the_room_above_the_chip_clamped_between_112_and_236()
     {
         Assert.Equal(112, PreviewModelSwitch.ListMaxHeight(chipTop: 10));
@@ -95,6 +98,7 @@ public sealed class PreviewModelSwitchTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T33, CZ-4.5.2, OD-0095
+    [Trait("Spec", "CZ-T33")]
     public void The_menu_opens_above_the_chip_as_a_popover_with_the_tip_down_and_lists_the_makers() => headless.OnUiThread(() =>
     {
         var (session, control, host) = Make();
@@ -125,6 +129,7 @@ public sealed class PreviewModelSwitchTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T33, CZ-4.5.2: the current item is scrolled to the middle and takes focus
+    [Trait("Spec", "CZ-T33")]
     public void Opening_centres_the_current_item_in_the_list_and_focuses_it() => headless.OnUiThread(() =>
     {
         var (session, control, host) = Make();
@@ -147,6 +152,7 @@ public sealed class PreviewModelSwitchTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T33, CZ-15
+    [Trait("Spec", "CZ-T33")]
     public void The_keys_move_pick_and_close_and_Escape_closes_the_menu_only_and_returns_focus_to_the_chip() => headless.OnUiThread(() =>
     {
         var (session, control, host) = Make();
@@ -189,6 +195,7 @@ public sealed class PreviewModelSwitchTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T33: a pick by the pointer closes the menu and focuses the chip
+    [Trait("Spec", "CZ-T33")]
     public void Picking_an_item_closes_the_menu_and_focuses_the_chip() => headless.OnUiThread(() =>
     {
         var (session, control, host) = Make();

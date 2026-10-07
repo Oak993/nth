@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Pipelines;
 namespace Marrow.Services.Tests.Port.Skills.Pipelines;
+[Trait("Spec", "DL-8")]
 public sealed class PipelineCrashTests
 {
     [Theory]

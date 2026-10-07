@@ -23,6 +23,7 @@ public sealed class CustomizationAllocationTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T44, CZ-16: a warm page frame (the preview light and the three style glyphs wait for their frame and turn) allocates nothing on the UI thread. The Running ring is not in it: its spin sets RotateTransform.Angle, which Avalonia answers with a change record (80 B a frame; CZ-3 file, outside T44)
+    [Trait("Spec", "CZ-T44")]
     public void A_warm_page_frame_allocates_nothing_on_the_ui_thread() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(quiet: true);
@@ -45,6 +46,7 @@ public sealed class CustomizationAllocationTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T44: a style glyph's frame takes the drawing operation back from Avalonia instead of making one
+    [Trait("Spec", "CZ-T44")]
     public void A_style_glyphs_frame_makes_no_new_drawing_operation() => headless.OnUiThread(() =>
     {
         var glyph = new CzStyleGlyph("beam") { Width = Width };
@@ -67,6 +69,7 @@ public sealed class CustomizationAllocationTests(HeadlessSession headless)
     [InlineData("aura")]
     [InlineData("off")]
     [Trait("Decision", "ED-251")] // CZ-T44: drawing a glyph (the render thread's share) allocates nothing once warm
+    [Trait("Spec", "CZ-T44")]
     public void Drawing_a_style_glyph_allocates_nothing(string style)
     {
         var painter = new CzStyleGlyphPainter();

@@ -9,6 +9,7 @@ public sealed class PreviewSessionTests
 {
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T34
+    [Trait("Spec", "CZ-T34")]
     public void The_session_opens_on_the_default_providers_maker_at_rest_and_each_session_opens_afresh()
     {
         var session = new PreviewSession(ProviderKind.Codex);
@@ -44,6 +45,7 @@ public sealed class PreviewSessionTests
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T35, CZ-4.6
+    [Trait("Spec", "CZ-T35")]
     public void The_phase_follows_the_chrome_controls_pick_and_touching_the_working_dots_picks_Running()
     {
         var session = new PreviewSession(ProviderKind.Claude);

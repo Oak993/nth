@@ -7,6 +7,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 // SK-3 (DL-3, section 3.2 "Cancel"; OD-0099 pick "Pause/Resume, Cancel keeps finished items"): cancel and pause stop the transfer at once and keep
 // the partial file; a paused job holds no connection and waits; Resume continues with Range. The slow body is the fake server's trickle on its
 // own manual clock, so each stop happens at a known byte.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderCancelTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(10_000, seed: 31);

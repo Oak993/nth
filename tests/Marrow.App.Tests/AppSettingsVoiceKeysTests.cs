@@ -98,6 +98,7 @@ public sealed class AppSettingsVoiceKeysTests
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T27: a 2 s drag at 60 Hz writes at most 9 times plus once at the end; the in-memory value is current each frame
+    [Trait("Spec", "CZ-T27")]
     public void A_two_second_composer_light_drag_writes_at_most_9_times_plus_one_and_the_value_is_current_each_frame()
     {
         using var scope = AppSettingsScope.Create();

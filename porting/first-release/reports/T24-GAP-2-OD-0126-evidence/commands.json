@@ -1,0 +1,44 @@
+{
+  "cwd": "/workspace/marrow-port",
+  "sdk": "10.0.100",
+  "commands": {
+    "gap_tests": [
+      "/tmp/gap2-dotnet/dotnet",
+      "test",
+      "tests/Marrow.App.Tests/Marrow.App.Tests.csproj",
+      "-p:EnableWindowsTargeting=true",
+      "--filter",
+      "FullyQualifiedName~GapCustomizationAcceptanceTests&FullyQualifiedName!~Native",
+      "--logger",
+      "trx;LogFileName=gap2-od126.trx",
+      "--results-directory",
+      "/tmp/gap2-od126-results"
+    ],
+    "build": [
+      "/tmp/gap2-dotnet/dotnet",
+      "build",
+      "tests/Marrow.App.Tests/Marrow.App.Tests.csproj",
+      "--no-restore",
+      "-p:EnableWindowsTargeting=true"
+    ],
+    "rule_replay": [
+      "/tmp/gap2-dotnet/dotnet",
+      "run",
+      "--project",
+      "/tmp/gap2-od126-rule-probe/rule-probe.csproj",
+      "-p:EnableWindowsTargeting=true",
+      "--",
+      "/workspace/marrow-port/porting/first-release/reports/T24-GAP-2-motion-evidence/after-page.csv"
+    ],
+    "gate_B": [
+      "node",
+      "porting/tools/verify.mjs",
+      "--gate",
+      "B"
+    ]
+  },
+  "overrides": {
+    "LD_LIBRARY_PATH": "/tmp/gap2-native (existing real ICU 76 ABI bridge)",
+    "MARROW_PORT_DATA_DIR": "/tmp/gap2-od126-data (disposable)"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "owner_decision": "OD-0126",
+  "verdict": "NOT READY",
+  "input_commit": "1c7fa56980ae672ccc847748cef7a309036c97f0",
+  "staging_commit": "285b6b7a99b39e0e517f34c8d34a1860c945f83f",
+  "merge_commit": "3ad3d40e8aeeba2ec268c450594732e650781514",
+  "recorded_utc": "2026-10-07T05:34:36.318252+00:00",
+  "user_timezone": "Asia/Riyadh",
+  "sdk": "10.0.100",
+  "avalonia": "12.1.2",
+  "test_counts": {
+    "passed": 1,
+    "failed": 3,
+    "skipped": 0,
+    "total": 4
+  },
+  "rule_replay_exit": 1,
+  "curve_exception_margin": 0,
+  "production_changed": false,
+  "source_oracle_changed": false,
+  "artifacts": [
+    {
+      "path": "README.md",
+      "bytes": 1477,
+      "sha256": "b47cbc7e14b6a58dde9eb5c545f74e7ff23e87861dc843750a82cddd49ad2afb"
+    },
+    {
+      "path": "build.log",
+      "bytes": 1191,
+      "sha256": "38df763e8b36ff90d0eb4684f0887328ccacc245f6d3dc7e98410f238e1d381b"
+    },
+    {
+      "path": "commands.json",
+      "bytes": 1220,
+      "sha256": "673f71585fb6a6d7f35eaf0f3347452d1ec310e7c7c343d47cf09881e269cf2e"
+    },
+    {
+      "path": "gap2-od126.log",
+      "bytes": 10403,
+      "sha256": "f841b077465d05369576f79a90cf722adf1ca6af34357415380750c882312eea"
+    },
+    {
+      "path": "gap2-od126.trx",
+      "bytes": 26602,
+      "sha256": "d2b80ed6ef96db7307eb87eec3066165d5e759fc8d252e88176765c89848011e"
+    },
+    {
+      "path": "gate-B.log",
+      "bytes": 1079,
+      "sha256": "d438ffbf40b3d464bce128abb6905a99f1c5e4b6438980dd081855d92852e63b"
+    },
+    {
+      "path": "independent-review.md",
+      "bytes": 1434,
+      "sha256": "7abb1cb97148f2632733413c4a9264ef1a894495fcf2cac96c7fd2eb88594229"
+    },
+    {
+      "path": "ledger-appends.json",
+      "bytes": 774,
+      "sha256": "77b2b73bfd16658bcc3d617e7b601ce3293a0fc34d2beae5d8b4f60021c9e821"
+    },
+    {
+      "path": "ledger-cleanup.json",
+      "bytes": 847,
+      "sha256": "4afedc7e08bca3d5b3d4f26f386c784158e7638e52498b0caa2468b08a82091b"
+    },
+    {
+      "path": "rule-probe.cs.txt",
+      "bytes": 1484,
+      "sha256": "db0989961587d0463246281366d8dabd6be8059c00cb2b07b87bf1430d8badc1"
+    },
+    {
+      "path": "rule-probe.csproj.txt",
+      "bytes": 401,
+      "sha256": "18631b71bab2aed2002641a9dec09d1d4cdb05ceb5c85227a4d06838b494c33a"
+    },
+    {
+      "path": "rule-replay.json",
+      "bytes": 9013,
+      "sha256": "00ed5d18ba6ea74ea61b3fe1c289f92fdd6689843a0e2859fb8af0447f2435c8"
+    },
+    {
+      "path": "scope-check.json",
+      "bytes": 2884,
+      "sha256": "129e1a277d556da578c77a8575d48e80361d25c8252f5fd60956ca22c908d435"
+    }
+  ]
+}

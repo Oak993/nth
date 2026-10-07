@@ -1,0 +1,46 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Marrow.Core.Port;
+using Marrow.Testing;
+using Marrow.UI.Port;
+using Marrow.UI.Port.Settings;
+using System.Globalization;
+
+AppBuilder.Configure<Application>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = true }).SetupWithoutStarting();
+string stage = args.Length > 0 ? args[0] : "before";
+static string F(double value) => value.ToString("G17", CultureInfo.InvariantCulture);
+static void Row(string stage, string path, string transition, int i, long elapsed, double value, double previous) => Console.WriteLine(string.Join(",", stage, path, transition, i, F(elapsed/10000.0), F(value), F(previous-value), F(100*(previous-value))));
+Console.WriteLine("stage,path,transition,frame,elapsed_ms,opacity,step_fraction,step_percent");
+foreach (var path in new[] { "direct-control", "scalar" })
+foreach (var transition in new[] { "detail-out", "placeholder-out" })
+{
+    if (path == "direct-control" && transition == "placeholder-out") continue;
+    using var runtime = new TestRuntime();
+    var frames = new ManualFrameSource();
+    using var bound = FrameClock.Source.Override(frames);
+    Func<double> read;
+    if (path == "direct-control")
+    {
+        var text = new CzCrossfadeText("Original detail");
+        runtime.OnMain(() => text.SetText("Replacement detail"));
+        read = () => text.OutgoingOpacity;
+    }
+    else
+    {
+        var number = new CzNumber(new CzMotion(new Control()), 1);
+        runtime.OnMain(() => number.To(0, CzMotion.Ease(transition == "detail-out" ? .1 : .15)));
+        read = () => number.Value;
+    }
+    var start = runtime.OnMain(() => SwiftClock.Now.Ticks);
+    var previous = read();
+    Row(stage,path,transition,0,0,previous,previous);
+    for (int i=1;i<=24;i++)
+    {
+        runtime.AdvanceMilliseconds(1000.0/60);
+        runtime.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(1000.0/60)));
+        var value = read();
+        Row(stage,path,transition,i,runtime.OnMain(() => SwiftClock.Now.Ticks)-start,value,previous);
+        previous = value;
+    }
+}

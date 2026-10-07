@@ -32,6 +32,9 @@ public sealed class CustomizationAuraRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T18, CZ-T19, CZ-T20, CZ-7.1 to CZ-7.4: in every fixture case each row's detail, shown value and dimmed state are the design's (the maker is the preview's, the accent the user's)
+    [Trait("Spec", "CZ-T18")]
+    [Trait("Spec", "CZ-T19")]
+    [Trait("Spec", "CZ-T20")]
     public void Every_uiverse_row_says_what_the_design_says_in_every_fixture_case() => headless.OnUiThread(() =>
     {
         using var fixture = PageFixture.Open();
@@ -65,6 +68,7 @@ public sealed class CustomizationAuraRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T18, CZ-7.1: the Model detail names the preview's maker and follows the maker switch; the Accent detail names the user's accent and follows it
+    [Trait("Spec", "CZ-T18")]
     public void The_colours_detail_follows_the_preview_maker_and_the_accent() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura, Aura = UiverseAuraOptions.Default with { Scheme = AuraScheme.Maker } });
@@ -86,6 +90,7 @@ public sealed class CustomizationAuraRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T18, CZ-7.1: a Colours pick writes the scheme; Your colours folds open for Custom only
+    [Trait("Spec", "CZ-T18")]
     public void A_colours_pick_writes_the_scheme_and_Custom_opens_the_wells() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura });
@@ -107,6 +112,7 @@ public sealed class CustomizationAuraRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T20, CZ-7.4: Rim width and the two dot rows dim (and go inert) with their switches, and their details swap
+    [Trait("Spec", "CZ-T20")]
     public void The_rim_and_dot_rows_dim_with_their_switches() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura });
@@ -137,6 +143,7 @@ public sealed class CustomizationAuraRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T19, CZ-7.2, CZ-7.3: the Uiverse sliders' ranges, steps and formats; Speed is inverted 3..40 in 0.5
+    [Trait("Spec", "CZ-T19")]
     public void The_uiverse_sliders_have_the_designs_ranges_and_write_what_they_show() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with { Style = ComposerLightStyle.Aura });

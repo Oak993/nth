@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // CommandNotFoundException (an identifier, not translated); bash exit code 127 with 'command not found'; the Store alias (exit 9009 for python/python3).
 // The program must also be a token of the command." Lookup: "the token goes through the catalogue's provides index to one item. No hit, no offer."
 // The events are the provider shapes of DetectFixtures (hand-written to the plan's descriptions, see there).
+[Trait("Spec", "DL-10")]
 public sealed class MissingProgramTests
 {
     [Fact]

@@ -3,6 +3,7 @@ using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Install;
 namespace Marrow.Services.Tests.Port.Skills.Install;
 
+[Trait("Spec", "DL-4")]
 public sealed class InstallerAcceptanceTests
 {
     [Fact]

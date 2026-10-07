@@ -1,0 +1,344 @@
+{
+  "source": "E:/Droppy/work/design/customization/customization.html",
+  "sha256": "0997c5a520205079e2c7ad3e5c5bbab21a2c2aa3152e04bf96ebb8c855455349",
+  "chrome": "154.0.8037.99",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "dpr": 1,
+  "appearances": {
+    "dark": {
+      "stateDark": true,
+      "board": "cz dark",
+      "window": {
+        "className": "czwin wd",
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(236, 236, 236)",
+        "bounds": {
+          "x": 109,
+          "y": 221,
+          "width": 782,
+          "height": 581
+        }
+      },
+      "heading": {
+        "className": "",
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(236, 236, 236)",
+        "bounds": {
+          "x": 107,
+          "y": 40,
+          "width": 601,
+          "height": 38
+        }
+      },
+      "composer": {
+        "className": "cmp",
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(236, 236, 236)",
+        "bounds": {
+          "x": 370,
+          "y": 468,
+          "width": 472,
+          "height": 52
+        }
+      },
+      "composerHtml": "<div class=\"cmp\">\n<div class=\"plate wbg\"><div class=\"glass\"></div></div>\n<div class=\"vlgt\"><div class=\"g-aura\"><div class=\"au-in\"><div class=\"au-sq\"></div></div></div>\n<div class=\"g-beam\"><div class=\"bbh\"><div class=\"bbs bbk-md-colorful-dark-h-f-g-w472 on\"><i class=\"b1\"><i></i></i><i class=\"b2\"></i><i class=\"b3\"></i></div><div class=\"bbs\"><i class=\"b1\"><i></i></i><i class=\"b2\"></i><i class=\"b3\"></i></div><div class=\"bbs\"><i class=\"b1\"><i></i></i><i class=\"b2\"></i><i class=\"b3\"></i></div>\n</div></div>\n<div class=\"dg\" data-design=\"a1\"></div><div class=\"dg\" data-design=\"a2\"></div><div class=\"dg\" ",
+      "chip": {
+        "css": "rgb(161, 72, 39)",
+        "center": {
+          "x": 397,
+          "y": 555
+        },
+        "bounds": {
+          "x": 392,
+          "y": 550,
+          "width": 10,
+          "height": 10
+        }
+      },
+      "menu": {
+        "css": "rgb(161, 72, 39)",
+        "center": {
+          "x": 421,
+          "y": 313
+        },
+        "bounds": {
+          "x": 416,
+          "y": 308,
+          "width": 10,
+          "height": 10
+        }
+      },
+      "model": {
+        "id": "Claude",
+        "name": "Claude",
+        "maker": "Claude",
+        "claude": true,
+        "d": [
+          "#A14827",
+          "#D47E58",
+          "#D47E58"
+        ],
+        "l": [
+          "#A14827",
+          "#D47E58",
+          "#D47E58"
+        ]
+      },
+      "maker": [
+        "Claude",
+        "Claude",
+        "claude-fable-5.1",
+        "#A14827",
+        "#B95D3A",
+        "#D47E58",
+        "#E7B47E",
+        "#DA8563",
+        "#DA8563"
+      ],
+      "png_sha256": "c8982cc45180293f039486337d9879caa708ad7a725996d8a641f27a880d4c6c",
+      "pixels": {
+        "page_background": {
+          "xy": [
+            1000,
+            100
+          ],
+          "rgba": [
+            23,
+            24,
+            27,
+            255
+          ]
+        },
+        "menu_background": {
+          "xy": [
+            450,
+            290
+          ],
+          "rgba": [
+            136,
+            136,
+            136,
+            255
+          ]
+        },
+        "composer_plate": {
+          "xy": [
+            800,
+            510
+          ],
+          "rgba": [
+            80,
+            79,
+            82,
+            255
+          ]
+        },
+        "chip_center": {
+          "xy": [
+            397,
+            555
+          ],
+          "rgba": [
+            147,
+            70,
+            42,
+            255
+          ]
+        },
+        "menu_dot_center": {
+          "xy": [
+            421,
+            313
+          ],
+          "rgba": [
+            164,
+            78,
+            47,
+            255
+          ]
+        },
+        "heading_ink": {
+          "xy": [
+            118,
+            50
+          ],
+          "rgba": [
+            236,
+            236,
+            236,
+            255
+          ]
+        }
+      }
+    },
+    "light": {
+      "stateDark": false,
+      "board": "cz light",
+      "window": {
+        "className": "czwin wl",
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(28, 28, 30)",
+        "bounds": {
+          "x": 109,
+          "y": 221,
+          "width": 782,
+          "height": 581
+        }
+      },
+      "heading": {
+        "className": "",
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(22, 24, 29)",
+        "bounds": {
+          "x": 107,
+          "y": 40,
+          "width": 601,
+          "height": 38
+        }
+      },
+      "composer": {
+        "className": "cmp",
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(28, 28, 30)",
+        "bounds": {
+          "x": 370,
+          "y": 468,
+          "width": 472,
+          "height": 52
+        }
+      },
+      "composerHtml": "<div class=\"cmp\">\n<div class=\"plate wbg\"><div class=\"glass\"></div></div>\n<div class=\"vlgt\"><div class=\"g-aura\"><div class=\"au-in\"><div class=\"au-sq\"></div></div></div>\n<div class=\"g-beam\"><div class=\"bbh\"><div class=\"bbs bbk-md-colorful-light-h-f-g-w472 on\"><i class=\"b1\"><i></i></i><i class=\"b2\"></i><i class=\"b3\"></i></div><div class=\"bbs\"><i class=\"b1\"><i></i></i><i class=\"b2\"></i><i class=\"b3\"></i></div><div class=\"bbs\"><i class=\"b1\"><i></i></i><i class=\"b2\"></i><i class=\"b3\"></i></div>\n</div></div>\n<div class=\"dg\" data-design=\"a1\"></div><div class=\"dg\" data-design=\"a2\"></div><div class=\"dg\"",
+      "chip": {
+        "css": "rgb(161, 72, 39)",
+        "center": {
+          "x": 397,
+          "y": 555
+        },
+        "bounds": {
+          "x": 392,
+          "y": 550,
+          "width": 10,
+          "height": 10
+        }
+      },
+      "menu": {
+        "css": "rgb(161, 72, 39)",
+        "center": {
+          "x": 421,
+          "y": 313
+        },
+        "bounds": {
+          "x": 416,
+          "y": 308,
+          "width": 10,
+          "height": 10
+        }
+      },
+      "model": {
+        "id": "Claude",
+        "name": "Claude",
+        "maker": "Claude",
+        "claude": true,
+        "d": [
+          "#A14827",
+          "#D47E58",
+          "#D47E58"
+        ],
+        "l": [
+          "#A14827",
+          "#D47E58",
+          "#D47E58"
+        ]
+      },
+      "maker": [
+        "Claude",
+        "Claude",
+        "claude-fable-5.1",
+        "#A14827",
+        "#B95D3A",
+        "#D47E58",
+        "#E7B47E",
+        "#DA8563",
+        "#DA8563"
+      ],
+      "png_sha256": "3ea005be53e62f1b0815f6f8ef3bc117890babaf6acb57cb057e8be57db84e57",
+      "pixels": {
+        "page_background": {
+          "xy": [
+            1000,
+            100
+          ],
+          "rgba": [
+            236,
+            238,
+            241,
+            255
+          ]
+        },
+        "menu_background": {
+          "xy": [
+            450,
+            290
+          ],
+          "rgba": [
+            183,
+            183,
+            183,
+            255
+          ]
+        },
+        "composer_plate": {
+          "xy": [
+            800,
+            510
+          ],
+          "rgba": [
+            203,
+            202,
+            203,
+            255
+          ]
+        },
+        "chip_center": {
+          "xy": [
+            397,
+            555
+          ],
+          "rgba": [
+            147,
+            70,
+            42,
+            255
+          ]
+        },
+        "menu_dot_center": {
+          "xy": [
+            421,
+            313
+          ],
+          "rgba": [
+            164,
+            78,
+            47,
+            255
+          ]
+        },
+        "heading_ink": {
+          "xy": [
+            118,
+            50
+          ],
+          "rgba": [
+            22,
+            24,
+            29,
+            255
+          ]
+        }
+      }
+    }
+  }
+}

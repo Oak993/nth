@@ -7,6 +7,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 // SK-3 (DL-3: "progress at least every 100 ms on a slow trickle"; section 3.2 "about ten times a second"; voice-SPEC V-9.5 item 2 "at most 10 per
 // second"). The server trickles 500 bytes every 30 ms of ITS clock; the downloader's clock is moved in step, client first, so every chunk arrives at a
 // known client time. Reading the rule both ways: no two reports closer than 100 ms, and a received byte is reported within 100 ms of arriving.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderProgressTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(10_000, seed: 51);

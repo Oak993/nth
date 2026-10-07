@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // this chat ('Don't ask again in this chat' is the decline's meaning), or currently downloading (the offer then attaches to that download's progress)."
 // Installed and found come from the AddonsState (SK-7), the per-chat facts from its declined list and from the set of items already offered in the chat that the
 // caller passes. The order when several apply, a damaged or failed item, and a removal are ENGINEERING DECISIONS (ED-296).
+[Trait("Spec", "DL-10")]
 public sealed class DetectorGuardsTests
 {
     private static readonly CommandHeld Soffice = new("soffice a.docx");

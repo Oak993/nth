@@ -5,6 +5,7 @@ using Marrow.Core.Port.Skills.State;
 namespace Marrow.Services.Tests.Port.Skills.Pipelines;
 
 [Trait("Platform", "WINDOWS-ONLY")]
+[Trait("Spec", "DL-8")]
 public sealed class PipelineRepairCrashTests
 {
     [WindowsOnlyTheory]

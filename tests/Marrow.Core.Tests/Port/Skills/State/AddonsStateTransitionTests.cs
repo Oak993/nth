@@ -8,6 +8,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // 3.5 "a mismatch marks the item damaged ... Repair (a fresh download of that version)"; 3.7 "Update available with old -> new"; 3.8 removing;
 // 3.9 failure and Retry; the OD-0099 review item 3 (a failed item may be checked after a manual file placement). Where the plan is silent the
 // edge is an ENGINEERING DECISION (ED-295, listed there). The oracle below is written out by hand and never calls the code under test.
+[Trait("Spec", "DL-7")]
 public sealed class AddonsStateTransitionTests
 {
     private static readonly ItemState[] All = Enum.GetValues<ItemState>();

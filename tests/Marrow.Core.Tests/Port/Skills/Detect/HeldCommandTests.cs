@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Detect;
 // Unit SK-10: S2, a held command (ONDEMAND-PLAN.md 5.1): "The first program of any pipeline segment is a catalogue provides name, not installed and not
 // found", from Claude can_use_tool, Codex requestApproval, ACP request_permission and the native providers' approval for run_command. And 5.3 "py -3 -m
 // <module> (the module counts)". The command has not run, so only what it names can be checked.
+[Trait("Spec", "DL-10")]
 public sealed class HeldCommandTests
 {
     private static string[] Offered(string command, DetectionContext? context = null) =>
