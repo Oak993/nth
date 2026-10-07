@@ -476,6 +476,7 @@ public sealed class ComposerView : Decorator
         insetPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         fadePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         scalePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
+        Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
         if (VoiceFeature.Enabled)
         {
             voice = new ComposerVoiceController(new ComposerVoiceHost(() => Model.Settings, DraftSelection, ReplaceDraft, Send));
