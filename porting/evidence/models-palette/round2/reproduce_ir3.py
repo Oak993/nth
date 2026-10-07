@@ -1,4 +1,6 @@
 """Offline reproduction against byte-exact mirrored IR-3, no generated reference edits."""
+import sys
+sys.dont_write_bytecode = True
 import importlib.util
 import json
 from pathlib import Path
