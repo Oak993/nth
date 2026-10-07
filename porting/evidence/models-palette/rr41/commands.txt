@@ -1,0 +1,13 @@
+source /workspace/.tools/marrow-env.sh
+export MARROW_PORT_DATA_DIR=/tmp/t37-data
+dotnet build Marrow.sln -c Debug --no-restore -p:EnableWindowsTargeting=true --nologo
+dotnet test tests/Marrow.App.Tests/Marrow.App.Tests.csproj --no-build --no-restore -p:EnableWindowsTargeting=true --filter "FullyQualifiedName~EffortSliderCadenceTests|FullyQualifiedName~EffortSliderCardPartsTests|FullyQualifiedName~EffortSliderCardTests|FullyQualifiedName~EffortSliderChipMarkTests|FullyQualifiedName~EffortSliderChipRecordsTests|FullyQualifiedName~EffortSliderComponentsTests|FullyQualifiedName~EffortSliderFastModeSpringTests|FullyQualifiedName~EffortSliderJewelKnobTests|FullyQualifiedName~EffortSliderJewelLoopTests|FullyQualifiedName~EffortSliderJewelOpacityTests|FullyQualifiedName~EffortSliderJewelOrbTests|FullyQualifiedName~EffortSliderJewelReviewR5Tests|FullyQualifiedName~EffortSliderJewelReviewR6Tests|FullyQualifiedName~EffortSliderJewelReviewR8Tests|FullyQualifiedName~EffortSliderJewelWiringTests|FullyQualifiedName~EffortSliderKnobRecordsTests|FullyQualifiedName~EffortSliderPanelTests|FullyQualifiedName~EffortSliderPlainLiquidTests|FullyQualifiedName~EffortSliderSweepTests|FullyQualifiedName~EffortSliderTrackTests|FullyQualifiedName~EffortTitleMorphTests|FullyQualifiedName~ModelChipTextCrossfadeTests|FullyQualifiedName~ModelEffortPopoverPlacementTests|FullyQualifiedName~OpenRouterPickerCatalogueTests|FullyQualifiedName~TraceabilityTests|FullyQualifiedName~EffortSliderTitleFramesTests|FullyQualifiedName~PlainSilverStopsReviewTests|FullyQualifiedName~FastSilverStopsReviewTests" --logger trx
+dotnet test tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj --no-build --no-restore --filter FullyQualifiedName~MorphingTextBlockColourAndResidualReviewTests --logger trx
+dotnet test tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj --no-build --no-restore --filter "FullyQualifiedName~TraceabilityTests|FullyQualifiedName~LayeringTests" --logger trx
+node porting/tools/verify.mjs --gate A
+node porting/tools/verify.mjs --gate B
+node porting/tools/verify.mjs --gate C
+node porting/tools/check_protected.mjs
+node porting/tools/req_verify.mjs --no-run (diagnostic only; original requirement ledger bytes preserved)
+git worktree add --detach /tmp/t37-baseline-proof origin/claude/verify-terminal-20261001
+MARROW_PORT_DATA_DIR=/tmp/t37-baseline-data dotnet test /tmp/t37-baseline-proof/tests/Marrow.App.Tests/Marrow.App.Tests.csproj -p:EnableWindowsTargeting=true --filter FullyQualifiedName~EffortSliderTitleFramesTests --logger trx
