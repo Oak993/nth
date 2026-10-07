@@ -146,9 +146,10 @@ public static class PopoverHost
         // arrive here (the overlay's host) light-dismisses it, as Avalonia does for a press outside the top-level.
         void PressBeside(object? sender, PointerPressedEventArgs e)
         {
-            if (!popup.IsOpen || !popup.IsLightDismissEnabled || popup.Child is not PopoverCard card) return;
+            if (!popup.IsOpen || !(popup.IsLightDismissEnabled || popup.GetValue(Presentation.MotionProperty) is not null) || popup.Child is not PopoverCard card) return;
             if (card.HitTest(e.GetPosition(card))) return;
-            popup.IsOpen = false;
+            if (popup.GetValue(Presentation.MotionProperty) is not null) Presentation.DismissMotion(popup);
+            else popup.IsOpen = false;
             e.Handled = true;
         }
         void Detach()

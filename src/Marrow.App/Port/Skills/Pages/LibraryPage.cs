@@ -25,6 +25,11 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
 
     private readonly LibraryModel? model;
     private readonly LibrarySection section;
+    private readonly CustomAddKind ownKind;
+    private readonly CustomOwnModel? own;
+    private readonly Dictionary<string, CustomOwnRow> ownRows = [];
+    private readonly Dictionary<string, CustomOwnDetail> ownDetails = [];
+    private readonly Control ownHeading = LibraryUi.Text("Your own", 11, secondary: true);
     private readonly CzCrossfadeText listing = new("") { FontSize = 12, Secondary = true };
     private readonly StackPanel rows = new() { Spacing = 2 };
     private readonly Dictionary<string, LibraryRowView> rowViews = [];
@@ -39,16 +44,19 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
     private Action? closeSheet;
     private bool closingFromHere;
 
-    protected LibraryPage(LibrarySection section)
+    protected LibraryPage(LibrarySection section, bool tools = false)
     {
         this.section = section;
-        model = SkillsPageSeams.Controllers.Current.For(section);
+        ownKind = tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills;
+        own = CustomAddSeams.Backends.Current.Own;
+        model = tools ? SkillsPageSeams.Controllers.Current.Tools() : SkillsPageSeams.Controllers.Current.For(section);
+        ChromeAccessories = model is null ? [] : [new CustomAddAction(tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills)];
         downloadAll = PlainControls.Button(downloadAllWords, OpenDownloadAll);
         SwiftGlass.StyleButton(downloadAll);
         downloadAll.HorizontalAlignment = HorizontalAlignment.Stretch;
         downloadAll.HorizontalContentAlignment = HorizontalAlignment.Center;
         downloadAll.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
-        downloadAll.Named("Download all " + section.Noun(), "download-all");
+        downloadAll.Named("Download all " + (tools ? "tools" : section.Noun()), "download-all");
         if (model is null)
         {
             var note = LibraryUi.Text(LibraryWords.Unavailable, 12.5, secondary: true, wrap: true);
@@ -74,24 +82,27 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         panes.Children.Add(detail);
 
         var page = new StackPanel { Spacing = 20 };
-        page.Children.Add(listing);
+        if (!tools) page.Children.Add(listing);
         page.Children.Add(panes);
-        if (section == LibrarySection.Skills) page.Children.Add(providers);
-        if (section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is { } imports) page.Children.Add(new ImportArea(imports)); // SK-18
+        if (!tools && section == LibrarySection.Skills) page.Children.Add(providers);
+        if (!tools && section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is { } imports) page.Children.Add(new ImportArea(imports)); // SK-18
         page.Children.Add(Footer(reset));
         Child = page;
 
         this.Track(() => model.Revision, _ => Refresh());
-        AttachedToVisualTree += (_, _) => SyncDialog(model.Controller.Dialog); // a page built again finds the run it left and shows its dialog, unless the user hid it
+        this.Track(() => model.DialogHidden, _ => SyncDialog(model.Dialog));
+        if (own is not null) this.Track(() => own.Revision, _ => Refresh());
+        AttachedToVisualTree += (_, _) => { if (own is not null) _ = own.Perform(own.Refresh); };
+        AttachedToVisualTree += (_, _) => SyncDialog(model.Dialog); // a page built again finds the run it left and shows its dialog, unless the user hid it
         DetachedFromVisualTree += (_, _) => CloseSheet();
         Refresh();
     }
 
     /// <inheritdoc />
-    public bool HasChromeControls => false;
+    public bool HasChromeControls => model is not null;
 
     /// <inheritdoc />
-    public IReadOnlyList<Control> ChromeAccessories { get; } = [];
+    public IReadOnlyList<Control> ChromeAccessories { get; }
 
     internal LibraryModel? Model => model;
 
@@ -116,6 +127,8 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
     internal DialogSheet? Sheet => sheet;
 
     internal StackPanel RowStack => rows;
+    internal IReadOnlyDictionary<string, CustomOwnRow> OwnRows => ownRows;
+    internal IReadOnlyDictionary<string, CustomOwnDetail> OwnDetails => ownDetails;
 
     private static Control Footer(ResetArea? reset = null)
     {
@@ -140,22 +153,47 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         var controller = model.Controller;
         var all = controller.Rows;
         var selectedId = controller.SelectedId;
+        var ownSelected = own?.Selected(ownKind);
 
         listing.SetText(controller.Listing);
 
         var wanted = new List<Control>();
         foreach (var row in all)
         {
-            if (!rowViews.TryGetValue(row.Id, out var view)) rowViews[row.Id] = view = new LibraryRowView(model, row);
-            view.Apply(row, row.Id == selectedId);
+            if (!rowViews.TryGetValue(row.Id, out var view)) rowViews[row.Id] = view = new LibraryRowView(model, row, () => own?.Select(ownKind, null));
+            view.Apply(row, ownSelected is null && row.Id == selectedId);
             wanted.Add(view);
+        }
+        if (own is not null)
+        {
+            var owned = own.Items(ownKind);
+            foreach (var stale in ownRows.Keys.Where(id => !owned.Any(i => i.Id == id)).ToArray())
+            { ownRows.Remove(stale); ownDetails.Remove(stale); }
+            if (owned.Count > 0) wanted.Add(ownHeading);
+            foreach (var item in owned)
+            {
+                if (!ownRows.TryGetValue(item.Id, out var view)) ownRows[item.Id] = view = new CustomOwnRow(own, ownKind, item);
+                view.Apply(item, ownSelected == item.Id);
+                wanted.Add(view);
+            }
         }
         for (var i = rows.Children.Count - 1; i >= 0; i--)
             if (!wanted.Contains(rows.Children[i])) rows.Children.RemoveAt(i);
         for (var i = 0; i < wanted.Count; i++)
             if (i >= rows.Children.Count || !ReferenceEquals(rows.Children[i], wanted[i])) rows.Children.Insert(i, wanted[i]);
 
-        if (selectedId is not null && all.FirstOrDefault(r => r.Id == selectedId) is { } selected)
+        if (own is not null && own.Items(ownKind).FirstOrDefault(i => i.Id == ownSelected) is { } ownItem)
+        {
+            if (!ownDetails.TryGetValue(ownItem.Id, out var ownDetail)) ownDetails[ownItem.Id] = ownDetail = new CustomOwnDetail(own, ownKind, ownItem);
+            ownDetail.Apply(ownItem);
+            if (shownDetail != ownItem.Id)
+            {
+                var first = shownDetail is null;
+                shownDetail = ownItem.Id;
+                detailSlot.Show(ownDetail, first ? null : LibraryUi.Ease(this, LibraryUi.Fade));
+            }
+        }
+        else if (selectedId is not null && all.FirstOrDefault(r => r.Id == selectedId) is { } selected)
         {
             if (!details.TryGetValue(selectedId, out var detail)) details[selectedId] = detail = new DetailView(model, selected);
             detail.Apply(selected, controller.RemoveAsked(selectedId));
@@ -167,11 +205,11 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
             }
         }
 
-        downloadAllWords.SetText(controller.DownloadAllLabel);
+        downloadAllWords.SetText(model.DownloadAllLabel);
         downloadAll.IsEnabled = controller.CanDownloadAll;
         providers.Apply(controller.Providers);
         reset!.Apply(controller.ResetAsked);
-        SyncDialog(controller.Dialog);
+        SyncDialog(model.Dialog);
     }
 
     // The dialog is a sheet in the window over everything (the design's dimmed window). It opens when the controller has a dialog open, closes when it has none, and stays hidden while a run goes on that the user hid.
@@ -181,11 +219,11 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         if (!dialog.IsOpen)
         {
             CloseSheet();
-            model.DialogHidden = false;
+            if (model.DialogHidden) model.DialogHidden = false;
             return;
         }
+        if (model.DialogHidden) { CloseSheet(); return; }
         if (sheet is not null) { sheet.Dialog.Apply(dialog); return; }
-        if (dialog.IsRunning && model.DialogHidden) return;
         if (TopLevel.GetTopLevel(this) is null) return;
         ChatSheetPresentation.Show(this, dismiss =>
         {

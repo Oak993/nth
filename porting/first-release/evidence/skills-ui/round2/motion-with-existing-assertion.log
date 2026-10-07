@@ -1,0 +1,39 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.57]     Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades [753 ms]
+  Error Message:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.001 - 0.999)
+Actual: 0
+  Stack Trace:
+     at Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.<>c.<The_pill_arrival_eases_and_reduced_motion_still_fades>b__4_0(LibraryPageHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsProgressPillTests.cs:line 85
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.<>c__DisplayClass33_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 77
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.LibraryPageHarness.Run(HeadlessSession headless, LibrarySection section, Action`1 check, Boolean motion, Boolean reduceMotion, SkillsCatalogue catalogue, IFirstInstall install, ImportModel imports, Boolean defaultImports) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/LibraryPageHarness.cs:line 82
+   at Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/SkillsProgressPillTests.cs:line 72
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+WARNING: Overwriting results file: /tmp/skills-ui-round2/round2-motion.trx
+Results File: /tmp/skills-ui-round2/round2-motion.trx
+
+Failed!  - Failed:     1, Passed:     6, Skipped:     0, Total:     7, Duration: 1 s - Marrow.App.Tests.dll (net10.0)

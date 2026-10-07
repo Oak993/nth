@@ -1,0 +1,17 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/CustomOwnBindingTests.cs(25,39): error CS0117: 'CustomAddSeams' does not contain a definition for 'For' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/CustomOwnBindingTests.cs(27,24): error CS0246: The type or namespace name 'SkillsSettingsPage' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/CustomOwnBindingTests.cs(51,39): error CS0117: 'CustomAddSeams' does not contain a definition for 'For' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/CustomOwnBindingTests.cs(53,25): error CS0246: The type or namespace name 'SkillsSettingsPage' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/CustomOwnBindingTests.cs(73,39): error CS0117: 'CustomAddSeams' does not contain a definition for 'For' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/CustomOwnBindingTests.cs(95,39): error CS0117: 'CustomAddSeams' does not contain a definition for 'For' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]

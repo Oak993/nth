@@ -22,11 +22,11 @@ internal sealed class LibraryRowView : Decorator
     private readonly StatusMark mark = new();
     private bool selected, hovered;
 
-    public LibraryRowView(LibraryModel model, LibraryRow row)
+    public LibraryRowView(LibraryModel model, LibraryRow row, Action? selecting = null)
     {
         Id = row.Id;
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,Auto"), ColumnSpacing = 9, Height = RowHeight };
-        var tile = LibraryUi.Tile(row.Plugins ? "powerplug" : "wand.and.sparkles", 22, 6);
+        var tile = LibraryUi.Tile(model.Tools ? "wrench.and.screwdriver" : row.Plugins ? "powerplug" : "wand.and.sparkles", 22, 6);
         title = LibraryUi.Text(row.Title, 12.5, trim: true);
         title.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(title, 1);
@@ -45,12 +45,14 @@ internal sealed class LibraryRowView : Decorator
         PointerPressed += (_, e) =>
         {
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+            selecting?.Invoke();
             model.Controller.Select(Id);
             e.Handled = true;
         };
         KeyDown += (_, e) =>
         {
             if (e.Key is not (Key.Enter or Key.Space)) return;
+            selecting?.Invoke();
             model.Controller.Select(Id);
             e.Handled = true;
         };
