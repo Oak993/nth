@@ -4169,3 +4169,6 @@ MAUI P2 popover/layout: 003/006/007/010/012/013/014/058/059 now use the locked r
 
 ## ED-NEW-ma-wave1-14
 MAUI-041/051/052: equal-to-general Settings points do not add a quiet note (OD-0119). Queued real Handshake events retain the locked Standby 1000 ms and In sync 1400 ms intervals (HTML 3039). Existing short-interval tests remain unchanged; conflicting assertions are reported separately.
+
+## ED-NEW-ma-wave1-15
+MAUI-040: apply final HTML 1459 off opacity .45 to Settings words, usage and number only, preserving bright switch/menu and independent Reduce Motion drag feedback.
