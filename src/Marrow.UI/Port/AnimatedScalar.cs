@@ -17,6 +17,7 @@ public sealed class AnimatedScalar
     private readonly Action<double> apply;
     private IFrameSource? source;
     private Action<TimeSpan>? pending;
+    private double goal;
 
     public AnimatedScalar(Control owner, double initial, Action<double> apply)
     {
@@ -40,6 +41,7 @@ public sealed class AnimatedScalar
             apply(target);
             return;
         }
+        goal = target;
         var start = SwiftClock.Now;
         var span = TimeSpan.FromSeconds(animation.Duration);
         var frames = FrameClock.Source.Current;
@@ -56,6 +58,15 @@ public sealed class AnimatedScalar
         source = frames;
         pending = tick;
         frames.RequestFrame(tick);
+    }
+
+    /// <summary>A run in progress lands on its target at once (the owner's Reduce Motion turned on while it ran); nothing is left waiting for a frame.</summary>
+    public void Finish()
+    {
+        if (pending is null) return;
+        Stop();
+        Value = goal;
+        apply(goal);
     }
 
     private bool ReduceMotion =>
