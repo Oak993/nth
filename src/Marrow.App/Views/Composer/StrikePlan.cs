@@ -130,7 +130,7 @@ public sealed class StrikePlan
 {
     internal StrikePlan(bool withTwin)
     {
-        for (var i = 0; i < Channels.Length; i++) Channels[i] = new StrikeLine(96);
+        Channels[0] = new StrikeLine(95); Channels[1] = new StrikeLine(44);
         for (var i = 0; i < Branches.Length; i++) Branches[i] = new StrikeLine(9);
         if (withTwin) TwinSlot = new StrikePlan(false);
     }
@@ -148,8 +148,8 @@ public sealed class StrikePlan
     public int LastMain => Channels[0].Count / 2 - 1;
     public double FlashX { get; internal set; }
     public double FlashY { get; internal set; }
-    public int[] OrbIndices { get; } = new int[96];
-    public double[] OrbSegment { get; } = new double[192];
+    public int[] OrbIndices { get; } = new int[95];
+    public double[] OrbSegment { get; } = new double[190];
     public int OrbCount { get; internal set; }
     public double ExitAngle { get; internal set; }
     public double[] SparkPoints { get; } = new double[8];

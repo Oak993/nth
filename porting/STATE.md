@@ -642,3 +642,5 @@ T14 ST-1 checkpoint A-01..A-06 (ED-NEW-strike-2): immutable vectors/generator co
 T14 Strike A-07/A-08 partial checkpoint (ED-NEW-strike-3): retained plan geometry/orb/spark vectors and zero-byte ring pass. Production Mix/plume/ink/starts/contact wiring and remaining proofs are incomplete; all 15 assigned record closures remain open.
 
 T14 A-09/A-10 checkpoint (ED-NEW-strike-4): retained plume geometry and expanded contact-event oracles green, production wiring still incomplete. No assigned parity/UI record is closed.
+
+T14 Strike checkpoint: ST-1 A-11 and A-15..A-17 accepted (capacity/100000-strike walks and 20000-change statistics scope 24/24; exact-input 80-case wait guard 1/1). ED-NEW-strike-5 lists all 19 serialization ties and the lead ruling; ED-NEW-strike-6 records retained timing windows/capacities. Ink, bubble/ramp and Mix-knob validation is in progress. Production Mix/plume/ink, OD-0093 contacts, raster/composite/frame wiring, warm programs, allocation integration, quiet-PC presentation/GC gate and all 15 record closures remain incomplete. T14 NOT READY.

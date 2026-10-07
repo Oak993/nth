@@ -3747,3 +3747,37 @@ ENGINEERING DECISION (T14 ST-1 A-07/A-08 checkpoint): retain eight geometry-tagg
 
 ## ED-NEW-strike-4
 ENGINEERING DECISION (T14 ST-1 A-09/A-10): pack plume vertices and u values into fixed per-plan arrays (1803 vertices, 249 lines, longest line 188), with depth-first children and trailing wisps in source order. Cache contact events with each plan: leaders, return, rounded unique positive flickers and six 50 ms re-lights; exact segment indices and order. The P:429 JS truthiness salt applies to both a primary with its twin object and the true-marked child; missing that salt failed alone twice (142 expected,133 actual). Corrected the translation; no vector/assertion/tolerance changed. New plume test gained failure context only, preserving each assertion. Every full plume vertex/id/level/weight/order and appHigh summary matches locked vectors; all contact events match. a09-green2.log 16/16 including prior vectors and Traceability, zero-warning/error build. No production Mix wiring or record closure yet; A-11 capacities and remaining maths/frame/raster/quiet proofs remain open.
+
+## ED-NEW-strike-5
+
+[STRIKE][TEST INPUT][LEAD RULING] A-17 serialization ties. Lead ruling received 2026-10-07: the stored Tstart is a serialization rounding of the generator input, while framesWaited was computed before that rounding. Reconstruct inputs deterministically from the locked generator phase construction for every case; do not search for passing values. Keep every expected count, timestamp check, vector and tolerance; list every tie; any remaining exact-input failure is a real defect.
+
+SOURCE FACT: gen-vectors.mjs:455-458 runs E.plan(g,k,4) with seed 1274 and phases [-lead-charge-.4,-lead-charge+.01,-.05,0,.5,1,1.85,1.95], then Ts=at+phase. save():108-112 rounds reals to nine decimal places. ENGINEERING DECISION: the C# harness uses the separately validated StrikeMix.Timing and the same phase sequence uniformly for all 80 cases, retaining original frame/wait/Tfrom/jump assertions at unchanged 1e-7 and adding phase/Tstart checks. No production comparison gets an epsilon.
+
+Evidence: porting/first-release/strike-TESTS-evidence.md; scratch/codex-strike/a17-ties.mjs and a17-ties.json. The independent probe executes the unchanged generator loader, six source SHA checks, locked engine and page IsQuiet: all 80 full-precision frame counts match; 19 rounded replays differ. C# validation pending when appended. Tie inventory (zero-based case, k, phase, stored Tstart, full-precision Tstart, expected frames, rounded replay frames):
+
+- 2, 36860, -0.05, 88464.26163185, 88464.26163184972, 118, 117.
+- 3, 36860, 0, 88464.31163185, 88464.31163184972, 115, 114.
+- 4, 36860, 0.5, 88464.81163185, 88464.81163184972, 85, 84.
+- 5, 36860, 1, 88465.31163185, 88465.31163184972, 55, 54.
+- 14, 36861, 1.85, 88468.645455065, 88468.64545506502, 3, 4.
+- 30, 36863, 1.85, 88473.508617224, 88473.50861722435, 3, 4.
+- 34, 36864, -0.05, 88474.305126202, 88474.30512620184, 118, 117.
+- 35, 36864, 0, 88474.355126202, 88474.35512620184, 115, 114.
+- 36, 36864, 0.5, 88474.855126202, 88474.85512620184, 85, 84.
+- 37, 36864, 1, 88475.355126202, 88475.35512620184, 55, 54.
+- 46, 36870, 1.85, 88490.256741945, 88490.2567419453, 3, 4.
+- 66, 36898, -0.05, 88555.138207438, 88555.13820743797, 118, 117.
+- 67, 36898, 0, 88555.188207438, 88555.18820743797, 115, 114.
+- 68, 36898, 0.5, 88555.688207438, 88555.68820743797, 85, 84.
+- 69, 36898, 1, 88556.188207438, 88556.18820743797, 55, 54.
+- 74, 36918, -0.05, 88603.640627074, 88603.64062707352, 118, 117.
+- 75, 36918, 0, 88603.690627074, 88603.69062707352, 115, 114.
+- 76, 36918, 0.5, 88604.190627074, 88604.19062707352, 85, 84.
+- 77, 36918, 1, 88604.690627074, 88604.69062707352, 55, 54.
+
+## ED-NEW-strike-6
+
+[STRIKE][CAPACITY][STARTS] ST-1 A-11/A-15..A-17 checkpoint. SOURCE FACT: budget.json maxima plus 25 percent rounded up require main 95, fork 44, branches 8 x 9, plume 249 lines / 1803 vertices (188 longest), contacts 24 x 10; SPEC K-159..K-166 and P:1331-1387 define timing-only inclusive windows, quiet visible ends, margins, stable merging and uniformly chosen windows with three injected draws. ENGINEERING DECISION: two retained 256-window buffers support the port's bounded 60-second random pick and the 120-second oracle scans; exceeding that timing-query capacity throws. CryptoStrikeDraws fills four stack bytes; no geometry is built during starts. This is pure maths only: triggers, waiting state and track offset wiring remain ST-2/ST-3. All prior A2 APIs and production assertions remain unchanged.
+
+Tests first: missing starts guards and exact main-capacity guard failed alone twice. After correction, a11-green.log is 24/24 (four 100000-strike/twin geometry walks, exact zero managed allocations, timing/windows/random-entry checks, 20000-change wait statistics and earlier vector/provenance/Traceability scope), zero skips; build zero warnings/errors. A-17 full-precision input reconstruction, per ED-NEW-strike-5, passes 1/1 in a17-exact-green.log (all 80 cases). Its stored expected frame counts/timestamps and every vector/tolerance remain unchanged. Independent exact-JS inventory is the 19 ties recorded in ED-NEW-strike-5 and strike-TESTS-evidence.md. No parity/UI closure and no quiet-PC measurement pass are claimed.
