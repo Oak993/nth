@@ -20,7 +20,10 @@ namespace Marrow.App.Port.Voice;
 /// </summary>
 public sealed class ComposerVoiceController : MainActorModel
 {
-    private readonly ComposerVoiceHost host;
+    private readonly ComposerVoiceHost? host;
+    private readonly Func<VoiceOrbSettings> orbSettings;
+    private readonly Func<DraftSelection> selection;
+    private readonly Action<int, int, string> replace;
     private VoiceSessionState state = VoiceSessionState.Rest;
     private VoiceNoteContent? note;
     private string announcement = "";
@@ -38,17 +41,35 @@ public sealed class ComposerVoiceController : MainActorModel
     public ComposerVoiceController(ComposerVoiceHost host)
     {
         this.host = host;
+        orbSettings = () => host.Settings().VoiceOrb;
+        selection = host.Selection;
+        replace = host.Replace;
         Session = VoiceSessionFactory.Current.Current.Create(SessionSettings, StoreTyping);
+        Bind(host.Send);
+    }
+
+    /// <summary>CZ-7b: the same controller and views over an explicit scripted session and page-local text. No privacy or settings writes.</summary>
+    internal ComposerVoiceController(VoiceSession session, Func<VoiceOrbSettings> orbSettings, Func<DraftSelection> selection, Action<int, int, string> replace, Action send)
+    {
+        this.orbSettings = orbSettings;
+        this.selection = selection;
+        this.replace = replace;
+        Session = session;
+        Bind(send);
+    }
+
+    private void Bind(Action send)
+    {
         Session.StateChanged += OnState;
         Session.TranscriptChanged += OnTranscript;
         Session.NoteRaised += OnNote;
-        Session.SendRequested += _ => this.host.Send();
+        Session.SendRequested += _ => send();
     }
 
     /// <summary>The composer's session (V-15's table).</summary>
     public VoiceSession Session { get; }
 
-    internal VoiceFirstRun? FirstRun => VoiceFirstRun.Find(host.Settings());
+    internal VoiceFirstRun? FirstRun => host is null ? null : VoiceFirstRun.Find(host.Settings());
     internal bool SetupOpen { get => Read(setupOpen); set => Set(ref setupOpen, value); }
 
     /// <summary>Listening has begun (VT-11): the draft and selection as they are, where the dictated words will go (V-8.1).</summary>
@@ -102,7 +123,7 @@ public sealed class ComposerVoiceController : MainActorModel
     }
 
     /// <summary><c>voiceOrb</c>, tracked: the orb, its size, the attachment's place, what follows voice input.</summary>
-    public VoiceOrbSettings OrbSettings => host.Settings().VoiceOrb;
+    public VoiceOrbSettings OrbSettings => orbSettings();
 
     /// <summary>
     /// The smoothed bands the orb takes (V-5.5): the session's published level, followed per band with attack 0.07 s and release 0.24 s, read once per frame by <see cref="StepLevel"/>.
@@ -162,7 +183,7 @@ public sealed class ComposerVoiceController : MainActorModel
     /// <summary>The orb clicked, or Enter or Space on it.</summary>
     public void Activate()
     {
-        if (IsLive || State is VoiceSessionState.Asking or VoiceSessionState.Blocked || host.Settings().VoiceTyping.Engine != VoiceEngine.Local || FirstRun is not { } flow)
+        if (IsLive || State is VoiceSessionState.Asking or VoiceSessionState.Blocked || host is null || host.Settings().VoiceTyping.Engine != VoiceEngine.Local || FirstRun is not { } flow)
         {
             Session.Activate();
             return;
@@ -199,14 +220,14 @@ public sealed class ComposerVoiceController : MainActorModel
     // The settings a click begins a session with (V-15). The model is the chosen catalogue id; its file is the model store's to find (VT-6, VT-7).
     private VoiceSessionSettings SessionSettings()
     {
-        var settings = host.Settings();
+        var settings = host!.Settings();
         var typing = settings.VoiceTyping;
         return new VoiceSessionSettings(settings.VoiceOrb, typing, CultureInfo.CurrentUICulture.Name,
             typing.Engine == VoiceEngine.Cloud ? new SpeechModel(OpenAiTranscriber.DefaultModel, null) : FirstRun is { } flow ? flow.Model(typing.Model) : typing.Model is { } id ? new SpeechModel(id, null) : null)
             { LiveWords = VoicePreparation.LiveWordsOf(settings.VoiceHardware) };
     }
 
-    private void StoreTyping(VoiceTypingSettings typing) => host.Settings().VoiceTyping = typing;
+    private void StoreTyping(VoiceTypingSettings typing) => host!.Settings().VoiceTyping = typing;
 
     private void OnState(VoiceSessionState from, VoiceSessionState to)
     {
@@ -218,12 +239,12 @@ public sealed class ComposerVoiceController : MainActorModel
                 Say(VoiceAnnouncements.LanguageQuestion); // V-12.11
                 break;
             case VoiceSessionState.Listening:
-                var began = host.Selection();
+                var began = selection();
                 original = began;
                 dictationOpen = true;
                 DictationBegan?.Invoke(began);
                 Say(VoiceAnnouncements.Listening);
-                ShowPrivacyNoteOnFirstUse();
+                if (host is not null) ShowPrivacyNoteOnFirstUse();
                 break;
             case VoiceSessionState.Processing when from == VoiceSessionState.Listening:
                 Say(VoiceAnnouncements.Finishing);
@@ -253,7 +274,7 @@ public sealed class ComposerVoiceController : MainActorModel
     // Q-V-8 A: the first time each engine is used, its privacy line, once per engine.
     private void ShowPrivacyNoteOnFirstUse()
     {
-        var settings = host.Settings();
+        var settings = host!.Settings();
         var engine = settings.VoiceTyping.Engine;
         var shown = settings.VoiceNotes;
         if (engine == VoiceEngine.Cloud ? shown.Cloud : shown.Local) return;
@@ -277,14 +298,14 @@ public sealed class ComposerVoiceController : MainActorModel
     {
         var words = Session.Words;
         if (words.Count == 0) return;
-        var at = original ?? host.Selection();
-        var now = host.Selection();
+        var at = original ?? selection();
+        var now = selection();
         if (now.Text != at.Text) at = now; // the draft was written elsewhere meanwhile: the words go where its caret is now
         var result = new DictationInsertion(at).Apply(words);
         var start = Math.Clamp(at.Start, 0, at.Text.Length);
         var end = (int)Math.Clamp((long)at.Start + at.Length, start, at.Text.Length);
-        host.Replace(start, end - start, result.Text.Substring(start, result.Start - start));
-        Say(VoiceAnnouncements.Done(string.Join(' ', words.Select(word => word.Text)), host.Settings().VoiceOrb.AfterVoice == VoiceAfterVoice.Send && Session.LastStopReason != VoiceStopReason.ComposerLeft));
+        replace(start, end - start, result.Text.Substring(start, result.Start - start));
+        Say(VoiceAnnouncements.Done(string.Join(' ', words.Select(word => word.Text)), OrbSettings.AfterVoice == VoiceAfterVoice.Send && Session.LastStopReason != VoiceStopReason.ComposerLeft));
     }
 
     private void Say(string text) => Announcement = text;

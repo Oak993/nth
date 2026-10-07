@@ -919,3 +919,6 @@ T9 group05 (2026-10-07), ED-585: CZ-7b a9d577930 source/tests withheld after the
 
 
 T9 group05 retained integration READY (2026-10-07), ED-585: reviewed voice-gaps-fix bafa2f7c2 retained; internally failing CZ-7b a9d577930 withheld. Tested retained source/tree675b37b54 is promoted, local staging51e39c929 joined with the same entire tree. Four builds0W/0E; affected Core94P, customizationApp163P, voiceServices496P, voiceApp574P, canonical material2P; UI768P/1 allocation load failure, complete method2P twice alone; trace12P, GatesA12/B8, native5P/0F with authenticated owned children/cleanup. The original raw full App10347P/456F remains red on record, disposed by unchanged twice-alone and exact-original-head attribution; no second full sweep. Approved14px question card and fixed153 OD128 list preserved. Pause integration heartbeat after one push attempt and await explicit GO FINAL; no further group is authorized before it.
+
+
+2026-10-07 codex/cz-7b-fix: restore withheld CZ-7b plus ED-584 guards on d919636fa, excluding RR-11. NOT READY: unchanged Windows preview 15P/7F; timing/focus fixture evidence and scoped proposal in own scratch/handoff. Prior integration history retained byte-exact.

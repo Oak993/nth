@@ -5150,3 +5150,8 @@ Evidence before withdrawal: frozen combined head cdbec8a64 builds all four proje
 Controlled scratch inverse reverts have no source conflict and alter only that input's delta plus its two consent guards. The only ledger conflicts are resolved by retaining the entire frozen historical prefixes byte-exact. Retained voice-fix tests are byte-identical to the frozen combined candidate. The native selection's initial4P/1F includes an orb GPU probe timeout; the complete unchanged orb method passes1/1 twice alone under the native lock with fresh fixture data, without changing its15-second deadline. Final affected suites, traceability, gate and native results are recorded by T9 after this withdrawal.
 
 Local proof: E:/Droppy/work/scratch/codex-merge-train/standing/05-cz7b-voice-fix/verified-tree (gate-summary, alone-assessment, immutable OD list, orb alone records), cz-original/assessment.json and bisect/withdrawal-steps.json.
+
+
+## ED-NEW-cz-7b-fix
+
+[INTEGRATION][ENGINEERING] 2026-10-07: owner-directed restoration of CZ-7b a9d577930 on staging d919636fa. The requested merge is already an ancestor and reports Already up to date; restore precisely the source/tests/CZ-7b report inverse of withdrawal 675b37b54, including ED-583 popover composition and the two ED-584 null-host guards. Preserve all preceding ledger bytes and the approved 14px voice-question radius. No RR-11 changes are imported. Build zero warnings/errors; unchanged preview class 15P/7F/0S reproduces the original seven failures. Scratch restoration.patch, red-preview.log and clock-focus-diagnostic.json are in E:/Droppy/work/scratch/codex-cz-7b-fix. Further repair and acceptance remain pending.
