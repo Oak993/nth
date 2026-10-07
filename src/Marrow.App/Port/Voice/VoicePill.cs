@@ -371,9 +371,9 @@ internal sealed class VoicePill : Panel
     private void ApplyTint()
     {
         var tokens = VoicePillTokens.For(ActualThemeVariant);
-        // V-12.4: the shared material in a capsule, tinted pgBg. OD-0121: no refraction (the page's pill is backdrop-filter blur saturate only); the glass's own frost, rim light and shade stay
+        // V-12.4: the shared material in a capsule, tinted pgBg. OD-0121: no refraction (the page's pill is backdrop-filter blur saturate only); OD-0123: no contact line outside the ends; the glass's own frost, rim light and inner shade stay
         var tint = new SwiftColor(tokens.PgBg.R / 255.0, tokens.PgBg.G / 255.0, tokens.PgBg.B / 255.0, 1);
-        SwiftGlass.SetEffect(body, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Circular)).Tint(tint, tokens.PgBg.A / 255.0).WithoutRefraction());
+        SwiftGlass.SetEffect(body, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Circular)).Tint(tint, tokens.PgBg.A / 255.0).WithoutRefraction().WithoutContactLine());
     }
 
     private void ApplyMask()
@@ -384,7 +384,7 @@ internal sealed class VoicePill : Panel
         var mask = VoicePillRim.OrbMask(centre, h, orbDiameter);
         // OD-0121 (5): V-12.12's radial mask, centred on the orb: the shared glass and its rim together in the capsule's coordinates (the material's custom visual has
         // larger sampling bounds than its border; masking that visual separately shifts the cap), and the label and cross with the same mask.
-        material.OpacityMask = VoicePillRim.OrbFade(centre, h, width, style);
+        material.OpacityMask = VoicePillRim.OrbFade(centre, h, style);
         filtered.OpacityMask = mask;
         contents.OpacityMask = mask;
         OpacityMask = null;

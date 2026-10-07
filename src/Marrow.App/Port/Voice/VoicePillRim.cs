@@ -133,17 +133,14 @@ internal sealed class VoicePillRim : Control
 
     /// <summary>
     /// The side the orb sits on is cleared outright (OD-0121 5, V-T132): zero on the exposed side of the orb's centre and complete one cap radius toward the body. The radial
-    /// <see cref="OrbMask"/> (the page's) is multiplied by it, as the page's pill, where the orb's own glow covers the band the radial mask leaves, is not in the port's frame.
+    /// <see cref="OrbMask"/> (the page's) is multiplied by it, as the page's pill, where the orb's own glow covers the band the radial mask leaves, is not in the port's frame. A direct linear brush in the control's own coordinates, like the radial one (no drawing resampled to the box; ED-387 5, ED-388).
     /// </summary>
-    public static IBrush OrbFade(Point centre, double pillHeight, double width, VoiceListeningStyle style)
+    public static IBrush OrbFade(Point centre, double pillHeight, VoiceListeningStyle style)
     {
         var direction = style == VoiceListeningStyle.Float ? 1 : -1;
-        var inward = new ImmutableLinearGradientBrush(
+        return new ImmutableLinearGradientBrush(
             [new ImmutableGradientStop(0, Colors.Transparent), new ImmutableGradientStop(1, Colors.Black)],
             startPoint: new RelativePoint(centre, RelativeUnit.Absolute),
             endPoint: new RelativePoint(centre.X + direction * pillHeight / 2, centre.Y, RelativeUnit.Absolute));
-        var drawing = new DrawingGroup();
-        using (var context = drawing.Open()) context.DrawRectangle(inward, null, new Rect(0, 0, width, pillHeight));
-        return new DrawingBrush(drawing) { Stretch = Stretch.Fill };
     }
 }

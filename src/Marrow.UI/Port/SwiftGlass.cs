@@ -64,6 +64,15 @@ public sealed record GlassEffect(GlassShape Shape, SwiftColor? TintColor, double
 
     /// <summary>The same glass with <see cref="NoRefraction"/> set.</summary>
     public GlassEffect WithoutRefraction() => this with { NoRefraction = true };
+
+    /// <summary>
+    /// PORT-ONLY (OD-0123, voice pill): the material draws no contact line, the dark 1 px line just outside the shape (the Mac frames' line at a capsule's ends); the rim light, the
+    /// inner shade and the bend are as they were. The approved page's pill has no such line outside its edge. Off for every other consumer.
+    /// </summary>
+    public bool NoContactLine { get; init; }
+
+    /// <summary>The same glass with <see cref="NoContactLine"/> set.</summary>
+    public GlassEffect WithoutContactLine() => this with { NoContactLine = true };
 }
 
 /// <summary>The glass effect recorded on a layer (ED-180).</summary>
