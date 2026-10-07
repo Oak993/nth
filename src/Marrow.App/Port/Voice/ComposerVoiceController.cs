@@ -33,6 +33,8 @@ public sealed class ComposerVoiceController : MainActorModel
     private bool dictationOpen;
     private bool setupOpen;
     private bool preparing;
+    private VoicePrepItem? preparationProgress;
+    private int preparationSerial;
     private VoiceListeningStyle liveStyle;
 
     public ComposerVoiceController(ComposerVoiceHost host)
@@ -50,6 +52,8 @@ public sealed class ComposerVoiceController : MainActorModel
 
     internal VoiceFirstRun? FirstRun => VoiceFirstRun.Find(host.Settings());
     internal bool SetupOpen { get => Read(setupOpen); set => Set(ref setupOpen, value); }
+    internal bool Preparing { get => Read(preparing); private set => Set(ref preparing, value); }
+    internal VoicePrepItem? PreparationProgress { get => Read(preparationProgress); private set => SetAlways(ref preparationProgress, value); }
 
     /// <summary>Listening has begun (VT-11): the draft and selection as they are, where the dictated words will go (V-8.1).</summary>
     public event Action<DraftSelection>? DictationBegan;
@@ -93,6 +97,8 @@ public sealed class ComposerVoiceController : MainActorModel
         get => Read(announcement);
         private set => Set(ref announcement, value);
     }
+
+    internal void Announce(string words) => Say(words);
 
     /// <summary>Whether the pointer is over the orb (the motion counts it at Rest and Landing only, V-11.4).</summary>
     public bool PointerOver
@@ -167,14 +173,28 @@ public sealed class ComposerVoiceController : MainActorModel
             Session.Activate();
             return;
         }
-        if (preparing) { SetupOpen = true; return; }
+        if (Preparing) return;
         if (flow.CanListen) { SetupOpen = false; Session.Activate(); return; }
-        SetupOpen = true;
-        preparing = true;
+        if (flow.Question.State == VoiceQuestionState.Slow) { SetupOpen = true; return; }
+        SetupOpen = false;
+        PreparationProgress = null;
+        Preparing = true;
+        var serial = ++preparationSerial;
+        void ProgressChanged() => MainActor.Post(() => { if (serial == preparationSerial) PreparationProgress = flow.Progress; });
+        flow.Changed += ProgressChanged;
         _ = MainActor.Spawn(async () =>
         {
             try { _ = await flow.OrbAsync(CancellationToken.None); }
-            finally { preparing = false; }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                flow.Changed -= ProgressChanged;
+                if (serial == preparationSerial)
+                {
+                    Preparing = false;
+                    SetupOpen = flow.Question.State == VoiceQuestionState.Slow;
+                }
+            }
         });
     }
 
@@ -187,6 +207,15 @@ public sealed class ComposerVoiceController : MainActorModel
     /// <summary>Esc or the cross (V-14.4): cancels a live session, says so, and does nothing otherwise.</summary>
     public bool Cancel()
     {
+        if (Preparing)
+        {
+            ++preparationSerial;
+            Preparing = false;
+            SetupOpen = false;
+            FirstRun?.Cancel();
+            Say(VoiceAnnouncements.Cancelled);
+            return true;
+        }
         if (!IsLive) return false;
         Session.Cancel();
         if (Session.State == VoiceSessionState.Rest) Say(VoiceAnnouncements.Cancelled);
@@ -194,7 +223,11 @@ public sealed class ComposerVoiceController : MainActorModel
     }
 
     /// <summary>The composer leaves the screen (V-14.7): the session stops as a second click would, the text lands and is never sent.</summary>
-    public void ComposerLeaving() => Session.ComposerLeaving();
+    public void ComposerLeaving()
+    {
+        if (Preparing) Cancel();
+        Session.ComposerLeaving();
+    }
 
     // The settings a click begins a session with (V-15). The model is the chosen catalogue id; its file is the model store's to find (VT-6, VT-7).
     private VoiceSessionSettings SessionSettings()

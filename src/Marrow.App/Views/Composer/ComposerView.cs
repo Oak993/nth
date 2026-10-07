@@ -787,7 +787,7 @@ public sealed class ComposerView : Decorator
     // or the notice line; the composer leaving stops the session.
     private void StartVoiceViews(ComposerVoiceController voiceController)
     {
-        this.Track(() => voiceController.IsLive, live =>
+        this.Track(() => voiceController.IsLive || voiceController.Preparing, live =>
         {
             WatchEscape(live);
             ApplyDictating();
@@ -840,7 +840,7 @@ public sealed class ComposerView : Decorator
 
     private void OnVoiceKey(object? sender, KeyEventArgs e)
     {
-        if (e.Handled || e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None || voice is not { IsLive: true } active) return;
+        if (e.Handled || e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None || voice is not { } active || !(active.IsLive || active.Preparing)) return;
         // V-14.4 "otherwise Esc keeps its existing meaning": a sheet or popover opened after the session went live is the keyboard's first (as an NSWindow's sheet or an NSPopover is a
         // key window of its own); this handler was added when the session went live, so it runs before theirs and has to ask
         if (sender is TopLevel top && (SheetKeyboard.IsTaken(top) || WindowTransients.Newest(top) is not null)) return;

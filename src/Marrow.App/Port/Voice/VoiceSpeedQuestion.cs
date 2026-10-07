@@ -14,6 +14,8 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation)
     private VoiceQuestionState state = VoiceQuestionState.Ask;
     private bool welcomeGone;
     private string? error;
+    private int generation;
+    private CancellationTokenSource? cancellation;
 
     /// <summary>Where the question is.</summary>
     public VoiceQuestionState State
@@ -57,24 +59,45 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation)
     /// </summary>
     public async Task YesAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
     {
-        if (!Move(VoiceQuestionState.Ask, VoiceQuestionState.Yes)) return;
-        await PrepareAsync(progress, cancellationToken).ConfigureAwait(false);
+        int run;
+        CancellationToken token;
+        lock (gate)
+        {
+            if (state != VoiceQuestionState.Ask) return;
+            state = VoiceQuestionState.Yes;
+            error = null;
+            run = ++generation;
+            cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            token = cancellation.Token;
+        }
+        Changed?.Invoke();
+        await PrepareAsync(progress, token, run).ConfigureAwait(false);
     }
 
     // OD-0098: an orb click is consent even after Maybe later or after Welcome has gone. A click during Yes joins the same work.
     internal async Task AtOrbAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
     {
+        int run;
+        CancellationToken shared;
         lock (gate)
         {
             if (state == VoiceQuestionState.Slow) return;
+            if (state != VoiceQuestionState.Yes)
+            {
+                ++generation;
+                cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            }
+            run = generation;
+            shared = cancellation?.Token ?? cancellationToken;
             state = VoiceQuestionState.Yes;
             error = null;
         }
         Changed?.Invoke();
-        await PrepareAsync(progress, cancellationToken).ConfigureAwait(false);
+        using var joined = CancellationTokenSource.CreateLinkedTokenSource(shared, cancellationToken);
+        await PrepareAsync(progress, joined.Token, run).ConfigureAwait(false);
     }
 
-    private async Task PrepareAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
+    private async Task PrepareAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken, int run)
     {
         preparation.GrantConsent();
         VoicePreparationResult result;
@@ -84,11 +107,28 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation)
         }
         catch
         {
-            Settle(VoiceQuestionState.Ask, null);
+            Settle(VoiceQuestionState.Ask, null, run);
             throw;
         }
-        if (result.Status != VoicePreparationStatus.Prepared) Settle(VoiceQuestionState.Ask, result.Error ?? "The voice model was not prepared.");
-        else Settle(result.AskSlowQuestion ? VoiceQuestionState.Slow : VoiceQuestionState.Ready, null);
+        if (result.Status != VoicePreparationStatus.Prepared) Settle(VoiceQuestionState.Ask, result.Error ?? "The voice model was not prepared.", run);
+        else Settle(result.AskSlowQuestion ? VoiceQuestionState.Slow : VoiceQuestionState.Ready, null, run);
+    }
+
+    public void Cancel()
+    {
+        CancellationTokenSource? stopped;
+        lock (gate)
+        {
+            ++generation;
+            state = welcomeGone ? VoiceQuestionState.Gone : VoiceQuestionState.Ask;
+            error = null;
+            stopped = cancellation;
+            cancellation = null;
+        }
+        stopped?.Cancel();
+        stopped?.Dispose();
+        preparation.Cancel();
+        Changed?.Invoke();
     }
 
     /// <summary>Reads the PC when no probe has run (Getting ready's hardware step does it first): the words name the model's size, which the recommendation gives. Fetches nothing; a failure leaves the sizes unknown.</summary>
@@ -148,12 +188,15 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation)
         return true;
     }
 
-    private void Settle(VoiceQuestionState to, string? reason)
+    private void Settle(VoiceQuestionState to, string? reason, int? run = null)
     {
         lock (gate)
         {
+            if (run is { } expected && expected != generation) return;
             error = reason;
             state = welcomeGone && to is VoiceQuestionState.Ready or VoiceQuestionState.Ask ? VoiceQuestionState.Gone : to; // an answer given at the orb stays to be shown there
+            cancellation?.Dispose();
+            cancellation = null;
         }
         Changed?.Invoke();
     }

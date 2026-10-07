@@ -5,6 +5,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Session;
 using Marrow.UI.Port;
+using Marrow.App.Port.Voice.Countdown;
 
 namespace Marrow.App.Port.Voice;
 
@@ -24,6 +25,7 @@ internal sealed class VoicePillSlot : Panel
     private bool wasOpen;
     private double lastInset = double.NaN;
     private Point? placedFor;
+    private CapCountdownLine? countdown;
 
     public VoicePillSlot(ComposerVoiceController voice)
     {
@@ -33,12 +35,24 @@ internal sealed class VoicePillSlot : Panel
         ClipToBounds = false;
         Pill = new VoicePill();
         Children.Add(Pill);
-        this.Track(() => (voice.IsLive, voice.LiveStyle), shown => ShowLive(shown.IsLive, shown.LiveStyle));
+        this.Track(() => (voice.IsLive, voice.LiveStyle, voice.Preparing, voice.PreparationProgress), shown =>
+        {
+            Pill.ShowPreparation(shown.Preparing, shown.PreparationProgress);
+            ShowLive(shown.IsLive || shown.Preparing, shown.Preparing ? VoiceListeningStyle.Pill : shown.LiveStyle);
+        });
         this.Track(() => voice.OrbSettings.Labels, words => Pill.Words = words);
         this.Track(() => voice.OrbSettings.OrbSize, _ => ReportInset());
         Pill.Cross.Click += (_, _) => voice.Cancel();
-        AttachedToVisualTree += (_, _) => Follow();
-        DetachedFromVisualTree += (_, _) => Unfollow();
+        AttachedToVisualTree += (_, _) =>
+        {
+            countdown = new CapCountdownLine(voice.Session,
+                () => EnvironmentValues.GetAccessibilityReduceMotion(this) || Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion,
+                () => LookDraw.IsDark(ActualThemeVariant) ? CountdownPalette.Dark : CountdownPalette.Light);
+            countdown.Announced += CountdownAnnouncement;
+            Follow();
+            Step();
+        };
+        DetachedFromVisualTree += (_, _) => { Unfollow(); countdown?.Dispose(); countdown = null; };
     }
 
     /// <summary>The pill.</summary>
@@ -94,7 +108,7 @@ internal sealed class VoicePillSlot : Panel
 
     private void Follow()
     {
-        if (link is not null || !FrameClock.IsBound || VisualRoot is null || !(voice.IsLive || Pill.IsMoving || Pill.Language is not null)) return;
+        if (link is not null || !FrameClock.IsBound || VisualRoot is null || !(voice.IsLive || voice.Preparing || Pill.IsMoving || Pill.Language is not null)) return;
         link = FrameClock.DisplayLink(Step);
         link.Add();
     }
@@ -107,7 +121,8 @@ internal sealed class VoicePillSlot : Panel
 
     private void Step()
     {
-        if (voice.IsLive && Pill.Open)
+        Pill.ShowCountdown(voice.IsLive && voice.LiveStyle != VoiceListeningStyle.Cross ? countdown?.Frame() : null);
+        if (voice.IsLive && !voice.Preparing && Pill.Open)
         {
             var label = voice.Session.Label;
             Pill.State = label;
@@ -122,18 +137,25 @@ internal sealed class VoicePillSlot : Panel
             Pill.State = VoiceLabelState.Listening;
         }
         ReportInset();
-        if (link is not null && !voice.IsLive && !Pill.IsMoving && Pill.Language is null)
+        if (link is not null && !voice.IsLive && !voice.Preparing && !Pill.IsMoving && Pill.Language is null)
         {
             link.Invalidate();
             link = null;
         }
     }
 
+    private void CountdownAnnouncement(string words)
+    {
+        voice.Announce(words);
+        Step();
+        Follow();
+    }
+
     private void ReportInset()
     {
         var d = orb?.Diameter ?? voice.OrbSettings.OrbSize;
         var style = Pill.Open ? Pill.Style : voice.LiveStyle;
-        var live = voice.IsLive;
+        var live = voice.IsLive || voice.Preparing;
         var target = VoicePillGeometry.TextRightInset(style, live, d, Pill.OpenWidth);
         if (target != lastInset)
         {

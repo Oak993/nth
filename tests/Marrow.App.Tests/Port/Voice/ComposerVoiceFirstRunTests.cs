@@ -14,7 +14,7 @@ public sealed class ComposerVoiceFirstRunTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "VT-15")]
     [Trait("Feature", "WV-1")]
-    public void The_mounted_orb_prepares_before_capture_and_shows_its_setup_card()
+    public void The_mounted_orb_prepares_before_capture_and_leaves_no_question_on_a_fast_PC()
     {
         var prep = VoiceQuestionRig.Pc(); // Its scripted probe is awaited before entering the UI dispatcher.
         headless.OnUiThread(() =>
@@ -32,7 +32,9 @@ public sealed class ComposerVoiceFirstRunTests(HeadlessSession headless)
                 rig.Main.OnMain(() => Click(slot.HitTarget));
                 rig.Elapse(window, 0.1);
                 Assert.Equal(0, rig.Capture.StartCount);
-                Assert.True(view.Voice!.SetupOpen);
+                // ED-610: locked wv_lib.py:305-312 opens only the slow question's popover.
+                // Held preparation/cancellation has stricter mounted coverage in MountedVoicePreparationTests.
+                Assert.False(view.Voice!.SetupOpen);
                 Assert.Equal(VoiceSessionState.Rest, view.Voice.Session.State);
                 Assert.Single(prep.Prep.Models.Installs);
                 rig.Main.OnMain(() => Click(slot.HitTarget));
