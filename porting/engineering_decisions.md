@@ -3726,3 +3726,10 @@ ENGINEERING DECISION (T9 batch 9 integration): join trial-H asynchronous develop
 Batch 9 compile witness: first combined Services build failed CS0103 (catalogue) after the SK18/W3 host constructor conflict union omitted W3's catalogue parameter. Restored that exact parameter and options.Catalogue argument; preserved the incoming catalogue property, imported library, shared downloads and terms. This is a compile-time merge-resolution correction, not a behavior acceptance red; initial logs at 31f7685 remain archived. No test changed.
 
 Batch 9 byte-integrity repair: Git inserted the incoming SK14/SK16 STATE note into an older seam and introduced one ED blank line at that seam. A byte-preserving line diff proved both ledgers differed from batch8 only by insertions. Moved all inserted bytes to the end, restoring the exact b091a44c5 prefixes without replacing/deleting/normalizing any original or incoming contribution. Runtime source/tests/build inputs are unchanged; full suite snapshot remains 2476a0fb1, and final Traceability/static checks repeat after this documentation-only commit.
+
+
+## ED-NEW-skills-backend-1 - Bounded Keep both names (RR-45, 2026-10-07)
+
+ENGINEERING DECISION under OD-0118: reserve the complete app/number suffix inside SkillName.MaxLength before truncating the original base, trimming a boundary hyphen. Search at most the number of stored entries plus one distinct candidate. Invalid incoming names become an ImportFailure inside the existing per-item error boundary. No foreign file is changed.
+
+Evidence: tests/Marrow.Services.Tests/Port/Skills/Import/KeepBothMaximumNameTests.cs reproduces a five-second timeout for Copy and Link on base 285b6b7a; both pass after the fix, including two-digit suffixes, unique valid names, rewritten generation frontmatter, reopen and unchanged foreign-folder fingerprints. SK-18: 89 passed, 0 failed, 0 skipped on Linux/.NET SDK 10.0.401. Windows follow-up: the same fixture suite on Windows 11; no network or installer required.
