@@ -29,6 +29,7 @@ internal sealed class HandshakeCapsuleHost : Panel
     private readonly Func<IReadOnlyList<ThreadAccount>> accounts;
     private readonly Func<Guid, CapsuleContent?> ghostContent;
     private readonly HandshakePresentationContext context;
+    private readonly IReadOnlyList<IThreadAccountPort> accountSources;
     private readonly CrossfadeSlot status = new(), ready = new(), tick = new();
     private readonly MatrixTransform ghostTransform = new();
     private readonly Action<TimeSpan> frame;
@@ -41,14 +42,17 @@ internal sealed class HandshakeCapsuleHost : Panel
     private bool shownTick;
     private DateTimeOffset last;
     private Point canvasOrigin;
-    internal HandshakeMotionPlan? Plan { get; private set; }
+    private HandshakeFrameSnapshot? liveFrame;
+    // Inspection only, as in Core. Advance and Render never call the allocating Plan projection.
+    internal HandshakeMotionPlan? Plan => liveFrame is null ? null : motion?.Plan(CanvasWidth, CanvasHeight, ActualThemeVariant == ThemeVariant.Dark);
     internal HandshakeCanvas Canvas { get; } = new() { Width = CanvasWidth, Height = CanvasHeight };
     internal AccountCapsule? Ghost { get; private set; }
     internal bool TickShown => shownTick;
     internal double GhostScale { get; private set; } = 1;
-    internal HandshakeCapsuleHost(Control body, ComposerCapsuleSlot slot, Guid thread, ICardPort port, Func<IReadOnlyList<ThreadAccount>> accounts, Func<Guid, CapsuleContent?> ghostContent, HandshakePresentationContext? context = null)
+    internal HandshakeCapsuleHost(Control body, ComposerCapsuleSlot slot, Guid thread, ICardPort port, Func<IReadOnlyList<ThreadAccount>> accounts, Func<Guid, CapsuleContent?> ghostContent, HandshakePresentationContext? context = null, IReadOnlyList<IThreadAccountPort>? accountSources = null)
     {
         this.body = body; this.slot = slot; this.thread = thread; this.port = port; this.accounts = accounts; this.ghostContent = ghostContent; this.context = context ?? new();
+        this.accountSources = accountSources ?? [];
         ClipToBounds = false; Children.Add(body); Children.Add(Canvas); Children.Add(status); Children.Add(ready); Children.Add(tick);
         status.IsHitTestVisible = ready.IsHitTestVisible = tick.IsHitTestVisible = false; Canvas.IsVisible = false;
         status.Show(new Border(), null); ready.Show(new Border(), null); tick.Show(new Border(), null);
@@ -56,25 +60,32 @@ internal sealed class HandshakeCapsuleHost : Panel
         AttachedToVisualTree += (_, _) =>
         {
             attached = true; snapshot = accounts(); port.Changed += Snapshot;
+            foreach (var source in this.accountSources) source.Changed += AccountsChanged;
             motion = new HandshakeMotionModel(thread, port, () => snapshot, SwiftClock.Provider.Current, () => CapsuleMotion.Reduce(this), this.context.Readiness); motion.Changed += Changed; Changed();
         };
-        DetachedFromVisualTree += (_, _) => { attached = false; port.Changed -= Snapshot; if (requested) frames?.CancelFrame(frame); requested = false; if (motion is { } m) { m.Changed -= Changed; m.Dispose(); motion = null; } slot.SetHandshake(false, null); };
+        DetachedFromVisualTree += (_, _) => { attached = false; port.Changed -= Snapshot; foreach (var source in this.accountSources) source.Changed -= AccountsChanged; if (requested) frames?.CancelFrame(frame); requested = false; if (motion is { } m) { m.Changed -= Changed; m.Dispose(); motion = null; } slot.SetHandshake(false, null); };
     }
     private void Snapshot(object? sender, HandshakeEvent state)
     {
         if (state.ThreadId != thread) return;
-        if (Dispatcher.UIThread.CheckAccess()) snapshot = accounts(); else Dispatcher.UIThread.Post(() => snapshot = accounts());
+        if (Dispatcher.UIThread.CheckAccess()) UpdateAccounts(); else Dispatcher.UIThread.Post(UpdateAccounts);
+    }
+    private void UpdateAccounts() { snapshot = accounts(); motion?.RefreshAccounts(); }
+    private void AccountsChanged()
+    {
+        void Apply() { UpdateAccounts(); if (incoming is { } id && Ghost is { } ghost && ghostContent(id) is { } content) ghost.Apply(content); Advance(); }
+        if (Dispatcher.UIThread.CheckAccess()) Apply(); else Dispatcher.UIThread.Post(Apply);
     }
     private void Changed() { if (Dispatcher.UIThread.CheckAccess()) Advance(); else Dispatcher.UIThread.Post(Advance); }
     internal void Advance()
     {
         if (motion is null) return; last = SwiftClock.Provider.Current.GetUtcNow(); var dark = ActualThemeVariant == ThemeVariant.Dark;
         motion.SoundEnabled = context.SoundEnabled?.Invoke() == true;
-        var plan = motion.Plan(CanvasWidth, CanvasHeight, dark); Plan = plan.Phase == HandshakePhase.Idle ? null : plan;
+        var plan = motion.ReadFrame(dark); liveFrame = plan.Phase == HandshakePhase.Idle ? null : plan;
         running = plan.Phase is HandshakePhase.Standby or HandshakePhase.Linking or HandshakePhase.InSync || plan.Phase == HandshakePhase.Switch && (plan.VirtualMilliseconds < 5700 || plan.ShowTick);
         incoming = Guid.TryParse(port.State(thread)?.IncomingAccountId, out var id) ? id : null;
         if (running != wasRunning || incoming != setStandby) { slot.SetHandshake(running, running ? incoming : null); wasRunning = running; setStandby = incoming; }
-        Canvas.IsVisible = Plan is not null; if (Plan is not null) Canvas.Apply(plan, dark);
+        Canvas.IsVisible = liveFrame is not null; if (liveFrame is not null) Canvas.Apply(plan, dark);
         if (incoming != shownGhost || Ghost?.Style != slot.Capsule?.Style)
         {
             if (Ghost is not null) Children.Remove(Ghost); Ghost = null; shownGhost = incoming;
@@ -98,8 +109,8 @@ internal sealed class HandshakeCapsuleHost : Panel
     private void PlaceGhost()
     {
         if (Ghost is not { } ghost) return;
-        if (Plan is not { } plan) { ghost.Opacity = 0; return; }
-        var g = plan.Geometry.Ghost; var breath = plan.UseCrossfade ? 1 : .8 + .2 * Math.Sin(plan.VirtualMilliseconds / 260);
+        if (liveFrame is not { } plan) { ghost.Opacity = 0; return; }
+        var g = HandshakeGhostLayout.Read(CanvasWidth, CanvasHeight, plan); var breath = plan.UseCrossfade ? 1 : .8 + .2 * Math.Sin(plan.VirtualMilliseconds / 260);
         ghost.Opacity = g.Alpha * breath; GhostScale = plan.UseCrossfade ? 1 : g.Scale;
         var mx = ghost.Style == "7" ? 17 : ghost.FaceSize.Width / 2; var my = 11 + (ghost.Style == "1" ? 1.5 : 0);
         ghostTransform.Matrix = Matrix.CreateTranslation(-mx, -my) * Matrix.CreateScale(GhostScale, GhostScale) * Matrix.CreateTranslation(canvasOrigin.X + g.X, canvasOrigin.Y + g.Y);
@@ -117,6 +128,7 @@ internal sealed class HandshakeCapsuleHost : Panel
     internal static Control With(Control body, ComposerCapsuleSlot slot, ThreadRuntime runtime)
     {
         var ports = ThreadPortSeams.Offer.Current; if (ports.Cards is not { } port) return body;
-        return new HandshakeCapsuleHost(body, slot, runtime.ThreadID, port, () => SwiftEnum<ProviderKind>.AllCases.SelectMany(service => ports.Account(runtime.ThreadID, service)?.Accounts ?? []).ToArray(), HandshakeGhostFactory.For(runtime), HandshakePresentationSeams.Offer.Current(runtime.ThreadID));
+        var sources = SwiftEnum<ProviderKind>.AllCases.Select(service => ports.Account(runtime.ThreadID, service)).OfType<IThreadAccountPort>().ToArray();
+        return new HandshakeCapsuleHost(body, slot, runtime.ThreadID, port, () => sources.SelectMany(source => source.Accounts).ToArray(), HandshakeGhostFactory.For(runtime), HandshakePresentationSeams.Offer.Current(runtime.ThreadID), sources);
     }
 }

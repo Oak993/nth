@@ -37,4 +37,23 @@ public sealed class HandshakePainterTests
         try { var program = Assert.Single(GpuWarmup.Registered, p => p.Name == "Handshake neural filaments and bloom"); Assert.Equal("gpu", program.Step.Id); Assert.False(program.IsWork); Assert.Contains(program.Name, GpuWarmup.Programs); program.Drawing(new GpuWarmContext(null, 1)); }
         finally { HandshakeGpuProgram.Unregister(); }
     }
+    [Theory, Trait("Rule", "R-TEST-4")]
+    [InlineData(false, false)] [InlineData(true, false)] [InlineData(false, true)] [InlineData(true, true)]
+    public void Live_snapshot_draw_is_pixel_equal_to_the_existing_geometry_oracle_and_allocates_zero(bool dark, bool reduced)
+    {
+        using var painter = new HandshakePainter(256, 144, (240, 105, 90), (58, 214, 168));
+        using var actual = new SKBitmap(new SKImageInfo(256, 144, SKColorType.Rgba8888, SKAlphaType.Premul)); using var ac = new SKCanvas(actual);
+        using var expected = new SKBitmap(actual.Info); using var ec = new SKCanvas(expected);
+        foreach (var t in new double[] { 1100, 1500, 2100, 2400, 2750, 3000, 3450, 3800, 4500, 4850, 5000, 5700 })
+        {
+            ac.Clear(SKColors.Transparent); ec.Clear(SKColors.Transparent);
+            var snapshot = new HandshakeFrameSnapshot(Marrow.Core.Accounts.HandshakePhase.InSync, t, 0, "", false, reduced, (240, 105, 90), (58, 214, 168));
+            painter.Draw(ac, snapshot, dark); painter.Draw(ec, HandshakeGeometry.Draw(256, 144, t, dark, reduced), t, dark, reduced);
+            Assert.Equal(expected.Bytes, actual.Bytes);
+        }
+        var live = new HandshakeFrameSnapshot(Marrow.Core.Accounts.HandshakePhase.InSync, 3500, 0, "", false, reduced, (240, 105, 90), (58, 214, 168));
+        for (var i = 0; i < 30; i++) painter.Draw(ac, live, dark);
+        var before = GC.GetAllocatedBytesForCurrentThread(); for (var i = 0; i < 120; i++) painter.Draw(ac, live, dark);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
 }
