@@ -73,7 +73,7 @@ public sealed class PaletteReferenceTests
         Assert.Equal(1,PaletteIntensity.Effort("ultra"));
         var openai=LineupRanker.Build(pack.Baseline.Concat([new ModelPaletteFact("openai/gpt-7","openai",0,2000000000,1000000,true)]),pack.ForMaker)["openai"];
         Assert.Equal(1,openai.Lookup("gpt-7").Level);
-        Assert.True(openai.Lookup("gpt-7-mini").Level>1);
+        Assert.Equal(new ModelPalettePosition(1,1,4),openai.Lookup("gpt-7-mini"));
     }
 
     private static JsonDocument Read()
