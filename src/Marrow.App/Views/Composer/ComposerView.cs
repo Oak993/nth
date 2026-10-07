@@ -467,10 +467,12 @@ public sealed class ComposerView : Decorator
         layers.Children.Add(padded);
         // :186 .modifier(ComposerSurface())
         // PORT-ONLY, owner-ruled (OD-0091, voice-SPEC V-14.1): the attachment button sits at the pill's left, inside it or in the margin the pill gives up for it, so the
-        // pill hangs in a grid that lets the margin button overflow to its left.
+        // pill has a sibling overlay that lets the margin button overflow to its left.
+        // Keep the plate itself as Child, and the overlay outside its panel-content clip.
+        Child = new ComposerSurface().Body(layers);
         root = new Grid { ClipToBounds = false };
-        root.Children.Add(new ComposerSurface().Body(layers));
-        Child = root;
+        VisualChildren.Add(root);
+        LogicalChildren.Add(root);
         root.Children.Add(outsideHost); // the margin button hangs to the left of the pill: a canvas, because a negative margin would make its box wider than the button
         widthPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         insetPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
@@ -538,6 +540,20 @@ public sealed class ComposerView : Decorator
             if (SwiftTask.IsCancelled) return;
             Transaction.WithAnimation(Chrome.PanelSlide, () => state.AttachmentNotice = null);
         });
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var plate = base.MeasureOverride(availableSize);
+        root.Measure(availableSize);
+        return new Size(Math.Max(plate.Width, root.DesiredSize.Width), Math.Max(plate.Height, root.DesiredSize.Height));
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = base.ArrangeOverride(finalSize);
+        root.Arrange(new Rect(finalSize));
+        return size;
     }
 
     private void Appear()
