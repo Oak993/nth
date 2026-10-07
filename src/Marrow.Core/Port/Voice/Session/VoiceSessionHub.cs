@@ -27,6 +27,9 @@ public sealed class VoiceSessionHub
     /// <summary>The session whose click is waiting for <see cref="Active"/> to finish, if any.</summary>
     public VoiceSession? Queued { get; private set; }
 
+    /// <summary>The exception the last failed load ended with (VT-17: a note names its cause); null after a load that worked.</summary>
+    internal Exception? LoadFailure { get; private set; }
+
     internal void Enter(VoiceSession session) => Active = session;
 
     internal void Release(VoiceSession session)
@@ -70,10 +73,12 @@ public sealed class VoiceSessionHub
             try
             {
                 await engine.LoadAsync(model, new EngineLoadOptions(), SwiftTask.CancellationToken);
+                LoadFailure = null;
                 return true;
             }
-            catch (Exception)
+            catch (Exception error)
             {
+                LoadFailure = error;
                 if (ReferenceEquals(loadedEngine, engine) && Equals(loadedModel, model)) load = null;
                 return false;
             }

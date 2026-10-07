@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "name": "40-python-after-launcher",
+  "commandLine": "py -0p",
+  "executable": "py",
+  "arguments": [
+    "-0p"
+  ],
+  "exitCode": 0,
+  "stdout": " -V:3.14 *        C:\\Python314\\python.exe\r\n -V:3.13          %USERPROFILE%\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\r\n",
+  "stderr": "",
+  "durationMs": 40.1298,
+  "versionsBefore": {
+    "Python.Python.3.13": "3.13.14",
+    "Python.Python.3.14": "3.14.4"
+  },
+  "versionsAfter": {
+    "Python.Python.3.13": "3.13.15",
+    "Python.Python.3.14": "3.14.7"
+  },
+  "timestamp": "2026-10-05T15:31:47.6520125+00:00",
+  "finishedAt": "2026-10-05T15:31:47.6927918+00:00"
+}

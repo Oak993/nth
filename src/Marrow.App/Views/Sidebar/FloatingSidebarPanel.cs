@@ -55,6 +55,8 @@ public sealed class FloatingSidebarPanel : Decorator
         };
 
         var plate = new Border { CornerRadius = new CornerRadius(22) };
+        // :100 the plate's shadow is its own coverage, cast at its fill's alpha and drawn under it, through it (ED-358).
+        var plateShadow = new SwiftShadow.Caster(plate, Colors.Black, radius: 28, y: 10);
 
         var sidebar = new SidebarView(inPopover: true, dismiss: null);
         var sidebarHolder = new Border
@@ -81,8 +83,8 @@ public sealed class FloatingSidebarPanel : Decorator
             plate.Background = (isDark
                 ? new SwiftColor(0, 0, 0, 0.3)
                 : new SwiftColor(1, 1, 1, 0.34)).Brush(this); // :99
-            plate.BoxShadow = SwiftShadow.BoxShadows(new SwiftColor(0, 0, 0, isDark ? 1 : 0.65).Resolve(ActualThemeVariant),
-                radius: 28, y: 10); // :100 (sigma 28, ED-327)
+            plateShadow.Set(new SwiftColor(0, 0, 0, isDark ? 1 : 0.65).Resolve(ActualThemeVariant),
+                radius: 28, y: 10); // :100 (sigma 28, ED-327), cast by the 0.3 / 0.34 fill and drawn under it (ED-358)
         }
         UpdateTheme();
         ActualThemeVariantChanged += (_, _) => UpdateTheme();
@@ -94,6 +96,7 @@ public sealed class FloatingSidebarPanel : Decorator
             Height = size.Height
         };
         var panelContents = new Grid();
+        panelContents.Children.Add(plateShadow);
         panelContents.Children.Add(plate);
         panelContents.Children.Add(surface);
         panel.Children.Add(panelContents);

@@ -40,6 +40,7 @@ internal static class UpdatesProjector
         if (flags.Checking) return UpdatesPhase.Checking;
         if (rows.Any(r => r.State is UpdateRowState.Queued or UpdateRowState.Updating)) return UpdatesPhase.Running;
         if (rows.Any(r => r.State == UpdateRowState.Failed)) return UpdatesPhase.Failed;
+        if (rows.Any(r => r.State == UpdateRowState.UpdatingInBackground)) return UpdatesPhase.Running;
         if (restartPending || rows.Any(r => r.State == UpdateRowState.Updated)) return UpdatesPhase.Done;
         if (rows.Any(r => r.State == UpdateRowState.UpdateAvailable)) return UpdatesPhase.Available;
         if (rows.Any(r => r.State == UpdateRowState.ChecksWhenUpdated)) return UpdatesPhase.Unsure;
@@ -49,6 +50,8 @@ internal static class UpdatesProjector
     private static UpdatesHeaderView HeaderOf(UpdatesPhase phase, List<UpdateRow> listed, List<UpdateRow> ordered, UpdatesFlags flags, UpdateRow? restart, bool bannerShown)
     {
         string title, detail;
+        var background = phase == UpdatesPhase.Running && !listed.Any(r => r.State is UpdateRowState.Queued or UpdateRowState.Updating)
+            && listed.Any(r => r.State == UpdateRowState.UpdatingInBackground);
         switch (phase)
         {
             case UpdatesPhase.Restarting:
@@ -58,7 +61,8 @@ internal static class UpdatesProjector
                 (title, detail) = ($"Checking for updates{Ellipsis}", "Asking each tool for its latest version.");
                 break;
             case UpdatesPhase.Running:
-                (title, detail) = (RunningTitle(listed, flags), "Keep working; Marrow restarts only when you say so.");
+                (title, detail) = background ? ("Updating in the background", NameList(ordered.Where(r => r.State == UpdateRowState.UpdatingInBackground).Select(r => r.Title).ToList()) + ".")
+                    : (RunningTitle(listed, flags), "Keep working; Marrow restarts only when you say so.");
                 break;
             case UpdatesPhase.Failed:
             {
@@ -101,6 +105,9 @@ internal static class UpdatesProjector
         {
             UpdatesPhase.Restarting => ($"Restarting{Ellipsis}", UpdatesAction.None, true, false),
             UpdatesPhase.Checking => ($"Checking{Ellipsis}", UpdatesAction.None, true, false),
+            UpdatesPhase.Running when background && restart is not null => ("Restart Marrow", UpdatesAction.Restart, false, false),
+            UpdatesPhase.Running when background && listed.Any(r => r.State is UpdateRowState.UpdateAvailable or UpdateRowState.ChecksWhenUpdated) => ("Update everything", UpdatesAction.UpdateAll, false, false),
+            UpdatesPhase.Running when background => ("Check now", UpdatesAction.Check, false, true),
             UpdatesPhase.Running => ($"Updating{Ellipsis}", UpdatesAction.None, true, false),
             UpdatesPhase.Failed => ("Retry", UpdatesAction.Retry, false, false),
             UpdatesPhase.Done when restart is not null => ("Restart Marrow", UpdatesAction.Restart, false, false),
@@ -126,7 +133,7 @@ internal static class UpdatesProjector
     private static UpdatesRowView RowOf(UpdateRow r, UpdatesFlags flags, bool idle)
     {
         var installed = r.Installed is null ? "" : VersionText.Number(r.Installed);
-        var latest = r.Latest is not null ? VersionText.Number(r.Latest) : r.State == UpdateRowState.ChecksWhenUpdated ? "\u2014" : installed;
+        var latest = r.Latest is not null ? VersionText.Number(r.Latest) : r.State is UpdateRowState.ChecksWhenUpdated or UpdateRowState.UpdatingInBackground ? "\u2014" : installed;
         var (status, text) = StatusOf(r, flags);
         var command = UpdateRowCommand.For(r);
         string? lead = null, commandText = null, tail = null;
@@ -151,6 +158,7 @@ internal static class UpdatesProjector
             UpdateRowState.Queued => (RowStatus.Waiting, "Waiting"),
             UpdateRowState.Updating when r.Progress is { } p => (RowStatus.Downloading, $"Downloading {(int)Math.Round(Math.Clamp(p, 0, 1) * 100, MidpointRounding.AwayFromZero)}%"),
             UpdateRowState.Updating => (RowStatus.Updating, $"Updating{Ellipsis}"),
+            UpdateRowState.UpdatingInBackground => (RowStatus.Updating, "Updating in the background"),
             UpdateRowState.Updated when r.RestartRequired => (RowStatus.RestartToFinish, "Restart to finish"),
             UpdateRowState.Updated => (RowStatus.Updated, "Updated"),
             UpdateRowState.Failed => (RowStatus.DidNotUpdate, "Didn\u2019t update"),

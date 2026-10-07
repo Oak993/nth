@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "name": "16-node-list",
+  "commandLine": "winget list --name Node.js --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "list",
+    "--name",
+    "Node.js",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Name    Id               Version Source\r\n----------------------------------------\r\nNode.js OpenJS.NodeJS.22 24.14.1 winget\r\n",
+  "stderr": "",
+  "durationMs": 4357.8098,
+  "versionsBefore": "24.14.1",
+  "versionsAfter": "24.14.1",
+  "timestamp": "2026-10-05T15:26:29.0106545+00:00",
+  "finishedAt": "2026-10-05T15:26:33.3694772+00:00"
+}

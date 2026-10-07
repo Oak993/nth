@@ -25,6 +25,10 @@ public sealed class VoiceOrbView : Control
     public static readonly StyledProperty<OrbBands> BandsProperty = AvaloniaProperty.Register<VoiceOrbView, OrbBands>(nameof(Bands));
     public static readonly StyledProperty<double> SlotDiameterProperty = AvaloniaProperty.Register<VoiceOrbView, double>(nameof(SlotDiameter), 32);
 
+    /// <summary>CZ-9.1: a tile's fixed resting frame, glow 0.25 when picked or 0 otherwise; null is a composer orb.</summary>
+    public static readonly StyledProperty<double?> TileGlowProperty = AvaloniaProperty.Register<VoiceOrbView, double?>(nameof(TileGlow));
+    public double? TileGlow { get => GetValue(TileGlowProperty); set => SetValue(TileGlowProperty, value); }
+
     private CompositionCustomVisual? visual;
     private VoiceOrbHandler? handler;
     private VoiceOrbSnapshot? sent;
@@ -63,7 +67,7 @@ public sealed class VoiceOrbView : Control
         base.OnPropertyChanged(change);
         if (change.Property == KindProperty || change.Property == ModeProperty || change.Property == HoveredProperty || change.Property == PressedProperty
             || change.Property == BandsProperty || change.Property == SlotDiameterProperty
-            || change.Property == EnvironmentValues.AccessibilityReduceMotionProperty)
+            || change.Property == TileGlowProperty || change.Property == EnvironmentValues.AccessibilityReduceMotionProperty)
             Send();
     }
 
@@ -92,11 +96,11 @@ public sealed class VoiceOrbView : Control
     {
         if (visual is null) return;
         var snapshot = new VoiceOrbSnapshot(
-            new OrbSceneInput(Kind, Mode, Hovered, Pressed, Bands, SlotDiameter, ActualThemeVariant == ThemeVariant.Dark, EnvironmentValues.GetAccessibilityReduceMotion(this)),
+            new OrbSceneInput(Kind, Mode, Hovered, Pressed, Bands, SlotDiameter, ActualThemeVariant == ThemeVariant.Dark, EnvironmentValues.GetAccessibilityReduceMotion(this), TileGlow is null ? OrbScene.ViewPx : 52, TileGlow),
             SwiftClock.Provider.Current);
         if (snapshot == sent) return;
         sent = snapshot;
-        visual.Size = new Vector(OrbScene.ViewPx, OrbScene.ViewPx);
+        visual.Size = new Vector(snapshot.Input.ViewSize, snapshot.Input.ViewSize);
         visual.SendHandlerMessage(snapshot);
     }
 }

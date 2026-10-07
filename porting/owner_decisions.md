@@ -1075,3 +1075,87 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
   - Every place OD-0015 named uses it: the executable and its `icon.ico`, the window, the taskbar, Alt-Tab, Start, toasts, the in-app logo images, and later the installer.
   - The loading mark and boot animation (OD-0016, OD-0018 "Comet", ED-097/102/103/154) are remade from D's launch animation and idle loop. That motion goes to the owner as a review page before it ships; OD-0108's warm-up behind the boot animation is unchanged.
   - The OD-0015 files stay in history only. The deviation list in the final report names the new icon.
+
+## OD-0113 Boot animation B and three Aurora loaders (2026-10-05)
+
+- **Asked:** 2026-10-05, after OD-0112. Page: https://claude.ai/artifact/UqPvGBv5E3ToEtMLXrihvo (version 2; copy: `porting/first-release/design-src/loading-aurora/`). Round 1 had three boot variants, a per-turn pulse and an icon-based loading mark; the owner picked boot B but asked that it grow into the real window's shape, rejected the icon as a loader, and asked for five new loaders that only lightly resemble the Aurora. The per-turn pulse was dropped: OD-0018's "one pulse per turn" meant a turn of the old spiral, and the chat keeps the composer's working dots.
+- **Answer, verbatim:** "loading: boot=B, loader=?, history=2, diff=5, attachment=4"
+- **Effect:**
+  - Boot: variant B. The Aurora tile appears large over the dimmed desktop, runs D's launch, and when the app is ready its rectangle grows into the main window's exact frame (position, size, Windows 11 corner radius, title-bar band) on the window's own reveal timing, so its last frame is the window; the glass and content fade in inside that rectangle. The OD-0108 warm-up runs behind it with the window hidden. It replaces OD-0018's Comet boot.
+  - Loaders (OD-0016 / ED-097 sites, 400 ms rule kept): the older-chat history load uses loader 2 "Curtain Fold"; the diff pane (above its "Reading the diff..." label) uses loader 5 "Aurora Sheen"; the large attachment preview uses loader 4 "Flow Arc". The icon is never a loader. Under Reduce Motion each is a still pose that only breathes in opacity.
+  - Nothing in the chat moves while the model works except the composer's working dots (parity, CZ customization).
+
+## OD-0114 Multiple accounts ship in the first release (2026-10-05)
+
+- **Context:** the owner's multiple-accounts feature (several accounts per service, the Handshake, Pills, link up, one-message opinions, local models, per-account enable/disable), designed with the owner on 2026-10-05. Everything agreed is in `E:\Droppy\work\design\ideas\multi-account.md`; the design page is https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X. The feasibility study (branch codex/ma-0, `porting/first-release/multi-account-FEASIBILITY.md`) found it technically feasible for file-based CLIs (Copilot CLI and Antigravity keep sign-ins in Windows Credential Manager and stay single-account), and quoted provider terms against bypassing protective measures and circumventing rate limits; the lead raised this risk with the owner before this decision.
+- **Owner, verbatim:** "once we finalize the multi account page, that too needs to get pushed in this release"
+- **Effect:** multiple accounts join the first-release scope (OD-0103) as a new feature family. Its interface is built only after the owner finalizes the design page, and its picks are then recorded verbatim; design-independent foundations (accounts store, per-account isolation and limits, the local provider) may start at once. The installer still comes last (OD-0105).
+
+## OD-0115 Multiple accounts: the design picks (2026-10-05)
+
+- **Page:** https://claude.ai/artifact/JuyXgrnFdKLar65QWgeL7X (version 8; copy: `porting/first-release/design-src/multi-account/`). Every agreed rule: `porting/first-release/multi-account-NOTES.md`.
+- **Owner, verbatim:** "multi-account: handshake=A, composer=A, popover=ok, link=A, opinions=B, usage=B, card-layout=A" and "Just fix that generic toggle and ship it with the current release."
+- **Effect:**
+  - Handshake animation A (neural filaments), from and to the shared capsule, in the usage light.
+  - Composer account control A (the glass capsule), styles from Customization, default Merged capsule.
+  - The account popover as shown; link up A (tap the link beside an account); one-message opinions B (an "Ask others" button); usage panel B (the current account, the others one tap away); first-time card layout A.
+  - Every switch is the port's own SmallSwitch (SettingsView.cs, ED-280), never the page's generic toggle.
+  - It ships in the first release (OD-0114).
+
+## OD-0116 Automatic account switching is off by default and asked the first time (2026-10-05)
+
+- **Context:** the feasibility study (codex/ma-0) and the Handshake engine (cloud/ma-5) note that provider terms forbid bypassing protective measures or circumventing rate limits; the lead asked whether "Keep me going" starts on or off.
+- **Owner, verbatim:** "Switched off by default, app asks user the first time."
+- **Effect:** automatic switching ("Keep me going", the Handshake into another account) is off by default for every service. The first time an account runs out, the first-time card asks the user (OD-0115 layout A, with the Remember line); nothing switches automatically until the user chooses it. Pills a user creates are that user's explicit choice.
+
+## OD-0117 The Pills section is visible to everyone (2026-10-05)
+
+- **Owner, verbatim:** "Also, pills section in settings will be visible to users who have single accounts connected as well, just the options will be disabled with a message letting them know what this feature is and what would enable its functionality (multiple accounts)"
+- **Effect:** amends the notes' "Pills only once 2+ accounts or services are connected". Settings › Pills always shows in the sidebar. With fewer than two accounts or services connected, its controls are present but disabled (dimmed, not focusable as actions), under one short plain message that says what Pills are (a chain of accounts and models that Marrow moves through when one runs out) and what turns them on (connecting a second account or service, with a button to Settings › Models). Everything enables live, with a transition, the moment a second account or service is connected.
+
+## OD-0118 Import skills from other apps on the PC (2026-10-05)
+
+- **Owner, verbatim:** "Also, can we have an option to import skills from other apps and llms on the pc in skills settings?" then "It goes in this release"
+- **Effect:** a new first-release unit SK-18 in Settings › Skills: an "Import skills" action scans the places other AI tools on this PC keep skills (Claude Code's skills and plugins folders, Codex's skills, Antigravity's, Cursor's rules, and any folder the user picks), lists what it found grouped by app (name, one-line description, source), and imports the ticked ones either as a Copy (Marrow's own) or a Link (kept in sync with the original). Nothing in the other apps is moved or changed; duplicates offer keep both / replace / skip; imported skills carry a quiet "from <app>" tag and can be removed; they then work wherever Marrow gives skills. Design follows the existing Skills pages (SK-15) and goes to the owner only if a new layout is needed.
+
+## OD-0119 Multi-account checklist conflicts settled (2026-10-05)
+
+- **Owner, verbatim (Hindi, as spoken):** "हैंडशेक स्विच ऑन बाय डिफॉल्ट हाँ तो ऑफ करके डिफॉल्ट में रखो ना और ऐप पहली बार पूछेगी तो फिर ऑन होगा" · "द बिल्डर मस्ट पिक वन स्मार्टली जो सही लग रहा है वो पिक कर लो" · "मैंने और स्टाइल्स मांगे थे तो वो अपडेट हो गया बारह स्टाइल्स हैं अब".
+- **Effect:**
+  - Pills visibility: OD-0117 stands (the section is always in Settings; disabled below two connected accounts, with a note saying it turns on once two are connected and what the feature does). The page's 2+ gate is outdated.
+  - Switching and the Handshake into another account: off by default; on only after the user agrees when the app asks the first time (OD-0116). The page's `hs: true` default is outdated.
+  - Per-account Handshake point: the builder picks. Lead pick: the account's ⋯ menu "Handshake at…", plus a small quiet note on that account's row only when its point differs from the default (NOTES:56, matches the page's Settings footer).
+  - Pill-in-composer styles: the page's twelve styles are current; the NOTES list of four is outdated.
+
+## OD-0120 Confirm before sending a conversation to another service (2026-10-06)
+
+- **Owner, verbatim:** "Ask for confirmation and have the option to check "Don't ask again" for the user to select it."
+- **Effect:** Link-up and "Ask others" ask for confirmation before the conversation goes to another service. The confirmation has a "Don't ask again" checkbox, unchecked by default; only the user can check it. Replaces the planned quiet notice line (ma-3b5-plan Q2).
+
+## OD-0121 Voice pill: design-exact, both rims; Handshake sound included (2026-10-06)
+
+- **Owner, verbatim (answers on the Voice Pill Decision page):** "Rim: C" · "Fix: Fix it anyway you want it, I've let you known what design I want" · "Sound: include it"
+- **Effect:**
+  - VT-12: the voice pill follows the approved design page (voice-composer.html) exactly: no added blurs on the body, cross or glow; the capsule edge antialiased once; CSS blur radii converted to sigma; no glass refraction inside the pill; the radial clean-cap mask. Rim choice C: the shared glass rim and shade stay, with the page's rim stack on top.
+  - The lead chooses the implementation. Tests, tolerances, references and the speck metric stay unchanged (standing rule); any spot that still fails comes back to the owner with its exact location.
+  - Multi-account: the Handshake's soft sound ships in this release, using the locked design's recipe (link-up: sine 523.25 Hz 1.1 s and 783.99 Hz 1.3 s at +0.08 s; in-sync tick: 1318.5 Hz 0.18 s). Replaces ma-3b5-plan Q1's default of leaving it out.
+
+## OD-0122 Handshake readiness for Codex and Pi (2026-10-06)
+
+- **Owner, verbatim:** "Same tick as Claude" · "You can run it once but I think I'm out of codex usage, maybe luna might work."
+- **Effect:** where the app loads the conversation into a waiting Codex or Pi account without a model turn (history injection, research claude-cli-standby-research.md), the composer capsule shows the same in-sync tick as Claude once the history is loaded. The lead may run ONE local Codex check with the owner's signed-in Codex (a model the owner suggested: Luna) to confirm that injection makes no model call: inject a short test history into a throwaway thread, read the log, delete the thread; no message is sent to the AI.
+
+## OD-0123 Voice pill round 2: outer line removed, Inter kept, design wins over the speck test (2026-10-07)
+
+- **Owner, verbatim (answers to the Round 2 questions on the Voice Pill Decision page):** "Yes, remove it" (fix A, the shared glass's dark line just outside the pill's ends) · "App font (Inter)" (fix B declined) · "Design wins, you rule the test" (to: about 160 V-T133 cases still fail and the approved design page fails the same cases in Chrome).
+- **Effect:** the voice pill drops the shared glass's outer contact line on its ends (voice pill only; both rims and their light top and dark bottom stay, OD-0121 C). The label keeps the app font Inter. The approved design wins over V-T133; how V-T133 treats cases the design itself fails is to be settled in the exact rule the lead proposes and the owner confirms (recorded in the next OD). The linear fade kept under the page's radial clean-cap mask (V-T132, ED-387) stands.
+
+## OD-0124 Real-program checks for the seamless handover (2026-10-07)
+
+- **Owner, verbatim (to: may I run a short local check per service with your signed-in apps: open a throwaway chat, load a short test history, confirm nothing ran, delete it; no message is sent to any AI):** "Yes, all installed"
+- **Effect:** the lead may run that check once per installed CLI service (Codex and any other installed one) using the owner's existing sign-ins: a throwaway chat or session, a short test history loaded without a model turn, a check that nothing ran, then deletion. No message is sent to any AI, no credentials are typed, no settings are changed. Extends OD-0122.
+
+## OD-0125 V-T133 judges the voice pill against the approved design (2026-10-07)
+
+- **Owner, verbatim (to the lead's proposal: the speck detector stays as it is, but a speck fails only when the approved design page, drawn in Chrome at the same size, state and background, has no speck within 1 pixel of the same spot):** "Do whatever is your recommendation on this issue. I'm tired of dragging this. I need to get this port completed."
+- **Effect:** the lead's recommendation is adopted. V-T133's detector (7x7 median, more than 8 levels, small components, ink and ball exclusions) is unchanged. A speck on the port's pill fails the test unless the approved design page voice-composer.html, rendered in Chrome at the same scale, state, theme and backdrop, has a speck within 1 pixel of the same spot. The Chrome renders are generated once by a checked-in script, locked as test references with their hashes, and never regenerated to make a failure pass. Every other test, tolerance and reference stays unchanged (OD-0121, OD-0123).

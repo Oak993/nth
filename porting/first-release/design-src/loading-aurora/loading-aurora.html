@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loading Animation</title>
+<meta name="description" content="Marrow loading mark and boot animation rebuilt from the locked Aurora icon: three boot variants, two pulses, two loading marks, Reduce Motion versions.">
+<style>
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){color-scheme:dark} }
+:root,[data-theme="light"]{
+  --bg:#f3f5f9; --surface:#ffffff; --surface2:#eceff5; --text:#10141c; --muted:#556072; --line:rgba(16,20,28,.12);
+  --accent:#0b8f62; --accent-soft:rgba(11,143,98,.12); --accent-ink:#ffffff;
+  --seg-launch:#17a673; --seg-idle:#8e9bb0; --seg-hand:#7a55ee; --seg-warm:#d69a2e; --seg-floor:#e4c78a; --seg-win:#2f7fd6; --seg-hide:#c3cad6;
+  --desk1:#bcd9f2; --desk2:#e1d3f3; --desk3:#b4e6da; --task:rgba(250,252,255,.74); --task-ink:rgba(16,24,40,.55);
+  --scrim:rgba(8,14,28,.46);
+  --win:rgba(250,251,253,.95); --win-glass:rgba(250,251,253,.55); --win-side:rgba(232,237,245,.6); --wtext:#151a24; --wmuted:#68738a; --wline:rgba(20,26,40,.1);
+  --bubble:#e7ecf4; --bubble-me:#d9f3e8; --sh1:rgba(8,158,108,.2); --sh2:rgba(10,128,150,.24); --sh3:rgba(112,72,224,.2); --dots:#0067c0;
+  --shadow:0 1px 2px rgba(10,20,40,.06),0 8px 28px rgba(10,20,40,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0f16; --surface:#131923; --surface2:#1a2230; --text:#e8edf5; --muted:#93a0b4; --line:rgba(232,237,245,.12);
+    --accent:#4ee8ae; --accent-soft:rgba(78,232,174,.14); --accent-ink:#04140d;
+    --seg-launch:#2ec991; --seg-idle:#5d6b82; --seg-hand:#9a7bff; --seg-warm:#c98d2a; --seg-floor:#6b5a35; --seg-win:#4a98ec; --seg-hide:#313b4c;
+    --desk1:#1b2f52; --desk2:#2c2150; --desk3:#10403f; --task:rgba(18,24,38,.72); --task-ink:rgba(230,238,250,.6);
+    --scrim:rgba(2,6,16,.5);
+    --win:rgba(27,31,41,.95); --win-glass:rgba(27,31,41,.5); --win-side:rgba(20,24,33,.55); --wtext:#e9eef7; --wmuted:#8e9ab0; --wline:rgba(232,240,255,.1);
+    --bubble:#232b3a; --bubble-me:#173a30; --sh1:rgba(60,240,170,.2); --sh2:rgba(30,190,160,.26); --sh3:rgba(150,90,255,.22); --dots:#60cdff;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  }
+}
+[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0b0f16; --surface:#131923; --surface2:#1a2230; --text:#e8edf5; --muted:#93a0b4; --line:rgba(232,237,245,.12);
+  --accent:#4ee8ae; --accent-soft:rgba(78,232,174,.14); --accent-ink:#04140d;
+  --seg-launch:#2ec991; --seg-idle:#5d6b82; --seg-hand:#9a7bff; --seg-warm:#c98d2a; --seg-floor:#6b5a35; --seg-win:#4a98ec; --seg-hide:#313b4c;
+  --desk1:#1b2f52; --desk2:#2c2150; --desk3:#10403f; --task:rgba(18,24,38,.72); --task-ink:rgba(230,238,250,.6);
+  --scrim:rgba(2,6,16,.5);
+  --win:rgba(27,31,41,.95); --win-glass:rgba(27,31,41,.5); --win-side:rgba(20,24,33,.55); --wtext:#e9eef7; --wmuted:#8e9ab0; --wline:rgba(232,240,255,.1);
+  --bubble:#232b3a; --bubble-me:#173a30; --sh1:rgba(60,240,170,.2); --sh2:rgba(30,190,160,.26); --sh3:rgba(150,90,255,.22); --dots:#60cdff;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+[data-theme="light"]{color-scheme:light}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;padding-bottom:132px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header.top{padding:28px 0 8px}
+h1{font-size:clamp(26px,5vw,38px);line-height:1.1;margin:0 0 8px;letter-spacing:-.02em;font-weight:650}
+h2{font-size:clamp(20px,3.4vw,26px);margin:0 0 4px;letter-spacing:-.01em;font-weight:620}
+h3{font-size:16px;margin:0;font-weight:620}
+p{margin:0 0 10px}
+.lede{color:var(--muted);max-width:74ch}
+.sub{color:var(--muted);font-size:14px;max-width:80ch}
+code{font:12.5px ui-monospace,"Cascadia Mono",Consolas,monospace;background:var(--surface2);padding:1px 5px;border-radius:5px}
+section.blk{padding:34px 0 6px;border-top:1px solid var(--line);margin-top:30px}
+section.blk:first-of-type{border-top:0;margin-top:10px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:14px 0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--text);font-weight:600}
+.lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+button.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:7px 14px;border-radius:999px;cursor:pointer}
+button.btn:hover{border-color:var(--accent)}
+button.btn.pick[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:650}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr))}
+.cards.s{grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow);min-width:0}
+.card .hd{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:6px}
+.card .hd p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+.tag{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 7px;margin-right:6px;vertical-align:1px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px}
+.ctl input[type=range]{flex:1 1 120px;min-width:90px;accent-color:var(--accent)}
+.ctl .tm{font:12px ui-monospace,Consolas,monospace;color:var(--muted);min-width:64px;text-align:right}
+.status{font-size:12.5px;color:var(--muted);min-height:2.6em;margin:2px 0 8px}
+.status b{color:var(--text);font-weight:600}
+
+/* ----- the desktop and the Marrow window (calm CSS approximations; no vendor artwork). 1 DIP = var(--k) px ----- */
+.tw{color:var(--text)}
+.tw .tl8{font-size:12px;color:var(--muted);margin:0 0 4px}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px}
+.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:12px;--k:.3px;isolation:isolate;background:var(--desk1);box-shadow:inset 0 0 0 1px var(--line)}
+.stage>*{position:absolute}
+.desk{inset:0;background:
+  radial-gradient(60% 70% at 18% 20%,var(--desk3),transparent 70%),
+  radial-gradient(55% 70% at 84% 28%,var(--desk2),transparent 72%),
+  linear-gradient(160deg,var(--desk1),var(--desk2) 120%)}
+.dicons{left:calc(var(--k)*28);top:calc(var(--k)*28);display:grid;gap:calc(var(--k)*30)}
+.dicons i{display:block;width:calc(var(--k)*76);text-align:center;font-style:normal;font-size:max(5px,calc(var(--k)*12));color:var(--wtext);opacity:.8;line-height:1.2}
+.dicons i:before{content:"";display:block;margin:0 auto calc(var(--k)*6);width:calc(var(--k)*44);height:calc(var(--k)*38);border-radius:calc(var(--k)*8);background:linear-gradient(160deg,rgba(255,255,255,.75),rgba(255,255,255,.28));box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.task{left:0;right:0;bottom:0;height:calc(var(--k)*48);background:var(--task);display:flex;align-items:center;justify-content:center;gap:calc(var(--k)*14)}
+.task i{display:block;width:calc(var(--k)*28);height:calc(var(--k)*28);border-radius:calc(var(--k)*7);background:var(--task-ink);opacity:.55}
+.task i.s{width:calc(var(--k)*210);border-radius:999px;opacity:.28}
+.task i.r{border-radius:50%}
+.task em{position:absolute;right:calc(var(--k)*22);font-style:normal;font-size:max(5px,calc(var(--k)*13));color:var(--task-ink);line-height:1.1}
+.scrim{inset:0;background:var(--scrim);opacity:0;will-change:opacity}
+.cv{inset:0;width:100%;height:100%;pointer-events:none}
+.win{left:0;top:0;transform-origin:0 0;border-radius:8px;background:var(--win);color:var(--wtext);font-size:13px;line-height:1.4;display:flex;flex-direction:column;overflow:hidden;box-shadow:inset 0 0 0 1px var(--wline);opacity:0;will-change:opacity,clip-path}
+.glassy .win{background:var(--win-glass)}
+.wbar{height:38px;flex:none;display:flex;align-items:center;gap:8px;padding:0 0 0 14px;border-bottom:1px solid var(--wline);font-weight:600;font-size:13px}
+.wbar img{width:18px;height:18px;border-radius:25%}
+.wcap{margin-left:auto;display:flex;height:100%}
+.wcap b{width:46px;display:grid;place-items:center}
+.wcap b:before{content:"";width:10px;height:10px;border:1px solid var(--wmuted);opacity:.8}
+.wcap b:nth-child(1):before{border:0;border-top:1px solid var(--wmuted);height:0}
+.wcap b:nth-child(3):before{border:0;background:linear-gradient(45deg,transparent 46%,var(--wmuted) 46% 54%,transparent 54%),linear-gradient(-45deg,transparent 46%,var(--wmuted) 46% 54%,transparent 54%)}
+.wbody{flex:1;display:flex;min-height:0}
+.wside{width:260px;flex:none;background:var(--win-side);border-right:1px solid var(--wline);padding:14px 12px;display:flex;flex-direction:column;gap:4px}
+.wside .l{font-size:11px;color:var(--wmuted);text-transform:uppercase;letter-spacing:.05em;margin:2px 8px 6px}
+.wside .t{padding:8px 10px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--wmuted)}
+.wside .t.on{background:var(--accent-soft);color:var(--wtext);font-weight:600}
+.wchat{flex:1;min-width:0;display:flex;flex-direction:column;padding:22px 28px 0;gap:12px}
+.wmsg{max-width:78%;padding:10px 14px;border-radius:14px;background:var(--bubble);font-size:14px}
+.wmsg.me{align-self:flex-end;background:var(--bubble-me)}
+.wmsg small{display:block;margin-top:6px;color:var(--wmuted);font-size:12px}
+.wcomp{margin:auto -0px 20px;height:56px;border-radius:16px;border:1px solid var(--wline);display:flex;align-items:center;padding:0 16px;color:var(--wmuted);font-size:14px;margin-top:auto}
+.wcomp i{margin-left:auto;width:28px;height:28px;border-radius:50%;background:var(--accent)}
+.sync{font:11.5px/1.5 ui-monospace,"Cascadia Mono",Consolas,monospace;color:var(--muted);margin:6px 0 0;word-break:break-word}
+.sync b{color:var(--accent);font-weight:600}
+
+/* ----- timeline ----- */
+.tl{margin:8px 0 2px}
+.tl .rows{position:relative;display:grid;gap:5px;padding-left:0}
+.tl .row{position:relative;height:18px;border-radius:5px;background:var(--surface2)}
+.tl .row span.sg{position:absolute;top:0;bottom:0;border-radius:5px;overflow:hidden;font-size:10.5px;line-height:18px;padding:0 5px;color:#fff;white-space:nowrap;text-overflow:ellipsis;text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.tl .names{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin:0 0 3px}
+.tl .ph{position:absolute;top:-3px;bottom:-3px;left:0;width:0;pointer-events:none}
+.tl .ph:after{content:"";position:absolute;left:-1px;top:0;bottom:0;width:2px;background:var(--text);border-radius:2px;opacity:.85}
+.tl .ticks{display:flex;justify-content:space-between;font:10.5px ui-monospace,Consolas,monospace;color:var(--muted);margin-top:3px}
+.rn{font-size:10.5px;color:var(--muted);margin:3px 0 -2px}
+.stage.sweep .win{-webkit-mask-image:linear-gradient(90deg,#000 var(--m0,-9999px),transparent var(--m1,-9998px));mask-image:linear-gradient(90deg,#000 var(--m0,-9999px),transparent var(--m1,-9998px))}
+.c-launch{background:var(--seg-launch)}.c-idle{background:var(--seg-idle)}.c-hand{background:var(--seg-hand)}.c-warm{background:var(--seg-warm)}.c-floor{background:var(--seg-floor);color:var(--text)!important;text-shadow:none!important}.c-win{background:var(--seg-win)}.c-hide{background:var(--seg-hide);color:var(--text)!important;text-shadow:none!important}
+.beats{list-style:none;margin:10px 0 0;padding:0;font-size:12.5px;display:grid;gap:3px}
+.beats li{display:grid;grid-template-columns:96px 1fr;gap:8px}
+.beats time{font:12px ui-monospace,Consolas,monospace;color:var(--accent)}
+.note{font-size:12.5px;color:var(--muted);margin-top:8px}
+details.more{margin-top:8px;font-size:13px}
+details.more summary{cursor:pointer;color:var(--muted)}
+
+/* ----- loading marks: three options in their real context ----- */
+.place{margin-bottom:16px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,176px),1fr));gap:10px;margin-top:10px}
+.opt{display:flex;flex-direction:column;gap:6px;min-width:0}
+.opt .oh b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opt .oh button{padding:4px 10px;font-size:12px;white-space:nowrap}
+.opt .oh{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:13px}
+.opt .oh span{color:var(--muted);font-size:12.5px}
+.pane{position:relative;height:210px;border-radius:12px;overflow:hidden;background:var(--win);border:1px solid var(--line);color:var(--wtext);font-size:12px;display:flex;flex-direction:column}
+.pane .ph{height:28px;flex:none;display:flex;align-items:center;gap:6px;padding:0 10px;border-bottom:1px solid var(--wline);font-weight:600;font-size:11.5px;white-space:nowrap;overflow:hidden}
+.pane .ph em{font-style:normal;color:var(--wmuted);font-weight:400}
+.pane .area{position:relative;flex:1;min-height:0;margin:8px}
+.pane .pill{flex:none;height:30px;margin:0 10px 10px;border-radius:10px;border:1px solid var(--wline);display:flex;align-items:center;padding:0 10px;color:var(--wmuted);font-size:11.5px}
+.pane .slot{background:color-mix(in srgb,var(--wtext) 6%,transparent);border-radius:10px}
+.ld{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:8px;width:100%}
+.ld canvas{display:block}
+.ld .lab{color:var(--wmuted);font-size:12px;white-space:nowrap}
+.ld .sk{position:relative;width:calc(100% - 20px);display:grid;gap:7px;overflow:hidden;border-radius:10px}
+.sk i{display:block;height:12px;border-radius:6px;background:var(--bubble)}
+.sk i.b{height:34px;border-radius:12px}
+.sk.fill{height:100%}
+.sk .sh{position:absolute;inset:0;background:linear-gradient(100deg,transparent 22%,var(--sh1) 38%,var(--sh2) 50%,var(--sh3) 62%,transparent 78%);will-change:transform}
+.ct{position:absolute;inset:0;opacity:0;will-change:opacity;overflow:hidden}
+.ct .m{padding:6px 9px;border-radius:9px;background:var(--bubble);margin-bottom:6px;font-size:11.5px;line-height:1.35}
+.ct .m.me{background:var(--bubble-me);margin-left:26px}
+.ct .dl{font:10.5px ui-monospace,Consolas,monospace;padding:1px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dl.a{background:rgba(46,201,145,.18)}.dl.d{background:rgba(236,96,96,.18)}.dl.n{color:var(--wmuted)}
+.ct .img{position:absolute;inset:0;border-radius:10px;background:radial-gradient(60% 50% at 30% 30%,#7fb6ff,transparent 70%),radial-gradient(50% 60% at 75% 70%,#f6a6c8,transparent 70%),linear-gradient(160deg,#335d9a,#2a2f55)}
+
+.rmgrid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr))}
+
+/* ----- picks bar ----- */
+.picks{position:fixed;left:0;right:0;bottom:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.picks .in{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.picks input{flex:1 1 280px;min-width:0;font:14px ui-monospace,"Cascadia Mono",Consolas,monospace;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--text)}
+.picks .hint{flex:1 1 100%;font-size:12px;color:var(--muted);min-height:1.2em}
+footer{margin-top:44px;padding:18px 0 30px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+footer li{margin-bottom:4px}
+@media (max-width:520px){ body{padding-bottom:176px} .card{padding:10px} .beats li{grid-template-columns:78px 1fr} }
+@media (prefers-reduced-motion: reduce){ .picks{backdrop-filter:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1>Loading Animation</h1>
+  <p class="lede">The Marrow boot animation and the loading choices for empty areas, built from the locked app icon, D Aurora (OD-0112). The icon on this page is the locked <code>D-aurora.js</code> with <code>iconkit.js</code>, inlined unchanged and run as it is: its own launch (the night tile fades up, the aurora unfurls) and its own idle loop. Nothing in <code>src</code> changes; this is a review page.</p>
+  <div class="bar">
+    <span class="lbl">Page theme</span>
+    <div class="seg" role="group" aria-label="Page theme" id="themeSeg">
+      <button data-th="" aria-pressed="true">System</button><button data-th="dark" aria-pressed="false">Dark</button><button data-th="light" aria-pressed="false">Light</button>
+    </div>
+    <span class="sub" id="rmNote"></span>
+  </div>
+</header>
+
+<section class="blk" id="boot">
+  <h2>1 &middot; Boot: the tile grows into the window</h2>
+  <p class="sub">Picked by the owner: B. The Aurora tile appears large over a dimmed desktop and its aurora unfurls (D's launch, 1200 ms). When the app is ready, the tile&rsquo;s rectangle opens from the icon square to the exact frame of the main window, in one move: same position, width and height, the Windows 11 corner radius (8 DIP), the 38 DIP title-bar band. The window&rsquo;s glass and content fade in inside that same rectangle, on the same clock and easing, so the last frame of the tile <em>is</em> the window frame. The GPU warm-up runs behind it with the window hidden (OD-0108); the window appears only when the app is ready, and never before <code>H = max(app ready, 1800 ms)</code>. Each size is shown dark and light, with one scrubber.</p>
+  <div class="bar">
+    <span class="lbl">App ready at</span>
+    <div class="seg" role="group" aria-label="App ready at" id="readySeg">
+      <button data-r="1200" aria-pressed="false">1.2 s (fast)</button><button data-r="2400" aria-pressed="true">2.4 s</button><button data-r="3600" aria-pressed="false">3.6 s (slow)</button>
+    </div>
+    <button class="btn" id="replayAll">Replay both</button>
+  </div>
+  <div class="cards" id="bootCards" style="grid-template-columns:1fr"></div>
+</section>
+
+<section class="blk" id="empty">
+  <h2>2 &middot; Loading an empty area</h2>
+  <p class="sub">The icon is not used as a loader. Nothing in the chat moves while the model works: that stays the composer&rsquo;s working dots. This section is only for three places where a large area is still empty after 400 ms (ED-097): opening an older chat while its history loads, the diff pane while it reads the diff, and the large attachment preview while its image or video frame loads. Shorter waits show nothing, as upstream does. After 400 ms the loader fades in over 200 ms, and it fades out when the content arrives. Five loaders that only borrow the Aurora&rsquo;s light (emerald, teal, violet) and its slow curtain sway, each shown in all three real places. Pick one for all places, or press press &ldquo;Only here&rdquo;ldquo;Herepress &ldquo;Only here&rdquo;rdquo; on a pane to choose per place. Each pane replays the same 5 s wait.</p>
+  <div class="bar"><span class="lbl">One loader for all three places</span><div id="globalPicks" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>
+  <ul class="sub" id="loaderNotes" style="margin:0 0 12px;padding-left:18px"></ul>
+  <div id="places"></div>
+</section>
+
+<section class="blk" id="rm">
+  <h2>3 &middot; Reduce Motion</h2>
+  <p class="sub">With Reduce Motion on (R-VIEW-6) nothing travels, grows, sways or shimmers; things fade only. The boot is one version, since the tile only fades; the five loaders become still.</p>
+  <div class="cards" id="rmCards"></div>
+</section>
+
+<footer>
+  <p><b>What is source and what is proposed.</b> SOURCE FACT: D&rsquo;s draw code, launch (1200 ms) and idle loop (7200 ms) are the locked files; OD-0016/0018 sites; ED-097 (400 ms rule, 200 ms fade, sizes 64, 64 and 48); the 1800 ms hand-over floor of ED-103; the main window&rsquo;s layout bands (38 DIP title bar, 260 DIP sidebar, 96 DIP composer, from <code>BootStageWindow.Layout</code>) and its 1320 &times; 860 default size (WindowManager); the composer&rsquo;s working dots stay as they are for a running turn. ENGINEERING DECISION (proposals): the dim scrim, the grow, its 1000 ms duration and glow, the five loaders (24 to 48 px; sizes 48, 44 and 40 here), Windows 11&rsquo;s 8 DIP corner (platform value; the source&rsquo;s 26 point radius is the rectangle the OS then rounds, ED-338). UNRESOLVED: whether the stage window can sit beneath the main window with its Acrylic backdrop (the glow needs it; probe after P12), and what the real warm-up costs.</p>
+  <ul>
+    <li>The desktop and the Marrow window are CSS approximations drawn for this page, not screenshots; no vendor artwork.</li>
+    <li>Motion is transform and opacity, plus canvas for the tile, the glow and the loaders; the window&rsquo;s clip rectangle follows the tile (a clip-path, one per frame).</li>
+    <li>No network, no external links, no external fonts: the system font stack only.</li>
+  </ul>
+</footer>
+</div>
+
+<div class="picks" role="region" aria-label="Picks">
+  <div class="in">
+    <input id="picksOut" readonly value="loading: boot=B, loader=?" aria-label="Picks">
+    <button class="btn" id="copyBtn">Copy</button>
+    <button class="btn" id="resetBtn">Reset</button>
+    <div class="hint" id="picksHint" aria-live="polite">Use the Pick buttons on the cards.</div>
+  </div>
+</div>
+
+<script>
+// IconKit and the MarrowIcons registry: the shared helpers every app-icon module uses (contract: ICON-MODULE.md).
+// Classic script, no eval, no network, no storage, no timers.
+(function () {
+  const reg = [];
+  const MarrowIcons = {
+    register(m) {
+      const need = ['letter', 'id', 'name', 'meaning', 'story', 'swatch', 'launch', 'draw'];
+      for (const k of need) if (!(k in m)) throw new Error('icon module ' + (m.letter || '?') + ' lacks ' + k);
+      const i = reg.findIndex((x) => x.letter === m.letter);
+      if (i >= 0) reg[i] = m; else reg.push(m);
+      reg.sort((a, b) => a.letter.localeCompare(b.letter));
+    },
+    all: () => reg.slice(),
+    get: (letter) => reg.find((x) => x.letter === letter),
+    // renders one frame of a module into a canvas at a design size and a device scale
+    render(canvas, m, size, theme, t, dpr) {
+      dpr = dpr || 1;
+      const px = Math.round(size * dpr);
+      if (canvas.width !== px) canvas.width = px;
+      if (canvas.height !== px) canvas.height = px;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, px, px);
+      ctx.setTransform(px / size, 0, 0, px / size, 0, 0);
+      t = t || STILL;
+      m.draw(ctx, size, theme || 'dark', { launch: t.launch == null ? 1 : t.launch, idle: t.idle || 0, still: !!t.still });
+    },
+  };
+  const STILL = { launch: 1, idle: 0, still: true };
+  MarrowIcons.STILL = STILL;
+
+  // ------------------------------------------------------------------ numbers and colours
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const lerp = (a, b, u) => a + (b - a) * u;
+  function hex(c) {
+    c = c.replace('#', '');
+    if (c.length === 3) c = c.split('').map((x) => x + x).join('');
+    const n = parseInt(c.slice(0, 6), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255, c.length === 8 ? parseInt(c.slice(6, 8), 16) / 255 : 1];
+  }
+  function mix(a, b, u) {
+    const A = hex(a), B = hex(b);
+    return 'rgba(' + Math.round(lerp(A[0], B[0], u)) + ',' + Math.round(lerp(A[1], B[1], u)) + ',' + Math.round(lerp(A[2], B[2], u)) + ',' + +lerp(A[3], B[3], u).toFixed(3) + ')';
+  }
+  function alpha(c, a) {
+    if (c.startsWith('#')) { const A = hex(c); return 'rgba(' + A[0] + ',' + A[1] + ',' + A[2] + ',' + +(A[3] * a).toFixed(3) + ')'; }
+    const m = c.match(/rgba?\(([^)]+)\)/);
+    if (!m) return c;
+    const p = m[1].split(',').map((x) => x.trim());
+    return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + +((p[3] == null ? 1 : +p[3]) * a).toFixed(3) + ')';
+  }
+  const seg = (p, a, b) => clamp((p - a) / (b - a), 0, 1);
+  const ease = {
+    out: (u) => 1 - Math.pow(1 - u, 3),
+    inOut: (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2),
+    expo: (u) => (u <= 0 ? 0 : u >= 1 ? 1 : (1 - Math.pow(2, -10 * u)) / (1 - Math.pow(2, -10))),
+    back: (u) => { const c1 = 1.15, c3 = c1 + 1; return u >= 1 ? 1 : 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+    // a critically damped settle with one soft overshoot; exactly 1 at 1
+    spring: (u) => { if (u >= 1) return 1; const v = 1 - Math.exp(-6.5 * u) * Math.cos(5.2 * u); const end = 1 - Math.exp(-6.5) * Math.cos(5.2); return v + (1 - end) * u; },
+    // the macOS-like standard curve, cubic-bezier(.32,.72,0,1)
+    mac: (u) => bez(0.32, 0.72, 0, 1, u),
+    sine: (u) => 0.5 - 0.5 * Math.cos(Math.PI * u),
+  };
+  function bez(x1, y1, x2, y2, x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const cx = 3 * x1 * t * (1 - t) * (1 - t) + 3 * x2 * t * t * (1 - t) + t * t * t - x;
+      const dx = 3 * x1 * (1 - t) * (1 - t) + 6 * (x2 - x1) * t * (1 - t) + 3 * (1 - x2) * t * t;
+      if (Math.abs(cx) < 1e-5) break;
+      t = clamp(t - cx / (dx || 1e-6), 0, 1);
+    }
+    return 3 * y1 * t * (1 - t) * (1 - t) + 3 * y2 * t * t * (1 - t) + t * t * t;
+  }
+  function rng(seed) {
+    let s = (seed >>> 0) || 1;
+    return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  }
+  const loop = (seconds, ms) => (ms ? (((seconds * 1000) % ms) + ms) % ms / ms : 0);
+
+  // ------------------------------------------------------------------ sizes
+  const band = (s) => (s <= 20 ? 'tiny' : s <= 32 ? 'small' : s <= 96 ? 'medium' : 'large');
+  function box(s) {
+    const b = band(s);
+    const m = b === 'tiny' || b === 'small' ? 1 : Math.round(s * 0.06 * 100) / 100;
+    return { x: m, y: m, w: s - 2 * m, h: s - 2 * m };
+  }
+  let curScale = 1;
+  const scaleOf = (ctx) => { const tr = ctx.getTransform(); return Math.hypot(tr.a, tr.b) || 1; };
+  function px(v, ctx) { const s = ctx ? scaleOf(ctx) : curScale; return Math.round(v * s) / s; }
+
+  // ------------------------------------------------------------------ paths and paints
+  // a superellipse-like rounded rect: each corner is a cubic with control points pulled along the edge (n: smoothing)
+  function squircle(ctx, x, y, w, h, r, n) {
+    n = n == null ? 0.6 : n;
+    r = Math.min(r, w / 2, h / 2);
+    const e = r * (1 + n * 0.55);         // the corner starts this far from the vertex (continuous curvature look)
+    const ex = Math.min(e, w / 2), ey = Math.min(e, h / 2);
+    const k = 0.5 + n * 0.12;             // control-point pull
+    ctx.moveTo(x + ex, y);
+    ctx.lineTo(x + w - ex, y);
+    ctx.bezierCurveTo(x + w - ex * (1 - k) * 0.6, y, x + w, y + ey * (1 - k) * 0.6, x + w, y + ey);
+    ctx.lineTo(x + w, y + h - ey);
+    ctx.bezierCurveTo(x + w, y + h - ey * (1 - k) * 0.6, x + w - ex * (1 - k) * 0.6, y + h, x + w - ex, y + h);
+    ctx.lineTo(x + ex, y + h);
+    ctx.bezierCurveTo(x + ex * (1 - k) * 0.6, y + h, x, y + h - ey * (1 - k) * 0.6, x, y + h - ey);
+    ctx.lineTo(x, y + ey);
+    ctx.bezierCurveTo(x, y + ey * (1 - k) * 0.6, x + ex * (1 - k) * 0.6, y, x + ex, y);
+    ctx.closePath();
+  }
+  function circle(ctx, cx, cy, r) { ctx.moveTo(cx + r, cy); ctx.arc(cx, cy, Math.max(0, r), 0, Math.PI * 2); ctx.closePath(); }
+  function lin(ctx, x0, y0, x1, y1, stops) { const g = ctx.createLinearGradient(x0, y0, x1, y1); stops.forEach((s) => g.addColorStop(s[0], s[1])); return g; }
+  function rad(ctx, cx, cy, r, stops, fx, fy, fr) {
+    const g = ctx.createRadialGradient(fx == null ? cx : fx, fy == null ? cy : fy, fr || 0, cx, cy, Math.max(0.001, r));
+    stops.forEach((s) => g.addColorStop(s[0], s[1])); return g;
+  }
+
+  // ------------------------------------------------------------------ blur and glow
+  const FILTER_OK = (() => { try { const c = document.createElement('canvas').getContext('2d'); c.filter = 'blur(2px)'; return c.filter === 'blur(2px)'; } catch (e) { return false; } })();
+  const pool = [];
+  function scratch(w, h) {
+    let c = pool.pop() || document.createElement('canvas');
+    if (c.width < w || c.height < h) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); }
+    const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; if (FILTER_OK) x.filter = 'none'; x.shadowBlur = 0; x.shadowColor = 'rgba(0,0,0,0)'; x.clearRect(0, 0, c.width, c.height);
+    return c;
+  }
+  function blur(ctx, r, fn) {
+    if (!(r > 0.05)) { ctx.save(); fn(ctx); ctx.restore(); return; }
+    // Everything fn draws goes into one small offscreen layer (a blurred picture needs no full resolution: about one
+    // layer pixel per 2.5 px of blur), is blurred there in one pass, and is scaled back up with smoothing. One filter
+    // pass per call however many shapes fn draws, at a fraction of the pixels; the layer composites with ctx's own
+    // alpha, composite mode and clip, as the shapes would have.
+    const s = scaleOf(ctx), rd = r * s;
+    const cw = ctx.canvas.width, ch = ctx.canvas.height;
+    const k = FILTER_OK ? Math.max(1, Math.min(8, rd / 2.5)) : Math.max(1, Math.min(16, rd / 1.6));
+    const pad = 2, sw = Math.max(1, Math.ceil(cw / k)) + pad * 2, sh = Math.max(1, Math.ceil(ch / k)) + pad * 2;
+    const tmp = scratch(sw, sh), tx = tmp.getContext('2d');
+    const tr = ctx.getTransform();
+    tx.setTransform(tr.a / k, tr.b / k, tr.c / k, tr.d / k, tr.e / k + pad, tr.f / k + pad);
+    tx.globalCompositeOperation = ctx.globalCompositeOperation;
+    fn(tx);
+    let src = tmp;
+    if (FILTER_OK) {
+      const t2 = scratch(sw, sh), x2 = t2.getContext('2d');
+      x2.filter = 'blur(' + (rd / k).toFixed(2) + 'px)'; x2.drawImage(tmp, 0, 0); x2.filter = 'none';
+      pool.push(tmp); src = t2;
+    }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, sw, sh, -pad * k, -pad * k, sw * k, sh * k); ctx.restore();
+    pool.push(src);
+  }
+  function glow(ctx, color, b, fn) {
+    ctx.save(); const s = scaleOf(ctx); ctx.shadowColor = color; ctx.shadowBlur = b * s; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0; fn(ctx); ctx.restore();
+  }
+
+  // ------------------------------------------------------------------ cache
+  const store = new Map();
+  function cache(key, w, h, fn) {
+    let c = store.get(key);
+    if (c) { store.delete(key); store.set(key, c); return c; }
+    c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h));
+    fn(c.getContext('2d'), c);
+    store.set(key, c);
+    if (store.size > 260) store.delete(store.keys().next().value);
+    return c;
+  }
+  // draws a cached static layer: key, the icon size; fn(octx) draws in icon units like draw() itself
+  function layer(ctx, key, size, fn) {
+    // the scale is rounded up to a few steps, so a launch's scale animation reuses one cached layer
+    const s0 = scaleOf(ctx), s = [0.5, 1, 1.5, 2, 3, 4, 6, 8].find((q) => q >= s0 - 1e-6) || s0, px2 = Math.round(size * s);
+    const c = cache(key + '|' + size + '|' + px2, px2, px2, (o) => { o.setTransform(px2 / size, 0, 0, px2 / size, 0, 0); fn(o); });
+    // drawn under the current transform, so a launch may move, scale or turn a cached layer
+    ctx.drawImage(c, 0, 0, size, size);
+  }
+
+  window.MarrowIcons = MarrowIcons;
+  window.IconKit = { band, box, px, squircle, circle, lin, rad, blur, glow, cache, layer, rng, clamp, lerp, mix, alpha, seg, ease, bez, loop, scale: scaleOf, FILTER_OK };
+})();
+
+</script>
+<script>
+// D Aurora: a tile of smoked night glass with an aurora curtain moving inside it.
+(function () {
+  const K = IconKit, PI = Math.PI;
+
+  function rect(size) { const b = K.box(size), band = K.band(size); return { x: b.x, y: b.y, w: b.w, h: b.h, r: b.w * (band === 'tiny' || band === 'small' ? 0.24 : 0.225) }; }
+  // the curtain's foot: a slow S across the tile; ph shifts it (seamless in whole turns)
+  function foot(p, u, ph, sway) {
+    return p.y + p.h * (0.6 - 0.12 * Math.sin(PI * 1.5 * u + 0.35) + 0.045 * Math.sin(PI * 3.6 * u + 1.1) + sway * 0.025 * Math.sin(2 * PI * u * 1.5 + ph));
+  }
+  const RAYS = (() => { const r = K.rng(42), out = []; for (let i = 0; i < 200; i++) { const q = r(); out.push({ u: r(), h: 0.14 + 0.34 * q * q + 0.06 * r(), a: 0.2 + 0.8 * r(), w: 0.35 + 0.8 * r(), k: r() }); } return out.sort((a, b) => a.u - b.u); })();
+  const STARS = (() => { const r = K.rng(8), out = []; for (let i = 0; i < 46; i++) out.push([r(), r() * 0.62, 0.3 + r() * 0.7, r()]); return out; })();
+
+  function night(c, size, theme) {
+    const p = rect(size), band = K.band(size);
+    if (band === 'medium' || band === 'large') K.blur(c, size * 0.03, (o) => { o.fillStyle = theme === 'light' ? 'rgba(10,30,50,.32)' : 'rgba(0,0,0,.6)'; o.beginPath(); K.squircle(o, p.x + p.w * 0.03, p.y + p.h * 0.05, p.w * 0.94, p.h * 0.96, p.r); o.fill(); });
+    c.beginPath(); K.squircle(c, p.x, p.y, p.w, p.h, p.r);
+    c.fillStyle = K.lin(c, p.x, p.y, p.x, p.y + p.h, [[0, '#040818'], [0.5, '#06122a'], [0.8, '#071a2c'], [1, '#08222c']]);
+    c.fill();
+  }
+  function stars(c, size, k, tw) {
+    const p = rect(size); if (K.band(size) !== 'large' && K.band(size) !== 'medium') return;
+    STARS.forEach((s, i) => {
+      const a = k * s[2] * (0.75 + 0.25 * Math.cos(2 * PI * (tw + s[3])) ) * (i % 3 === 0 ? 1 : 0.6);
+      c.fillStyle = 'rgba(220,235,255,' + (a * 0.85).toFixed(3) + ')';
+      const r = size * (0.0022 + 0.0022 * s[2]);
+      c.beginPath(); K.circle(c, p.x + p.w * (0.06 + 0.88 * s[0]), p.y + p.h * (0.06 + s[1]), r); c.fill();
+    });
+  }
+  function curtain(c, size, reveal, ph, sway, bright) {
+    const p = rect(size), band = K.band(size);
+    c.save(); c.beginPath(); K.squircle(c, p.x, p.y, p.w, p.h, p.r); c.clip();
+    if (band === 'tiny' || band === 'small') {
+      // one bright band with a soft top
+      c.lineCap = 'round';
+      const path = (o, dy) => { o.beginPath(); for (let i = 0; i <= 16; i++) { const u = i / 16, x = p.x + p.w * u, y = foot(p, u, ph, sway) + dy; if (i) o.lineTo(x, y); else o.moveTo(x, y); } };
+      c.globalAlpha = reveal;
+      c.strokeStyle = 'rgba(80,255,190,.45)'; c.lineWidth = band === 'tiny' ? 4 : 6; path(c, -(band === 'tiny' ? 2 : 3)); c.stroke();
+      c.strokeStyle = '#8affd0'; c.lineWidth = band === 'tiny' ? 2 : 2.5; path(c, 0); c.stroke();
+      c.restore(); return;
+    }
+    // the curtain: thin vertical rays rising from the foot, green at the foot, teal, then a violet fringe on top
+    const draw = (o, wk, ak) => {
+      RAYS.forEach((r) => {
+        const show = K.clamp((reveal * 1.25 - r.u * 0.25 - 0.0) * 1.6 - r.u * 0.6, 0, 1);  // unfurls left to right
+        if (show <= 0) return;
+        const u = r.u, x = p.x + p.w * (0.02 + 0.96 * u);
+        const fy = foot(p, u, ph, sway);
+        const flick = 0.8 + 0.2 * Math.sin(2 * PI * (r.k + ph / (2 * PI)));
+        const len = p.h * r.h * (0.5 + 0.5 * show) * (0.9 + 0.1 * flick);
+        const a = r.a * show * bright * flick * ak;
+        const g = o.createLinearGradient(x, fy, x, fy - len);
+        g.addColorStop(0, 'rgba(150,255,200,' + (a * 0.8).toFixed(3) + ')');
+        g.addColorStop(0.06, 'rgba(60,245,150,' + (a * 0.7).toFixed(3) + ')');
+        g.addColorStop(0.4, 'rgba(30,190,160,' + (a * 0.32).toFixed(3) + ')');
+        g.addColorStop(0.78, 'rgba(170,80,230,' + (a * 0.16).toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(150,90,255,0)');
+        o.fillStyle = g;
+        const w = p.w * 0.012 * r.w * wk;
+        o.fillRect(x - w / 2, fy - len, w, len);
+        // the light also hangs a little below the curtain's foot, so the foot is a glow, not an edge
+        const dl = p.h * (0.07 + 0.09 * r.k);
+        const g2 = o.createLinearGradient(x, fy, x, fy + dl);
+        g2.addColorStop(0, 'rgba(90,250,170,' + (a * 0.42).toFixed(3) + ')'); g2.addColorStop(1, 'rgba(60,200,160,0)');
+        o.fillStyle = g2; o.fillRect(x - w / 2, fy, w, dl);
+      });
+    };
+    c.globalCompositeOperation = 'lighter';
+    K.blur(c, size * 0.02, (o) => draw(o, 3, 0.55));      // the glow
+    draw(c, 1, 0.7);                                      // the rays
+    // the bright foot of the curtain
+    K.blur(c, size * 0.006, (o) => {
+      o.lineCap = 'round'; o.lineWidth = size * 0.01; const fg = o.createLinearGradient(p.x, 0, p.x + p.w, 0); for (let i = 0; i <= 12; i++) fg.addColorStop(i / 12, 'rgba(170,255,215,' + ((0.02 + 0.22 * RAYS[i * 13].a * RAYS[i * 13 + 1].a) * bright).toFixed(3) + ')'); o.strokeStyle = fg;
+      o.beginPath(); const n = 40, end = K.clamp(reveal * 1.15, 0, 1);
+      for (let i = 0; i <= n * end; i++) { const u = i / n, x = p.x + p.w * (0.02 + 0.96 * u), y = foot(p, u, ph, sway); if (i) o.lineTo(x, y); else o.moveTo(x, y); }
+      o.stroke();
+    });
+    c.globalCompositeOperation = 'source-over';
+    // the ground: a dark ridge of hills at the bottom, catching a little green
+    c.fillStyle = K.lin(c, p.x, p.y + p.h * 0.78, p.x, p.y + p.h, [[0, '#04121a'], [1, '#02080d']]);
+    c.beginPath(); c.moveTo(p.x, p.y + p.h);
+    for (let i = 0; i <= 30; i++) { const u = i / 30; c.lineTo(p.x + p.w * u, p.y + p.h * (0.8 + 0.06 * Math.sin(u * 6.1 + 1) + 0.025 * Math.sin(u * 15.3) + 0.012 * Math.sin(u * 37))); }
+    c.lineTo(p.x + p.w, p.y + p.h); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(90,255,190,' + (0.25 * bright * reveal).toFixed(3) + ')'; c.lineWidth = size * 0.003; c.stroke();
+    c.restore();
+  }
+  function glassTop(c, size, theme) {
+    const p = rect(size), band = K.band(size);
+    if (band === 'tiny' || band === 'small') {
+      c.lineWidth = 1; c.strokeStyle = theme === 'light' ? 'rgba(0,20,40,.5)' : 'rgba(255,255,255,.22)';
+      c.beginPath(); K.squircle(c, p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1, p.r); c.stroke(); return;
+    }
+    c.save(); c.beginPath(); K.squircle(c, p.x, p.y, p.w, p.h, p.r); c.clip();
+    // liquid glass: a bright refracted rim, strongest at the top edge, and a broad soft reflection
+    const lw = size * 0.018;
+    K.blur(c, size * 0.006, (o) => {
+      o.lineWidth = lw; o.strokeStyle = K.lin(o, p.x, p.y, p.x + p.w * 0.6, p.y + p.h, [[0, 'rgba(255,255,255,.55)'], [0.4, 'rgba(255,255,255,.08)'], [0.8, 'rgba(160,255,220,.05)'], [1, 'rgba(160,255,220,.3)']]);
+      o.beginPath(); K.squircle(o, p.x + lw * 0.3, p.y + lw * 0.3, p.w - lw * 0.6, p.h - lw * 0.6, p.r); o.stroke();
+    });
+    c.fillStyle = K.lin(c, p.x, p.y, p.x + p.w * 0.4, p.y + p.h * 0.55, [[0, 'rgba(255,255,255,.16)'], [0.6, 'rgba(255,255,255,.04)'], [1, 'rgba(255,255,255,0)']]);
+    c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x + p.w, p.y); c.lineTo(p.x + p.w, p.y + p.h * 0.12); c.bezierCurveTo(p.x + p.w * 0.6, p.y + p.h * 0.3, p.x + p.w * 0.3, p.y + p.h * 0.36, p.x, p.y + p.h * 0.56); c.closePath(); c.fill();
+    c.restore();
+    c.lineWidth = Math.max(0.75, size * 0.003); c.strokeStyle = theme === 'light' ? 'rgba(0,20,40,.4)' : 'rgba(255,255,255,.18)';
+    c.beginPath(); K.squircle(c, p.x + c.lineWidth / 2, p.y + c.lineWidth / 2, p.w - c.lineWidth, p.h - c.lineWidth, p.r); c.stroke();
+  }
+
+  MarrowIcons.register({
+    letter: 'D', id: 'aurora', name: 'Aurora',
+    meaning: 'Quiet intelligence, always moving: it keeps working while the night is still.',
+    story: 'A tile of smoked night glass holds an aurora curtain, emerald at its foot, teal above, with a violet fringe, over a dark ridge and a few stars. The night-shift companion: calm, alive and far bigger than its frame.',
+    swatch: ['#081a2e', '#3cf0aa', '#9a5aff'],
+    launch: { ms: 1200, note: 'The night tile fades up with its stars; the aurora unfurls from left to right, rising ray by ray, and brightens.' },
+    idle: { ms: 7200, note: 'The curtain sways and its rays shimmer as a slow wave of light runs along it.' },
+    draw(ctx, size, theme, t) {
+      const L = t.launch, band = K.band(size);
+      const ph = 2 * PI * K.loop(t.idle, 7200);
+      const sway = Math.sin(ph) ;
+      ctx.save();
+      const a = K.ease.out(K.seg(L, 0, 0.35));
+      ctx.globalAlpha = a;
+      if (band === 'medium' || band === 'large') K.layer(ctx, 'D-night-' + theme, size, (o) => night(o, size, theme)); else night(ctx, size, theme);
+      stars(ctx, size, K.ease.out(K.seg(L, 0.1, 0.5)), ph / (2 * PI));
+      ctx.globalAlpha = 1;
+      const reveal = L >= 1 ? 1 : K.ease.inOut(K.seg(L, 0.18, 0.92));
+      const bright = L >= 1 ? 1 : 0.6 + 0.4 * K.ease.out(K.seg(L, 0.5, 1));
+      curtain(ctx, size, reveal, ph, sway, bright);
+      ctx.globalAlpha = a;
+      glassTop(ctx, size, theme);
+      ctx.restore();
+    },
+  });
+})();
+
+</script>
+<script>
+(function () {
+'use strict';
+const K = IconKit, D = MarrowIcons.get('D'), PI = Math.PI;
+const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+const html = document.documentElement;
+const mqDark = matchMedia('(prefers-color-scheme: dark)');
+const mqRM = matchMedia('(prefers-reduced-motion: reduce)');
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const clamp = K.clamp, seg = K.seg, lerp = K.lerp;
+const sm = (u) => { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
+const eo3 = (u) => 1 - Math.pow(1 - clamp(u, 0, 1), 3);
+const mac = (u) => K.ease.mac(clamp(u, 0, 1));
+const pageTheme = () => html.dataset.theme || (mqDark.matches ? 'dark' : 'light');
+const STILL = { launch: 1, idle: 0, still: true };
+
+// ------------------------------------------------------------------ numbers
+const LAUNCH0 = 120, LAUNCH = 1200, FLOOR = 1800, DIM = 260, GROW = 1000, GLOW = 1200;
+const SCREEN = { w: 1920, h: 1080, task: 48 };           // the work area of a 1920 x 1080 monitor, in DIP
+const TITLE = 38, WIN_R = 8;                             // the title-bar band (BootStageWindow.Layout) and Windows 11's corner
+let READY = 2400;
+const H_ = () => Math.max(READY, FLOOR);
+const iconT = (T) => ({ launch: clamp((T - LAUNCH0) / LAUNCH, 0, 1), idle: Math.max(0, (T - LAUNCH0 - LAUNCH) / 1000), still: false });
+const renderIcon = (cv, size, t, th) => MarrowIcons.render(cv, D, size, th || pageTheme(), t, DPR);
+function rr(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.arcTo(x + w, y, x + w, y + r, r); c.lineTo(x + w, y + h - r); c.arcTo(x + w, y + h, x + w - r, y + h, r);
+  c.lineTo(x + r, y + h); c.arcTo(x, y + h, x, y + h - r, r); c.lineTo(x, y + r); c.arcTo(x, y, x + r, y, r); c.closePath();
+}
+const LOGO = (() => { try { const c = document.createElement('canvas'); MarrowIcons.render(c, D, 32, 'dark', STILL, 2); return c.toDataURL('image/png'); } catch (e) { return ''; } })();
+
+const WIN_HTML = '<div class="wbar"><img class="wlogo" alt=""><span>Marrow</span><span class="wcap"><b></b><b></b><b></b></span></div>' +
+  '<div class="wbody"><div class="wside"><div class="l">Threads</div><div class="t on">Fix flaky test in git panel</div><div class="t">Port the diff inspector</div><div class="t">Why does the build stall?</div><div class="t">Release notes draft</div><div class="t">Terminal tab restore</div></div>' +
+  '<div class="wchat"><div class="wmsg me">The diff pane flickers when I switch threads. Can you find out why?</div>' +
+  '<div class="wmsg">It re-reads the diff on every selection change, even for the same commit. I cached the last result per thread.<small>DiffInspector.cs &middot; 2 files changed</small></div>' +
+  '<div class="wcomp">Message Marrow<i></i></div></div></div>';
+
+// ------------------------------------------------------------------ the boot stage: B, the tile grows into the window frame
+class Stage {
+  constructor(host, th, win, kind) {
+    this.host = host; this.th = th; this.win = win; this.kind = kind; this.wo = 0; this.rect = null;
+    host.classList.toggle('glassy', kind === 'B');
+    host.innerHTML = '<div class="desk"></div><div class="dicons"><i>Projects</i><i>Notes</i><i>Downloads</i></div><div class="task"><i class="r"></i><i class="s"></i><i></i><i></i><i></i><i></i><em>9:41</em></div><div class="scrim"></div><canvas class="cv"></canvas><div class="win">' + WIN_HTML + '</div>';
+    this.cvEl = $('.cv', host); this.cb = this.cvEl.getContext('2d'); this.el = $('.win', host); this.scrim = $('.scrim', host);
+    $('.wlogo', host).src = LOGO;
+    this.big = document.createElement('canvas'); this.ic = document.createElement('canvas'); this.gl = document.createElement('canvas');
+    this.layout();
+  }
+  layout() {
+    const W = this.host.clientWidth || 400, k = W / SCREEN.w, H = SCREEN.h * k, w = this.win, workH = SCREEN.h - SCREEN.task;
+    this.W = W; this.k = k; this.H = H; this.host.style.setProperty('--k', k + 'px');
+    this.cvEl.width = Math.round(W * DPR); this.cvEl.height = Math.round(H * DPR);
+    this.f = { x: Math.round((SCREEN.w - w.w) / 2), y: Math.round((workH - w.h) / 2), w: w.w, h: w.h };   // the frame, in DIP
+    this.el.style.width = w.w + 'px'; this.el.style.height = w.h + 'px'; this.el.style.transform = 'translate(' + (this.f.x * k).toFixed(3) + 'px,' + (this.f.y * k).toFixed(3) + 'px) scale(' + k.toFixed(5) + ')';
+    this.cx = (this.f.x + w.w / 2) * k; this.cy = (this.f.y + w.h / 2) * k;
+    this.S = Math.round(440 * k); this.S1 = Math.round(w.w * k * 0.6); this.stillKey = '';
+  }
+  dur() { return this.kind === 'RM' ? Math.max(READY, 1200) + 700 : H_() + GROW + GLOW; }
+  clear() { const c = this.cvEl, g = this.cb; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height); g.setTransform(DPR, 0, 0, DPR, 0, 0); }
+  renderB(T) {
+    const { cb, W, k, S, S1, cx, cy, f } = this, R = H_(), u = clamp((T - R) / GROW, 0, 1), p = mac(u);
+    this.clear();
+    this.scrim.style.opacity = (sm(T / DIM) * (1 - sm(seg(T, R + GROW, R + GROW + GLOW)))).toFixed(3);
+    const it = iconT(T), sc0 = 0.93 + 0.07 * eo3(T / 900);
+    // the rectangle: from the icon square to the frame, one progress p for the tile, the glass and the content
+    const side0 = 0.88 * S * sc0, fw = f.w * k, fh = f.h * k;
+    const w = lerp(side0, fw, p), h = lerp(side0, fh, p), x = cx - w / 2, y = cy - h / 2, r = lerp(0.225 * side0, WIN_R * k, p);
+    this.rect = { x: x / k, y: y / k, w: w / k, h: h / k, r: r / k, p };
+    const wo = sm(seg(p, 0.35, 1)); this.wo = wo;
+    if (it.launch > 0) {
+      renderIcon(this.big, S1, it, this.th);
+      const s0 = S / S1 * sc0, s1 = Math.max(fw, fh) / (0.88 * S1), s = lerp(s0, s1, p);
+      const b = sm(seg(p, 0.5, 1)), gfade = 1 - sm(seg(T, R + GROW, R + GROW + GLOW)), infl = (1 - sm(p * 4)) * 0.06 * S;
+      if (b > 0.002 && gfade > 0.002) {                 // the aurora blurs into a glow behind the glass, inside the frame only
+        const gl = this.gl, gw = Math.max(8, Math.round(W / 8)), gh = Math.max(8, Math.round(this.H / 8)); if (gl.width !== gw) { gl.width = gw; gl.height = gh; }
+        const q = gl.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, gw, gh); q.imageSmoothingQuality = 'high';
+        q.drawImage(this.big, (cx - S1 * s / 2) * gw / W, (cy - S1 * s / 2) * gh / this.H, S1 * s * gw / W, S1 * s * gh / this.H);
+        cb.save(); cb.beginPath(); rr(cb, x, y, w, h, r); cb.clip(); cb.imageSmoothingQuality = 'high'; cb.globalAlpha = b * gfade * 0.9; cb.drawImage(gl, 0, 0, W, this.H); cb.restore();
+      }
+      if (b < 0.998) {
+        cb.save(); cb.beginPath(); rr(cb, x - infl, y - infl, w + 2 * infl, h + 2 * infl, r + infl); cb.clip(); cb.globalAlpha = 1 - b;
+        cb.drawImage(this.big, cx - S1 * s / 2, cy - S1 * s / 2, S1 * s, S1 * s); cb.restore();
+      }
+      // the window's edge and its title-bar band, drawn inside the same rectangle while it grows
+      if (p > 0.02) {
+        const e1 = sm(seg(p, 0.05, 0.4)) * (1 - wo);
+        cb.save(); cb.beginPath(); rr(cb, x, y, w, h, r); cb.clip();
+        const bandH = TITLE * k * sm(seg(p, 0.45, 1));
+        if (bandH > 0.5 && wo < 1) { cb.globalAlpha = (1 - wo) * 0.9; cb.fillStyle = 'rgba(255,255,255,.07)'; cb.fillRect(x, y, w, bandH); cb.fillStyle = 'rgba(255,255,255,.16)'; cb.fillRect(x, y + bandH - 1, w, 1); }
+        cb.restore();
+        cb.save(); cb.globalAlpha = Math.max(e1, 0.0); cb.lineWidth = 1; cb.strokeStyle = 'rgba(255,255,255,.35)'; cb.beginPath(); rr(cb, x + 0.5, y + 0.5, w - 1, h - 1, Math.max(0, r - 0.5)); cb.stroke(); cb.restore();
+      }
+    }
+    // the window itself, at its exact frame; only the clip rectangle follows the tile
+    const el = this.el;
+    el.style.opacity = wo.toFixed(3);
+    if (u < 1) { const l = x / k - f.x, t = y / k - f.y, rt = f.x + f.w - (x + w) / k, bt = f.y + f.h - (y + h) / k; el.style.clipPath = 'inset(' + Math.max(0, t).toFixed(2) + 'px ' + Math.max(0, rt).toFixed(2) + 'px ' + Math.max(0, bt).toFixed(2) + 'px ' + Math.max(0, l).toFixed(2) + 'px round ' + (r / k).toFixed(2) + 'px)'; }
+    else el.style.clipPath = 'inset(0 round ' + WIN_R + 'px)';
+  }
+  renderRM(T) {
+    const { cb, S, cx, cy } = this, hold = Math.max(READY, 1200);
+    this.clear();
+    if (this.stillKey !== this.th + S) { MarrowIcons.render(this.ic, D, S, this.th, STILL, DPR); this.stillKey = this.th + S; }
+    this.scrim.style.opacity = (sm(T / 300) * (1 - sm(seg(T, hold + 300, hold + 700)))).toFixed(3);
+    const a = sm(T / 300) * (1 - sm(seg(T, hold, hold + 300)));
+    if (a > 0.002) { cb.globalAlpha = a; cb.drawImage(this.ic, cx - S / 2, cy - S / 2, S, S); cb.globalAlpha = 1; }
+    const wo = sm(seg(T, hold + 100, hold + 500)); this.wo = wo; this.el.style.opacity = wo.toFixed(3); this.el.style.clipPath = 'inset(0 round ' + WIN_R + 'px)';
+    this.rect = null;
+  }
+  render(T) { T = clamp(T, 0, this.dur()); if (this.kind === 'RM') this.renderRM(T); else this.renderB(T); }
+}
+
+function timelineB() {
+  const R = READY, H = H_(), tot = H + GROW + GLOW;
+  return { total: tot,
+    rows: [['Animation', [{ a: LAUNCH0, b: LAUNCH0 + LAUNCH, t: 'D launch', c: 'launch' }, { a: LAUNCH0 + LAUNCH, b: H, t: 'D idle loop', c: 'idle' }, { a: H, b: H + GROW, t: 'Tile grows to the frame', c: 'hand' }, { a: H + GROW, b: tot, t: 'Glow fades', c: 'launch' }]],
+      ['Warm-up', [{ a: 0, b: R, t: 'Bootstrap + GPU warm-up', c: 'warm' }, R < H ? { a: R, b: H, t: 'Hold to floor', c: 'floor' } : null]],
+      ['Main window', [{ a: 0, b: H, t: 'Hidden, cloaked from H', c: 'hide' }, { a: H, b: H + GROW, t: 'Glass + content fade in, inside the rectangle', c: 'win' }, { a: H + GROW, b: tot, t: 'Shown', c: 'win' }]]],
+    beats: [[0, 'Stage opens; bootstrap and GPU warm-up start behind it, main window hidden and cloaked'], [0, 'Desktop dims, 0 to ' + DIM + ' ms'], [LAUNCH0, 'Aurora tile appears large; D launch runs ' + LAUNCH + ' ms'], [LAUNCH0 + LAUNCH, 'D idle loop starts: the curtain sways while the app finishes'],
+      [R, 'App ready (warm-up done)' + (R < FLOOR ? '; the hand-over waits for the 1800 ms floor' : '')],
+      [H, 'H: main window uncloaked at its frame, content opacity 0; the tile starts to grow'],
+      [H, 'One progress p (cubic-bezier .32,.72,0,1, ' + GROW + ' ms) drives the rectangle (position, width, height, radius to 8 DIP) and the clip of the window'],
+      [H + Math.round(GROW * 0.25), 'Window glass and content start to fade in inside the rectangle (from p = .35 to 1)'],
+      [H + GROW, 'p = 1: the tile rectangle is the window frame; the aurora is a glow behind the glass'], [H + GROW + GLOW, 'Glow gone, stage closes, dim lifts']] };
+}
+function timelineRM() {
+  const R = READY, hold = Math.max(R, 1200);
+  return { total: hold + 700,
+    rows: [['Animation', [{ a: 0, b: 300, t: 'Fade in', c: 'launch' }, { a: 300, b: hold, t: 'Still tile', c: 'idle' }, { a: hold, b: hold + 300, t: 'Fade out', c: 'hand' }]], ['Warm-up', [{ a: 0, b: R, t: 'Bootstrap + GPU warm-up', c: 'warm' }, R < hold ? { a: R, b: hold, t: 'Hold', c: 'floor' } : null]],
+      ['Main window', [{ a: 0, b: hold + 100, t: 'Hidden (cloaked from ' + (hold - 500) + ')', c: 'hide' }, { a: hold + 100, b: hold + 700, t: 'Fades in', c: 'win' }]]],
+    beats: [[0, 'Desktop dims and the still Aurora tile fades in over 300 ms; no unfurl, no sway'], [R, 'App ready' + (R < 1200 ? '; the still tile holds to 1200 ms' : '')], [hold - 500, 'Main window shown cloaked (ED-236: 0.5 s before the hand-over)'], [hold, 'Tile fades out over 300 ms'], [hold + 100, 'Main window fades in over 400 ms at its frame; no scale'], [hold + 700, 'Stage closes']] };
+}
+
+// ------------------------------------------------------------------ players
+const players = [];
+class Player {
+  constructor(o) { Object.assign(this, o); this.T = 0; this.playing = false; this.visible = false; this.t0 = 0; this.started = false; players.push(this); }
+  replay() { this.T = 0; this.playing = true; this.t0 = performance.now(); this.btn(); }
+  toggle() { if (this.playing) this.playing = false; else { if (!this.loop && this.T >= this.dur()) this.T = 0; this.playing = true; this.t0 = performance.now() - this.T; } this.btn(); }
+  seek(T) { this.playing = false; this.T = T; this.draw(); this.btn(); }
+  draw() { this.render(this.T); if (this.ui) this.ui(this.T); }
+  btn() { if (this.pp) this.pp.textContent = this.playing ? 'Pause' : 'Play'; }
+}
+function tick(now) {
+  for (const p of players) {
+    if (!p.visible || !p.playing) continue;
+    let T = now - p.t0;
+    if (!p.loop && T >= p.dur()) { T = p.dur(); p.playing = false; p.btn(); }
+    p.T = T; p.draw();
+  }
+  requestAnimationFrame(tick);
+}
+const io = new IntersectionObserver((es) => {
+  es.forEach((e) => {
+    const p = e.target._player; if (!p) return; p.visible = e.isIntersecting;
+    if (p.visible && !p.started) { p.started = true; if (mqRM.matches && !p.rm) { p.T = p.loop ? 1500 : p.dur(); p.draw(); } else p.replay(); }
+    else if (p.visible && !p.playing) p.draw();
+  });
+}, { rootMargin: '80px' });
+function register(el, p) { el._player = p; p.el = el; io.observe(el); }
+
+function tlFill(el, spec) {
+  const tot = spec.total, ticks = []; const step = tot > 4000 ? 1000 : 500; for (let t = 0; t <= tot; t += step) ticks.push(t);
+  el.innerHTML = '<div class="rows">' + spec.rows.map((r) => '<div class="rn">' + r[0] + '</div><div class="row">' + r[1].filter(Boolean).map((s) => '<span class="sg c-' + s.c + '" style="left:' + (s.a / tot * 100).toFixed(2) + '%;width:' + ((s.b - s.a) / tot * 100).toFixed(2) + '%" title="' + s.t + ' ' + Math.round(s.a) + ' to ' + Math.round(s.b) + ' ms">' + s.t + '</span>').join('') + '</div>').join('') + '<div class="ph"></div></div>' +
+    '<div class="ticks">' + ticks.map((t) => '<span>' + t + '</span>').join('') + '<span>ms</span></div>';
+}
+function beatsFill(ol, spec) { ol.innerHTML = spec.beats.slice().sort((a, b) => a[0] - b[0]).map((b) => '<li><time>' + Math.round(b[0]) + ' ms</time><span>' + b[1] + '</span></li>').join(''); }
+
+// ------------------------------------------------------------------ boot cards: one per window size, dark and light, one scrubber
+const bootCards = [];
+function bootCard(name, desc, win, kind, host) {
+  const el = document.createElement('article'); el.className = 'card';
+  el.innerHTML = '<div class="hd"><div><h3>' + name + '</h3><p>' + desc + '</p></div></div>' +
+    '<div class="pair"><div class="tw" data-theme="dark"><div class="tl8">Dark</div><div class="stage"></div></div><div class="tw" data-theme="light"><div class="tl8">Light</div><div class="stage"></div></div></div>' +
+    '<div class="ctl"><button class="btn rp">Replay</button><button class="btn pp">Pause</button><input type="range" min="0" max="1000" value="0" aria-label="Scrub the timeline"><span class="tm">0 ms</span></div>' +
+    '<div class="sync"></div><div class="status"></div><div class="tl"></div><ol class="beats"></ol>';
+  host.appendChild(el);
+  const stages = $$('.stage', el).map((h, i) => new Stage(h, i ? 'light' : 'dark', win, kind));
+  const rng = $('input', el), tm = $('.tm', el), st = $('.status', el), tl = $('.tl', el), beats = $('.beats', el), sy = $('.sync', el);
+  const spec = () => (kind === 'RM' ? timelineRM() : timelineB());
+  let cur = spec();
+  const status = (T) => {
+    const R = READY, H = H_(), b = (s) => '<b>' + s + '</b> ';
+    if (T < R) return b('Warm-up') + 'runs behind the animation (' + Math.round(100 * sm(T / R)) + ' %, illustrative); the window is hidden. It appears only when the app is ready.';
+    if (kind === 'RM') return stages[0].wo < 1 ? b('Hand-over') + 'fades only.' : b('Window shown.') + 'Stage closed.';
+    if (T < H) return b('Ready') + 'at ' + R + ' ms; the hand-over waits for D’s launch and the 1800 ms floor; the idle loop keeps the tile alive.';
+    return T < H + GROW ? b('Hand-over:') + 'the tile grows into the window frame while the glass and content fade in inside it.' : T < H + GROW + GLOW ? b('Window shown;') + 'the aurora glow behind the glass fades.' : b('Window shown.') + 'Stage closed.';
+  };
+  const syncText = (T) => {
+    const f = stages[0].f, r = stages[0].rect, fr = (v) => (Math.round(v * 10) / 10).toFixed(1);
+    if (kind === 'RM' || !r) return 'Window frame ' + win.w + ' × ' + win.h + ' DIP at ' + f.x + ', ' + f.y + ', corner ' + WIN_R + ', title-bar band ' + TITLE + '.';
+    const d = Math.max(Math.abs(r.x - f.x), Math.abs(r.y - f.y), Math.abs(r.w - f.w), Math.abs(r.h - f.h), Math.abs(r.r - WIN_R));
+    return 'tile rect ' + fr(r.x) + ', ' + fr(r.y) + '  ' + fr(r.w) + ' × ' + fr(r.h) + '  r ' + fr(r.r) + '   |   window frame ' + f.x + ', ' + f.y + '  ' + f.w + ' × ' + f.h + '  r ' + WIN_R + '   |   ' + (r.p >= 1 ? '<b>Δ 0.0: the tile is the frame</b>' : 'largest difference ' + fr(d) + ' DIP, closing');
+  };
+  const p = new Player({ rm: kind === 'RM', dur: () => stages[0].dur(), render: (T) => stages.forEach((s) => s.render(T)), pp: $('.pp', el),
+    ui: (T) => { rng.max = Math.round(stages[0].dur()); rng.value = Math.round(T); tm.textContent = Math.round(T) + ' ms'; st.innerHTML = status(T); sy.innerHTML = syncText(T);
+      const ph = $('.ph', tl), rows = $('.rows', tl); if (ph && rows) ph.style.transform = 'translateX(' + (T / cur.total * rows.clientWidth).toFixed(1) + 'px)'; } });
+  const refill = () => { cur = spec(); tlFill(tl, cur); beatsFill(beats, cur); };
+  refill();
+  $('.rp', el).onclick = () => p.replay(); $('.pp', el).onclick = () => p.toggle(); rng.oninput = () => p.seek(+rng.value);
+  register(el, p);
+  const c = { stages, player: p, refill, kind }; bootCards.push(c); return c;
+}
+
+// ------------------------------------------------------------------ empty-area loaders: five, only lightly Aurora (emerald, teal, violet, a slow curtain sway); the icon is not used
+const picks = { loader: '?', history: '?', diff: '?', attachment: '?' };
+const PAL = { dark: [[60, 240, 170], [30, 190, 160], [170, 90, 255]], light: [[8, 158, 108], [10, 128, 150], [112, 72, 224]] };
+function pal(th, u) { u = ((u % 1) + 1) % 1 * 3; const i = Math.floor(u), f = u - i, a = PAL[th][i % 3], b = PAL[th][(i + 1) % 3]; return [lerp(a[0], b[0], f), lerp(a[1], b[1], f), lerp(a[2], b[2], f)]; }
+const rgba = (c, a) => 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + Math.max(0, a).toFixed(3) + ')';
+function prep(cv, s) { const px = Math.round(s * DPR); if (cv.width !== px) { cv.width = cv.height = px; } const g = cv.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, s, s); g.lineCap = 'round'; return g; }
+const LOADERS = [
+  { n: 1, name: 'Aurora Ring', note: 'A thin glass ring; a comet of aurora light travels round it, its colour flowing from emerald to teal to violet. 1.8 s loop.',
+    draw(cv, s, sec, th) {
+      const g = prep(cv, s), c = s / 2, R = s * 0.36, ph = (sec / 1.8) % 1, head = ph * 2 * PI - PI / 2, dark = th === 'dark';
+      g.lineWidth = 1; g.strokeStyle = dark ? 'rgba(255,255,255,.14)' : 'rgba(20,30,50,.14)'; g.beginPath(); g.arc(c, c, R, 0, 2 * PI); g.stroke();
+      g.globalCompositeOperation = dark ? 'lighter' : 'source-over'; const N = 48, tail = PI * 1.15;
+      for (const pass of [[5, 0.16], [2, 1]]) for (let i = 0; i < N; i++) {
+        const a0 = head - (i + 1) / N * tail, a1 = head - i / N * tail, al = Math.pow(1 - i / N, 1.5) * pass[1];
+        g.lineWidth = pass[0]; g.strokeStyle = rgba(pal(th, i / N * 0.6 + ph), al); g.beginPath(); g.arc(c, c, R, a0, a1 + 0.02); g.stroke();
+      }
+      g.fillStyle = rgba(pal(th, ph), 1); g.beginPath(); g.arc(c + R * Math.cos(head), c + R * Math.sin(head), 1.6, 0, 2 * PI); g.fill();
+    } },
+  { n: 2, name: 'Curtain Fold', note: 'A short ribbon of thin rays that folds and sways like a curtain, emerald at its foot, violet at its fringe. 2.4 s loop.',
+    draw(cv, s, sec, th) {
+      const g = prep(cv, s), ph = (sec / 2.4) % 1, cols = 24, x0 = s * 0.08, w = s * 0.84; g.globalCompositeOperation = th === 'dark' ? 'lighter' : 'source-over';
+      for (let i = 0; i < cols; i++) {
+        const u = i / (cols - 1), x = x0 + w * u, fold = 0.5 + 0.5 * Math.sin(2 * PI * (u * 1.1 - ph)), foot = s * 0.66 + s * 0.07 * Math.sin(2 * PI * (u * 1.4 + ph)), env = Math.pow(Math.sin(PI * u), 0.7);
+        const len = s * (0.12 + 0.36 * fold) * (0.4 + 0.6 * env), a = (0.35 + 0.65 * fold) * env, gr = g.createLinearGradient(x, foot, x, foot - len), P = PAL[th];
+        gr.addColorStop(0, rgba(P[0], 0.95 * a)); gr.addColorStop(0.45, rgba(P[1], 0.4 * a)); gr.addColorStop(1, rgba(P[2], 0));
+        g.fillStyle = gr; g.fillRect(x - 0.8, foot - len, 1.6, len);
+        g.fillStyle = rgba(P[0], 0.5 * a); g.fillRect(x - 0.8, foot, 1.6, s * 0.03);
+      }
+    } },
+  { n: 3, name: 'Drift Lights', note: 'Three soft points of light drift up and down in turn and trade the aurora colours. A cousin of the working dots. 2.4 s loop.',
+    draw(cv, s, sec, th) {
+      const g = prep(cv, s), c = s / 2, ph = (sec / 2.4) % 1, dark = th === 'dark'; g.globalCompositeOperation = dark ? 'lighter' : 'source-over';
+      for (let i = 0; i < 3; i++) {
+        const t = ph + i / 3, x = c + (i - 1) * s * 0.27, y = c + s * 0.13 * Math.sin(2 * PI * t), r = s * 0.075 * (0.9 + 0.2 * Math.sin(2 * PI * (t + 0.25))), col = pal(th, t);
+        const gr = g.createRadialGradient(x, y, 0, x, y, r * 3.2); gr.addColorStop(0, rgba(col, dark ? 0.5 : 0.28)); gr.addColorStop(1, rgba(col, 0)); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 3.2, 0, 2 * PI); g.fill();
+        g.fillStyle = rgba(dark ? [Math.min(255, col[0] + 80), Math.min(255, col[1] + 60), Math.min(255, col[2] + 40)] : col, 0.95); g.beginPath(); g.arc(x, y, r, 0, 2 * PI); g.fill();
+      }
+    } },
+  { n: 4, name: 'Flow Arc', note: 'A hairline arc that turns once every 1.5 s while its colour flows emerald to teal to violet along it. No glow, nothing else.',
+    draw(cv, s, sec, th) {
+      const g = prep(cv, s), c = s / 2, R = s * 0.36, ph = (sec / 1.5) % 1, ang = 2 * PI * ph + 0.5 * Math.sin(2 * PI * ph) - PI / 2, len = 1.75, N = 44, dark = th === 'dark';
+      g.lineWidth = 1; g.strokeStyle = dark ? 'rgba(255,255,255,.08)' : 'rgba(20,30,50,.1)'; g.beginPath(); g.arc(c, c, R, 0, 2 * PI); g.stroke();
+      g.lineWidth = 1.4;
+      for (let j = 0; j < N; j++) { const a1 = ang - j / N * len, a0 = ang - (j + 1) / N * len; g.strokeStyle = rgba(pal(th, j / N * 0.8 + sec / 2.8), Math.pow(1 - j / N, 0.8)); g.beginPath(); g.arc(c, c, R, a0, a1 + 0.02); g.stroke(); }
+    } },
+  { n: 5, name: 'Aurora Sheen', note: 'No mark: a faint aurora shimmer, emerald into violet, sweeps across a glass placeholder. 1.8 s sweep.', area: true },
+];
+const PLACES = [
+  { key: 'history', title: 'Opening an older chat', desc: 'The timeline is empty while the thread&rsquo;s history is read (PR-CHAT-025), centred in the timeline.', size: 48,
+    head: 'Release notes draft <em>&middot; opening</em>', pill: true,
+    sk: '<i class="b" style="width:70%;margin-left:auto"></i><i class="b" style="width:86%"></i><i class="b" style="width:60%"></i>',
+    ct: '<div class="m me">Draft the release notes for 1.7.0 from the merged changes.</div><div class="m">Here is a first draft: the diff pane no longer flickers, and tabs restore after a restart.</div>', label: '' },
+  { key: 'diff', title: 'The diff pane', desc: 'The diff pane while it reads the diff (UI-GIT-012), above the kept &ldquo;Reading the diff...&rdquo; label.', size: 44,
+    head: 'Changes <em>&middot; 2 files</em>', pill: false,
+    sk: '<i style="width:92%"></i><i style="width:78%"></i><i style="width:86%"></i><i style="width:54%"></i><i style="width:70%"></i>',
+    ct: '<div class="dl n">DiffInspector.cs</div><div class="dl d">- var diff = Read(thread);</div><div class="dl a">+ var diff = cache.Get(thread, Read);</div><div class="dl a">+ cache.Trim(8);</div><div class="dl n">ThreadStore.cs</div><div class="dl a">+ public void Invalidate(Guid id);</div>', label: 'Reading the diff...' },
+  { key: 'attachment', title: 'The large attachment preview', desc: 'The large attachment preview while its image or video frame loads (UI-COMPOSER-077), centred in its slot.', size: 40,
+    head: 'screenshot-diff-pane.png <em>&middot; 1840 &times; 1120</em>', pill: false, slot: true, sk: '', ct: '<div class="img"></div>', label: '' },
+];
+function pane(place, L, rm) {
+  const d = document.createElement('div'); d.className = 'pane';
+  const five = !!L.area;
+  d.innerHTML = '<div class="ph">' + place.head + '</div><div class="area' + (place.slot ? ' slot' : '') + '"><div class="ld">' +
+    (five ? '<div class="sk' + (place.slot ? ' fill' : '') + '">' + place.sk + '<div class="sh"></div></div>' : '<canvas></canvas>') + (place.label ? '<div class="lab">' + place.label + '</div>' : '') + '</div><div class="ct">' + place.ct + '</div></div>' + (place.pill ? '<div class="pill">Message Marrow</div>' : '');
+  const ld = $('.ld', d), cv = $('canvas', d), sk = $('.sk', d), sh = $('.sh', d), lab = $('.lab', d), ct = $('.ct', d);
+  if (five && place.slot) { ld.style.cssText += ';inset:0;left:0;top:0;transform:none;height:100%;display:block'; sk.style.width = '100%'; sk.style.borderRadius = '10px'; sk.style.background = 'var(--bubble)'; }
+  if (cv) cv.style.width = cv.style.height = place.size + 'px';
+  const frame = (T) => {
+    const c = T % 5000, sec = T / 1000, a = sm(seg(c, 400, 600)) * (1 - sm(seg(c, 3500, 3650))), co = sm(seg(c, 3550, 3850)), breath = 0.55 + 0.45 * (0.5 - 0.5 * Math.cos(2 * PI * sec / 2.4));
+    ct.style.opacity = co.toFixed(3); if (lab) lab.style.opacity = a.toFixed(3);
+    if (five) { sk.style.opacity = (a * (rm ? breath : 1)).toFixed(3); sh.style.transform = rm ? 'translateX(0)' : 'translateX(' + (-130 + 260 * ((sec / 1.8) % 1)).toFixed(1) + '%)'; sh.style.opacity = rm ? '1' : '1'; }
+    else { if (a > 0.003) L.draw(cv, place.size, rm ? 0.35 * 2.4 : sec, pageTheme()); cv.style.opacity = (a * (rm ? breath : 1)).toFixed(3); }
+  };
+  return { d, frame };
+}
+function placeCard(place, host) {
+  const el = document.createElement('article'); el.className = 'card place';
+  el.innerHTML = '<div class="hd"><div><h3>' + place.title + '</h3><p>' + place.desc + '</p></div></div><div class="opts"></div><div class="ctl"><button class="btn rp">Replay</button><button class="btn pp">Pause</button><span class="tm" style="flex:1;text-align:left">0 to 400 ms nothing, fade in 200 ms, content arrives at 3.5 s</span></div>';
+  host.appendChild(el); const frames = [];
+  LOADERS.forEach((L) => {
+    const wrap = document.createElement('div'); wrap.className = 'opt';
+    wrap.innerHTML = '<div class="oh"><b>' + L.n + ' &middot; ' + L.name + '</b><button class="btn pick" data-fam="' + place.key + '" data-v="' + L.n + '" aria-pressed="false" title="Use loader ' + L.n + ' only for this place">Here</button></div>';
+    const pn = pane(place, L, false); wrap.appendChild(pn.d); $('.opts', el).appendChild(wrap); frames.push(pn.frame);
+  });
+  const p = new Player({ loop: true, dur: () => Infinity, pp: $('.pp', el), render: (T) => frames.forEach((f) => f(T)) });
+  $('.rp', el).onclick = () => p.replay(); $('.pp', el).onclick = () => p.toggle(); register(el, p);
+}
+function rmPlaceCard(host) {
+  const place = PLACES[0], el = document.createElement('article'); el.className = 'card place';
+  el.innerHTML = '<div class="hd"><div><h3>Loaders, Reduce Motion</h3><p>Each loader stands still in a calm pose and only breathes in opacity (55 % to 100 % over 2.4 s) after the 400 ms rule. Shown for the older chat; the diff pane and the attachment preview are the same.</p></div></div><div class="opts"></div><div class="ctl"><button class="btn rp">Replay</button><button class="btn pp">Pause</button></div>';
+  host.appendChild(el); const frames = [];
+  LOADERS.forEach((L) => { const wrap = document.createElement('div'); wrap.className = 'opt'; wrap.innerHTML = '<div class="oh"><b>' + L.n + ' &middot; ' + L.name + '</b></div>'; const pn = pane(place, L, true); wrap.appendChild(pn.d); $('.opts', el).appendChild(wrap); frames.push(pn.frame); });
+  const p = new Player({ loop: true, rm: true, dur: () => Infinity, pp: $('.pp', el), render: (T) => frames.forEach((f) => f(T)) });
+  $('.rp', el).onclick = () => p.replay(); $('.pp', el).onclick = () => p.toggle(); register(el, p);
+}
+
+// ------------------------------------------------------------------ build
+bootCard('Window 1280 × 800', 'A roomy window. The frame is centred in the work area of a 1920 × 1080 monitor (taskbar 48 DIP).', { w: 1280, h: 800 }, 'B', $('#bootCards'));
+bootCard('Window 900 × 700', 'A narrower window with a different aspect: the tile reaches exactly this frame, and the aurora is cropped to it.', { w: 900, h: 700 }, 'B', $('#bootCards'));
+PLACES.forEach((pl) => placeCard(pl, $('#places')));
+bootCard('Boot, Reduce Motion', 'The desktop dims, the still tile fades in over 300 ms and holds until the app is ready (at least 1.2 s), then fades out while the window fades in over 400 ms at its frame. No grow, no glow, no sweep.', { w: 1280, h: 800 }, 'RM', $('#rmCards'));
+rmPlaceCard($('#rmCards'));
+
+// ------------------------------------------------------------------ controls
+const redrawAll = () => players.forEach((p) => { if (p.visible) p.draw(); });
+$$('#themeSeg button').forEach((b) => b.onclick = () => {
+  if (b.dataset.th) html.dataset.theme = b.dataset.th; else delete html.dataset.theme;
+  $$('#themeSeg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); redrawAll();
+});
+mqDark.addEventListener && mqDark.addEventListener('change', redrawAll);
+$$('#readySeg button').forEach((b) => b.onclick = () => {
+  READY = +b.dataset.r; $$('#readySeg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  bootCards.forEach((c) => { c.refill(); if (c.player.visible) c.player.replay(); });
+});
+$('#replayAll').onclick = () => bootCards.filter((c) => c.kind !== 'RM').forEach((c) => c.player.replay());
+if (mqRM.matches) $('#rmNote').textContent = 'Your system asks for Reduced Motion: animations wait for Replay or Play.';
+const ro = new ResizeObserver(() => bootCards.forEach((c) => c.stages.forEach((s) => { const w = s.host.clientWidth; if (w && Math.abs(w - s.W) > 1) { s.layout(); if (c.player.visible) c.player.draw(); } })));
+bootCards.forEach((c) => c.stages.forEach((s) => ro.observe(s.host)));
+
+// ------------------------------------------------------------------ picks: loading: boot=B, loader=1..5 (and, optionally, a loader for one place only)
+const out = $('#picksOut'), hint = $('#picksHint');
+try { const s = JSON.parse(localStorage.getItem('marrow-loading-picks-3') || 'null'); if (s) Object.keys(picks).forEach((k) => { if (typeof s[k] === 'string' && /^[1-5?]$/.test(s[k])) picks[k] = s[k]; }); } catch (e) { /* per-viewer convenience only */ }
+const picksText = () => 'loading: boot=B, loader=' + picks.loader + ['history', 'diff', 'attachment'].filter((k) => picks[k] !== '?').map((k) => ', ' + k + '=' + picks[k]).join('');
+function showPicks() {
+  out.value = picksText();
+  $$('.pick').forEach((b) => b.setAttribute('aria-pressed', String(picks[b.dataset.fam] === b.dataset.v)));
+  try { localStorage.setItem('marrow-loading-picks-3', JSON.stringify(picks)); } catch (e) { /* ignore */ }
+}
+$('#globalPicks').innerHTML = LOADERS.map((L) => '<button class="btn pick" data-fam="loader" data-v="' + L.n + '" aria-pressed="false">' + L.n + ' &middot; ' + L.name + '</button>').join('');
+$('#loaderNotes').innerHTML = LOADERS.map((L) => '<li><b>' + L.n + ' ' + L.name + '.</b> ' + L.note + '</li>').join('');
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('.pick'); if (!b) return; picks[b.dataset.fam] = picks[b.dataset.fam] === b.dataset.v ? '?' : b.dataset.v; showPicks(); });
+$('#resetBtn').onclick = () => { picks.loader = picks.history = picks.diff = picks.attachment = '?'; showPicks(); hint.textContent = 'Picks cleared (boot stays B).'; };
+$('#copyBtn').onclick = async () => {
+  const txt = picksText(); out.value = txt;
+  try { await navigator.clipboard.writeText(txt); hint.textContent = 'Copied: ' + txt; return; } catch (e) { /* fall through to the selection fallback */ }
+  try { out.focus(); out.select(); out.setSelectionRange(0, txt.length); const ok = document.execCommand && document.execCommand('copy'); hint.textContent = ok ? 'Copied: ' + txt : 'Selected: press Ctrl+C to copy.'; } catch (e) { hint.textContent = 'Selected: press Ctrl+C to copy.'; }
+};
+showPicks();
+requestAnimationFrame(tick);
+window.__loading = { bootCards, players, setReady: (r) => { READY = r; bootCards.forEach((c) => c.refill()); } };
+})();
+
+</script>
+</body>
+</html>

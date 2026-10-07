@@ -75,7 +75,7 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
         RegisterForNextAnimationFrameUpdate();
     }
 
-    public override Rect GetRenderBounds() => new(0, 0, OrbScene.ViewPx, OrbScene.ViewPx);
+    public override Rect GetRenderBounds() => new(0, 0, snapshot?.Input.ViewSize ?? OrbScene.ViewPx, snapshot?.Input.ViewSize ?? OrbScene.ViewPx);
 
     public override void OnRender(ImmediateDrawingContext context)
     {
@@ -96,7 +96,7 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
             var runtime = scene.Runtime(kind);
             var opacity = scene.Opacity(kind);
             if (runtime is null || opacity <= 0) continue;
-            renderer.Draw(canvas, lease.GrContext, runtime.Values, runtime.Mrw, runtime.DevicePx, runtime.RenderPx, (float)OrbScene.ViewPx, (float)(opacity * lease.CurrentOpacity));
+            renderer.Draw(canvas, lease.GrContext, runtime.Values, runtime.Mrw, runtime.DevicePx, runtime.RenderPx, (float)input.ViewSize, (float)(opacity * lease.CurrentOpacity));
         }
         Interlocked.Increment(ref frames);
         Request();

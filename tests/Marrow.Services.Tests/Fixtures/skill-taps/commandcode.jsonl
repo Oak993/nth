@@ -1,0 +1,8 @@
+{"type":"event","event":{"type":"tool_queued","toolCallId":"c1","toolName":"activate_skill","input":{"name":"pdf"}}}
+{"type":"event","event":{"type":"tool_completed","toolCallId":"c1","result":"Skill loaded"}}
+{"type":"event","event":{"type":"tool_queued","toolCallId":"c2","toolName":"powershell","input":{"command":"pdftoppm -png a.pdf out"}}}
+{"type":"event","event":{"type":"tool_errored","toolCallId":"c2","error":{"message":"pdftoppm : The term 'pdftoppm' is not recognized as the name of a cmdlet"}}}
+{"type":"event","event":{"type":"tool_queued","toolCallId":"c3","toolName":"shell_command","input":{"command":"node --version"}}}
+{"type":"event","event":{"type":"tool_completed","toolCallId":"c3","result":[{"type":"text","text":"v22.1.0"}]}}
+{"type":"event","event":{"type":"tool_queued","toolCallId":"c4","toolName":"glob","input":{"pattern":"*.md"}}}
+{"type":"event","event":{"type":"tool_completed","toolCallId":"c4","result":"a.md"}}

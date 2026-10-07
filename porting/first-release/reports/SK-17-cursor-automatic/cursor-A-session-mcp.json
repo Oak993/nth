@@ -1,0 +1,414 @@
+{
+  "mechanism": "A: ACP session/new mcpServers with Marrow-owned stdio server",
+  "version": "2026.10.01-e373342",
+  "startedUtc": "2026-10-05T17:17:23.317Z",
+  "finishedUtc": "2026-10-05T17:17:43.979Z",
+  "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+  "arguments": [
+    "-NoProfile",
+    "-File",
+    "C:\\Users\\omera\\AppData\\Local\\cursor-agent\\agent.ps1",
+    "acp"
+  ],
+  "workingDirectory": "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\workspace-A",
+  "skill": {
+    "file": "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\skills-A\\marrow-harbor-readiness\\SKILL.md",
+    "sha256": "ab4564b99419e902e2df99f5800889d444bd620eba8b0232330b4de52ac5d609",
+    "text": "---\nname: marrow-harbor-readiness\ndescription: Checks whether the harbor lantern is ready and gives its exact readiness answer.\n---\nWhen asked whether the harbor lantern is ready, reply with exactly MARROW-SK17-CURSOR-A-7P9K. Read no other files and run no commands.\n"
+  },
+  "requests": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "protocolVersion": 1,
+        "clientCapabilities": {
+          "fs": {
+            "readTextFile": false,
+            "writeTextFile": false
+          },
+          "terminal": false
+        },
+        "clientInfo": {
+          "name": "marrow-sk17-followup",
+          "version": "1.0.0"
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "method": "session/new",
+      "params": {
+        "cwd": "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\workspace-A",
+        "mcpServers": [
+          {
+            "name": "marrow-skills",
+            "command": "C:\\Program Files\\nodejs\\node.exe",
+            "args": [
+              "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup-mcp.cjs",
+              "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\skills-A",
+              "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\private\\A-mcp-wire.private.jsonl"
+            ],
+            "env": []
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "session/set_mode",
+      "params": {
+        "sessionId": "3529f861-e758-45b1-8b83-198b40a1634d",
+        "modeId": "ask"
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "method": "session/prompt",
+      "params": {
+        "sessionId": "3529f861-e758-45b1-8b83-198b40a1634d",
+        "prompt": [
+          {
+            "type": "text",
+            "text": "Is the harbor lantern ready? Give only the readiness answer."
+          }
+        ]
+      }
+    }
+  ],
+  "initialize": {
+    "protocolVersion": 1,
+    "agentCapabilities": {
+      "loadSession": true,
+      "mcpCapabilities": {
+        "http": true,
+        "sse": true
+      },
+      "promptCapabilities": {
+        "audio": false,
+        "embeddedContext": false,
+        "image": true
+      },
+      "sessionCapabilities": {
+        "list": {}
+      }
+    }
+  },
+  "sessionId": "3529f861-e758-45b1-8b83-198b40a1634d",
+  "promptResult": {
+    "stopReason": "end_turn"
+  },
+  "agentAnswer": "I'll look up what \"harbor lantern\" refers to in this workspace and return only the readiness answer.Found a matching Marrow skill — reading it now for the exact readiness answer.MARROW-SK17-CURSOR-A-7P9K",
+  "ownedPermissionRequests": [
+    {
+      "jsonrpc": "2.0",
+      "id": 0,
+      "method": "session/request_permission",
+      "params": {
+        "sessionId": "3529f861-e758-45b1-8b83-198b40a1634d",
+        "toolCall": {
+          "toolCallId": "call-b1a7647f-eee3-43fb-87e3-90cf0be1ef04-6\nfc_7809a25d-38de-9a34-93da-5cf4a0e75629_0",
+          "title": "marrow-skills-list_skills: list_skills",
+          "kind": "other",
+          "status": "pending",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "```json\n{}\n```"
+              }
+            }
+          ]
+        },
+        "options": [
+          {
+            "optionId": "allow-once",
+            "name": "Allow once",
+            "kind": "allow_once"
+          },
+          {
+            "optionId": "allow-always",
+            "name": "Allow always",
+            "kind": "allow_always"
+          },
+          {
+            "optionId": "reject-once",
+            "name": "Reject",
+            "kind": "reject_once"
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "session/request_permission",
+      "params": {
+        "sessionId": "3529f861-e758-45b1-8b83-198b40a1634d",
+        "toolCall": {
+          "toolCallId": "call-d69bdce1-6804-48b9-a707-53bb113a18bf-7\nfc_fbd99801-1f08-9a7d-96ba-2b0135e559aa_0",
+          "title": "marrow-skills-read_skill: read_skill",
+          "kind": "other",
+          "status": "pending",
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "```json\n{\n  \"name\": \"marrow-harbor-readiness\"\n}\n```"
+              }
+            }
+          ]
+        },
+        "options": [
+          {
+            "optionId": "allow-once",
+            "name": "Allow once",
+            "kind": "allow_once"
+          },
+          {
+            "optionId": "allow-always",
+            "name": "Allow always",
+            "kind": "allow_always"
+          },
+          {
+            "optionId": "reject-once",
+            "name": "Reject",
+            "kind": "reject_once"
+          }
+        ]
+      }
+    }
+  ],
+  "ownedPermissionReplies": [
+    {
+      "jsonrpc": "2.0",
+      "id": 0,
+      "result": {
+        "outcome": {
+          "outcome": "selected",
+          "optionId": "allow-once"
+        }
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "outcome": {
+          "outcome": "selected",
+          "optionId": "allow-once"
+        }
+      }
+    }
+  ],
+  "mcpWire": [
+    {
+      "event": "started",
+      "pid": 144224,
+      "root": "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\skills-A"
+    },
+    {
+      "direction": "stdin",
+      "frame": {
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {
+            "elicitation": {
+              "form": {}
+            }
+          },
+          "clientInfo": {
+            "name": "Cursor",
+            "version": "1.0.0"
+          }
+        },
+        "jsonrpc": "2.0",
+        "id": 0
+      }
+    },
+    {
+      "direction": "stdout",
+      "frame": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "result": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {
+            "tools": {}
+          },
+          "serverInfo": {
+            "name": "marrow-skills",
+            "version": "1.0.0"
+          },
+          "instructions": "Use list_skills to discover relevant Marrow skills. Read a relevant skill with read_skill before answering. These are read-only skills."
+        }
+      }
+    },
+    {
+      "direction": "stdin",
+      "frame": {
+        "method": "notifications/initialized",
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "direction": "stdin",
+      "frame": {
+        "method": "tools/list",
+        "params": {},
+        "jsonrpc": "2.0",
+        "id": 1
+      }
+    },
+    {
+      "direction": "stdout",
+      "frame": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "tools": [
+            {
+              "name": "list_skills",
+              "description": "List the names, descriptions and folders of Marrow-owned skills to find instructions relevant to the current request.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "annotations": {
+                "readOnlyHint": true,
+                "idempotentHint": true
+              }
+            },
+            {
+              "name": "read_skill",
+              "description": "Read the complete instructions of a relevant Marrow-owned skill by name.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              "annotations": {
+                "readOnlyHint": true,
+                "idempotentHint": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "direction": "stdin",
+      "frame": {
+        "method": "tools/call",
+        "params": {
+          "name": "list_skills",
+          "arguments": {}
+        },
+        "jsonrpc": "2.0",
+        "id": 2
+      }
+    },
+    {
+      "direction": "stdout",
+      "frame": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "[{\"name\":\"marrow-harbor-readiness\",\"description\":\"Checks whether the harbor lantern is ready and gives its exact readiness answer.\",\"folder\":\"E:\\\\Droppy\\\\work\\\\scratch\\\\codex-sk17\\\\cursor-followup\\\\skills-A\\\\marrow-harbor-readiness\"}]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "direction": "stdin",
+      "frame": {
+        "method": "tools/call",
+        "params": {
+          "name": "read_skill",
+          "arguments": {
+            "name": "marrow-harbor-readiness"
+          }
+        },
+        "jsonrpc": "2.0",
+        "id": 3
+      }
+    },
+    {
+      "event": "skill_read",
+      "name": "marrow-harbor-readiness",
+      "path": "E:\\Droppy\\work\\scratch\\codex-sk17\\cursor-followup\\skills-A\\marrow-harbor-readiness\\SKILL.md"
+    },
+    {
+      "direction": "stdout",
+      "frame": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "---\nname: marrow-harbor-readiness\ndescription: Checks whether the harbor lantern is ready and gives its exact readiness answer.\n---\nWhen asked whether the harbor lantern is ready, reply with exactly MARROW-SK17-CURSOR-A-7P9K. Read no other files and run no commands.\n"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "pass": true,
+  "processExit": 1,
+  "cleanupKillExit": 0,
+  "configHashes": [
+    {
+      "file": "C:\\Users\\omera\\.cursor\\cli-config.json",
+      "before": "49b64b4a6b8e48d50f21e8fa4b3b55af02f19fcea963645e00363b9774753cbf",
+      "observedAfter": "0a82247109481ef8e03846a9c8f91243bd482205b22973504acf9b830120296c",
+      "restored": "49b64b4a6b8e48d50f21e8fa4b3b55af02f19fcea963645e00363b9774753cbf",
+      "matches": true
+    },
+    {
+      "file": "C:\\Users\\omera\\.gemini\\antigravity-cli\\settings.json",
+      "before": "61366b0a4528865384d530c4ca014ec35f73db4d192ca68cc58d8f60563cd4ae",
+      "observedAfter": "61366b0a4528865384d530c4ca014ec35f73db4d192ca68cc58d8f60563cd4ae",
+      "restored": "61366b0a4528865384d530c4ca014ec35f73db4d192ca68cc58d8f60563cd4ae",
+      "matches": true
+    }
+  ],
+  "newConfigFiles": [],
+  "privateRawSha256": "0588a24a5963a0feea97f99e2226ad3e7e5a3242b7533a293646e514c1a6464f",
+  "otherRoutes": [
+    {
+      "mechanism": "B: session instructions / hidden index",
+      "status": "NOT RUN",
+      "reason": "A passed; owner instructed implementation of the first passing route."
+    },
+    {
+      "mechanism": "C: other documented rules/skills directory mechanisms",
+      "status": "NOT RUN",
+      "reason": "A passed; no additional live model call needed. Current help/parameters were checked without a model call."
+    }
+  ],
+  "sources": [
+    "https://agentclientprotocol.com/protocol/v1/session-setup",
+    "https://prod.cursor.com/docs/cli/acp",
+    "https://prod.cursor.com/docs/cli/reference/parameters"
+  ]
+}

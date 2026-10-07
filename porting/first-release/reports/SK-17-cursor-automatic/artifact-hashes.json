@@ -1,0 +1,227 @@
+[
+  {
+    "file": "branch-purity.json",
+    "sha256": "BDDEEEECF8A67ECDC0A31ADB189D79C95D4977FD992CEEBDF1A17F141BCCD726",
+    "bytes": 1269
+  },
+  {
+    "file": "cleanup.json",
+    "sha256": "B86545321BEC7F3B5FFB886C2403FF86DC92A23B4CE2267AAFDFE65451FB983B",
+    "bytes": 1203
+  },
+  {
+    "file": "cursor-A-session-mcp.json",
+    "sha256": "B27177929D4F289D14B9E8E8F70CE5E785B02DB037C8A52D7E58C8A4DF18FD14",
+    "bytes": 12042
+  },
+  {
+    "file": "cursor-help.txt",
+    "sha256": "9924D16E22AF462CFDE2EDF0FF3661D1302DBC06B0FCA0A6AD6E0F4DAAB7FA68",
+    "bytes": 5861
+  },
+  {
+    "file": "cursor-version.txt",
+    "sha256": "22EB70B4DD089C62B7ECE7AA62D39E5628553B12374B7C6A472352A035142BF2",
+    "bytes": 20
+  },
+  {
+    "file": "integration-cursor-acp-red-build.log",
+    "sha256": "E7C731472AB43DE6E8A2E05A67C56518A3FDE63E2E4FBD572974908345C55FE1",
+    "bytes": 2089
+  },
+  {
+    "file": "integration-cursor-acp-red2-build.log",
+    "sha256": "A9B4A1C71A4A6C3BD943DAB18E4137AAEF5E37AE02E69AB34863E9535C492308",
+    "bytes": 749
+  },
+  {
+    "file": "integration-cursor-acp-red3-build.log",
+    "sha256": "3C40273A69E56FF36A2A7B5D60BFA7DEB381AE2251DB6AD3DA731A90C3F2DC6F",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-acp-red3-Marrow.App.Tests.log",
+    "sha256": "3875BFCB10937364CA648D3A30E8E9BA0D37B695F0EF462722D20398E63B5F3A",
+    "bytes": 1142
+  },
+  {
+    "file": "integration-cursor-acp-red3-Marrow.Services.Tests.log",
+    "sha256": "9B88ECDA0B1A937EE37B141BE6EE26752F1E349AC784E646F02D77F3F1B1D48D",
+    "bytes": 2242
+  },
+  {
+    "file": "integration-cursor-final-Marrow.App.Tests-build.log",
+    "sha256": "ED46C2EA3B4856C2688C961CDA6D941781DE2B086B829E4194AC5E39B24D70A3",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-final-Marrow.App.Tests-tests.log",
+    "sha256": "9753644A2FCFF30F085F7EB4AD2F5B1B0D2C4BA7156A5F92E38387BEDC506571",
+    "bytes": 123
+  },
+  {
+    "file": "integration-cursor-final-Marrow.Core.Tests-build.log",
+    "sha256": "6FB6A8D99A3270D786E5CD3F2338FA9C3AB7C049DB6EDC14D8A2C3A39F8398A9",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-final-Marrow.Core.Tests-tests.log",
+    "sha256": "F61FD5EBE65A2A273BD7257A33300E9C462087442A9906597A6D428C81E0CAE9",
+    "bytes": 122
+  },
+  {
+    "file": "integration-cursor-final-Marrow.Services.Tests-tests.log",
+    "sha256": "86A897C4BA5D5AA21B99CC4C2DB997E5C9D6789D53AB48F5A9B77064233E5603",
+    "bytes": 916
+  },
+  {
+    "file": "integration-cursor-final2-Marrow.App.Tests-build.log",
+    "sha256": "10915B9A2002C5407191DBB60B7A7EA5C2FA3AD11DA1A7C2088EE94BD9066391",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-final2-Marrow.App.Tests-tests.log",
+    "sha256": "F6E74B07B65196A1BDA3ED571AC030EA838046FD4812C83171AB0FE552A6807B",
+    "bytes": 123
+  },
+  {
+    "file": "integration-cursor-final2-Marrow.Services.Tests-tests.log",
+    "sha256": "141AE2CE5AD7FBEAB8870D5F897645B56BB7DFBB93F0CD402B65A78FB8D2A0CD",
+    "bytes": 128
+  },
+  {
+    "file": "integration-cursor-green-build.log",
+    "sha256": "18D5CC19F03F97B4E0DE1C457F888C9BE18378623E45FC159FC829A59C98F33E",
+    "bytes": 687
+  },
+  {
+    "file": "integration-cursor-green2-build.log",
+    "sha256": "27AB88B3937543F39B7FC4A599A84B6D6A03A937BDF3CC1AED75CC96964A2AFE",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-green2-Marrow.App.Tests.log",
+    "sha256": "5D0359226D9A81FC6428FFCFAEE160BDB17D8F146A64D91B3C81C7124E5C2355",
+    "bytes": 121
+  },
+  {
+    "file": "integration-cursor-green2-Marrow.Services.Tests.log",
+    "sha256": "A8FE1AE4226381598E04B7E0CBAC214891111E120E70D9BC58328FF5ECED4B74",
+    "bytes": 123
+  },
+  {
+    "file": "integration-cursor-green3-build.log",
+    "sha256": "23EEC53B359D2B34CF0FC0FCC07A1F45885A7749793A2D0DD626962E1FE81003",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-green3-Marrow.App.Tests.log",
+    "sha256": "07D42B3F4E3B2FEEA9A59B6C1BFEAFA4167E6E9C0B65D68B41C7A50425D53466",
+    "bytes": 121
+  },
+  {
+    "file": "integration-cursor-green3-Marrow.Services.Tests.log",
+    "sha256": "E693F008EC485CCAEF5AEE2810DAE712DEBFEC1369B3A22E4146B8D82156BE21",
+    "bytes": 123
+  },
+  {
+    "file": "integration-cursor-isolated-A_probe_that_never_answers_is_terminated_after_thirty_seconds_and_lists_no_models-1.log",
+    "sha256": "0AF02D0FE84489D0B11C383DCDD5D9BC9A1DB85F524799E3188382ABC9CCCA44",
+    "bytes": 126
+  },
+  {
+    "file": "integration-cursor-isolated-A_probe_that_never_answers_is_terminated_after_thirty_seconds_and_lists_no_models-2.log",
+    "sha256": "5F58FED94CFDE463A31A0E02376A1161AA7D3A25D7AE23EB38C12C40EEEF6BE1",
+    "bytes": 126
+  },
+  {
+    "file": "integration-cursor-isolated-Request_from_an_already_cancelled_caller_resolves_null_and_writes_no_line-1.log",
+    "sha256": "738D9885236B98DB94A9A292CE4CEEF8AC70C8987F020FCF86A86C6234611D65",
+    "bytes": 126
+  },
+  {
+    "file": "integration-cursor-isolated-Request_from_an_already_cancelled_caller_resolves_null_and_writes_no_line-2.log",
+    "sha256": "500512AA05908B2D22E674F797808A9238760A175FE23C9ADEADBC13E736C837",
+    "bytes": 126
+  },
+  {
+    "file": "integration-cursor-permission-red-build.log",
+    "sha256": "207008ECFDBF1DD874F8611CD1E5767968701DEE9E6C4F53688435677B89B86C",
+    "bytes": 687
+  },
+  {
+    "file": "integration-cursor-permission-red2-build.log",
+    "sha256": "F5DFB12C78C4934F56F4EC00E98D8049B85215887822380E4389AC786FC0251E",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-permission-red2-Marrow.App.Tests.log",
+    "sha256": "165F9545C6890BDE80F0E3B24B2005309E9F0376BF02DCE1841BFC5366D47BEE",
+    "bytes": 121
+  },
+  {
+    "file": "integration-cursor-permission-red2-Marrow.Services.Tests.log",
+    "sha256": "C64EF1CEC425067E9B4BCA65DADDE17D279AFA3E88C8C5FC2918F2C6E859EF8F",
+    "bytes": 341
+  },
+  {
+    "file": "integration-cursor-red-build.log",
+    "sha256": "A4B80D6A312C3F479E4D6C769D5809DD3805645164A50EB21615223A6F6A2468",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-red-Marrow.App.Tests.log",
+    "sha256": "0A7F0DA612A564A544255F1CBF976D21CD7B7726858832145CC685FD31EDABA0",
+    "bytes": 1142
+  },
+  {
+    "file": "integration-cursor-red-Marrow.Services.Tests.log",
+    "sha256": "8DBAF409D5F212AA65AB72AAE900B5C57B3F047634AF4B0919B7D17C38D499D7",
+    "bytes": 1492
+  },
+  {
+    "file": "integration-cursor-startup-build.log",
+    "sha256": "F073C14DC3BFE452F0409239AD6699B9835EE0A724F1A4901F62FD18D069278F",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-startup-old-1.log",
+    "sha256": "3DAB127F51C8473BB390E39B2AD0740773D5845C329FA01CB5751BAF38626B50",
+    "bytes": 255
+  },
+  {
+    "file": "integration-cursor-startup-old-2.log",
+    "sha256": "3DAB127F51C8473BB390E39B2AD0740773D5845C329FA01CB5751BAF38626B50",
+    "bytes": 255
+  },
+  {
+    "file": "integration-cursor-startup-tests.log",
+    "sha256": "ADBB937F448D984336BFAE2A4BB0C6C87B918B36C21DB4BC3978C35EC794767F",
+    "bytes": 121
+  },
+  {
+    "file": "integration-cursor-version-red-tests.log",
+    "sha256": "B40484322B30D7E24887EA29BE2A5225D60A9D076571412CA2362E066151BAAA",
+    "bytes": 236
+  },
+  {
+    "file": "integration-cursor-wait-red-build.log",
+    "sha256": "49A3D2FD5651B4B8B9F4D60E31B1A065A7308CF6AD425290EC7BF17BBD82004E",
+    "bytes": 82
+  },
+  {
+    "file": "integration-cursor-wait-red-tests.log",
+    "sha256": "ED970F79F726C5DE873F1A8B3B56C2C48BC3EDCC63D2D0FE4B0F483F2D2CB23A",
+    "bytes": 354
+  },
+  {
+    "file": "live-probe-driver.cjs",
+    "sha256": "B7E5C4D755BEB99BD2C4FA9977154D0E200B0F1BA1839EAC0DF6991687B9396B",
+    "bytes": 7719
+  },
+  {
+    "file": "live-probe-server.cjs",
+    "sha256": "FCB9EBD0E412E23D20201A385277ABDE8EB112A72E0CEB0405A9780312C59C3B",
+    "bytes": 2647
+  }
+]

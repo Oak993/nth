@@ -23,6 +23,7 @@ public sealed class CapturePipeline : IDisposable
     public static readonly TimeSpan PumpInterval = TimeSpan.FromMilliseconds(10);
 
     private readonly DeviceFormat format;
+    private readonly CaptureFormat captureFormat;
     private readonly IAudioCaptureSink sink;
     private readonly SampleRing ring;
     private readonly float[] scratch;
@@ -39,6 +40,7 @@ public sealed class CapturePipeline : IDisposable
     public CapturePipeline(DeviceFormat format, IAudioCaptureSink sink, bool runThread = true)
     {
         this.format = format;
+        captureFormat = format.ToCaptureFormat();
         this.sink = sink;
         ring = new SampleRing(format.SampleRate * format.Channels * RingSeconds);
         scratch = new float[Math.Max(1, format.SampleRate / 2) * format.Channels]; // half a second of whole frames: a device buffer is 100 ms or less
@@ -124,7 +126,22 @@ public sealed class CapturePipeline : IDisposable
             ArrayPool<float>.Shared.Return(samples);
             return;
         }
+        Tap(samples.AsSpan(0, read));
         outbox.Enqueue(new Batch(samples, read, null));
+    }
+
+    // V-2.2 items 2 and 4 (VT-11): the sink's tap gets the batch here, on the thread that drained the ring (the processing thread, or the caller of Flush), before the batch is posted
+    // to the main executor. A tap that throws loses nothing: the batch still goes on to the sink.
+    private void Tap(ReadOnlySpan<float> samples)
+    {
+        try
+        {
+            sink.OnAudioBlock(captureFormat, samples);
+        }
+        catch (Exception)
+        {
+            // The level is only for the orb; the audio itself is unaffected.
+        }
     }
 
     private void Deliver()

@@ -1,0 +1,140 @@
+{
+  "origin": {
+    "commit": "20e15c8ffdd838665ed120f66ea2bc49928a8361",
+    "path": "tests/fixtures/aurora/manifest.json",
+    "sha256": "967e387ce0e9ef684ee74e0163fbbfbe0fb427b6d8cc969fc71481277dd991a7"
+  },
+  "sources": [
+    {
+      "path": "porting/first-release/design-src/app-icon/src/iconkit.js",
+      "sha256": "930efb3d74ba7913e863139b8bda322ccd7d26ed67d40662c389480ab18d0b75"
+    },
+    {
+      "path": "porting/first-release/design-src/app-icon/src/icons-a-j/D-aurora.js",
+      "sha256": "a5b97966a4ba80020123536074ded566b3e2818a15fd0a3de023cf06a2feb0b2"
+    }
+  ],
+  "launchDurationMs": 1200,
+  "idlePeriodMs": 7200,
+  "tolerancePerChannel": 2,
+  "sizes": [
+    16,
+    24,
+    32,
+    48,
+    64,
+    256,
+    512
+  ],
+  "themes": [
+    "dark",
+    "light"
+  ],
+  "times": [
+    {
+      "mode": "still",
+      "ms": 0,
+      "launch": 1,
+      "idle": 0,
+      "still": true
+    },
+    {
+      "mode": "launch",
+      "ms": 0,
+      "launch": 0,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "launch",
+      "ms": 120,
+      "launch": 0.1,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "launch",
+      "ms": 300,
+      "launch": 0.25,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "launch",
+      "ms": 540,
+      "launch": 0.45,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "launch",
+      "ms": 780,
+      "launch": 0.65,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "launch",
+      "ms": 1020,
+      "launch": 0.85,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "launch",
+      "ms": 1200,
+      "launch": 1,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "idle",
+      "ms": 0,
+      "launch": 1,
+      "idle": 0,
+      "still": false
+    },
+    {
+      "mode": "idle",
+      "ms": 900,
+      "launch": 1,
+      "idle": 0.9,
+      "still": false
+    },
+    {
+      "mode": "idle",
+      "ms": 1800,
+      "launch": 1,
+      "idle": 1.8,
+      "still": false
+    },
+    {
+      "mode": "idle",
+      "ms": 3600,
+      "launch": 1,
+      "idle": 3.6,
+      "still": false
+    },
+    {
+      "mode": "idle",
+      "ms": 5400,
+      "launch": 1,
+      "idle": 5.4,
+      "still": false
+    },
+    {
+      "mode": "idle",
+      "ms": 6300,
+      "launch": 1,
+      "idle": 6.3,
+      "still": false
+    },
+    {
+      "mode": "idle",
+      "ms": 7200,
+      "launch": 1,
+      "idle": 7.2,
+      "still": false
+    }
+  ]
+}

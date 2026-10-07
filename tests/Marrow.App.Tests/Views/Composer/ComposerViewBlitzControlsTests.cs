@@ -538,7 +538,7 @@ public sealed class ComposerViewBlitzControlsTests(HeadlessSession headless)
             using var h = RuntimeHarness();
             foreach (var compact in new[] { false, true })
             {
-                ComposerControls Make() => new(h.Runtime, h.Thread, compact, false, false, false, null, Binding<bool>.Constant(false), _ => { }, () => { }, () => { });
+                ComposerControls Make() => new(h.Runtime, h.Thread, compact, false, false, null, () => { });
                 var wide = h.Main.OnMain(Make);
                 var wideWindow = h.Main.OnMain(() => Show(wide, h.App, 600));
                 Pump(h, wideWindow);
@@ -549,7 +549,7 @@ public sealed class ComposerViewBlitzControlsTests(HeadlessSession headless)
                 {
                     var wideRow = Assert.IsType<StackPanel>(wide.Child);
                     var narrowRow = Assert.IsType<StackPanel>(narrow.Child);
-                    Assert.Equal(compact ? 3 : 4, wideRow.Children.Count);
+                    Assert.Equal(compact ? 2 : 3, wideRow.Children.Count); // without the attach button, which is the pill's left now (V-14.1, owner-ruled)
                     for (var index = 1; index < wideRow.Children.Count; index++)
                         Assert.Equal(2, Frame(wideRow.Children[index], wideRow).X - Frame(wideRow.Children[index - 1], wideRow).Right, 5); // 2 points apart
                     // Avalonia clamps a control's own DesiredSize to what it was offered; the row inside it is measured unconstrained,

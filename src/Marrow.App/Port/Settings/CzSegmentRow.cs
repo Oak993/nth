@@ -11,10 +11,10 @@ internal sealed class CzSegmentRow
     internal CzSegmentedControl Control { get; }
 
     /// <param name="picked">The user picked an option (its id); an echo of the setting's own change is not reported.</param>
-    internal CzSegmentRow(string title, string detail, IReadOnlyList<(string Id, string Text)> options, string selected, Action<string> picked)
+    internal CzSegmentRow(string title, string detail, IReadOnlyList<(string Id, string Text)> options, string selected, Action<string> picked, bool stacked = false)
     {
         Control = new CzSegmentedControl(title, options, selected, small: true);
-        Row = new CzRow(title, detail, Control, dimmed => Control.Dimmed = dimmed);
+        Row = new CzRow(title, detail, Control, dimmed => Control.Dimmed = dimmed, stacked: stacked);
         Control.SelectionChanged += id => { if (!showing) picked(id); };
     }
 

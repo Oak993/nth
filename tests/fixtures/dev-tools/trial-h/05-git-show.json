@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "05-git-show",
+  "commandLine": "winget show --id Git.Git -e --source winget --accept-source-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "show",
+    "--id",
+    "Git.Git",
+    "-e",
+    "--source",
+    "winget",
+    "--accept-source-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": 0,
+  "stdout": "Found Git [Git.Git]\r\nVersion: 2.55.0.5\r\nPublisher: The Git Development Community\r\nPublisher Url: https://gitforwindows.org/\r\nPublisher Support Url: https://github.com/git-for-windows/git/issues\r\nMoniker: git\r\nDescription:\r\n  Git is a free and open source distributed version control system designed to handle everything from small to very large projects with speed and efficiency.\r\n  Git for Windows focuses on offering a lightweight, native set of tools that bring the full feature set of the Git SCM to Windows while providing appropriate user interfaces for experienced Git users and novices alike.\r\nHomepage: https://gitforwindows.org/\r\nLicense: GPL-2.0\r\nLicense Url: https://github.com/git-for-windows/build-extra/blob/HEAD/LICENSE.txt\r\nCopyright: Copyright (C) 1989, 1991 Free Software Foundation, Inc.\r\nRelease Notes:\r\n  Changes since Git for Windows v2.55.0(4) (August 11th 2026)\r\n  Following the MSYS2 project, on which Git for Windows is based, Windows 8.1 support will be dropped after Git for Windows v2.55.\r\n  New Features\r\n  - The experimental git survey command (which was never upstreamed to the core Git project) was deprecated and converted into a small shim on top of git repo structure. In the future, git repo structure should be used instead, as the git survey command will be retired eventually.\r\n  - Git for Windows' installer is now a 64-bit executable (x64 instead of 86).\r\n  - Comes with the MSYS2 runtime (Git for Windows flavor) based on Cygwin v3.6.10.\r\n  - Comes with OpenSSH v10.5.P1.\r\n  Bug Fixes\r\n  - The long-standing bug where Git Bash's screen was cleared after git.exe called vim (e.g. to edit a commit message) was fixed.\r\n  - The Bash executables in the 64-bit and ARM64 distributions no longer carry an invalid Authenticode signature.\r\nRelease Notes Url: https://github.com/git-for-windows/git/releases/tag/v2.55.0.windows.5\r\nDocumentation:\r\n  Wiki: https://github.com/git-for-windows/git/wiki\r\nTags:\r\n  git\r\n  vcs\r\nInstaller:\r\n  Installer Type: inno\r\n  Installer Url: https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.5/Git-2.55.0.5-64-bit.exe\r\n  Installer SHA256: d065a4e23c3d9a6b5073d609b5be0830227ec3ca053c083ba385061ddfaf94c6\r\n  Release Date: 2026-08-20\r\n  Offline Distribution Supported: true\r\n",
+  "stderr": "",
+  "durationMs": 337.2147,
+  "versionsBefore": "2.54.0.windows.1",
+  "versionsAfter": "2.54.0.windows.1",
+  "timestamp": "2026-10-05T15:25:19.7953954+00:00",
+  "finishedAt": "2026-10-05T15:25:20.1514091+00:00"
+}

@@ -31,10 +31,13 @@ public enum UpdateRowState
     Updating,
     Updated,
     Failed,
+
+    /// <summary>The updater accepted an asynchronous request; installation has not yet been verified (lead UE-3 ruling).</summary>
+    UpdatingInBackground,
 }
 
 /// <summary>What one item's update did. <see cref="Changed"/> is true when the installed version moved; <see cref="RestartRequired"/> is true when the app must restart to use it (Marrow's own update, UE-1).</summary>
-public sealed record UpdateOutcome(bool Succeeded, string? NewVersion, bool Changed, bool RestartRequired, string? Message);
+public sealed record UpdateOutcome(bool Succeeded, string? NewVersion, bool Changed, bool RestartRequired, string? Message, bool UpdatingInBackground = false);
 
 /// <summary>One row of the Updates page and of the pill's list (places A and D of OD-0100). Progress is null while the amount is not known (a CLI's own updater reports none).</summary>
 public sealed record UpdateRow(string Id, string Title, UpdateItemKind Kind, UpdateRowState State, string? Installed, string? Latest, double? Progress, string? Message, bool RestartRequired);

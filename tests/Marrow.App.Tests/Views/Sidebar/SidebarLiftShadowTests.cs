@@ -56,8 +56,17 @@ public sealed class SidebarLiftShadowTests(HeadlessSession headless)
         {
             harness.Main.OnMain(() =>
             {
-                var lift = (Border)((Panel)host).Children[0];
+                var lift = LiftOf(host);
                 Assert.Equal(1d, lift.Opacity);
+                // ED-358: the real fill (the label colour's 0.85 at 0.12: 26 of 255) casts black 0.28 at its own alpha, so the shadow
+                // is 0.029 at its strongest (it was the colour's full 0.28): just below the row the white reads 1 - 0.029 x 0.64, about 4.7 levels.
+                var below = lift.TranslatePoint(new Point(lift.Bounds.Width / 2, lift.Bounds.Height), window)!.Value;
+                var dark = 255 * (1 - FramePixels.Levels(window, ((int)below.X, (int)Math.Ceiling(below.Y) + 1))[0]);
+                Assert.InRange(dark, 2.5, 7.5);
+                // The sigma is fitted on the same caster with the fill made opaque (black 1.0 casts the colour's full 0.28): the falloff then spans
+                // 71 levels, where the real fill's 7 are too coarse to fit a sigma to.
+                lift.Background = Brushes.Black;
+                lift.Opacity = 1;
                 var scale = ((ScaleTransform)host.RenderTransform!).ScaleX;
                 Assert.Equal(1.02, scale, 4);
                 var topLeft = lift.TranslatePoint(new Point(0, 0), window)!.Value;

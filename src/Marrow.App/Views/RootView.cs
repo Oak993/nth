@@ -59,6 +59,13 @@ public sealed class RootView : Decorator
     private readonly SidebarResizeHandle leadingHandleConfig;
     private readonly DragHandleView leadingHandle;
     private readonly DetailView detailView = new();
+
+    /// <summary>WV-1: the Welcome voice question the detail pane draws on the empty page (see <see cref="DetailView.VoiceQuestion"/>).</summary>
+    internal Marrow.App.Port.Voice.VoiceSpeedQuestion? VoiceQuestion
+    {
+        get => detailView.VoiceQuestion;
+        set => detailView.VoiceQuestion = value;
+    }
     private readonly Border detailClip;
     private readonly Border detailPadded;
     private readonly Panel detailSlot = new OverlayPanel();
@@ -642,6 +649,22 @@ public sealed class DetailView : Decorator
     private ThreadColumns? columns;
     private AppModel? columnModel;
     private ObservationTracker? runningObservation;
+    private Marrow.App.Port.Voice.VoiceSpeedQuestion? voiceQuestion;
+
+    /// <summary>
+    /// WV-1 (OD-0098 welcome-voice pick): the Welcome voice question the empty page draws (a "Voice typing" section above Activity). When the page gives way to a thread or the no-thread page the question is told
+    /// Welcome has gone, so an open slow-PC question is asked at the next orb click (the orb's wiring is VT-12's).
+    /// </summary>
+    internal Marrow.App.Port.Voice.VoiceSpeedQuestion? VoiceQuestion
+    {
+        get => voiceQuestion;
+        set
+        {
+            if (ReferenceEquals(voiceQuestion, value)) return;
+            voiceQuestion = value;
+            Rebuild();
+        }
+    }
 
     // :147 combined-session input idle. Windows' session-wide last-input tick is the Quartz counterpart;
     // the ambient seam lets headless tests exercise the one-second gate without the user's real pointer.
@@ -737,6 +760,7 @@ public sealed class DetailView : Decorator
         // :130 `if let threadID = model.selectedThreadID, model.thread(threadID) != nil`
         if (model.SelectedThreadID is { } threadID && model.Thread(threadID) is not null)
         {
+            voiceQuestion?.CloseWelcome();
             if (shown != threadID) prebuilt.Clear(); // :133 onChange(threadID)
             shown = threadID;
             var running = model.Threads.Where(thread => model.ExistingRuntime(thread.Id)?.IsRunning == true).Select(thread => thread.Id).ToHashSet();
@@ -760,7 +784,8 @@ public sealed class DetailView : Decorator
         runningObservation = null;
 
         // :156-164 the empty states, frame(maxWidth:.infinity,maxHeight:.infinity).detailSheet()
-        Control content = model.Projects.Count == 0 ? new WelcomeView() : new NoThreadView();
+        if (model.Projects.Count != 0) voiceQuestion?.CloseWelcome();
+        Control content = model.Projects.Count == 0 ? new WelcomeView(voiceQuestion) : new NoThreadView();
         content.HorizontalAlignment = HorizontalAlignment.Stretch;
         content.VerticalAlignment = VerticalAlignment.Stretch;
         Child = content.DetailSheet();
@@ -899,9 +924,13 @@ public sealed class WelcomeView : Decorator
     // plain string computed once, not a reactive binding.
     private StackPanel? column;
     private ActivityThreadStyle? builtStyle;
+    private readonly Marrow.App.Port.Voice.VoiceSpeedQuestion? voice;
+    private int activityIndex = 2;
 
-    public WelcomeView()
+    /// <param name="voice">WV-1 (OD-0098): the voice question; with it a "Voice typing" section stands above Activity (variant A), without it the page is the source's.</param>
+    public WelcomeView(Marrow.App.Port.Voice.VoiceSpeedQuestion? voice = null)
     {
+        this.voice = voice;
         this.Track(() => AppEnvironment.GetAppModel(this), Build);
         // :331 ChromeRow(detail: settings.activityThreadStyle.detail): only that section is evaluated again; the ScrollView
         // (its offset, its focus) keeps its identity as SwiftUI keeps it.
@@ -909,7 +938,7 @@ public sealed class WelcomeView : Decorator
         {
             if (column is null || builtStyle == style) return;
             builtStyle = style;
-            column.Children[2] = MakeActivitySection(AppEnvironment.GetAppModel(this));
+            column.Children[activityIndex] = MakeActivitySection(AppEnvironment.GetAppModel(this));
         });
     }
 
@@ -985,6 +1014,14 @@ public sealed class WelcomeView : Decorator
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 30, HorizontalAlignment = HorizontalAlignment.Stretch };
         column.Children.Add(identity);
         column.Children.Add(addProjectStack);
+        // WV-1 (OD-0098 "Place A"): the Voice typing section above Activity, in Welcome's own section pattern, capped at 480 as its siblings are.
+        activityIndex = 2;
+        if (voice is not null)
+        {
+            var voiceSection = new Marrow.App.Port.FirstRun.WelcomeVoiceSection(voice) { HorizontalAlignment = HorizontalAlignment.Stretch };
+            column.Children.Add(voiceSection);
+            activityIndex = 3;
+        }
         column.Children.Add(activitySection);
         column.Children.Add(providersSection);
         this.column = column;

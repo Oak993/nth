@@ -115,7 +115,13 @@ public sealed class CzMenuButton : CzButton
     {
         if (!IsEffectivelyEnabled) return;
         var item = Items.FirstOrDefault(x => x.Id == id) ?? throw new ArgumentOutOfRangeException(nameof(id));
-        SelectedId = id; valueText = null; ValueLabel.SetText(item.Label.Text!); UpdateChecks(); MeasureLabels(); SelectionChanged?.Invoke(id); CloseMenu();
+        Show(id); SelectionChanged?.Invoke(id); CloseMenu();
+    }
+    /// <summary>Mirrors an external setting without emitting a user's pick, also while dimmed.</summary>
+    public void Show(string id)
+    {
+        var item = Items.FirstOrDefault(x => x.Id == id) ?? throw new ArgumentOutOfRangeException(nameof(id));
+        SelectedId = id; valueText = null; ValueLabel.SetText(item.Label.Text!); UpdateChecks(); MeasureLabels();
     }
     private void UpdateChecks() { foreach (var item in Items) item.SetChecked(item.Id == SelectedId); }
     public Rect Place(Rect button, Rect viewport, bool stacked)

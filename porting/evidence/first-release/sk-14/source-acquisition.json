@@ -1,0 +1,8 @@
+{
+  "base_design_tree": "design-tree.txt",
+  "design_path_from_plan": "E:\\Droppy\\work\\design\\decisions-2026-10-04\\skills-downloads\\",
+  "windows_tool": "McpServerError: Tunnel-client has not been seen for 300 seconds. Ensure tunnel-client is running and connected.",
+  "artifact_url": "https://claude.ai/artifact/KBarrEq1xKGAjx1KnapYnF",
+  "artifact_fetch": "curl: (22) The requested URL returned error: 403",
+  "offer_a_and_s1_design_present": false
+}

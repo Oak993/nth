@@ -80,10 +80,9 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
         rig.Do(() => rig.Page.Aura!.Speed.Slider.SetValue(22.5));
         rig.Do(() => rig.Page.StyleCards!.Select("off"));
         var open = rig.Get(() => rig.Page.Sticky.Children.OfType<CzSection>().Where(s => s.Open).ToList());
-        var only = Assert.Single(open);
-        Assert.Same(rig.Page.Off, only);
-        Assert.Null(only.Title);
-        var note = Assert.IsType<CzNoteRow>(Assert.Single(only.Rows.Slots).Row);
+        Assert.Equal([rig.Page.Off!, rig.Page.Voice!.Section, rig.Page.Dots!.Section], open);
+        Assert.Null(rig.Page.Off!.Title);
+        var note = Assert.IsType<CzNoteRow>(Assert.Single(rig.Page.Off.Rows.Slots).Row);
         Assert.Equal("The composer has no light. Your Border beam and Uiverse light settings are kept for when you turn one back on.", note.Text.Text);
         Assert.Equal(7.25, rig.Light.Beam.Duration);
         Assert.Equal(22.5, rig.Light.Aura.Speed);
@@ -91,7 +90,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
         Assert.Equal(7.25, rig.Page.Beam!.Speed.Slider.Value);
         Assert.Equal(22.5, rig.Page.Aura!.Speed.Slider.Value);
         Assert.Equal(ComposerLightStyle.Beam, rig.Light.Style);
-        Assert.False(only.Open);
+        Assert.False(rig.Page.Off.Open);
     });
 
     [Fact]

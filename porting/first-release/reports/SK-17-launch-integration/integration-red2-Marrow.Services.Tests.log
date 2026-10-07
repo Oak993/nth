@@ -1,0 +1,7 @@
+  Failed Marrow.Services.Tests.Port.Skills.Providers.AntigravitySkillsComposerTests.The_host_composes_installed_pins_current_switches_defaults_and_user_clashes [55 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.Services.Tests.Port.Skills.Providers.AntigravitySkillsComposerTests.A_fresh_host_still_builds_a_verified_empty_generation_without_writing_provider_files [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 77 ms - Marrow.Services.Tests.dll (net10.0)

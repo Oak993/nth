@@ -53,6 +53,9 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
+        if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
+            return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
@@ -102,12 +105,15 @@ public static class Program
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
         // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
         var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
+        if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
             Args = args,
             ShutdownMode = ShutdownMode.OnExplicitShutdown,
         };
+        AuroraBootWarmup.Register(); // OD-0113: the imported renderer joins the same awaited preparation
+        AuroraLoaderWarmup.Register(); // OD-0113 / OD-0108: before the first preparation plan or GPU warm-up
         MarrowApplication.BuildAvaloniaApp().SetupWithLifetime(lifetime);
         // ED-065, R-ISO-1: the main actor is Avalonia's UI thread, bound before any window and before the hang
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.

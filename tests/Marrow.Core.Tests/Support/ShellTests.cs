@@ -21,6 +21,14 @@ public sealed class ShellTests
 
     private static bool Eventually(Func<bool> condition) => SpinWait.SpinUntil(condition, Bound);
 
+    // A failed launch is a failure now, rather than a blind 60-second poll for an impossible signal.
+    private static async Task WaitForArmed(Task pending, string armed)
+    {
+        Assert.True(Eventually(() => File.Exists(armed) || pending.IsCompleted), "the child never armed its Ctrl+Break handler");
+        if (pending.IsCompleted) await pending;
+        Assert.True(File.Exists(armed), "the child never armed its Ctrl+Break handler");
+    }
+
     // ---- ShellResult and ShellError (:4-29) ----
 
     [Fact]
@@ -296,8 +304,8 @@ public sealed class ShellTests
         using var runtime = new TestRuntime();
         var armed = Path.Join(ProcessTestFolders.Create("shell timeout"), "armed");
         var run = ShellScripts.Run(ShellScripts.BreakChild(exitsOnBreak: true, armed));
-        Assert.True(Eventually(() => File.Exists(armed)), "the child never armed its Ctrl+Break handler");
-        Assert.True(Eventually(() => runtime.Time.ActiveTimers == 1), "no deadline was armed");
+        await WaitForArmed(run, armed);
+        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(120))), "no deadline was armed");
         runtime.Advance(TimeSpan.FromSeconds(120) - TimeSpan.FromTicks(1));
         Assert.False(run.IsCompleted);
         runtime.Advance(TimeSpan.FromTicks(1));
@@ -317,11 +325,11 @@ public sealed class ShellTests
         using var runtime = new TestRuntime();
         var armed = Path.Join(ProcessTestFolders.Create("shell kill"), "armed");
         var run = ShellScripts.Run(ShellScripts.BreakChild(exitsOnBreak: false, armed));
-        Assert.True(Eventually(() => File.Exists(armed)), "the child never armed its Ctrl+Break handler");
-        Assert.True(Eventually(() => runtime.Time.ActiveTimers == 1), "no deadline was armed");
+        await WaitForArmed(run, armed);
+        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(120))), "no deadline was armed");
         runtime.Advance(TimeSpan.FromSeconds(120));
         // The graceful step has been sent once the one-second kill is scheduled (Shell.swift:112-113).
-        Assert.True(Eventually(() => runtime.Time.ActiveTimers == 1), "the kill was never scheduled");
+        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(121))), "the kill was never scheduled");
         Assert.False(SpinWait.SpinUntil(() => run.IsCompleted, TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
         runtime.Advance(TimeSpan.FromSeconds(1) - TimeSpan.FromTicks(1));
         Assert.False(run.IsCompleted);
@@ -360,7 +368,7 @@ public sealed class ShellTests
         using var runtime = new TestRuntime();
         var armed = Path.Join(ProcessTestFolders.Create("shell cancel"), "armed");
         var handle = TaskHandle.DetachedThrowing(() => ShellScripts.Run(ShellScripts.BreakChild(exitsOnBreak: true, armed)));
-        Assert.True(Eventually(() => File.Exists(armed)), "the child never armed its Ctrl+Break handler");
+        await WaitForArmed(handle.Value, armed);
         handle.Cancel();
         await Assert.ThrowsAsync<CancellationError>(() => handle.Value.WaitAsync(Bound));
     }
@@ -374,11 +382,12 @@ public sealed class ShellTests
         using var runtime = new TestRuntime();
         var armed = Path.Join(ProcessTestFolders.Create("shell cancel kill"), "armed");
         var handle = TaskHandle.DetachedThrowing(() => ShellScripts.Run(ShellScripts.BreakChild(exitsOnBreak: false, armed)));
-        Assert.True(Eventually(() => File.Exists(armed)), "the child never armed its Ctrl+Break handler");
-        Assert.True(Eventually(() => runtime.Time.ActiveTimers == 1), "no deadline was armed");
+        await WaitForArmed(handle.Value, armed);
+        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(120))), "no deadline was armed");
         handle.Cancel();
         // The deadline sleep is not the kill: the kill is a second timer, one second out.
-        Assert.True(Eventually(() => runtime.Time.ActiveTimers == 2), "the kill was never scheduled");
+        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.SequenceEqual([TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(120)])),
+            "the one-second kill must be scheduled alongside the still-pending 120-second deadline");
         Assert.False(SpinWait.SpinUntil(() => handle.Value.IsCompleted, TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
         runtime.Advance(TimeSpan.FromSeconds(1));
         await Assert.ThrowsAsync<CancellationError>(() => handle.Value.WaitAsync(Bound));
@@ -443,8 +452,8 @@ public sealed class ShellTests
         var armed = Path.Join(ProcessTestFolders.Create("shell tool timeout"), "armed");
         var run = Shell.RunTool(SystemTools.PowerShell, ShellScripts.Arguments(ShellScripts.BreakChild(exitsOnBreak: true, armed)),
             timeout: 7);
-        Assert.True(Eventually(() => File.Exists(armed)), "the child never armed its Ctrl+Break handler");
-        Assert.True(Eventually(() => runtime.Time.ActiveTimers == 1), "no deadline was armed");
+        await WaitForArmed(run, armed);
+        Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(7))), "no deadline was armed");
         runtime.Advance(TimeSpan.FromSeconds(7) - TimeSpan.FromTicks(1));
         Assert.False(run.IsCompleted);
         runtime.Advance(TimeSpan.FromTicks(1));

@@ -1,0 +1,16 @@
+  Failed Marrow.App.Tests.Port.Skills.CursorSkillsLaunchTests.Cursor_default_preparation_uses_the_bound_host [2 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.CursorSkillsLaunchTests.Cursor_new_and_resumed_runtime_sessions_receive_verified_owned_generations(resume: null) [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.CursorSkillsLaunchTests.Cursor_new_and_resumed_runtime_sessions_receive_verified_owned_generations(resume: "prior-cursor-chat") [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.CursorSkillsLaunchTests.Cursor_keeps_the_lease_until_the_actual_child_exit_before_replacement [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+  Failed Marrow.App.Tests.Port.Skills.CursorSkillsLaunchTests.Cursor_stop_during_preparation_cannot_launch_a_late_child [< 1 ms]
+  Error Message:
+   Assert.NotNull() Failure: Value is null
+Failed!  - Failed:     5, Passed:    14, Skipped:     0, Total:    19, Duration: 696 ms - Marrow.App.Tests.dll (net10.0)

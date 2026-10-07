@@ -1,0 +1,7 @@
+  Failed Marrow.Services.Tests.Providers.PiSessionTests.Request_from_an_already_cancelled_caller_resolves_null_and_writes_no_line [82 ms]
+  Error Message:
+   System.IO.IOException : The process cannot access the file 'C:\Users\omera\AppData\Local\Temp\one-27464\pi-stand-in\request-already-cancelled-c31d7cc87b824448b399749543ee4ca6\control\stdin-1.txt' because it is being used by another process.
+  Failed Marrow.Services.Tests.Providers.PiCLITests.A_probe_that_never_answers_is_terminated_after_thirty_seconds_and_lists_no_models [73 ms]
+  Error Message:
+   System.IO.IOException : The process cannot access the file 'C:\Users\omera\AppData\Local\Temp\one-27464\pi-stand-in\probe-silent-a84708951a6448aca86db81cc2c328f2\control\stdin-1.txt' because it is being used by another process.
+Failed!  - Failed:     2, Passed:  2921, Skipped:     0, Total:  2923, Duration: 2 m 9 s - Marrow.Services.Tests.dll (net10.0)

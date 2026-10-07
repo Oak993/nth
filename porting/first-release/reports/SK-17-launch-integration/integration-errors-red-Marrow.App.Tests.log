@@ -1,0 +1,10 @@
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Unreadable_switches_fail_with_localized_provider_text_and_are_preserved [43 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Failed_start_releases_its_lease_and_allows_the_same_chat_to_start_again [51 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.A_reused_session_refuses_a_generation_damaged_between_turns [58 ms]
+  Error Message:
+   Assert.Throws() Failure: Exception type was not an exact match
+Failed!  - Failed:     3, Passed:    11, Skipped:     0, Total:    14, Duration: 929 ms - Marrow.App.Tests.dll (net10.0)

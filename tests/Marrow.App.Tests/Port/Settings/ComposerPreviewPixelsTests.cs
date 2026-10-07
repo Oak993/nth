@@ -43,7 +43,7 @@ public sealed class ComposerPreviewPixelsTests(HeadlessSession headless)
             Rect Frame(Visual v) => new(v.TranslatePoint(default, window)!.Value, v.Bounds.Size);
             var ringRect = Frame(preview.Ring);
             var ring = PreviewPixels.Region(window, ringRect);
-            var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(preview.Chip).Last();
+            var chevron = RealComposerRig.Chevron(preview.Chip);
             var chip = Frame(preview.Chip);
             var chevronRect = Frame(chevron);
             var end = new Rect(chevronRect.X - 4, chip.Y, chip.Right - chevronRect.X + 4, chip.Height);

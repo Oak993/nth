@@ -1,0 +1,7 @@
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Stop_during_preparation_discards_the_late_generation_without_starting_a_child [41 ms]
+  Error Message:
+   Assert.Throws() Failure: No exception was thrown
+  Failed Marrow.App.Tests.Port.Skills.AntigravitySkillsLaunchTests.Stop_keeps_the_lease_until_the_child_exits_and_the_next_launch_waits_for_that_exit [40 ms]
+  Error Message:
+   Assert.True() Failure
+Failed!  - Failed:     2, Passed:     9, Skipped:     0, Total:    11, Duration: 580 ms - Marrow.App.Tests.dll (net10.0)

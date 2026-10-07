@@ -28,15 +28,19 @@ public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
     public static IDisposable OverrideShared(UpdateEverythingService service) => Running.Override(service);
 
     private UpdateOrchestrator orchestrator;
+    private IReadOnlyList<IUpdateItem> items;
     private UpdatePillProjector projector = new();
     private Action restart;
     private UpdatePillState state = UpdatePillState.Hidden;
     private TaskHandle? backgroundTask;
+    private TaskHandle? pendingTask;
+    private UpdateOrchestrator? pendingOwner;
 
     public UpdateEverythingService(IEnumerable<IUpdateItem> items, Action restart)
     {
         this.restart = restart;
-        orchestrator = Attach(new UpdateOrchestrator(items));
+        this.items = items.ToArray();
+        orchestrator = Attach(new UpdateOrchestrator(this.items));
     }
 
     /// <summary>What the pill and its popover show now; observable.</summary>
@@ -47,14 +51,31 @@ public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
 
     public bool IsBusy => orchestrator.IsBusy;
 
+    public AvailableUpdate? MarrowOffer
+    {
+        get
+        {
+            foreach (var row in Rows.Where(row => row.Kind == UpdateItemKind.Marrow && row.Installed is not null))
+            {
+                if ((row.State is UpdateRowState.Unchecked or UpdateRowState.NotInstalled or UpdateRowState.UpToDate) && !row.RestartRequired) continue;
+                var target = row.RestartRequired ? row.Installed : row.Latest;
+                if (items.FirstOrDefault(item => item.Id == row.Id) is IMarrowUpdateOffer source && source.OfferedRelease is { } offer &&
+                    string.Equals(offer.Version, target, StringComparison.Ordinal)) return offer;
+            }
+            return null;
+        }
+    }
+
     /// <summary>Gives the service the app's items and the restart ("Restart Marrow"). Replaces what it had; a run in progress is not interrupted (the old orchestrator finishes unobserved).</summary>
     public void Configure(IEnumerable<IUpdateItem> items, Action restart)
     {
+        pendingTask?.Cancel(); pendingTask = null; pendingOwner = null;
         orchestrator.Changed -= OnChanged;
         this.restart = restart;
         projector = new UpdatePillProjector();
-        orchestrator = Attach(new UpdateOrchestrator(items));
-        Refresh();
+        this.items = items.ToArray();
+        orchestrator = Attach(new UpdateOrchestrator(this.items));
+        OnChanged();
     }
 
     private UpdateOrchestrator Attach(UpdateOrchestrator created)
@@ -69,8 +90,35 @@ public sealed class UpdateEverythingService : MainActorModel, IUpdatesRunner
     private void OnChanged()
     {
         Changed?.Invoke();
-        if (MainActor.IsIsolated) Refresh();
-        else MainActor.Post(Refresh);
+        if (MainActor.IsIsolated) RefreshAndMonitor();
+        else MainActor.Post(RefreshAndMonitor);
+    }
+
+    private void RefreshAndMonitor()
+    {
+        Refresh();
+        if (pendingTask is not null || !Rows.Any(r => r.State == UpdateRowState.UpdatingInBackground)) return;
+        var owner = orchestrator; pendingOwner = owner;
+        // Lead UE-3 ruling: accepted Office requests are observed later, including manual updates in development builds.
+        pendingTask = MainActor.Spawn(async () =>
+        {
+            try
+            {
+                while (!SwiftTask.IsCancelled && ReferenceEquals(owner, orchestrator) && owner.Rows.Any(r => r.State == UpdateRowState.UpdatingInBackground))
+                {
+                    await SwiftTask.TrySleep(TimeSpan.FromSeconds(10));
+                    if (SwiftTask.IsCancelled || !ReferenceEquals(owner, orchestrator)) break;
+                    if (owner.IsBusy) continue;
+                    await owner.RecheckBackground(SwiftTask.CancellationToken);
+                    OnChanged();
+                }
+            }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                if (ReferenceEquals(pendingOwner, owner)) { pendingOwner = null; pendingTask = null; }
+            }
+        });
     }
 
     private void Refresh() => State = projector.Project(orchestrator.Rows, orchestrator.IsBusy);

@@ -1,0 +1,9 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+/tmp/sk14-dotnet/sdk/10.0.401/Microsoft.Common.CurrentVersion.targets(4919,5): warning MSB3026: Could not copy "obj/Debug/net10.0/Marrow.Testing.dll" to "bin/Debug/net10.0/Marrow.Testing.dll". Beginning retry 1 in 1000ms. The process cannot access the file '/workspace/marrow-port/tests/Marrow.Testing/obj/Debug/net10.0/Marrow.Testing.dll' because it is being used by another process.  [/workspace/marrow-port/tests/Marrow.Testing/Marrow.Testing.csproj]
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/marrow-port/porting/evidence/first-release/sk-14/core-checks.trx
+
+Passed!  - Failed:     0, Passed:   148, Skipped:     0, Total:   148, Duration: 1 s - Marrow.Core.Tests.dll (net10.0)

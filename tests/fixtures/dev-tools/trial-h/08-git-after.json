@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "08-git-after",
+  "commandLine": "git --version",
+  "executable": "git",
+  "arguments": [
+    "--version"
+  ],
+  "exitCode": 0,
+  "stdout": "git version 2.54.0.windows.1\n",
+  "stderr": "",
+  "durationMs": 53.9105,
+  "versionsBefore": "2.54.0.windows.1",
+  "versionsAfter": "2.54.0.windows.1",
+  "timestamp": "2026-10-05T15:26:10.7710950+00:00",
+  "finishedAt": "2026-10-05T15:26:10.8442113+00:00"
+}

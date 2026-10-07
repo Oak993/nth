@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "19-node-upgrade",
+  "commandLine": "winget upgrade --id OpenJS.NodeJS.22 -e --source winget --silent --accept-source-agreements --accept-package-agreements --disable-interactivity",
+  "executable": "winget",
+  "arguments": [
+    "upgrade",
+    "--id",
+    "OpenJS.NodeJS.22",
+    "-e",
+    "--source",
+    "winget",
+    "--silent",
+    "--accept-source-agreements",
+    "--accept-package-agreements",
+    "--disable-interactivity"
+  ],
+  "exitCode": -1978335189,
+  "stdout": "No available upgrade found.\r\nNo newer package versions are available from the configured sources.\r\n",
+  "stderr": "",
+  "durationMs": 520.2294,
+  "versionsBefore": "24.14.1",
+  "versionsAfter": "24.14.1",
+  "timestamp": "2026-10-05T15:27:05.1165672+00:00",
+  "finishedAt": "2026-10-05T15:27:05.6378324+00:00"
+}

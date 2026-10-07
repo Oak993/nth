@@ -1,0 +1,76 @@
+# SK-14 independent review
+
+**Verdict: FIX FIRST.** Nine findings below are covered by 13 failing `REVIEW_` cases. This review changes only four `REVIEW_` test files and this report. It makes no production fixes and does not claim completion of SK-14 or Windows visual parity.
+
+## Reviewed revision and authority
+
+- Delivery: `cloud/f-sk-14`, `8b2d6f652d0ad73a5d9cd5210c851e9d059ec455`.
+- Comparison base: `cloud/f-sk-16`, `a9d2b2f8f0a937b7ccea15a9e730e3a6159d1243`.
+- Read the complete two-tree diff: 32 paths, 1,503 insertions and 7 deletions, including every production change, test/fixture, STATE entry and engineering-decision addition.
+- Requirements: `porting/first-release/BUILD-PLAN.md:317` (SK-14); `skills-ONDEMAND-PLAN.md` 5.3–5.6 and DL-17–DL-20; the locked `design-src/skills-sections/skills-downloads.html` and `sd-page.js`; SK-15's `HostLibraryBackend`, `LibraryController`, availability gates, page controls and folds; the full `ED-384` block at `porting/engineering_decisions.md:3354`, with the preceding SK-14/SK-16 blocker records.
+- Environment: Debian 13 Linux x64, .NET SDK **10.0.401**, runtime **10.0.12**, Avalonia **12.1.2**, 2026-10-05. Tests use disposable absolute data roots under `/workspace/scratch/`.
+
+## Numbered findings
+
+1. **[P1] The delivery does not build under the repository's warnings-as-errors policy.** `src/Marrow.Core/Port/Skills/Pages/ManualFallback.cs:35`. The per-skill-pin selector suppresses nullability on `p!` but dereferences `p.Length` in the slice bound. The normal Linux build reports **CS8602** and exits unsuccessfully. Scenario: build the requested head with `dotnet build Marrow.sln -p:EnableWindowsTargeting=true`. `REVIEW_SkillsBuildTests.REVIEW_Core_builds_without_relaxing_nullable_diagnostics` reproduces precisely CS8602 with an offline rebuild of Core and isolated compiler outputs. The base builds without this override. Make the selector compile cleanly; a command-line warning exemption is diagnostic evidence, not acceptance.
+
+2. **[P1] Unbound download controls are enabled.** `src/Marrow.App/Port/Skills/OfferCardControl.cs:112`, `src/Marrow.Services/Port/Skills/Offers/OfferCardProjector.cs:33`, `src/Marrow.App/Port/Skills/Pages/ManualBlock.cs:81`. Scenario A: create the real offer with `SkillsOfferFlows.Create` over `SkillsHostOptions.Production()` with no download/binding seams. `host.Downloads.Available` is false, but the card's Download button is effectively enabled. `IOfferCardSource` supplies no fetching-availability contract, and the projector only guards terms. Scenario B: a failed Settings item has an unbound install seam; its new Check again control remains enabled and can call `PlaceManualFiles` before the existing controller's Download guard refuses the install. Tests: `REVIEW_Unbound_host_keeps_Download_disabled_and_Return_does_nothing` and `REVIEW_Check_again_is_disabled_when_the_install_seam_is_unbound`; both fail with enabled actual/disabled expected. Carry the real seam capability into these controls and preserve the backend admission guard.
+
+3. **[P2] Adding another need leaves the old size on the acceptance button.** `src/Marrow.App/Port/Skills/OfferCardControl.cs:100`. ONDEMAND 5.3 allows a second missing item to join an asked card; 5.4/5.6 require the combined size before the user's yes. Scenario: T3 is asked, then T1 joins while the phase remains Asked. Refresh updates the titles and projected size, but only rebuilds the button when the phase changes and never updates its label. `REVIEW_An_additional_need_updates_the_combined_size_before_acceptance` expects `Download · 369 MB` and gets `Download · 356 MB`. Refresh the visible and accessible primary label when the card changes, with the required text transition.
+
+4. **[P2] Terminal transitions cut the card and move the composer in one frame.** `src/Marrow.App/Port/Skills/OfferCardControl.cs:93`. ONDEMAND 5.6/DL-18 and OD-0076 require transitions for every state change; ED-384 item 3 also claims every change crossfades. Scenario: Asked becomes Done, Continuing or Declined with motion enabled. Setting `IsVisible = false` precedes `slot.Show`, so the outgoing fade cannot render and the StackPanel immediately removes the card's space. All three cases of `REVIEW_Terminal_state_fades_before_collapsing_the_card` fail at effective visibility before the first animation frame. Fade and collapse before hiding; the documented missing terminal captions do not require a visual cut.
+
+5. **[P2] Reduce Motion removes the opacity fade instead of retaining it.** `src/Marrow.App/Port/Skills/OfferCardControl.cs:105`, through `src/Marrow.App/Port/Skills/Pages/LibraryUi.cs:29`. ONDEMAND 5.6 explicitly says “Reduce Motion stills the movement to fades”; the locked HTML's reduced-motion rule at line 181 shortens transitions to `.01s`. Scenario: Asked becomes Downloading under the window's Reduce Motion setting. Passing null to `CrossfadeSlot.Show` immediately replaces the old content. `REVIEW_Reduce_Motion_retains_a_short_opacity_fade` observes opacity 1 at the 5 ms frame instead of an intermediate fade. ED-384 item 3 and the helper's current behavior say “lands at once”, but an implementation decision cannot override this acceptance requirement. Preserve a short opacity fade while suppressing geometric motion.
+
+6. **[P2] The manual fallback's dimensions differ from the locked design.** `src/Marrow.App/Port/Skills/Pages/ManualBlock.cs:29` (also 31, 38 and 45). HTML CSS lines 567–575 specify padding `9px 11px`, row gap 7, number column 18, button height 24 and label size 11.5. The new block uses padding `(12,9,12,10)`, gap 8 and number column 20; reusing ordinary page buttons produces measured height **28** and label size **12**. `REVIEW_Fallback_spacing_and_padding_match_the_locked_CSS` fails on padding; `REVIEW_Fallback_buttons_match_the_locked_height_and_font` fails on height. Scenario: open a failed S1's detail at the normal Settings width. Match the fallback-specific CSS rather than the larger ordinary action controls. Unlike Offer A's missing geometry, this geometry is present in the repository.
+
+7. **[P2] The fallback's long code text does not wrap.** `src/Marrow.App/Port/Skills/Pages/ManualBlock.cs:33` (also 31), through `LibraryUi.Mono`. Locked CSS line 573 specifies `word-break:break-all` for fallback code; its grid's middle column is `minmax(0,1fr)`. The new WrapPanel wraps whole controls, while each monospaced TextBlock is `NoWrap`. Scenario: the normal detail pane displays `%LOCALAPPDATA%\Marrow Code\addons\downloads\manual\` beside Open folder, or a long artifact/repository filename beside Open download page. These labels cannot break within the available middle column. `REVIEW_Manual_folder_text_wraps_inside_its_step_without_covering_Open_folder` fails with Wrap expected/NoWrap actual. Constrain and wrap the code text within its column so the action remains readable and reachable.
+
+8. **[P2] Check again's Checking state is clipped out by the enclosing fold.** `src/Marrow.App/Port/Skills/Pages/DetailView.cs:119`. The locked `sd-page.js:535` keeps the failure fold open in `ck` when no bulk run is active; `checkAgain` at line 624 enters that state, and fbBlock exposes Checking… at line 407. The new block updates its label but its parent opens only in Failed. Scenario: fail S1, press Check again, and hold the scripted install after progress reaches 1 (the controller's Checking state). `REVIEW_Checking_manual_files_stays_in_an_open_visible_fold` sees the fold closed; its settled height/opacity are zero. Keep this fallback visible during manual checking. The original test's descendant visibility query ignores fold opacity and clipping, so it passes without proving that the text reaches the screen.
+
+9. **[P1] Declining an unrelated offer can freeze the UI behind a Settings download.** `src/Marrow.Services/Port/Skills/Pipelines/SkillsPipeline.cs:207`, reached synchronously through `SkillsOfferFlow.Decline` and the new `SkillsOfferFlows.Create` writer. `operation.Wait()` shares the semaphore held across the entire download/install operation. Scenario: Settings downloads S1 and its transfer stalls; an asked offer for S3 in another chat is declined. The main actor blocks until S1 finishes, preventing the decline response, compositor interaction and the Settings cancel action from progressing. `REVIEW_Declining_an_offer_does_not_wait_for_an_unrelated_Settings_download` holds the fake S1 seam, proves the decline writer cannot return within one second, then releases and drains both tasks. Persist declines safely without synchronously occupying the main actor for an unrelated transfer; continue to persist before answering the provider (ONDEMAND 5.5).
+
+## Verification
+
+The normal build failed, as finding 1 records. To execute the behavioral tests without modifying production code, a **diagnostic-only** build used `-p:WarningsNotAsErrors=CS8602`. That exception is not a fix. The Core review test explicitly clears the exception on its isolated rebuild and fails on the original diagnostic. All test commands use `-p:EnableWindowsTargeting=true` and the requested `&FullyQualifiedName!~Native` restriction.
+
+```bash
+source /workspace/.tools/marrow-env.sh
+export MARROW_PORT_DATA_DIR=/workspace/scratch/review-sk14-data
+dotnet build Marrow.sln -p:EnableWindowsTargeting=true
+dotnet build Marrow.sln --no-restore -p:EnableWindowsTargeting=true -p:WarningsNotAsErrors=CS8602
+
+# Execute the diagnostic build; the final Core/App runs also rebuilt their changed tests
+# with --no-restore -p:WarningsNotAsErrors=CS8602 instead of --no-build.
+dotnet test tests/Marrow.Core.Tests --no-build --no-restore -p:EnableWindowsTargeting=true --filter '(FullyQualifiedName~Skills|FullyQualifiedName~TraceabilityTests)&FullyQualifiedName!~Native'
+dotnet test tests/Marrow.Services.Tests --no-build --no-restore -p:EnableWindowsTargeting=true --filter '(FullyQualifiedName~Skills|FullyQualifiedName~TraceabilityTests)&FullyQualifiedName!~Native'
+dotnet test tests/Marrow.App.Tests --no-build --no-restore -p:EnableWindowsTargeting=true --filter '(FullyQualifiedName~Skills|FullyQualifiedName~LibraryPage|FullyQualifiedName~OfferCard|FullyQualifiedName~TraceabilityTests)&FullyQualifiedName!~Native'
+dotnet test tests/Marrow.UI.Tests --no-build --no-restore -p:EnableWindowsTargeting=true --filter '(FullyQualifiedName~Skills|FullyQualifiedName~TraceabilityTests)&FullyQualifiedName!~Native'
+```
+
+Results use TRX logs in `/workspace/scratch/review-sk14-results/` and command logs `/workspace/scratch/review-sk14-*.log`; these local artifacts are intentionally not committed.
+
+| Slice | Passed | Failed | Skipped | Interpretation |
+| --- | ---: | ---: | ---: | --- |
+| Core | 475 | 1 | 0 | New compile-policy review case |
+| Services | 682 | 7 | 47 | One new decline case; six failures reproduced on the untouched base; Windows-only skips |
+| App | 112 | 16 | 0 | Eleven new UI cases; five failures reproduced on the untouched base |
+| UI | 3 | 0 | 0 | Traceability; this project has no matching Skills-specific cases |
+
+All **12 Traceability meta-tests pass** across the four projects: valid Req/Rule/Decision identifiers and locating traits, readable source shape, one test class per matching file and single-line attributes. Every new test carries Feature SK-14, Spec DL-17 or DL-18, Review SK-14 and a Rule trait. None claims a new Req is verified or changes an existing assertion to pass.
+
+The six additional Services failures were independently rerun on a detached checkout of the exact `cloud/f-sk-16` base: **0 passed, 6 failed**. They are the Codex ListCommands stand-in path, both Copilot byte-identity stand-in paths, the Linux drive-label expectation and two Claude fixture-event equality assertions. They are inherited and are not numbered SK-14 findings.
+
+The five additional App failures were also rerun on that untouched base: **22 passed, 5 failed** with the SkillsOfferFlowTests and SkillsUninstallHookTests filter. The same failures occur at the reviewed head: R2 (Completed), R3, progress-before-done and failure/Retry run into the Linux-unavailable `icu.dll` path; the existing registered-uninstall test leaves its data folder behind. These are inherited platform/baseline failures, not numbered SK-14 findings. Both baseline projects built without relaxing warnings-as-errors.
+
+The initial App run lacked Cascadia Mono and failed before some layouts could be measured. The official Cascadia Code 2407.24 font archive was supplied outside the repository, and the static Cascadia Mono Regular font registered with fontconfig; subsequent runs reach the actual assertions. Archive SHA-256: `e67a68ee3386db63f48b9054bd196ea752bc6a4ebb4df35adce6733da50c8474`. This is environment preparation, not a test-initiated download or product dependency change.
+
+## Coverage and remaining blockers
+
+Exact fallback headings, step strings, folder spelling, openers and checks agree with fbBlock. Derived repository pins, tool names and source URLs are covered by the existing literal design-table expectations; the explicitly documented T1 split and absent P6/A6 fallback remain decisions, not silently certified parity. Combined-size presentation has the defect in finding 3. Asked→Downloading→Checking and failure→Retry crossfades, ordinary Reduce Motion immediate landing, composer-relative layout and card-focused Return are exercised by existing tests; findings 4 and 5 cover omitted/incorrect transitions. No claim is made about an original Offer A card's exact dimensions or unprovided labels.
+
+DL-20 was not executed. Read the changed tests and their transitive fixtures: scripted install/protection/binding seams use Marrow-made files; ManualFolderTests uses SK-0's guarded loopback fake server (no external DNS/connection or redirect); workspace openers are overridden; the runtime rigs use offline scripted sessions and guarded shell seams. The production-options flow tests fail before any request because the embedded catalogue is unpinned. The new build test runs only the installed compiler with `--no-restore`. No test performed a real vendor download, installer, browser/folder launch, chargeable call or provider run. Build package restore and font preparation occurred outside tests. The 47 platform skips and the explicit Native exclusion are not Windows/DL-20 acceptance evidence.
+
+ED-384 accurately records a **partial, unmounted** card: no production caller constructs the offer, no timeline mounts it, decline has no drawn control, the terms step has no acceptance UI, and the asked/why-needed/terminal copy plus Offer A geometry are absent from the repository. Preserve those explicit blockers and obtain the original artifact before completing the SK-14 row. They are not permission to invent geometry/copy or mark DL-18 complete. This review tests present behavior against available requirements and records the missing-design boundary separately.
+
+Delivery branch: `codex/review-sk-14`, rooted at the exact reviewed head. Only the four `REVIEW_` files and this report are eligible for this review commit; production, original tests, project files, design sources and ledgers remain unchanged.

@@ -10,6 +10,11 @@ namespace Marrow.App.Tests.Fixtures;
 /// <summary>Draws a real composer pill at 472 wide in a 1400 x 900 window, bottom left, and captures the parts the Customization preview restates (CZ-T45).</summary>
 internal static class RealComposerRig
 {
+    internal static Button SendDisc(Control root) => One<Button>(One<SendButton>(root));
+
+    internal static SwiftImage Chevron(Control chip) =>
+        LogicalQuery.SelfAndDescendants<SwiftImage>(chip).Single(image => image.SymbolName == "chevron.down");
+
     /// <summary>The distance from the chevron's left edge back to the content before it, in its row.</summary>
     internal static double GapBeforeChevron(SwiftImage chevron)
     {
@@ -33,19 +38,19 @@ internal static class RealComposerRig
         h.Main.OnMain(() =>
         {
             words = One<ComposerNSTextView>(real).Placeholder;
-            var row = (StackPanel)One<ComposerControls>(real).Child!;
-            var ringRect = Frame(row.Children[2], window);
+            var controls = One<ComposerControls>(real);
+            var ringRect = Frame(One<ContextMeter>(controls), window);
             ring = PreviewPixels.Region(window, ringRect);
             ringSize = ((int)Math.Round(ringRect.Width), (int)Math.Round(ringRect.Height));
-            var chip = row.Children[1];
-            var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(chip).Last();
+            var chip = One<ModelEffortSlot>(controls);
+            var chevron = Chevron(chip);
             gap = GapBeforeChevron(chevron);
             var chipRect = Frame(chip, window);
             var chevronRect = Frame(chevron, window);
             var end = new Rect(chevronRect.X - 4, chipRect.Y, chipRect.Right - chevronRect.X + 4, chipRect.Height);
             chevronEnd = PreviewPixels.Region(window, end);
             chevronSize = ((int)Math.Round(end.Width), (int)Math.Round(end.Height));
-            discRect = Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[3]).First(b => b.Bounds.Width >= 27), window);
+            discRect = Frame(SendDisc(controls), window);
             discSize = ((int)Math.Round(discRect.Width), (int)Math.Round(discRect.Height));
             rest = PreviewPixels.Region(window, discRect);
         });

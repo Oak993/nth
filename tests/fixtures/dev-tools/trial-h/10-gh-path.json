@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "10-gh-path",
+  "commandLine": "where.exe gh",
+  "executable": "where.exe",
+  "arguments": [
+    "gh"
+  ],
+  "exitCode": 1,
+  "stdout": "",
+  "stderr": "INFO: Could not find files for the given pattern(s).\r\n",
+  "durationMs": 58.2953,
+  "versionsBefore": null,
+  "versionsAfter": null,
+  "timestamp": "2026-10-05T15:26:11.1000565+00:00",
+  "finishedAt": "2026-10-05T15:26:11.1588177+00:00"
+}

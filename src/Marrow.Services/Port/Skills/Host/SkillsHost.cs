@@ -2,8 +2,11 @@
 using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.State;
+using Marrow.Services.Port.Skills.Fetch;
 using Marrow.Services.Port.Skills.Generations;
+using Marrow.Services.Port.Skills.Import;
 using Marrow.Services.Port.Skills.Install;
+using Marrow.Services.Port.Skills.Offers;
 using Marrow.Services.Port.Skills.Pipelines;
 using Marrow.Services.Port.Skills.Store;
 using Marrow.Services.Port.Skills.Terms;
@@ -25,19 +28,25 @@ public sealed class SkillsHost : IDisposable
     private bool disposed;
     private Task? collection;
 
-    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, TermsStep terms,
+    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, ImportedSkillsLibrary imported, TermsStep terms, SkillsDownloads fetches, SkillsCatalogue catalogue,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
     {
         this.key = key;
         Paths = paths;
         Pipeline = pipeline;
         Generations = generations;
+        Imported = imported;
         Terms = terms;
+        Downloads = fetches;
+        Catalogue = catalogue;
         GuardedDownloads = downloads;
         Unrestored = unrestored;
     }
 
     public StorePaths Paths { get; }
+
+    /// <summary>SK-14: the catalogue the host was opened with: the in-chat offers read it.</summary>
+    public SkillsCatalogue Catalogue { get; }
 
     /// <summary>The root's one owner.</summary>
     public SkillsPipeline Pipeline { get; }
@@ -45,7 +54,22 @@ public sealed class SkillsHost : IDisposable
     /// <summary>The per-chat generations, bound to <see cref="Pipeline"/>.</summary>
     public SkillGenerations Generations { get; }
 
+    /// <summary>SK-18 (OD-0118): the skills the user brought in from other apps. Their files live beside, not inside, the managed trees, so Reset skills and tools leaves them; the generations hand them out.</summary>
+    public ImportedSkillsLibrary Imported { get; }
+
     public TermsStep Terms { get; }
+
+    /// <summary>
+    /// SK-16 (DL-19): the one place a first download is started from, so Settings and the in-chat offers share ONE download per item (an offer asked for an item Settings is fetching joins it, and the
+    /// reverse). Fetching is available only when the options bound the download and binding seams (<see cref="SkillsDownloads.Available"/>).
+    /// </summary>
+    public SkillsDownloads Downloads { get; }
+
+    /// <summary>SK-16: the in-chat offers' download seam over the same <see cref="Downloads"/>: an offer joins a download Settings has running, and the reverse.</summary>
+    public ISkillsOfferDownload OfferDownloads => new SkillsOfferInstalls(Downloads);
+
+    /// <summary>SK-14: the in-chat offers' terms step: the same one the Settings pages use, so an acceptance is one record.</summary>
+    public ISkillsOfferTerms OfferTerms => new HostOfferTerms(Terms);
 
     /// <summary>
     /// The download seam with the terms checked first (<see cref="TermsGate"/>): the one entry a first install goes through so no byte of a non-open item is requested before its terms are
@@ -93,9 +117,10 @@ public sealed class SkillsHost : IDisposable
         var guarded = options.Downloads is null ? null : TermsGate.Guard(() => pipeline!.State, options.Downloads);
         pipeline = new SkillsPipeline(paths, options.Catalogue, trust.Versions, AddonsState.Empty, new ItemInstaller(options.InstallLock, options.InstallProcess), options.Protection,
             options.Deletion, guarded, options.Bindings, trustedDirectories: trust.Directories);
-        var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource);
+        var imported = new ImportedSkillsLibrary(paths.Skills, options.Clock ?? TimeProvider.System);
+        var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource, imported);
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, terms, guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, terms, new SkillsDownloads(pipeline, options.Catalogue), options.Catalogue, guarded, trust.Unrestored);
     }
 
     /// <summary>
