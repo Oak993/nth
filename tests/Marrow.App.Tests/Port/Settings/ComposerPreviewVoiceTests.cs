@@ -35,7 +35,7 @@ public sealed class ComposerPreviewVoiceTests(HeadlessSession headless)
         Assert.Equal(writes, rig.Defaults.Writes.Count);
         rig.Advance(1500);
         Assert.NotEmpty(preview.Voice.Session.Words);
-        Assert.Equal("Transcribing…", preview.VoicePill.Pill.Label);
+        Assert.Equal("Transcribing\U00002026", preview.VoicePill.Pill.Label);
     });
 
     [Fact]
@@ -117,12 +117,12 @@ public sealed class ComposerPreviewVoiceTests(HeadlessSession headless)
         rig.Do(() => preview.Voice!.Activate());
         rig.Advance(1400);
         rig.Do(() => { rig.App.Settings.VoiceOrb = rig.App.Settings.VoiceOrb with { Labels = VoicePillWords.L3 }; rig.Page.Session!.VoicePreviewTouched("labels", TimeSpan.FromMilliseconds(200)); });
-        Assert.Equal("Transcribing…", preview.VoicePill!.Pill.Label);
+        Assert.Equal("Transcribing\U00002026", preview.VoicePill!.Pill.Label);
         rig.Advance(140);
         Assert.Equal(0, preview.VoicePill.Pill.LabelOpacity(VoiceLabelState.Transcribing), 5);
-        Assert.Equal("Transcribing…", preview.VoicePill.Pill.Label);
+        Assert.Equal("Transcribing\U00002026", preview.VoicePill.Pill.Label);
         rig.Advance(20);
-        Assert.Equal("Writing…", preview.VoicePill.Pill.Label);
+        Assert.Equal("Writing\U00002026", preview.VoicePill.Pill.Label);
         rig.Advance(30);
         Assert.NotEmpty(preview.Voice!.Session.Words);
         rig.Advance(10);
@@ -271,7 +271,7 @@ public sealed class ComposerPreviewVoiceTests(HeadlessSession headless)
         Assert.Null(preview.VoicePill!.Pill.Language);
         rig.Advance(500);
         Assert.Equal(mode == VoiceLangMode.Show ? "English" : null, preview.VoicePill!.Pill.Language);
-        Assert.DoesNotContain("·", preview.VoicePill.Pill.Label, StringComparison.Ordinal);
+        Assert.DoesNotContain("\U000000B7", preview.VoicePill.Pill.Label, StringComparison.Ordinal);
     });
 
     [Fact]
