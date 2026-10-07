@@ -1,5 +1,8 @@
 # T20 wallpaper branch fidelity
 
+Verdict: **READY for the requested T20 raster fidelity gates**. Native Windows
+GPU execution remains unverified; this is not whole-port acceptance.
+
 Base: `fa74d2afce279017e89d9670b61dce17c3765c2c`, held `codex/wl-reconcile`.
 Work/push branch: `codex/wl-fix`. No force push or other branch push is authorized.
 
@@ -83,3 +86,50 @@ visual handler passes a GPU context, while these checks use Linux raster
 surfaces. This report concerns the requested T20 arithmetic/fidelity gates;
 it does not close the held batch's unrelated WIC/custom-picture checks or
 claim whole-port acceptance. Full post-fix regression results follow below.
+
+The serial solution build passed with **0 warnings / 0 errors**. Its command
+adds `-m:1` after a parallel build lost a child MSBuild process; both logs are
+retained. Gate B passes **8/8**. Byte checks preserve all 4429 reference files,
+111 original snapshot files, 13 existing fidelity/metric/bridge files, 23
+existing wallpaper UI test files, and the owner-decision ledger verbatim.
+Engineering decisions and STATE retain their complete original byte prefixes
+and mixed line endings, with only appended ED-NEW-wl-fix entries.
+
+Reproduction commands (use the installed SDK's executable or `dotnet` on PATH):
+
+```sh
+dotnet build Marrow.sln -m:1 -p:EnableWindowsTargeting=true -p:TreatWarningsAsErrors=true
+MARROW_PORT_DATA_DIR=/tmp/marrow-wl-fix-ui dotnet test tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj --no-build -p:EnableWindowsTargeting=true -p:TreatWarningsAsErrors=true --filter '(FullyQualifiedName~Theme.Wallpapers.|FullyQualifiedName~Traceability)&FullyQualifiedName!~Native'
+MARROW_PORT_DATA_DIR=/tmp/marrow-wl-fix-app WALLPAPER_METRICS_PATH=/tmp/marrow-pixels.jsonl dotnet test tests/Marrow.App.Tests/Marrow.App.Tests.csproj --no-build -p:EnableWindowsTargeting=true -p:TreatWarningsAsErrors=true --filter '(FullyQualifiedName~Marrow.App.Tests.Wallpapers.|FullyQualifiedName~Traceability)&FullyQualifiedName!~Native'
+node tools/wallpaper-fidelity/check.mjs
+python tools/wallpaper-fidelity/emulate-branches.py --probes porting/reports/wl-fix/branch-probes-before.zip --pixel-scan porting/reports/wl-fix/failing-pixels-before.jsonl
+python tools/wallpaper-fidelity/emulate-branches.py --probes porting/reports/wl-fix/branch-probes-after.zip --fixed
+```
+
+The post-fix UI wallpaper engine/Traceability slice passed **1239/1239** with
+zero failures and skips, including the six new branch regressions.
+
+Final production revision: `24706fa725bf8bd198265c4426ba7f229d9cbc12`.
+The final evidence-only commit is reported with the push; it does not change
+the tested production source.
+
+| Final scope | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: |
+| Full fidelity frame matrix | 5148 | 0 | 0 |
+| App wallpaper fidelity/guards + Traceability | 339 | 0 | 0 |
+| UI wallpaper engine + Traceability | 1239 | 0 | 0 |
+| Tunnel frames (19 originally failed) | 22 | 0 | 0 |
+| Stairwell frames (1 originally failed) | 22 | 0 | 0 |
+
+The final matrix's largest maximum is **0.057506707267**, below the unchanged
+**0.080** gate, and its largest mean is **0.001642663317**, below **0.010**.
+All **5104** other-wallpaper per-frame measurements are exactly identical to
+the baseline. Tunnel's final worst maximum is **0.010424813332**, and
+Stairwell's is **0.010063156169**. Measurements, distributions, test counts,
+environment and evidence hashes are in `results-final.json`; all individual
+frames are in `pixels-after.jsonl`. Full runs: App **11m17s**, UI **4m26s**.
+
+Commit sequence: pre-fix proof `f5ae4578`, proven production arithmetic
+`24706fa7`, then final evidence/append-only ledgers. Only `codex/wl-fix` is
+pushed, without force. The CPU emulation and all live before/after float grids
+remain checked in, independently reproducible offline from the archives.

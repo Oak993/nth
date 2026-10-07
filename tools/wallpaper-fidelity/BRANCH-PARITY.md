@@ -24,7 +24,9 @@ python tools/wallpaper-fidelity/emulate-branches.py --fixed \
   --probes porting/reports/wl-fix/branch-probes-after.zip
 ```
 
-Set `DOTNET` for the probe runner if dotnet is elsewhere. The offline pre-fix
+Set `DOTNET` for the probe runner if dotnet is outside PATH, and
+`WALLPAPER_CHROMIUM` if the pinned browser is outside `/usr/bin/chromium`.
+The offline pre-fix
 proof is reproducible without a browser or .NET installation:
 
 ```sh

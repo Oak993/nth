@@ -10,7 +10,7 @@ const output = resolve(process.argv[2] || '/tmp/marrow-branch-probes');
 await mkdir(output, { recursive: true });
 const data = JSON.parse(await readFile(join(root, 'porting/first-release/design-src/wallpaper-library/static/wallpapers.json')));
 const manifest = JSON.parse(await readFile(join(root, 'tests/fixtures/wallpapers/reference/manifest.json')));
-const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true, args: manifest.launchArgs });
+const browser = await chromium.launch({ executablePath: process.env.WALLPAPER_CHROMIUM || '/usr/bin/chromium', headless: true, args: manifest.launchArgs });
 if (browser.version() !== manifest.browser) throw new Error('Reference Chromium version differs');
 const page = await browser.newPage();
 const records = [];
@@ -75,7 +75,7 @@ try {
       await writeFile(join(output,name+'-swift.bin'),Buffer.from(result.data,'base64'));
       const main = ('half4 main(float2 coord){'+p+debug+'}').replaceAll('gl_FragCoord.xy','float2(coord.x,u_res.y-coord.y)').replaceAll('vec2','float2').replaceAll('vec4','half4').replaceAll('o=','return ').replaceAll('o =','return ');
       const request=join(output,name+'.json');await writeFile(request,JSON.stringify({wallpaper:id,uniforms,main}));
-      execFileSync(process.env.DOTNET || '/workspace/.dotnet/dotnet',['run','--no-build','--project',join(import.meta.dirname,'branch-probe'), '--',request,join(output,name+'-skia.bin')],{stdio:'pipe'});
+      execFileSync(process.env.DOTNET || 'dotnet',['run','--no-build','--project',join(import.meta.dirname,'branch-probe'), '--',request,join(output,name+'-skia.bin')],{stdio:'pipe'});
       records.push({name,renderer:result.renderer,reference:frame.file,uniforms});
       console.log(name);
     }
