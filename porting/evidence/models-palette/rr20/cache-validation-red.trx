@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="afa74f5c-0c61-40d8-be59-982eb6a81510" name="@a39ab932e15a 2026-10-07 06:46:48" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T06:46:48.5826639+00:00" queuing="2026-10-07T06:46:48.5826640+00:00" start="2026-10-07T06:46:47.1154518+00:00" finish="2026-10-07T06:46:48.5897091+00:00" />
+  <TestSettings name="default" id="efdd4d67-2872-42e8-b17b-34b0d0433583">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_06_46_48" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="fe6650ca-2ca7-4e9f-ab1d-66cfbd13ea1c" testId="68143c47-b473-0d7f-65bc-e9d0e427b880" testName="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:\&quot;1\&quot;,\&quot;fingerprint\&quot;:\&quot;wrong\&quot;,\&quot;dat&quot;···)" computerName="a39ab932e15a" duration="00:00:00.0081442" startTime="2026-10-07T06:46:48.4202990+00:00" endTime="2026-10-07T06:46:48.4376811+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fe6650ca-2ca7-4e9f-ab1d-66cfbd13ea1c">
+      <Output>
+        <ErrorInfo>
+          <Message>System.InvalidOperationException : The requested operation requires an element of type 'Number', but the target element has type 'String'.</Message>
+          <StackTrace>   at System.Text.Json.ThrowHelper.ThrowJsonElementWrongTypeException(JsonTokenType expectedType, JsonTokenType actualType)
+   at System.Text.Json.JsonDocument.TryGetValue(Int32 index, Int32&amp; value)
+   at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore.Load() in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs:line 56
+   at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs:line 17
+   at Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(String body) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PublicModelCatalogueStoreCacheValidationTests.cs:line 22
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="db13f9ed-712c-4966-9aa4-40e88c579911" testId="3531802c-c308-d03b-5606-bd9596af99af" testName="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:1,\&quot;fingerprint\&quot;:\&quot;wrong\&quot;,\&quot;data\&quot;:&quot;···)" computerName="a39ab932e15a" duration="00:00:00.0156338" startTime="2026-10-07T06:46:48.4515322+00:00" endTime="2026-10-07T06:46:48.4532147+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="db13f9ed-712c-4966-9aa4-40e88c579911" />
+    <UnitTestResult executionId="25d62cb3-98b7-4ead-a45d-5fd9d8786e2e" testId="a834df88-594a-2ff8-d659-21b11ce05217" testName="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:null,\&quot;fingerprint\&quot;:\&quot;wrong\&quot;,\&quot;data&quot;···)" computerName="a39ab932e15a" duration="00:00:00.0001514" startTime="2026-10-07T06:46:48.4546709+00:00" endTime="2026-10-07T06:46:48.4547718+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="25d62cb3-98b7-4ead-a45d-5fd9d8786e2e">
+      <Output>
+        <ErrorInfo>
+          <Message>System.InvalidOperationException : The requested operation requires an element of type 'Number', but the target element has type 'Null'.</Message>
+          <StackTrace>   at System.Text.Json.ThrowHelper.ThrowJsonElementWrongTypeException(JsonTokenType expectedType, JsonTokenType actualType)
+   at System.Text.Json.JsonDocument.TryGetValue(Int32 index, Int32&amp; value)
+   at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore.Load() in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs:line 56
+   at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore..ctor(String dataRoot) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs:line 17
+   at Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(String body) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PublicModelCatalogueStoreCacheValidationTests.cs:line 22
+   at InvokeStub_PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="1c2efcf3-fd15-4780-a837-4138a95c453c" testId="41c72b50-73b6-10d1-962b-a27ceaa137ae" testName="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:1,\&quot;fingerprint\&quot;:42,\&quot;data\&quot;:[{\&quot;id\&quot;···)" computerName="a39ab932e15a" duration="00:00:00.0001676" startTime="2026-10-07T06:46:48.4543555+00:00" endTime="2026-10-07T06:46:48.4544467+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1c2efcf3-fd15-4780-a837-4138a95c453c" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:1,\&quot;fingerprint\&quot;:42,\&quot;data\&quot;:[{\&quot;id\&quot;···)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="41c72b50-73b6-10d1-962b-a27ceaa137ae">
+      <Execution id="1c2efcf3-fd15-4780-a837-4138a95c453c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests" name="Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:null,\&quot;fingerprint\&quot;:\&quot;wrong\&quot;,\&quot;data&quot;···)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="a834df88-594a-2ff8-d659-21b11ce05217">
+      <Execution id="25d62cb3-98b7-4ead-a45d-5fd9d8786e2e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests" name="Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:1,\&quot;fingerprint\&quot;:\&quot;wrong\&quot;,\&quot;data\&quot;:&quot;···)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="3531802c-c308-d03b-5606-bd9596af99af">
+      <Execution id="db13f9ed-712c-4966-9aa4-40e88c579911" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests" name="Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: &quot;{\&quot;version\&quot;:\&quot;1\&quot;,\&quot;fingerprint\&quot;:\&quot;wrong\&quot;,\&quot;dat&quot;···)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="68143c47-b473-0d7f-65bc-e9d0e427b880">
+      <Execution id="fe6650ca-2ca7-4e9f-ab1d-66cfbd13ea1c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests" name="Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="68143c47-b473-0d7f-65bc-e9d0e427b880" executionId="fe6650ca-2ca7-4e9f-ab1d-66cfbd13ea1c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3531802c-c308-d03b-5606-bd9596af99af" executionId="db13f9ed-712c-4966-9aa4-40e88c579911" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a834df88-594a-2ff8-d659-21b11ce05217" executionId="25d62cb3-98b7-4ead-a45d-5fd9d8786e2e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="41c72b50-73b6-10d1-962b-a27ceaa137ae" executionId="1c2efcf3-fd15-4780-a837-4138a95c453c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="4" executed="4" passed="2" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.17]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:00.87]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:00.90]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:00.95]       System.InvalidOperationException : The requested operation requires an element of type 'Number', but the target element has type 'String'.
+[xUnit.net 00:00:00.95]       Stack Trace:
+[xUnit.net 00:00:00.95]            at System.Text.Json.ThrowHelper.ThrowJsonElementWrongTypeException(JsonTokenType expectedType, JsonTokenType actualType)
+[xUnit.net 00:00:00.95]            at System.Text.Json.JsonDocument.TryGetValue(Int32 index, Int32&amp; value)
+[xUnit.net 00:00:00.95]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs(56,0): at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore.Load()
+[xUnit.net 00:00:00.95]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs(17,0): at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore..ctor(String dataRoot)
+[xUnit.net 00:00:00.95]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PublicModelCatalogueStoreCacheValidationTests.cs(22,0): at Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(String body)
+[xUnit.net 00:00:00.95]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.95]            at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.97]       System.InvalidOperationException : The requested operation requires an element of type 'Number', but the target element has type 'Null'.
+[xUnit.net 00:00:00.97]       Stack Trace:
+[xUnit.net 00:00:00.97]            at System.Text.Json.ThrowHelper.ThrowJsonElementWrongTypeException(JsonTokenType expectedType, JsonTokenType actualType)
+[xUnit.net 00:00:00.97]            at System.Text.Json.JsonDocument.TryGetValue(Int32 index, Int32&amp; value)
+[xUnit.net 00:00:00.97]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs(56,0): at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore.Load()
+[xUnit.net 00:00:00.97]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs(17,0): at Marrow.Services.Port.ModelsPalette.PublicModelCatalogueStore..ctor(String dataRoot)
+[xUnit.net 00:00:00.97]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PublicModelCatalogueStoreCacheValidationTests.cs(22,0): at Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(String body)
+[xUnit.net 00:00:00.97]            at InvokeStub_PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(Object, Span`1)
+[xUnit.net 00:00:00.97]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:00.97]   Finished:    Marrow.Services.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T06:46:48.4405065+00:00">
+        <Text>[xUnit.net 00:00:00.95]     Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: "{\"version\":\"1\",\"fingerprint\":\"wrong\",\"dat"···) [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T06:46:48.4551090+00:00">
+        <Text>[xUnit.net 00:00:00.97]     Marrow.Services.Tests.Port.ModelsPalette.PublicModelCatalogueStoreCacheValidationTests.Wrong_typed_versions_and_fingerprints_are_rejected_without_mutating_cache_bytes(body: "{\"version\":null,\"fingerprint\":\"wrong\",\"data"···) [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>
