@@ -55,3 +55,10 @@ Windows needs: native above-chip placement and monitor-edge flip while search/ca
 DONE for implementation and fake/Linux proof. T9 merged Strike in standing 666097b04; this branch imports the Strike tip in merge 4f795ba37. The real OpenRouter ModelList now uses the approved searchable picker. New ModelPickerBinding retains Hydra pair rows, Choose, Back, current-provider history restrictions and search. EffortSlider.cs adds only the -10 px OpenRouter popup offset and conditional ModelList delegation for this row; the outer .12 s panel transition is preserved. Locked brand hearts remain authoritative while the separate ModelShades UI gate is false. ED-NEW-models-palette-13.
 
 round2/rr19-rr20-binding-green.trx: five passed, comprising two real picker binding tests, two locked picker tests and one RR-20 adapter test. Native Windows glass/font/smooth-scroll and above-chip captures are still required; no source-side visual acceptance is claimed from headless tests.
+
+
+## Round 2 — visible renderer closure on full standing
+
+The mounted model and maker dots now read the shared engine snapshot through PalettePickerColours, including theme and Reduce Motion glides. Full standing 51e39c929 was merged first as f44096afb; the real picker seam is bound over merged Strike. RR-19 remains DONE implementation. Native placement/glass/font/scroll comparison remains Windows work.
+
+Final receipts: Core 23/23, Services 68/68, App 63/63, UI 122/122; expanded original effort/model-chip/Strike/composer scope 483 passed / 4 Windows-dependent failures. Solution build: zero warnings/errors. Gate B: 8/8. See models-palette-round2.md and round2/visible-results.json for exact scopes, native needs, seam list and preservation proof. Overall verdict: NOT READY for release acceptance.
