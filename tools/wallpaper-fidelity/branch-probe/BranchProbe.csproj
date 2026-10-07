@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Marrow.UI/Marrow.UI.csproj" />
+    <!-- Reuse the unchanged gate's public-input bridge and metric for diagnostics. -->
+    <Compile Include="../../../tests/Marrow.App.Tests/Wallpapers/WallpaperRendererBridge.cs" Link="Gate/WallpaperRendererBridge.cs" />
+    <Compile Include="../../../tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityCase.cs" Link="Gate/WallpaperFidelityCase.cs" />
+    <Compile Include="../../../tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityClock.cs" Link="Gate/WallpaperFidelityClock.cs" />
+    <Compile Include="../../../tests/Marrow.App.Tests/Wallpapers/WallpaperFidelityEnvironmentProxy.cs" Link="Gate/WallpaperFidelityEnvironmentProxy.cs" />
+    <Compile Include="../../../tests/Marrow.App.Tests/Wallpapers/WallpaperPerceptualComparison.cs" Link="Gate/WallpaperPerceptualComparison.cs" />
+  </ItemGroup>
+</Project>
