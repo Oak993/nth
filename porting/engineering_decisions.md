@@ -4040,3 +4040,8 @@ UNVERIFIED and the weakest of the three injections: the research could not confi
 ### ED-NEW-ma-review-3: retire injected sessions that start after cancellation
 
 [T19][MULTI-ACCOUNT][LIFECYCLE] OD-0116. Confirmed with a gated injection fake that ignores cancellation during startup: cancelling StartAsync released the still-unstarted session, but its later startup completion made it live again with no owner. Retain and observe the start task; after every failed/cancelled start, discard again when startup finishes and always stop the session even if deletion fails. The retained task is observed even if completion races the first release. InjectedStandbyCancellationReviewTests was red (late cleanup never occurred) before repair. Revised implementation: 20/20 injection, consent and traceability cases passed in the combined 36/36 run with OpenCode handover tests. No real CLI/network/model, existing tests unchanged, ledger prefix preserved.
+
+
+### ED-NEW-ma-review-4: a stopped OpenCode handover cannot publish a live session
+
+[T19][MULTI-ACCOUNT][LIFECYCLE] OD-0116. Confirmed with a fake server and gated ACP startup: Stop during EndStandbyAsync did not reach the in-flight ACP object, and the completed start was then published as live; a cancelled token was ignored too. Keep the starting session owned, stop it on cancellation or Stop, recheck cancellation after startup, and guard publication against Stop with the existing lock. Discard also releases a pending ACP launch. OpenCodeStandbyHandoverReviewTests: both cases red before repair; afterward 2/2 plus all 14 unchanged OpenCodeStandbyTests cases pass (combined injection/OpenCode/traceability run 36/36). No real process/network/model, no existing test or ledger-byte edits.

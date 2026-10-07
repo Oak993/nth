@@ -10,6 +10,7 @@ public sealed class OpenCodeInjectionSession(SessionConfiguration configuration,
     private readonly object gate = new();
     private IOpenCodeServer? server;
     private ProviderSession? live;
+    private ProviderSession? starting;
     private string? sessionId;
     private bool waiting;
     private bool stopped;
@@ -99,15 +100,29 @@ public sealed class OpenCodeInjectionSession(SessionConfiguration configuration,
 
     public async Task EndStandbyAsync(CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         if (!waiting || sessionId is not { } id) throw new InvalidOperationException("The standby is no longer waiting.");
         // The stored session stays on disk when the server stops; the conversation's own ACP session loads it.
         ReleaseServer();
         var session = acp(configuration with { ResumeID = id });
         session.OnEvent = value => OnEvent?.Invoke(value);
+        using var cancellation = ct.Register(session.Stop);
         try
         {
+            lock (gate)
+            {
+                if (stopped) throw new OperationCanceledException();
+                starting = session;
+            }
             var loaded = await session.Start();
+            ct.ThrowIfCancellationRequested();
             if (loaded != id) throw new InvalidOperationException("OpenCode loaded a different session than the one that holds the context.");
+            lock (gate)
+            {
+                if (stopped) throw new OperationCanceledException();
+                live = session;
+                waiting = false;
+            }
         }
         catch
         {
@@ -116,9 +131,10 @@ public sealed class OpenCodeInjectionSession(SessionConfiguration configuration,
             waiting = false;
             throw;
         }
-
-        lock (gate) live = session;
-        waiting = false;
+        finally
+        {
+            lock (gate) if (ReferenceEquals(starting, session)) starting = null;
+        }
     }
 
     public async Task DiscardStandby()
@@ -132,7 +148,7 @@ public sealed class OpenCodeInjectionSession(SessionConfiguration configuration,
         }
 
         ReleaseServer();
-        live?.Stop();
+        Stop();
     }
 
     private void ReleaseServer()
@@ -157,9 +173,17 @@ public sealed class OpenCodeInjectionSession(SessionConfiguration configuration,
 
     public void Stop()
     {
-        stopped = true;
-        waiting = false;
+        ProviderSession? pending;
+        ProviderSession? active;
+        lock (gate)
+        {
+            stopped = true;
+            waiting = false;
+            pending = starting;
+            active = live;
+        }
         ReleaseServer();
-        live?.Stop();
+        pending?.Stop();
+        active?.Stop();
     }
 }
