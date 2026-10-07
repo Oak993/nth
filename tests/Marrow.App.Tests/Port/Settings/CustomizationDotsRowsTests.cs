@@ -180,8 +180,8 @@ public sealed class CustomizationDotsRowsTests(HeadlessSession headless)
         Assert.Same(page.Dots!.Section, sections[^1]);
         Assert.Equal("Working dots", sections[^1].Title);
         Assert.Equal(1, sections[^1].Fraction);
-        Assert.Collection(page.Rest.Children, // "Pill in the composer" (multi-account step 3a), then CZ-8: the Speech section; both follow, outside the sticky container
-            child => Assert.IsType<Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection>(child),
-            child => Assert.Same(page.Speech!.Section, child));
+        Assert.Collection(page.Rest.Children, // CZ-8: the Speech section is first after the sticky container, then "Pill in the composer" (multi-account step 3a)
+            child => Assert.Same(page.Speech!.Section, child),
+            child => Assert.IsType<Marrow.App.Port.MultiAccount.Capsule.PillCapsuleSection>(child));
     });
 }
