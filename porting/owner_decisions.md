@@ -1149,3 +1149,8 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 
 - **Owner, verbatim (answers to the Round 2 questions on the Voice Pill Decision page):** "Yes, remove it" (fix A, the shared glass's dark line just outside the pill's ends) · "App font (Inter)" (fix B declined) · "Design wins, you rule the test" (to: about 160 V-T133 cases still fail and the approved design page fails the same cases in Chrome).
 - **Effect:** the voice pill drops the shared glass's outer contact line on its ends (voice pill only; both rims and their light top and dark bottom stay, OD-0121 C). The label keeps the app font Inter. The approved design wins over V-T133; how V-T133 treats cases the design itself fails is to be settled in the exact rule the lead proposes and the owner confirms (recorded in the next OD). The linear fade kept under the page's radial clean-cap mask (V-T132, ED-387) stands.
+
+## OD-0124 Real-program checks for the seamless handover (2026-10-07)
+
+- **Owner, verbatim (to: may I run a short local check per service with your signed-in apps: open a throwaway chat, load a short test history, confirm nothing ran, delete it; no message is sent to any AI):** "Yes, all installed"
+- **Effect:** the lead may run that check once per installed CLI service (Codex and any other installed one) using the owner's existing sign-ins: a throwaway chat or session, a short test history loaded without a model turn, a check that nothing ran, then deletion. No message is sent to any AI, no credentials are typed, no settings are changed. Extends OD-0122.
