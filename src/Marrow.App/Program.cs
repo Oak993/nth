@@ -98,6 +98,7 @@ public static class Program
         var localAppData = DevDataRoot.LocalApplicationData();
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));
         UserDefaults.Standard.SetProcessDefault(settings);
+        Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.SetProcessDefault(new(settings));
         AppDomain.CurrentDomain.UnhandledException += (_, _) => settings.Synchronize();
         // Storage.swift:19-48's roots (OD-0008 C7: %LOCALAPPDATA%\Marrow Code; OD-0012 F1: %USERPROFILE%\.marrow)
         // and StoragePaths.swift's roots (ED-195: split out of Storage.swift at B3), the sibling Ambient
@@ -107,6 +108,8 @@ public static class Program
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
         // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
         var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
+        Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.Bind(); // T11 step 2: Settings > Models (accounts) and Settings > Pills read the running AppModel
+        Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
         Marrow.App.Port.ModelsPalette.PaletteStartup.Prepare(); // ED-NEW-models-palette-11: verified tables, off UI, before any window/model.
 
@@ -117,6 +120,7 @@ public static class Program
         };
         AuroraBootWarmup.Register(); // OD-0113: the imported renderer joins the same awaited preparation
         AuroraLoaderWarmup.Register(); // OD-0113 / OD-0108: before the first preparation plan or GPU warm-up
+        Marrow.App.Port.MultiAccount.Handshake.HandshakeGpuProgram.EnsureRegistered(); // MA-4-2: prime the filament gradient and bloom before a live Handshake.
         MarrowApplication.BuildAvaloniaApp().SetupWithLifetime(lifetime);
         // ED-065, R-ISO-1: the main actor is Avalonia's UI thread, bound before any window and before the hang
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.

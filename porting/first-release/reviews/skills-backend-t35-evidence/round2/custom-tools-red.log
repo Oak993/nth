@@ -1,0 +1,36 @@
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.18]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:01.08]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:01.12]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:01.17]     Marrow.Services.Tests.Port.Skills.Custom.CustomToolBundleTests.A_bundle_selects_the_requested_primary_executable_and_preserves_helper_executables [FAIL]
+[xUnit.net 00:00:01.17]       Assert.Null() Failure: Value is not null
+[xUnit.net 00:00:01.17]       Expected: null
+[xUnit.net 00:00:01.17]       Actual:   "Choose a source with one Windows executable."
+[xUnit.net 00:00:01.17]       Stack Trace:
+[xUnit.net 00:00:01.17]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomToolBundleTests.cs(15,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomToolBundleTests.A_bundle_selects_the_requested_primary_executable_and_preserves_helper_executables()
+[xUnit.net 00:00:01.17]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.19]   Finished:    Marrow.Services.Tests
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomToolBundleTests.A_bundle_selects_the_requested_primary_executable_and_preserves_helper_executables [17 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Choose a source with one Windows executable."
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomToolBundleTests.A_bundle_selects_the_requested_primary_executable_and_preserves_helper_executables() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomToolBundleTests.cs:line 15
+--- End of stack trace from previous location ---
+  Passed Marrow.Services.Tests.Port.Skills.Custom.CustomToolBundleTests.An_ambiguous_bundle_is_listed_with_a_problem_and_cannot_be_added [11 ms]
+
+Test Run Failed.
+Total tests: 2
+     Passed: 1
+     Failed: 1
+ Total time: 1.7097 Seconds
+       _VSTestConsole:
+         MSB4181: The "VSTestTask" task returned false but did not log an error.
+     1>Done Building Project "/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj" (VSTest target(s)) -- FAILED.
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:21.35

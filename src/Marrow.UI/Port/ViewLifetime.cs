@@ -76,9 +76,34 @@ public interface IPopoverPresenter
     void SetPresented(Popup popup, bool presented);
 }
 
+/// <summary>A surface with approved motion of its own can keep the native popover host and replace only its animation.</summary>
+public interface IPopoverMotion
+{
+    void Open(Control content);
+    Action Close(Control content, Action closed);
+}
+
 public static class Presentation
 {
     public static Ambient<IPopoverPresenter> Presenter { get; } = new(new AvaloniaPopoverPresenter());
+
+    public static readonly AttachedProperty<IPopoverMotion?> MotionProperty =
+        AvaloniaProperty.RegisterAttached<Popup, IPopoverMotion?>("Motion", typeof(Presentation));
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, Action> motionDismiss = new();
+
+    internal static void DismissMotion(Popup popup)
+    {
+        if (motionDismiss.TryGetValue(popup, out var dismiss)) dismiss();
+    }
+
+    internal static void OpenMotion(Popup popup, Control content)
+    {
+        if (popup.GetValue(MotionProperty) is { } motion) motion.Open(content);
+        else PopoverAppear.Play(content, popup.Placement);
+    }
+
+    internal static Action CloseMotion(Popup popup, Control content, Action closed) =>
+        popup.GetValue(MotionProperty) is { } motion ? motion.Close(content, closed) : PopoverAppear.Dismiss(content, popup.Placement, closed);
 
     /// <summary>
     /// Presents or dismisses <paramref name="popup"/> through <see cref="Presenter"/> and, while it is presented, keeps it
@@ -87,6 +112,8 @@ public static class Presentation
     /// </summary>
     public static void SetPresented(Popup popup, bool presented, Visual anchor, Action dismiss)
     {
+        if (presented && popup.GetValue(MotionProperty) is not null) motionDismiss.AddOrUpdate(popup, dismiss);
+        else motionDismiss.Remove(popup);
         if (presented) WindowTransients.Show(popup, anchor, dismiss);
         else WindowTransients.Hide(popup);
         Presenter.Current.SetPresented(popup, presented);
@@ -98,11 +125,12 @@ public static class Presentation
 
         public void SetPresented(Popup popup, bool presented)
         {
-            if (closing.TryGetValue(popup, out var stop)) { closing.Remove(popup); stop(); }
+            var wasClosing = closing.TryGetValue(popup, out var stop);
+            if (wasClosing) { closing.Remove(popup); stop!(); }
             if (!presented && popup.IsOpen && popup.Child is { } shown)
             {
                 // NSPopover shrinks back into its arrow before it goes (PopoverAppear.cs).
-                closing.AddOrUpdate(popup, PopoverAppear.Dismiss(shown, popup.Placement, () =>
+                closing.AddOrUpdate(popup, CloseMotion(popup, shown, () =>
                 {
                     closing.Remove(popup);
                     popup.IsOpen = false;
@@ -113,7 +141,7 @@ public static class Presentation
             if (presented) PopoverHost.Prepare(popup); // the anchor's appearance and the panel fill (ED-238)
             popup.IsOpen = presented;
             // NSPopover grows in from its arrow (PopoverAppear.cs); the child is final once the popup has opened.
-            if (presented && !wasOpen && popup.IsOpen && popup.Child is { } content) PopoverAppear.Play(content, popup.Placement);
+            if (presented && (!wasOpen || wasClosing && popup.GetValue(MotionProperty) is not null) && popup.IsOpen && popup.Child is { } content) OpenMotion(popup, content);
         }
     }
 }

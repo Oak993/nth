@@ -11,6 +11,9 @@ public static class VoiceAnnouncements
 
     public const string Cancelled = "Voice input cancelled; the words were removed.";
 
+    /// <summary>The language question opening (V-12.11, DESIGN voice-options.js <c>say()</c>).</summary>
+    public const string LanguageQuestion = "Which language will you speak? English, Hindi, Urdu or Auto-detect.";
+
     public const string Blocked = "The microphone is blocked. Allow Marrow in Windows Settings, Privacy and security, Microphone.";
 
     /// <summary>"Done: {text}", then what happens to the text: it is sent, or it waits in the composer for the user.</summary>

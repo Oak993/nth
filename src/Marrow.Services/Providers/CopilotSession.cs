@@ -17,7 +17,7 @@ using Marrow.Services.Port.Skills.Shims;
 namespace Marrow.Services.Providers;
 
 // :27-1072. @MainActor final class -> sealed class used only on main (R-ISO-1).
-public sealed partial class CopilotSession : ProviderSession
+public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifetime
 {
     public Action<ProviderEvent>? OnEvent { get; set; } // :29
     // DEVIATION ED-363: DL-12 observations, independent of timeline events and RPC decisions.
@@ -47,6 +47,8 @@ public sealed partial class CopilotSession : ProviderSession
     }
 
     private readonly SessionConfiguration configuration; // :40
+    private JSONRPCConnection? skillsReader;
+    public Task SkillReadersExited => skillsReader?.ChildExited ?? Task.CompletedTask;
     private JSONRPCConnection? connection; // :41
     private string? sessionID; // :42
     private RuntimeMode runtimeMode; // :43
@@ -117,6 +119,7 @@ public sealed partial class CopilotSession : ProviderSession
             configuration.Environment,
             connection =>
             {
+                skillsReader = connection; // RR-15: retained through failed initialization and Stop
                 connection.OnNotification = (method, parameters) => { if (weak.TryGetTarget(out var self)) self.HandleNotification(method, parameters); }; // :98
                 connection.OnRequest = (id, method, parameters) => { if (weak.TryGetTarget(out var self)) self.HandleRequest(id, method, parameters); }; // :99
                 connection.OnClose = tail => { if (weak.TryGetTarget(out var self)) self.HandleClose(tail); }; // :100
@@ -649,7 +652,7 @@ public sealed partial class CopilotSession : ProviderSession
 
     // PORT-ONLY: DL-6 child-only PATH insertion; shared by all Copilot connections (sessions and probes).
     private static Dictionary<string, string> ChildEnvironment(IReadOnlyDictionary<string, string> environment) =>
-        ShimPath.ForChild(environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
+        ProviderCustomCommands.ForChild(environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
 
     // :480-483, extracted unchanged for the DL-11 byte-identity test.
     private static List<string> LaunchArguments()

@@ -7,10 +7,9 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3953,
+      "IMPLEMENTED": 3955,
       "RETIRED": 15,
-      "NOT_APPLICABLE_WITH_EVIDENCE": 22,
-      "SPECIFIED": 2
+      "NOT_APPLICABLE_WITH_EVIDENCE": 22
     },
     "by_area": {
       "CHAT": 193,
@@ -7409,7 +7408,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -7550,7 +7549,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -7708,7 +7707,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -7782,7 +7781,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -7827,7 +7826,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -7870,7 +7869,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -7914,7 +7913,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -8037,7 +8036,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -8081,7 +8080,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -26291,7 +26290,7 @@
       "cancellation": "not applicable",
       "windows_path": "Reproduce. No Windows-only first-run wizard, EULA step or data-folder chooser may be added. The OD-0096 'Getting ready' sheet (no input, real progress, lifts away into the Welcome screen) and the Welcome screen's 'Voice typing' question are the only permitted first-run additions.",
       "verification_method": "capture comparison on a clean data directory, taken after OD-0096 is built",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -26299,6 +26298,32 @@
         "decision": "OD-0096",
         "upstream": "DroppyCode/App/AppDelegate.swift:22-33: a first launch shows the main window and, 700 ms later, the welcome tour; nothing else is presented",
         "port": "On the first run after install, and again only when the prepared state is invalid (a new GPU or driver, a new app build), the window first shows the 'Getting ready' sheet (look I: a glass sheet hanging from the top over the blurred Welcome screen; words W1: title 'Getting ready', line 'Marrow is preparing its graphics and voice for this PC. This happens once.', the step names, 'Ready' when done) while the GPU programs are compiled and cached (ED-252) and the voice hardware check runs (OD-0092); it shows real progress, takes no input and lifts away with a transition (OD-0076). The Welcome screen then carries a 'Voice typing' section (place A, words V2) asking whether the user wants voice typing; nothing is downloaded without a yes (D3 with consent). No account, sign-in, terms or data-directory step is added."
+      },
+      "implementation_evidence": {
+        "accepted_commit": "5e5df33078d112af6eb9ab029643e8d4b213fe24",
+        "accepted_source_tree": "7e9a2d1fe92de8eee3c6c861172f3033484a5e68",
+        "accepted_test_tree": "decc125760c68e0b4345da0a1d98850b5ef05255",
+        "independent_review": "Independent /root/source_review source/test review 2026-10-07 accepts these four whole records as IMPLEMENTED; no production gap or remaining actionable finding. Reviewer did not independently rerun tests. See porting/verification/parity-tail-20261007/independent-review.md.",
+        "evidence_refs": [
+          "porting/verification/parity-tail-20261007/REPORT.md",
+          "tests/Marrow.App.Tests/ParityTailLaunchTests.cs",
+          "src/Marrow.App/AppDelegate.cs:49-100",
+          "src/Marrow.App/Views/RootView.cs",
+          "ED-387"
+        ],
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "porting/verification/parity-tail-20261007/parity-tail-build-final.log.gz"
+        },
+        "tests": {
+          "focused_passed": 9,
+          "focused_failed": 0,
+          "focused_skipped": 0,
+          "mode": "Supplemental Linux ICU76; five focused repeats 9/9. Without forwarding final focused 7 passed/2 failed. Affected 24 passed/1 unchanged Windows API failure. Broad results and raw failures/aborts/skips retained in REPORT.md and receipts.json."
+        },
+        "scope": "Already implemented at base; source-derived regression closure only. IMPLEMENTED, not VERIFIED. Native Windows, real Boot B/bootstrap, visual comparison and installed-package checks pending.",
+        "approved_adaptations": "Existing OD-0018 / ED-103, OD-0096, OD-0098, OD-0113: main appearance and cleared preparation precede the 700ms tour delay; voice consent before downloads; production warm-up behind Boot B. No new product deviation."
       }
     },
     {
@@ -72818,7 +72843,7 @@
       "cancellation": "Dismissing the popover.",
       "windows_path": "Ship all three documents with the installer and read them once at startup. The LICENSE file must remain the AGPL-3.0 text with the section 7 attribution terms, and the trademark document must keep its own terms; both are licence obligations, not styling. The popover geometry and the display titles \"Third-party notices\" and \"Trademarks\" carry over verbatim; the LICENSE block's title reads \"Marrow\" (OD-0012 F1).",
       "verification_method": "interaction test asserting the three titles, the 480 x 440 popover and the fallback sentence with a deliberately missing file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -72827,6 +72852,32 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1013 `(\"Droppy Code\", \"LICENSE\")`",
         "port": "The LICENSE block is titled \"Marrow\"."
+      },
+      "implementation_evidence": {
+        "accepted_commit": "5e5df33078d112af6eb9ab029643e8d4b213fe24",
+        "accepted_source_tree": "7e9a2d1fe92de8eee3c6c861172f3033484a5e68",
+        "accepted_test_tree": "decc125760c68e0b4345da0a1d98850b5ef05255",
+        "independent_review": "Independent /root/source_review source/test review 2026-10-07 accepts these four whole records as IMPLEMENTED; no production gap or remaining actionable finding. Reviewer did not independently rerun tests. See porting/verification/parity-tail-20261007/independent-review.md.",
+        "evidence_refs": [
+          "porting/verification/parity-tail-20261007/REPORT.md",
+          "tests/Marrow.App.Tests/Views/Settings/ParityTailLicensesTests.cs",
+          "tests/Marrow.App.Tests/Views/Settings/SettingsViewTests.cs (Licences_are_read_once)",
+          "tests/Marrow.App.Tests/Views/Settings/LicensesShippingTests.cs",
+          "src/Marrow.App/Views/Settings/SettingsView.cs:1068-1114",
+          "ED-388"
+        ],
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "porting/verification/parity-tail-20261007/parity-tail-build-final.log.gz"
+        },
+        "tests": {
+          "focused_passed": 9,
+          "focused_failed": 0,
+          "focused_skipped": 0,
+          "mode": "Supplemental Linux ICU76; five focused repeats 9/9. Without forwarding final focused 7 passed/2 failed. Affected 24 passed/1 unchanged Windows API failure. Broad results and raw failures/aborts/skips retained in REPORT.md and receipts.json."
+        },
+        "scope": "Already implemented at base; source-derived regression closure only. IMPLEMENTED, not VERIFIED. Native Windows, real Boot B/bootstrap, visual comparison and installed-package checks pending."
       }
     },
     {

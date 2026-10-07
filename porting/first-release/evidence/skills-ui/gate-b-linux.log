@@ -1,0 +1,24 @@
+Droppy Code -> Windows port verification
+pinned source 52bc7926097cd622d08d6294e0d8b08a48c7516e
+reference     E:/Droppy/reference/droppy-code-v1.7.0
+
+Gate B
+  [PASS] architecture record exists and is substantive
+         63015 bytes, 194 source citations
+  [PASS] parity matrix exists with well-formed requirements
+         3992 requirements across 20 areas
+  [PASS] every cited source path exists in the pinned inventory
+         all cited source paths exist at 52bc7926; all cited port artifacts exist on disk
+  [PASS] UI contract exists with well-formed records
+         1057 UI records
+  [PASS] quarantined behavior is not marked ready to implement
+         no open quarantine entries
+  [PASS] no requirement silently depends on an unresolved unknown
+         15 open unknowns, 36 requirement(s) declare a dependency
+  [PASS] every completeness-audit finding has been adjudicated
+         83 findings adjudicated across 4 scopes
+  [PASS] platform adaptation register covers the identified boundaries
+         21 adaptation entries
+
+PASS=8
+RESULT: all implemented checks pass

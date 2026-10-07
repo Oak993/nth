@@ -1,0 +1,5 @@
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/marrow-port/porting/reports/wl-fix/ui-after.trx
+
+Passed!  - Failed:     0, Passed:  1239, Skipped:     0, Total:  1239, Duration: 4 m 26 s - Marrow.UI.Tests.dll (net10.0)

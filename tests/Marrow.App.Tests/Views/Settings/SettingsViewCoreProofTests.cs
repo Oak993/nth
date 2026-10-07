@@ -489,7 +489,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-049")] // App/Views/Settings/SettingsView.swift:648-675,763-766
     public void Provider_status_rows_pin_mark_frame_fonts_colours_all_subtitle_states_collapse_and_switch() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
-        Assert.Equal(15, Nodes<ProviderSettingsSection>(view).Length);
+        Assert.Equal(16, Nodes<ProviderSettingsSection>(view).Length);
         foreach (var kind in new[] { ProviderKind.Commandcode, ProviderKind.Deepseek })
         {
             var section = Nodes<ProviderSettingsSection>(view).Single(s => Field<ProviderKind>(s, "provider") == kind);

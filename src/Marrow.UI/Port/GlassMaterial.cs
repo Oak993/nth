@@ -307,7 +307,7 @@ internal static class GlassMaterial
             var a = AttachmentFor(control);
             var (darkness, tint) = a.Appearance(control, this, e, resolved);
             return new Region(control.Bounds.Size, e.Shape, corners, tint, drawnTint, darkness,
-                e.IsInteractive && a.hovered, e.IsInteractive && a.pressed, a.pointer, toOwner, opacity);
+                e.IsInteractive && a.hovered, e.IsInteractive && a.pressed, a.pointer, toOwner, opacity, e.NoRefraction, e.NoContactLine);
         }
 
         // OD-0076 / ED-254 (SPEC 6.5): in a window that turns over, a piece's veil colour (its darkness, 0 light to 1 dark) and its resolved tint ease to the new
@@ -481,7 +481,7 @@ internal static class GlassMaterial
     }
 
     private sealed record Region(Size Size, GlassShape Shape, CornerRadius Corners, Color Tint, bool DrawnTint,
-        double Darkness, bool Hovered, bool Pressed, Point Pointer, Matrix Transform, double Opacity);
+        double Darkness, bool Hovered, bool Pressed, Point Pointer, Matrix Transform, double Opacity, bool NoRefraction = false, bool NoContactLine = false);
     private sealed record State(Region[] Regions, double Spacing);
 
     private sealed class Handler : CompositionCustomVisualHandler
@@ -627,6 +627,8 @@ internal static class GlassMaterial
             uniform float4 optics{{i}};
             uniform float4 flags{{i}};
             uniform float4 pointer{{i}};
+            uniform float plain{{i}};
+            uniform float bare{{i}};
             float2 local{{i}}(float2 xy) {
                 return float2(xy.x * transform{{i}}.x + xy.y * transform{{i}}.z,
                               xy.x * transform{{i}}.y + xy.y * transform{{i}}.w) + translate{{i}};
@@ -639,7 +641,7 @@ internal static class GlassMaterial
         for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"d = smoothUnion(d, distance{i}(xy));\n");
         source.Append("return d; }\n");
         source.Append(BodySource);
-        source.Append("half4 main(float2 xy) { float4 tint = tint0; float4 film = film0; float4 law = law0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0; float4 optics = optics0;\n");
+        source.Append("half4 main(float2 xy) { float4 tint = tint0; float4 film = film0; float4 law = law0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0; float4 optics = optics0; float plain = plain0; float bare = bare0;\n");
         // ED-320 16: the inside of a lone rounded rectangle (Draw's Inside) is drawn with `interior` set: what the shader computes past Optics.Deep,
         // without the shape's distance. It is the same program and the same arithmetic as the whole shader's deep branch below, so the two are
         // byte-identical (GlassMaterialReachReviewTests). A container's union never has one (Inside is null): its pointer is the nearest piece's.
@@ -651,7 +653,7 @@ internal static class GlassMaterial
 
             """);
         else source.Append("float raw = distance0(xy);\n");
-        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; film = film{i}; law = law{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; optics = optics{i}; }}\n");
+        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; film = film{i}; law = law{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; optics = optics{i}; plain = plain{i}; bare = bare{i}; }}\n");
         if (n > 1) source.Append("float2 delta = at - ptr.xy;\nfloat highlight = exp(-dot(delta, delta) / (2.0 * 48.0 * 48.0)) * ptr.z;\n");
         // With one shape the scene's distance is the shape's own (no union): it is not evaluated twice.
         source.Append(n == 1 ? "float d = -raw;\n" : "float d = -sceneDistance(xy);\n");
@@ -690,6 +692,8 @@ internal static class GlassMaterial
             // The contact line just outside the edge, dark where the edge faces sideways (the Mac frames' 1 px dark line at a capsule's
             // ends), and dashersw/liquid-glass-js's soft shadow in miniature.
             float shade = d < 0.25 ? clamp(1.0 - abs(d + 0.5) / 0.75, 0.0, 1.0) * (LG_SHADEBASE + LG_SHADESIDE * n.x * n.x) * (LG_SHADEDARK + (1.0 - LG_SHADEDARK) * lit) : 0.0;
+            // OD-0123: a piece that asks for no contact line (the voice pill) draws none; the multiplication by 1.0 leaves every other piece's pixels as they were.
+            shade *= 1.0 - bare;
             // What the pixel becomes is mix(under, value, amount): stage 0 (BlendMode.DstOut) takes `amount` of the pixel under away,
             // stage 1 (BlendMode.Plus) adds value * amount. The glass is translucent: its value keeps the alpha of what lies under it.
             float amount = flags.w * (1.0 - (1.0 - coverage) * (1.0 - shade));
@@ -715,6 +719,8 @@ internal static class GlassMaterial
             float reach = LG_BANDSIGMAS * clamp(0.15 * min(extent.x, extent.y), 1.0, 12.0);
             // Meet the unbent fast body with zero displacement and zero slope; an abrupt end leaves a rectangular seam.
             disp -= (1.0 - lit) * max(reach - dd, 0.0) * (1.0 - smoothstep(0.0, deep, dd));
+            // OD-0121: a piece that asks for no refraction (the voice pill) bends nothing; the multiplication by 1.0 leaves every other piece's pixels as they were.
+            disp *= 1.0 - plain;
             half4 r = backdrop.eval(clamp(xy - n * disp, window.xy, window.zw));
             half4 g = backdrop.eval(clamp(xy - n * (disp * LG_GREEN), window.xy, window.zw));
             half4 b = backdrop.eval(clamp(xy - n * (disp * LG_BLUE), window.xy, window.zw));
@@ -1264,6 +1270,8 @@ internal static class GlassMaterial
                 ($"pointer{i}", [(float)r.Pointer.X, (float)r.Pointer.Y, r.Pressed ? 0.12f : r.Hovered ? 0.06f : 0f, r.DrawnTint ? 1f : 0f]),
             };
             foreach (var (name, value) in values) uniforms[name] = value;
+            uniforms[$"plain{i}"] = r.NoRefraction ? 1f : 0f;
+            uniforms[$"bare{i}"] = r.NoContactLine ? 1f : 0f;
         }
         var children = new SKRuntimeEffectChildren(effect) { ["backdrop"] = backdrop };
         using var maskShader = effect.ToShader(uniforms, children);

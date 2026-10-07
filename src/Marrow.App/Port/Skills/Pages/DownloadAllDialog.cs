@@ -47,7 +47,7 @@ internal sealed class DownloadAllDialog : Decorator
         this.model = model;
         this.hide = hide;
         this.plugins = plugins;
-        var first = model.Controller.Dialog; // the folds start where the dialog opens: the sheet grows in, nothing folds on arrival
+        var first = model.Dialog; // the folds start where the dialog opens: the sheet grows in, nothing folds on arrival
         var icon = LibraryUi.Tile("arrow.down.circle.fill", 36, 10);
         var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, sub } };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("36,*"), ColumnSpacing = 12 };
@@ -96,7 +96,7 @@ internal sealed class DownloadAllDialog : Decorator
         SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));
         Child = surface;
         this.Named("Download all", "dialog");
-        Apply(model.Controller.Dialog);
+        Apply(model.Dialog);
     }
 
     private static void Fact(Grid grid, int row, int column, Control label, Control value)

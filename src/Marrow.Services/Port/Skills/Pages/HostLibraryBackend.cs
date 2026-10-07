@@ -108,7 +108,7 @@ public sealed class HostLibraryBackend(SkillsHost host, SkillsCatalogue catalogu
 
     public DriveSpace? Free() => free?.Invoke();
 
-    public IReadOnlyList<ProviderSkillGroup> Providers() => (providers ?? new NoProviderSkills()).Report();
+    public IReadOnlyList<ProviderSkillGroup> Providers() => (providers ?? host.ProviderSkills).Report();
 
     /// <summary>The volume of the data root: the drive's label and its free bytes, or null when the drive cannot be read (a network root, a missing drive).</summary>
     public static DriveSpace? DriveOf(string dataRoot)

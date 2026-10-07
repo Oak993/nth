@@ -156,7 +156,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
     };
 
     // PORT-ONLY: DL-6 applies to every ACP child, including the catalog probe's session.
-    private Dictionary<string, string> ChildEnvironment => ShimPath.ForChild(configuration.Environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
+    private Dictionary<string, string> ChildEnvironment => ProviderCustomCommands.ForChild(configuration.Environment, SkillsProviderDataRoot.Resolve(Storage.Locations.Current, Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR")));
 
     // PORT-ONLY: SK-11c's DL-6 rule (addonsin on PATH of every ACP child) and SK-11e's Grok launch (the same rule from the generation's data root) both
     // insert the folder, so a Grok session with a launch takes SK-11e's environment and every other child takes SK-11c's: the folder goes on PATH exactly once.

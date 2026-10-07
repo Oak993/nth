@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Port.Usage;
 
 // Source: DroppyCode/Services/Providers/PlanLimits.swift (B2 1fbf81e), :1-336.
 // ED-168: URLSession, URLSessionConfiguration, URLRequest, URLResponse, HTTPURLResponse, URLError and URLCache
@@ -25,12 +26,16 @@ public sealed record PlanLimits
         public required double Percent { get; init; }   // :8
         public DateTimeOffset? ResetsAt { get; init; }   // :9
         public string? Detail { get; init; }             // :10
+        // DEVIATION OD-0114 / ED-406: duration comes from the reported window, never the plan name.
+        public long? DurationMinutes { get; init; }
     }
 
     public string? PlanName { get; init; }                   // :13
     public required ValueList<Window> Windows { get; init; } // :14
     public ResetCredits? PlanLimitsResetCredits { get; init; } // :15 Swift: resetCredits (R-NAME-3)
     public string? Problem { get; init; }                    // :17
+    // PORT-ONLY OD-0114: actual account-owned API balance/allowance, without inventing plan windows.
+    public ProviderCredits? AccountCredits { get; init; }
 
     // :20-25
     public sealed record ResetCredit
@@ -134,7 +139,7 @@ public static partial class PlanLimitsReader
         ProviderKind.Commandcode => CommandCodeAPI.PlanLimits(environment),
         ProviderKind.Pi => PiPlanLimits.Read(environment),
         ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or
-            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin or ProviderKind.OpenRouter => Task.FromResult<PlanLimits?>(null),
+            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-410: no quota
     };
 
     // :84-90. API-key subscriptions read their windows from the API instead of a CLI. PR-PROVREG-171.
@@ -144,7 +149,33 @@ public static partial class PlanLimitsReader
         ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Cursor or ProviderKind.Opencode or
             ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Deepseek or ProviderKind.Meta or
             ProviderKind.Devin or ProviderKind.Antigravity or ProviderKind.Copilot or ProviderKind.Commandcode or
-            ProviderKind.Pi or ProviderKind.OpenRouter => Task.FromResult<PlanLimits?>(null),
+            ProviderKind.Pi or ProviderKind.OpenRouter or ProviderKind.Local => Task.FromResult<PlanLimits?>(null), // ED-410
+    };
+
+    // DEVIATION OD-0114 / ED-406: explicit account selection must never consult a global login.
+    // The environment/key is supplied by the account store; copying it prevents later edits redirecting a read.
+    // OS-vault CLI sign-ins remain single-account. No credential collection or persistence is added here.
+    public static Task<PlanLimits?> Read(UsageAccountKey account, SwiftURL executable, IReadOnlyDictionary<string, string> environment)
+    {
+        var selected = environment.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        if (account.IsDefault) return account.Provider == ProviderKind.Commandcode
+            ? CommandCodeAPI.PlanLimits(selected, reportedWindowsOnly: true) : Read(account.Provider, executable, selected);
+        bool Root(string key) => selected.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value) && System.IO.Path.IsPathFullyQualified(value);
+        return account.Provider switch
+        {
+            ProviderKind.Claude when Root("CLAUDE_CONFIG_DIR") => ReadClaude(executable, selected, allowHomeFallback: false),
+            ProviderKind.Codex when Root("CODEX_HOME") => Read(account.Provider, executable, selected),
+            ProviderKind.Pi when Root("PI_CODING_AGENT_DIR") => PiPlanLimits.Read(selected, reportThrottling: true),
+            ProviderKind.Commandcode when (selected.TryGetValue("COMMAND_CODE_API_KEY", out var key) && !string.IsNullOrWhiteSpace(key)) || Root("HOME") => CommandCodeAPI.PlanLimits(selected, reportedWindowsOnly: true),
+            _ => Task.FromResult<PlanLimits?>(null),
+        };
+    }
+
+    public static Task<PlanLimits?> Read(UsageAccountKey account, string apiKey) => account.Provider switch
+    {
+        ProviderKind.Zai => ZaiAPI.PlanLimits(apiKey, reportedWindowsOnly: true),
+        ProviderKind.Deepseek or ProviderKind.OpenRouter => AccountCreditLimitsReader.Read(account, apiKey),
+        _ => Read(account.Provider, apiKey),
     };
 
     // :92-102. PR-PROVREG-173, PR-USAGE-078 (USAGE.json duplicates PROVREG.json's record for these lines).
@@ -194,9 +225,9 @@ public static partial class PlanLimitsReader
     // PR-PROVREG-176. `homeDirectory` and `usageUrl` are PORT-ONLY test seams (defaulting to production values,
     // the MetaAPI.cs convention): InternalsVisibleTo above grants tests/Marrow.Services.Tests access.
     internal static async Task<PlanLimits?> ReadClaude(SwiftURL executable, IReadOnlyDictionary<string, string> environment,
-        string? homeDirectory = null, Uri? usageUrl = null)
+        string? homeDirectory = null, Uri? usageUrl = null, bool allowHomeFallback = true)
     {
-        if (await ReadClaudeUsageEndpoint(executable, environment, homeDirectory, usageUrl) is { } limits) return limits;
+        if (await ReadClaudeUsageEndpoint(executable, environment, homeDirectory, usageUrl, allowHomeFallback) is { } limits) return limits;
         return await ReadClaudeFromCLI(executable, environment);
     }
 
@@ -232,26 +263,26 @@ public static partial class PlanLimitsReader
 
     // :160-179. PR-PROVREG-180, PR-PROVREG-181, PR-PROVREG-182.
     internal static async Task<PlanLimits?> ReadClaudeUsageEndpoint(SwiftURL executable, IReadOnlyDictionary<string, string> environment,
-        string? homeDirectory = null, Uri? usageUrl = null)
+        string? homeDirectory = null, Uri? usageUrl = null, bool allowHomeFallback = true)
     {
-        if (await ReaderClaudeLogin(environment, homeDirectory) is not { } login) return null;
+        if (await ReaderClaudeLogin(environment, homeDirectory, allowHomeFallback) is not { } login) return null;
         // :162-167. A token about to expire is refreshed by the CLI, which owns the single-use refresh token.
         if (login.ExpiresAt is { } expiresAt && expiresAt < SwiftDate.AddingTimeInterval(SwiftDate.Now, 300))
         {
             await RefreshClaudeLogin(executable, environment);
-            if (await ReaderClaudeLogin(environment, homeDirectory) is not { } refreshed) return null;
+            if (await ReaderClaudeLogin(environment, homeDirectory, allowHomeFallback) is not { } refreshed) return null;
             login = refreshed;
         }
-        var response = await FetchClaudeUsage(login.AccessToken, usageUrl);
+        var response = await FetchClaudeUsage(login.AccessToken, usageUrl, reportThrottling: !allowHomeFallback);
         if (response?.Status == 401 || response?.Status == 403)
         {
             await RefreshClaudeLogin(executable, environment);
-            if (await ReaderClaudeLogin(environment, homeDirectory) is not { } refreshed || refreshed.AccessToken == login.AccessToken)
+            if (await ReaderClaudeLogin(environment, homeDirectory, allowHomeFallback) is not { } refreshed || refreshed.AccessToken == login.AccessToken)
             {
                 return null;
             }
             login = refreshed;
-            response = await FetchClaudeUsage(login.AccessToken, usageUrl);
+            response = await FetchClaudeUsage(login.AccessToken, usageUrl, reportThrottling: !allowHomeFallback);
         }
         if (response is not { } result || result.Status != 200 || JSONValue.Parse(result.Data) is not { } json) return null;
         return ParseClaudeUsage(json, json["limits"]?.JSONValueArray ?? [], login.PlanName);
@@ -263,14 +294,18 @@ public static partial class PlanLimitsReader
     // this order: CLAUDE_CONFIG_DIR when non-empty, then <home>\.claude, each looking for ".credentials.json".
     // /usr/bin/security has no Windows analogue: when every file read fails the port returns nil directly,
     // spawning nothing and taking no Keychain or Credential Manager branch in its place.
-    internal static Task<ClaudeLogin?> ReaderClaudeLogin(IReadOnlyDictionary<string, string> environment, string? homeDirectory = null)
+    internal static Task<ClaudeLogin?> ReaderClaudeLogin(IReadOnlyDictionary<string, string> environment, string? homeDirectory = null, bool allowHomeFallback = true)
     {
+        // PORT-ONLY: OD-0114 / ED-404. Explicit new accounts use the CLI-owned usage path;
+        // do not collect their OAuth tokens or fall back to another account's global credential file.
+        if (environment.ContainsKey("MARROW_ACCOUNT_ID")) return Task.FromResult<ClaudeLogin?>(null);
         var directories = new List<string>();
         if (environment.TryGetValue("CLAUDE_CONFIG_DIR", out var configured) && configured.Length > 0)
         {
             directories.Add(configured);
         }
-        directories.Add(SwiftPath.AppendingPathComponent(homeDirectory ?? LoginEnvironment.HomeDirectory, ".claude"));
+        // DEVIATION OD-0114 / ED-406: explicit accounts fail closed; legacy callers keep the original fallback.
+        if (allowHomeFallback) directories.Add(SwiftPath.AppendingPathComponent(homeDirectory ?? LoginEnvironment.HomeDirectory, ".claude"));
         foreach (var directory in directories)
         {
             var file = SwiftPath.AppendingPathComponent(directory, ".credentials.json");
@@ -321,7 +356,7 @@ public static partial class PlanLimitsReader
         _ = await SwiftTry.OptionalAsync(async () => (ShellResult?)await Shell.Run(executable.Path, ["auth", "status"], environment: environment, timeout: 20));
 
     // :242-250. PR-PROVREG-181. `usageUrl` is a PORT-ONLY test seam (see ReadClaude above).
-    internal static async Task<(int Status, byte[] Data)?> FetchClaudeUsage(string token, Uri? usageUrl = null)
+    internal static async Task<(int Status, byte[] Data)?> FetchClaudeUsage(string token, Uri? usageUrl = null, bool reportThrottling = false)
     {
         var request = new URLRequest(usageUrl ?? UsageURL, timeoutInterval: 15);
         request = request.SetValue("Bearer " + token, forHTTPHeaderField: "Authorization");
@@ -329,6 +364,7 @@ public static partial class PlanLimitsReader
         request = request.SetValue("application/json", forHTTPHeaderField: "Accept");
         if (await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request)) is not { } exchange ||
             exchange.Response is not HTTPURLResponse http) return null;
+        if (reportThrottling) LimitsPollException.ThrowIfThrottled(http);
         return (http.StatusCode, exchange.Data);
     }
 
@@ -423,6 +459,7 @@ public static partial class PlanLimitsReader
             windows.Add(new PlanLimits.Window // :307-312
             {
                 Id = $"{idPrefix}{kind}-{index}",
+                DurationMinutes = kind == "session" ? 300 : kind.StartsWith("weekly", StringComparison.Ordinal) ? 10_080 : null,
                 Title = title,
                 Percent = percent,
                 ResetsAt = limit["resets_at"]?.JSONValueString is { } resetText ? ParseDate(resetText) : null,
@@ -438,6 +475,7 @@ public static partial class PlanLimitsReader
                 windows.Add(new PlanLimits.Window // :319
                 {
                     Id = $"{idPrefix}{key}",
+                    DurationMinutes = key == "five_hour" ? 300 : 10_080,
                     Title = fullTitle,
                     Percent = percent,
                     ResetsAt = window["resets_at"]?.JSONValueString is { } resetText ? ParseDate(resetText) : null,

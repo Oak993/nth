@@ -3,9 +3,11 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Session;
@@ -25,25 +27,58 @@ internal sealed class VoiceOrbSlot : Decorator
     private const double ChipGap = 12; // the row spaces its items by 2; the design leaves 14 between the slot and the chip
     private const double HitInset = 4;
     private static readonly Animation SizeSpring = Animation.Spring(response: 0.34, dampingFraction: 0.86);
+    private static readonly Animation LiftUp = Animation.Spring(response: 0.36, dampingFraction: 0.8);   // V-12.2: the orb lifts into the floating pill
+    private static readonly Animation LiftDown = Animation.Spring(response: 0.34, dampingFraction: 0.86); // and settles back
 
     private readonly ComposerVoiceController voice;
     private readonly Canvas canvas = new() { ClipToBounds = false };
     private readonly AnimatedScalar side;
+    private readonly AnimatedScalar lift;
+    private readonly LookMotion motion;
+    private readonly LookNumber crossSlide;
+    private readonly LookNumber crossOpacity;
+    private readonly TranslateTransform liftShift = new();
+    private readonly TranslateTransform crossShift = new();
+    private readonly ScaleTransform crossGrow = new(0.55, 0.55);
     private int shownSize;
     private DisplayLink? levelLink;
     private ContinuousInstant lastLevel;
     private IInputElement? keyboardBefore;
     private VoiceSessionState lastState;
+    private readonly Popup? setup;
 
     public VoiceOrbSlot(ComposerVoiceController voice)
     {
         this.voice = voice;
+        // Keep the 72 px view centred on D/2 during size springs and at fractional desktop scales.
+        // Rounding its canvas offset separately from D/2 moves the painted ball away from the pill's anchor.
+        UseLayoutRounding = false;
+        motion = new LookMotion(this);
+        crossSlide = new LookNumber(motion, 0);
+        crossOpacity = new LookNumber(motion, 0);
+        Cross.RenderTransform = new TransformGroup { Children = { crossGrow, crossShift } };
+        Cross.RenderTransformOrigin = RelativePoint.Center;
+        Cross.Opacity = 0;
+        Cross.IsHitTestVisible = false;
+        Cross.Click += (_, _) => voice.Cancel();
+        motion.Frame += PlaceCross;
+        Orb.RenderTransform = liftShift;
+        HitTarget.RenderTransform = liftShift;
+        lift = new AnimatedScalar(this, 0, value => liftShift.Y = VoicePillGeometry.FloatLift * value);
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Center;
         ClipToBounds = false;
         Child = canvas;
+        canvas.Children.Add(Cross); // tucked behind the orb at rest (V-12.5)
         canvas.Children.Add(Orb);
         canvas.Children.Add(HitTarget);
+        if (voice.FirstRun is { } flow)
+        {
+            setup = PlainControls.Popover(HitTarget, new Binding<bool>(() => voice.SetupOpen, open => voice.SetupOpen = open),
+                () => new VoiceSetupCard(flow), PlacementMode.TopEdgeAlignedRight);
+            canvas.Children.Add(setup);
+            DetachedFromVisualTree += (_, _) => voice.SetupOpen = false;
+        }
         shownSize = voice.OrbSettings.OrbSize;
         side = new AnimatedScalar(this, shownSize, Place);
         ToolTip.SetTip(HitTarget, "Voice input");
@@ -68,6 +103,47 @@ internal sealed class VoiceOrbSlot : Decorator
         AttachedToVisualTree += (_, _) => FollowTheVoice();
         DetachedFromVisualTree += (_, _) => StopFollowing();
         this.Track(() => (voice.State, voice.PointerOver, voice.OrbSettings), shown => Show(shown.State, shown.PointerOver, shown.OrbSettings));
+        this.Track(() => (voice.IsLive, voice.LiveStyle), shown => ShowListening(shown.IsLive, shown.LiveStyle));
+    }
+
+    /// <summary>The slot's side now, a spring toward the orb size (V-14.2): the pill's anchor and the radius its material clears round the orb (V-12.12).</summary>
+    public double Diameter => side is null ? shownSize : side.Value;
+
+    /// <summary>The cancel cross beside the orb (V-12.5), live only in the Cross style.</summary>
+    public VoiceCross Cross { get; } = new(VoiceCrossLook.Beside);
+
+    /// <summary>How far the orb has lifted into the floating pill, 0 to 1 (the spring of V-12.2).</summary>
+    internal double Lift => lift.Value;
+
+    /// <summary>The cross's slide, 0 tucked behind the orb to 1 out (0.42 s ez), and its opacity.</summary>
+    internal double CrossSlide => crossSlide.Value;
+
+    internal double CrossOpacity => crossOpacity.Value;
+
+    // V-12.5 and V-12.2, V-15's Listening row: the Cross style slides the cross out (transform 0.42 s ez, opacity 0.24 s ease after 0.04 s; back: opacity 0.2 s ease), the Float style lifts the orb
+    private void ShowListening(bool live, VoiceListeningStyle style)
+    {
+        var crossOut = live && style == VoiceListeningStyle.Cross;
+        crossSlide.To(crossOut ? 1 : 0, LookCurve.Ez(0.42));
+        if (crossOut) crossOpacity.To(1, LookCurve.Ease(0.24), 0.04);
+        else crossOpacity.To(0, LookCurve.Ease(0.2));
+        Cross.Live = crossOut;
+        Cross.IsHitTestVisible = crossOut; // `.xbtn{pointer-events:none}`, auto while live
+        var lifted = live && style == VoiceListeningStyle.Float;
+        lift.Set(lifted ? 1 : 0, lifted ? LiftUp : LiftDown);
+        PlaceCross();
+    }
+
+    // `.xbtn`: right edge at the slot's centre, transform translateX(0) scale(.55) tucked, translateX(xo) scale(1) out
+    private void PlaceCross()
+    {
+        var d = side is null ? shownSize : side.Value; // Place runs once from inside the AnimatedScalar's own construction
+        var slide = crossSlide.Value;
+        Canvas.SetLeft(Cross, d / 2 - VoicePillGeometry.CrossSize);
+        Canvas.SetTop(Cross, d / 2 - VoicePillGeometry.CrossSize / 2);
+        crossShift.X = VoicePillGeometry.CrossBesideOffset(d) * slide;
+        crossGrow.ScaleX = crossGrow.ScaleY = 0.55 + 0.45 * slide;
+        Cross.Opacity = crossOpacity.Value;
     }
 
     /// <summary>The 72 px orb view.</summary>
@@ -139,6 +215,7 @@ internal sealed class VoiceOrbSlot : Decorator
         Canvas.SetLeft(Orb, (d - OrbScene.ViewPx) / 2);
         Canvas.SetTop(Orb, (d - OrbScene.ViewPx) / 2);
         Canvas.SetLeft(HitTarget, -HitInset);
+        PlaceCross();
         Canvas.SetTop(HitTarget, -HitInset);
         HitTarget.Width = d + 2 * HitInset;
         HitTarget.Height = d + 2 * HitInset;

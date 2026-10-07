@@ -1,0 +1,423 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:04.18]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_Remove_deletes_immediately_with_no_confirmation_dialog [FAIL]
+[xUnit.net 00:00:04.19]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Picture_arrival_and_removal_use_the_cards_own_spring [FAIL]
+[xUnit.net 00:00:04.22]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_softness_slider_is_140_points_wide_with_sharp_and_blurred_tooltips [FAIL]
+[xUnit.net 00:00:04.25]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.With_a_wallpaper_the_detail_and_buttons_switch_to_the_installed_state [FAIL]
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_Remove_deletes_immediately_with_no_confirmation_dialog [69 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Clicking_Remove_deletes_immediately_with_no_confirmation_dialog>b__19_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 325
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_Remove_deletes_immediately_with_no_confirmation_dialog() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 321
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Picture_arrival_and_removal_use_the_cards_own_spring [14 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   1
+  Stack Trace:
+     at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Picture_arrival_and_removal_use_the_cards_own_spring>b__4_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 51
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Picture_arrival_and_removal_use_the_cards_own_spring() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 47
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_softness_slider_is_140_points_wide_with_sharp_and_blurred_tooltips [10 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_softness_slider_is_140_points_wide_with_sharp_and_blurred_tooltips>b__26_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 444
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_softness_slider_is_140_points_wide_with_sharp_and_blurred_tooltips() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 440
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.With_a_wallpaper_the_detail_and_buttons_switch_to_the_installed_state [28 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<With_a_wallpaper_the_detail_and_buttons_switch_to_the_installed_state>b__18_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 308
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.With_a_wallpaper_the_detail_and_buttons_switch_to_the_installed_state() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 304
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:14.30]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Dropping_files_installs_the_first_accepted_picture_and_ignores_the_rest [FAIL]
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Dropping_files_installs_the_first_accepted_picture_and_ignores_the_rest [10 s]
+  Error Message:
+   the store's off-main work did not come back within ten seconds
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.WaitFor(Func`1 condition) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 116
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Dropping_files_installs_the_first_accepted_picture_and_ignores_the_rest>b__11_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 170
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Dropping_files_installs_the_first_accepted_picture_and_ignores_the_rest() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 159
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:14.34]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Both_row_buttons_are_disabled_while_an_install_is_running [FAIL]
+[xUnit.net 00:00:14.40]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.An_indeterminate_progress_indicator_shows_only_while_installing_and_disables_the_buttons [FAIL]
+[xUnit.net 00:00:14.42]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_mock_window_over_an_installed_picture_is_60_percent_of_the_well_centred [FAIL]
+[xUnit.net 00:00:14.52]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_Remove_removes_the_wallpaper_and_clears_the_error [FAIL]
+[xUnit.net 00:00:14.55]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Beginning_and_ending_the_drag_toggles_isAdjustingSoftness [FAIL]
+[xUnit.net 00:00:14.58]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_mock_window_carries_the_glass_effect_as_data_ED_180 [FAIL]
+[xUnit.net 00:00:14.64]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Moving_the_slider_writes_softness_to_the_store [FAIL]
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Both_row_buttons_are_disabled_while_an_install_is_running [33 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Both_row_buttons_are_disabled_while_an_install_is_running>b__20_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 343
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Both_row_buttons_are_disabled_while_an_install_is_running() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 339
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.An_indeterminate_progress_indicator_shows_only_while_installing_and_disables_the_buttons [33 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<An_indeterminate_progress_indicator_shows_only_while_installing_and_disables_the_buttons>b__16_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 271
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.An_indeterminate_progress_indicator_shows_only_while_installing_and_disables_the_buttons() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 260
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_mock_window_over_an_installed_picture_is_60_percent_of_the_well_centred [23 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_mock_window_over_an_installed_picture_is_60_percent_of_the_well_centred>b__9_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 124
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_mock_window_over_an_installed_picture_is_60_percent_of_the_well_centred() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 120
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_Remove_removes_the_wallpaper_and_clears_the_error [13 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Clicking_Remove_removes_the_wallpaper_and_clears_the_error>b__25_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 422
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_Remove_removes_the_wallpaper_and_clears_the_error() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 418
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Beginning_and_ending_the_drag_toggles_isAdjustingSoftness [116 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Beginning_and_ending_the_drag_toggles_isAdjustingSoftness>b__29_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 502
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Beginning_and_ending_the_drag_toggles_isAdjustingSoftness() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 498
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_mock_window_carries_the_glass_effect_as_data_ED_180 [22 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_mock_window_carries_the_glass_effect_as_data_ED_180>b__10_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 144
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_mock_window_carries_the_glass_effect_as_data_ED_180() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 140
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Moving_the_slider_writes_softness_to_the_store [14 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Moving_the_slider_writes_softness_to_the_store>b__28_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 487
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Moving_the_slider_writes_softness_to_the_store() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 483
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:14.66]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_button_is_22_by_22_offset_28_points_to_the_left [FAIL]
+[xUnit.net 00:00:14.70]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_two_drop_glyphs_are_subheadline_size_in_Chrome_secondaryText [FAIL]
+[xUnit.net 00:00:14.72]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_glyph_is_subheadline_medium_weight_in_Chrome_secondaryText [FAIL]
+[xUnit.net 00:00:14.74]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_softness_control_is_one_accessibility_group_labelled_wallpaper_softness [FAIL]
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_button_is_22_by_22_offset_28_points_to_the_left [38 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_reset_button_is_22_by_22_offset_28_points_to_the_left>b__31_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 554
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_button_is_22_by_22_offset_28_points_to_the_left() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 550
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_two_drop_glyphs_are_subheadline_size_in_Chrome_secondaryText [13 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_two_drop_glyphs_are_subheadline_size_in_Chrome_secondaryText>b__27_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 463
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_two_drop_glyphs_are_subheadline_size_in_Chrome_secondaryText() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 459
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_glyph_is_subheadline_medium_weight_in_Chrome_secondaryText [15 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_reset_glyph_is_subheadline_medium_weight_in_Chrome_secondaryText>b__32_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 571
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_glyph_is_subheadline_medium_weight_in_Chrome_secondaryText() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 567
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_softness_control_is_one_accessibility_group_labelled_wallpaper_softness [13 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_softness_control_is_one_accessibility_group_labelled_wallpaper_softness>b__33_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 592
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_softness_control_is_one_accessibility_group_labelled_wallpaper_softness() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 588
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:14.75]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_appears_only_once_softness_passes_0_005_and_sets_it_to_0 [FAIL]
+[xUnit.net 00:00:14.78]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_the_preview_opens_the_chooser_and_installs_the_chosen_picture [FAIL]
+[xUnit.net 00:00:14.80]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_the_Choose_button_opens_the_chooser_and_installs_the_result [FAIL]
+[xUnit.net 00:00:14.82]     Marrow.App.Tests.Views.Settings.WallpaperCardTests.Installing_a_wallpaper_adds_the_softness_row_and_removing_it_takes_it_away_entirely [FAIL]
+[xUnit.net 00:00:14.85]     Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.The_outgoing_picture_keeps_its_image_while_the_removal_transition_runs [FAIL]
+[xUnit.net 00:00:14.91]     Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.A_reset_already_true_when_the_softness_row_appears_is_not_animated_in [FAIL]
+[xUnit.net 00:00:14.97]     Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.A_very_small_external_softness_change_is_reflected_by_the_slider [FAIL]
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_appears_only_once_softness_passes_0_005_and_sets_it_to_0 [18 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<The_reset_appears_only_once_softness_passes_0_005_and_sets_it_to_0>b__30_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 528
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.The_reset_appears_only_once_softness_passes_0_005_and_sets_it_to_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 524
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_the_preview_opens_the_chooser_and_installs_the_chosen_picture [18 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Clicking_the_preview_opens_the_chooser_and_installs_the_chosen_picture>b__14_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 236
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_the_preview_opens_the_chooser_and_installs_the_chosen_picture() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 223
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_the_Choose_button_opens_the_chooser_and_installs_the_result [15 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Clicking_the_Choose_button_opens_the_chooser_and_installs_the_result>b__21_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 377
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Clicking_the_Choose_button_opens_the_chooser_and_installs_the_result() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 364
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardTests.Installing_a_wallpaper_adds_the_softness_row_and_removing_it_takes_it_away_entirely [16 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.<>c.<Installing_a_wallpaper_adds_the_softness_row_and_removing_it_takes_it_away_entirely>b__6_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 80
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardTests.Installing_a_wallpaper_adds_the_softness_row_and_removing_it_takes_it_away_entirely() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardTests.cs:line 76
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.The_outgoing_picture_keeps_its_image_while_the_removal_transition_runs [15 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.<>c.<The_outgoing_picture_keeps_its_image_while_the_removal_transition_runs>b__3_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardAuditTests.cs:line 28
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.The_outgoing_picture_keeps_its_image_while_the_removal_transition_runs() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardAuditTests.cs:line 25
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.A_reset_already_true_when_the_softness_row_appears_is_not_animated_in [60 ms]
+  Error Message:
+   Assert.Single() Failure: The collection was empty
+  Stack Trace:
+     at Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.<>c.<A_reset_already_true_when_the_softness_row_appears_is_not_animated_in>b__4_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardAuditTests.cs:line 44
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.A_reset_already_true_when_the_softness_row_appears_is_not_animated_in() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardAuditTests.cs:line 39
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.A_very_small_external_softness_change_is_reflected_by_the_slider [57 ms]
+  Error Message:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   "Could not use that picture."
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WallpaperCardScope.InstallAndSettle(String path) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WallpaperCardFixtures.cs:line 144
+   at Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.<>c.<A_very_small_external_softness_change_is_reflected_by_the_slider>b__6_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardAuditTests.cs:line 68
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 38
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.App.Tests.Views.Settings.WallpaperCardAuditTests.A_very_small_external_softness_change_is_reflected_by_the_slider() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Settings/WallpaperCardAuditTests.cs:line 66
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /workspace/marrow-port/porting/reports/wl-reconcile/app-existing-wallpaper.trx
+
+Failed!  - Failed:    23, Passed:    12, Skipped:     0, Total:    35, Duration: 11 s - Marrow.App.Tests.dll (net10.0)

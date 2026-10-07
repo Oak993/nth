@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="effe3e88-4ac6-4ba6-b67b-9c810c88e7f7" name="@a24583ba704a 2026-10-07 07:07:08" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T07:07:08.1032661+00:00" queuing="2026-10-07T07:07:08.1032661+00:00" start="2026-10-07T07:07:04.6962707+00:00" finish="2026-10-07T07:07:08.1078170+00:00" />
+  <TestSettings name="default" id="ae6c83f6-9020-47f2-abb7-2197efbd3f61">
+    <Deployment runDeploymentRoot="_a24583ba704a_2026-10-07_07_07_08" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="20994704-4ce8-40e4-baf4-8483fb272302" testId="c82bff0c-eb29-42be-da00-705cadf63ffd" testName="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_stays_disabled_when_the_first_install_seam_is_unbound(section: Plugins)" computerName="a24583ba704a" duration="00:00:00.0042287" startTime="2026-10-07T07:07:08.0155283+00:00" endTime="2026-10-07T07:07:08.0196074+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="20994704-4ce8-40e4-baf4-8483fb272302" />
+    <UnitTestResult executionId="4847757e-b0e7-4f9a-8ec0-1820c9cddbe6" testId="cc0b5095-91e5-eac8-5e9c-501288711b26" testName="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.A_hidden_run_keeps_its_completion_and_failure_visible_until_close" computerName="a24583ba704a" duration="00:00:00.1087298" startTime="2026-10-07T07:07:07.8523667+00:00" endTime="2026-10-07T07:07:07.9605071+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4847757e-b0e7-4f9a-8ec0-1820c9cddbe6" />
+    <UnitTestResult executionId="e4a05b3e-40da-4998-8089-11646a42827f" testId="0a09ae92-54c9-e881-1183-5ced5653d7c6" testName="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_stays_disabled_when_the_first_install_seam_is_unbound(section: Skills)" computerName="a24583ba704a" duration="00:00:00.0038714" startTime="2026-10-07T07:07:08.0197426+00:00" endTime="2026-10-07T07:07:08.0235822+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e4a05b3e-40da-4998-8089-11646a42827f" />
+    <UnitTestResult executionId="b80b1183-ca7e-44b7-9ad6-4d3e5b0e5eec" testId="c2c03371-7fe4-e30c-c2d1-08a5d7c5b2db" testName="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Retry_stays_disabled_when_the_first_install_seam_is_unbound" computerName="a24583ba704a" duration="00:00:00.0088179" startTime="2026-10-07T07:07:07.9789608+00:00" endTime="2026-10-07T07:07:07.9877570+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b80b1183-ca7e-44b7-9ad6-4d3e5b0e5eec" />
+    <UnitTestResult executionId="9c4114ce-b2e4-4381-9d7d-f1cdc4002df8" testId="ed0d1213-33ad-a805-3adc-dbc66128a401" testName="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Plugins)" computerName="a24583ba704a" duration="00:00:00.0068350" startTime="2026-10-07T07:07:07.9720089+00:00" endTime="2026-10-07T07:07:07.9787697+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9c4114ce-b2e4-4381-9d7d-f1cdc4002df8" />
+    <UnitTestResult executionId="39818da1-0606-41c8-8a23-7071a169fbd2" testId="fa31edad-d286-72f0-4b2e-0e0617c7e27c" testName="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Skills)" computerName="a24583ba704a" duration="00:00:00.0100211" startTime="2026-10-07T07:07:07.9619959+00:00" endTime="2026-10-07T07:07:07.9718494+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="39818da1-0606-41c8-8a23-7071a169fbd2" />
+    <UnitTestResult executionId="6d4eecb9-44be-45fc-aec3-013b77209139" testId="e574bef3-8b64-5168-9128-6259e1d0ec00" testName="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_An_installed_skill_set_says_Ready_in_new_chats" computerName="a24583ba704a" duration="00:00:00.0274405" startTime="2026-10-07T07:07:07.9879641+00:00" endTime="2026-10-07T07:07:08.0153043+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6d4eecb9-44be-45fc-aec3-013b77209139" />
+    <UnitTestResult executionId="bdca2034-ea63-4e30-87c6-d05aad4234bd" testId="844d189e-55d6-a491-7277-6b931a00b924" testName="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades" computerName="a24583ba704a" duration="00:00:00.7592792" startTime="2026-10-07T07:07:06.9288922+00:00" endTime="2026-10-07T07:07:07.6467310+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bdca2034-ea63-4e30-87c6-d05aad4234bd" />
+    <UnitTestResult executionId="cfd0e442-1d4d-4cca-8e91-3187abe92356" testId="c3d7b300-7296-b5e6-01a4-2c82142579db" testName="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.Hide_keeps_the_run_visible_in_both_pills_and_enlarge_reopens_the_same_dialog" computerName="a24583ba704a" duration="00:00:00.2047043" startTime="2026-10-07T07:07:07.6626121+00:00" endTime="2026-10-07T07:07:07.8516675+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cfd0e442-1d4d-4cca-8e91-3187abe92356" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Plugins)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ed0d1213-33ad-a805-3adc-dbc66128a401">
+      <Execution id="9c4114ce-b2e4-4381-9d7d-f1cdc4002df8" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests" name="REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_An_installed_skill_set_says_Ready_in_new_chats" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="e574bef3-8b64-5168-9128-6259e1d0ec00">
+      <Execution id="6d4eecb9-44be-45fc-aec3-013b77209139" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests" name="REVIEW_An_installed_skill_set_says_Ready_in_new_chats" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound(section: Skills)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="fa31edad-d286-72f0-4b2e-0e0617c7e27c">
+      <Execution id="39818da1-0606-41c8-8a23-7071a169fbd2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests" name="REVIEW_Download_all_stays_disabled_when_the_first_install_seam_is_unbound" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.Hide_keeps_the_run_visible_in_both_pills_and_enlarge_reopens_the_same_dialog" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c3d7b300-7296-b5e6-01a4-2c82142579db">
+      <Execution id="cfd0e442-1d4d-4cca-8e91-3187abe92356" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests" name="Hide_keeps_the_run_visible_in_both_pills_and_enlarge_reopens_the_same_dialog" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.The_pill_arrival_eases_and_reduced_motion_still_fades" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="844d189e-55d6-a491-7277-6b931a00b924">
+      <Execution id="bdca2034-ea63-4e30-87c6-d05aad4234bd" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests" name="The_pill_arrival_eases_and_reduced_motion_still_fades" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_stays_disabled_when_the_first_install_seam_is_unbound(section: Skills)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="0a09ae92-54c9-e881-1183-5ced5653d7c6">
+      <Execution id="e4a05b3e-40da-4998-8089-11646a42827f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests" name="REVIEW_Download_stays_disabled_when_the_first_install_seam_is_unbound" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Download_stays_disabled_when_the_first_install_seam_is_unbound(section: Plugins)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c82bff0c-eb29-42be-da00-705cadf63ffd">
+      <Execution id="20994704-4ce8-40e4-baf4-8483fb272302" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests" name="REVIEW_Download_stays_disabled_when_the_first_install_seam_is_unbound" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests.REVIEW_Retry_stays_disabled_when_the_first_install_seam_is_unbound" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="c2c03371-7fe4-e30c-c2d1-08a5d7c5b2db">
+      <Execution id="b80b1183-ca7e-44b7-9ad6-4d3e5b0e5eec" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.REVIEW_Sk16UnboundControlsTests" name="REVIEW_Retry_stays_disabled_when_the_first_install_seam_is_unbound" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests.A_hidden_run_keeps_its_completion_and_failure_visible_until_close" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="cc0b5095-91e5-eac8-5e9c-501288711b26">
+      <Execution id="4847757e-b0e7-4f9a-8ec0-1820c9cddbe6" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Skills.SkillsProgressPillTests" name="A_hidden_run_keeps_its_completion_and_failure_visible_until_close" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="c82bff0c-eb29-42be-da00-705cadf63ffd" executionId="20994704-4ce8-40e4-baf4-8483fb272302" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc0b5095-91e5-eac8-5e9c-501288711b26" executionId="4847757e-b0e7-4f9a-8ec0-1820c9cddbe6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0a09ae92-54c9-e881-1183-5ced5653d7c6" executionId="e4a05b3e-40da-4998-8089-11646a42827f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2c03371-7fe4-e30c-c2d1-08a5d7c5b2db" executionId="b80b1183-ca7e-44b7-9ad6-4d3e5b0e5eec" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ed0d1213-33ad-a805-3adc-dbc66128a401" executionId="9c4114ce-b2e4-4381-9d7d-f1cdc4002df8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fa31edad-d286-72f0-4b2e-0e0617c7e27c" executionId="39818da1-0606-41c8-8a23-7071a169fbd2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e574bef3-8b64-5168-9128-6259e1d0ec00" executionId="6d4eecb9-44be-45fc-aec3-013b77209139" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="844d189e-55d6-a491-7277-6b931a00b924" executionId="bdca2034-ea63-4e30-87c6-d05aad4234bd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c3d7b300-7296-b5e6-01a4-2c82142579db" executionId="cfd0e442-1d4d-4cca-8e91-3187abe92356" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="9" executed="9" passed="9" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.0)
+[xUnit.net 00:00:00.29]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.54]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.58]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.95]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

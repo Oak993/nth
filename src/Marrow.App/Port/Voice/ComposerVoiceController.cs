@@ -8,6 +8,7 @@ using Marrow.Core.Port.Voice.Orb;
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Port.Voice.Session;
 using Marrow.Core.Port.Voice.Transcript;
+using Marrow.Services.Port.Voice.Cloud;
 
 namespace Marrow.App.Port.Voice;
 
@@ -30,6 +31,9 @@ public sealed class ComposerVoiceController : MainActorModel
     private readonly LevelFollowers followers = new();
     private OrbBands orbBands;
     private bool dictationOpen;
+    private bool setupOpen;
+    private bool preparing;
+    private VoiceListeningStyle liveStyle;
 
     public ComposerVoiceController(ComposerVoiceHost host)
     {
@@ -43,6 +47,9 @@ public sealed class ComposerVoiceController : MainActorModel
 
     /// <summary>The composer's session (V-15's table).</summary>
     public VoiceSession Session { get; }
+
+    internal VoiceFirstRun? FirstRun => VoiceFirstRun.Find(host.Settings());
+    internal bool SetupOpen { get => Read(setupOpen); set => Set(ref setupOpen, value); }
 
     /// <summary>Listening has begun (VT-11): the draft and selection as they are, where the dictated words will go (V-8.1).</summary>
     public event Action<DraftSelection>? DictationBegan;
@@ -58,6 +65,16 @@ public sealed class ComposerVoiceController : MainActorModel
     {
         get => Read(state);
         private set => Set(ref state, value);
+    }
+
+    /// <summary>
+    /// How this session shows that it listens: the listening style (Pill, Cross or Float) as it was when listening began. A change of the setting takes effect with the next session (V-15), so the pill,
+    /// the cross and the orb's lift read this and not the setting while the session is live.
+    /// </summary>
+    public VoiceListeningStyle LiveStyle
+    {
+        get => Read(liveStyle);
+        private set => Set(ref liveStyle, value);
     }
 
     /// <summary>True while Listening or Processing: Esc cancels, the editor is read-only, the capture is open (V-14.4, V-8.5).</summary>
@@ -133,7 +150,7 @@ public sealed class ComposerVoiceController : MainActorModel
     public void PointerEnter()
     {
         PointerOver = true;
-        Session.PointerEnter();
+        if (FirstRun is not { } flow || flow.CanListen) Session.PointerEnter();
     }
 
     public void PointerLeave()
@@ -143,7 +160,29 @@ public sealed class ComposerVoiceController : MainActorModel
     }
 
     /// <summary>The orb clicked, or Enter or Space on it.</summary>
-    public void Activate() => Session.Activate();
+    public void Activate()
+    {
+        if (IsLive || State is VoiceSessionState.Asking or VoiceSessionState.Blocked || host.Settings().VoiceTyping.Engine != VoiceEngine.Local || FirstRun is not { } flow)
+        {
+            Session.Activate();
+            return;
+        }
+        if (preparing) { SetupOpen = true; return; }
+        if (flow.CanListen) { SetupOpen = false; Session.Activate(); return; }
+        SetupOpen = true;
+        preparing = true;
+        _ = MainActor.Spawn(async () =>
+        {
+            try { _ = await flow.OrbAsync(CancellationToken.None); }
+            finally { preparing = false; }
+        });
+    }
+
+    /// <summary>An answer of the language question (V-12.11): stored at once, then listening begins with it.</summary>
+    public void AnswerLanguage(string code) => Session.AnswerLanguage(code);
+
+    /// <summary>Esc or a click outside the question (V-12.11): it closes with nothing stored and nothing started.</summary>
+    public void DismissQuestion() => Session.DismissQuestion();
 
     /// <summary>Esc or the cross (V-14.4): cancels a live session, says so, and does nothing otherwise.</summary>
     public bool Cancel()
@@ -163,16 +202,21 @@ public sealed class ComposerVoiceController : MainActorModel
         var settings = host.Settings();
         var typing = settings.VoiceTyping;
         return new VoiceSessionSettings(settings.VoiceOrb, typing, CultureInfo.CurrentUICulture.Name,
-            typing.Model is { } id ? new SpeechModel(id, null) : null);
+            typing.Engine == VoiceEngine.Cloud ? new SpeechModel(OpenAiTranscriber.DefaultModel, null) : FirstRun is { } flow ? flow.Model(typing.Model) : typing.Model is { } id ? new SpeechModel(id, null) : null)
+            { LiveWords = VoicePreparation.LiveWordsOf(settings.VoiceHardware) };
     }
 
     private void StoreTyping(VoiceTypingSettings typing) => host.Settings().VoiceTyping = typing;
 
     private void OnState(VoiceSessionState from, VoiceSessionState to)
     {
+        if (to == VoiceSessionState.Listening) LiveStyle = OrbSettings.ListeningStyle;
         State = to;
         switch (to)
         {
+            case VoiceSessionState.Asking:
+                Say(VoiceAnnouncements.LanguageQuestion); // V-12.11
+                break;
             case VoiceSessionState.Listening:
                 var began = host.Selection();
                 original = began;

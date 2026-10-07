@@ -32,6 +32,9 @@ public sealed class VoiceOrbView : Control
     private CompositionCustomVisual? visual;
     private VoiceOrbHandler? handler;
     private VoiceOrbSnapshot? sent;
+    private ManualFrameSource? manualFrames;
+    private double? manualOrigin;
+    private TimeProvider? manualClock;
 
     public VoiceOrbView()
     {
@@ -74,6 +77,11 @@ public sealed class VoiceOrbView : Control
     private void Install()
     {
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
+        manualFrames = FrameClock.Source.Current as ManualFrameSource;
+        var clock = SwiftClock.Provider.Current;
+        manualClock = manualFrames is null ? null : clock;
+        manualOrigin = manualClock is null ? null : clock.GetTimestamp() / (double)clock.TimestampFrequency;
+        if (manualFrames is not null) manualFrames.FrameCompleted += OnManualFrame;
         handler = new VoiceOrbHandler();
         visual = host.Compositor.CreateCustomVisual(handler);
         visual.ClipToBounds = false;
@@ -84,6 +92,10 @@ public sealed class VoiceOrbView : Control
 
     private void Remove()
     {
+        if (manualFrames is not null) manualFrames.FrameCompleted -= OnManualFrame;
+        manualFrames = null;
+        manualOrigin = null;
+        manualClock = null;
         // the handler releases its surface on the render thread, where it was made
         visual?.SendHandlerMessage(VoiceOrbStop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
@@ -92,12 +104,23 @@ public sealed class VoiceOrbView : Control
         sent = null;
     }
 
+    // The injected application frame owns integration; a wall-clock redraw only paints its prepared state.
+    private void OnManualFrame()
+    {
+        if (visual is null || manualClock is not { } clock) return;
+        var input = new OrbSceneInput(Kind, Mode, Hovered, Pressed, Bands, SlotDiameter,
+            ActualThemeVariant == ThemeVariant.Dark, EnvironmentValues.GetAccessibilityReduceMotion(this),
+            TileGlow is null ? OrbScene.ViewPx : 52, TileGlow);
+        visual.SendHandlerMessage(new VoiceOrbTick(input, clock.GetTimestamp() / (double)clock.TimestampFrequency,
+            TopLevel.GetTopLevel(this)?.RenderScaling ?? 1));
+    }
+
     private void Send()
     {
         if (visual is null) return;
         var snapshot = new VoiceOrbSnapshot(
             new OrbSceneInput(Kind, Mode, Hovered, Pressed, Bands, SlotDiameter, ActualThemeVariant == ThemeVariant.Dark, EnvironmentValues.GetAccessibilityReduceMotion(this), TileGlow is null ? OrbScene.ViewPx : 52, TileGlow),
-            SwiftClock.Provider.Current);
+            manualClock ?? SwiftClock.Provider.Current, manualOrigin);
         if (snapshot == sent) return;
         sent = snapshot;
         visual.Size = new Vector(snapshot.Input.ViewSize, snapshot.Input.ViewSize);

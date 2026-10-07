@@ -1,0 +1,8 @@
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Results File: /tmp/skills-ui-round2/round2-ui-final.trx
+
+Passed!  - Failed:     0, Passed:    54, Skipped:     0, Total:    54, Duration: 1 s - Marrow.UI.Tests.dll (net10.0)

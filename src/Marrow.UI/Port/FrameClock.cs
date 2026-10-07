@@ -137,6 +137,9 @@ public sealed class ManualFrameSource : IFrameSource
 
     private List<Request> running = [];
 
+    /// <summary>Observers sample an injected frame after all its callbacks have updated their inputs.</summary>
+    public event Action? FrameCompleted;
+
     /// <summary>The time of the last frame; zero before the first.</summary>
     public TimeSpan Now { get { lock (gate) return now; } }
 
@@ -192,6 +195,7 @@ public sealed class ManualFrameSource : IFrameSource
                 }
                 if (!withdrawn) request.Frame(time);
             }
+            FrameCompleted?.Invoke();
         }
         finally
         {

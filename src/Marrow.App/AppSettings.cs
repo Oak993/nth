@@ -5,6 +5,7 @@ using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Models.ComposerLights;
 using Marrow.Core.Port;
+using Marrow.Core.Port.Accounts;
 using Marrow.Core.Port.Settings;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Support;
@@ -234,7 +235,7 @@ internal sealed class ModelPreferenceConverter : JsonConverter<ModelPreference>
 }
 
 // :110-944. @MainActor @Observable -> MainActorModel (R-OBS-6); :947 extension AppSettings: ProviderSettings.
-public sealed class AppSettings : MainActorModel, ProviderSettings
+public sealed partial class AppSettings : MainActorModel, ProviderSettings, AccountProviderSettings
 {
     // :115
     public const string HydraDefaultEnabledKey = ChatThread.HydraDefaultKey;
@@ -321,6 +322,24 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     // :184. CaptureRun is NOT-PORTED (ED-001): always UserDefaults.Standard. B2 named this same indirection
     // WebsiteCaptures.defaults (:184, :708, :869 at B3); the rename carries no behaviour change.
     private readonly ISettingsStore defaults = UserDefaults.Standard.Current;
+    // PORT-ONLY: OD-0114 / ED-404. Read settings only; never inspect or move CLI credentials during migration.
+    private AccountStore? accounts;
+    public AccountStore Accounts
+    {
+        get
+        {
+            if (accounts is not null) return accounts;
+            AccountDefaults Defaults(ProviderKind provider) => new()
+            {
+                Model = LastModel(provider),
+                Effort = LastEffort(provider) ?? Preference(provider, LastModel(provider)).Effort,
+                FastMode = Preference(provider, LastModel(provider)).FastMode,
+            };
+            try { accounts = new AccountStore(defaults, Defaults); }
+            catch (InvalidDataException) { accounts = AccountStore.LegacyReadOnly(defaults, Defaults); }
+            return accounts;
+        }
+    }
 
     // :299
     public const double DefaultBackdropOpacity = 0.5;

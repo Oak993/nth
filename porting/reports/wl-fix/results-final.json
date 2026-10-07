@@ -1,0 +1,78 @@
+{
+  "verdict": "READY for the requested T20 raster fidelity gates",
+  "base": "fa74d2afce279017e89d9670b61dce17c3765c2c",
+  "productionRevision": "24706fa725bf8bd198265c4426ba7f229d9cbc12",
+  "environment": {
+    "os": "Linux x64",
+    "dotnetSdk": "10.0.401",
+    "skiaSharp": "3.119.4",
+    "chromium": "151.0.7922.173",
+    "numpy": "2.3.5",
+    "nativeWindowsGpu": "not run"
+  },
+  "frames": {
+    "total": 5148,
+    "passed": 5148,
+    "failed": 0,
+    "beforeFailed": 20,
+    "unchangedOtherWallpaperMeasurements": true,
+    "otherWallpaperFrames": 5104
+  },
+  "testCases": {
+    "app-after": {
+      "total": 339,
+      "passed": 339,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "ui-after": {
+      "total": 1239,
+      "passed": 1239,
+      "failed": 0,
+      "notExecuted": 0
+    }
+  },
+  "beforeWorstMax": 0.4878096123603599,
+  "afterWorstMax": 0.05750670726744721,
+  "afterWorstMean": 0.0016426633167390447,
+  "gateBounds": {
+    "mean": 0.01,
+    "maximum": 0.08
+  },
+  "distributions": {
+    "Mean": {
+      "median": 4.619598545160972e-05,
+      "p95": 0.000760250471202177,
+      "p99": 0.0011446607734218058
+    },
+    "Max": {
+      "median": 0.003384644499926057,
+      "p95": 0.009986468654989865,
+      "p99": 0.023522565818875317
+    }
+  },
+  "affectedWallpapers": {
+    "tunnel": {
+      "frames": 22,
+      "passed": 22,
+      "beforeFailed": 19,
+      "afterWorstMax": 0.010424813331579743
+    },
+    "stairwell": {
+      "frames": 22,
+      "passed": 22,
+      "beforeFailed": 1,
+      "afterWorstMax": 0.010063156168890927
+    }
+  },
+  "evidenceSha256": {
+    "pixels-before.jsonl": "5a8706d9f28bd1e25bef5c721cf35aaabfb61d5016dd936c43842e1107e92ae4",
+    "pixels-after.jsonl": "41c195344bbb82c18cb6f662711e694dbb57f3b7189f1e02ed5e9e186d0f70af",
+    "branch-probes-before.zip": "e8c342c9137cb2544dfeba462f20b1acc33b5edfcdd248bd69996d1c7ae5e76f",
+    "branch-probes-after.zip": "c0b8bbed8013f8ee256b192dc0b4a0dd40858edcc347b70008487c5b1489afba",
+    "branch-proof-before.json": "5c3a0a96f0c43d2521877047c82d292fb5063e6e07a86e00a52af8f598e3a5dd",
+    "branch-proof-after.json": "9b26e40319b10bc0e83392078e3acb0cf6a3949b976ca26be65cf013bead9dec",
+    "app-after.trx": "30994c09c961ddaf478439a2effedcd5cbe680f9eee75a62b504e9047745c4b1",
+    "ui-after.trx": "c10b7cfdd907e5e4e5f37802c017b348df0b30ef1941955a63a25289e5272644"
+  }
+}

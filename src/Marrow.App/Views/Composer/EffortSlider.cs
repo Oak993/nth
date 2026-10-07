@@ -882,6 +882,7 @@ public sealed partial class EffortSlider : Decorator
     /// <param name="fadeFrom">OD-0090: the maker shown before a model change; the knob, the liquid and the lightning
     /// crossfade from its colours to <paramref name="brand"/>'s over 0.6 s.</param>
     // :740-831 body
+    private readonly double thumbSide, trackSide;
     private readonly Binding<int> index;
     private readonly int count;
     private readonly EffortBrand brand;
@@ -937,8 +938,11 @@ public sealed partial class EffortSlider : Decorator
 
 
     public EffortSlider(int count, Binding<int> index, string accessibilityTitle, bool fastMode = false, EffortBrand brand = EffortBrand.Purple, EffortPairBrand? pair = null,
-        EffortBrand? fadeFrom = null)
+        EffortBrand? fadeFrom = null, bool compactHandshake = false)
     {
+        // The locked multi-account Handshake tube uses 18/12px geometry; ordinary effort controls retain OD-0090's 48/34px.
+        thumbSide = compactHandshake ? 18 : ThumbSize; trackSide = compactHandshake ? 12 : TrackHeight;
+        track.Height = fill.Height = trackSide; knob.Width = knob.Height = thumbSide;
         this.count = count; this.index = index; this.brand = brand; this.fastMode = fastMode; this.pair = pair;
         material = JewelMaterial.For(brand);
         this.fadeFrom = fadeFrom is { } from && from != brand ? from : null;
@@ -946,9 +950,9 @@ public sealed partial class EffortSlider : Decorator
         Orb = new JewelOrb(fadeFromMaterial ?? material);
         Material = fadeFromMaterial ?? material;
         knob.RenderTransform = knobScale;
-        orbView = new JewelKnobView(this) { Width = ThumbSize, Height = ThumbSize };
+        orbView = new JewelKnobView(this) { Width = thumbSide, Height = thumbSide };
         frameTick = OnFrame;
-        Height = ThumbSize;
+        Height = thumbSide;
         // OD-0090: the knob and the fill move by fractions of a pixel (springs), so they are laid out unrounded: a rounded
         // layout would step them a whole pixel at a time and put the bolt's start up to a pixel off where the page puts it
         foreach (var part in new Layoutable[] { canvas, track, fill, effects, knob, orbView }) part.UseLayoutRounding = false;
@@ -1015,8 +1019,8 @@ public sealed partial class EffortSlider : Decorator
     /// <summary>The knob's colours this frame (a crossfade's mix while one runs).</summary>
     internal JewelMaterial Material { get; private set; } = null!;
 
-    private double Inset => ThumbSize / 2;
-    private double Step => count > 1 ? (Bounds.Width - ThumbSize) / (count - 1) : 0;
+    private double Inset => thumbSide / 2;
+    private double Step => count > 1 ? (Bounds.Width - thumbSide) / (count - 1) : 0;
 
     /// <summary>:746-748 stop centres sit a knob radius in from each end.</summary>
     private double StopX(int stop) => Inset + stop * Step;
@@ -1038,7 +1042,7 @@ public sealed partial class EffortSlider : Decorator
     private void Press(double px)
     {
         Place();
-        var onKnob = Math.Abs(px - shownX) <= ThumbSize / 2;
+        var onKnob = Math.Abs(px - shownX) <= thumbSide / 2;
         grab = onKnob ? px - shownX : 0;
         held = true;
         finger = ClampX(px - grab);
@@ -1068,7 +1072,7 @@ public sealed partial class EffortSlider : Decorator
 
     private void Place()
     {
-        if (placed || Bounds.Width < ThumbSize) return;
+        if (placed || Bounds.Width < thumbSide) return;
         placed = true; shownX = StopX(index.Value);
     }
 
@@ -1076,7 +1080,7 @@ public sealed partial class EffortSlider : Decorator
     // where it is (jewel-knob.html: the keyboard's step, spring(response: 0.2, dampingFraction: 1)), never a jump (OD-0076)
     private void IndexChanged()
     {
-        if (!held && placed && Bounds.Width >= ThumbSize)
+        if (!held && placed && Bounds.Width >= thumbSide)
         {
             offset.P = shownX - StopX(index.Value);
             response = 0.2; damping = 1;
@@ -1178,7 +1182,7 @@ public sealed partial class EffortSlider : Decorator
         // Main posts geometry and appearance only when an intent or a spring changes them.
         // The retained knob resolves the signal and flowing gem where it is drawn.
         var effect = currentEffect is { } current && TrackEffect.IsFast(current.Look) ? current : null;
-        var drawn = effect is null ? default : double.IsNaN(fill.Width) ? effect.Bounds.Size : new Size(fill.Width, TrackHeight);
+        var drawn = effect is null ? default : double.IsNaN(fill.Width) ? effect.Bounds.Size : new Size(fill.Width, trackSide);
         var geometry = effect?.StrikeGeometryFor(drawn);
         var gain = effect?.Opacity ?? 0;
         var dark = ActualThemeVariant != ThemeVariant.Light;
@@ -1212,11 +1216,11 @@ public sealed partial class EffortSlider : Decorator
                 effect.ReadMixSignal(Signal, time, s.Gain, orbView.OnRenderThread ? null : date);
             }
             else Signal.Read(null, 0, 0, time);
-            var (size, perPx) = JewelOrb.RenderSize(ThumbSize, s.Scaling);
+            var (size, perPx) = JewelOrb.RenderSize(thumbSide, s.Scaling);
             Orb.Frame(time, Signal.Charge * s.Material.FxCharge, Signal.Flare * s.Material.FxFlare, Signal.ExitAngle,
                 s.Reduce, size, perPx, s.Dark, Uniforms);
-            Uniforms.Values[110] = JewelOrb.Supersampled(ThumbSize, s.Scaling) ? 2 : 1;
-            Uniforms.SetPage(ThumbSize, 0.26, s.X, s.Width, TrackHeight,
+            Uniforms.Values[110] = JewelOrb.Supersampled(thumbSide, s.Scaling) ? 2 : 1;
+            Uniforms.SetPage(thumbSide, 0.26, s.X, s.Width, trackSide,
                 s.Dark ? new SKColor(0x14, 0x1d, 0x27) : new SKColor(0xe6, 0xeb, 0xf1),
                 s.Dark ? new SKColor(0x11, 0x18, 0x20) : new SKColor(0xd1, 0xd8, 0xde), s.Along);
             Uniforms.Lift = s.Lift;
@@ -1254,9 +1258,9 @@ public sealed partial class EffortSlider : Decorator
     private void LayoutTrack()
     {
         var width = Bounds.Width;
-        if (width < ThumbSize) return;
+        if (width < thumbSide) return;
         Place();
-        const double inset = ThumbSize / 2;
+        var inset = thumbSide / 2;
         var step = Step;
         var x = shownX;
         var look = Look;
@@ -1265,11 +1269,11 @@ public sealed partial class EffortSlider : Decorator
         laidOut = key;
         track.Width = width;
         if (drawnLook is null || drawnTheme != ActualThemeVariant) { track.Background = Chrome.Overlay(0.1).Brush(track); drawnTheme = ActualThemeVariant; }
-        Canvas.SetTop(track, (ThumbSize - TrackHeight) / 2);
+        Canvas.SetTop(track, (thumbSide - trackSide) / 2);
         fill.Width = Math.Max(0, x + inset); // OD-0090: the fill runs to the knob's far edge (:756 x + inset)
         if (drawnLook is null) fill.Background = EffortView.Fill(look, ActualThemeVariant);
         else if (!Equals(drawnLook, look)) EffortView.AnimateBrush(fill, () => fill.Background, brush => fill.Background = brush, EffortView.Fill(look, ActualThemeVariant), Animation.Smooth(0.3));
-        Canvas.SetTop(fill, (ThumbSize - TrackHeight) / 2);
+        Canvas.SetTop(fill, (thumbSide - trackSide) / 2);
         var lookChanged = drawnLook is not null && !Equals(drawnLook, look);
         if (stopTargets.Length != count) stopTargets = new SwiftColor?[count];
         for (var stop = 0; stop < count; stop++)
@@ -1284,7 +1288,7 @@ public sealed partial class EffortSlider : Decorator
                 if (lookChanged) EffortView.AnimateBrush(dot, () => dot.Fill, brush => dot.Fill = brush, stopColor.Brush(dot), Animation.Smooth(0.3));
                 else dot.Fill = stopColor.Brush(dot);
             }
-            Canvas.SetLeft(dot, stopX - 2.5); Canvas.SetTop(dot, ThumbSize / 2 - 2.5);
+            Canvas.SetLeft(dot, stopX - 2.5); Canvas.SetTop(dot, thumbSide / 2 - 2.5);
         }
         knobScale.ScaleX = knobScale.ScaleY = scale.P; // about its centre: it lifts where it is (OD-0090)
         Canvas.SetLeft(knob, x - inset);
@@ -1644,6 +1648,7 @@ public static class EffortBrandExtensions
             ProviderKind.Commandcode => EffortBrand.Commandcode,
             ProviderKind.Pi => EffortBrand.Pi,
             ProviderKind.OpenRouter => EffortBrand.Purple, // OD-0050 pending: automatic colour
+            ProviderKind.Local => EffortBrand.Purple, // PORT-ONLY (ED-410): existing no-provider palette
             null => EffortBrand.Purple, // :869
             _ => throw new UnreachableException(),
         };

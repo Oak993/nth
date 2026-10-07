@@ -2621,7 +2621,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -2757,7 +2757,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -2909,7 +2909,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -2981,7 +2981,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -3025,7 +3025,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -3067,7 +3067,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -3110,7 +3110,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -3229,7 +3229,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -3272,7 +3272,7 @@
       },
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -5387,7 +5387,7 @@
       "status": "IMPLEMENTED",
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -5815,7 +5815,7 @@
       "status": "IMPLEMENTED",
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -5862,7 +5862,7 @@
       "status": "IMPLEMENTED",
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -5927,7 +5927,7 @@
       "status": "IMPLEMENTED",
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -5999,7 +5999,7 @@
       "status": "IMPLEMENTED",
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
@@ -6042,7 +6042,7 @@
       "status": "IMPLEMENTED",
       "implementation_evidence": {
         "unit": "T14 Strike / codex/strike",
-        "decision": "ED-NEW-strike-10",
+        "decision": "ED-530",
         "sources": [
           "src/Marrow.App/Views/Composer/EffortSlider.cs",
           "src/Marrow.App/Views/Composer/LiquidTrack.cs",
