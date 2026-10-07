@@ -54,7 +54,7 @@ public sealed partial class ThreadRuntime
     }
 
     public void AdoptHandshakeSession(ProviderSession candidate, string sessionId, SessionConfiguration configuration,
-        PillThreadState? relay = null, bool resumeReply = false, bool pinAccount = false)
+        PillThreadState? relay = null, bool resumeReply = false, bool pinAccount = false, string? deferredContext = null)
     {
         var app = App ?? throw new InvalidOperationException("The conversation is unavailable.");
         var source = Thread ?? throw new InvalidOperationException("The conversation is unavailable.");
@@ -79,8 +79,9 @@ public sealed partial class ThreadRuntime
 
         app.AutoContinue.TakeLimitOwnership(ThreadID);
         ReleaseSession(stop: true);
-        deferredHandoff = null;
         app.ApplyHandshakeAccount(ThreadID, configuration, sessionId, relay, pinAccount);
+        // ED-NEW-ma-engine-7: a warm-started session is idle; the recorded context rides in front of the first real turn on it.
+        HoldDeferredHandoff(deferredContext);
         var destination = Thread!;
         session = candidate;
         var hydra = KeepsHydraPolicyInSystemPrompt(destination.Provider) ? app.HydraLaunch(destination) : null;

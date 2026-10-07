@@ -7,9 +7,60 @@ namespace Marrow.App.Runtime;
 
 public sealed partial class ThreadRuntime
 {
-    // Held in memory until the destination's first real turn is sent; a restart before that loses it, like a conversation the provider no longer has.
+    // Held until the destination's first real turn is sent. ED-NEW-ma-engine-7: it is also kept in the thread's own folder (the account it belongs to on the first line),
+    // so a restart before that first turn does not lose it.
     private string? deferredHandoff;
+    private bool deferredHandoffChecked;
     internal bool HasDeferredHandoff => deferredHandoff is not null;
+
+    private string DeferredHandoffFile => System.IO.Path.Combine(HandoffFolder, "deferred-handoff.txt");
+
+    private void HoldDeferredHandoff(string? context)
+    {
+        deferredHandoff = context;
+        deferredHandoffChecked = true;
+        try
+        {
+            if (context is null)
+            {
+                if (File.Exists(DeferredHandoffFile)) File.Delete(DeferredHandoffFile);
+            }
+            else if (Thread?.ProviderAccountID is { } account)
+            {
+                Directory.CreateDirectory(HandoffFolder);
+                var temporary = DeferredHandoffFile + ".tmp";
+                File.WriteAllText(temporary, account.ToString("D") + "\n" + context, new System.Text.UTF8Encoding(false));
+                File.Move(temporary, DeferredHandoffFile, overwrite: true);
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // The in-memory copy still holds it until this run ends.
+        }
+    }
+
+    private string? PendingDeferredHandoff()
+    {
+        if (deferredHandoff is null && !deferredHandoffChecked)
+        {
+            deferredHandoffChecked = true;
+            if (Thread is { ProviderAccountID: { } account })
+            {
+                try
+                {
+                    if (File.Exists(DeferredHandoffFile) && File.ReadAllText(DeferredHandoffFile) is var text && text.IndexOf('\n', StringComparison.Ordinal) is var line and > 0
+                        && text[..line] == account.ToString("D"))
+                        deferredHandoff = text[(line + 1)..];
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
+                {
+                    // Unreadable or no storage: nothing was held.
+                }
+            }
+        }
+
+        return deferredHandoff;
+    }
 
     internal void AdoptDeferredAccount(SessionConfiguration configuration, string context, PillThreadState? relay = null, bool pinAccount = false)
     {
@@ -28,7 +79,7 @@ public sealed partial class ThreadRuntime
         ReleaseSession(stop: true);
         app.ApplyHandshakeAccount(ThreadID, configuration, null, relay, pinAccount, deferred: true);
         limitedReplyTurnID = null;
-        deferredHandoff = context;
+        HoldDeferredHandoff(context);
         SaveNow();
     }
 }

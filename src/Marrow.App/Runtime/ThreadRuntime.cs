@@ -1775,7 +1775,7 @@ public sealed partial class ThreadRuntime : MainActorModel
             // PORT-ONLY (OD-0116, ED-NEW-ma-engine-4): the context an account without a standby was handed travels with its first real turn.
             var injectedHandoff = false;
             var handoffEpoch = sessionEpoch;
-            if (deferredHandoff is { } handoff && commandName is null)
+            if (commandName is null && PendingDeferredHandoff() is { } handoff)
             {
                 prompt = handoff + "\n\n" + prompt;
                 injectedHandoff = true;
@@ -1804,7 +1804,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
             if (injectedAntiSlopPolicy && sessionEpoch == antiSlopEpoch) antiSlopFallbackSent = true;
             if (injectedContinuation && sessionEpoch == continuationEpoch) continuationSent = true;
-            if (injectedHandoff && sessionEpoch == handoffEpoch) deferredHandoff = null;
+            if (injectedHandoff && sessionEpoch == handoffEpoch) HoldDeferredHandoff(null);
             if (unsentSessionID is { } pendingSessionID)
             {
                 unsentSessionID = null;

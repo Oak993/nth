@@ -75,9 +75,10 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         bool CanTransfer() => SourceStillCurrent(from, epoch) && generation == preparationGeneration
             && AccountAvailable(original.Provider, id) && SameTransferSettings(original, runtime.CreateHandshakeConfiguration(target));
         var plan = PlanFor(original.Provider);
-        if (plan == StandbyPlan.Deferred || plan == StandbyPlan.Warm) return PrepareDeferred(original, target, from, epoch, generation);
+        if (plan == StandbyPlan.Deferred) return PrepareDeferred(original, target, from, epoch, generation);
+        if (plan == StandbyPlan.Warm) return await PrepareWarmAsync(original, target, id, from, epoch, generation, ct);
         if (plan is StandbyPlan.InjectedThenDeferred or StandbyPlan.InjectedThenWarm)
-            return await StartInjectedAsync(original, target, id, from, epoch, generation, CanTransfer, ct);
+            return await StartInjectedAsync(original, target, id, from, epoch, generation, CanTransfer, plan == StandbyPlan.InjectedThenWarm, ct);
         var candidate = create(original, id);
         app.ApiKeys.BindPrivate(candidate.Session, Guid.Parse(target.Account.Id));
         HandshakeStandbySession standby;
@@ -106,7 +107,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
 
     // ED-NEW-ma-engine-7: no model turn at all, so nothing can act. Any refusal, old CLI, exit or activity falls back to deferred delivery with the context intact.
     private async Task<IStandbySession> StartInjectedAsync(SessionConfiguration original, SwitchTarget target, Guid id, string from, long epoch, long generation,
-        Func<bool> canTransfer, CancellationToken ct)
+        Func<bool> canTransfer, bool warmFallback, CancellationToken ct)
     {
         InjectedStandbySession standby;
         try
@@ -116,7 +117,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         }
         catch (Exception) when (!ct.IsCancellationRequested)
         {
-            return PrepareDeferred(original, target, from, epoch, generation);
+            return warmFallback ? await PrepareWarmAsync(original, target, id, from, epoch, generation, ct) : PrepareDeferred(original, target, from, epoch, generation);
         }
         if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
         {
@@ -131,11 +132,32 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         return standby;
     }
 
-    private IStandbySession PrepareDeferred(SessionConfiguration original, SwitchTarget target, string from, long epoch, long generation)
+    // ED-NEW-ma-engine-7: the destination's process and session open early with no context and no prompt; if it cannot, or does anything on its own, the context goes the plain deferred way.
+    private async Task<IStandbySession> PrepareWarmAsync(SessionConfiguration original, SwitchTarget target, Guid id, string from, long epoch, long generation, CancellationToken ct)
+    {
+        WarmStandby? warm = null;
+        try
+        {
+            var candidate = create(original, id);
+            warm = await WarmStandby.StartAsync(candidate.Session, candidate.Configuration, ct);
+        }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            return PrepareDeferred(original, target, from, epoch, generation);
+        }
+        try { return PrepareDeferred(original, target, from, epoch, generation, warm); }
+        catch
+        {
+            warm.Stop();
+            throw;
+        }
+    }
+
+    private IStandbySession PrepareDeferred(SessionConfiguration original, SwitchTarget target, string from, long epoch, long generation, WarmStandby? warm = null)
     {
         if (ActiveAccountId != from || runtime.HandshakeStamp.Epoch != epoch || generation != preparationGeneration)
             throw new InvalidOperationException("The outgoing conversation changed while the destination was being prepared.");
-        var standby = new DeferredStandby(original);
+        var standby = new DeferredStandby(original, warm);
         prepared = null;
         deferredPrepared = standby;
         preparedFrom = from;
@@ -294,7 +316,18 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                         throw new InvalidOperationException("The pill step changed while the Handshake was preparing.");
                     relay = new(pill.Id, index, target.Account.Id);
                 }
-                runtime.AdoptDeferredAccount(standby.Configuration, preamble, relay, pinAccount: manualSelection is not null);
+                if (standby.Warm is { IsHealthy: true } warm)
+                {
+                    // The warm session is open and idle: it becomes the conversation's session and its first real turn carries the context.
+                    var live = warm.Take();
+                    try { runtime.AdoptHandshakeSession(live, warm.SessionId, warm.Configuration, relay, false, pinAccount: manualSelection is not null, deferredContext: preamble); }
+                    catch { live.OnEvent = null; live.Stop(); throw; }
+                }
+                else
+                {
+                    standby.Warm?.Stop();
+                    runtime.AdoptDeferredAccount(standby.Configuration, preamble, relay, pinAccount: manualSelection is not null);
+                }
                 deferredPrepared = null;
                 preparedTarget = null;
                 return true;
