@@ -1,0 +1,11 @@
+{
+  "originalAssertions": 94,
+  "finalAssertions": 97,
+  "allOriginalAssertionsByteIdentical": true,
+  "addedAssertions": [
+    "Assert.IsType<CzMenuButton>(rig.Page.Voice!.Section.Rows.Slots.Select(slot => slot.Row).OfType<CzRow>().Single(row => row.Title.Text == \"Spoken language\").Control)",
+    "Assert.True(focus.Focus())",
+    "Assert.True(focus.IsFocused)"
+  ],
+  "productionDiffAfterRestoration": false
+}

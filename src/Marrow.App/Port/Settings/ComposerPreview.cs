@@ -25,7 +25,7 @@ using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Port.Settings;
 
-internal sealed class ComposerPreview : Grid
+internal sealed partial class ComposerPreview : Grid
 {
     /// <summary>CZ-4.3: the app's placeholder for a Claude thread with Hydra on (ComposerView.swift:285), the playground's string.</summary>
     internal const string Placeholder = "Ask Claude for anything; big jobs go out to a team of heads";
@@ -54,6 +54,8 @@ internal sealed class ComposerPreview : Grid
     private ContinuousInstant typingStart;
     private IFrameSource? frames;
     private bool waiting;
+    private readonly Grid textCell, layers;
+    private readonly Border text, padded;
 
     internal ComposerLightView Light { get; } = new() { IsHitTestVisible = false, ClipToBounds = false };
     internal Border Pill { get; }
@@ -105,8 +107,8 @@ internal sealed class ComposerPreview : Grid
         Typed.Foreground = SwiftColor.LabelColor.Brush(Typed);
         Caret = new Border { Width = 1.5, Height = 17, IsVisible = false, IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
         Caret.Background = SwiftColor.LabelColor.Brush(Caret);
-        var textCell = new Grid { Children = { Hint, Typed, Caret } };
-        var text = new Border { Child = textCell, ClipToBounds = true, MinHeight = 20, Margin = new Thickness(0, 4, 0, 4), VerticalAlignment = VerticalAlignment.Bottom };
+        textCell = new Grid { Children = { Hint, Typed, Caret } };
+        text = new Border { Child = textCell, ClipToBounds = true, MinHeight = 20, Margin = new Thickness(0, 4, 0, 4), VerticalAlignment = VerticalAlignment.Bottom };
 
         // VT-10, voice-SPEC V-14.1 and CZ-4.3: the inert attachment is a left overlay, as in ComposerArea.MakeAttachButtons.
         var paperclip = SwiftImage.SystemName("paperclip").Font(Chrome.IconFont);
@@ -136,7 +138,8 @@ internal sealed class ComposerPreview : Grid
         Grid.SetColumn(Controls, 1);
         row.Children.Add(Controls);
         // ComposerArea.ApplyAttachPlace: the inside button adds 34 to the original 14 px text inset.
-        var layers = new Grid { Children = { dots, new Border { Child = row, Padding = new Thickness(48, 8, 8, 8) }, Attach } };
+        padded = new Border { Child = row, Padding = new Thickness(48, 8, 8, 8) };
+        layers = new Grid { Children = { dots, padded, Attach } };
         Pill = (Border)new ComposerSurface().Body(layers);
         Pill.Width = ComposerWidth;
         Pill.HorizontalAlignment = HorizontalAlignment.Left;
@@ -152,7 +155,7 @@ internal sealed class ComposerPreview : Grid
         Pill.LayoutUpdated += (_, _) => Place();
         LayoutUpdated += (_, _) => Place();
         session.Changed += Apply;
-        DetachedFromVisualTree += (_, _) => { session.Changed -= Apply; Stop(); };
+        DetachedFromVisualTree += (_, _) => { session.Changed -= Apply; Stop(); LeaveVoice(); };
         AttachedToVisualTree += (_, _) => { session.Changed -= Apply; session.Changed += Apply; UpdatePalette(); Apply(); };
         ActualThemeVariantChanged += (_, _) => UpdatePalette();
         UpdatePalette();
@@ -197,6 +200,7 @@ internal sealed class ComposerPreview : Grid
             UpdateDots();
         }
         var state = session.State;
+        if (Voice is not null) { ShowVoicePhase(); return; }
         if (first || state != shownState)
         {
             shownState = state;

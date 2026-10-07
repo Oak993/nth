@@ -1099,3 +1099,10 @@ Approved pill staging51e39c929 plus restored voice-gaps-fix merged at416b06e7d. 
 ### RR-11 delivery READY (2026-10-07; codex/rr-11)
 
 Mounted exact Countdown C, real preparation capsule/shared cancellation including queued fresh retry, actual VT-17 first-download suppression and real cloud/key/AVX2 facts are complete for integration on staging51e39c929 plus restored voice-gaps-fix. New acceptance and original fast-PC method twice alone78P/0F/0S; Core686/0, Services499/0, UI349/0. Raw selected App800P/6F/0S is preserved: six exact OD-0128 known speck aliases only. V-T132224/224 twice; unchanged V-T133 R1:71P/153F/0S, R2:71P/153F/0S, no identity outside the fixed153 owner-approved list; aliases classified twice alone. Independent review cleared all findings with RED/green and executed/restored mutation proof. GatesA12/B8 pass. ED-610 and porting/first-release/reports/T33-RR11-Windows.md record scope and exact evidence. Pushed head/receipt in E:/Droppy/work/scratch/handoff/codex-rr-11.md. Existing incomplete native/hardware/screen-reader/full-release items remain; no unrelated legacy packet was marked DONE. Preserve every scratch file.
+
+
+2026-10-07 codex/cz-7b-fix: restore withheld CZ-7b plus ED-584 guards on d919636fa, excluding RR-11. NOT READY: unchanged Windows preview 15P/7F; timing/focus fixture evidence and scoped proposal in own scratch/handoff. Prior integration history retained byte-exact.
+
+2026-10-07 CZ-7b-fix scoped fixture exception: conserve the requested total clock ticks and focus the mounted Spoken language menu. Existing assertions unchanged, two stronger focus preconditions. Preview22P/0F; full App case comparison pending. No production timer/focus change.
+
+2026-10-07 CZ-7b-fix READY on tested d0f2cdbab: seven original identities twice-alone14P, affectedApp237P; rawApp10568P235F10803, full225-case before/after change list retained. All76 non-OD failures pass twice alone154P; unchanged OD-0128 fixed159 aliases/matrix only; V-T132224P, A12/B8. Source/test repair and approved fixture exception are separate commits. No RR-11/native/app/packaging work. Report: porting/first-release/reports/CZ-7b-Windows-fix/README.md.
