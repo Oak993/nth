@@ -82,6 +82,11 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
     public string? StandbyViolation { get; private set; }
     public Action<string>? OnStandbyViolation { get; set; }
 
+    // PORT-ONLY RR-49: permanent no-tools mode; never used or adopted as a working session.
+    private bool textOnlyHead;
+    private bool textOnlyVerified;
+    private bool textOnlyCommandAvailable;
+
     public PiSession(SessionConfiguration configuration) : this(configuration, localApplicationData: null) // :60-73
     {
     }
@@ -123,7 +128,8 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         var supportDirectory = localApplicationData is { } appData
             ? PiCLI.SupportDirectoryUnder(appData)
             : PiCLI.SupportDirectory;
-        var extensionURL = localApplicationData is { } localAppData
+        var extensionURL = textOnlyHead ? PiCLI.InstallTextOnlyExtension(localApplicationData)
+            : localApplicationData is { } localAppData
             ? PiCLI.InstallExtension(localAppData)
             : PiCLI.InstallExtension();
         var gateDirectory = supportDirectory.Appending("gates");
@@ -133,27 +139,28 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         WriteGate(finalReport: standbyActive); // PORT-ONLY (ED-439): a waiting standby blocks every tool
 
         // :93-94
-        var arguments = LiveArguments(WindowsPath(extensionURL), runtimeMode, model, effort, sessionID);
+        var arguments = textOnlyHead ? PiTextOnlyHeadPolicy.Arguments(WindowsPath(extensionURL), model, effort)
+            : LiveArguments(WindowsPath(extensionURL), runtimeMode, model, effort, sessionID);
         if (standbyActive)
         {
             arguments.Add("-e");
             arguments.Add(WindowsPath(localApplicationData is { } loadAppData ? PiCLI.InstallLoadExtension(loadAppData) : PiCLI.InstallLoadExtension()));
         }
         // PORT-ONLY: SK-11e / WU-10. The chat's locked generation; the model-list probe (PiCLI) never gets this.
-        arguments = WithSkills(arguments);
+        if (!textOnlyHead) arguments = WithSkills(arguments);
 
         // :103-111. ED-128: environment dictionaries are case-insensitive.
         var environment = new Dictionary<string, string>(ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch), StringComparer.OrdinalIgnoreCase); // PORT-ONLY: SK-11e (DL-6 PATH from launch or bound root)
         environment["DROPPY_CODE_PI_GATE"] = gateURL;
         environment["PI_SKIP_VERSION_CHECK"] = "1";
-        if (SwiftTry.Optional(() => localApplicationData is { } bridgeAppData
+        if (!textOnlyHead && SwiftTry.Optional(() => localApplicationData is { } bridgeAppData
                 ? MCPBridge.InstallBridge(bridgeAppData)
                 : MCPBridge.InstallBridge()) is { } bridge)
             // DEVIATION ED-022: on Windows, Node's dynamic import() of a bare "C:\..." path throws
             // ERR_UNSUPPORTED_ESM_URL_SCHEME, so the port passes pathToFileURL(bridgePath).href; the Swift
             // source's `bridge.path` becomes the file:// URL string InstallBridge already returns.
             environment["DROPPY_CODE_MCP_BRIDGE"] = bridge.AbsoluteUri;
-        if (File.Exists(MCPPaths.ClaudeConfigURL))
+        if (!textOnlyHead && File.Exists(MCPPaths.ClaudeConfigURL))
             environment["DROPPY_CODE_MCP_CONFIG"] = MCPPaths.ClaudeConfigURL;
 
         // :113-134
@@ -202,6 +209,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
             {
                 if (entry["name"]?.JSONValueString is not { } name) continue;
                 if (name.TrimStart('/') == "droppy-load") loadCommandAvailable = true;
+                if (name.TrimStart('/') == PiTextOnlyHeadPolicy.Command) textOnlyCommandAvailable = true;
                 commands.Add(new SlashCommand { Name = name, Detail = entry["description"]?.JSONValueString ?? "" });
             }
             if (commands.Count != 0)
@@ -213,10 +221,34 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         return sessionID ?? ""; // :157
     }
 
+    internal async Task<string> StartTextOnlyHeadAsync(CancellationToken ct)
+    {
+        if (started || configuration.ResumeID is not null || configuration.ResumeAt is not null || configuration.ResumePath is not null
+            || configuration.Transcript.Count != 0 || configuration.Hydra is not null || configuration.IsHydraHead
+            || configuration.SkillGeneration is not null || configuration.SkillMcpExecutable is not null || SkillLaunch is not null)
+            throw new ArgumentException("A Pi text head requires a fresh private configuration.");
+        textOnlyHead = true;
+        try
+        {
+            var id = await Start().WaitAsync(ct);
+            if (!textOnlyCommandAvailable || !IsRunning) throw new NotSupportedException("Pi did not load the private text-only guard.");
+            var nonce = Guid.NewGuid().ToString("N");
+            var ack = await Request(Obj(("type", "prompt"), ("message", "/" + PiTextOnlyHeadPolicy.Command + " " + nonce))).WaitAsync(ct);
+            if (ack["success"]?.JSONValueBool != true || (ack["data"] ?? ack)["disposition"]?.JSONValueString != "handled")
+                throw new NotSupportedException("Pi did not handle the text-only proof without a model turn.");
+            var proof = await Request(Obj(("type", "get_messages"))).WaitAsync(ct);
+            if (!IsRunning || !PiTextOnlyHeadPolicy.Verify(proof, nonce)) throw new NotSupportedException("Pi did not verify an empty tool set.");
+            textOnlyVerified = true;
+            return id;
+        }
+        catch { Stop(); throw; }
+    }
+
     public async Task Send(TurnInput input) // :160-201
     {
         if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning()); // :161
         if (standbyActive) throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
+        if (textOnlyHead && (!textOnlyVerified || !input.IsFinalReport)) throw new ProviderError(new ProviderError.Case.Failed("The private Pi head requires a verified text-only turn."));
         if (turnActive) throw new ProviderError(new ProviderError.Case.Failed("Pi is still on the last turn.")); // :162
         runtimeMode = input.RuntimeMode; // :163
         interactionMode = input.InteractionMode; // :164
@@ -277,7 +309,7 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
 
     public async Task Compact() // :208-211
     {
-        if (standbyActive || standbyDiscarding)
+        if (textOnlyHead || standbyActive || standbyDiscarding)
             throw new ProviderError(new ProviderError.Case.Failed("The standby is waiting for the switch and cannot run a turn."));
         if (!IsRunning || process is not { } child) throw new ProviderError(new ProviderError.Case.NotRunning());
         child.Send(Obj(("type", "compact")));
@@ -462,6 +494,14 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
     /// process (see the file header note).</summary>
     internal void Handle(JSONValue message) // :286-326
     {
+        if (textOnlyHead && (message["type"]?.JSONValueString is "tool_execution_start" or "extension_ui_request"
+            || !textOnlyVerified && message["type"]?.JSONValueString is "agent_start" or "turn_start"))
+        {
+            var report = OnEvent;
+            Stop();
+            report?.Invoke(new ProviderEvent.Exited("Pi violated the private text-only policy."));
+            return;
+        }
         // PORT-ONLY (ED-439): fail closed. Only replies to the app's own requests pass; any agent or tool activity on a waiting session stops and discards it.
         if ((standbyActive || standbyDiscarding) && message["type"]?.JSONValueString is { } waitingKind && waitingKind != "response")
         {

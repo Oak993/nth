@@ -63,6 +63,12 @@ public class OpenAICompatibleSession : ProviderSession
         public int StatusCode { get; init; } = 200;                        // :108
         /// <summary>PORT-ONLY (MA-6): the Retry-After of a non-200 answer, in seconds; the key pool honours it on a 429.</summary>
         public TimeSpan? RetryAfter { get; init; }
+        internal ModelTokenPrice? RequestPrice { get; init; }
+        internal Func<ReportedTokenUsage, double?>? RequestSpendEstimator { get; init; }
+        internal IApiKeyRotation? RequestRotation { get; init; }
+        internal IApiKeyReservation? SpendReservation { get; init; }
+        internal bool SpendAccounted { get; set; }
+        internal bool HadUsdCap { get; init; }
     }
 
     // :114-122
@@ -151,6 +157,9 @@ public class OpenAICompatibleSession : ProviderSession
         runtimeMode = configuration.RuntimeMode;
         interactionMode = configuration.InteractionMode;
         currentModel = configuration.Model ?? config.DefaultModel;
+        // RR-50: production binding is exact and dated. Unfilled data never supplies a guessed estimator.
+        if (ModelPriceCatalog.Current.Current.Find(configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow()) is not null)
+            KeySpendEstimator = defaultSpendEstimator = usage => ModelPriceCatalog.Current.Current.Find(Configuration.Provider, currentModel, SwiftClock.Provider.Current.GetUtcNow())?.Estimate(usage);
     }
 
     // :240. PR-PROVAPI-093: no child process backs these sessions, so liveness is this
@@ -228,10 +237,34 @@ public class OpenAICompatibleSession : ProviderSession
     // each request goes out on the rotation's current key, and a 402 or 429 sends the same request again on the next allowed key.
     public IApiKeyRotation? KeyRotation { get; set; }
 
-    // PORT-ONLY (MA-6): the money one finished request cost, for the key's monthly cap. Null (the default) records no spend: no price table is in the source.
-    public Func<ReportedTokenUsage, double?>? KeySpendEstimator { get; set; }
+    // PORT-ONLY (RR-50): an installed caller estimator is an authoritative pricing contract for this exact model.
+    // Quote its declared input/output bounds before dispatch; retain the same estimator for the receipt.
+    public Func<ReportedTokenUsage, double?>? KeySpendEstimator
+    {
+        get => keySpendEstimator;
+        set
+        {
+            keySpendEstimator = value;
+            estimatorProvider = Configuration.Provider;
+            estimatorModel = currentModel;
+            estimatorRetrievedAt = SwiftClock.Provider.Current.GetUtcNow();
+        }
+    }
+    private Func<ReportedTokenUsage, double?>? keySpendEstimator;
+    private ProviderKind estimatorProvider;
+    private string? estimatorModel;
+    private DateTimeOffset estimatorRetrievedAt;
+    private readonly Func<ReportedTokenUsage, double?>? defaultSpendEstimator;
+    // The private-head stream contract also accepts authoritative USD returned by a replacement stream.
+    // The concrete HTTP transport always requires a bounded quote and reservation before sending.
+    internal bool UsesPrivateHeadPricingContract { get; set; }
 
     private string? rotatedKey;
+    private string? requestKeyId;
+    private IApiKeyReservation? dispatchReservation;
+    private ModelTokenPrice? dispatchPrice;
+    private EstimatorQuote? dispatchEstimatorQuote;
+    private bool dispatchRequiresPrice;
     private long apiAccountRevision;
     private long turnAccountRevision;
 
@@ -538,11 +571,7 @@ public class OpenAICompatibleSession : ProviderSession
     protected virtual void ReportUsage(StreamRound round)
     {
         // PORT-ONLY (MA-6): the request's cost goes against the key it used.
-        if (KeyRotation is { } rotation && round.TokenUsage is { } spent)
-        {
-            var charged = spent.ReportedCostUsd ?? (spent.HasSpend ? KeySpendEstimator?.Invoke(spent) : null);
-            if (charged is { } usd && double.IsFinite(usd) && usd >= 0) rotation.RecordSpend(usd);
-        }
+        AccountRequestSpend(round);
         if (round.Usage is { } usage) // :489
         {
             OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :490
@@ -551,6 +580,21 @@ public class OpenAICompatibleSession : ProviderSession
         if (round.TokenUsage is not { HasSpend: true } reported) return; // :493
         OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(
             OpenAICompatibleSessionConfig.Kind, reported.Total, reported.Input, reported.Output, reported.CachedInput, currentModel))); // :494-501
+    }
+
+    private void AccountRequestSpend(StreamRound round)
+    {
+        if (round.SpendAccounted) return;
+        var charged = round.TokenUsage is { } spent
+            ? spent.ReportedCostUsd is { } reported && double.IsFinite(reported) && reported >= 0 ? reported
+                : round.RequestPrice?.Estimate(spent) ?? (spent.HasSpend
+                    ? (round.RequestSpendEstimator ?? (!round.HadUsdCap && !ReferenceEquals(KeySpendEstimator, defaultSpendEstimator) ? KeySpendEstimator : null))?.Invoke(spent) : null)
+            : null;
+        if (round.SpendReservation is { } reservation) reservation.Complete(charged);
+        else if (charged is { } usd && double.IsFinite(usd) && usd >= 0) (round.RequestRotation ?? KeyRotation)?.RecordSpend(usd);
+        round.SpendAccounted = true;
+        if (round.HadUsdCap && charged is null)
+            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = "This request has no verified cost report. Its budget remains reserved." }));
     }
 
     // MARK: - Chat round
@@ -707,14 +751,69 @@ public class OpenAICompatibleSession : ProviderSession
         {
             SwiftTask.CheckCancellation(); // :518
             if (interrupted || isStopping) throw new CancellationError(); // :521
+            var rotation = KeyRotation;
+            var revision = apiAccountRevision;
+            var keyId = requestKeyId;
+            var capped = rotation?.Budget is { } budget && keyId is not null && budget.RequiresPrice(keyId);
+            var price = Configuration.Provider == ProviderKind.OpenRouter && capped
+                ? await OpenRouterPriceSource.ResolveAsync(model, SwiftTask.CancellationToken)
+                : ModelPriceCatalog.Current.Current.Find(Configuration.Provider, model, SwiftClock.Provider.Current.GetUtcNow());
+            SwiftTask.CheckCancellation();
+            if (interrupted || isStopping || revision != apiAccountRevision || !ReferenceEquals(rotation, KeyRotation)
+                || keyId != requestKeyId || CanTransferContext?.Invoke() == false) throw new CancellationError();
+            var estimatorQuote = capped && price?.CeilingUsd is null ? QuoteCallerPrice(model, payload) : null;
+            var requestEstimator = estimatorQuote?.Estimator
+                ?? (!capped && !ReferenceEquals(KeySpendEstimator, defaultSpendEstimator) ? KeySpendEstimator : null);
+            var ceiling = price?.CeilingUsd ?? estimatorQuote?.CeilingUsd;
+            var receiptContract = capped && ceiling is null && UsesPrivateHeadPricingContract;
+            // Reserve the full authoritative model window/output maximum, including caller-installed prices.
+            // A replacement private stream can report exact USD; actual HTTP still requires a pre-dispatch quote.
+            if (capped && (ceiling is null && !receiptContract || ContainsNonTextBilling(payload)))
+                throw new ProviderError(new ProviderError.Case.Failed("This capped account has no current verified price and request bound for this model. No request was sent."));
+            var reservation = !receiptContract && rotation?.Budget is { } shared && keyId is not null ? shared.Reserve(keyId, ceiling) : null;
+            if (rotation?.Budget is not null && reservation is null && !receiptContract)
+                throw new ProviderError(new ProviderError.Case.Failed("The remaining monthly USD cap cannot cover this request. No request was sent."));
+            if (capped && (price?.MaximumOutputTokens ?? estimatorQuote?.MaximumOutputTokens) is { } outputLimit)
+            {
+                payload["max_tokens"] = new JSONValue.Int(Math.Min(payload.GetValueOrDefault("max_tokens")?.JSONValueInt ?? outputLimit, outputLimit));
+                if (Configuration.Provider == ProviderKind.OpenRouter && price is not null)
+                    payload["provider"] = JSONValue.FromDictionaryLiteral(("max_price", JSONValue.FromDictionaryLiteral(
+                        ("prompt", price.InputPerMillion.ToString("R", System.Globalization.CultureInfo.InvariantCulture)),
+                        ("completion", price.OutputPerMillion.ToString("R", System.Globalization.CultureInfo.InvariantCulture)),
+                        ("request", price.RequestUsd.ToString("R", System.Globalization.CultureInfo.InvariantCulture)))));
+            }
             sseDrain?.Cancel(); // :522
             sseDrain = null; // :523
+            if (reservation?.CanDispatch == false || CanTransferContext?.Invoke() == false || interrupted || isStopping || SwiftTask.IsCancelled)
+            {
+                reservation?.CancelBeforeDispatch();
+                throw new CancellationError();
+            }
+            dispatchReservation = reservation;
+            dispatchPrice = capped ? price : null;
+            dispatchEstimatorQuote = capped ? estimatorQuote : null;
+            dispatchRequiresPrice = capped;
             var task = MainActor.SpawnThrowing<StreamRound>(() => PerformStreamAttempt(payload)); // :524
             roundTask = task; // :525
             try
             {
-                var round = await task.Value; // :527
+                var received = await task.Value; // :527
+                if (receiptContract)
+                {
+                    // Only a non-HTTP stream can reach here without a quote: HTTP refuses before sending below.
+                    // Exact reported USD is charged through the same atomic shared-cap admission and original key.
+                    if (received.TokenUsage?.ReportedCostUsd is not { } usd || !double.IsFinite(usd) || usd < 0
+                        || (reservation = rotation!.Budget!.Reserve(keyId!, usd)) is null)
+                        throw new ProviderError(new ProviderError.Case.Failed("This capped account has no current verified price and request bound for this model. No request was sent."));
+                }
+                var round = received with { RequestPrice = estimatorQuote is null ? price : null, RequestSpendEstimator = requestEstimator,
+                    RequestRotation = rotation, SpendReservation = reservation, HadUsdCap = capped };
+                dispatchReservation = null;
+                dispatchPrice = null;
+                dispatchEstimatorQuote = null;
+                dispatchRequiresPrice = false;
                 roundTask = null; // :528
+                AccountRequestSpend(round); // charge the immutable request identity even when ownership/cancellation changes after its response
                 SwiftTask.CheckCancellation(); // :529
                 if (interrupted || isStopping) throw new CancellationError(); // :530
                 if (await ContinueOnNextKeyAsync(round)) continue; // PORT-ONLY (MA-6): the same request, on the next allowed key
@@ -722,6 +821,11 @@ public class OpenAICompatibleSession : ProviderSession
             }
             catch (StreamAttemptFailure failure) // :532
             {
+                dispatchReservation = null;
+                dispatchPrice = null;
+                dispatchEstimatorQuote = null;
+                dispatchRequiresPrice = false;
+                reservation?.Complete(null); // unknown server outcome: retain the durable hold before any transport retry
                 roundTask = null; // :533
                 sseDrain?.Cancel(); // :534
                 sseDrain = null; // :535
@@ -746,11 +850,41 @@ public class OpenAICompatibleSession : ProviderSession
             }
             catch (Exception) // :553-556
             {
+                dispatchReservation = null;
+                dispatchPrice = null;
+                dispatchEstimatorQuote = null;
+                dispatchRequiresPrice = false;
+                reservation?.Complete(null);
                 roundTask = null; // :554
                 throw; // :555
             }
         }
     }
+
+    // RR-50 / ED-599: retain the existing caller-installed authoritative-price contract.
+    private sealed record EstimatorQuote(double CeilingUsd, long MaximumOutputTokens, DateTimeOffset RetrievedAt, Func<ReportedTokenUsage, double?> Estimator);
+
+    private EstimatorQuote? QuoteCallerPrice(string model, Dictionary<string, JSONValue> payload)
+    {
+        var now = SwiftClock.Provider.Current.GetUtcNow();
+        if (KeySpendEstimator is not { } estimator || ReferenceEquals(estimator, defaultSpendEstimator)
+            || estimatorProvider != Configuration.Provider || !string.Equals(estimatorModel, model, StringComparison.Ordinal)
+            || estimatorRetrievedAt > now || now - estimatorRetrievedAt >= TimeSpan.FromDays(1)
+            || Configuration.Provider == ProviderKind.OpenRouter) return null;
+        var input = (long)ContextWindowFor(model);
+        var output = payload.GetValueOrDefault("max_tokens")?.JSONValueInt ?? OpenAICompatibleSessionConfig.MaxOutputTokens ?? input;
+        if (input <= 0 || output <= 0) return null;
+        // Use the declared model/request maxima, including the more expensive cache interpretation.
+        // No provider rate or token count is guessed; the caller prices these bounded usage shapes.
+        var uncached = estimator(new() { Total = input + output, Input = input, Output = output, CachedInput = 0 });
+        var cached = estimator(new() { Total = input + output, Input = input, Output = output, CachedInput = input });
+        return uncached is { } a && double.IsFinite(a) && a >= 0 && cached is { } b && double.IsFinite(b) && b >= 0
+            ? new(Math.Max(a, b), output, estimatorRetrievedAt, estimator) : null;
+    }
+
+    private static bool ContainsNonTextBilling(Dictionary<string, JSONValue> payload) => payload.Values.Any(NonText);
+    private static bool NonText(JSONValue value) => value.JSONValueArray?.Any(NonText) == true
+        || value.JSONValueObject?.Any(pair => pair.Key is "image_url" or "audio" or "video" or "plugins" || NonText(pair.Value)) == true;
 
     // PORT-ONLY (OD-0114, MA-6). A new request takes the rotation's current key; with none left the turn ends with the pool's all-keys-out message.
     private async Task UseRotationKeyAsync()
@@ -763,6 +897,7 @@ public class OpenAICompatibleSession : ProviderSession
         if (selected is { } choice)
         {
             rotatedKey = choice.Secret;
+            requestKeyId = choice.Id;
             if (rotation.ContinuedOn is { } name) OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {name}" }));
             return;
         }
@@ -790,6 +925,7 @@ public class OpenAICompatibleSession : ProviderSession
             return false;
         }
         rotatedKey = next.Secret;
+        requestKeyId = next.Id;
         OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = $"Continued on {next.Nickname}" }));
         return true;
     }
@@ -945,15 +1081,33 @@ public class OpenAICompatibleSession : ProviderSession
     // in-stream error into one StreamRound.
     private async Task<StreamRound> PerformStream(Dictionary<string, JSONValue> payload)
     {
+        // Enforce the billable boundary even when an alternative/private stream forwards into this transport.
+        // A USD receipt after dispatch cannot stand in for a quoted, reserved maximum before HTTP.
+        if (dispatchRequiresPrice && (dispatchReservation is null || dispatchPrice?.CeilingUsd is null && dispatchEstimatorQuote is null))
+            throw new ProviderError(new ProviderError.Case.Failed("This capped account has no current verified price and request bound for this model. No request was sent."));
         var request = new URLRequest(OpenAICompatibleSessionConfig.ChatURL, timeoutInterval: 300)
             { HttpMethod = "POST", FollowRedirects = OpenAICompatibleSessionConfig.FollowRedirects, UseCookies = OpenAICompatibleSessionConfig.UseCookies } // :601-602; ED-410
             .SetValue("application/json", "Content-Type")   // :603
             .SetValue("application/json", "Accept");        // :605
         if (OpenAICompatibleSessionConfig.RequiresAPIKey) request = request.SetValue($"Bearer {ApiKey}", "Authorization"); // :604; ED-410
         request = request with { HttpBody = await Encode(payload) }; // :607
-        if (SwiftTask.IsCancelled || interrupted) throw new CancellationError(); // :608
+        if (SwiftTask.IsCancelled || interrupted || isStopping)
+        {
+            dispatchReservation?.CancelBeforeDispatch();
+            throw new CancellationError(); // :608
+        }
         if (CanTransferContext?.Invoke() == false)
+        {
+            dispatchReservation?.CancelBeforeDispatch();
             throw new ProviderError(new ProviderError.Case.Failed("Context transfer is no longer authorized."));
+        }
+        var quotedAt = dispatchEstimatorQuote?.RetrievedAt ?? dispatchPrice?.RetrievedAt;
+        if (dispatchReservation?.CanDispatch == false || quotedAt is { } at && (at > SwiftClock.Provider.Current.GetUtcNow()
+            || SwiftClock.Provider.Current.GetUtcNow() - at >= TimeSpan.FromDays(1)))
+        {
+            dispatchReservation?.CancelBeforeDispatch();
+            throw new ProviderError(new ProviderError.Case.Failed("Permission or the USD cap changed before dispatch. No request was sent."));
+        }
 
         var messageID = NextID("message"); // :610
         var thoughtID = NextID("thought"); // :611
