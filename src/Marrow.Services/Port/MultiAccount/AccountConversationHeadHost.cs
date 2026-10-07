@@ -67,6 +67,7 @@ public sealed class AccountConversationHeadHost(
             if (launch.Session is OpenAICompatibleSession api && request.Account.Service.IsAPIKeyBased)
             {
                 apiHead = api;
+                api.UsesPrivateHeadPricingContract = true;
                 bindKeys?.Invoke(api, request.Account.Id);
                 api.KeyRotation = new PinnedConversationKeyRotation(api.KeyRotation
                     ?? throw new InvalidOperationException("A checking or opinion API head requires the shared private key routing."), request.Account.Id);
