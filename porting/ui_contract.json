@@ -18615,6 +18615,32 @@
         "decision": "OD-0005",
         "upstream": "SidebarView.swift:904-964: a `PopoverMenu` on the system popover material whose buttons use `.buttonStyle(.glass)` and `.buttonStyle(.glassProminent)` (macOS Liquid Glass).",
         "port": "An Acrylic-class Windows system material where the surface shows the desktop, and the source-defined material (shape, corner radius, tint colour and opacity, interactivity) over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop."
+      },
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "accepted_commit": "5e5df33078d112af6eb9ab029643e8d4b213fe24",
+        "accepted_source_tree": "7e9a2d1fe92de8eee3c6c861172f3033484a5e68",
+        "accepted_test_tree": "decc125760c68e0b4345da0a1d98850b5ef05255",
+        "independent_review": "Independent /root/source_review source/test review 2026-10-07 accepts these four whole records as IMPLEMENTED; no production gap or remaining actionable finding. Reviewer did not independently rerun tests. See porting/verification/parity-tail-20261007/independent-review.md.",
+        "evidence_refs": [
+          "porting/verification/parity-tail-20261007/REPORT.md",
+          "tests/Marrow.App.Tests/Views/Sidebar/ParityTailArchiveTests.cs",
+          "tests/Marrow.App.Tests/Views/Sidebar/SidebarViewTests.cs",
+          "src/Marrow.App/Views/Sidebar/SidebarView.cs:1532-1608,1628-1780",
+          "ED-389"
+        ],
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "porting/verification/parity-tail-20261007/parity-tail-build-final.log.gz"
+        },
+        "tests": {
+          "focused_passed": 9,
+          "focused_failed": 0,
+          "focused_skipped": 0,
+          "mode": "Supplemental Linux ICU76; five focused repeats 9/9. Without forwarding final focused 7 passed/2 failed. Affected 24 passed/1 unchanged Windows API failure. Broad results and raw failures/aborts/skips retained in REPORT.md and receipts.json."
+        },
+        "scope": "Already implemented at base; source-derived regression closure only. IMPLEMENTED, not VERIFIED. Native Windows, real Boot B/bootstrap, visual comparison and installed-package checks pending."
       }
     },
     {
@@ -18643,6 +18669,33 @@
         "decision": "OD-0005",
         "upstream": "SidebarView.swift:925-931 styles Delete `.buttonStyle(.glass)` and Archive `.buttonStyle(.glassProminent)` (macOS Liquid Glass).",
         "port": "An Acrylic-class Windows system material where the surface shows the desktop, and the source-defined material (shape, corner radius, tint colour and opacity, interactivity) over the app's own content; lensing, refraction and chromatic fringing are not reproduced over the desktop. Roles, colours and tooltips unchanged."
+      },
+      "status": "IMPLEMENTED",
+      "implementation_evidence": {
+        "accepted_commit": "5e5df33078d112af6eb9ab029643e8d4b213fe24",
+        "accepted_source_tree": "7e9a2d1fe92de8eee3c6c861172f3033484a5e68",
+        "accepted_test_tree": "decc125760c68e0b4345da0a1d98850b5ef05255",
+        "independent_review": "Independent /root/source_review source/test review 2026-10-07 accepts these four whole records as IMPLEMENTED; no production gap or remaining actionable finding. Reviewer did not independently rerun tests. See porting/verification/parity-tail-20261007/independent-review.md.",
+        "evidence_refs": [
+          "porting/verification/parity-tail-20261007/REPORT.md",
+          "tests/Marrow.App.Tests/Views/Sidebar/ParityTailArchiveTests.cs",
+          "tests/Marrow.App.Tests/Views/Sidebar/SidebarViewTests.cs",
+          "src/Marrow.App/Views/Sidebar/SidebarView.cs:1532-1608,1628-1780",
+          "ED-389"
+        ],
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "porting/verification/parity-tail-20261007/parity-tail-build-final.log.gz"
+        },
+        "tests": {
+          "focused_passed": 9,
+          "focused_failed": 0,
+          "focused_skipped": 0,
+          "mode": "Supplemental Linux ICU76; five focused repeats 9/9. Without forwarding final focused 7 passed/2 failed. Affected 24 passed/1 unchanged Windows API failure. Broad results and raw failures/aborts/skips retained in REPORT.md and receipts.json."
+        },
+        "scope": "Already implemented at base; source-derived regression closure only. IMPLEMENTED, not VERIFIED. Native Windows, real Boot B/bootstrap, visual comparison and installed-package checks pending.",
+        "deletion_proof_limit": "New proof simulates the two real Popup.Closed operations; real native popup teardown remains a Windows check."
       }
     },
     {

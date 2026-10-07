@@ -3726,3 +3726,16 @@ ENGINEERING DECISION (T9 batch 9 integration): join trial-H asynchronous develop
 Batch 9 compile witness: first combined Services build failed CS0103 (catalogue) after the SK18/W3 host constructor conflict union omitted W3's catalogue parameter. Restored that exact parameter and options.Catalogue argument; preserved the incoming catalogue property, imported library, shared downloads and terms. This is a compile-time merge-resolution correction, not a behavior acceptance red; initial logs at 31f7685 remain archived. No test changed.
 
 Batch 9 byte-integrity repair: Git inserted the incoming SK14/SK16 STATE note into an older seam and introduced one ED blank line at that seam. A byte-preserving line diff proved both ledgers differed from batch8 only by insertions. Moved all inserted bytes to the end, restoring the exact b091a44c5 prefixes without replacing/deleting/normalizing any original or incoming contribution. Runtime source/tests/build inputs are unchanged; full suite snapshot remains 2476a0fb1, and final Traceability/static checks repeat after this documentation-only commit.
+
+
+## ED-387 — T22 launch implementation closure (2026-10-07)
+
+PR-LAUNCH-071 is already implemented at base 1291606cbac734da0b2afe125ad9c01227eed83b. Pinned AppDelegate.swift:22-33 and AppModel.swift:121-147,240-287 were checked against the port. New clean-library prepared seen/unseen and unprepared-sheet proofs preserve the existing OD-0018/ED-103, OD-0096/OD-0098 and OD-0113 deviations: tour after main appearance and preparation, voice consent before downloads, real production warm-up behind Boot B. No additional onboarding. Offline boot/bootstrap seams do not verify real Boot B, GPU, provider or installed launch. IMPLEMENTED only, not VERIFIED. Report: porting/verification/parity-tail-20261007/REPORT.md.
+
+## ED-388 — T22 bundled licenses implementation closure (2026-10-07)
+
+PR-SETTINGS-249 is already implemented. Pin SettingsView.swift:1007-1057 supplies three documents in one below-row 480x440 popover; exact words, ordering, padding 18, spacing 18/8, 13pt semibold headings, 12pt selectable secondary markdown, cached strict UTF-8 and independent resource-name fallback are retained. OD-0012 F1 titles LICENSE as Marrow. New About/corrupt-UTF8 proofs supplement unchanged cache/missing/shipping tests. Installed/update-package bytes and native visuals remain unverified. IMPLEMENTED only. Report: porting/verification/parity-tail-20261007/REPORT.md.
+
+## ED-389 — T22 row archive implementation closure (2026-10-07)
+
+UI-SIDEBAR-031/032 are already implemented. Pin SidebarView.swift:267-291,295-306,904-964 agrees with the 272-point row popover, quoted two-line question, geometry, focus/default/no-ring, exact Delete/Archive help, window-scoped keys and modifier passthrough. New proofs pin existing ED-280/OD-0098 small metrics and remove the monitor on detach. Delete invokes the real handler, simulates Popup.Closed, defers to the next main actor turn, uses removeWorktree=false and preserves actual file bytes. Existing Archive panelSlide test remains unchanged and fails on Linux user32.dll. OD-0005 material deviation remains; native placement/focus/teardown/visual parity await Windows. IMPLEMENTED only. Report: porting/verification/parity-tail-20261007/REPORT.md.

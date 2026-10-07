@@ -1,0 +1,9 @@
+{
+  "porting/parity_matrix.json": "All bytes outside the two changed record objects and parity status counts match base exactly.",
+  "porting/ui_contract.json": "All bytes outside the two changed record objects and parity status counts match base exactly.",
+  "porting/engineering_decisions.md": "Original base bytes preserved as exact prefix; append only.",
+  "porting/STATE.md": "Original base bytes preserved as exact prefix; append only.",
+  "tests": "Only three added files; every existing test unchanged.",
+  "src": "Production tree unchanged; no EffortSlider/LiquidTrack/LiquidStrike edit.",
+  "receipts": "All compressed logs match recorded original length and SHA256."
+}
