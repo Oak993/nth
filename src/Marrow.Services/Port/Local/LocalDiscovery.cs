@@ -18,17 +18,18 @@ public sealed class LocalDiscovery : IDisposable
         new("http://127.0.0.1:8080/"), new("http://127.0.0.1:8000/"),
     });
 
-    private readonly HttpClient client = new(new SocketsHttpHandler { AllowAutoRedirect = false, UseCookies = false });
+    private readonly HttpClient client;
     private readonly List<LocalServer> addresses = [];
     private readonly TimeSpan timeout;
     private readonly TimeProvider clock;
     private readonly SemaphoreSlim discoveryGate = new(1);
-    public LocalDiscovery(IEnumerable<Uri>? loopbackAddresses = null, TimeSpan? probeTimeout = null, TimeProvider? timeProvider = null)
+    public LocalDiscovery(IEnumerable<Uri>? loopbackAddresses = null, TimeSpan? probeTimeout = null, TimeProvider? timeProvider = null, HttpMessageHandler? httpHandler = null)
     {
         timeout = probeTimeout ?? TimeSpan.FromSeconds(1.5);
         if (timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(probeTimeout));
         clock = timeProvider ?? TimeProvider.System;
-        client.Timeout = Timeout.InfiniteTimeSpan;
+        client = new HttpClient(httpHandler ?? new SocketsHttpHandler { AllowAutoRedirect = false, UseCookies = false })
+            { Timeout = Timeout.InfiniteTimeSpan };
         foreach (var address in loopbackAddresses ?? DefaultAddresses) AddAddress(address.AbsoluteUri);
     }
 
@@ -76,6 +77,7 @@ public sealed class LocalDiscovery : IDisposable
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, cancellationToken);
         var token = linked.Token;
         var models = new List<LocalModel>();
+        var kind = LocalServerKind.Unknown;
         try
         {
             var list = await Read(new Uri(server.BaseURL, "models"), token).ConfigureAwait(false);
@@ -101,28 +103,45 @@ public sealed class LocalDiscovery : IDisposable
                     if (show is { } info) models[index] = model with { Capabilities = OllamaMetadata(info, model.Capabilities) };
                 }
             }
-            else if (models.Any(model => model.Capabilities.ToolCalling is null || !model.Capabilities.ContextReported))
+            else
             {
                 var studio = await Read(server.NativeURL("api/v0/models"), token).ConfigureAwait(false);
+                if (studio is { } studioReply) kind = LocalServerIdentity.FromStudioModelsReply(studioReply);
                 var rows = Rows(studio, "data").ToArray();
                 for (var index = 0; index < models.Count; index++)
                     if (rows.FirstOrDefault(row => Text(row, "id") == models[index].Id) is { ValueKind: JsonValueKind.Object } row)
                         models[index] = models[index] with { Capabilities = Metadata(row, models[index].Capabilities, native: true) };
                 // llama.cpp reports its configured per-slot context in default_generation_settings, not model maximum.
-                var props = await Read(server.NativeURL("props"), token).ConfigureAwait(false);
-                if (props is { } properties && models.Count == 1)
+                if (models.Any(model => model.Capabilities.ToolCalling is null || !model.Capabilities.ContextReported))
                 {
-                    var caps = Metadata(properties, models[0].Capabilities);
-                    if (Property(properties, "default_generation_settings") is { } generation && Positive(generation, "n_ctx") is { } context)
-                        caps = caps with { ContextWindow = context, ContextReported = true };
-                    models[0] = models[0] with { Capabilities = caps };
+                    var props = await Read(server.NativeURL("props"), token).ConfigureAwait(false);
+                    if (props is { } properties && models.Count == 1)
+                    {
+                        var caps = Metadata(properties, models[0].Capabilities);
+                        if (Property(properties, "default_generation_settings") is { } generation && Positive(generation, "n_ctx") is { } context)
+                            caps = caps with { ContextWindow = context, ContextReported = true };
+                        models[0] = models[0] with { Capabilities = caps };
+                    }
                 }
             }
+            if (kind == LocalServerKind.Unknown) kind = await ReadRootIdentity(server, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
         // A server that listed models before its optional metadata timed out still has honest fallback capabilities.
         cancellationToken.ThrowIfCancellationRequested();
-        return models.Count == 0 ? null : new LocalEntry(server, models.AsReadOnly());
+        return models.Count == 0 ? null : new LocalEntry(server, models.AsReadOnly(), kind);
+    }
+
+    private async Task<LocalServerKind> ReadRootIdentity(LocalServer server, CancellationToken token)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, server.NativeURL(""));
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return LocalServerKind.Unknown;
+            return LocalServerIdentity.FromRootReply(await response.Content.ReadAsStringAsync(token).ConfigureAwait(false));
+        }
+        catch (Exception error) when (error is HttpRequestException or IOException) { return LocalServerKind.Unknown; }
     }
 
     private async Task<JsonElement?> Read(Uri url, CancellationToken token, string? model = null)

@@ -127,10 +127,12 @@ public sealed class PillEditorViewTests(HeadlessSession headless)
         rig.Accounts.SetDefaults(accounts[0].Id, new Marrow.Core.Port.Accounts.AccountDefaults { Model = "opus", Effort = "high" });
         Open(rig, pill, (h, view) =>
         {
+            SettingsProviderPopupLayers.Install(h.Window); h.Settle();
             var row = view.StepList[0];
             Assert.False(row.SettingsOpen);
             Assert.True(h.Press("step-config-" + accounts[0].Id.ToString("D")));
-            Assert.True(row.SettingsOpen);
+            // Retired Assert.True(row.SettingsOpen): owner ruling / ED-510, HTML4462-4465.
+            // Floating_defaults_keep_the_row_closed_and_the_small_switch_resets_only_this_step pins the floating result.
             Assert.NotNull(row.Panel!.Card);
             Assert.Contains(MultiAccountWords.StepTitle("Claude Max 1"), h.Words());
             Assert.Contains(MultiAccountWords.StepSub, h.Words());

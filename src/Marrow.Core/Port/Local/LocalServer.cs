@@ -56,5 +56,5 @@ public sealed record LocalModel(LocalServer Server, string Id, string Name, Loca
         + " · " + Capabilities.ContextWindow + (Capabilities.ContextReported ? " context" : " context fallback"));
 }
 
-public sealed record LocalEntry(LocalServer Server, IReadOnlyList<LocalModel> Models);
+public sealed record LocalEntry(LocalServer Server, IReadOnlyList<LocalModel> Models, LocalServerKind Kind = LocalServerKind.Unknown);
 public sealed record LocalTarget(LocalServer Server, LocalModel Model, IReadOnlyList<LocalModel> Models);

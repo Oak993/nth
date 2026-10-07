@@ -228,7 +228,7 @@ public sealed class AccountsSettingsModel
         Changed?.Invoke();
         return result.Outcome switch
         {
-            LocalConnectOutcome.Found => MultiAccountWords.LocalFoundOn(result.Where, result.Models),
+            LocalConnectOutcome.Found => MultiAccountWords.LocalFoundOn(result.Where, result.Models, result.Kind),
             LocalConnectOutcome.NotFound => MultiAccountWords.LocalNotFound(result.Where),
             _ => MultiAccountWords.LocalBadAddress,
         };

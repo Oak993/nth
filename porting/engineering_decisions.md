@@ -4501,3 +4501,59 @@ MAUI-005/008/009/011/015/050: popover shell padding is 6px; grip is 16x24; the n
 
 ## ED-497
 MAUI-001 Link fidelity follow-up: HTML2716/2741-2749 flies the account monogram from its actual rectangle, not the row number. Link adapter now anchors on retained row.LinkMark; no T16 file changed. New monogram proof failed alone twice first. The protected old number-origin assertion remains for lead disposition.
+## ED-498
+MAUI-039/043: Settings account row is 46px (HTML142); the full 24/24 rename counter uses the locked hot token, including when opening an already-full name (HTML3867), rather than the generic danger red. No test changes.
+
+## ED-499
+MAUI-049 DISPUTED-ACCEPTED composed proof: preserve the painter-only review test unchanged/red. Supplemental proof compares the actual incoming shared capsule face byte-for-byte with an independent shared capsule for plain plus all 12 styles, light/dark and Reduce Motion (52 cases), and pins parent composition, nonzero painted pixels, noninteractive ghost, exact locked placement/scale/opacity. No synthetic painter capsule or production Handshake source change.
+
+## ED-500
+T15-review-rulings.md ruling 1 / MAUI-004 DISPUTED-ACCEPTED: withdraw the proposed popover-column absence test only. Approved ma-3b5-plan section4/C7, NOTES56 and locked HTML2693-2697/2706 keep the Handshake column. OD-0119 differing quiet note concerns Settings. Existing production stays; original review case failed alone twice (review baseline evidence).
+
+## ED-501
+T15-review-rulings.md ruling 2 / MAUI-033 and MAUI-049 DISPUTED-ACCEPTED: withdraw only the primary-preselection and painter-only ghost proposals. Approved plan C4 and OD-0116/0119 specify three equal first-time choices with no preselection. Locked HTML3295-3303/3346-3348/3078-3080 composes the shared capsule outside the painter. The existing 52-case composed ghost proof remains unchanged and passing; original review cases failed alone twice.
+
+## ED-502
+T15-review-rulings.md ruling 3 / MAUI-023: correct only the lookup to locate the retained hidden reset button via new FindIncludingHidden. Existing Find/TryFind visible-only behavior and Assert.False(IsEffectivelyVisible) are unchanged. HTML2642 hides reset when no own override. Original review failed alone twice before reaching the assertion; corrected fixture validates existing production.
+
+## ED-503
+T15-review-rulings.md ruling 4 / MAUI-046: install SettingsProviderPopupLayers in the review fixture, following existing account-dialog proofs. Keep all assertions unchanged, including no inline expansion. Locked HTML4462-4465 opens floating defaults. Original test failed alone twice due absent headless IPopupImpl; production and supplemental real-popup proof were already green.
+
+## ED-504
+T15-review-rulings.md ruling 5 / MAUI-054, HTML3772-3774: carry detected LocalServerKind through LocalEntry -> AppAccountActions -> LocalConnectResult -> Settings words. Unknown remains the generic label. Only successful same-origin replies identify the server: Ollama exact GET-root text from https://github.com/ollama/ollama/blob/main/server/routes.go; LM Studio GET /api/v0/models published native reply shape from https://lmstudio.ai/docs/developer/rest/endpoints (object/list plus model type, format, loaded state and documented metadata). Require that native shape, never port/host/model/publisher inference; sparse listings, a generic version field, errors, malformed replies, redirects and unknown replies remain Unknown. Discovery preserves the existing total deadline, cancellation and metadata-only calls; late identity failure retains listed models. Fakes cover different ports, both native Studio formats, tags alone, rediscovery loss and the actual App bridge. Review054 fixture supplies Ollama is running to the same parser; its expectation is untouched. Source-first missing-API red build retained; final Core17/17, Services33/33 including existing discovery, App bridge4/4. The sole new all-GET fixture mistake and three new word encoding errors reproduced alone twice and were corrected without altering older assertions.
+
+## ED-505
+T15-review-rulings.md ruling 6 / review metadata: replace only Feature=T26 with Feature=MA-8, the valid ID already used by the multi-account Settings view tests. Traceability regex/tests are untouched; original review metadata failed alone twice (review-final-traceability evidence). Assertions, tolerances and other traits are unchanged.
+
+## ED-506
+T15-review-rulings.md ruling 7 / MAUI-040: retire only legacy assertion "Assert.True(row.Opacity < 1);" in ModelsAccountsViewTests.An_account_turned_off_dims_and_says_off. Final HTML1459 applies .45 only to .aname/.awk/.num, preserving bright switch/menu. All remaining assertions stay unchanged; final word opacity is covered by MAUI-040. The old assertion failed alone twice before this authorized retirement.
+
+## ED-507
+T15-review-rulings.md ruling 8 / MAUI-024: retire the two Pro/Max20x theory instances of "Assert.Equal("Start the Handshake at this share of the limit", AutomationProperties.GetName(panel!.Slider.Slider));". Locked HTML2635 instead says "Handshake point for this account", pinned by review024. Preserve every slider-range, store, plan and reset assertion (retain nullable suppression on the following access after removal). Both old instances failed alone twice.
+
+## ED-508
+T15-review-rulings.md ruling 9 / MAUI-024: audited T16 documented old slider-aria collision. It is exactly the same AccountPopoverDialogTests Pro/Max20x assertion retired under ruling8, conflicting with locked HTML2635. No second assertion is retired, no additional test is loosened and no production defect is hidden. Existing review024 replaces it with exact final aria.
+
+## ED-509
+T15-review-rulings.md ruling 10 / LimitCardView corner census: required wave2/review merges already include T16 ED-494. Both radius14 shapes use production RoundedRectangle(14, Continuous); the 22px segmented CzButton gets its existing capsule radius (11px ends) without a raw override. No new production change needed. Census table/assertions remain byte-exact; prior card+census18/18 and final unchanged census rerun verify the merged state.
+
+## ED-510
+T15-review-rulings.md additional owner-approved legacy collision / MAUI-046 (owner response 2026-10-07): retire ONLY "Assert.True(row.SettingsOpen);" in PillEditorViewTests.Pressing_the_model_line_opens. Locked HTML4462-4465 opens floating defaults, not inline row expansion. Install existing popup layers fixture as approved. Keep all card, words, model, saved step settings and closing assertions. Existing design-exact Floating_defaults_keep_the_row_closed_and_the_small_switch_resets_only_this_step is stricter: actual popup parent outside row, row remains closed, width330, real SmallSwitch/reset store bindings and Escape teardown; review046 also asserts no inline expansion. Old assertion/fixture failed alone twice; rerun original and replacement together.
+
+## ED-511
+T15-review-rulings.md additional owner-approved legacy collision / MAUI-001 (owner response 2026-10-07): retire ONLY "Assert.Equal(source, h.Window.PointToClient(flight.PointToScreen(default)));" where source is the row-number rectangle in LinkUpViewTests.Actual_capsule_popover_adds_link_column_and_flight_uses_row_number_and_capsule_coordinates. HTML2716 marks the account monogram; HTML2741-2749 computes the flight from that mark rectangle. Existing Link_flight_starts_at_the_account_monogram_in_the_actual_popover is at least as strict: exact screen/client-coordinate equality from retained row.LinkMark, actual M2 text and real popup/flight, no early calls and exactly one after560ms. All legacy destination/capsule/aria/pin/port/timing assertions remain. Old number-origin assertion failed alone twice; original+replacement rerun together.
+
+## ED-512
+T15-review-rulings.md additional owner-approved Core collision / MAUI-052: retire the 800ms "Assert.Equal(HandshakePhase.Switch,model.Plan(420,160,true).Phase);" in Real_events_drive_phases_minimum_visibility_and_the_same_usage_light. Locked HTML3039 makes In sync last1400ms. Preserve original800ms fixture advance, advance the remaining600ms before subsequent completion/status/progress/late-event checks; those assertions are unchanged and the exact switch boundary is checked. MAUI-052 pins In sync still present at1399ms (strict replacement). Original800ms assertion failed alone twice.
+
+## ED-513
+T15-review-rulings.md additional owner-approved Core collision / MAUI-051, Primed theory case: retire "Assert.Equal(2,link.Count);" at600ms in Sound_recipe_and_ready_tick_are_once_per_real_phase_and_never_for_deferred_history. HTML3039 keeps Standby1000ms. At the original600ms position assert no tones; advance the remaining400ms before checking the unchanged two-tone recipe, then retain every ready-tick/readiness/no-replay assertion at its correct phase. MAUI-051 pins Standby at999ms as the strict replacement; the repaired fixture also checks the exact1000ms boundary and no early sound. This case failed alone twice before retirement.
+
+## ED-514
+T15-review-rulings.md additional owner-approved Core collision / MAUI-051, Injected theory case: retire "Assert.Equal(2,link.Count);" at600ms in Sound_recipe_and_ready_tick_are_once_per_real_phase_and_never_for_deferred_history. HTML3039 keeps Standby1000ms. At the original600ms position assert no tones; advance the remaining400ms before checking the unchanged two-tone recipe, then retain every ready-tick/readiness/no-replay assertion at its correct phase. MAUI-051 pins Standby at999ms as the strict replacement; the repaired fixture also checks the exact1000ms boundary and no early sound. This case failed alone twice before retirement.
+
+## ED-515
+T15-review-rulings.md additional owner-approved Core collision / MAUI-051, Deferred theory case: retire "Assert.Equal(2,link.Count);" at600ms in Sound_recipe_and_ready_tick_are_once_per_real_phase_and_never_for_deferred_history. HTML3039 keeps Standby1000ms. At the original600ms position assert no tones; advance the remaining400ms before checking the unchanged two-tone recipe, then retain every ready-tick/readiness/no-replay assertion at its correct phase. MAUI-051 pins Standby at999ms as the strict replacement; the repaired fixture also checks the exact1000ms boundary and no early sound. This case failed alone twice before retirement.
+
+## ED-516
+T15-review-rulings.md additional owner-approved Core collision / MAUI-041: retire ONLY "Assert.Contains("Handshake automatically", rig.Model.Blocks[0].Rows[0].Subtitle, StringComparison.Ordinal);" after explicitly setting Smart equal to general Smart. OD-0119 says no quiet note for an equal value, pinned by review041. Every menu/store/differing99-percent/reset assertion remains unchanged. The old assertion failed alone twice; final legacy and strict replacement rerun together.

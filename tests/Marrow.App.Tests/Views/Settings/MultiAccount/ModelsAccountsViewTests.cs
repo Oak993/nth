@@ -126,7 +126,8 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
         h.Settle();
         var row = view.Blocks.Values.Single().Rows[id];
         Assert.Equal(MultiAccountWords.PlanText("Max") + " · " + MultiAccountWords.OffNotUsed, row.SubtitleShown);
-        Assert.True(row.Opacity < 1);
+        // Retired Assert.True(row.Opacity < 1): T15-review-rulings.md #7 / ED-506.
+        // HTML1459 dims .aname/.awk/.num only, keeping switch/menu bright; MAUI-040 pins the words.
         h.Rig.Model.SetEnabled(id, true);
         h.Settle();
         Assert.Equal(1, row.Opacity);

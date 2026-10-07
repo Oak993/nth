@@ -11,7 +11,7 @@ namespace Marrow.Core.Tests.Port.MultiAccount.Handshake;
 // real engine events arrive together. Slow engine events may extend these intervals.
 public sealed class MaUiReviewMotionTests
 {
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-051")] // HTML 3039: standby 1000 -> linking 2000 = 1000ms
     [InlineData("MAUI-052")] // HTML 3039: in-sync 3000 -> switch 4400 = 1400ms
     public void Queued_events_preserve_the_locked_phase_intervals(string finding)

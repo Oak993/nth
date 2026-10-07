@@ -42,10 +42,10 @@ namespace Marrow.App.Tests.Views.MultiAccount;
 [Collection("Headless")]
 public sealed class MaUiReviewTests(HeadlessSession headless)
 {
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-001")] // HTML 2687,2715; checklist 4 Link; OD-0115 link=A / OD-0120
     [InlineData("MAUI-003")] // HTML 2734; checklist 4 row menu
-    [InlineData("MAUI-004")] // OD-0119: menu + quiet note ONLY when point differs
+    // MAUI-004 withdrawn by T15-review-rulings.md #1 / ED-500: plan C7; HTML2693-2697/2706.
     [InlineData("MAUI-005")] // HTML 215: apop padding 6
     [InlineData("MAUI-006")] // HTML 1347 (supersedes 826): auto height, min-height 68
     [InlineData("MAUI-007")] // HTML 2686,2716: account monogram
@@ -86,7 +86,6 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
                 case "MAUI-001":
                     Assert.Contains(h.All().OfType<Button>(), c => AutomationProperties.GetName(c) == "Link Claude Max 2 to check this thread’s work"); break;
                 case "MAUI-003": Assert.Contains(row.Menu, e => e.Label == "Keep this thread on it"); break;
-                case "MAUI-004": Assert.DoesNotContain("Automatically", h.Words(row)); break;
                 case "MAUI-005": Assert.Equal(new Thickness(6), Assert.IsType<StackPanel>(view.Child).Margin); break;
                 case "MAUI-006":
                     Assert.True(double.IsNaN(row.Height), "HTML 1347 requires auto row height."); Assert.Equal(68, row.MinHeight); break;
@@ -158,7 +157,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         }, motion: finding is "MAUI-016" or "MAUI-017" or "MAUI-050" or "MAUI-062" or "MAUI-063" or "MAUI-064");
     }
 
-    [Fact, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Fact, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     public void MAUI_002_Ask_others_B_is_an_accessible_composer_action() => headless.OnUiThread(() =>
     {
         // HTML 4804-4811,4855-4871; checklist 5; OD-0115 opinions=B / OD-0120.
@@ -170,7 +169,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
             b => b.IsEffectivelyVisible && AutomationProperties.GetName(b) == "Ask others for this message"));
     });
 
-    [Fact, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Fact, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     public void MAUI_053_Loaded_Codex_history_shows_the_in_sync_composer_chip() => headless.OnUiThread(() =>
     {
         // HTML 2481,324; checklist 3 "During Handshake"; OD-0122 same tick as Claude.
@@ -189,7 +188,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
             text => text.IsEffectivelyVisible && text.Text == "In sync"));
     });
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-021")] // HTML 834: cfgp width 330
     [InlineData("MAUI-022")] // HTML 1368: hsp width 248
     [InlineData("MAUI-023")] // HTML 2642: reset hidden when no own override
@@ -208,7 +207,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
             {
                 case "MAUI-021": Assert.Equal(330, h.Page.Width); break;
                 case "MAUI-022": Assert.Equal(248, h.Page.Width); break;
-                case "MAUI-023": Assert.False(h.Find<Button>("account-handshake-default").IsEffectivelyVisible); break;
+                case "MAUI-023": Assert.False(h.FindIncludingHidden<Button>("account-handshake-default").IsEffectivelyVisible); break;
                 case "MAUI-024": Assert.Equal("Handshake point for this account", AutomationProperties.GetName(handshake!.Slider.Slider)); break;
                 case "MAUI-025":
                     handshake!.Slider.Slider.Focus(); handshake.Slider.Slider.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.End }); h.Settle();
@@ -219,7 +218,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         });
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-027")] // HTML 436: Usage header 12px
     [InlineData("MAUI-028")] // HTML 447: current account 15px
     [InlineData("MAUI-029")] // HTML 4343: no-5h state retains "5-hour window"
@@ -255,8 +254,8 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         }, motion: finding is "MAUI-030" or "MAUI-031" or "MAUI-032", reduceMotion: finding == "MAUI-032");
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
-    [InlineData("MAUI-033")] // HTML 4000 primary styling does not choose/enable automatic switching (OD-0116)
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
+    // MAUI-033 withdrawn by T15-review-rulings.md #2 / ED-501: plan C4; OD-0116/0119.
     [InlineData("MAUI-034")] // HTML 4225: bold Finish now and Stop
     [InlineData("MAUI-035")] // HTML 380: 1px divider
     [InlineData("MAUI-036")] // HTML 378 + dark token 4: --pacInk #06121C
@@ -265,7 +264,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
     [InlineData("MAUI-065")] // HTML 375-378 + 3: the primary action has a painted --pac face
     public void Cards_pin_locked_design(string finding)
     {
-        var f = FirstTimeCardTests.Make(finding is "MAUI-033" or "MAUI-035", finding == "MAUI-034" ? DecisionKind.MidReply : DecisionKind.OnLimit);
+        var f = FirstTimeCardTests.Make(finding == "MAUI-035", finding == "MAUI-034" ? DecisionKind.MidReply : DecisionKind.OnLimit);
         var model = new LimitCardModel(f.State, f.Accounts.Accounts, f.Cards, TimeZoneInfo.Utc);
         LimitCardView? view = null;
         MultiAccountHarness.Run(headless, f.Rig, () => finding == "MAUI-038"
@@ -274,7 +273,6 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         {
             switch (finding)
             {
-                case "MAUI-033": Assert.True(model.Buttons.Single(b => b.Value == "switch").Primary); break;
                 case "MAUI-034":
                     var explanation = Text(view!, model.Explanation!);
                     Assert.Contains(explanation.Inlines?.OfType<Run>() ?? [], r => r.Text == "Finish now" && r.FontWeight == FontWeight.SemiBold); break;
@@ -295,7 +293,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         });
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-018")] // HTML 467: every movement is a crossfade under Reduce Motion
     [InlineData("MAUI-039")] // HTML 142: Settings account row height 46
     [InlineData("MAUI-040")] // HTML 1459: off words .45, switch unchanged
@@ -334,7 +332,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         }, reduceMotion: finding == "MAUI-018");
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-044")] // HTML 4457,4472: account mono, not provider icon
     [InlineData("MAUI-045")] // HTML 1791,4457,4473: Fast bolt before model + aria Fast mode
     [InlineData("MAUI-046")] // HTML 4462-4465: floating defaults dialog with Same-as-account switch
@@ -351,6 +349,8 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         if (finding == "MAUI-055") rig.Pills.SetHandshakeMode(pill.Id, PillHandshakeMode.SameForEvery, Marrow.Core.Accounts.HandshakePoint.Smart);
         MultiAccountHarness.Run(headless, rig, () => new MultiAccountHost<PillEditorView>(context => new PillEditorView(context, context.Editor(pill.Id), () => { })), h =>
         {
+            // T15-review-rulings.md #4 / ED-503: headless floating popup needs its overlay.
+            if (finding == "MAUI-046") { SettingsProviderPopupLayers.Install(h.Window); h.Settle(); }
             var view = ((MultiAccountHost<PillEditorView>)h.Page).View!; var row = view.StepList[0];
             switch (finding)
             {
@@ -375,17 +375,9 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         }, motion: finding == "MAUI-047", reduceMotion: finding == "MAUI-060", models: _ => [new("opus", "Opus 5.5", efforts: new ValueList<string>(["low", "high"]), defaultEffort: "high", fastTier: "fast")]);
     }
 
-    [Fact, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
-    public void MAUI_049_Handshake_draws_the_incoming_capsule()
-    {
-        // HTML 3157,3078-3090 / 1288: incoming capsule remains visible even with no filaments.
-        // This isolates the missing ghost from differences in antialiasing or filament pixels.
-        using var bitmap = new SKBitmap(420, 160); using var canvas = new SKCanvas(bitmap); canvas.Clear(SKColors.Transparent);
-        using var painter = new HandshakePainter(420, 160, (240, 105, 90), (58, 214, 168));
-        var frame = new HandshakeFrame([], [], new HandshakeGhost(302, 78, 1, 1));
-        painter.Draw(canvas, frame, 2000, false, false); canvas.Flush();
-        Assert.Contains(bitmap.Pixels, p => p.Alpha > 0);
-    }
+    // MAUI-049 withdrawn by T15-review-rulings.md #2 / ED-501.
+    // HTML3295-3303/3346-3348/3078-3080 composes the shared capsule outside the painter.
+    // HandshakeComposedGhostReviewProofTests pins the actual composed look in 52 cases.
 
     private static TextBlock Text(Control root, string words) => root.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == words);
     private static T Field<T>(object instance, string name) => (T)(instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(instance)!);

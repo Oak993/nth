@@ -43,7 +43,9 @@ public static class MultiAccountWords
     public const string LocalConnect = "Connect";
     public const string LocalLooking = "Looking for a server\u2026";
     public const string LocalNote = "Local models run on your PC: nothing leaves it, and there are no limits. They are slower than the big cloud models, and less able at long tasks.";
-    public static string LocalFoundOn(string where, int models) => "Found a server on " + where + " \u00b7 " + models + (models == 1 ? " model" : " models") + " added";
+    public static string LocalFoundOn(string where, int models, Marrow.Core.Port.Local.LocalServerKind kind = Marrow.Core.Port.Local.LocalServerKind.Unknown) =>
+        "Found " + (kind switch { Marrow.Core.Port.Local.LocalServerKind.Ollama => "Ollama", Marrow.Core.Port.Local.LocalServerKind.LMStudio => "LM Studio", _ => "a server" })
+        + " on " + where + " \u00b7 " + models + (models == 1 ? " model" : " models") + " added";
     public static string LocalNotFound(string where) => "No server found at " + where + ". Check the address and that the server is running.";
     public const string LocalBadAddress = "Use an address like http://localhost:1234";
 

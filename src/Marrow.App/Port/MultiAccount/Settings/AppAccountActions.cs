@@ -36,7 +36,7 @@ internal sealed class AppAccountActions(AppModel model) : IAccountActions
         var found = entries.FirstOrDefault(entry => entry.Server.Id == server.Id);
         if (found is null || found.Models.Count == 0) return new LocalConnectResult(LocalConnectOutcome.NotFound, 0, where);
         Services.Port.MultiAccount.LocalAccountCatalog.Synchronize(model.Settings.Accounts, entries);
-        return new LocalConnectResult(LocalConnectOutcome.Found, found.Models.Count, where);
+        return new LocalConnectResult(LocalConnectOutcome.Found, found.Models.Count, where, found.Kind);
     }
 
     public Task SignOutAsync(Guid accountId)

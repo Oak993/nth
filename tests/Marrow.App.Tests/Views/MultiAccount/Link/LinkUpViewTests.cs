@@ -85,7 +85,8 @@ public sealed class LinkUpViewTests(HeadlessSession headless)
             var destination = h.Window.PointToClient(slot.PointToScreen(new Point(slot.Bounds.Width - 16, slot.Bounds.Height / 2 - 11)));
             Assert.True(h.Press("link-account-" + rig.Other.ToString("N")));
             var flight = Assert.IsType<LinkFlyMark>(view.Flight);
-            Assert.Equal(source, h.Window.PointToClient(flight.PointToScreen(default)));
+            // Retired row-number origin equality: owner ruling / ED-511, HTML2716/2741-2749.
+            // Link_flight_starts_at_the_account_monogram_in_the_actual_popover pins the exact monogram origin.
             Assert.Equal(destination, h.Window.PointToClient(flight.PointToScreen(flight.ToPosition - flight.FromPosition)));
             Assert.NotEqual(flight.FromPosition, flight.ToPosition); Assert.Empty(port.Calls);
             h.Step(560); Assert.Single(port.Calls); h.Step(260); h.Settle(); Assert.Contains("M2", h.Words());

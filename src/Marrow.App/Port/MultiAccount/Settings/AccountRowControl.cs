@@ -21,7 +21,7 @@ namespace Marrow.App.Port.MultiAccount.Settings;
 
 internal sealed class AccountRowControl : Decorator
 {
-    internal const double RowHeight = 56;
+    internal const double RowHeight = 46;
 
     private readonly AccountsSettingsModel model;
     private readonly Guid id;
@@ -178,11 +178,12 @@ internal sealed class AccountRowControl : Decorator
         AutomationProperties.SetAutomationId(box, "account-rename-" + id.ToString("N"));
         var count = LibraryUi.Text(MultiAccountWords.Count(box.Text!.Length), 11, secondary: true);
         count.VerticalAlignment = VerticalAlignment.Center;
+        count.Foreground = (box.Text!.Length >= 24 ? MultiAccountPalette.Hot : ChromeTokens.SecondaryText).Brush(count);
         box.TextChanged += (_, _) =>
         {
             var used = box.Text?.Length ?? 0;
             count.Text = MultiAccountWords.Count(used);
-            count.Foreground = (used >= 24 ? ChromeTokens.Danger : ChromeTokens.SecondaryText).Brush(count); // the page turns the counter hot at 24
+            count.Foreground = (used >= 24 ? MultiAccountPalette.Hot : ChromeTokens.SecondaryText).Brush(count); // the page turns the counter hot at 24
         };
         var done = false;
         void Finish(bool commit)
