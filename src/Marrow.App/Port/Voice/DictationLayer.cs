@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Media.TextFormatting;
+using Avalonia.Media.TextFormatting.Unicode;
 using Avalonia.Styling;
 using Avalonia.Utilities;
 using Marrow.App.Views.Composer;
@@ -18,8 +19,8 @@ namespace Marrow.App.Port.Voice;
 /// The layer that writes the dictated words over the composer's editor (V-8.3). While a dictation is live the editor keeps its own text, still and transparent, and this layer, laid exactly
 /// over it, draws the text the insertion makes (<see cref="DictationInsertion"/>: the text before and after the caret still, the words between them) with the editor's own font, width,
 /// wrapping, flow direction, alignment and scroll offset, so a word that is not moving is drawn by one <see cref="TextLayout"/> exactly as the editor will draw it. Words that are moving
-/// (rising in, revised, leaving, following a change of place: <see cref="DictationWords"/>, <see cref="DictationFlip"/>) are drawn one by one at their places from the layout's own
-/// hit tests, so right-to-left runs animate in place; the tentative colour is a per-range brush; the caret follows the last word.
+/// (rising in, revised, leaving, following a change of place: <see cref="DictationWords"/>, <see cref="DictationFlip"/>) use complete shaped glyph clusters from that same paragraph,
+/// each following its native position across wrapped lines. The tentative colour is a per-range brush; the caret follows the last character on its final line.
 /// The draft follows live (<see cref="TextChanged"/>, V-8.2) while the editor's text stays the pre-dictation draft until Landing writes the whole insertion as one edit (V-8.7: one undo
 /// step), and the layer hands the picture back to the editor, in one frame, when the words have settled (V-8.3: pixel-identical). A cancel plays the withdraw (V-8.6) and returns the draft.
 /// Main thread.
@@ -29,14 +30,17 @@ internal sealed class DictationLayer : Control
     private readonly ComposerNSTextView editor;
     private readonly ScrollViewer? scroll;
     private readonly List<(ContinuousInstant Due, WordOp Op)> pending = [];
-    private readonly Dictionary<int, DictationFlip> afterFlips = [];
+    private readonly Dictionary<int, DictationPicture> contextPictures = [];
+    private readonly Dictionary<DictationWord, DictationPicture> pictures = [];
+    private readonly Dictionary<DictationOldText, DictationPicture> oldPictures = [];
     private readonly AnimatedScalar scrollOffset;
     private DictationWords words = new();
     private DictationInsertion insertion = new(new DraftSelection("", 0, 0));
     private DictationPlacement? placement;
     private TextLayout? target;
-    private Rect[] wordRects = [];
-    private (int Start, int Length)[] afterTokens = [];
+    private (int Start, int Length)[] contextTokens = [];
+    private Rect caretLine;
+    private int layoutStyleKey;
     private DraftSelection original;
     private DictationPhase phase;
     private DisplayLink? link;
@@ -93,6 +97,9 @@ internal sealed class DictationLayer : Control
     /// <summary>The words, for the tests.</summary>
     internal DictationWords Words => words;
 
+    /// <summary>The native layout's identity, for invalidation proofs without exposing its mutable resources.</summary>
+    internal object? LayoutIdentity => target;
+
     /// <summary>The last frame the layer asked for has handed over: true once the picture is the editor's again.</summary>
     internal bool HandedOver => phase == DictationPhase.Idle;
 
@@ -118,7 +125,7 @@ internal sealed class DictationLayer : Control
         insertion = new DictationInsertion(draft);
         words = new DictationWords();
         pending.Clear();
-        afterFlips.Clear();
+        DisposePictures();
         phase = DictationPhase.Armed;
         draftText = draft.Text;
         hadWords = false;
@@ -245,8 +252,9 @@ internal sealed class DictationLayer : Control
             changed = true;
         }
         if (words.Settle(now)) changed = true;
+        PrunePictures();
         // the editor's width changed (the window, or the field's scroll bar coming or going): the words wrap anew and glide to their new places
-        if (IsActive && !changed && Math.Abs(LayoutWidth() - layoutWidth) > 0.5) changed = true;
+        if (IsActive && !changed && (Math.Abs(LayoutWidth() - layoutWidth) > 0.5 || LayoutSignature() != layoutStyleKey)) changed = true;
         if (followPending && !changed) FollowTheEnd();
         if (changed) Relayout(at);
 
@@ -290,8 +298,7 @@ internal sealed class DictationLayer : Control
     private bool Moving(ContinuousInstant now)
     {
         if (words.IsMoving(now)) return true;
-        foreach (var flip in afterFlips.Values)
-            if (flip.IsMoving(now)) return true;
+        if (pictures.Values.Concat(contextPictures.Values).Concat(oldPictures.Values).Any(picture => picture.IsMoving(now))) return true;
         if (phase == DictationPhase.Landing && (now - landedAt).TotalSeconds < DictationMotion.CaretFade.Duration) return true;
         if (withdrawEndAt is { } ended && (now - ended).TotalSeconds < Math.Max(DictationMotion.CaretFade.Duration, restoring ? DictationMotion.Ghost.Duration : 0)) return true;
         if (caretPlaced && caretFlip.IsMoving(now)) return true;
@@ -303,7 +310,18 @@ internal sealed class DictationLayer : Control
         if (op.Kind == WordOpKind.Add && phase == DictationPhase.Armed) Activate(at);
         if (phase == DictationPhase.Armed) return; // nothing is there to revise, remove or confirm
         words.Still = Still;
+        DictationPicture? replaced = null;
+        var revised = op.Kind == WordOpKind.Revise && op.Index >= 0 ? words.Logical.ElementAtOrDefault(op.Index) : null;
+        if (!Still && revised is not null && op.Text is { } replacement && replacement != revised.Text)
+        {
+            // A batch may revise more than once. Capture the immediately preceding shaped picture without publishing an intermediate draft.
+            Relayout(at, publish: false);
+            if (pictures.Remove(revised, out replaced)) replaced.Capture(at);
+        }
+        if (op.Kind == WordOpKind.Add && words.Logical.LastOrDefault() is { } previous)
+            previous.Ink.Go(0, at, DictationMotion.Ink, Still); // V-7.5: visual confirmation; the transcriber's logical tail remains revisable.
         words.Apply(op, at);
+        if (replaced is not null && revised is not null) oldPictures.Add(revised.Old[^1], replaced);
     }
 
     private void Activate(ContinuousInstant at)
@@ -315,15 +333,14 @@ internal sealed class DictationLayer : Control
         editor.LiveText = original.Text;
         ghostShown = original.Length > 0;
         // the text after the selection starts where it was: its words follow to their new places by FLIP
-        afterFlips.Clear();
+        DisposePictures();
         using (var layout = MakeLayout(original.Text, Math.Max(1, LayoutWidth()), null))
         {
             var from = Math.Clamp(original.Start + original.Length, 0, original.Text.Length);
             var k = 0;
-            foreach (var (start, length) in Tokens(original.Text, from))
+            foreach (var (start, length) in ContextTokens(original.Text, from))
             {
-                var rects = layout.HitTestTextRange(start, length).ToArray();
-                if (rects.Length == 1) FlipOf(k).Place(rects[0].TopLeft, at, still: false);
+                contextPictures[k] = new DictationPicture(layout, start, length, at, still: false);
                 k++;
             }
         }
@@ -358,15 +375,14 @@ internal sealed class DictationLayer : Control
         var hadActive = IsActive;
         phase = DictationPhase.Idle;
         pending.Clear();
-        afterFlips.Clear();
+        DisposePictures();
         words = new DictationWords();
         placement = null;
         target?.Dispose();
         target = null;
         baseLayout?.Dispose();
         baseLayout = null;
-        wordRects = [];
-        afterTokens = [];
+        contextTokens = [];
         caretWord = -1;
         caretPlaced = false;
         withdrawEndAt = null;
@@ -389,13 +405,21 @@ internal sealed class DictationLayer : Control
 
     // ---- the layout ------------------------------------------------------------------------------------------------------------------
 
-    private double LayoutWidth() => Bounds.Width > 0 ? Bounds.Width : editor.Bounds.Width;
+    private double LayoutWidth() => Math.Max(0, (Bounds.Width > 0 ? Bounds.Width : editor.Bounds.Width) - editor.Padding.Left - editor.Padding.Right);
 
-    private Typeface Face => new(editor.FontFamily, editor.FontStyle, editor.FontWeight);
+    private Typeface Face => new(editor.FontFamily, editor.FontStyle, editor.FontWeight, editor.FontStretch);
 
     private TextLayout MakeLayout(string text, double maxWidth, IReadOnlyList<ValueSpan<TextRunProperties>>? overrides) =>
-        new(text, Face, editor.FontSize, Brushes.Black, editor.TextAlignment, TextWrapping.Wrap, null, null, editor.FlowDirection, maxWidth, double.PositiveInfinity, double.NaN, 0, 0,
-            null, overrides);
+        editor.CreateComposerLayout(text, maxWidth, Brushes.Black, overrides);
+
+    private int LayoutSignature()
+    {
+        var key = new HashCode(); key.Add(Face); key.Add(editor.FontSize); key.Add(editor.TextAlignment); key.Add(editor.TextWrapping); key.Add(editor.FlowDirection);
+        key.Add(editor.LineHeight); key.Add(Avalonia.Controls.Documents.TextElement.GetLetterSpacing(editor));
+        if (Avalonia.Controls.Documents.TextElement.GetFontFeatures(editor) is { } features)
+            foreach (var feature in features) key.Add(feature);
+        return key.ToHashCode();
+    }
 
     private static IEnumerable<(int Start, int Length)> Tokens(string text, int from)
     {
@@ -409,14 +433,32 @@ internal sealed class DictationLayer : Control
         }
     }
 
-    private DictationFlip FlipOf(int token)
+    private IEnumerable<(int Start, int Length)> ContextTokens(string text, int afterStart)
     {
-        if (!afterFlips.TryGetValue(token, out var flip)) afterFlips[token] = flip = new DictationFlip();
-        return flip;
+        var beforeEnd = Math.Clamp(original.Start, 0, text.Length);
+        foreach (var (start, length) in Tokens(text, 0))
+        {
+            if (start >= beforeEnd) break;
+            yield return (start, Math.Min(length, beforeEnd - start));
+        }
+        foreach (var token in Tokens(text, afterStart)) yield return token;
+    }
+
+    private void PrunePictures()
+    {
+        foreach (var word in pictures.Keys.Where(word => !words.Words.Contains(word)).ToArray()) { pictures.Remove(word, out var picture); picture!.Dispose(); }
+        var liveOld = words.Words.SelectMany(word => word.Old).ToHashSet();
+        foreach (var old in oldPictures.Keys.Where(old => !liveOld.Contains(old)).ToArray()) { oldPictures.Remove(old, out var picture); picture!.Dispose(); }
+    }
+
+    private void DisposePictures()
+    {
+        foreach (var picture in pictures.Values.Concat(contextPictures.Values).Concat(oldPictures.Values)) picture.Dispose();
+        pictures.Clear(); contextPictures.Clear(); oldPictures.Clear();
     }
 
     // The text the words make, where each one and each token of the text after them sits (hit tests of the editor's own kind of layout), and the draft the composer holds.
-    private void Relayout(ContinuousInstant now)
+    private void Relayout(ContinuousInstant now, bool publish = true)
     {
         var all = words.Words.Select(word => new TranscriptWord(word.Text, word.Tentative)).ToList();
         placement = insertion.Place(all);
@@ -424,25 +466,28 @@ internal sealed class DictationLayer : Control
         var nextDraft = logical.Count == words.Words.Count ? placement.Text : insertion.Place(logical).Text;
         target?.Dispose();
         layoutWidth = LayoutWidth();
+        layoutStyleKey = LayoutSignature();
         target = MakeLayout(placement.Text, Math.Max(1, layoutWidth), null);
         var still = Still;
-        wordRects = new Rect[all.Count];
         for (var i = 0; i < all.Count; i++)
         {
             var word = words.Words[i];
-            var rects = all[i].Text.Length == 0 ? [] : target.HitTestTextRange(placement.WordStarts[i], all[i].Text.Length).ToArray();
-            word.Separable = rects.Length == 1;
-            if (rects.Length == 0) continue;
-            wordRects[i] = rects[0];
-            word.Place.Place(rects[0].TopLeft, now, still);
+            pictures.Remove(word, out var previous);
+            var picture = new DictationPicture(target, placement.WordStarts[i], word.Text.Length, now, still, previous?.DrawingOrder(now), word.Place);
+            pictures.Add(word, picture); previous?.Dispose();
+            word.Separable = picture.Fragments.Count > 0;
+            if (picture.Fragments.Count > 0)
+                foreach (var old in word.Old)
+                    if (oldPictures.TryGetValue(old, out var oldPicture)) oldPicture.FollowAnchor(picture.Anchor, now, still);
         }
-        afterTokens = Tokens(placement.Text, placement.AfterStart).ToArray();
-        for (var k = 0; k < afterTokens.Length; k++)
+        contextTokens = ContextTokens(placement.Text, placement.AfterStart).ToArray();
+        for (var k = 0; k < contextTokens.Length; k++)
         {
-            var rects = target.HitTestTextRange(afterTokens[k].Start, afterTokens[k].Length).ToArray();
-            if (rects.Length == 1) FlipOf(k).Place(rects[0].TopLeft, now, still);
+            contextPictures.Remove(k, out var previous);
+            contextPictures[k] = new DictationPicture(target, contextTokens[k].Start, contextTokens[k].Length, now, still, previous?.DrawingOrder(now));
+            previous?.Dispose();
         }
-        foreach (var stale in afterFlips.Keys.Where(key => key >= afterTokens.Length).ToList()) afterFlips.Remove(stale);
+        foreach (var stale in contextPictures.Keys.Where(key => key >= contextTokens.Length).ToArray()) { contextPictures.Remove(stale, out var picture); picture!.Dispose(); }
 
         caretWord = -1;
         for (var i = words.Words.Count - 1; i >= 0; i--)
@@ -455,7 +500,7 @@ internal sealed class DictationLayer : Control
         if (phase != DictationPhase.Landing) editor.LiveText = placement.Text;
         InvalidateMeasure();
         followPending = true; // the scroll goes by the field's own extent, which is known after the next layout pass: the next frame
-        if (nextDraft != draftText)
+        if (publish && nextDraft != draftText)
         {
             draftText = nextDraft;
             TextChanged?.Invoke(draftText); // V-8.2: the draft follows live
@@ -467,19 +512,18 @@ internal sealed class DictationLayer : Control
     private void PlaceCaret(ContinuousInstant now, bool still)
     {
         if (target is null || placement is null) return;
-        Rect rect;
-        double x;
-        if (words.Words.Count > 0 && words.Words[^1] is var last && wordRects.Length == words.Words.Count && wordRects[^1].Width > 0)
-        {
-            rect = wordRects[^1];
-            x = IsRtl(last.Text) ? rect.X - 1 - DictationCaret.Width : rect.Right + 1;
-        }
-        else
-        {
-            rect = target.HitTestTextPosition(Math.Clamp(placement.Caret, 0, placement.Text.Length));
-            x = rect.X + 1;
-        }
-        caretFlip.Place(new Point(x, rect.Y + (rect.Height - DictationCaret.Height) / 2), now, still);
+        var end = words.Words.Count > 0 ? placement.WordStarts[^1] + words.Words[^1].Text.Length : Math.Clamp(placement.Caret, 0, placement.Text.Length);
+        var hasText = words.Words.Count > 0 && words.Words[^1].Text.Length > 0;
+        var terminalBreak = hasText && new Codepoint(words.Words[^1].Text[^1]).IsBreakChar;
+        var lineIndex = target.GetLineIndexFromCharacterIndex(end, trailingEdge: hasText && !terminalBreak);
+        var line = target.TextLines[lineIndex];
+        var edge = hasText && !terminalBreak ? line.GetNextCaretCharacterHit(line.GetPreviousCaretCharacterHit(new CharacterHit(end))) : new CharacterHit(end);
+        if (edge.FirstCharacterIndex + edge.TrailingLength != end) edge = new CharacterHit(end);
+        var x = line.GetDistanceFromCharacterHit(edge);
+        var rtl = edge.TrailingLength > 0 && x < line.GetDistanceFromCharacterHit(new CharacterHit(edge.FirstCharacterIndex));
+        var top = target.TextLines.Take(lineIndex).Sum(textLine => textLine.Height);
+        caretLine = new Rect(0, top, 0, line.Height);
+        caretFlip.Place(new Point(x + (rtl ? -1 - DictationCaret.Width : 1), top + (line.Height - DictationCaret.Height) / 2), now, still);
         caretPlaced = true;
     }
 
@@ -487,8 +531,8 @@ internal sealed class DictationLayer : Control
     private void FollowTheEnd()
     {
         followPending = false;
-        if (scroll is null || caretWord < 0 || caretWord >= wordRects.Length) return;
-        var bottom = wordRects[caretWord].Bottom + editor.Padding.Top + editor.Padding.Bottom;
+        if (scroll is null || caretWord < 0) return;
+        var bottom = caretLine.Bottom + editor.Padding.Top + editor.Padding.Bottom;
         var viewport = scroll.Viewport.Height;
         var farthest = Math.Max(0, scroll.Extent.Height - viewport); // the field cannot go past its own end
         if (viewport <= 0 || bottom <= scroll.Offset.Y + viewport + 0.5 || farthest <= scroll.Offset.Y + 0.5) return;
@@ -501,22 +545,16 @@ internal sealed class DictationLayer : Control
     {
         if (!IsActive || placement is null) return default;
         var width = double.IsInfinity(availableSize.Width) ? Math.Max(1, editor.Bounds.Width) : availableSize.Width;
-        using var layout = MakeLayout(placement.Text, Math.Max(1, width), null);
+        using var layout = MakeLayout(placement.Text, Math.Max(1, width - editor.Padding.Left - editor.Padding.Right), null);
         // the same height the composer measures for its text (ComposerTextView.UpdateHeight): the content, at least 18, inside the editor's own padding
         return new Size(0, Math.Ceiling(Math.Max(18, layout.Height) + editor.Padding.Top + editor.Padding.Bottom));
     }
 
     // ---- drawing ---------------------------------------------------------------------------------------------------------------------
 
-    private static bool IsRtl(string text)
-    {
-        foreach (var c in text)
-            if (c is >= '֐' and <= 'ࣿ' or >= 'יִ' and <= '﷿' or >= 'ﹰ' and <= '﻿') return true;
-        return false;
-    }
-
     private bool IsSeparate(DictationWord word, DictationWordLook look, ContinuousInstant now) =>
-        word.Separable && (look.Opacity < 1 || look.Rise != 0 || look.TextOpacity < 1 || look.TextRise != 0 || look.Old.Count > 0 || word.Leaving || word.Place.IsMoving(now));
+        look.Opacity < 1 || look.Rise != 0 || look.TextOpacity < 1 || look.TextRise != 0 || look.Old.Count > 0 || word.Leaving ||
+        pictures.TryGetValue(word, out var picture) && picture.IsMoving(now);
 
     public override void Render(DrawingContext context)
     {
@@ -535,20 +573,20 @@ internal sealed class DictationLayer : Control
         var key = new HashCode();
         key.Add(placement.Text);
         key.Add(width);
+        key.Add(layoutStyleKey); key.Add(ink);
         for (var i = 0; i < words.Words.Count; i++)
         {
             var word = words.Words[i];
             var look = words.Look(word, now);
             var start = placement.WordStarts[i];
-            if (word.Text.Length == 0) continue;
             if (IsSeparate(word, look, now))
             {
                 movers.Add((i, word, look));
-                overrides.Add(new ValueSpan<TextRunProperties>(start, word.Text.Length, Properties(face, size, Brushes.Transparent)));
+                if (word.Text.Length > 0) overrides.Add(new ValueSpan<TextRunProperties>(start, word.Text.Length, Properties(face, size, Brushes.Transparent)));
                 key.Add(start);
                 key.Add(-1);
             }
-            else if (look.Tentative > 0)
+            else if (word.Text.Length > 0 && look.Tentative > 0)
             {
                 var alpha = Alpha(ink, DictationInk.AlphaOf(look.Tentative, dark));
                 overrides.Add(new ValueSpan<TextRunProperties>(start, word.Text.Length, Properties(face, size, new ImmutableSolidColorBrush(alpha))));
@@ -567,20 +605,19 @@ internal sealed class DictationLayer : Control
             key.Add(to);
         }
         var movingTokens = new List<int>();
-        for (var k = 0; k < afterTokens.Length; k++)
+        for (var k = 0; k < contextTokens.Length; k++)
         {
-            if (!afterFlips.TryGetValue(k, out var flip) || !flip.IsMoving(now)) continue;
+            if (!contextPictures.TryGetValue(k, out var picture) || !picture.IsMoving(now)) continue;
             movingTokens.Add(k);
-            overrides.Add(new ValueSpan<TextRunProperties>(afterTokens[k].Start, afterTokens[k].Length, Properties(face, size, Brushes.Transparent)));
-            key.Add(afterTokens[k].Start);
+            overrides.Add(new ValueSpan<TextRunProperties>(contextTokens[k].Start, contextTokens[k].Length, Properties(face, size, Brushes.Transparent)));
+            key.Add(contextTokens[k].Start);
             key.Add(-2);
         }
         var wanted = key.ToHashCode();
         if (baseLayout is null || wanted != baseKey)
         {
             baseLayout?.Dispose();
-            baseLayout = new TextLayout(placement.Text, face, size, new ImmutableSolidColorBrush(ink), editor.TextAlignment, TextWrapping.Wrap, null, null, editor.FlowDirection, width,
-                double.PositiveInfinity, double.NaN, 0, 0, null, overrides);
+            baseLayout = editor.CreateComposerLayout(placement.Text, width, new ImmutableSolidColorBrush(ink), overrides);
             baseKey = wanted;
         }
 
@@ -600,27 +637,16 @@ internal sealed class DictationLayer : Control
 
         foreach (var (index, word, look) in movers)
         {
-            var place = origin + word.Place.Displayed(now);
             var inkAlpha = DictationInk.AlphaOf(look.Tentative, dark);
-            DrawWord(context, word.Text, place + new Vector(0, look.Rise + look.TextRise), face, size, ink, inkAlpha * look.Opacity * look.TextOpacity, wordRects[index].Width);
-            foreach (var old in look.Old)
-                DrawWord(context, old.Text, place + new Vector(0, look.Rise + old.Rise), face, size, ink, inkAlpha * look.Opacity * old.Opacity, wordRects[index].Width);
+            if (pictures.TryGetValue(word, out var picture)) picture.Draw(context, origin, now, ink, inkAlpha * look.Opacity * look.TextOpacity, look.Rise + look.TextRise);
+            foreach (var old in word.Old.Where(old => old.GoneAt > now))
+                if (oldPictures.TryGetValue(old, out var oldPicture)) oldPicture.Draw(context, origin, now, ink, inkAlpha * look.Opacity * old.Opacity.Value(now), look.Rise + old.Rise.Value(now));
         }
         foreach (var k in movingTokens)
         {
-            var text = placement.Text.Substring(afterTokens[k].Start, afterTokens[k].Length);
-            DrawWord(context, text, origin + new Vector(afterFlips[k].Displayed(now).X, afterFlips[k].Displayed(now).Y), face, size, ink, 1, 0);
+            contextPictures[k].Draw(context, origin, now, ink, 1, 0);
         }
         DrawCaret(context, origin, ink, now);
-    }
-
-    private void DrawWord(DrawingContext context, string text, Point at, Typeface face, double size, Color ink, double opacity, double width)
-    {
-        var alpha = Alpha(ink, opacity);
-        if (alpha.A == 0 || text.Length == 0) return;
-        using var layout = new TextLayout(text, face, size, new ImmutableSolidColorBrush(alpha), TextAlignment.Left, TextWrapping.NoWrap, null, null, editor.FlowDirection,
-            double.PositiveInfinity, double.PositiveInfinity, double.NaN, 0, 0, null, null);
-        layout.Draw(context, at);
     }
 
     // The selection a dictation replaces (V-8.1) fades out as the first word comes in, where it was, with its highlight; the editor stops drawing it that moment. A cancel brings it back the
@@ -634,8 +660,7 @@ internal sealed class DictationLayer : Control
         if (from > 0) spans.Add(new ValueSpan<TextRunProperties>(0, from, Properties(face, size, Brushes.Transparent)));
         spans.Add(new ValueSpan<TextRunProperties>(from, to - from, Properties(face, size, new ImmutableSolidColorBrush(Alpha(ink, 1)))));
         if (to < original.Text.Length) spans.Add(new ValueSpan<TextRunProperties>(to, original.Text.Length - to, Properties(face, size, Brushes.Transparent)));
-        using var layout = new TextLayout(original.Text, face, size, Brushes.Transparent, editor.TextAlignment, TextWrapping.Wrap, null, null, editor.FlowDirection, Math.Max(1, LayoutWidth()),
-            double.PositiveInfinity, double.NaN, 0, 0, null, spans);
+        using var layout = editor.CreateComposerLayout(original.Text, Math.Max(1, LayoutWidth()), Brushes.Transparent, spans);
         using (context.PushOpacity(fade))
         {
             // Match TextPresenter.Render in Avalonia 12.1.2: the editor fills each selection rectangle after PixelRect.FromRect(rect, 1), before drawing the glyphs.
@@ -687,5 +712,6 @@ internal sealed class DictationLayer : Control
 
     private static Color Alpha(Color color, double share) => Color.FromArgb((byte)Math.Round(Math.Clamp(color.A * share, 0, 255)), color.R, color.G, color.B);
 
-    private static GenericTextRunProperties Properties(Typeface face, double size, IBrush brush) => new(face, size, null, brush);
+    private GenericTextRunProperties Properties(Typeface face, double size, IBrush brush) =>
+        new(face, size, null, brush, fontFeatures: Avalonia.Controls.Documents.TextElement.GetFontFeatures(editor));
 }

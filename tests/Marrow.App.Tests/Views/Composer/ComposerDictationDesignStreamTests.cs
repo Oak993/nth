@@ -56,7 +56,12 @@ public sealed class ComposerDictationDesignStreamTests(HeadlessSession headless)
         double TextRise(double t) => reviseAt is null ? 0 : textRiseFrom + (0 - textRiseFrom) * CssCurves.At(CssCurves.Ez, t - reviseAt.Value, 0.3);
         foreach (var (t, op) in events)
         {
-            if (t > now || op.Index != word) continue;
+            if (t > now) continue;
+            // Locked applyEvent confirms the previous visual span for EVERY add, including
+            // planFinal's adds. The logical tentative flag still belongs to the transcriber.
+            if (op.Kind == WordOpKind.Add && op.Index == word + 1 && confirmAt is null && addAt is not null)
+                confirmAt = t;
+            if (op.Index != word) continue;
             switch (op.Kind)
             {
                 case WordOpKind.Add:
