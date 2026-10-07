@@ -87,6 +87,9 @@ public sealed record ApiKeyEvent(
 /// <summary>One thread's view of a service's pool: what the session calls around each request.</summary>
 public interface IApiKeyRotation
 {
+    // Wrappers must forward this shared boundary; null is only for legacy uncapped/test rotations.
+    IApiKeyBudget? Budget => null;
+
     /// <summary>Why <see cref="Current"/> or <see cref="OnFailure"/> last left the thread without a key to send on (the notice text), or null.</summary>
     string? StopReason { get; }
 

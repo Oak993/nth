@@ -1,0 +1,9 @@
+{
+  "state": "unfilled",
+  "sources": [
+    {"service": "deepseek", "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing"},
+    {"service": "meta", "sourceUrl": "https://dev.meta.ai/docs/pricing/"},
+    {"service": "zai", "sourceUrl": "https://docs.z.ai/guides/overview/pricing"}
+  ],
+  "models": []
+}
