@@ -732,13 +732,23 @@ public sealed class ComposerView : Decorator
         voiceController.DictationAbandoned += layer.Abandon;
         this.Track(() => (voiceController.Note, runtime.Draft.Text.Length == 0), now =>
         {
-            if (!ReferenceEquals(now.Note, shownNote))
-            {
-                shownNote = now.Note;
-                noteInField = now.Item2; // the field when the draft is empty as the note arrives; with text in it, the notice line (never hide the user's text)
-            }
-            textColumn.SetVoiceNote(now.Note, noteInField, fieldVisible: now.Item2);
+            RefreshControllerVoiceNote();
         });
+    }
+
+    // The controller owns its note's arrival placement. A release-error writer must not
+    // resurrect a field note in the notice line after the user has started typing.
+    internal void RefreshControllerVoiceNote()
+    {
+        if (voice is null) return;
+        var note = voice.Note;
+        var fieldVisible = runtime.Draft.Text.Length == 0;
+        if (!ReferenceEquals(note, shownNote))
+        {
+            shownNote = note;
+            noteInField = fieldVisible;
+        }
+        textColumn.SetVoiceNote(note, noteInField, fieldVisible);
     }
 
     private void ApplyDictating()
