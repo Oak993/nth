@@ -101,6 +101,10 @@ internal sealed class MultiAccountHarness : IDisposable
 
     public IEnumerable<Control> All() => Window.GetVisualDescendants().OfType<Control>();
 
+    // ED-NEW-ma-wave1-23: use only when asserting a retained control is hidden. Find stays visible-only.
+    public T FindIncludingHidden<T>(string id) where T : Control =>
+        All().OfType<T>().Single(c => AutomationProperties.GetAutomationId(c) == id);
+
     public Control? TryFind(string id) => All().FirstOrDefault(c => AutomationProperties.GetAutomationId(c) == id && c.IsEffectivelyVisible);
 
     public T Find<T>(string id) where T : Control => (T?)TryFind(id) as T ?? throw new InvalidOperationException("No visible control with the id '" + id + "'.");

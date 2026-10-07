@@ -4204,3 +4204,15 @@ MAUI-039/043: Settings account row is 46px (HTML142); the full 24/24 rename coun
 
 ## ED-NEW-ma-wave1-20
 MAUI-049 DISPUTED-ACCEPTED composed proof: preserve the painter-only review test unchanged/red. Supplemental proof compares the actual incoming shared capsule face byte-for-byte with an independent shared capsule for plain plus all 12 styles, light/dark and Reduce Motion (52 cases), and pins parent composition, nonzero painted pixels, noninteractive ghost, exact locked placement/scale/opacity. No synthetic painter capsule or production Handshake source change.
+
+## ED-NEW-ma-wave1-21
+T15-review-rulings.md ruling 1 / MAUI-004 DISPUTED-ACCEPTED: withdraw the proposed popover-column absence test only. Approved ma-3b5-plan section4/C7, NOTES56 and locked HTML2693-2697/2706 keep the Handshake column. OD-0119 differing quiet note concerns Settings. Existing production stays; original review case failed alone twice (review baseline evidence).
+
+## ED-NEW-ma-wave1-22
+T15-review-rulings.md ruling 2 / MAUI-033 and MAUI-049 DISPUTED-ACCEPTED: withdraw only the primary-preselection and painter-only ghost proposals. Approved plan C4 and OD-0116/0119 specify three equal first-time choices with no preselection. Locked HTML3295-3303/3346-3348/3078-3080 composes the shared capsule outside the painter. The existing 52-case composed ghost proof remains unchanged and passing; original review cases failed alone twice.
+
+## ED-NEW-ma-wave1-23
+T15-review-rulings.md ruling 3 / MAUI-023: correct only the lookup to locate the retained hidden reset button via new FindIncludingHidden. Existing Find/TryFind visible-only behavior and Assert.False(IsEffectivelyVisible) are unchanged. HTML2642 hides reset when no own override. Original review failed alone twice before reaching the assertion; corrected fixture validates existing production.
+
+## ED-NEW-ma-wave1-24
+T15-review-rulings.md ruling 4 / MAUI-046: install SettingsProviderPopupLayers in the review fixture, following existing account-dialog proofs. Keep all assertions unchanged, including no inline expansion. Locked HTML4462-4465 opens floating defaults. Original test failed alone twice due absent headless IPopupImpl; production and supplemental real-popup proof were already green.
