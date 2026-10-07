@@ -5623,3 +5623,11 @@ Lead-authorized delta gate only, no new full sweep: build all four projects0W/0E
 Census addendum (T9 replacement gate): ContinuousCornerSitesTests' table gains the RR-37 Settings shadow carrier, Marrow.App/Port/SettingsShell.cs CornerRadius(8), classed Circular against settings-open-rise-2-locked .glass (CSS border-radius 8 with the same two shadows). Census and Traceability pass twice alone on the combined tree.
 
 Keep all historical ledger bytes; exact owner-authorized census row appended to the existing union, with unchanged census logic and assertions. No new full sweep.
+
+
+## ED-642 - Lead-supplied opinions-census census follow-up (ENGINEERING DECISION)
+
+
+Census addendum (T9 replacement gate): ContinuousCornerSitesTests' table gains OpinionRoundView's 26 pt Combine button, CornerRadius(13), classed Capsule (r = h / 2). Census and Traceability pass twice alone on the combined tree.
+
+Keep all historical ledger bytes; exact owner-authorized census row appended to the existing union, with unchanged census logic and assertions. No new full sweep.
