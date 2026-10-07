@@ -6,6 +6,7 @@ using Marrow.Services.Port.Voice.Models;
 
 namespace Marrow.App.Tests.Port.Voice;
 
+[Trait("Rule", "R-TEST-10")] // Scripted seams only; no model, network or hardware.
 public sealed class VoiceModelLoadGateTests
 {
     [Theory]

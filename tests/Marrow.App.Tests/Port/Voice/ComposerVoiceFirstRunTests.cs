@@ -8,6 +8,7 @@ using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
 namespace Marrow.App.Tests.Port.Voice;
 
 [Collection("Headless")]
+[Trait("Rule", "R-TEST-10")] // Scripted seams only; no model, network or hardware.
 public sealed class ComposerVoiceFirstRunTests(HeadlessSession headless)
 {
     [Fact]

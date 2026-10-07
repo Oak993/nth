@@ -5,6 +5,7 @@ using Marrow.Core.Port.Voice;
 namespace Marrow.App.Tests.Port.Voice;
 
 // T23: consent and shared preparation at the actual orb entry point, entirely over scripted parts.
+[Trait("Rule", "R-TEST-10")] // Scripted seams only; no model, network or hardware.
 public sealed class VoiceFirstRunIntegrationTests
 {
     [Fact]

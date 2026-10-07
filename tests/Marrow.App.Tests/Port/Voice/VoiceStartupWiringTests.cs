@@ -6,6 +6,7 @@ using Marrow.Core.Port.Voice;
 namespace Marrow.App.Tests.Port.Voice;
 
 [Collection("VoiceFeature")]
+[Trait("Rule", "R-TEST-10")] // Scripted seams only; no model, network or hardware.
 public sealed class VoiceStartupWiringTests
 {
     [Fact]

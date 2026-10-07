@@ -5,6 +5,7 @@ using Marrow.Core.Tests.Fixtures;
 namespace Marrow.Core.Tests.Port.Voice;
 
 // V-7.7: words after stop must keep the entire recording, including words older than the live 30 s window.
+[Trait("Rule", "R-TEST-10")] // Scripted seams only; no model, network or hardware.
 public sealed class VoiceStoppedRecordingTests
 {
     [Fact]

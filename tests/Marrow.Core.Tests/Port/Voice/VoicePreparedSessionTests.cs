@@ -5,6 +5,7 @@ using Marrow.Core.Tests.Fixtures;
 namespace Marrow.Core.Tests.Port.Voice;
 
 // VT-15, V-7.7: the stored LiveWords flag controls inference, while capture and the final pass stay real.
+[Trait("Rule", "R-TEST-10")] // Scripted seams only; no model, network or hardware.
 public sealed class VoicePreparedSessionTests
 {
     [Theory]
