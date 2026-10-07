@@ -14,6 +14,7 @@ internal sealed class AccountPopover : Decorator
 {
     private readonly AccountPopoverModel model;
     private readonly CrossfadeSlot content = new();
+    private Guid? focusAccount;
     internal AccountPopover(AccountPopoverModel model)
     {
         this.model = model; Width = 340; Child = content; Refresh();
@@ -37,7 +38,7 @@ internal sealed class AccountPopover : Decorator
         var pin = model.PinnedText;
         if (pin is null) panel.Children.Add(LibraryUi.Text(model.Subtitle, 12, secondary: true));
         else panel.Children.Add(Line(pin.Replace(" · Back to order", "", StringComparison.Ordinal), "Back to order", "popover-back-to-order", model.BackToOrder));
-        var list = new StackPanel { Spacing = 2 }; Rows = model.Rows.Select(row => new AccountPopoverRowControl(row, Pin)).ToArray();
+        var list = new StackPanel { Spacing = 2 }; var values = model.Rows; Rows = values.Select((row, index) => new AccountPopoverRowControl(row, Pin, Move, index, values.Count)).ToArray();
         foreach (var row in Rows) list.Children.Add(row); panel.Children.Add(list);
         panel.Children.Add(LibraryUi.Text(model.Footer, 11.5, secondary: true));
         if (model.CanCreatePill) panel.Children.Add(Button(model.CreatePillText, "popover-create-pill", () => CreatePillRequested?.Invoke()));
@@ -45,6 +46,15 @@ internal sealed class AccountPopover : Decorator
             ? Line(model.RememberText.Replace(" · Use Settings", "", StringComparison.Ordinal), "Use Settings", "popover-use-settings", model.UseSettings)
             : LibraryUi.Text(model.RememberText, 12, secondary: true));
         content.Show(panel, FrameClock.IsBound ? Animation.EaseOut(duration: .25) : null);
+        if (focusAccount is { } id) Avalonia.Threading.Dispatcher.UIThread.Post(() => Rows.FirstOrDefault(r => r.AccountId == id)?.FocusPin());
+    }
+    private void Move(Guid id, int target)
+    {
+        var ids = model.Rows.Select(r => r.Account.Id).ToList(); var index = ids.IndexOf(id);
+        if (index < 0 || target < 0 || target >= ids.Count) return;
+        focusAccount = id;
+        if (index == target) { Rows[index].FocusPin(); return; }
+        ids.RemoveAt(index); ids.Insert(target, id); model.Reorder(ids);
     }
     private async void Pin(Guid id)
     {

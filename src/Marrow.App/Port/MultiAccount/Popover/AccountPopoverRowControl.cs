@@ -2,10 +2,13 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port.MultiAccount.Capsule;
 using Marrow.App.Port.MultiAccount.Shared;
+using Marrow.App.Port.MultiAccount.Settings;
+using Marrow.Core.Port.MultiAccount.Settings;
 using Marrow.App.Port.Skills.Pages;
 using Marrow.Core.Port.MultiAccount.Popover;
 using Marrow.UI.Port;
@@ -17,8 +20,15 @@ internal sealed class AccountPopoverRowControl : Decorator
 {
     private readonly TextBlock reset;
     private readonly AnimatedScalar feedback;
-    internal AccountPopoverRowControl(AccountPopoverRow row, Action<Guid> pin)
+    private readonly Action<Guid, int> move;
+    private readonly int index;
+    private readonly int count;
+    private readonly Button pinButton;
+    private bool dragging;
+    private double dragStart;
+    internal AccountPopoverRowControl(AccountPopoverRow row, Action<Guid> pin, Action<Guid, int> move, int index, int count)
     {
+        this.move = move; this.index = index; this.count = count;
         AccountId = row.Account.Id; Dimmed = row.Dimmed;
         Height = 70; // .prow.cf :826 overrides the original row height for the config line
         var main = new StackPanel { Spacing = 5, Opacity = row.Account.Enabled ? row.Dimmed ? .5 : 1 : .45 };
@@ -36,13 +46,30 @@ internal sealed class AccountPopoverRowControl : Decorator
         main.Children.Add(row.LocalText is { } local ? LibraryUi.Text(local, 11, secondary: true) : meters);
         var config = new AccountConfigLine(row.Config); var line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         line.Children.Add(config); var hs = LibraryUi.Text(row.HandshakeText, 10.5, secondary: true); hs.Named(row.HandshakeAria, "popover-handshake-" + AccountId.ToString("N")); Grid.SetColumn(hs, 1); line.Children.Add(hs); main.Children.Add(line);
-        var body = new Grid { ColumnDefinitions = new ColumnDefinitions("22,20,*"), Margin = new Thickness(2, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
-        var grip = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText); body.Children.Add(grip);
+        var body = new Grid { ColumnDefinitions = new ColumnDefinitions("22,20,*,22"), Margin = new Thickness(2, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
+        var grip = new Border { Width = 22, Height = 22, Background = Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText), Cursor = new Cursor(StandardCursorType.SizeAll) };
+        grip.Named("Drag to set the order", "popover-grip-" + AccountId.ToString("N"));
+        grip.PointerPressed += (_, e) => { if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return; dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
+        grip.PointerMoved += (_, e) => { if (dragging) { RenderTransform = CapsuleMotion.Reduce(this) ? null : new TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; e.Handled = true; } };
+        grip.PointerReleased += (_, e) => { if (!dragging) return; dragging = false; e.Pointer.Capture(null); DragBy(e.GetPosition(null).Y - dragStart); RenderTransform = null; ZIndex = 0; e.Handled = true; };
+        grip.PointerCaptureLost += (_, _) => { dragging = false; RenderTransform = null; ZIndex = 0; };
+        body.Children.Add(grip);
         var number = LibraryUi.Text(row.Account.Number.ToString(CultureInfo.InvariantCulture), 12, secondary: true); number.Opacity = main.Opacity; Grid.SetColumn(number, 1); body.Children.Add(number);
         Grid.SetColumn(main, 2); body.Children.Add(main);
         var button = PlainControls.Button(body, () => pin(AccountId)); button.Focusable = true; button.HorizontalContentAlignment = HorizontalAlignment.Stretch; button.Height = 70;
+        pinButton = button;
+        var more = MenuPopover.More("Options for " + row.Account.Name, "popover-more-" + AccountId.ToString("N"), () => Menu, Pick);
+        Grid.SetColumn(more, 3); body.Children.Add(more);
+        // A nested row action must not bubble to the account pin button (page stopPropagation).
+        body.AddHandler(Button.ClickEvent, (_, e) => e.Handled = true, Avalonia.Interactivity.RoutingStrategies.Bubble);
         var aria = row.Account.Number.ToString(CultureInfo.InvariantCulture) + ". " + row.Account.Name + (row.Account.IsOut ? ", out until " + row.ResetText + ", skipped" : ", 5 hours " + row.FiveHour.Percent + ", week " + row.Week.Percent) + (row.Active ? ", in use" : "") + ". Alt+Up or Alt+Down moves it.";
         button.Named(aria, "popover-pin-" + AccountId.ToString("N")); this.Named(aria, "popover-row-" + AccountId.ToString("N")); Child = button;
+        KeyDown += (_, e) =>
+        {
+            if ((e.KeyModifiers & KeyModifiers.Alt) == 0) return;
+            if (e.Key == Key.Up) { Pick("up"); e.Handled = true; }
+            else if (e.Key == Key.Down) { Pick("down"); e.Handled = true; }
+        };
         feedback = new AnimatedScalar(this, 0, progress =>
         {
             FeedbackRunning = progress < 1;
@@ -55,6 +82,10 @@ internal sealed class AccountPopoverRowControl : Decorator
     internal AccountUsageBar Week { get; }
     internal bool Dimmed { get; }
     internal bool FeedbackRunning { get; private set; }
+    internal IReadOnlyList<MenuEntry> Menu => [new("up", "Move up", "Alt+↑", Disabled: index == 0), new("top", "Move to top", Disabled: index == 0), new("down", "Move down", "Alt+↓", Disabled: index == count - 1)];
+    private void Pick(string key) => move(AccountId, key switch { "up" => Math.Max(0, index - 1), "top" => 0, "down" => Math.Min(count - 1, index + 1), _ => index });
+    internal void DragBy(double distance) => move(AccountId, AccountRowControl.DragTarget(index, distance, 72, count)); // 70 + plist gap 2
+    internal void FocusPin() => pinButton.Focus();
     internal void Refuse()
     {
         feedback.Set(0, null); FeedbackRunning = true;
