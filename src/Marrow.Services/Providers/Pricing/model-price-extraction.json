@@ -19,16 +19,41 @@
       "service": "meta",
       "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
       "billingQuotes": [
-        "There is no long-context premium: you pay the same rate whether your context window is mostly empty or almost full.",
-        "Web search grounding costs $2.50 per 1,000 search queries, in addition to the request's token cost."
+        "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+        "There is no long-context premium : you pay the same rate whether your context window is mostly empty or almost full."
       ]
     },
     {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/api-bill"
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/legal/terms-of-service"
+    },
+    {
+      "service": "zai",
+      "sourceUrl": "https://docs.z.ai/help/faq"
+    },
+    {
+      "service": "zai",
+      "sourceUrl": "https://z.ai/manage-apikey/billing"
+    },
+    {
       "service": "deepseek",
-      "sourceUrl": "https://api-docs.deepseek.com/news/news0802/",
-      "billingQuotes": [
-        "The service has no additional fees beyond the $0."
-      ]
+      "sourceUrl": "https://static.deepseek.com/faq/index.html?lang=en"
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth"
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing"
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice"
     }
   ],
   "models": [
@@ -227,7 +252,8 @@
       "tokenUnitQuote": "The prices listed below are in units of per 1M tokens.",
       "billingConditionQuotes": [
         "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
-      ]
+      ],
+      "completeListReview": "deepseek-complete-list"
     },
     {
       "service": "deepseek",
@@ -424,7 +450,8 @@
       "tokenUnitQuote": "The prices listed below are in units of per 1M tokens.",
       "billingConditionQuotes": [
         "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
-      ]
+      ],
+      "completeListReview": "deepseek-complete-list"
     },
     {
       "service": "meta",
@@ -497,7 +524,16 @@
       "tokenUnitQuote": "Input (Mtok) Cached input (Mtok) Output (Mtok)",
       "billingConditionQuotes": [
         "Used to improve our products."
-      ]
+      ],
+      "completeListReview": "meta-complete-list",
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars."
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens"
+      }
     },
     {
       "service": "meta",
@@ -570,7 +606,16 @@
       "tokenUnitQuote": "Input (Mtok) Cached input (Mtok) Output (Mtok)",
       "billingConditionQuotes": [
         "Not used to improve our products."
-      ]
+      ],
+      "completeListReview": "meta-complete-list",
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars."
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens"
+      }
     },
     {
       "service": "meta",
@@ -643,7 +688,16 @@
       "tokenUnitQuote": "Input (Mtok) Cached input (Mtok) Output (Mtok)",
       "billingConditionQuotes": [
         "Used to improve our products."
-      ]
+      ],
+      "completeListReview": "meta-complete-list",
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars."
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens"
+      }
     },
     {
       "service": "meta",
@@ -716,7 +770,16 @@
       "tokenUnitQuote": "Input (Mtok) Cached input (Mtok) Output (Mtok)",
       "billingConditionQuotes": [
         "Not used to improve our products."
-      ]
+      ],
+      "completeListReview": "meta-complete-list",
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars."
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens"
+      }
     },
     {
       "service": "meta",
@@ -789,7 +852,16 @@
       "tokenUnitQuote": "Input (Mtok) Cached input (Mtok) Output (Mtok)",
       "billingConditionQuotes": [
         "Not used to improve our products."
-      ]
+      ],
+      "completeListReview": "meta-complete-list",
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars."
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens"
+      }
     },
     {
       "service": "zai",
@@ -866,7 +938,8 @@
       "tokenUnitQuote": "All prices are in USD. Copy page Copy page \u200b Models \u200b Latest Models Prices per 1M tokens.",
       "billingConditionQuotes": [
         "Limited-time Free"
-      ]
+      ],
+      "completeListReview": "zai-complete-list"
     },
     {
       "service": "zai",
@@ -943,6 +1016,96 @@
       "tokenUnitQuote": "All prices are in USD. Copy page Copy page \u200b Models \u200b Latest Models Prices per 1M tokens.",
       "billingConditionQuotes": [
         "Limited-time Free"
+      ],
+      "completeListReview": "zai-complete-list"
+    }
+  ],
+  "completeListReviews": [
+    {
+      "id": "deepseek-complete-list",
+      "service": "deepseek",
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+      "completeTokenTable": false,
+      "reason": "Public pricing token grid is complete, but linked FAQ is a client shell and account billing pages return HTTP 403; no login. Current table also lacks explicit USD currency evidence.",
+      "pages": [
+        {
+          "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+          "contentSha256": "b36866ba6516ed978ee9f3f23919dfb00d8ae4f6169e41897e8cd386fde5d934"
+        },
+        {
+          "sourceUrl": "https://static.deepseek.com/faq/index.html?lang=en",
+          "contentSha256": "66cb637edda0f80a1311e2b6212582919d1ad1e34c8d989dc557586ecd6ea6a1"
+        }
+      ],
+      "listedCharges": []
+    },
+    {
+      "id": "meta-complete-list",
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "completeTokenTable": true,
+      "pages": [
+        {
+          "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+          "contentSha256": "f841daf3385c0678b38be9adfcecfc01a38586202ad0c3c9a5682261f81f5179"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "contentSha256": "a1a616a452e40e4feb0a8111c6156bbff0b5098661f9b08ee3a55dc4683c2fa8"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+          "contentSha256": "b53e4e2892a2413e6d9c614b2f861ead0534600acb2932c516eefd336d31a2d1"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+          "contentSha256": "887744a1d0d05ea6b4fe17f45370a16886bd6ed3b111618a6fe7b22c4d4600a7"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+          "contentSha256": "80b19515a132be35c413359c985f8c3de948a9286623f81d38e42a2c55bdcf76"
+        },
+        {
+          "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+          "contentSha256": "b250dcd088d8b700d14b4b2f92ad4b5b0119fe70e6162a0fb9f5a45399137c1a"
+        }
+      ],
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "unfilled",
+          "reason": "Conditional per-search charge has no source-cited maximum searches per request; cannot replace it with a flat per-request amount"
+        }
+      ]
+    },
+    {
+      "id": "zai-complete-list",
+      "service": "zai",
+      "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "completeTokenTable": true,
+      "pages": [
+        {
+          "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+          "contentSha256": "fb92677645f261f49aebef59f803dc83e68a02ef3921dcff82d847b326c36320"
+        },
+        {
+          "sourceUrl": "https://docs.z.ai/help/faq",
+          "contentSha256": "562b40c8fc4e0c9b8c74f57f8cc16ad0e6620b7faf026e01e81a9e91c6f64d09"
+        },
+        {
+          "sourceUrl": "https://z.ai/manage-apikey/billing",
+          "contentSha256": "4c6d63407e2ccbd6422e8b9de37d0ae5b8f5fdbd06b841a4508b1695150e5557",
+          "billingContentAvailable": false
+        }
+      ],
+      "listedCharges": [
+        {
+          "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+          "quote": "Web Search $0.01 / use",
+          "disposition": "unfilled",
+          "reason": "Conditional per-use web-search fee has no source-cited maximum uses per request; linked account billing page exposes only a login landing page"
+        }
       ]
     }
   ]

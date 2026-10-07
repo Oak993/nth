@@ -6,7 +6,7 @@
     {
       "service": "deepseek",
       "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
-      "retrievedAt": "2026-10-07T08:18:41.083053Z",
+      "retrievedAt": "2026-10-07T11:54:38.184938Z",
       "status": "fetched",
       "byteLength": 23982,
       "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
@@ -16,17 +16,80 @@
     {
       "service": "meta",
       "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
-      "retrievedAt": "2026-10-07T08:18:41.188350Z",
+      "retrievedAt": "2026-10-07T11:54:38.392602Z",
       "status": "fetched",
-      "byteLength": 386036,
-      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "byteLength": 385981,
+      "sourceSha256": "9da629b240b6a5763891a1cff65df821c00c1464aeb8776e652781162bc1439e",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+      "retrievedAt": "2026-10-07T11:54:39.175242Z",
+      "status": "fetched",
+      "byteLength": 255941,
+      "sourceSha256": "6e63402059f35bd7495d20ca6a17d155783fa9988f8b5dd85adb78f9af4e6c6a",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "retrievedAt": "2026-10-07T11:54:40.043549Z",
+      "status": "fetched",
+      "byteLength": 224346,
+      "sourceSha256": "d7aca3de6e8b34e25b8778196e561b790dfa2227d28401498456e10047a79497",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": [
+        "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+        "There is no long-context premium : you pay the same rate whether your context window is mostly empty or almost full."
+      ]
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+      "retrievedAt": "2026-10-07T11:54:41.025479Z",
+      "status": "fetched",
+      "byteLength": 92189,
+      "sourceSha256": "fe67aabe21e134bcf219dea696d70035bf018efe84d905c377da48288a284c39",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+      "retrievedAt": "2026-10-07T11:54:41.598972Z",
+      "status": "fetched",
+      "byteLength": 196468,
+      "sourceSha256": "14ebc2dd059eb6292a7d6c7cf7c0718c1a213d9941c750b1508aeee15e66e4c9",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+      "retrievedAt": "2026-10-07T11:54:42.326197Z",
+      "status": "fetched",
+      "byteLength": 85265,
+      "sourceSha256": "ec6b5456ab462e3f0c7d3e6e2985e00b79c60a05e05d992a434f18d1a83609fd",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+      "retrievedAt": "2026-10-07T11:54:43.075461Z",
+      "status": "fetched",
+      "byteLength": 84248,
+      "sourceSha256": "561316809e6e0eb2b7bcc3cbca771b3cce51bb91d221da647d4cea64a4847c12",
       "explicitNoRequestFeeQuotes": [],
       "billingQuotes": []
     },
     {
       "service": "zai",
       "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
-      "retrievedAt": "2026-10-07T08:18:42.482907Z",
+      "retrievedAt": "2026-10-07T11:54:44.011344Z",
       "status": "fetched",
       "byteLength": 290339,
       "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
@@ -34,27 +97,34 @@
       "billingQuotes": []
     },
     {
-      "service": "meta",
-      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
-      "retrievedAt": "2026-10-07T08:18:43.208420Z",
-      "status": "unavailable",
-      "byteLength": 224346,
-      "sourceSha256": "bb88025d35cca6b12b68dc0fd1b708dc42e57266d2141fbbddfce918f768f686",
+      "service": "zai",
+      "sourceUrl": "https://docs.z.ai/help/faq",
+      "retrievedAt": "2026-10-07T11:54:44.570152Z",
+      "status": "fetched",
+      "byteLength": 228011,
+      "sourceSha256": "1731ede373a4963dac44506aed1ec8c078464b988f92eb193d12c3f885821f75",
       "explicitNoRequestFeeQuotes": [],
-      "billingQuotes": [],
-      "reason": "Missing/changed supplemental exact billing quote"
+      "billingQuotes": []
+    },
+    {
+      "service": "zai",
+      "sourceUrl": "https://z.ai/manage-apikey/billing",
+      "retrievedAt": "2026-10-07T11:54:44.845034Z",
+      "status": "fetched",
+      "byteLength": 202223,
+      "sourceSha256": "2c94b0814bc2f2dff49a11eeba71e63448a5c28112f9fdd8a6df2a425b0ce1b1",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
     },
     {
       "service": "deepseek",
-      "sourceUrl": "https://api-docs.deepseek.com/news/news0802/",
-      "retrievedAt": "2026-10-07T08:18:44.175772Z",
+      "sourceUrl": "https://static.deepseek.com/faq/index.html?lang=en",
+      "retrievedAt": "2026-10-07T11:54:46.331148Z",
       "status": "fetched",
-      "byteLength": 26475,
-      "sourceSha256": "03d9f25cde2e33fe642dde832e02d72638908d2b1918f084130c47da76f6c003",
+      "byteLength": 562,
+      "sourceSha256": "0df1b0db7fa4954817707542aa5f4c49624e0708a5aaa9bcda3703431674a01f",
       "explicitNoRequestFeeQuotes": [],
-      "billingQuotes": [
-        "The service has no additional fees beyond the $0."
-      ]
+      "billingQuotes": []
     }
   ],
   "models": [
@@ -69,11 +139,11 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Source must explicitly establish USD per million tokens",
+        "Missing complete official token-price-list review: Public pricing token grid is complete, but linked FAQ is a client shell and account billing pages return HTTP 403; no login. Current table also lacks explicit USD currency evidence."
       ],
       "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
-      "retrievedAt": "2026-10-07T08:18:41.083053Z",
+      "retrievedAt": "2026-10-07T11:54:38.184938Z",
       "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
       "billingConditionQuotes": [
         "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
@@ -155,7 +225,8 @@
             3
           ]
         }
-      }
+      },
+      "listedCharges": []
     },
     {
       "service": "deepseek",
@@ -168,11 +239,11 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Source must explicitly establish USD per million tokens",
+        "Missing complete official token-price-list review: Public pricing token grid is complete, but linked FAQ is a client shell and account billing pages return HTTP 403; no login. Current table also lacks explicit USD currency evidence."
       ],
       "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
-      "retrievedAt": "2026-10-07T08:18:41.083053Z",
+      "retrievedAt": "2026-10-07T11:54:38.184938Z",
       "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
       "billingConditionQuotes": [
         "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
@@ -254,7 +325,8 @@
             4
           ]
         }
-      }
+      },
+      "listedCharges": []
     },
     {
       "service": "meta",
@@ -267,12 +339,11 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Unreviewed linked official billing page: https://dev.meta.ai/billing"
       ],
       "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
-      "retrievedAt": "2026-10-07T08:18:41.188350Z",
-      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "retrievedAt": "2026-10-07T11:54:38.392602Z",
+      "sourceSha256": "9da629b240b6a5763891a1cff65df821c00c1464aeb8776e652781162bc1439e",
       "billingConditionQuotes": [
         "Used to improve our products."
       ],
@@ -329,7 +400,27 @@
             3
           ]
         }
-      }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T11:54:39.175242Z",
+        "sourceSha256": "6e63402059f35bd7495d20ca6a17d155783fa9988f8b5dd85adb78f9af4e6c6a"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T11:54:40.043549Z",
+        "sourceSha256": "d7aca3de6e8b34e25b8778196e561b790dfa2227d28401498456e10047a79497"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "unfilled",
+          "reason": "Conditional per-search charge has no source-cited maximum searches per request; cannot replace it with a flat per-request amount"
+        }
+      ]
     },
     {
       "service": "meta",
@@ -342,12 +433,11 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Unreviewed linked official billing page: https://dev.meta.ai/billing"
       ],
       "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
-      "retrievedAt": "2026-10-07T08:18:41.188350Z",
-      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "retrievedAt": "2026-10-07T11:54:38.392602Z",
+      "sourceSha256": "9da629b240b6a5763891a1cff65df821c00c1464aeb8776e652781162bc1439e",
       "billingConditionQuotes": [
         "Not used to improve our products."
       ],
@@ -404,7 +494,27 @@
             3
           ]
         }
-      }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T11:54:39.175242Z",
+        "sourceSha256": "6e63402059f35bd7495d20ca6a17d155783fa9988f8b5dd85adb78f9af4e6c6a"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T11:54:40.043549Z",
+        "sourceSha256": "d7aca3de6e8b34e25b8778196e561b790dfa2227d28401498456e10047a79497"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "unfilled",
+          "reason": "Conditional per-search charge has no source-cited maximum searches per request; cannot replace it with a flat per-request amount"
+        }
+      ]
     },
     {
       "service": "meta",
@@ -417,12 +527,11 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Unreviewed linked official billing page: https://dev.meta.ai/billing"
       ],
       "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
-      "retrievedAt": "2026-10-07T08:18:41.188350Z",
-      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "retrievedAt": "2026-10-07T11:54:38.392602Z",
+      "sourceSha256": "9da629b240b6a5763891a1cff65df821c00c1464aeb8776e652781162bc1439e",
       "billingConditionQuotes": [
         "Used to improve our products."
       ],
@@ -479,7 +588,27 @@
             3
           ]
         }
-      }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T11:54:39.175242Z",
+        "sourceSha256": "6e63402059f35bd7495d20ca6a17d155783fa9988f8b5dd85adb78f9af4e6c6a"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T11:54:40.043549Z",
+        "sourceSha256": "d7aca3de6e8b34e25b8778196e561b790dfa2227d28401498456e10047a79497"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "unfilled",
+          "reason": "Conditional per-search charge has no source-cited maximum searches per request; cannot replace it with a flat per-request amount"
+        }
+      ]
     },
     {
       "service": "meta",
@@ -492,12 +621,11 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Unreviewed linked official billing page: https://dev.meta.ai/billing"
       ],
       "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
-      "retrievedAt": "2026-10-07T08:18:41.188350Z",
-      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "retrievedAt": "2026-10-07T11:54:38.392602Z",
+      "sourceSha256": "9da629b240b6a5763891a1cff65df821c00c1464aeb8776e652781162bc1439e",
       "billingConditionQuotes": [
         "Not used to improve our products."
       ],
@@ -554,7 +682,27 @@
             3
           ]
         }
-      }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T11:54:39.175242Z",
+        "sourceSha256": "6e63402059f35bd7495d20ca6a17d155783fa9988f8b5dd85adb78f9af4e6c6a"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T11:54:40.043549Z",
+        "sourceSha256": "d7aca3de6e8b34e25b8778196e561b790dfa2227d28401498456e10047a79497"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "unfilled",
+          "reason": "Conditional per-search charge has no source-cited maximum searches per request; cannot replace it with a flat per-request amount"
+        }
+      ]
     },
     {
       "service": "meta",
@@ -567,12 +715,11 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing exact tokenUnitQuote explicitly establishing USD per million tokens",
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Unreviewed linked official billing page: https://dev.meta.ai/billing"
       ],
       "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
-      "retrievedAt": "2026-10-07T08:18:41.188350Z",
-      "sourceSha256": "a7223ed37a8b40751789a76723424a5a95761b6cbf515c4083e0975ce67f9dd4",
+      "retrievedAt": "2026-10-07T11:54:38.392602Z",
+      "sourceSha256": "9da629b240b6a5763891a1cff65df821c00c1464aeb8776e652781162bc1439e",
       "billingConditionQuotes": [
         "Not used to improve our products."
       ],
@@ -629,7 +776,27 @@
             3
           ]
         }
-      }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T11:54:39.175242Z",
+        "sourceSha256": "6e63402059f35bd7495d20ca6a17d155783fa9988f8b5dd85adb78f9af4e6c6a"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T11:54:40.043549Z",
+        "sourceSha256": "d7aca3de6e8b34e25b8778196e561b790dfa2227d28401498456e10047a79497"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "unfilled",
+          "reason": "Conditional per-search charge has no source-cited maximum searches per request; cannot replace it with a flat per-request amount"
+        }
+      ]
     },
     {
       "service": "zai",
@@ -642,10 +809,10 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Linked official page does not expose its billing content without login: https://z.ai/manage-apikey/billing"
       ],
       "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
-      "retrievedAt": "2026-10-07T08:18:42.482907Z",
+      "retrievedAt": "2026-10-07T11:54:44.011344Z",
       "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
       "billingConditionQuotes": [
         "Limited-time Free"
@@ -717,6 +884,14 @@
           "highestCell": null
         }
       },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+          "quote": "Web Search $0.01 / use",
+          "disposition": "unfilled",
+          "reason": "Conditional per-use web-search fee has no source-cited maximum uses per request; linked account billing page exposes only a login landing page"
+        }
+      ],
       "storageCondition": "Limited-time Free"
     },
     {
@@ -730,10 +905,10 @@
       },
       "status": "unfilled",
       "reasons": [
-        "Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted"
+        "Linked official page does not expose its billing content without login: https://z.ai/manage-apikey/billing"
       ],
       "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
-      "retrievedAt": "2026-10-07T08:18:42.482907Z",
+      "retrievedAt": "2026-10-07T11:54:44.011344Z",
       "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
       "billingConditionQuotes": [
         "Limited-time Free"
@@ -805,6 +980,14 @@
           "highestCell": null
         }
       },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+          "quote": "Web Search $0.01 / use",
+          "disposition": "unfilled",
+          "reason": "Conditional per-use web-search fee has no source-cited maximum uses per request; linked account billing page exposes only a login landing page"
+        }
+      ],
       "storageCondition": "Limited-time Free"
     }
   ],

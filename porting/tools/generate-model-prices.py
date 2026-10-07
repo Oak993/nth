@@ -22,6 +22,80 @@ import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HOSTS = {'deepseek': 'api-docs.deepseek.com', 'meta': 'dev.meta.ai', 'zai': 'docs.z.ai'}
+EVIDENCE_HOSTS = {'deepseek': {'api-docs.deepseek.com', 'static.deepseek.com', 'platform.deepseek.com'},
+                  'meta': {'dev.meta.ai'}, 'zai': {'docs.z.ai', 'z.ai'}}
+
+def official_evidence(service, url):
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != 'https' or parsed.hostname not in EVIDENCE_HOSTS.get(service, set()) or parsed.port not in (None, 443) or parsed.username or parsed.password:
+        raise ValueError('Expected an explicitly allowed official billing/evidence host')
+
+def billing_content(data):
+    """Stable complete human-readable content; scripts/styles cannot establish absent fees."""
+    class BillingMarkup(MetaMarkup):
+        def handle_starttag(self, tag, attrs):
+            super().handle_starttag(tag, [(key, value) for key, value in attrs if key != 'id'])
+    markup = BillingMarkup(); markup.feed(data.decode('utf-8')); markup.close()
+    def text(node):
+        if isinstance(node, str): return ' '.join(node.split())
+        if node['tag'] in ('script', 'style'): return ''
+        return ' '.join(filter(None, (text(child) for child in node['children'])))
+    content = text(markup.root)
+    links = []
+    def visit(node):
+        if not isinstance(node, dict): return
+        if node['tag'] == 'a':
+            href = node['attrs'].get('href', '')
+            if re.search(r'bill|payment|top.up|recharge|faq', href + ' ' + text(node), re.I): links.append(href)
+        if node['tag'] not in ('script', 'style'):
+            for child in node['children']: visit(child)
+    visit(markup.root)
+    return dict(text=content, sha256=hashlib.sha256(content.encode('utf-8')).hexdigest(), billingLinks=sorted(set(links)))
+
+def unit_check(mapping, text, currency_evidence=None, token_unit_evidence=None):
+    unit = mapping.get('tokenUnitQuote', '')
+    if not unit or unit not in text: raise ValueError('Missing/changed exact source quote: tokenUnitQuote')
+    token_unit = unit
+    if token_unit_evidence is not None:
+        official_evidence(mapping['service'], token_unit_evidence['sourceUrl'])
+        token_unit = token_unit_evidence['quote']
+    if not re.search(r'(?:1,?000,?000|1\s*M|million)\s+tokens', token_unit, re.I):
+        raise ValueError('Source must explicitly establish USD per million tokens')
+    if 'USD' not in unit:
+        if not currency_evidence or not re.search(r'\bUSD\b|U\.S\. Dollars', currency_evidence.get('quote', '')):
+            raise ValueError('Source must explicitly establish USD per million tokens')
+        official_evidence(mapping['service'], currency_evidence['sourceUrl'])
+
+def complete_list_evidence(mapping, review, capture):
+    if not review or review.get('service') != mapping['service'] or review.get('sourceUrl') != mapping['sourceUrl'] or review.get('completeTokenTable') is not True:
+        raise ValueError('Missing complete official token-price-list review' + (': ' + review['reason'] if review and review.get('reason') else ''))
+    pages = review.get('pages', []); urls = {page['sourceUrl'] for page in pages}; receipts = []; contents = {}
+    if mapping['sourceUrl'] not in urls or len(urls) != len(pages): raise ValueError('Incomplete/duplicate official pricing review pages')
+    for page in pages:
+        url = page['sourceUrl']; official_evidence(mapping['service'], url)
+        data, receipt, failure = capture(mapping['service'], url)
+        if failure: raise ValueError('Linked official billing capture unavailable: ' + failure)
+        content = billing_content(data)
+        if len(content['text']) < 30: raise ValueError('Official page has no public pricing/billing content: ' + url)
+        if page.get('billingContentAvailable') is False:
+            raise ValueError('Linked official page does not expose its billing content without login: ' + url)
+        if content['sha256'] != page.get('contentSha256'): raise ValueError('Official pricing/billing content changed; review every fee again: ' + url)
+        contents[url] = content
+        receipts.append(dict(sourceUrl=url, retrievedAt=receipt['retrievedAt'], sourceSha256=receipt['sourceSha256'], reviewedContentSha256=content['sha256']))
+    for url, content in contents.items():
+        for href in content['billingLinks']:
+            linked = urllib.parse.urljoin(url, href); parts = urllib.parse.urlsplit(linked)
+            linked = urllib.parse.urlunsplit(parts._replace(fragment=''))
+            if parts.hostname in EVIDENCE_HOSTS[mapping['service']] and linked not in urls:
+                raise ValueError('Unreviewed linked official billing page: ' + linked)
+    for charge in review.get('listedCharges', []):
+        content = contents.get(charge['sourceUrl'])
+        if content is None or not charge.get('quote') or charge['quote'] not in content['text']:
+            raise ValueError('Missing/changed listed fee/minimum/surcharge quote')
+        raise ValueError('Listed charge cannot use absent-fee evidence: ' + charge.get('reason', charge['quote']))
+    return dict(kind='complete-official-price-list', statement='none listed on the official pricing page', requestUsd=0,
+                sourceUrl=mapping['sourceUrl'], captures=receipts, listedConditionalCharges=review.get('listedCharges', []),
+                scope='complete official token price list and every linked official billing page; no listed separate charge')
 
 class Tables(html.parser.HTMLParser):
     def __init__(self):
@@ -147,7 +221,7 @@ def parse(data):
     tables = Tables(); tables.feed(data.decode('utf-8')); tables.close()
     return tables
 
-def extract(mapping, data, retrieved, identity=None):
+def extract(mapping, data, retrieved, identity=None, request_evidence=None, currency_evidence=None, token_unit_evidence=None):
     official(mapping['service'], mapping['sourceUrl'])
     parsed = parse_meta(data) if mapping.get('parser') == 'meta-marketing' and mapping['service'] == 'meta' else parse(data)
     text = ' '.join(' '.join(parsed.text).split())
@@ -155,9 +229,7 @@ def extract(mapping, data, retrieved, identity=None):
         value = mapping.get(name)
         if not value or value not in text: raise ValueError('Missing/changed exact source quote: ' + name)
         return value
-    unit = quote('tokenUnitQuote')
-    if not re.search(r'(?:1,?000,?000|1\s*M|million)\s+tokens', unit, re.I) or 'USD' not in unit:
-        raise ValueError('Source must explicitly establish USD per million tokens')
+    unit_check(mapping, text, currency_evidence, token_unit_evidence)
     def cell(name, optional=False):
         coords = mapping.get(name)
         if coords is None and optional: return None
@@ -198,11 +270,21 @@ def extract(mapping, data, retrieved, identity=None):
         return int(value.replace(',', ''))
     request = highest('requestCell', True)
     if request is None:
-        evidence = quote('tokenOnlyQuote')
-        if not re.search(r'no (?:per-request|request) fees', evidence, re.I): raise ValueError('No request-fee default without explicit source evidence')
-        request = 0
+        if request_evidence is not None:
+            if request_evidence.get('kind') != 'complete-official-price-list' or request_evidence.get('statement') != 'none listed on the official pricing page' or request_evidence.get('requestUsd') != 0:
+                raise ValueError('Invalid complete-list request-fee evidence')
+            if not any(receipt.get('sourceUrl') == mapping['sourceUrl'] and receipt.get('sourceSha256') == hashlib.sha256(data).hexdigest() and receipt.get('retrievedAt') == retrieved for receipt in request_evidence.get('captures', [])):
+                raise ValueError('Request-fee evidence does not bind the exact pricing capture/date/hash')
+            request = 0
+        else:
+            evidence = quote('tokenOnlyQuote')
+            if not re.search(r'no (?:per-request|request) fees', evidence, re.I): raise ValueError('No request-fee default without explicit source evidence')
+            request = 0
     evidence = dict(mapping)
     if identity is not None: evidence['identity'] = identity
+    if request_evidence is not None: evidence['requestFeeEvidence'] = request_evidence
+    if currency_evidence is not None: evidence['currencyEvidence'] = currency_evidence
+    if token_unit_evidence is not None: evidence['tokenUnitEvidence'] = token_unit_evidence
     return dict(service=mapping['service'], model=mapping['model'], inputUsdPerMillion=highest('inputCell'), outputUsdPerMillion=highest('outputCell'),
                 cachedInputUsdPerMillion=highest('cachedInputCell', True), requestUsd=request, maximumInputTokens=tokens('maximumInputCell'),
                 maximumOutputTokens=tokens('maximumOutputCell'), retrievedAt=retrieved, sourceUrl=mapping['sourceUrl'], sourceSha256=hashlib.sha256(data).hexdigest(),
@@ -260,14 +342,14 @@ def build_reviewed(document, fetcher, json_path, cs_path, manifest_path):
         identities[key] = identity
     keys = [(mapping['service'], mapping['model']) for mapping in mappings]
     if len(set(keys)) != len(keys) or set(keys) != set(identities): raise ValueError('Model mappings and reviewed identities must bind exactly once')
-    for source in document.get('sources', []): official(source['service'], source['sourceUrl'])
+    for source in document.get('sources', []): official_evidence(source['service'], source['sourceUrl'])
     def capture(service, url):
-        official(service, url)
+        official_evidence(service, url)
         if url not in cache:
             receipt = dict(service=service, sourceUrl=url, retrievedAt=datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'))
             try:
                 data = fetcher(url); receipt.update(status='fetched', byteLength=len(data), sourceSha256=hashlib.sha256(data).hexdigest())
-                text = ' '.join(' '.join(parse(data).text).split())
+                text = billing_content(data)['text']
                 receipt['explicitNoRequestFeeQuotes'] = re.findall(r'[^.]*\bno (?:per-request|request) fees[^.]*\.?', text, re.I)
                 receipt['billingQuotes'] = []
                 for source in document.get('sources', []):
@@ -292,19 +374,35 @@ def build_reviewed(document, fetcher, json_path, cs_path, manifest_path):
                 parsed = parse_meta(data) if mapping.get('parser') == 'meta-marketing' else parse(data)
                 row['observedTokenCells'] = observed_cells(mapping, identity, parsed)
                 text = ' '.join(' '.join(parsed.text).split())
-                unit = mapping.get('tokenUnitQuote', '')
-                if not unit or unit not in text or not re.search(r'(?:1,?000,?000|1\s*M|million)\s+tokens', unit, re.I) or 'USD' not in unit:
-                    row['reasons'].append('Missing exact tokenUnitQuote explicitly establishing USD per million tokens')
+                currency = None; token_unit = None; request_evidence = None
+                for name in ('currencyEvidence', 'tokenUnitEvidence'):
+                    if not mapping.get(name): continue
+                    spec = mapping[name]; source, evidence_receipt, error = capture(mapping['service'], spec['sourceUrl'])
+                    if error or not spec.get('quote') or spec['quote'] not in billing_content(source)['text']: raise ValueError('Missing/changed exact official quote: ' + name)
+                    evidence = dict(spec, retrievedAt=evidence_receipt['retrievedAt'], sourceSha256=evidence_receipt['sourceSha256'])
+                    row[name] = evidence
+                    if name == 'currencyEvidence': currency = evidence
+                    else: token_unit = evidence
+                try: unit_check(mapping, text, currency, token_unit)
+                except ValueError as error: row['reasons'].append(str(error))
                 fee = mapping.get('tokenOnlyQuote', '')
-                if mapping.get('requestCell') is None and (not fee or fee not in text or not re.search(r'no (?:per-request|request) fees', fee, re.I)):
-                    row['reasons'].append('Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted')
+                if mapping.get('requestCell') is None:
+                    if mapping.get('completeListReview'):
+                        review = next((review for review in document.get('completeListReviews', []) if review['id'] == mapping['completeListReview']), None)
+                        row['listedCharges'] = review.get('listedCharges', []) if review else []
+                        try:
+                            request_evidence = complete_list_evidence(mapping, review, capture)
+                            row['requestFeeEvidence'] = request_evidence
+                        except ValueError as error: row['reasons'].append(str(error))
+                    elif not fee or fee not in text or not re.search(r'no (?:per-request|request) fees', fee, re.I):
+                        row['reasons'].append('Missing/changed exact source quote: tokenOnlyQuote (no request fees); no per-request rate quoted')
                 if mapping.get('storageCell') is not None:
                     storage = cell_coords(parsed, mapping['storageCell'])
                     row['storageCondition'] = storage
                     if storage not in ('Free', 'Limited-time Free', '-'):
                         row['reasons'].append('Cache storage charge cannot be represented by the flat token/request catalog')
                 if not row['reasons']:
-                    price = extract(mapping, data, receipt['retrievedAt'], identity)
+                    price = extract(mapping, data, receipt['retrievedAt'], identity, request_evidence, currency, token_unit)
                     prices.append(price); row['status'] = 'filled'
             except ValueError as error:
                 row['reasons'].append(str(error))
@@ -336,11 +434,17 @@ def main():
     cli.add_argument('--inspect', action='store_true'); cli.add_argument('--captures', type=pathlib.Path)
     cli.add_argument('--map', type=pathlib.Path, default=ROOT / 'src/Marrow.Services/Providers/Pricing/model-price-extraction.json')
     args = cli.parse_args(); mapping = json.loads(args.map.read_text(encoding='utf-8'))
+    def capturing_fetch(url):
+        data = fetch(url)
+        if args.captures is not None:
+            args.captures.mkdir(parents=True, exist_ok=True)
+            (args.captures / (hashlib.sha256(data).hexdigest() + '.html')).write_bytes(data)
+        return data
     if args.inspect:
         if args.captures is None: cli.error('--inspect requires --captures (outside the repository is preferred)')
         args.captures.mkdir(parents=True, exist_ok=True)
         for source in mapping['sources']:
-            official(source['service'], source['sourceUrl']); data = fetch(source['sourceUrl']); digest = hashlib.sha256(data).hexdigest()
+            official_evidence(source['service'], source['sourceUrl']); data = capturing_fetch(source['sourceUrl']); digest = hashlib.sha256(data).hexdigest()
             (args.captures / (digest + '.html')).write_bytes(data)
             parsed = parse_meta(data) if source.get('parser') == 'meta-marketing' else parse(data)
             (args.captures / (digest + '.tables.json')).write_text(json.dumps(dict(source=source, retrievedAt=datetime.datetime.now(datetime.timezone.utc).isoformat(), sha256=digest, tables=parsed.tables), indent=2), encoding='utf-8')
@@ -350,7 +454,7 @@ def main():
         if mapping.get('identityMap'):
             identity_path = args.map.parent / mapping['identityMap']
             mapping['identities'] = json.loads(identity_path.read_text(encoding='utf-8'))['models']
-            manifest = build_reviewed(mapping, fetch, pricing / 'model-prices.json', ROOT / 'src/Marrow.Services/Providers/ModelPriceData.cs', pricing / 'model-price-fetch-manifest.json')
+            manifest = build_reviewed(mapping, capturing_fetch, pricing / 'model-prices.json', ROOT / 'src/Marrow.Services/Providers/ModelPriceData.cs', pricing / 'model-price-fetch-manifest.json')
             print('Generated', manifest['filledCount'], 'filled and', manifest['unfilledCount'], 'unfilled model records. Reasons and highest-rate selections are in the manifest.')
         else:
             prices = build(mapping['models'], fetch, pricing / 'model-prices.json', ROOT / 'src/Marrow.Services/Providers/ModelPriceData.cs')
