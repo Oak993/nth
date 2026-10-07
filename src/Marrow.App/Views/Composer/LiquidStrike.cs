@@ -161,6 +161,44 @@ public static class Strike
     /// <summary>How many times a second the channel's shimmer re-rolls.</summary>
     public const double ShimmerRate = 30;
 
+    // OD-0084, strike-port SPEC K-016, locked strike-engine.js:230.
+    public static double Ss(double e0, double e1, double x)
+    {
+        var u = Math.Min(1, Math.Max(0, (x - e0) / (e1 - e0)));
+        return u * u * (3 - 2 * u);
+    }
+
+    private static readonly double[] easeTable = BuildEaseTable();
+
+    // K-017, strike-engine.js:1010-1026: previous-root Newton table, not an exact curve solver.
+    private static double[] BuildEaseTable()
+    {
+        static double X(double t) => 3 * (1 - t) * (1 - t) * t * 0.35 + 3 * (1 - t) * t * t * 0.55 + t * t * t;
+        static double Y(double t) => 3 * (1 - t) * (1 - t) * t * 0.1 + 3 * (1 - t) * t * t + t * t * t;
+        static double Dx(double t) => 3 * (1 - t) * (1 - t) * 0.35 + 6 * (1 - t) * t * 0.2 + 3 * t * t * 0.45;
+        var table = new double[1025];
+        double t = 0;
+        for (var i = 0; i <= 1024; i++)
+        {
+            var x = i / 1024d;
+            for (var iteration = 0; iteration < 12; iteration++)
+            {
+                var delta = X(t) - x;
+                if (Math.Abs(delta) < 1e-9) break;
+                t = Math.Min(1, Math.Max(0, t - delta / Dx(t)));
+            }
+            table[i] = Y(t);
+        }
+        return table;
+    }
+
+    public static double Ease(double x)
+    {
+        var v = Math.Min(1, Math.Max(0, x)) * 1024;
+        var i = (int)Math.Floor(v);
+        return i >= 1024 ? easeTable[1024] : easeTable[i] + (easeTable[i + 1] - easeTable[i]) * (v - i);
+    }
+
     /// <summary>The canvas's hash(a, b), in [0, 1): Math.imul as unchecked 32-bit multiplies, >>> as unsigned shifts.</summary>
     public static double Hash(int a, int b)
     {
