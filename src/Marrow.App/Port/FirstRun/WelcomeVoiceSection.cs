@@ -35,9 +35,13 @@ public sealed class WelcomeVoiceSection : Decorator
         this.question = question;
         this.atOrb = atOrb;
         host = new Border { Child = layers, ClipToBounds = true, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var section = new ChromeSection(WelcomeVoiceWords.Title, () => new ChromeCard(() => host));
-        section.MaxWidth = 480; // Welcome's sections are capped at 480 (RootView.swift:337)
-        Child = atOrb ? host : section;
+        if (atOrb) Child = host; // The PopoverCard already supplies the chrome; the host has exactly one parent.
+        else
+        {
+            var section = new ChromeSection(WelcomeVoiceWords.Title, () => new ChromeCard(() => host));
+            section.MaxWidth = 480; // Welcome's sections are capped at 480 (RootView.swift:337)
+            Child = section;
+        }
         shown = CurrentState;
         if (Body(shown) is { } first) layers.Children.Add(first);
         else if (shown != VoiceQuestionState.Gone) _ = question.ProbeAsync(); // the words name the model's size: read the PC (fetches nothing) when it is not known yet
