@@ -53,9 +53,6 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        // ED-622: offline, owner-local pack generator precedes all desktop/data bindings.
-        if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
-        if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
             return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
@@ -63,6 +60,11 @@ public static class Program
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
         RunVelopackHook(AppContext.BaseDirectory);
+        // ED-NEW-models-palette-11: offline, owner-local pack generator. It runs right after the Velopack hook (ED-235: nothing
+        // but the SK-17 relay may precede the hook; a normal launch returns from the hook at once) and before every other
+        // desktop or data binding: the single-instance lock, toast identity, settings and the app lifetime.
+        if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
+        if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
