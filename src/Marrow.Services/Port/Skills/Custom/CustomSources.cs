@@ -7,7 +7,7 @@ using Marrow.Services.Port.Skills.Import;
 namespace Marrow.Services.Port.Skills.Custom;
 
 /// <summary>RR-18: check first, then install only that frozen snapshot. Opening/listing does no network work. Registry publication is the commit point for command registration.</summary>
-public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource
+public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOwnPluginSource
 {
     private readonly string root;
     private readonly ICustomSourceFiles files;
@@ -69,10 +69,12 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource
         if (request.Kind == CustomAddKind.Tools)
         {
             var executables = snapshot.Where(p => p.Key.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && p.Value.Length >= 2 && p.Value[0] == 'M' && p.Value[1] == 'Z').Select(p => p.Key).ToArray();
-            var problem = executables.Length != 1 ? "Choose a source with one Windows executable." :
+            var matching = executables.Where(p => Path.GetFileNameWithoutExtension(p).Equals(request.Command, StringComparison.OrdinalIgnoreCase)).ToArray();
+            var executable = matching.Length == 1 ? matching[0] : executables.Length == 1 ? executables[0] : null;
+            var problem = executable is null ? "Choose a source with one Windows executable, or enter the primary executable's command." :
                 string.IsNullOrWhiteSpace(request.Name) || request.Name.Any(char.IsControl) ? "Enter a tool name." :
                 !SkillName.IsValid(request.Command) ? "Enter a command using lowercase letters, digits and hyphens." : null;
-            AddCandidate(request.Name, "Custom tool", problem, snapshot, executables.Length == 1 ? executables[0] : null, request.Command);
+            AddCandidate(request.Name, "Custom tool", problem, snapshot, executable, request.Command);
         }
         else
         {
@@ -187,8 +189,29 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource
     }
     public IReadOnlyList<ImportedGenerationSkill> Snapshot()
     {
-        lock (gate) return items.Where(i => i.Enabled && i.Kind == CustomAddKind.Skills).Select(i =>
-            new ImportedGenerationSkill("own-" + i.Id, i.Name, i.Description, Verified(i).ToDictionary(p => p.Key["payload/".Length..], p => p.Value))).ToArray();
+        lock (gate)
+        {
+            var result = new List<ImportedGenerationSkill>();
+            foreach (var item in items.Where(i => i.Enabled && i.Kind is CustomAddKind.Skills or CustomAddKind.Plugins))
+            {
+                var content = Verified(item).ToDictionary(p => p.Key["payload/".Length..], p => p.Value);
+                if (item.Kind == CustomAddKind.Skills) result.Add(new("own-" + item.Id, item.Name, item.Description, content));
+                else foreach (var marker in content.Keys.Where(p => p.EndsWith("/SKILL.md", StringComparison.Ordinal) || p == "SKILL.md").Order(StringComparer.Ordinal))
+                {
+                    var metadata = ForeignFrontmatter.Parse(Encoding.UTF8.GetString(content[marker]));
+                    if (!SkillName.IsValid(metadata.Name ?? "") || string.IsNullOrWhiteSpace(metadata.Description) || metadata.Description.Length > 1024) continue;
+                    var prefix = marker[..^"SKILL.md".Length];
+                    var skillFiles = content.Where(p => p.Key.StartsWith(prefix, StringComparison.Ordinal)).ToDictionary(p => p.Key[prefix.Length..], p => p.Value);
+                    result.Add(new("own-" + item.Id + "/" + marker, metadata.Name!, metadata.Description!, skillFiles, "own-" + item.Id, prefix.TrimEnd('/')));
+                }
+            }
+            return result;
+        }
+    }
+    public IReadOnlyList<OwnGenerationPlugin> SnapshotPlugins()
+    {
+        lock (gate) return items.Where(i => i.Enabled && i.Kind == CustomAddKind.Plugins).Select(i =>
+            new OwnGenerationPlugin("own-" + i.Id, Verified(i).ToDictionary(p => p.Key["payload/".Length..], p => p.Value))).ToArray();
     }
     /// <summary>Enabled plugin trees retain both manifests, hooks, MCP configuration and resources. Provider adapters can load these owned paths.</summary>
     public IReadOnlyList<string> PluginDirectories()

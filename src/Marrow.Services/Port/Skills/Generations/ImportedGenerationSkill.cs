@@ -2,7 +2,7 @@
 namespace Marrow.Services.Port.Skills.Generations;
 
 /// <summary><see cref="Files"/> are relative paths below the skill's folder, SKILL.md included, whose front matter already carries <see cref="Name"/>.</summary>
-public sealed record ImportedGenerationSkill(string Id, string Name, string Description, IReadOnlyDictionary<string, byte[]> Files);
+public sealed record ImportedGenerationSkill(string Id, string Name, string Description, IReadOnlyDictionary<string, byte[]> Files, string? PluginId = null, string? PluginPath = null);
 
 public interface IImportedSkillSource
 {
