@@ -64,7 +64,7 @@ public sealed class OpinionAnswerRowsTests(HeadlessSession headless)
     public async Task Pending_combine_is_guarded_and_a_failed_post_never_claims_completion_or_retries()
     {
         var f = new OpinionViewRig(); var round = await f.Port.AskAsync(f.Thread, "Review", [f.Lead, f.Other]);
-        Finish(f.Port, round, f.Lead, f.Other); var port = new HeldCombine(f.Port); OpinionAnswerRows? view = null;
+        Finish(f.Port, round, f.Lead, f.Other); var port = new OpinionHeldCombine(f.Port); OpinionAnswerRows? view = null;
         MultiAccountHarness.Run(headless, f.Accounts, () => view = Make(f, port), h =>
         {
             var row = Assert.Single(view!.Rounds); row.Combine.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -147,13 +147,4 @@ public sealed class OpinionAnswerRowsTests(HeadlessSession headless)
     }
     private static IReadOnlyList<ThreadAccount> Accounts(OpinionViewRig f) => f.Current.Accounts.Concat(f.Codex.Accounts).Concat(new FakeThreadAccountPort(f.Accounts, Marrow.Core.Models.ProviderKind.Local).Accounts).ToArray();
     private static void Finish(FakeOpinionsPort port, Guid round, params Guid[] ids) { foreach (var id in ids) { port.Stream(round, id, "Done"); port.Finish(round, id); } }
-    private sealed class HeldCombine(FakeOpinionsPort inner) : IOpinionsPort
-    {
-        public TaskCompletionSource Pending { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public int Calls { get; private set; }
-        public event Action<Guid>? Changed { add => inner.Changed += value; remove => inner.Changed -= value; }
-        public Task<Guid> AskAsync(Guid thread, string message, IReadOnlyList<Guid> accounts, CancellationToken ct = default) => inner.AskAsync(thread, message, accounts, ct);
-        public IReadOnlyList<OpinionRound> Rounds(Guid thread) => inner.Rounds(thread);
-        public Task CombineAsync(Guid thread, Guid round, CancellationToken ct = default) { Calls++; return Pending.Task; }
-    }
 }
