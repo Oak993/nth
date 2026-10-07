@@ -1,0 +1,11 @@
+{
+  "commit": "52bc7926097cd622d08d6294e0d8b08a48c7516e",
+  "tree": "115745914ccc103dfe4e74d96c6c539faab2eedb",
+  "reference_clean": true,
+  "path_sets_match": true,
+  "files": 441,
+  "exact_digest_count": 89,
+  "inventory_CRLF_digest_count": 352,
+  "digest_mismatches": [],
+  "note": "Inventory was generated from a Windows checkout. No inventory bytes changed. LF-to-CRLF transformation is used only to explain checkout digest differences."
+}

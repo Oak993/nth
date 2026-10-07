@@ -1,0 +1,38 @@
+[
+  {
+    "path": "porting/parity_matrix.json",
+    "unchanged_record_objects_byte_exact": 3990,
+    "changed_records": [
+      "PR-LAUNCH-071",
+      "PR-SETTINGS-249"
+    ],
+    "before_sha256": "454ea9ee42ae5d83064678fb8692bc3efb220a1c06874646c1e7bd19b8da9cff",
+    "after_sha256": "29068eadb0aa09bb322c9c64ef10400664090aa678643ebb33bbeeee8ff9afc1",
+    "only_semantic_changes": "targeted status and implementation_evidence; parity_matrix top-level status counts"
+  },
+  {
+    "path": "porting/ui_contract.json",
+    "unchanged_record_objects_byte_exact": 1055,
+    "changed_records": [
+      "UI-SIDEBAR-031",
+      "UI-SIDEBAR-032"
+    ],
+    "before_sha256": "8584cb597263a1ee454b33f7ee6a345c44ee6f7e8c84160997366087440d41d2",
+    "after_sha256": "01c73c9c0d31280946a74e33bd36a7a34383d2fc8a6b93b5bd4b205a496db6a2",
+    "only_semantic_changes": "targeted status and implementation_evidence only"
+  },
+  {
+    "path": "porting/engineering_decisions.md",
+    "original_bytes_preserved_prefix": 1786423,
+    "appended_bytes": 2238,
+    "before_sha256": "c0981ce8111187b55a44c86f35e4d0eb72270a086a4a18d31099740968735481",
+    "after_sha256": "1f42597c5ae9513c1fc043a9fe59fe466d0bdbcc6f54d07d1ba7a2f16dc14270"
+  },
+  {
+    "path": "porting/STATE.md",
+    "original_bytes_preserved_prefix": 83771,
+    "appended_bytes": 983,
+    "before_sha256": "8ca90dcf3c00ce3cf6905ceb16b38895dae26af583813c9c277da39e27795694",
+    "after_sha256": "0e26b507448628cc4b8855413534005e822fbeb497c9941e0a0fba2db0e3d810"
+  }
+]
