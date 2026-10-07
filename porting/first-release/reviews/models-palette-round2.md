@@ -1,0 +1,18 @@
+# T37 models/palette — Round 2
+
+Verdict: **NOT READY**. Branch `codex/models-palette`. No design branch merged, real API contacted, force push, or original test/reference/tolerance/assertion changed.
+
+| Row | Outcome | Delivered / remaining |
+| --- | --- | --- |
+| RR-19 | DONE for standalone implementation + handoff | Approved searchable v4/v5 picker with retained folds/count clocks/card height/keyboard smooth scroll. Lead binds the additive seam after Strike; Windows native comparison remains. |
+| RR-20 | BLOCKED | S2/D3/archived IR-3 actor backend, global lineups, extraction/intensity, v22 arrangement, immutable tables/cache/trigger/refresh and RGB glide seams delivered. Retained strict new-generation test disagrees with archived Python. Release pack/authority/Prime/full source-chain/renderer work remains uncredited; UI gate false. |
+| RR-21 | BLOCKED for release; visible control delivered | OD-0127 option A replaces the no-control ruling. Real Colours row, exact words/progress/summary/offline/dot motion passes fake tests. 14 unchanged Settings rise fixtures assume the old second card and must be reconciled without discarding their real guards. |
+| RR-41 | BLOCKED | Fifteen COMPLETE-record entries appended with refreshed/scoped method receipts. Native whole-page/GPU proof and existing Linux title/font failures remain. No acceptance status promoted. |
+
+EffortSlider seam list: **zero edited lines**, likewise zero in LiquidTrack and LiquidStrike. After T14/Strike, bind `ModelPickerSeam.Create(entries, selected, hasHistory, choose, back, colour)` at the model-list branch (current EffortSlider.cs:304), and `Place(popup)` for Top/-10 px placement. Preserve Choose (:353), Back, history/provider guard, Hydra pair selection (:305-309), and the existing .12 s outer page transition. The colour delegate is mandatory: use the existing approved EffortBrand heart while `ModelShades.ApplyToUi` is false. Future renderer handoff consists of `ModelShades.Resolve/Observe`, `PaletteGlide.Retarget/ArrivalFinished/Sample`, and `PaletteArrangement.Create`; it must preserve the same TrackEffect/time clock. Do not open the draft W1/W2 gate merely because Settings dots now exist.
+
+Linux focused receipts: Core 19 passed/1 failed; Services 42 passed; picker/Colours/brand/architecture App 19 passed; Appearance expansion 35 passed/14 failed; original record App replay 326 passed plus extra title/silver 4 passed/1 failed; UI 7 passed/5 font failures. All zero skipped. These scopes overlap, so no inflated combined total is claimed. Build final2: zero warnings/errors. Gates A 7/5, B 8/0, C 1 pass/1 fail/1 unimplemented; requirements no-run exit 2. Test-first compile/behavior reds, exact-source reproduction, provenance and final TRX are under `porting/evidence/models-palette/round2/`.
+
+Windows/T9: merged picker/Hydra/history/above-chip placement and glass/font/smooth-scroll comparison; full Settings option-A geometry/progress/motion/long-name/offline/leave-return checks; authentic codec/pack/locked-file/bake evidence; after authority/gates are resolved, real ten-second 60 Hz cadence/identity/arrival/retarget and complete page-shell orb/model/title/glow pixel captures. The original untouched-base title failure receipt and UI-COMPOSER-035 no-credit guard are preserved. No native acceptance is inferred from fake/manual frames.
+
+Engineering decisions ED-NEW-models-palette-5..8 append byte-exact; OD-0127 and locked source provenance are included. Per-row reports retain Round-1 text and append their Round-2 findings. `preservation-final.json` proves original tests, two original ledgers and all three Strike-owned files remain byte-identical and the ED prefix is preserved.

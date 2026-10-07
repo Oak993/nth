@@ -1,0 +1,28 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.55]     Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference [FAIL]
+[xUnit.net 00:00:01.91]     Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity [FAIL]
+  Failed Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference [47 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: 0.63700000000000001
+Actual:   0.63800000000000001
+  Stack Trace:
+     at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs:line 23
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity [34 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs:line 76
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr20-core-green.trx
+
+Failed!  - Failed:     2, Passed:     2, Skipped:     0, Total:     4, Duration: 821 ms - Marrow.Core.Tests.dll (net10.0)

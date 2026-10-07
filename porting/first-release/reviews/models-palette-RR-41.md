@@ -63,3 +63,14 @@ unperformed under the fake-only scope. Verdict **NOT READY**.
 
 EffortSlider seam list: **empty**. All three T14-owned files are byte-identical
 to `origin/claude/verify-terminal-20261001`.
+
+
+## Round 2 — 2026-10-07
+
+**BLOCKED; complete-record reconciliation is updated without granting acceptance.** ED-NEW-models-palette-8. Fifteen new JSONL entries append to `whole-record-evidence.jsonl`; each includes the COMPLETE original record and hash, every inspected field, source/method evidence, refreshed cases where replayed, and explicitly scoped earlier receipts where not replayed. The original fifteen entries and all parity/UI ledger bytes remain intact.
+
+Fresh Linux record replay: App 326 passed; extra title/silver 4 passed/1 failed (the same 380/400 ms equality with the untouched-base reproduction already retained); UI decoder/structure/title-review 7 passed/5 failed before assertions with $Default glyphTypeface. The unchanged UI-COMPOSER-035 R8 guard still refuses credit without full page-shell pixel proof. All three Strike-owned sources are byte-identical, so the new standalone palette/picker/refresh files prove no merged renderer clause by themselves.
+
+RR-19 delivers its approved control and additive seam under the explicit no-EffortSlider ruling. RR-20 retains the strict new-generation/source conflict, incomplete release-pack/authority/Prime/renderer work and closed UI gate. RR-21 now implements OD-0127 option A; its five new state/rendered-dot/motion facts pass, but fourteen original rise guards still assume the pre-new-control second card. Their lifecycle/input/pixel assertions and references are preserved. These changes do not close any clause solely from class existence. No record's status is promoted.
+
+Final focused tests/gates, row outcomes and seam handoff are in `models-palette-round2.md` and `evidence/models-palette/round2/summary.json`. Original-test/ledger/Strike-source/source-copy hash proof is `preservation-final.json`. Native glyph/material/popover geometry, post-Strike model/Hydra binding, complete page orb captures and real 10-second GPU cadence/identity/retarget remain T9 Windows checks. Verdict NOT READY.
