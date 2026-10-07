@@ -11,6 +11,19 @@ namespace Marrow.Core.Port.Voice.Session;
 /// </summary>
 public sealed class ScriptedVoiceSource
 {
+    /// <summary>CZ-7b: the design's timed recognition events and synthetic bands, on an isolated session hub.</summary>
+    public static ScriptedVoiceSource ForDesign(Func<VoiceSessionSettings> settings, Action<VoiceTypingSettings>? storeTyping = null) => new(settings, storeTyping);
+
+    private ScriptedVoiceSource(Func<VoiceSessionSettings> settings, Action<VoiceTypingSettings>? storeTyping)
+    {
+        Script = new VoiceScript([]);
+        Capture = new ScriptedCapture();
+        Vad = ScriptedVad.Silence();
+        Engine = ScriptedEngine.Always(Hypothesis.Empty);
+        Microphone = new ScriptedMicrophone();
+        Session = new VoiceSession(settings, storeTyping ?? (_ => { }), VoiceSeamSet.Of(Capture, Vad, Engine, Microphone), new VoiceSessionHub(), VoiceDesignScript.Default);
+    }
+
     /// <param name="script">What the speaker says.</param>
     /// <param name="settings">Read at each click, as a real session reads them.</param>
     /// <param name="storeTyping">Receives the language answer (V-12.11); the preview stores nothing by default.</param>

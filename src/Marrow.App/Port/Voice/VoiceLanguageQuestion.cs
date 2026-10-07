@@ -2,6 +2,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -57,6 +58,10 @@ internal sealed class VoiceLanguageQuestion : Panel
     private bool flipped;
     private WorkItem? closing;
     private int serial;
+    private Popup? popupHost;
+
+    /// <summary>CZ-7b: the stage's chrome clearance when deciding whether its question fits above.</summary>
+    internal double TopClearance { get; set; }
 
     public VoiceLanguageQuestion()
     {
@@ -149,10 +154,17 @@ internal sealed class VoiceLanguageQuestion : Panel
         orbSlot.LayoutUpdated += PlaceOnLayout;
     }
 
+    /// <summary>CZ-7b: put this same question in the popover presenter, beyond the stage's rounded clip.</summary>
+    internal void AttachPopup(Control orbSlot, Control composerView, Popup popup)
+    {
+        Attach(orbSlot, composerView);
+        popupHost = popup;
+    }
+
     private void PlaceOnLayout(object? sender, EventArgs e) => Place();
 
     /// <summary>Opens the card. The focus goes to English.</summary>
-    public void Open()
+    public void Open(bool takeFocus = true)
     {
         closing?.Cancel();
         closing = null;
@@ -167,7 +179,23 @@ internal sealed class VoiceLanguageQuestion : Panel
         progress.To(1, LookCurve.Ez(0.24));
         InvalidateMeasure();
         Apply(); // visible now, so the keyboard can land on English
-        if (!buttons[0].Focus()) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (open && !buttons.Any(b => b.IsFocused)) buttons[0].Focus(); });
+        if (takeFocus && !buttons[0].Focus()) Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (open && !buttons.Any(b => b.IsFocused)) buttons[0].Focus(); });
+    }
+
+    /// <summary>CZ-4.7.8: a pick-started demonstration answers through the same button path and close animation.</summary>
+    internal void Answer(string code)
+    {
+        var button = buttons.Find(b => b.Code == code);
+        if (button is not null) Pick(button);
+    }
+
+    /// <summary>CZ-7b: a replaced or cancelled demonstration must not leave a delayed close behind.</summary>
+    internal void DismissImmediately()
+    {
+        closing?.Cancel();
+        closing = null;
+        serial++;
+        if (open) BeginClose();
     }
 
     /// <summary>Closes the card now (Esc, a click outside, the orb again, the session left Asking): the close motion, nothing stored.</summary>
@@ -213,6 +241,7 @@ internal sealed class VoiceLanguageQuestion : Panel
 
     private void Place()
     {
+        if (popupHost is not null) { PlacePopup(); return; }
         if (slot is null || composer is null || Parent is not Visual host || !open && opacityValue.Value <= 0) return;
         if (slot.TranslatePoint(default, host) is not { } origin || TopLevel.GetTopLevel(slot) is not { } top) return;
         var slotRect = new Rect(origin, slot.Bounds.Size);
@@ -232,6 +261,22 @@ internal sealed class VoiceLanguageQuestion : Panel
         card.TipOffset = centre - left;
         Canvas.SetLeft(this, left);
         Canvas.SetTop(this, topEdge);
+        shell.RenderTransformOrigin = card.TipOrigin;
+    }
+
+    private void PlacePopup()
+    {
+        if (slot is null || composer is null || !open && opacityValue.Value <= 0 || slot.TranslatePoint(default, composer) is not { } origin) return;
+        shell.Measure(Size.Infinity);
+        var height = shell.DesiredSize.Height;
+        var centre = origin.X + slot.Bounds.Width / 2;
+        var left = Math.Clamp(centre + 34 - CardWidth, 0, Math.Max(0, composer.Bounds.Width - CardWidth));
+        var room = TopLevel.GetTopLevel(slot) is { } top ? slot.TranslatePoint(default, top)?.Y ?? double.PositiveInfinity : double.PositiveInfinity;
+        flipped = room - height < TopClearance;
+        card.TipEdge = flipped ? PopoverTipEdge.Top : PopoverTipEdge.Bottom;
+        card.TipOffset = centre - left;
+        popupHost!.HorizontalOffset = left;
+        popupHost.VerticalOffset = flipped ? origin.Y + slot.Bounds.Height : origin.Y - height;
         shell.RenderTransformOrigin = card.TipOrigin;
     }
 
@@ -272,7 +317,8 @@ internal sealed class VoiceLanguageQuestion : Panel
     {
         var t = progress.Value;
         Opacity = opacityValue.Value;
-        rise.Y = Rise * (1 - t);
+        // The stage's locked .vask[data-below] grows upward from its top tip.
+        rise.Y = (popupHost is not null && flipped ? -Rise : Rise) * (1 - t);
         scale.ScaleX = scale.ScaleY = Shrink + (1 - Shrink) * t;
         shell.RenderTransformOrigin = card.TipOrigin;
         IsVisible = open || opacityValue.Value > 0 || progress.Value > 0;
