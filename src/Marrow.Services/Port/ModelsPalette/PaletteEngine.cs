@@ -16,6 +16,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
     private readonly PaletteSeedChain chain;
     private readonly PaletteStore store;
     private readonly PaletteSourcePack pack;
+    private readonly PaletteAnchor[] frozenReserved;
     private readonly TimeProvider time;
     private readonly IPaletteNetworkStatus network;
     private readonly bool ownsNetwork;
@@ -41,7 +42,9 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         :this(dataRoot,transport,decoder,time??TimeProvider.System,pack??PaletteSourcePack.Default,new PaletteExecutor(),network){}
     private PaletteEngine(string root,HttpMessageHandler transport,ILogoDecoder decoder,TimeProvider time,PaletteSourcePack pack,PaletteExecutor executor,IPaletteNetworkStatus? network):base(executor)
     {
-        this.executor=executor;this.time=time;this.pack=pack;store=new(root);http=new(transport,time);chain=new(http,decoder,time);
+        this.executor=executor;this.time=time;this.pack=pack;
+        frozenReserved=pack.MakerPalette.Keys.Select(pack.AuthoritativeForMaker).Where(p=>p!=pack.Neutral).Distinct().Concat(pack.Reserved).ToArray();
+        store=new(root);http=new(transport,time);chain=new(http,decoder,time);
         this.network=network??new PaletteNetworkStatus();ownsNetwork=network is null;
         seeds=store.LoadSeeds();market=store.LoadMarket();
         if(market is {} cached){serverSeconds=cached.Date;serverTick=time.GetTimestamp();}
@@ -269,7 +272,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
             var (key,_,_)=SeedInputs(maker,facts,rows);var seed=seeds.GetValueOrDefault(maker);
             if(seed?.Key==key)
             {
-                var cacheKey=JsonSerializer.Serialize(seed.Seed);if(!derived.TryGetValue(cacheKey,out var d))derived[cacheKey]=d=PaletteDeriver.Derive(seed.Seed,pack.Palettes.Values.Concat(pack.Reserved).ToArray());
+                var cacheKey=JsonSerializer.Serialize(seed.Seed);if(!derived.TryGetValue(cacheKey,out var d))derived[cacheKey]=d=PaletteDeriver.Derive(seed.Seed,frozenReserved);
                 return palettes[maker]=(d.Palette,known?PaletteState.Known:PaletteState.Ready,d.Crowded);
             }
             return palettes[maker]=(pack.Neutral,PaletteState.Pending,false);

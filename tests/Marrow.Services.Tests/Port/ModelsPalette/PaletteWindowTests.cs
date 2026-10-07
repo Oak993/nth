@@ -37,6 +37,4 @@ public sealed class PaletteWindowTests
         Assert.Equal(1,fake.Http.Received.Count(r=>r.Url.AbsolutePath.EndsWith("/models",StringComparison.Ordinal)));
         Assert.Equal(PaletteState.Ready,engine.Current.Models["acme/nova-1"].State);
     }
-    private sealed class FakePaletteNetwork : IPaletteNetworkStatus
-    {public event Action<bool>? AvailabilityChanged;public void Raise(bool available)=>AvailabilityChanged?.Invoke(available);}
 }
