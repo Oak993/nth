@@ -155,6 +155,7 @@ public sealed class WindowManager
         if (page is { } requested) SettingsNavigation.Shared.RequestedPage = requested; // :33
         var window = settingsWindow ?? MakeSettingsWindow(); // :34
         settingsWindow = window; // :35
+        settingsClose?.Stop();
         CenterOverMainWindow(window); // :36
         // DEVIATION OD-0074 (ED-249): an open of the hidden window is Rise (Port/SettingsRise.cs): shown cloaked, revealed
         // at glass-ready, then activated, the glass fading in and the items rising in a 0.26 s wave. A window already up is
@@ -181,6 +182,8 @@ public sealed class WindowManager
 
     /// <summary>PORT-ONLY: the Settings window's current open, for tests.</summary>
     internal SettingsRise? SettingsOpening => settingsRise;
+    private SettingsClose? settingsClose;
+    internal SettingsClose? SettingsClosing => settingsClose;
 
     /// <summary>:40-55 Opens a window centered over the main window, kept on the screen the main window is on.</summary>
     private void CenterOverMainWindow(AvaloniaWindow window)
@@ -354,6 +357,12 @@ public sealed class WindowManager
             if (ReferenceEquals(window, mainWindow) && MainWindowClose is { } quit)
             {
                 quit();
+                return;
+            }
+            if (ReferenceEquals(window, settingsWindow) && settingsView is { } view && window.IsVisible
+                && settingsRise is not { Done: false } && !EnvironmentValues.GetAccessibilityReduceMotion(window))
+            {
+                if (settingsClose is not { Done: false }) settingsClose = new SettingsClose(window, view);
                 return;
             }
             window.Hide();
