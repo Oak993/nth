@@ -1,0 +1,15 @@
+{
+  "row": "RR-21",
+  "status": "BLOCKED",
+  "head": "3f12d5c462fd18eb77dc12a984780d4562c8ec7a",
+  "file_sha256": {
+    "src/Marrow.App/Views/Settings/SettingsView.cs": "e219c30a9e5e893b452c2f7c68154e9f440d25bcb915252ee1ba1376a437f248",
+    "src/Marrow.App/Views/Settings/ModelsSettingsPage.cs": "e7ff5e518e1cb74f26020b3f03e33fd6ef4b1095a7c38dc965399c94de8b118b",
+    "src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs": "fd0f485fcdfbfd613bb3d6cf4fd0a97e5eb2fb29236738ffadf795e782ca4594"
+  },
+  "provider_refresh_symbol": "ProvidersRefreshButton -> Providers.RefreshEverything()",
+  "palette_refresh_control": "absent",
+  "new_makers_summary": "absent",
+  "missing_input": "OD-0067 locked refresh design plus RR-20 full palette engine",
+  "scope": "read-only inspection; not a UI acceptance test"
+}
