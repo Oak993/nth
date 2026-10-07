@@ -24,6 +24,8 @@ internal sealed class SkillsProgressPills : Decorator
         foreach (var section in new[] { LibrarySection.Plugins, LibrarySection.Skills })
             if (SkillsPageSeams.Controllers.Current.For(section) is { } model)
                 stack.Children.Add(new SkillsProgressPill(model, Open, nested));
+        if (SkillsPageSeams.Controllers.Current.Tools() is { } tools)
+            stack.Children.Add(new SkillsProgressPill(tools, _ => { SettingsNavigation.Shared.RequestedPage = SettingsPage.Updates; WindowManager.Shared.ShowSettings(); }, nested));
         Child = stack;
     }
 
@@ -88,7 +90,7 @@ internal sealed class SkillsProgressPill : Decorator
 
     private void Refresh()
     {
-        var view = model.Controller.Dialog;
+        var view = model.Dialog;
         var nextShown = model.DialogHidden && view.Phase is RunPhase.Downloading or RunPhase.Paused or RunPhase.Done or RunPhase.Partial;
         if (!nextShown) state.Presented = false;
         if (shown != nextShown)
@@ -109,7 +111,7 @@ internal sealed class SkillsProgressPill : Decorator
             _ => view.Failed + " didn\u2019t download",
         };
         words.SetText(label);
-        Button.Named(label, "skills-progress-pill-" + model.Controller.Section);
+        Button.Named(label, "skills-progress-pill-" + (model.Tools ? "Tools" : model.Controller.Section.ToString()));
         progress.Set(view.Overall, Motion(.35, movement: true));
         if (lastPhase != view.Phase)
         {
@@ -169,8 +171,8 @@ internal sealed class SkillsProgressPopover : Border
 
     private void Refresh()
     {
-        var view = model.Controller.Dialog;
-        title.SetText(view.Title);
+        var view = model.Dialog;
+        title.SetText(view.Phase == RunPhase.Done ? "All " + model.Noun + " downloaded" : view.Phase == RunPhase.Partial ? view.Failed + " didn\u2019t download" : view.Title);
         progress.SetText(view.ProgressText ?? "");
         var next = view.Phase switch { RunPhase.Downloading => "downloading", RunPhase.Paused => "paused", RunPhase.Done => "done", RunPhase.Partial => "partial", _ => "none" };
         if (key == next && view.Phase != RunPhase.Partial) return;

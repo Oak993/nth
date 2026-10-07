@@ -39,16 +39,17 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
     private Action? closeSheet;
     private bool closingFromHere;
 
-    protected LibraryPage(LibrarySection section)
+    protected LibraryPage(LibrarySection section, bool tools = false)
     {
         this.section = section;
-        model = SkillsPageSeams.Controllers.Current.For(section);
+        model = tools ? SkillsPageSeams.Controllers.Current.Tools() : SkillsPageSeams.Controllers.Current.For(section);
+        ChromeAccessories = model is null ? [] : [new CustomAddAction(tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills)];
         downloadAll = PlainControls.Button(downloadAllWords, OpenDownloadAll);
         SwiftGlass.StyleButton(downloadAll);
         downloadAll.HorizontalAlignment = HorizontalAlignment.Stretch;
         downloadAll.HorizontalContentAlignment = HorizontalAlignment.Center;
         downloadAll.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
-        downloadAll.Named("Download all " + section.Noun(), "download-all");
+        downloadAll.Named("Download all " + (tools ? "tools" : section.Noun()), "download-all");
         if (model is null)
         {
             var note = LibraryUi.Text(LibraryWords.Unavailable, 12.5, secondary: true, wrap: true);
@@ -74,25 +75,25 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         panes.Children.Add(detail);
 
         var page = new StackPanel { Spacing = 20 };
-        page.Children.Add(listing);
+        if (!tools) page.Children.Add(listing);
         page.Children.Add(panes);
-        if (section == LibrarySection.Skills) page.Children.Add(providers);
-        if (section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is { } imports) page.Children.Add(new ImportArea(imports)); // SK-18
+        if (!tools && section == LibrarySection.Skills) page.Children.Add(providers);
+        if (!tools && section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is { } imports) page.Children.Add(new ImportArea(imports)); // SK-18
         page.Children.Add(Footer(reset));
         Child = page;
 
         this.Track(() => model.Revision, _ => Refresh());
-        this.Track(() => model.DialogHidden, _ => SyncDialog(model.Controller.Dialog));
-        AttachedToVisualTree += (_, _) => SyncDialog(model.Controller.Dialog); // a page built again finds the run it left and shows its dialog, unless the user hid it
+        this.Track(() => model.DialogHidden, _ => SyncDialog(model.Dialog));
+        AttachedToVisualTree += (_, _) => SyncDialog(model.Dialog); // a page built again finds the run it left and shows its dialog, unless the user hid it
         DetachedFromVisualTree += (_, _) => CloseSheet();
         Refresh();
     }
 
     /// <inheritdoc />
-    public bool HasChromeControls => false;
+    public bool HasChromeControls => model is not null;
 
     /// <inheritdoc />
-    public IReadOnlyList<Control> ChromeAccessories { get; } = [];
+    public IReadOnlyList<Control> ChromeAccessories { get; }
 
     internal LibraryModel? Model => model;
 
@@ -168,11 +169,11 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
             }
         }
 
-        downloadAllWords.SetText(controller.DownloadAllLabel);
+        downloadAllWords.SetText(model.DownloadAllLabel);
         downloadAll.IsEnabled = controller.CanDownloadAll;
         providers.Apply(controller.Providers);
         reset!.Apply(controller.ResetAsked);
-        SyncDialog(controller.Dialog);
+        SyncDialog(model.Dialog);
     }
 
     // The dialog is a sheet in the window over everything (the design's dimmed window). It opens when the controller has a dialog open, closes when it has none, and stays hidden while a run goes on that the user hid.

@@ -27,7 +27,7 @@ internal sealed class DetailView : Decorator
     public DetailView(LibraryModel model, LibraryRow row)
     {
         Id = row.Id;
-        var tile = LibraryUi.Tile(row.Plugins ? "powerplug" : "wand.and.sparkles", 48, 13);
+        var tile = LibraryUi.Tile(model.Tools ? "wrench.and.screwdriver" : row.Plugins ? "powerplug" : "wand.and.sparkles", 48, 13);
         var title = LibraryUi.Text(row.Title, 18, weight: SwiftFont.Weight.Semibold, trim: true);
         var summary = LibraryUi.Text(row.Summary, 12, secondary: true, trim: true);
         var meta = LibraryUi.Text(row.Meta, 12, secondary: true, trim: true);
@@ -82,7 +82,7 @@ internal sealed class DetailView : Decorator
 
         var stack = new StackPanel { Spacing = 12, Children = { header, action, failure, removeWhy } };
         if (terms is not null) stack.Children.Add(terms);
-        stack.Children.Add(switches);
+        if (!model.Tools) stack.Children.Add(switches);
         stack.Children.Add(LibraryUi.Panel(detail));
         Child = stack;
         Apply(row, false);

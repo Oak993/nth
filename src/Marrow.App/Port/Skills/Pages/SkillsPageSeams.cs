@@ -15,13 +15,19 @@ namespace Marrow.App.Port.Skills.Pages;
 /// One <see cref="LibraryModel"/> per page, kept for the life of the app: the Settings window builds a page again each time the sidebar comes back to it, and a Download all in flight (and its
 /// dialog, hidden or not) must be the same one it left. <see cref="Make"/> null means the skills host could not be opened (SkillsStartup logged why): the pages then show no list.
 /// </summary>
-internal sealed class LibraryControllers(Func<LibrarySection, LibraryController>? make)
+internal sealed class LibraryControllers(Func<LibrarySection, LibraryController>? make, Func<LibraryController>? tools = null)
 {
     private readonly Dictionary<LibrarySection, LibraryModel> models = [];
+    private LibraryModel? toolsModel;
 
     public Func<LibrarySection, LibraryController>? Make { get; } = make;
 
     public bool IsAvailable => Make is not null;
+
+    public LibraryModel? Tools()
+    {
+        lock (models) return tools is null ? null : toolsModel ??= new LibraryModel(tools(), tools: true);
+    }
 
     public LibraryModel? For(LibrarySection section)
     {
@@ -46,7 +52,8 @@ internal static class SkillsPageSeams
         catch (SwiftTrapException) { return new LibraryControllers(null); }
         var catalogue = SkillsCatalogueLoader.LoadEmbedded();
         var backend = new HostLibraryBackend(host, catalogue, free: () => HostLibraryBackend.DriveOf(host.Paths.Root));
-        return new LibraryControllers(section => new LibraryController(section, backend, action => { if (Dispatcher.UIThread.CheckAccess()) action(); else Dispatcher.UIThread.Post(action); }));
+        void Post(Action action) { if (Dispatcher.UIThread.CheckAccess()) action(); else Dispatcher.UIThread.Post(action); }
+        return new LibraryControllers(section => new LibraryController(section, backend, Post), () => new LibraryController(LibrarySection.Skills, new ToolsLibraryBackend(backend), Post));
     };
 
     /// <summary>The controllers of the pages. The default is made on first use, once the skills host is bound (Program.Main binds it before the first window).</summary>

@@ -26,7 +26,7 @@ internal sealed class LibraryRowView : Decorator
     {
         Id = row.Id;
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,Auto"), ColumnSpacing = 9, Height = RowHeight };
-        var tile = LibraryUi.Tile(row.Plugins ? "powerplug" : "wand.and.sparkles", 22, 6);
+        var tile = LibraryUi.Tile(model.Tools ? "wrench.and.screwdriver" : row.Plugins ? "powerplug" : "wand.and.sparkles", 22, 6);
         title = LibraryUi.Text(row.Title, 12.5, trim: true);
         title.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(title, 1);
