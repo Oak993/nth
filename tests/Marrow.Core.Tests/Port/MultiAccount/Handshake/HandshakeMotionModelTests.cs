@@ -26,7 +26,10 @@ public sealed class HandshakeMotionModelTests
         clock.Advance(TimeSpan.FromMilliseconds(999));Assert.Equal(HandshakePhase.Linking,model.Plan(420,160,true).Phase);
         clock.Advance(TimeSpan.FromMilliseconds(1));Assert.Equal(HandshakePhase.InSync,model.Plan(420,160,true).Phase);
         Assert.Equal("In sync · Claude Max 2 read the plan back; Marrow checked it",model.Plan(420,160,true).Status);
-        clock.Advance(TimeSpan.FromMilliseconds(800));Assert.Equal(HandshakePhase.Switch,model.Plan(420,160,true).Phase);
+        clock.Advance(TimeSpan.FromMilliseconds(800));
+        // Retired the 800ms Assert.Equal(HandshakePhase.Switch,model.Plan(420,160,true).Phase): ED-NEW-ma-wave1-33.
+        // HTML3039 / MAUI-052 keeps In sync for 1400ms. Check the old following behavior at the actual boundary.
+        clock.Advance(TimeSpan.FromMilliseconds(600));Assert.Equal(HandshakePhase.Switch,model.Plan(420,160,true).Phase);
         clock.Advance(TimeSpan.FromMilliseconds(620));Assert.Equal("Handshake complete · Claude Max 2 is in sync",model.Plan(420,160,true).Status);
         Assert.Equal(1,model.Plan(420,160,true).Progress);
         port.Raise(Ev(HandshakePhase.Linking));Assert.Equal(HandshakePhase.Switch,model.Plan(420,160,true).Phase);
@@ -40,7 +43,10 @@ public sealed class HandshakeMotionModelTests
         using var model=new HandshakeMotionModel(thread,port,()=>accounts.Accounts,clock,readiness:_=>readiness);model.SoundEnabled=true;
         HandshakeEvent Ev(HandshakePhase phase,HandshakeEventKind kind=HandshakeEventKind.PhaseChanged)=>new(thread,kind,HandshakePhase.Idle,phase,a.Id.ToString(),b.Id.ToString(),HandshakeReason.NearLimit,clock.GetUtcNow());
         port.Raise(Ev(HandshakePhase.Standby));port.Raise(Ev(HandshakePhase.Linking));Assert.Empty(model.TakeSounds());
-        clock.Advance(TimeSpan.FromMilliseconds(600));var link=model.TakeSounds();Assert.Equal(2,link.Count);
+        clock.Advance(TimeSpan.FromMilliseconds(600));var link=model.TakeSounds();
+        // Retired Assert.Equal(2,link.Count) at600ms: ED-NEW-ma-wave1-34/35/36, HTML3039 / MAUI-051.
+        Assert.Empty(link); // No early tone; advance the remaining400ms before checking the unchanged sound recipe.
+        clock.Advance(TimeSpan.FromMilliseconds(400));link=model.TakeSounds();Assert.Equal(2,link.Count);
         Assert.Equal(new HandshakeTone(523.25,1.1,.03,0,.04,.0001,.05),link[0]);Assert.Equal(new HandshakeTone(783.99,1.3,.022,.08,.04,.0001,.05),link[1]);
         port.Raise(Ev(HandshakePhase.InSync,HandshakeEventKind.InSyncReady));clock.Advance(TimeSpan.FromMilliseconds(1000));
         var tones=model.TakeSounds();Assert.Equal(tick?1:0,tones.Count);Assert.Equal(tick,model.Plan(420,160,true).ShowTick);
