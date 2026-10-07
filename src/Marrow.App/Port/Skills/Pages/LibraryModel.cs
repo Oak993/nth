@@ -14,6 +14,7 @@ internal sealed class LibraryModel : MainActorModel
 {
     private int revision;
     private bool posted;
+    private bool dialogHidden;
 
     public LibraryModel(LibraryController controller)
     {
@@ -28,7 +29,7 @@ internal sealed class LibraryModel : MainActorModel
     public int Revision { get => Read(revision); private set => Set(ref revision, value); }
 
     /// <summary>Whether the dialog of a run that goes on is hidden by the user (Hide, Escape): a change does not open it again, the Download all button does.</summary>
-    public bool DialogHidden { get; set; }
+    public bool DialogHidden { get => Read(dialogHidden); set => Set(ref dialogHidden, value); }
 
     private void OnChanged()
     {

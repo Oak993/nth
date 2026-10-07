@@ -21,6 +21,7 @@ using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Port.Updates;
+using Marrow.App.Port.Skills.Pages;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Settings;
@@ -311,6 +312,7 @@ public sealed class SidebarView : Decorator
         // Settings". It takes no height while nothing is out of date and eases its height in and out (the list moves with it).
         var updatePill = new UpdatePill(nested: inPopover) { Margin = new Thickness(Chrome.ListInset, 0, Chrome.ListInset, 0) };
         Add(updatePill, GridLength.Auto);
+        Add(new SkillsProgressPills(nested: inPopover) { Margin = new Thickness(14, 0, 14, 0) }, GridLength.Auto);
 
         // :164-178 Add project and Settings, 1 pt apart, below the list.
         var addProject = new SidebarRow("Add project", AddProject, // :165

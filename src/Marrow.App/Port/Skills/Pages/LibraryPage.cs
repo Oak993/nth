@@ -82,6 +82,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         Child = page;
 
         this.Track(() => model.Revision, _ => Refresh());
+        this.Track(() => model.DialogHidden, _ => SyncDialog(model.Controller.Dialog));
         AttachedToVisualTree += (_, _) => SyncDialog(model.Controller.Dialog); // a page built again finds the run it left and shows its dialog, unless the user hid it
         DetachedFromVisualTree += (_, _) => CloseSheet();
         Refresh();
@@ -184,8 +185,8 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
             model.DialogHidden = false;
             return;
         }
+        if (model.DialogHidden) { CloseSheet(); return; }
         if (sheet is not null) { sheet.Dialog.Apply(dialog); return; }
-        if (dialog.IsRunning && model.DialogHidden) return;
         if (TopLevel.GetTopLevel(this) is null) return;
         ChatSheetPresentation.Show(this, dismiss =>
         {
