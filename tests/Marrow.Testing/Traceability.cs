@@ -19,7 +19,7 @@ public static partial class Traceability
     [GeneratedRegex(@"\AR-[A-Z]+-[0-9]+\z")] private static partial Regex RuleId();
 
     // Unnumbered first-release decisions use their append-only heading (ED-360) until the lead numbers them.
-    [GeneratedRegex(@"\AED-(?:[0-9]{3}|NEW-[a-z]+-[0-9]+)\z")] private static partial Regex DecisionId();
+    [GeneratedRegex(@"\A(?:ED-(?:[0-9]{3}|NEW-[a-z]+-[0-9]+)|OD-[0-9]{4})\z")] private static partial Regex DecisionId();
 
     [GeneratedRegex(@"\AO-[0-9]{2}\z")] private static partial Regex OracleId();
 
@@ -27,8 +27,8 @@ public static partial class Traceability
     // ("V-T10"). They locate a test; they never replace the Req, Rule or Decision trait R-TEST-1 asks for.
     [GeneratedRegex(@"\A[A-Z]{1,4}-[0-9]+[a-z]?\z")] private static partial Regex FeatureId();
 
-    // Skills downloads name their acceptance lists by the plan's item ("DL-16", skills-ONDEMAND-PLAN.md), not by a T-number.
-    [GeneratedRegex(@"\A(?:[A-Z]{1,4}-T[0-9]+|DL-[0-9]+)\z")] private static partial Regex SpecTestId();
+    // Locating Spec traits also name plan acceptance lists (DL-16) and numbered engineering contracts (ED-326).
+    [GeneratedRegex(@"\A(?:[A-Z]{1,4}-T[0-9]+|DL-[0-9]+|ED-[0-9]{3})\z")] private static partial Regex SpecTestId();
 
     // Two locating traits the skills units use: Platform marks a test that only runs on Windows, and Review marks a test
     // an independent review wrote (its value names the unit reviewed). Like Feature and Spec, neither replaces R-TEST-1's trait.

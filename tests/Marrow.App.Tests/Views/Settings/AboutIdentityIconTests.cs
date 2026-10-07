@@ -19,11 +19,11 @@ using SkiaSharp;
 namespace Marrow.App.Tests.Views.Settings;
 
 // B3 52bc792: AboutUpdateViews.swift:553-558 draws NSApp.applicationIconImage at 20 pt, high interpolation.
-// OD-0015 / OD-0033 explicitly substitute the approved, already-packaged Marrow bitmap for this app icon.
+// OD-0112 / OD-0033: the approved Aurora bitmap from generate_app_icon_d.py; ED-402 pins the replacement hash.
 [Collection("Headless")]
 public sealed class AboutIdentityIconTests(HeadlessSession headless)
 {
-    private const string ApprovedSha256 = "52D605D7B064BC0B1BD4460600AB65E0280280391FDCD00D021F14F00E727A60";
+    private const string ApprovedSha256 = "2833C700A1BEC5DB954FD0EDC3045708BC1A821E0F8D4CB47958036408097008";
 
     private static byte[] Draw(Control image)
     {
