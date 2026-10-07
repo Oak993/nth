@@ -113,8 +113,10 @@ public sealed class ImportDetector : IDisposable
         {
             return; // what was known stays
         }
+        var refreshed = library.Refresh();
         lock (gate) known = next;
         Announce();
+        if (refreshed) Changed?.Invoke();
     }
 
     public Task RefreshAsync() => Task.Run(Refresh);

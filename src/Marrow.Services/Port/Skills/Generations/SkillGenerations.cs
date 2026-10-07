@@ -31,10 +31,11 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     public string Prepare(string provider, IEnumerable<GenerationItem> items, SkillSwitches switches, GenerationBudget budget,
         IEnumerable<ExistingSkill>? existing = null, bool global = true)
     {
+        var imported = importedSource?.Snapshot() ?? [];
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."));
+            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."), imported);
             var cacheKey = provider + "/" + plan.Key;
             if (global) globalKeys[provider] = plan.Key;
             Evict(provider, plan.Key);
@@ -48,6 +49,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     public Generation Start(string provider, string chatId, IEnumerable<GenerationItem> items, SkillSwitches switches,
         GenerationBudget budget, IEnumerable<ExistingSkill>? existing = null)
     {
+        var imported = importedSource?.Snapshot() ?? [];
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
@@ -55,7 +57,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             if (chatId.Contains('/', StringComparison.Ordinal)) throw new ArgumentException("A chat id is one safe path component.", nameof(chatId));
             var liveKey = provider + "/" + chatId;
             if (live.Contains(liveKey)) throw new InvalidOperationException("This chat already has a live generation.");
-            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."));
+            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."), imported);
             var parent = ProviderRoot(provider);
             var target = paths.RequireManaged(Path.Combine(parent, chatPaths.Get(provider, chatId)));
             var previous = target;
@@ -128,7 +130,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     }
 
     private GenerationPlan Compose(string provider, IEnumerable<GenerationItem> source, SkillSwitches switches,
-        GenerationBudget budget, IEnumerable<ExistingSkill> existing)
+        GenerationBudget budget, IEnumerable<ExistingSkill> existing, IReadOnlyList<ImportedGenerationSkill> importedSnapshot)
     {
         GenerationFilters.RequireProvider(provider);
         if (string.IsNullOrWhiteSpace(switches.Version)) throw new ArgumentException("A reviewed catalogue release version is required.", nameof(switches));
@@ -178,7 +180,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             // SK-18 (OD-0118): skills the user brought in from other apps join the catalogue's, after it: a catalogue skill keeps a name, a provider's own skills still win a clash, the same budget applies.
             // Their on/off is the imported library's own (they are not catalogue items), and an empty source changes nothing: the key below is then exactly what it always was.
             var importedChosen = new List<(ImportedGenerationSkill Skill, GenerationSkill Meta)>();
-            foreach (var imported in (importedSource?.Snapshot() ?? []).OrderBy(i => i.Name, StringComparer.Ordinal))
+            foreach (var imported in importedSnapshot.OrderBy(i => i.Name, StringComparer.Ordinal))
             {
                 if (!SkillName.IsValid(imported.Name) || string.IsNullOrWhiteSpace(imported.Description) || imported.Description.Any(char.IsControl) || !imported.Files.ContainsKey("SKILL.md")) continue;
                 if (GenerationFilters.Clashes(provider, imported.Name, user) || usedNames.Contains(imported.Name)) continue;
@@ -393,10 +395,11 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     public GenerationListing Listing(string provider, IEnumerable<GenerationItem> items, SkillSwitches switches, GenerationBudget budget,
         IEnumerable<ExistingSkill>? existing = null)
     {
+        var imported = importedSource?.Snapshot() ?? [];
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."));
+            var plan = Compose(provider, items, switches, budget, existing ?? clashSource?.Invoke(provider) ?? throw new InvalidOperationException("A reliable clash snapshot is required."), imported);
             var key = provider + "/" + plan.Key;
             if (!listings.TryGetValue(key, out var generation))
             {
