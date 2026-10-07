@@ -153,6 +153,23 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             var chosen = new List<GenerationSkill>();
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var room = budget.Room(user);
+            var ownPlugins = ownPluginSource?.SnapshotPlugins() ?? [];
+            var importedAvailable = importedSource?.Snapshot() ?? [];
+            var importedChosen = new List<(ImportedGenerationSkill Skill, GenerationSkill Meta)>();
+            void ChooseImported(ImportedGenerationSkill imported)
+            {
+                if (!SkillName.IsValid(imported.Name) || string.IsNullOrWhiteSpace(imported.Description) || imported.Description.Any(char.IsControl) || !imported.Files.ContainsKey("SKILL.md")) return;
+                if (GenerationFilters.Clashes(provider, imported.Name, user) || usedNames.Contains(imported.Name)) return;
+                var meta = new GenerationSkill(imported.PluginId ?? (imported.Own ? imported.Id : "import"), imported.Name, imported.Id, imported.Description, SkillGroup.Other, 1_000, false,
+                    imported.Own ? imported.ExplicitOnly : null);
+                if (imported.Own && imported.ExplicitOnly && provider is not ("claude" or "codex" or "pi" or "native" or "cursor" or "devin" or "agy")) { leftOut.Add(meta.Id); return; }
+                var cost = imported.Own && meta.ExplicitOnly ? 0 : imported.Name.Length + imported.Description.Length + 3;
+                if (cost > room) { leftOut.Add(meta.Id); return; }
+                room -= cost;
+                usedNames.Add(imported.Name);
+                importedChosen.Add((imported, meta));
+            }
+            foreach (var own in importedAvailable.Where(i => i.Own).OrderBy(i => i.Name, StringComparer.Ordinal)) ChooseImported(own);
             foreach (var skill in verified.SelectMany(i => i.Skills).OrderBy(s => s.DefaultOn ? 0 : 1).ThenBy(s => s.Priority).ThenBy(s => s.Id, StringComparer.Ordinal))
             {
                 if (!switches.Enabled(skill) || !GenerationFilters.Allows(provider, skill) || GenerationFilters.Clashes(provider, skill.Name, user)) continue;
@@ -177,20 +194,8 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             }
             // SK-18 (OD-0118): skills the user brought in from other apps join the catalogue's, after it: a catalogue skill keeps a name, a provider's own skills still win a clash, the same budget applies.
             // Their on/off is the imported library's own (they are not catalogue items), and an empty source changes nothing: the key below is then exactly what it always was.
-            var ownPlugins = ownPluginSource?.SnapshotPlugins() ?? [];
-            var importedAvailable = importedSource?.Snapshot() ?? [];
-            var importedChosen = new List<(ImportedGenerationSkill Skill, GenerationSkill Meta)>();
-            foreach (var imported in importedAvailable.OrderBy(i => i.Name, StringComparer.Ordinal))
-            {
-                if (!SkillName.IsValid(imported.Name) || string.IsNullOrWhiteSpace(imported.Description) || imported.Description.Any(char.IsControl) || !imported.Files.ContainsKey("SKILL.md")) continue;
-                if (GenerationFilters.Clashes(provider, imported.Name, user) || usedNames.Contains(imported.Name)) continue;
-                var meta = new GenerationSkill(imported.PluginId ?? "import", imported.Name, imported.Id, imported.Description, SkillGroup.Other, 1_000, false);
-                var cost = imported.Name.Length + imported.Description.Length + 3;
-                if (cost > room) { leftOut.Add(meta.Id); continue; }
-                room -= cost;
-                usedNames.Add(imported.Name);
-                importedChosen.Add((imported, meta));
-            }
+            // Provider imports retain OD-0118's catalogue-first rule. Explicit own additions have already reserved their names and budget.
+            foreach (var imported in importedAvailable.Where(i => !i.Own).OrderBy(i => i.Name, StringComparer.Ordinal)) ChooseImported(imported);
             var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             var locations = new Dictionary<string, string>(StringComparer.Ordinal);
             var pluginRoots = new List<string>();
@@ -250,7 +255,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
             foreach (var (imported, meta) in importedChosen)
             {
                 if (locations.ContainsKey(meta.Id)) continue;
-                var root = (provider == "agy" && imported.Id.StartsWith("own-", StringComparison.Ordinal) ? ".agents/skills/" : GenerationFilters.PluginLoading(provider) ? "skills/" : "") + imported.Name;
+                var root = (provider == "agy" && imported.Own && !meta.ExplicitOnly ? ".agents/skills/" : GenerationFilters.PluginLoading(provider) ? "skills/" : "") + imported.Name;
                 locations.Add(meta.Id, root + "/SKILL.md");
                 foreach (var (relative, bytes) in imported.Files.OrderBy(f => f.Key, StringComparer.Ordinal)) AddFile(root + "/" + relative, bytes);
             }
@@ -263,7 +268,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
                 : JsonSerializer.SerializeToUtf8Bytes(new { version = switches.Version, entries, plugins = pluginEntries, imported = importedEntries });
             var key = Convert.ToHexStringLower(SHA256.HashData(identity))[..16];
             files["generation.json"] = identity; // trusted generated inventory member, also permits a valid empty generation.
-            return new(key, new StoreManifest(files.Select(f => Pin(f.Key, f.Value))), files, chosen.Concat(importedChosen.Select(c => c.Meta)).ToArray(), locations, leftOut.ToArray(), pluginRoots.ToArray());
+            return new(key, new StoreManifest(files.Select(f => Pin(f.Key, f.Value))), files, importedChosen.Where(c => c.Skill.Own).Select(c => c.Meta).Concat(chosen).Concat(importedChosen.Where(c => !c.Skill.Own).Select(c => c.Meta)).ToArray(), locations, leftOut.ToArray(), pluginRoots.ToArray());
             void AddFile(string path, byte[] bytes)
             {
                 StoreManifest.RequireRelative(path);
@@ -278,6 +283,7 @@ public sealed class SkillGenerations(StorePaths paths, IGenerationStore store, I
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(Encoding.UTF8.GetBytes(skill.Name + "\n" + skill.Description + "\n"));
+        if (skill.Own || skill.ExplicitOnly) hash.AppendData(Encoding.UTF8.GetBytes("own=" + skill.Own + ";explicit=" + skill.ExplicitOnly + "\n"));
         foreach (var (path, bytes) in skill.Files.OrderBy(f => f.Key, StringComparer.Ordinal))
             hash.AppendData(Encoding.UTF8.GetBytes(path + "=" + Convert.ToHexStringLower(SHA256.HashData(bytes)) + "\n"));
         return Convert.ToHexStringLower(hash.GetHashAndReset())[..32];

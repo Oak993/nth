@@ -91,7 +91,7 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
                 {
                     if (request.Kind == CustomAddKind.Skills)
                     {
-                        var parsed = ForeignFrontmatter.Parse(Encoding.UTF8.GetString(snapshot[marker]));
+                        var parsed = SkillFrontmatter.Disclosure(new UTF8Encoding(false, true).GetString(snapshot[marker]));
                         name = parsed.Name; description = parsed.Description;
                     }
                     else
@@ -101,7 +101,7 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
                         description = json.RootElement.TryGetProperty("description", out var d) ? d.GetString() : "";
                     }
                 }
-                catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException) { /* listed as invalid below */ }
+                catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException or InvalidDataException or DecoderFallbackException) { /* listed as invalid below */ }
                 var problem = !SkillName.IsValid(name ?? "") ? "The manifest needs a valid name." :
                     request.Kind == CustomAddKind.Skills && (string.IsNullOrWhiteSpace(description) || description.Length > 1024 || description.Any(char.IsControl)) ? "SKILL.md needs a description of at most 1024 characters." : null;
                 var subset = snapshot.Where(p => p.Key.StartsWith(prefix, StringComparison.Ordinal)).ToDictionary(p => p.Key[prefix.Length..], p => p.Value);
@@ -195,14 +195,22 @@ public sealed class CustomSources : ICustomAddBackend, IImportedSkillSource, IOw
             foreach (var item in items.Where(i => i.Enabled && i.Kind is CustomAddKind.Skills or CustomAddKind.Plugins))
             {
                 var content = Verified(item).ToDictionary(p => p.Key["payload/".Length..], p => p.Value);
-                if (item.Kind == CustomAddKind.Skills) result.Add(new("own-" + item.Id, item.Name, item.Description, content));
+                if (item.Kind == CustomAddKind.Skills) result.Add(new("own-" + item.Id, item.Name, item.Description, content, Own: true, ExplicitOnly: SkillFrontmatter.ExplicitOnly(new UTF8Encoding(false, true).GetString(content["SKILL.md"]))));
                 else foreach (var marker in content.Keys.Where(p => p.EndsWith("/SKILL.md", StringComparison.Ordinal) || p == "SKILL.md").Order(StringComparer.Ordinal))
                 {
-                    var metadata = ForeignFrontmatter.Parse(Encoding.UTF8.GetString(content[marker]));
+                    ExistingSkill metadata;
+                    bool explicitOnly;
+                    try
+                    {
+                        var text = new UTF8Encoding(false, true).GetString(content[marker]);
+                        metadata = SkillFrontmatter.Disclosure(text);
+                        explicitOnly = SkillFrontmatter.ExplicitOnly(text);
+                    }
+                    catch (Exception e) when (e is InvalidDataException or JsonException or DecoderFallbackException) { continue; }
                     if (!SkillName.IsValid(metadata.Name ?? "") || string.IsNullOrWhiteSpace(metadata.Description) || metadata.Description.Length > 1024) continue;
                     var prefix = marker[..^"SKILL.md".Length];
                     var skillFiles = content.Where(p => p.Key.StartsWith(prefix, StringComparison.Ordinal)).ToDictionary(p => p.Key[prefix.Length..], p => p.Value);
-                    result.Add(new("own-" + item.Id + "/" + marker, metadata.Name!, metadata.Description!, skillFiles, "own-" + item.Id, prefix.TrimEnd('/')));
+                    result.Add(new("own-" + item.Id + "/" + marker, metadata.Name!, metadata.Description!, skillFiles, "own-" + item.Id, prefix.TrimEnd('/'), Own: true, ExplicitOnly: explicitOnly));
                 }
             }
             return result;

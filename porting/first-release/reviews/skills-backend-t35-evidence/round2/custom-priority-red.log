@@ -1,0 +1,87 @@
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.16]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:00.93]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:00.97]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:01.15]     Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(name: "mine", characters: 60, names: "mine") [FAIL]
+[xUnit.net 00:00:01.15]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:01.15]                                                              ↓ (pos 0)
+[xUnit.net 00:00:01.15]       Expected: string[]                                    ["mine"]
+[xUnit.net 00:00:01.15]       Actual:   IListSelectIterator<PublishedSkill, string> ["pdf"]
+[xUnit.net 00:00:01.15]                                                              ↑ (pos 0)
+[xUnit.net 00:00:01.15]       Stack Trace:
+[xUnit.net 00:00:01.15]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs(27,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(String name, Int32 characters, String names)
+[xUnit.net 00:00:01.15]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.16]     Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(name: "mine", characters: 8000, names: "mine,pdf") [FAIL]
+[xUnit.net 00:00:01.16]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:01.16]                                                              ↓ (pos 0)
+[xUnit.net 00:00:01.16]       Expected: string[]                                    ["mine", "pdf"]
+[xUnit.net 00:00:01.16]       Actual:   IListSelectIterator<PublishedSkill, string> ["pdf", "mine"]
+[xUnit.net 00:00:01.16]                                                              ↑ (pos 0)
+[xUnit.net 00:00:01.16]       Stack Trace:
+[xUnit.net 00:00:01.16]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs(27,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(String name, Int32 characters, String names)
+[xUnit.net 00:00:01.16]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.16]     Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(name: "pdf", characters: 8000, names: "pdf") [FAIL]
+[xUnit.net 00:00:01.16]       Assert.Contains() Failure: Sub-string not found
+[xUnit.net 00:00:01.16]       String:    "---\nname: pdf\ndescription: Fixture descri"···
+[xUnit.net 00:00:01.16]       Not found: "OWN BODY"
+[xUnit.net 00:00:01.16]       Stack Trace:
+[xUnit.net 00:00:01.16]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs(28,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(String name, Int32 characters, String names)
+[xUnit.net 00:00:01.16]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.17]     Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_only_custom_skills_stay_out_of_automatic_disclosure_and_remain_invocable [FAIL]
+[xUnit.net 00:00:01.17]       Assert.True() Failure
+[xUnit.net 00:00:01.17]       Expected: True
+[xUnit.net 00:00:01.17]       Actual:   False
+[xUnit.net 00:00:01.17]       Stack Trace:
+[xUnit.net 00:00:01.17]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs(42,0): at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_only_custom_skills_stay_out_of_automatic_disclosure_and_remain_invocable()
+[xUnit.net 00:00:01.17]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.17]   Finished:    Marrow.Services.Tests
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(name: "mine", characters: 60, names: "mine") [144 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                       ↓ (pos 0)
+Expected: string[]                                    ["mine"]
+Actual:   IListSelectIterator<PublishedSkill, string> ["pdf"]
+                                                       ↑ (pos 0)
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(String name, Int32 characters, String names) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs:line 27
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(name: "mine", characters: 8000, names: "mine,pdf") [7 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                       ↓ (pos 0)
+Expected: string[]                                    ["mine", "pdf"]
+Actual:   IListSelectIterator<PublishedSkill, string> ["pdf", "mine"]
+                                                       ↑ (pos 0)
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(String name, Int32 characters, String names) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs:line 27
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(name: "pdf", characters: 8000, names: "pdf") [4 ms]
+  Error Message:
+   Assert.Contains() Failure: Sub-string not found
+String:    "---\nname: pdf\ndescription: Fixture descri"···
+Not found: "OWN BODY"
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_custom_skills_win_catalogue_names_budget_and_listing_order(String name, Int32 characters, String names) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs:line 28
+--- End of stack trace from previous location ---
+  Failed Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_only_custom_skills_stay_out_of_automatic_disclosure_and_remain_invocable [3 ms]
+  Error Message:
+   Assert.True() Failure
+Expected: True
+Actual:   False
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Skills.Custom.CustomSkillPriorityTests.Explicit_only_custom_skills_stay_out_of_automatic_disclosure_and_remain_invocable() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Skills/Custom/CustomSkillPriorityTests.cs:line 42
+--- End of stack trace from previous location ---
+
+Test Run Failed.
+Total tests: 4
+     Failed: 4
+ Total time: 1.6361 Seconds
+       _VSTestConsole:
+         MSB4181: The "VSTestTask" task returned false but did not log an error.
+     1>Done Building Project "/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj" (VSTest target(s)) -- FAILED.
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:36.26
