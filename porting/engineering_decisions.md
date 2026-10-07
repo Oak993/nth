@@ -5615,3 +5615,11 @@ Lead (claude/ma-wire-fix), after T9's final group withdrew codex/ma-wire c2d74d8
 The lead's owner-authorized update supersedes ED-635's retained-only disposition. Preserve its scratch attribution and full failure evidence; main remains the original fully swept dcdcd498a candidate with release-pack withdrawn. Merge exact replacement heads palette86f9dc89a, design14cf109b0, MA-gaps4a9031d2e and MA-wire7c4eb8392, retaining opinions18dcbc9f3 and prices40fe35ac9. No scratch withdrawal is promoted and no internally failing unit is repaired by T9. Each replacement has its own no-ff merge and byte-exact ledger check; new lead decisions number ED-636..639 in that order. Program.cs's merge conflict keeps the delivered dispatch move after the Velopack hook, before other desktop bindings, preserving the existing private MCP relay first. All delivered changed tests match incoming bytes except mechanical ED references.
 
 Lead-authorized delta gate only, no new full sweep: build all four projects0W/0E; every earlier twice-alone method twice alone, every changed test class twice alone, all ModelsPalette/Settings/MultiAccount/DesignGaps classes twice, plus Traceability in all four projects. Native-named classes run under native.lock acquired after heavy, with fixture-owned windows and no owner app/installer. Keep the original two documented GAP known defects and original OD-0128 fixed153 identities plus six same-frame wrappers/error kind; any new failure remains blocking. Authentic owner-PC palette bake bytes stay unchanged. Record original raw sweep separately from the replacement delta gate and preserve every exact failure assertion/collection in the handoff. No release-pack installer, release-notes, next group or heartbeat resume.
+
+
+## ED-641 - Lead-supplied design-census census follow-up (ENGINEERING DECISION)
+
+
+Census addendum (T9 replacement gate): ContinuousCornerSitesTests' table gains the RR-37 Settings shadow carrier, Marrow.App/Port/SettingsShell.cs CornerRadius(8), classed Circular against settings-open-rise-2-locked .glass (CSS border-radius 8 with the same two shadows). Census and Traceability pass twice alone on the combined tree.
+
+Keep all historical ledger bytes; exact owner-authorized census row appended to the existing union, with unchanged census logic and assertions. No new full sweep.
