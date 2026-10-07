@@ -4112,3 +4112,7 @@ Tests first red on missing context; build 0 warnings/errors and cards slice 7/7.
 ## ED-NEW-ma-wave2-7
 MA-3b-13: the shared chassis draws the model's other-service consent and primary Wait choice, and earlier-account Go back/Stay actions. Account names in titles use semibold inline spans. CardTitleBlock retains the complete Text after span construction because Avalonia clears it when Inlines changes; the title remains readable by accessibility and plain-text inspection. No Core file changed.
 Tests first: missing bold names failed alone twice, rich-title text regression reproduced alone twice for each failing case; implementation fixed and new Codex fixture given two accounts to match its numbered name. Final build 0 warnings/errors; all card tests 9/9. Native title/font and card appearance remains required.
+
+## ED-NEW-ma-wave2-8
+MA-3b-14: the test-first shared card chassis already renders the model's verbatim mid-reply title, explanation and Finish now/Stop buttons. No additional renderer or duplicate policy is needed. Two new keyboard/pending-answer cases validate both actions, exact 12px/17px explanation styling and disabled overlapping input while the fake port holds the answer. They passed against the existing chassis; no fabricated red or existing assertion edits.
+Build 0 warnings/errors, new cases 2/2; native mid-reply appearance remains required.
