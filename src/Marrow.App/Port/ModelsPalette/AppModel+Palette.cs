@@ -9,6 +9,8 @@ namespace Marrow.App;
 public sealed partial class AppModel
 {
     private PaletteEngine? paletteEngine;
+    private Port.ModelsPalette.ModelShades? paletteShades;
+    internal Port.ModelsPalette.ModelShades PaletteShades=>paletteShades??=new(PaletteEngine);
     internal PaletteEngine PaletteEngine=>paletteEngine??=new PaletteEngine(Storage.Root,URLSession.Transport.Current,new SkiaLogoDecoder(),releasePack:Port.ModelsPalette.PaletteStartup.Pack);
     private void InitializePalette()
     {
@@ -23,6 +25,6 @@ public sealed partial class AppModel
     {if(paletteEngine is null)return;_ =CollectPaletteCatalogues();paletteEngine.Start();}
     internal void ResumePaletteChecks()=>paletteEngine?.NotifyResume();
     internal void StopPaletteChecks()
-    {Providers.PropertyChanged-=PaletteCatalogChanged;paletteEngine?.Dispose();paletteEngine=null;}
-    internal Port.ModelsPalette.PaletteColoursController CreatePaletteColoursController()=>new(PaletteEngine,()=>Providers.AvailableProviders.Count(p=>p!=ProviderKind.OpenRouter),collectCatalogues:()=>PaletteEngine.ObserveCatalogues(Providers.Catalogs.SelectMany(p=>p.Value.Select(m=>new PaletteCatalogueModel(p.Key.Id,m.Id,m.Name))).ToArray()));
+    {Providers.PropertyChanged-=PaletteCatalogChanged;paletteShades?.Dispose();paletteShades=null;paletteEngine?.Dispose();paletteEngine=null;}
+    internal Port.ModelsPalette.PaletteColoursController CreatePaletteColoursController()=>new(PaletteEngine,()=>Providers.AvailableProviders.Count(p=>p!=ProviderKind.OpenRouter),sharedFacade:PaletteShades,collectCatalogues:()=>PaletteEngine.ObserveCatalogues(Providers.Catalogs.SelectMany(p=>p.Value.Select(m=>new PaletteCatalogueModel(p.Key.Id,m.Id,m.Name))).ToArray()));
 }

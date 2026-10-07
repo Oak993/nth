@@ -12,19 +12,20 @@ internal sealed class PaletteColoursController : IDisposable
     private readonly TimeProvider time;
     private readonly Func<Task> collectCatalogues;
     private ModelShades? facade;
+    private readonly ModelShades? sharedFacade;
     private long checkedTick;
     private bool attached,disposed,noChanges,offline,hasChecked;
     private Task? refreshing;
     public PaletteColoursView View {get;private set;}
     public event Action? Changed;
-    public PaletteColoursController(PaletteEngine engine,Func<int> providerCount,TimeProvider? time=null,Func<Task>? collectCatalogues=null)
+    public PaletteColoursController(PaletteEngine engine,Func<int> providerCount,TimeProvider? time=null,Func<Task>? collectCatalogues=null,ModelShades? sharedFacade=null)
     {
-        this.engine=engine;this.providerCount=providerCount;this.time=time??TimeProvider.System;this.collectCatalogues=collectCatalogues??(()=>Task.CompletedTask);
+        this.engine=engine;this.sharedFacade=sharedFacade;this.providerCount=providerCount;this.time=time??TimeProvider.System;this.collectCatalogues=collectCatalogues??(()=>Task.CompletedTask);
         hasChecked=engine.LastCheckedAtServerSeconds>0;checkedTick=this.time.GetTimestamp();View=new(false,Rest(),Dots(),[],0,engine.Current.Models.Count);
     }
     internal PaletteDot? FindMaker(string name)=>engine.Current.Makers.Values.FirstOrDefault(m=>m.Name==name) is {} m?new(m.Id,m.Name,m.Heart):null;
-    public void Attach(){if(attached||disposed)return;attached=true;facade=new(engine,time:time);facade.Changed+=FacadeChanged;Tick();}
-    public void Detach(){if(!attached)return;attached=false;facade?.Dispose();facade=null;View=View with {Summary=[]};Changed?.Invoke();}
+    public void Attach(){if(attached||disposed)return;attached=true;facade=sharedFacade??new(engine,time:time);facade.Changed+=FacadeChanged;Tick();}
+    public void Detach(){if(!attached)return;attached=false;if(facade is {} old){old.Changed-=FacadeChanged;if(sharedFacade is null)old.Dispose();}facade=null;View=View with {Summary=[]};Changed?.Invoke();}
     public void Tick(){if(!View.Running&&!offline){View=View with {Detail=Rest()};Changed?.Invoke();}}
     private string Rest()=>noChanges?"Checked just now · no new models":$"Checked {(hasChecked?UpdatesProjector.Age(time.GetElapsedTime(checkedTick)):"never")} · {engine.Current.Models.Count} models from {engine.Current.Makers.Count} makers";
     private PaletteDot[] Dots()=>engine.Current.Makers.Values.OrderBy(m=>m.Id switch {"anthropic"=>0,"openai"=>1,"google"=>2,"mistralai"=>3,_=>4}).ThenBy(m=>m.Id,StringComparer.Ordinal).Take(5).Select(m=>new PaletteDot(m.Id,m.Name,m.Heart)).ToArray();

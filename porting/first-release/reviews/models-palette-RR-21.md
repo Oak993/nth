@@ -56,3 +56,8 @@ Final control follow-up: a fifth fake-pipeline test asserts the actual 9 px make
 ### Round 2 - lead placement ruling applied (2026-10-07)
 
 DONE for T9 Windows verification. OD-0127 Colours is now the LAST Appearance card, after App Zoom. ED-NEW-models-palette-9 records the lead placement ruling. SettingsRiseTests is byte-identical. Original second ChromeCard is still the four-row card. New PaletteColoursRiseTests proves Colours card index 10 hidden state, exact shared rise curve/stagger and restored transform; the five fake-pipeline option-A tests remain green. `rr21-ruling-renderer-verified.trx`: 38 passed, one Windows-only failure, zero skipped. All 17 Linux-compatible original rise tests pass; Input_reaches_the_window_while_the_wave_runs now reaches user32.dll after its preserved guards. T9 must run that input test and native option-A geometry/dot/progress comparisons. No original test/tolerance/reference was edited.
+
+
+### Round 2 final refresh lifetime
+
+DONE. OD-0127 option A remains the last Appearance card, following the existing rise rule (ED-9 and the lead ruling). The controller now borrows the one process ModelShades facade; leaving the page clears its summary and removes its listener while the engine/facade stay alive. The new fake pipeline lifetime proof passes 1/1 in round2/rr21-shared-refresh.trx, and all palette tests pass 27/27 in the post-Strike replay. ED-NEW-models-palette-15. Exact text, Refresh/Refreshing… state, UpdatesProgressBar, offline preservation and dot/Reduce Motion guards continue to pass. All fourteen locked rise guards are unchanged and pass; the original native input fact requires user32/Windows.

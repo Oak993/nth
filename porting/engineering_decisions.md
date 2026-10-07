@@ -3945,3 +3945,10 @@ OD-0049/0060/0075/0099, Q-PICKER A and the T37 ruling permit binding only after 
 Two composer seams: OpenRouter popup offset -10 px (existing Top placement retained); ModelList delegates its OpenRouter-only branch to the new ModelPickerBinding. This preserves existing Choose/Back/history restrictions, original Hydra pair rows/callbacks, retained search, and the .12 s outer panel transition. The mandatory colour delegate reads approved locked brand hearts while ModelShades.ApplyToUi remains false. No LiquidTrack/LiquidStrike change belongs to this row.
 
 Fake-only real ModelList tests and approved picker tests: round2/rr19-rr20-binding-green.trx (five passed, including one RR-20 adapter test). Compile and behaviour reds retained. New test setup pumps the real dispatcher after TextBox.Text changes and fakes Reduce Motion; no original assertion/tolerance/reference was edited. Windows native above-chip, glass/fonts/scroll and Hydra/history captures remain required.
+
+
+## ED-NEW-models-palette-15 - RR-21 process facade and page lifetime (2026-10-07)
+
+OD-0127 and the trailing-card ruling remain the authority for the visible Colours row. Settings now borrows the AppModel's single ModelShades facade, allowing refresh progress and model changes to share the specified one dispatcher post per 100 ms with future gated card bindings. Leaving the page unsubscribes only its own listener and clears its summary; it does not dispose the process facade. App exit disposes that facade before its engine. The original optional private facade remains available to isolated fake fixtures.
+
+The new fake-only PaletteSharedRefreshTests proves that leaving/disposal of Colours keeps the facade alive, coalesces the real engine pipeline into one post, and retains the current frozen shade. round2/rr21-shared-refresh.trx: 1/1. The final post-Strike App replay also passes all 27 palette tests. All 14 locked rise guards remain untouched and passing; the one real user32 input fact needs Windows. No SettingsRiseTests, tolerance, reference or assertion was edited.
