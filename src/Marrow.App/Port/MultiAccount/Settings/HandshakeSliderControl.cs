@@ -17,7 +17,7 @@ namespace Marrow.App.Port.MultiAccount.Settings;
 internal sealed class HandshakeSliderControl : Decorator
 {
     private readonly Func<HandshakePoint> read;
-    private readonly CzCrossfadeText value = new("") { FontSize = 12, Secondary = true };
+    private readonly CzCrossfadeText value = new("") { FontSize = 11, Secondary = true };
     private readonly EffortSlider slider;
     private readonly AnimatedScalar dim;
     private bool locked;
@@ -25,7 +25,7 @@ internal sealed class HandshakeSliderControl : Decorator
     internal HandshakeSliderControl(Func<HandshakePoint> read, Action<HandshakePoint> write, string title, EffortBrand brand, ModelPulse pulse)
     {
         this.read = read;
-        slider = new EffortSlider(HandshakeStops.Count, new Binding<int>(() => { _ = pulse.Revision; return HandshakeStops.IndexOf(read()); }, i => write(HandshakeStops.At(i))), title, false, brand);
+        slider = new EffortSlider(HandshakeStops.Count, new Binding<int>(() => { _ = pulse.Revision; return HandshakeStops.IndexOf(read()); }, i => write(HandshakeStops.At(i))), title, false, brand, compactHandshake: true);
         slider.Focusable = true;
         slider.KeyDown += (_, e) =>
         {
@@ -41,11 +41,11 @@ internal sealed class HandshakeSliderControl : Decorator
             };
             if (next is { } index) { write(HandshakeStops.At(index)); e.Handled = true; }
         };
-        slider.Width = 220;
+        slider.Width = 112;
         slider.VerticalAlignment = VerticalAlignment.Center;
         value.VerticalAlignment = VerticalAlignment.Center;
         value.SetText(Text());
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { slider, value } };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { slider, value } };
         Child = row;
         dim = new AnimatedScalar(this, 1, v => row.Opacity = v);
         this.Track(() => { _ = pulse.Revision; return Text(); }, text => value.SetText(text));
@@ -59,7 +59,9 @@ internal sealed class HandshakeSliderControl : Decorator
 
     internal double Dimness => dim.Value;
 
-    private string Text() => MultiAccountWords.HandshakeText(HandshakeStops.Text(read()));
+    private bool showPrefix = true;
+    internal bool ShowPrefix { get => showPrefix; set { showPrefix = value; this.value.SetText(Text()); } }
+    private string Text() => showPrefix ? MultiAccountWords.HandshakeText(HandshakeStops.Text(read())) : HandshakeStops.Text(read());
 
     /// <summary>Locks or frees the slider: dimmed over 0.3 s, not focusable, no pointer.</summary>
     internal void Lock(bool on, string? reason)
