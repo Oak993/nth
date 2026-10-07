@@ -123,6 +123,26 @@ public sealed class InjectedStandbyHostTests
     }
 
     [Fact]
+    public void A_handover_that_fails_still_hands_the_context_over_with_the_first_real_turn()
+    {
+        using var rig = new ThreadRuntimeTurnRig();
+        var fake = new ThreadRuntimeInjectionSession { EndFails = true };
+        var incoming = new ThreadRuntimeScriptedSession();
+        rig.H.Main.Loop.Run(async () =>
+        {
+            var (host, target, summaries, _) = Make(rig, fake);
+            await using var standby = await host.StartStandbyAsync(target, CancellationToken.None);
+            await standby.ReceiveAsync(new(Bring.MarrowSummary, await summaries.BuildAsync(rig.InitialThread.Id, CancellationToken.None), null), false, CancellationToken.None);
+            await host.SwitchAsync(standby, target, false, CancellationToken.None);
+        }, AppModelHarness.Bound);
+        Assert.Null(rig.Thread.ProviderSessionID);
+        Assert.Equal(1, fake.DiscardCalls);
+        rig.Install(incoming);
+        rig.Send("next");
+        Assert.Contains("[Marrow Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_refused_inject_still_hands_the_context_over_with_the_first_real_turn()
     {
         using var rig = new ThreadRuntimeTurnRig();

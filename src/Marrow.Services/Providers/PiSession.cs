@@ -360,7 +360,11 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession
             SwiftTry.Ignore(() => File.Delete(sessionFile));
     }
 
-    public void EndStandby() => standbyActive = false;
+    public Task EndStandbyAsync(CancellationToken ct)
+    {
+        standbyActive = false;
+        return Task.CompletedTask;
+    }
 
     private void StandbyActivity(string kind)
     {

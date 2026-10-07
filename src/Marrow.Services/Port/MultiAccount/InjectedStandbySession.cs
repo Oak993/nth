@@ -109,8 +109,17 @@ public sealed partial class InjectedStandbySession : IAdoptableStandby
             if (!ownsSession || discarded || FaultReason is not null || ReceivedPackage is null || !session.IsRunning)
                 throw new InvalidOperationException("Only a loaded standby can be prepared for adoption.");
             if (canTransfer?.Invoke() == false) throw new InvalidOperationException("Context transfer is no longer authorized.");
-            injector.EndStandby();
-            ended = true;
+            try
+            {
+                await injector.EndStandbyAsync(ct);
+                ended = true;
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                // The handover itself failed (a CLI that opens its own session here): nothing was lost, the context goes the deferred way.
+                Fault("handover: " + error.Message);
+                await DiscardAsync();
+            }
         }
         catch { if (ownsSession) await DiscardAsync(); throw; }
         finally { gate.Release(); }

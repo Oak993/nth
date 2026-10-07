@@ -28,8 +28,8 @@ public interface IStandbyInjectionSession
     /// <summary>Cancel: deletes the waiting thread and stops the process. No turn is ever sent.</summary>
     Task DiscardStandby();
 
-    /// <summary>The handover: from here the next turn is the user's, in their real mode.</summary>
-    void EndStandby();
+    /// <summary>The handover: from here the next turn is the user's, in their real mode. A CLI that has to open its own session for the user's turns does it here; a failure falls back.</summary>
+    Task EndStandbyAsync(CancellationToken ct);
 }
 
 /// <summary>The destination CLI cannot hold injected history safely (too old, schema without the call, the call failed); the caller falls back.</summary>

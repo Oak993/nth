@@ -42,7 +42,13 @@ public sealed class StandbyInjectionSession : ProviderSession, IStandbyInjection
         return Task.CompletedTask;
     }
 
-    public void EndStandby() => Ended = true;
+    public bool EndFails { get; init; }
+    public Task EndStandbyAsync(CancellationToken ct)
+    {
+        if (EndFails) throw new IOException("the handover failed");
+        Ended = true;
+        return Task.CompletedTask;
+    }
     public void Violate(string method)
     {
         StandbyViolation = method;

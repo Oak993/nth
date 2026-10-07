@@ -104,7 +104,7 @@ public sealed class CodexStandbyTests
         Assert.Contains("waiting", early.ErrorDescription, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("turn/start", Methods(script));
 
-        session.EndStandby();
+        Run(runtime, session.EndStandbyAsync(CancellationToken.None));
         Run(runtime, session.Send(Input("the user's message")));
         var methods = Methods(script);
         Assert.Equal("turn/start", methods[^1]);

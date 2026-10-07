@@ -48,10 +48,14 @@ public sealed class ThreadRuntimeInjectionSession : ProviderSession, IStandbyInj
         return Task.CompletedTask;
     }
 
-    public void EndStandby()
+    public bool EndFails { get; set; }
+
+    public Task EndStandbyAsync(CancellationToken ct)
     {
+        if (EndFails) throw new IOException("the handover failed");
         Ended = true;
         Log.Add("end-standby");
+        return Task.CompletedTask;
     }
 
     public void Violate(string method)

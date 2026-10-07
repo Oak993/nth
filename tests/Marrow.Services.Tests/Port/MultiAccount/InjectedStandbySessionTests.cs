@@ -203,6 +203,19 @@ public sealed class InjectedStandbySessionTests
     }
 
     [Fact]
+    public async Task A_handover_that_fails_makes_it_a_deferred_delivery_and_discards_the_waiting_session()
+    {
+        using var folder = new AccountTestFolder();
+        var session = new StandbyInjectionSession { EndFails = true };
+        await using var standby = await InjectedStandbySession.StartAsync(session, Config(folder.Path), CancellationToken.None);
+        await standby.ReceiveAsync(Package(), false, CancellationToken.None);
+        await standby.PrepareForAdoptionAsync(CancellationToken.None);
+        Assert.Equal(StandbyKind.Deferred, standby.Kind);
+        Assert.Equal(1, session.DiscardCalls);
+        Assert.Throws<InvalidOperationException>(() => standby.TakeSession());
+    }
+
+    [Fact]
     public async Task Revoked_permission_stops_a_transfer_before_anything_is_injected()
     {
         using var folder = new AccountTestFolder();

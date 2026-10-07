@@ -21,7 +21,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
 
     // OD-0116 (lead decision 2026-10-06), refined by ED-NEW-ma-engine-7: how each service holds the context before the switch.
     // Primed: Claude (after its gate) and the API/Local providers read it in a verified text-only turn.
-    // Injected: Codex (and Pi) load it as history with no model turn at all, gated by a run-time check; Codex falls back to deferred delivery, Pi to a warm start.
+    // Injected: Codex, Pi and OpenCode load it as history with no model turn at all, each gated by a run-time check; Codex falls back to deferred delivery, Pi and OpenCode to a warm start.
     // Warm: the process and session open early and receive nothing; the context goes as the first real turn. Deferred: Command Code, nothing to open early.
     private enum StandbyPlan { Primed, InjectedThenDeferred, InjectedThenWarm, Warm, Deferred }
 
@@ -29,8 +29,8 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
     {
         ProviderKind.Claude or ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local => StandbyPlan.Primed,
         ProviderKind.Codex => StandbyPlan.InjectedThenDeferred,
-        ProviderKind.Pi => StandbyPlan.InjectedThenWarm,
-        ProviderKind.Copilot or ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin or ProviderKind.Antigravity or ProviderKind.Opencode or ProviderKind.OpencodeGo => StandbyPlan.Warm,
+        ProviderKind.Pi or ProviderKind.Opencode or ProviderKind.OpencodeGo => StandbyPlan.InjectedThenWarm,
+        ProviderKind.Copilot or ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin or ProviderKind.Antigravity => StandbyPlan.Warm,
         _ => StandbyPlan.Deferred,
     };
 
@@ -50,7 +50,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         try
         {
             var candidate = create(runtime.CreateHandshakeConfiguration(target), Guid.Parse(target.Account.Id));
-            return candidate.Session is IStandbyInjectionSession injector && !await injector.SupportsStandbyInjection(ct);
+            return InjectionCapable(candidate) is IStandbyInjectionSession injector && !await injector.SupportsStandbyInjection(ct);
         }
         catch (Exception) when (!ct.IsCancellationRequested)
         {
@@ -105,6 +105,12 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         return standby;
     }
 
+    // OpenCode holds the context on its own HTTP server and opens the conversation's ACP session (session/load) at the handover; every other service injects through its own session.
+    private static ProviderSession InjectionCapable(AccountSessionLaunch candidate) =>
+        candidate.Configuration.Provider is ProviderKind.Opencode or ProviderKind.OpencodeGo
+            ? new OpenCodeInjectionSession(candidate.Configuration, configuration => AccountSessionFactory.Constructor.Current(configuration))
+            : candidate.Session;
+
     // ED-NEW-ma-engine-7: no model turn at all, so nothing can act. Any refusal, old CLI, exit or activity falls back to deferred delivery with the context intact.
     private async Task<IStandbySession> StartInjectedAsync(SessionConfiguration original, SwitchTarget target, Guid id, string from, long epoch, long generation,
         Func<bool> canTransfer, bool warmFallback, CancellationToken ct)
@@ -113,7 +119,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         try
         {
             var candidate = create(original, id);
-            standby = await InjectedStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, canTransfer);
+            standby = await InjectedStandbySession.StartAsync(InjectionCapable(candidate), candidate.Configuration, ct, canTransfer);
         }
         catch (Exception) when (!ct.IsCancellationRequested)
         {
@@ -245,6 +251,11 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                 return;
             }
             await incoming.PrepareForAdoptionAsync(ct);
+            if (incoming.Kind == StandbyKind.Deferred)
+            {
+                await FallBackToDeferredAsync(incoming, target, ct);
+                return;
+            }
             await MainActor.Run(() =>
             {
                 ct.ThrowIfCancellationRequested();

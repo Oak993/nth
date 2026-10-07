@@ -103,7 +103,7 @@ public sealed class PiStandbyTests
         Assert.Contains("waiting", early.ErrorDescription, StringComparison.OrdinalIgnoreCase);
 
         // The handover: the user's own turn, with the gate open again.
-        session.EndStandby();
+        runtime.Loop.Run(() => session.EndStandbyAsync(CancellationToken.None), TimeSpan.FromSeconds(30));
         runtime.Loop.Run(() => session.Send(Input("the user's message")), TimeSpan.FromSeconds(30));
         var turn = JsonDocument.Parse(WaitForLine(script, 4)).RootElement;
         Assert.Equal("prompt", turn.GetProperty("type").GetString());

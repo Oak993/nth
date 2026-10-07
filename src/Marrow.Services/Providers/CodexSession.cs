@@ -438,7 +438,11 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession
         connection?.Close();
     }
 
-    public void EndStandby() => standbyActive = false;
+    public Task EndStandbyAsync(CancellationToken ct)
+    {
+        standbyActive = false;
+        return Task.CompletedTask;
+    }
 
     private void StandbyActivity(string method)
     {
