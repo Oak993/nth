@@ -1,0 +1,24 @@
+[
+  {
+    "path": "porting/engineering_decisions.md",
+    "before_bytes": 1787833,
+    "before_sha256": "eaef78c33747f9d26446bcaf2428b6fdf5be197dc84a5897dafaf7081520e1a7",
+    "append_bytes": 1217,
+    "append_sha256": "f9f9ffb4a9240ff6f406af16c9810e8bf661560ab3c37e72436ffaabf0e47175",
+    "prefix_exact": true,
+    "crlf_before": 10,
+    "crlf_after": 10,
+    "staging_prefix_exact": true
+  },
+  {
+    "path": "porting/STATE.md",
+    "before_bytes": 85036,
+    "before_sha256": "00c28abae214a351e97ccb690ee759f747fefa46f9183fe69adddca2587af752",
+    "append_bytes": 942,
+    "append_sha256": "dccade6a014b56775559fa69c4d1f7265fcd0b0670efef2381b045fad7c48d58",
+    "prefix_exact": true,
+    "crlf_before": 445,
+    "crlf_after": 445,
+    "staging_prefix_exact": true
+  }
+]

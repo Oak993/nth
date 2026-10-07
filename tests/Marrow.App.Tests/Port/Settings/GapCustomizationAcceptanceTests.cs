@@ -87,8 +87,14 @@ public sealed class GapCustomizationAcceptanceTests(HeadlessSession headless)
         for (var i = 1; i < frames.Count; i++)
         {
             Assert.True(frames[i] <= frames[i - 1], transition + ": opacity reverses");
-            Assert.True(frames[i - 1] - frames[i] <= .15 + 1e-9,
-                $"{transition}, frame {i} at 60 Hz: step {frames[i - 1] - frames[i]:F6} exceeds 0.15 of the travel");
+            // OD-0126: detail out keeps the approved 0.1 s CSS ease; its source-oracle step at this 60 Hz frame is allowed with no extra margin.
+            var designStep = transition == "detail out"
+                ? FrameCurves.Bezier(FrameCurves.Ease, Math.Min(1, i * FrameCurves.FrameMs / 1000 / .1))
+                    - FrameCurves.Bezier(FrameCurves.Ease, Math.Min(1, (i - 1) * FrameCurves.FrameMs / 1000 / .1))
+                : 0;
+            var step = frames[i - 1] - frames[i];
+            Assert.True(step <= .15 + 1e-9 || step <= designStep,
+                $"{transition}, frame {i} at 60 Hz: step {step:F9} exceeds 0.15 of the travel and the approved design step {designStep:F9}");
         }
     });
 }
