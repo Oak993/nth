@@ -174,7 +174,8 @@ internal sealed class SkillsProgressPopover : Border
     private readonly LibraryModel model;
     private readonly CzCrossfadeText title = new("") { FontSize = 13, FontWeight = FontWeight.SemiBold };
     private readonly CzCrossfadeText progress = new("") { FontSize = 12, Secondary = true };
-    private readonly CrossfadeSlot body = new();
+    private readonly SkillsCompactBody body = new();
+    private readonly CrossfadeSlot buttonsSlot = new() { Margin = new Thickness(0, 9, 0, 0) };
     private string? key;
 
     public SkillsProgressPopover(LibraryModel model, Action enlarge)
@@ -184,11 +185,20 @@ internal sealed class SkillsProgressPopover : Border
         Padding = new Thickness(14, 12);
         this.RoundedRectangle(16, RoundedCornerStyle.Continuous);
         SwiftGlass.SetEffect(this, GlassEffect.Regular(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
-        Enlarge = LibraryButtons.Glyph("arrow.up.right.square", "Open in Settings", "skills-download-enlarge", enlarge);
+        var enlargeGlyph = LibraryUi.Glyph("arrow.up.right.square", 12, ChromeTokens.SecondaryText);
+        enlargeGlyph.HorizontalAlignment = HorizontalAlignment.Center;
+        enlargeGlyph.VerticalAlignment = VerticalAlignment.Center;
+        var enlargeFace = new Border { Width = 26, Height = 26, Child = enlargeGlyph }.RoundedRectangle(8, RoundedCornerStyle.Continuous);
+        var hover = new AnimatedColor(enlargeFace);
+        enlargeFace.Background = hover.Brush;
+        hover.Set(ChromeTokens.Overlay(.06), null);
+        Enlarge = PlainControls.Button(enlargeFace, enlarge).KeyboardFocus();
         Enlarge.Width = Enlarge.Height = 26;
+        Enlarge.Named("Open in Settings", "skills-download-enlarge");
+        Enlarge.OnHover(over => hover.Set(ChromeTokens.Overlay(over ? .12 : .06), LibraryUi.Still(this) ? Animation.EaseOut(.01) : CzMotion.Ease(.2)));
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,26"), ColumnSpacing = 8, Children = { title, Enlarge } };
         Grid.SetColumn(Enlarge, 1);
-        Child = new StackPanel { Spacing = 9, Children = { header, body } };
+        Child = new StackPanel { Children = { header, body, buttonsSlot } };
         this.Track(() => model.Revision, _ => Refresh());
         Refresh();
     }
@@ -207,15 +217,16 @@ internal sealed class SkillsProgressPopover : Border
         if (key == next && view.Phase != RunPhase.Partial) return;
         var first = key is null;
         key = next;
-        var stack = new StackPanel { Spacing = 9 };
+        var stack = new StackPanel { Spacing = 9, Margin = new Thickness(0, 9, 0, 0) };
         if (view.IsRunning)
         {
             var bar = new LibraryBar();
             var current = new CzCrossfadeText("") { FontSize = 12, Secondary = true };
             var ring = new ProgressRing { Width = 16, Height = 16 };
-            stack.Children.Add(bar);
             var progressLine = new CzCrossfadeText(progress.Text) { FontSize = 12, Secondary = true };
-            stack.Children.Add(progressLine);
+            var overall = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 8, Children = { bar, progressLine } };
+            Grid.SetColumn(progressLine, 1);
+            stack.Children.Add(overall);
             stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { ring, current } });
             stack.Track(() => model.Revision, _ =>
             {
@@ -227,9 +238,17 @@ internal sealed class SkillsProgressPopover : Border
                 ring.Value = item?.Fraction ?? 0;
             });
         }
-        else if (view.Phase == RunPhase.Done) stack.Children.Add(LibraryUi.Text(view.Sub, 12, wrap: true));
+        else if (view.Phase == RunPhase.Done) stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8,
+            Children = { LibraryUi.Glyph("checkmark.circle.fill", 14, ChromeTokens.Success), LibraryUi.Text(view.Sub, 12, wrap: true) } });
         else foreach (var item in view.Lines.Where(l => l.State == RunLineState.Failed))
-            stack.Children.Add(LibraryUi.Text(item.Title + " " + item.Right, 12, wrap: true));
+        {
+            var failedName = LibraryUi.Text(item.Title, 12, weight: SwiftFont.Weight.Semibold);
+            var reason = LibraryUi.Text(item.Right, 12, secondary: true, trim: true);
+            var failure = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 7, Margin = new Thickness(0, 3),
+                Children = { LibraryUi.Glyph("exclamationmark.triangle.fill", 12, ChromeTokens.Warning), failedName, reason } };
+            Grid.SetColumn(failedName, 1); Grid.SetColumn(reason, 2);
+            stack.Children.Add(failure);
+        }
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
         Button Make(string label, Action action, ButtonLook look = ButtonLook.Plain) { var b = LibraryButtons.Make(label, action, look, "skills-compact-" + label, 11.5, 24); buttons.Children.Add(b); return b; }
         if (view.IsRunning)
@@ -243,7 +262,7 @@ internal sealed class SkillsProgressPopover : Border
             Close = Make(LibraryWords.Close, model.Controller.CloseRun);
             if (view.Phase == RunPhase.Partial) Make(LibraryWords.RetryCount(view.Failed), () => _ = model.Controller.RetryFailed(), ButtonLook.Primary).IsEnabled = model.Controller.CanFetch;
         }
-        stack.Children.Add(buttons);
-        body.Show(stack, first || !FrameClock.IsBound ? null : LibraryUi.Still(this) ? Animation.EaseOut(.01) : CzMotion.Ease(.22));
+        body.Show(next, stack, animate: !first);
+        buttonsSlot.Show(buttons, first || !FrameClock.IsBound ? null : LibraryUi.Still(this) ? Animation.EaseOut(.01) : CzMotion.Ease(.22));
     }
 }

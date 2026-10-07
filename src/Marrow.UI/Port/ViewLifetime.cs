@@ -125,7 +125,8 @@ public static class Presentation
 
         public void SetPresented(Popup popup, bool presented)
         {
-            if (closing.TryGetValue(popup, out var stop)) { closing.Remove(popup); stop(); }
+            var wasClosing = closing.TryGetValue(popup, out var stop);
+            if (wasClosing) { closing.Remove(popup); stop!(); }
             if (!presented && popup.IsOpen && popup.Child is { } shown)
             {
                 // NSPopover shrinks back into its arrow before it goes (PopoverAppear.cs).
@@ -140,7 +141,7 @@ public static class Presentation
             if (presented) PopoverHost.Prepare(popup); // the anchor's appearance and the panel fill (ED-238)
             popup.IsOpen = presented;
             // NSPopover grows in from its arrow (PopoverAppear.cs); the child is final once the popup has opened.
-            if (presented && !wasOpen && popup.IsOpen && popup.Child is { } content) OpenMotion(popup, content);
+            if (presented && (!wasOpen || wasClosing && popup.GetValue(MotionProperty) is not null) && popup.IsOpen && popup.Child is { } content) OpenMotion(popup, content);
         }
     }
 }
