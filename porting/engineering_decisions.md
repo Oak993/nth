@@ -4198,3 +4198,6 @@ MAUI-005/008/009/011/015/050: popover shell padding is 6px; grip is 16x24; the n
 
 ## ED-NEW-ma-wave1-18
 MAUI-001 Link fidelity follow-up: HTML2716/2741-2749 flies the account monogram from its actual rectangle, not the row number. Link adapter now anchors on retained row.LinkMark; no T16 file changed. New monogram proof failed alone twice first. The protected old number-origin assertion remains for lead disposition.
+
+## ED-NEW-ma-wave1-19
+MAUI-039/043: Settings account row is 46px (HTML142); the full 24/24 rename counter uses the locked hot token, including when opening an already-full name (HTML3867), rather than the generic danger red. No test changes.
