@@ -26,6 +26,7 @@ internal sealed class StepSettingsPanel : Decorator
     private readonly CzCrossfadeText modelWords = new("") { FontSize = 13, Secondary = true };
     private readonly CrossfadeSlot card = new();
     private string? cardModel;
+    private readonly StackPanel configuration;
 
     internal StepSettingsPanel(PillEditorModel editor, int index, StepView step, IReadOnlyList<ModelOption> models, ModelPulse pulse)
     {
@@ -34,6 +35,7 @@ internal sealed class StepSettingsPanel : Decorator
         this.models = models;
         this.pulse = pulse;
         service = step.Service ?? ProviderKind.Claude;
+        Width = 330;
         var key = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var title = LibraryUi.Text(MultiAccountWords.StepTitle(step.AccountName), 12.5, weight: SwiftFont.Weight.Semibold);
         var sub = LibraryUi.Text(MultiAccountWords.StepSub, 11.5, secondary: true);
@@ -44,7 +46,17 @@ internal sealed class StepSettingsPanel : Decorator
         Grid.SetColumn(picker, 1);
         modelRow.Children.Add(modelLabel);
         modelRow.Children.Add(picker);
-        Child = LibraryUi.Panel(new StackPanel { Spacing = 8, Children = { new StackPanel { Spacing = 1, Children = { title, sub } }, modelRow, card } }, 12, 0.05, new Thickness(14, 10));
+        var same = new SettingsSwitch(new Binding<bool>(() => { _ = pulse.Revision; return Current.SameAsAccount; }, on =>
+        {
+            if (on) editor.ResetStepSettings(index);
+            else { var current = Current; editor.SetStepSettings(index, new StepSettings(current.ModelId, current.Effort, current.Fast)); }
+        }));
+        same.Named("Same as the account", "step-same-account-" + key);
+        var sameRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var sameLabel = LibraryUi.Text("Same as the account", 12.5); sameLabel.VerticalAlignment = VerticalAlignment.Center;
+        sameRow.Children.Add(sameLabel); Grid.SetColumn(same, 1); sameRow.Children.Add(same);
+        configuration = new StackPanel { Spacing = 8, Children = { modelRow, card } };
+        Child = new Border { Padding = new Thickness(12), Child = new StackPanel { Spacing = 8, Children = { new StackPanel { Spacing = 1, Children = { title, sub } }, sameRow, configuration } } };
         Apply();
     }
 
@@ -57,6 +69,7 @@ internal sealed class StepSettingsPanel : Decorator
     internal void Apply()
     {
         var step = Current;
+        configuration.Opacity = step.SameAsAccount ? .45 : 1;
         var option = models.FirstOrDefault(m => m.Id == step.ModelId) ?? models.FirstOrDefault();
         modelWords.SetText(option?.ChipName ?? step.Model);
         if (option is null || cardModel == option.Id) return;
