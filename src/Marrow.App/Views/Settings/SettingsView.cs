@@ -31,9 +31,7 @@ using Avalonia.Automation.Provider;
 namespace Marrow.App.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/SettingsView.swift (B3 52bc792), :1-1210.
-// Skeleton (c100 group 4): every type the file declares, private ones included, with its inputs; SettingsPage's cases
-// and raw values and SettingsNavigation's stored property are complete; every view body, computed property and helper
-// is left to the implementing unit (MARROW_STUB), as are the views' private members.
+// The cycle scaffold has been replaced by the implementations below; historical part notes follow.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; `@Environment(AppModel.self)` is read
 // from the environment, not passed in; `enum SettingsPage: String` carries [RawValue] on every case (R-ENUM-1) and its
 // computed members are C# 14 extension members of SettingsPageExtensions (R-NAME-4); `@MainActor @Observable` is

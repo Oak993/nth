@@ -34,9 +34,7 @@ using Marrow.UI.Port;
 using Marrow.UI.Sound;
 
 // Source: DroppyCode/App/Views/Sidebar/SidebarView.swift (B3 52bc792), :1-2695.
-// Skeleton (c100 group 5): every type the file declares, the views' inputs, the record shapes, the metrics constants
-// and the members the other files use. Every view body and every member with behaviour is left to the implementing
-// unit (MARROW_STUB).
+// The cycle scaffold has been replaced by the implementations below; historical part notes follow.
 // Implemented so far (parts 1 and 2 of 8): SidebarView's body (:69-205) with its search field, bell, list and bottom
 // rows, query (:61-63), the scroll freeze (:392-404), the placements and helper grouping (:385-422), listItems
 // (:424-448), hasRunningHead, helperItems and orderedHeads (:450-485), addProject (:498-511), projectItems (:515-557),
@@ -51,9 +49,8 @@ using Marrow.UI.Sound;
 // BuildTrailingOverlay (:1736-1849, :1874-1898, :1895-1898) as directly testable static pieces of the body, cited
 // at each; ThreadRowFace's body and TitleOpacity (:2019-2078); SettleCheck (:2114-2141); ThreadBadge (:2143-2175);
 // ActivityStatus (:2408-2428); MinuteClock and RelativeTimeLabel (:2662-2695). SidebarThreadRow's own constructor
-// stays MARROW_STUB: its full body needs settle()/reopen(), archiveWithGenie(), makeActions(), RowGlideAnimator and
-// ThreadActions.makeContextMenu (parts 4+); the pieces above are written so that constructor can call them once
-// those exist, and each is proven directly by its own SidebarViewTests.cs test in the meantime.
+// was outside part 3; the constructor below now composes settle/reopen, archiveWithGenie, makeActions,
+// RowGlideAnimator and ThreadActions.MakeContextMenu. SidebarViewTests exercise the real row.
 // Part 4 of 8 adds: DeleteThreadPopover (:967-983) and ArchiveThreadPopover (:905-963, its key monitor as the
 // window-scoped handler pair AttachmentPreviewPanel.cs:160-195 already establishes) in full; SidebarView's popover
 // coordinator state (renaming, renameText, pendingDeletionID, pendingArchiveID, confirmedDeletion,
@@ -62,7 +59,7 @@ using Marrow.UI.Sound;
 // liveRenameTarget (:882-887, :357); the three `.onChange` handlers this adds to Appear() (:184-202); HelperConnector
 // and HelperConnectorShape in full (:1636-1675); SidebarThreadRow.FinishRequestReceived, Settle, Reopen, Glide and
 // ArchiveWithGenie (:1863-1870, :1904-1953, :1988-1999) as directly testable static pieces, each cited; ThreadActions
-// Make and MakeContextMenu in full (:2193-2312); ThreadGhostBadge in full (:2083-2109; it was still MARROW_STUB, but
+// Make and MakeContextMenu in full (:2193-2312); ThreadGhostBadge in full (:2083-2109;
 // Glide and ArchiveWithGenie need a real badge to carry, not a stub); SidebarHelperRow.TitleWeight, TitleOpacity,
 // TrailingPadding, BackgroundFill, HeadGlyph and BuildTrailingOverlay (:1361-1384) as directly testable static pieces
 // of that row's body. renamePopover (:239-252) and RenameThreadPopover were built later (2026-10-01); what STOP #6
@@ -71,9 +68,9 @@ using Marrow.UI.Sound;
 // Part 5 of 8 adds: HelperStubRow in full (:1552-1618), reusing HelperConnector.Dash (now internal) and
 // HelperConnectorShape as :1583 reuses HelperConnector.style directly; HeadCardsRow.Usable, PerRow, RowGap, Chunk,
 // Capped, Visible, CardRows and ChevronTooltip (:1450-1461, :1442-1443, :1526, :1545-1547) as directly testable
-// static pieces (the constructor itself, its glyph buttons and its context menus stay MARROW_STUB: STOP #7 below);
+// static pieces (HeadCardsRow now has its real constructor, glyph buttons and context menus below);
 // SidebarThreadRow.BuildFoldOverlay (:1804-1814) and .RowEquals (:1882-1891), and SidebarHelperRow.RowEquals
-// (:1413-1420), each a directly testable static piece the row's own constructor (still MARROW_STUB) will call;
+// (:1413-1420), each a directly testable static piece called by the implemented row constructors;
 // ActivityHeader (:2345-2358) and SettledHeader (:2363-2406) in full.
 // STOP App.Views.Sidebar.SidebarView #7 (narrowed part 6, narrowed again part 7; narrowed again Job SB (ROUND3.md
 // items 2 and 3): full note in SidebarViewTests.cs's own header). HeadCardsRow's and ProjectRow's own constructors,

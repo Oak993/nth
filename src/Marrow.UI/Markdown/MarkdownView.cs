@@ -25,9 +25,7 @@ using Marrow.UI.Port;
 // Source: DroppyCode/UI/Markdown/MarkdownView.swift (B3 52bc792), :1-1425. Link clicks, mention scanning and the
 // continuous hover now go through UI.Markdown.MarkdownLinkOpener, MentionScanner (N10) and LinkHover (N9); see
 // each member's own citation.
-// Skeleton (c100 group 5): every type the file declares, the views' inputs, the constants and data tables, the
-// environment values and the members the other cycle files use. Every member with behaviour is left to the
-// implementing unit (MARROW_STUB).
+// The cycle scaffold has been replaced by the implementations below; historical part notes follow.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; a caseless enum is a static class; an enum with associated values is an abstract
 // record (R-ENUM-2), an unlabelled payload named Value; Font is SwiftFont, Color SwiftColor, Text StyledText,
@@ -81,7 +79,7 @@ public sealed class MarkdownView : Decorator
     public static bool Equatable(MarkdownView lhs, MarkdownView rhs) => lhs.Text == rhs.Text && lhs.IsStreaming == rhs.IsStreaming;
 
     // :63-103 body. The prose-run branch (PR-THEME-105) builds ProseRunView for each prose run (part 2's sibling
-    // ProseRunView unit; MARROW_STUB there is expected and left alone). The block branch is fully implemented,
+    // ProseRunView unit, now implemented in ProseRunView.cs). The block branch is fully implemented,
     // via MarkdownBlockView.
     // PORT-ONLY `veils` (UI-THEME-047): the identity a row that builds this view again for every flush keeps for the tree, so the veil of each
     // place survives the rebuild as SwiftUI's @State does (StreamVeil.cs, MarkdownVeils).
@@ -649,9 +647,8 @@ public sealed class MarkdownBlockView : Decorator
     // :300-374 body. PR-THEME-110 (paragraph path selection), PR-THEME-111/112/113 (marker, below),
     // PR-THEME-114 (list spacing), PR-THEME-115 (quote), PR-THEME-116 (rule), PR-THEME-119 (table, via
     // TableBlock). The .paragraph InlineText/VeiledText paths and the .code CodeBlock path call into this
-    // file's own InlineText/CodeBlock and into part 2's mention helpers above, which stay MARROW_STUB until
-    // part 2 and the sibling StreamVeil/ProseRunView/LinkParagraphView units land (see the unit's dependency
-    // cycle note); this body is otherwise complete and does not stand in for any of them.
+    // file's own implemented InlineText/CodeBlock and part 2's mention helpers, with the real
+    // StreamVeil/ProseRunView/LinkParagraphView constructors in their sibling files.
     public MarkdownBlockView(MarkdownBlock block, bool settled = false, MarkdownVeilScope? veils = null)
     {
         Block = block;
@@ -1062,7 +1059,7 @@ public static partial class RichLink
     // :596-621 nonisolated static func build(_ source: String) -> AttributedString: baseAttributed, then every
     // link run whose display text is bare gets the pretty title in its place, and every link renders bold.
     // Referenced by MarkdownView.ParseWarm (PR-THEME-124) and this file's own prettyAttributed/linkHosts family
-    // (part 2's records); IsBareDisplay and PrettyTitle stay MARROW_STUB below (not among this part's records).
+    // (part 2's records); IsBareDisplay and PrettyTitle are implemented below.
     public static AttributedText Build(string source)
     {
         var baseText = BaseAttributed(source);
@@ -1784,8 +1781,7 @@ public sealed class InlineText : Decorator
 
     // :1121-1125 init(_:hasLinks:hugsContent:); :1127-1208 body. PR-THEME-144, PR-THEME-148, PR-THEME-151.
     // The hasLinkText branch (:1134-1191) builds LinkParagraphView, whose whole constructor is part of the
-    // sibling LinkParagraphView unit and stays MARROW_STUB (see the file header's dependency-cycle note); this
-    // wiring is otherwise complete and does not stand in for it. The link-free branch (:1193-1198) similarly
+    // sibling LinkParagraphView unit, implemented in LinkParagraphView.cs. The link-free branch (:1193-1198) similarly
     // depends on the sibling StreamVeil unit's VeiledText(AttributedString) constructor.
     public InlineText(string source, bool? hasLinks = null, bool hugsContent = false, MarkdownVeilScope? veils = null)
     {
@@ -2023,8 +2019,7 @@ public sealed class CodeBlock : Decorator
     /// <param name="language">:1268 <c>let language: String?</c>.</param>
     /// <param name="code">:1269 <c>let code: String</c>.</param>
     // :1278-1321 body. UI-THEME-034 to 037. The code text itself renders through VeiledText(verbatim:), the
-    // sibling StreamVeil unit's own MARROW_STUB (see the file header's dependency-cycle note); this wiring is
-    // otherwise complete and does not stand in for it.
+    // implemented constructor in the sibling StreamVeil.cs.
     public CodeBlock(string? language, string code, MarkdownVeilScope? veils = null)
     {
         var hover = new BlockHover(); // :1270 @State private var hover = BlockHover()

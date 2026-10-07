@@ -46,7 +46,7 @@ namespace Marrow.App.Views;
 // (PR-WIN-062, -063, -066, -067): the HStack, both resize-handle
 // overlays, the backdrop/chrome-probe background, the window's own rounded clip, the real drag-and-drop wiring onto
 // HandleDrop, the model-alert dialog and the genie/row-glide/command-palette overlay stack. SidebarView.cs's
-// constructor and CommandPalette.cs's constructor are both real now (0 MARROW_STUB each), which is what unblocked
+// constructor and CommandPalette.cs's constructor are both implemented, which is what unblocked
 // this. The selected-thread branch now hosts the real ChatView in ThreadColumns (:130-154,177-297).
 
 /// <summary>:4-111 <c>struct RootView: View</c>, with the file's <c>extension EnvironmentValues</c> (:116-118).</summary>

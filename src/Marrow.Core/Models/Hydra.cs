@@ -9,7 +9,7 @@ using ValueDictionary = System.Collections.Generic.Dictionary<string, Marrow.Cor
 namespace Marrow.Core.Models;
 
 // Source: DroppyCode/Core/Models/Hydra.swift (B3 52bc792), :1-1438.
-// SKELETON (cycle c4). Every member with behaviour throws MARROW_STUB until its unit ports it.
+// The cycle c4 scaffold has been replaced by the four implemented parts described below.
 // String constants whose text may fall under OD-0012 F1 / ED-088 (the words "Droppy Code", the agent names
 // sent to the CLIs) or is built by interpolation are stub getters, left for the implementing unit to decide.
 // Not declared yet, private in Swift and used by no other file: :659-718 the private rules and texts of
@@ -24,8 +24,8 @@ namespace Marrow.Core.Models;
 // HydraRoster's Persona(at:)/Index(named:)/Persona(named:), and HydraHeadInfo (its custom init(from:)/
 // encode(to:), Persona, DisplayName, IsFinished, HasOwnCopy and Status.IsFinished). It also gave HydraLanding
 // and HydraLanding.File Codable support (a converter each) so HydraHeadInfo's `landing` field can decode and
-// encode; HydraLanding.IsEmpty and Landed are not named by any record in this part and stay MARROW_STUB for a
-// later part. PR-HYDRA-016 (the in-turn budget check order and the out-of-turn backstop allowance) describes
+// encode; HydraLanding.IsEmpty and Landed were outside part 1 and are implemented by part 2 below.
+// PR-HYDRA-016 (the in-turn budget check order and the out-of-turn backstop allowance) describes
 // AppModel+Hydra.swift / ThreadRuntime.swift runtime behaviour, not anything in this file, and is untestable
 // here; it is left for the unit that owns the turn loop.
 // Unit Core.Models.Hydra part 2 of 4 (PR-HYDRA-025 to 052, excluding 029/030/041/042 which are not named by
@@ -53,8 +53,7 @@ namespace Marrow.Core.Models;
 // coverage. HydraDelegationBudget (CanDelegate, BeginTurn, ChargeRound, Refuse, NoteDropped, TakeDropNotice) and
 // DelegationBlockRange/HasDelegationBlock/HasDelegationOpener/Delegations/WithoutDelegationBlock/
 // HasSentDelegationBlock/HasLeavingDelegationBlock/MarkingDelegationBlockLeaving/MarkingDelegationBlockSent/
-// InterruptedBlockMessage/DroppedBlockNotice are not named by any record in this part and stay MARROW_STUB for
-// part 4.
+// InterruptedBlockMessage/DroppedBlockNotice were outside part 3 and are implemented by part 4 below.
 // Unit Core.Models.Hydra part 4 of 4 (PR-HYDRA-080, 082, 083, 088 to 093, 097, 098, 248 to 251,
 // PR-HYDRAMERGE-083, UI-HYDRAMERGE-003) implemented HydraDelegationBudget (CanDelegate, BeginTurn,
 // ChargeRound, Refuse, NoteDropped, TakeDropNotice), DelegationOpener/LineStartFences (private),

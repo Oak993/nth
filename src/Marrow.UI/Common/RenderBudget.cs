@@ -7,7 +7,7 @@ using Marrow.Core.Port;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/UI/Common/RenderBudget.swift (B2 1fbf81e), :1-99.
-// SKELETON (cycle c35). Every member with behaviour throws MARROW_STUB until its unit ports it.
+// Cycle c35 is implemented below: scrolling/reporters, watchdog and panel control fill.
 // Two namespaces in one file: ScrollActivity, ScrollActivityReporter and the @Entry holder live in Marrow.UI.Common
 // (R-FILE-3); `extension Chrome` (:89-99) is a partial of Marrow.UI.Chrome.Chrome and must share its namespace
 // (R-FILE-1).

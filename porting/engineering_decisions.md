@@ -3731,3 +3731,8 @@ Batch 9 byte-integrity repair: Git inserted the incoming SK14/SK16 STATE note in
 ## ED-NEW-release-pack-1 - RR-23 approved VC++ prerequisite (2026-10-07)
 
 ENGINEERING DECISION: package-windows.ps1 passes --framework vcredist143-x64 to vpk pack, as OD-0104 item 1 explicitly requires. The shipped Whisper natives import MSVCP140, VCRUNTIME140, VCRUNTIME140_1 and VCOMP140 (ED-287 / VT-0 pin evidence). This changes only the package input; no installer was built or run, signed or published. Clean Windows 11 CPU/Vulkan loading remains a required release check. The prior ledger bytes are untouched.
+
+
+## ED-NEW-release-pack-2 - RR-25 dead member and stale marker correction (2026-10-07)
+
+ENGINEERING DECISION: remove AutoContinue.HandOff, exactly as PR-RUNTIME-263 NOT_APPLICABLE_WITH_EVIDENCE and dead_code.md entry 22 already require: B3 deleted its only caller, LimitResumeBadge; no C# caller exists. Active usage-limit notices still use NoticeRow and Wait/Resume. Correct 23 historical source-comment marker claims against real implementations and existing tests (T39-RR-25.md). No test, scanner, reference or tolerance changed; unrelated STOPs and missing semantic acceptance remain visible. Independent read-only reviewer review_release corroborated the symbol/test map. Original ledger bytes preserved.

@@ -26,7 +26,7 @@ public static partial class CommandCodeAPI
     internal static Ambient<Uri> FetchBaseURL { get; } = new(BaseURL);
 
     /// <summary>PORT-ONLY test seam (:93): production always calls <see cref="ProviderCredits.Money"/> (Services.Providers.ProviderCredits,
-    /// a sibling unit in this dependency cycle, MARROW_STUB at this commit). Windows() tests override it so PR-PROVCLI-257's own
+    /// implemented in the sibling ProviderCredits.cs). Windows() tests override it so PR-PROVCLI-257's own
     /// window-building logic (title concatenation, percent clamp, resetAt) can be verified without depending on that unit landing.</summary>
     internal static Ambient<Func<double, string, string>> MoneyFormatter { get; } = new(ProviderCredits.Money);
 

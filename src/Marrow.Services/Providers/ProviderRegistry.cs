@@ -166,7 +166,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
         .Select(MetaAPI.Option)
         .OfType<ModelOption>());
 
-    // :130. Built with ZaiAPI.option(for:) (ZaiAPI.cs, PR-PROVREG-142): no longer MARROW_STUB, ZaiAPI.Option
+    // :130. Built with ZaiAPI.option(for:) (ZaiAPI.cs, PR-PROVREG-142): ZaiAPI.Option
     // is implemented.
     public static ValueList<ModelOption> ZaiSeed => new(new[] { "glm-5.3", "glm-5.3-flash" }
         .Select(ZaiAPI.Option)
@@ -191,7 +191,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     public static readonly ModelOption CopilotAuto =
         new("auto", "Auto", detail: "Copilot picks the model for each request", isDefault: true);
 
-    // :150. CommandCodeAPI.seed (CommandCodeAPI.cs, PR-PROVREG-145): no longer MARROW_STUB, CommandCodeAPI.Seed
+    // :150. CommandCodeAPI.seed (CommandCodeAPI.cs, PR-PROVREG-145): CommandCodeAPI.Seed
     // is implemented.
     public static ValueList<ModelOption> CommandcodeSeed => CommandCodeAPI.Seed;
 
@@ -777,7 +777,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
 
     // :380-425. Private in Swift; kept internal so this part's tests (PR-PROVAPI-088) can call it directly,
     // the same convention ClaudeSession.cs already uses for its own private-in-Swift members. Called by
-    // Refresh (:362-364), a MARROW_STUB in this file left to a later part of this unit.
+    // the implemented Refresh (:362-364) in this file.
     internal async Task RefreshAPIProvider(ProviderKind provider)
     {
         var apiKey = settings.ApiKey(provider); // :382
@@ -1428,7 +1428,7 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     }
 
     // :678-700. Swift: refreshCredits(_:force:). CreditsReader (ProviderCredits.cs, unit
-    // Services.Providers.ProviderCredits) landed as a real implementation (no longer MARROW_STUB) in this
+    // Services.Providers.ProviderCredits) landed as a real implementation in this
     // file's dependency cycle, un-blocking this member. PR-PROVREG-198: Command Code's key comes from its
     // own environment helper (the CLI's own login, unless Settings holds one, coupled into the environment
     // by Environment(for:)); every other credits-exposing provider reads Settings directly. PR-PROVREG-199:

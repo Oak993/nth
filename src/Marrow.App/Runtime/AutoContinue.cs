@@ -108,9 +108,8 @@ public sealed class AutoContinue : MainActorModel
         UpdateOutcomes();
     }
 
-    // :78-85. LimitHandoff is not ported; leave this member unchanged.
-    public void HandOff(Guid threadID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Runtime/AutoContinue.swift:78");
+    // :78-85 handOff is intentionally absent: PR-RUNTIME-263, dead_code.md entry 22.
+    // B3 deleted its only caller (LimitResumeBadge); the live path is Wait/Resume below.
 
     // :87-121
     private async Task Wait(Guid threadID, Guid? turnID, DateTimeOffset? resetsAt, ProviderKind provider, Guid token)

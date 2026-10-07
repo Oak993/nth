@@ -4,8 +4,7 @@
 // port: it carries only what PR-THEME-127/128/129 require -- plain, code and link runs in source order,
 // preserving every character between runs, including whitespace and newlines. Converting inline styling to a
 // renderable StyledText (bold/italic weights, colours, favicons, pretty link titles) is left to the members
-// that still declare MARROW_STUB in MarkdownView.cs (InlineText.attributed, RichLink.prettyAttributed/build):
-// they may keep this type or replace it, but nothing in this file changes.
+// implemented in MarkdownView.cs (InlineText.Attributed, RichLink.PrettyAttributed/Build).
 using System.Text;
 using Marrow.Core.Port;
 
