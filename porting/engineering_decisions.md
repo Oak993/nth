@@ -4183,3 +4183,7 @@ MAUI-044/045/048/055: Pill steps carry the real account monogram, including cust
 
 ## ED-NEW-ma-wave2-13
 MAUI-027/028/029/030/031/032: Usage B restores the 12px header, 15px current-account name and 5-hour window label above the reported No 5-hour limit state. Navigation measures the full view width: incoming All accounts starts at +100%, outgoing current at -28%; reverse navigation mirrors the same page positions. Translation uses .45s (.32,.72,0,1); opacity uses .3s CSS ease (.25,.1,.25,1), including Reduce Motion with no translation. All six findings failed alone twice; six review plus five existing Usage B cases 11/11, build 0 warnings/errors. No tests changed.
+
+
+## ED-NEW-ma-wave2-14
+MAUI-034/035/036/037/038: card explanation retains accessible full Text while emphasizing Finish now and Stop in semibold; Remember divider is 1px, the primary ink follows --pacInk in both themes, gauge follows --hot, and notes have the locked tile/rim capsule with 4px/11px padding and 11.5px/16px text. Shared card shape helpers route the segmented container through the continuous outline; existing CzButton capsule radius clamps to the 22px height without a redundant raw-radius assignment. The inherited raw-corner census now passes. Each finding failed alone twice; final card review excluding owner-disputed 033 + existing cards + unchanged census 18/18, build 0 warnings/errors. No tests changed.
