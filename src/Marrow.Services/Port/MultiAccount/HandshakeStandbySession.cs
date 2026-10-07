@@ -40,7 +40,8 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         // These providers enforce IsFinalReport before exposing tools or executing an action.
         // Claude additionally verifies its temporary agent, effective policy and actual init identity.
         if (configuration.Provider is not (ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter or ProviderKind.Local)
-            && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession))
+            && !(configuration.Provider == ProviderKind.Claude && session is ClaudeSession)
+            && !(configuration.Provider == ProviderKind.Pi && session is PiSession))
             throw new NotSupportedException("This service cannot yet receive context in a verified text-only session.");
         var standby = new HandshakeStandbySession(session, configuration) { observeUsage = observeUsage, canTransfer = canTransfer };
         standby.BindTransferGuard(canTransfer);
@@ -48,7 +49,8 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         try
         {
             ct.ThrowIfCancellationRequested();
-            start = session is ClaudeSession claude ? claude.StartHandshakeAsync(ct) : session.Start();
+            start = session is ClaudeSession claude ? claude.StartHandshakeAsync(ct)
+                : session is PiSession pi ? pi.StartTextOnlyHeadAsync(ct) : session.Start();
             standby.SessionId = await start.WaitAsync(ct);
             if (string.IsNullOrWhiteSpace(standby.SessionId)) throw new InvalidOperationException("The standby did not report its session identity.");
             if (standby.stopped || !session.IsRunning) throw new InvalidOperationException("The standby exited while starting.");
@@ -120,6 +122,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             if (!ownsSession || stopped || !ready || completion is not null || !session.IsRunning)
                 throw new InvalidOperationException("Only a completed standby can be prepared for adoption.");
             if (session is ClaudeSession claude) await claude.RestoreHandshakeToolsAsync(ct);
+            if (session is PiSession) throw new NotSupportedException("A private Pi text head cannot become a working session.");
         }
         catch { if (ownsSession) Stop(); throw; }
         finally { gate.Release(); }
@@ -131,6 +134,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             throw new InvalidOperationException("Only a completed standby can be adopted.");
         if (session is ClaudeSession { HandshakeToolsRestored: false })
             throw new InvalidOperationException("The CLI tools must be restored before adoption.");
+        if (session is PiSession) throw new NotSupportedException("A private Pi text head cannot become a working session.");
         BindTransferGuard(null);
         canTransfer = null;
         ownsSession = false;

@@ -22,7 +22,14 @@ public sealed class AccountConversationHeadHost(
     public void NotifyAccountsChanged(Guid thread) { MainActor.AssumeIsolated(); AccountsChanged?.Invoke(thread); }
     public Guid ActiveAccount(Guid thread) { MainActor.AssumeIsolated(); return active(thread); }
     public long Revision(Guid thread) { MainActor.AssumeIsolated(); return revision(thread); }
-    public IReadOnlyList<ConversationHeadAccount> Accounts(Guid thread) { MainActor.AssumeIsolated(); return Array.AsReadOnly(accounts(thread).ToArray()); }
+    public IReadOnlyList<ConversationHeadAccount> Accounts(Guid thread)
+    {
+        MainActor.AssumeIsolated();
+        // E1's link/opinion target selectors read this head-only projection. Preserve the primary:
+        // an unsafe-to-launch author can still supply its completed answer to a safe checking head.
+        var source = active(thread);
+        return Array.AsReadOnly(accounts(thread).Where(row => row.Id == source || TextOnlyAccountHead.Supports(row.Service)).ToArray());
+    }
     public Task<string> ContextAsync(Guid thread, CancellationToken ct) { MainActor.AssumeIsolated(); ct.ThrowIfCancellationRequested(); return context(thread, ct); }
 
     public Task<bool> ConfirmTransferAsync(Guid thread, ConversationHeadAccount source, IReadOnlyList<ConversationHeadAccount> targets, CancellationToken ct)
