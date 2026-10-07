@@ -15,10 +15,10 @@ public sealed class ComposerVoiceFirstRunTests(HeadlessSession headless)
     [Trait("Feature", "WV-1")]
     public void The_mounted_orb_prepares_before_capture_and_shows_its_setup_card()
     {
+        var prep = VoiceQuestionRig.Pc(); // Its scripted probe is awaited before entering the UI dispatcher.
         headless.OnUiThread(() =>
         {
             using var rig = new VoiceComposerRig();
-            var prep = VoiceQuestionRig.Pc();
             var flow = new VoiceFirstRun(prep.Prep.Preparation, prep.Question, prep.Prep.Models);
             VoiceFirstRun.Bind(rig.App.Settings, flow);
             prep.Question.No();
