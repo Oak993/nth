@@ -230,6 +230,8 @@ internal sealed class VoicePill : Panel
 
     public double NameOpacity => nameOpacity.Value;
 
+    internal string Label => labels[(int)state].Words;
+
     /// <summary>The text sweep's position now, 1.35 to -0.55 in the design's terms (a test reads it).</summary>
     public double SweepPosition => VoicePillSweep.Position(sweepSeconds);
 

@@ -3,7 +3,7 @@
 // the sections of the picked style (Border beam, Uiverse light or Off), each folding open and shut as the style changes. Every setting is the app's composer light (AppSettings.ComposerLight): a change reaches every composer at once.
 // The pinned block is sticky (CZ-6, StickyStageController): it stays at the top of the Settings scroll viewer while the sections of `Sticky` scroll under it, folds its stage as the page scrolls, and lets go when `Sticky` ends.
 // The Speech section (CZ-8) is in `Rest`, after the point where the pinned block lets go.
-// NOT HERE: the live voice preview (CZ-7b).
+// CZ-7b: the stage voice preview uses scripted input and the real composer voice components.
 using Avalonia;
 using Avalonia.Controls;
 using Marrow.App.Port.Voice;
@@ -77,7 +77,7 @@ internal sealed class CustomizationSettingsPage : Decorator, ISettingsPageChrome
         var style = settings.ComposerLight.Style;
 
         // the pinned block (CZ-3.4): the stage and its foot; bound to the app's settings by the two functions it reads inside tracked reads
-        Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session, () => settings.WorkingDots) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
+        Stage = new CustomizationStage(() => settings.ComposerLight, () => settings.BackdropOpacity, session, () => settings.WorkingDots, () => settings.VoiceOrb, () => settings.VoiceTyping) { Margin = new Thickness(0, 0, 0, CustomizationStage.GapBelow) };
 
         // Style (CZ-5)
         StyleCards = new CzStyleCards(StyleId(style));
