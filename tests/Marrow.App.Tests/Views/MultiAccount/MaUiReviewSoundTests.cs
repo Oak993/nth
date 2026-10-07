@@ -11,7 +11,7 @@ namespace Marrow.App.Tests.Views.MultiAccount;
 
 public sealed class MaUiReviewSoundTests
 {
-    [Fact, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Fact, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     public void MAUI_056_Shipped_App_consumes_the_locked_enabled_sound_recipe()
     {
         // OD-0121: sound "include it"; HTML 3053-3066 gives the complete sine recipe.

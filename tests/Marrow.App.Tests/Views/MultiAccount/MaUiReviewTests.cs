@@ -42,7 +42,7 @@ namespace Marrow.App.Tests.Views.MultiAccount;
 [Collection("Headless")]
 public sealed class MaUiReviewTests(HeadlessSession headless)
 {
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-001")] // HTML 2687,2715; checklist 4 Link; OD-0115 link=A / OD-0120
     [InlineData("MAUI-003")] // HTML 2734; checklist 4 row menu
     // MAUI-004 withdrawn by T15-review-rulings.md #1 / ED-NEW-ma-wave1-21: plan C7; HTML2693-2697/2706.
@@ -157,7 +157,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         }, motion: finding is "MAUI-016" or "MAUI-017" or "MAUI-050" or "MAUI-062" or "MAUI-063" or "MAUI-064");
     }
 
-    [Fact, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Fact, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     public void MAUI_002_Ask_others_B_is_an_accessible_composer_action() => headless.OnUiThread(() =>
     {
         // HTML 4804-4811,4855-4871; checklist 5; OD-0115 opinions=B / OD-0120.
@@ -169,7 +169,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
             b => b.IsEffectivelyVisible && AutomationProperties.GetName(b) == "Ask others for this message"));
     });
 
-    [Fact, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Fact, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     public void MAUI_053_Loaded_Codex_history_shows_the_in_sync_composer_chip() => headless.OnUiThread(() =>
     {
         // HTML 2481,324; checklist 3 "During Handshake"; OD-0122 same tick as Claude.
@@ -188,7 +188,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
             text => text.IsEffectivelyVisible && text.Text == "In sync"));
     });
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-021")] // HTML 834: cfgp width 330
     [InlineData("MAUI-022")] // HTML 1368: hsp width 248
     [InlineData("MAUI-023")] // HTML 2642: reset hidden when no own override
@@ -218,7 +218,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         });
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-027")] // HTML 436: Usage header 12px
     [InlineData("MAUI-028")] // HTML 447: current account 15px
     [InlineData("MAUI-029")] // HTML 4343: no-5h state retains "5-hour window"
@@ -254,7 +254,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         }, motion: finding is "MAUI-030" or "MAUI-031" or "MAUI-032", reduceMotion: finding == "MAUI-032");
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     // MAUI-033 withdrawn by T15-review-rulings.md #2 / ED-NEW-ma-wave1-22: plan C4; OD-0116/0119.
     [InlineData("MAUI-034")] // HTML 4225: bold Finish now and Stop
     [InlineData("MAUI-035")] // HTML 380: 1px divider
@@ -293,7 +293,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         });
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-018")] // HTML 467: every movement is a crossfade under Reduce Motion
     [InlineData("MAUI-039")] // HTML 142: Settings account row height 46
     [InlineData("MAUI-040")] // HTML 1459: off words .45, switch unchanged
@@ -332,7 +332,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         }, reduceMotion: finding == "MAUI-018");
     }
 
-    [Theory, Trait("Feature", "T26"), Trait("Rule", "R-TEST-4")]
+    [Theory, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]
     [InlineData("MAUI-044")] // HTML 4457,4472: account mono, not provider icon
     [InlineData("MAUI-045")] // HTML 1791,4457,4473: Fast bolt before model + aria Fast mode
     [InlineData("MAUI-046")] // HTML 4462-4465: floating defaults dialog with Same-as-account switch
