@@ -16,7 +16,8 @@ public sealed class StoreModelSource(ModelStore store, ModelDownloader downloade
         var download = downloader.Start(file);
         download.FractionChanged += fraction;
         using var cancel = cancellationToken.Register(download.Cancel);
-        return await download.Completion;
+        try { return await download.Completion; }
+        finally { download.FractionChanged -= fraction; }
     }
 
     public Task<ModelVerification> VerifyAsync(ModelFile file, CancellationToken cancellationToken) => store.VerifyForLoad(file, cancellationToken);

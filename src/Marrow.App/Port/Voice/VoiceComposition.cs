@@ -18,6 +18,8 @@ namespace Marrow.App.Port.Voice;
 /// </summary>
 internal static class VoiceComposition
 {
+    private static VoiceCompositionParts? installed;
+    private static IDisposable? firstRun;
     /// <summary>The folder inside the app folder that holds the bundled voice assets (the Services csproj copies them there).</summary>
     internal static string AssetsFolder(string appBase) => Path.Combine(appBase, "Port", "Voice", "Assets");
 
@@ -64,5 +66,45 @@ internal static class VoiceComposition
         VoiceSeams.Capture.SetProcessDefault(parts.Capture);
         HardwareProbeSeams.Probe.SetProcessDefault(parts.Probe);
         SpeechModelSeams.Backend.SetProcessDefault(parts.Models);
+        installed = parts;
+    }
+
+    // Before GR-1 plans its work: tests never call Install, so the startup path stays fail closed in a test runtime.
+    internal static void Attach(AppSettings settings)
+    {
+        if (installed is not { } parts || VoiceFirstRun.Find(settings) is not null) return;
+        var source = (IVoiceModelSource)parts.Models;
+        var hardware = new WindowsHardwareSource();
+        var inventory = new FileRuntimeInventory(AppContext.BaseDirectory, StoragePaths.Root,
+            () => settings.VoiceHardware?.Gpu.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase) == true);
+        var engine = new VerifiedSpeechEngine(new WhisperNetEngine(new WhisperNetBackend(), inventory.Current, hardware.PhysicalCores), source);
+        var identity = VoiceStartupIdentity.Read(hardware, HardwareCheckIdentity.App, HardwareCheckIdentity.Runtime);
+        var preparation = new VoicePreparation(parts.Probe, source, () => engine, new AppSettingsVoiceAccess(settings),
+            () => SelfTestClip.Load(SelfTestClip.DefaultPath), HardwareCheckIdentity.App, HardwareCheckIdentity.Runtime,
+            currentKey: () => identity is null ? null : HardwareKey.Compute(identity),
+            currentPart: () => identity is null ? null : HardwareKey.ComputeHardwarePart(identity));
+        VoiceSeams.Engine.SetProcessDefault(engine);
+        VoiceSeams.Vad.SetProcessDefault(new DeferredVoiceVad(() =>
+        {
+            // V-6.1: open on the runtime already selected by the probe / self-test; no native model is opened at startup.
+            RuntimeKind kind;
+            try { kind = WhisperNativeRuntimes.Loaded(); }
+            catch (InvalidOperationException) { kind = RuntimeKind.Cpu; }
+            var library = kind == RuntimeKind.Cuda12
+                ? Path.Combine(StoragePaths.Root, "runtimes", "cuda12", "win-x64", "whisper.dll")
+                : FileRuntimeInventory.AppRuntimeLibrary(AppContext.BaseDirectory, kind);
+            return SileroVad.Open(Path.Combine(AssetsFolder(AppContext.BaseDirectory), "ggml-silero-v6.2.0.bin"), library, false, ThreadCount.For(hardware.PhysicalCores()));
+        }));
+        VoiceSeams.Resampler.SetProcessDefault(new Marrow.Core.Port.Voice.Dsp.PolyphaseResampler());
+        SpeechModelSeams.SelfTest.SetProcessDefault(new PreparationSelfTest(preparation));
+        firstRun = Connect(settings, preparation, source);
+    }
+
+    internal static IDisposable Connect(AppSettings settings, VoicePreparation preparation, IVoiceModelSource source)
+    {
+        VoiceFirstRun.Bind(settings, new VoiceFirstRun(preparation, new VoiceSpeedQuestion(preparation), source));
+        var registration = preparation.RegisterStep();
+        VoiceFeature.SwitchOn();
+        return registration;
     }
 }
