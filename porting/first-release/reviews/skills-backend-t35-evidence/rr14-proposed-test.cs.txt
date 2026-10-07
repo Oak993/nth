@@ -1,0 +1,66 @@
+using System.Security.Cryptography;
+using System.Text;
+using Marrow.Core.Port.Skills.Catalogue;
+using Marrow.Core.Port.Skills.State;
+using Marrow.Services.Port.Skills.Fetch;
+using Marrow.Services.Port.Skills.Host;
+using Marrow.Services.Port.Skills.Pipelines;
+using Marrow.Services.Port.Skills.Pages;
+using Marrow.Services.Port.Skills.Store;
+using Marrow.Services.Tests.Port.Skills.Install;
+
+namespace Marrow.Services.Tests.Port.Skills.Fetch;
+
+public sealed class PerSkillPinInstallTests
+{
+    [Fact]
+    [Trait("Feature", "SK-16")]
+    [Trait("Rule", "R-TEST-4")]
+    public async Task Each_skill_uses_its_own_commit_and_the_installed_descriptor_survives_reopen()
+    {
+        using var f = new InstallRig();
+        var template = f.Plan(Marrow.Services.Port.Skills.Install.InstallerKind.Skillset).Item;
+        var inputs = new Dictionary<string, byte[]>
+        {
+            ["LICENSE"] = "Fixture licence"u8.ToArray(),
+            ["skills/doc/SKILL.md"] = Encoding.UTF8.GetBytes("---\nname: doc\ndescription: Doc fixture.\n---\nDOC BODY\n"),
+            ["skills/pdf/SKILL.md"] = Encoding.UTF8.GetBytes("---\nname: pdf\ndescription: PDF fixture.\n---\nPDF BODY\n"),
+        };
+        var a = new string('a', 40); var b = new string('b', 40);
+        var item = template with
+        {
+            Kind = ItemKind.Skillset, Pin = null, Artifacts = [], SkillsListed = true, SkillCount = 2,
+            LicenceUrl = "https://raw.githubusercontent.com/example/fixture/" + a + "/LICENSE",
+            Skills = [new CatalogueSkill { Folder = "doc", Name = "doc", Path = "skills/doc", Pin = a, Needs = [] },
+                new CatalogueSkill { Folder = "pdf", Name = "pdf", Path = "skills/pdf", Pin = b, Needs = [] }],
+            Files = inputs.Select(p => new CatalogueFile { Path = p.Key, Size = p.Value.Length, Sha256 = Convert.ToHexStringLower(SHA256.HashData(p.Value)) }).ToArray(),
+        };
+        Assert.Empty(CatalogueGate.Missing(item));
+        var plans = new CatalogueInstallPlans(f.Root);
+        var pin = UpdateCheck.CataloguePin(item)!;
+        var plan = plans.Plan(item, new(item.Id, ItemState.Checking, null, pin, null));
+        Assert.Equal("https://raw.githubusercontent.com/example/fixture/" + a + "/skills/doc/SKILL.md", plans.Url(item, "skills/doc/SKILL.md").AbsoluteUri);
+        Assert.Equal("https://raw.githubusercontent.com/example/fixture/" + b + "/skills/pdf/SKILL.md", plans.Url(item, "skills/pdf/SKILL.md").AbsoluteUri);
+        Assert.Throws<FirstInstallUnavailableException>(() => plans.Url(item, "unmapped.txt"));
+        Assert.Contains(plans.Requests(plan), r => r.Url.AbsoluteUri == item.LicenceUrl);
+        foreach (var (path, bytes) in inputs)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(plan.LocalFiles[path])!);
+            File.WriteAllBytes(plan.LocalFiles[path], bytes);
+        }
+        var result = await f.Installer().InstallAsync(plan);
+        Assert.Equal(pin, result.Record.InstalledPin);
+        Assert.Equal("DOC BODY", File.ReadAllText(Path.Combine(result.Path, "skills/doc/SKILL.md")).Split('\n')[4]);
+        var paths = new StorePaths(f.Root);
+        PipelineRoutes.Prepare(paths.StateFile, plans.Bind(item, result));
+        PipelineManifests.Prepare(paths.StateFile, pin, item);
+        var state = AddonsState.Restore([result.Record], [], [], []);
+        AddonsStateStore.Save(paths.StateFile, state);
+        var catalogue = new SkillsCatalogue { Schema = 1, ReadOn = "fixture", Items = [item] };
+        var restored = CatalogueTrust.Restore(paths, catalogue, state);
+        Assert.Empty(restored.Unrestored);
+        Assert.Equal(pin, Assert.Single(restored.Versions).Pin);
+        Assert.Equal(3, restored.Versions[0].Manifest.Files.Count);
+        Assert.Empty(f.Process.Commands);
+    }
+}

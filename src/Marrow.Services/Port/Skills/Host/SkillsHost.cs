@@ -1,8 +1,10 @@
 // PORT-ONLY: SK-13 / ED-326 (6)(a), ED-325 "Own the whole root". There is no Swift twin.
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Fetch;
+using Marrow.Services.Port.Skills.Custom;
 using Marrow.Services.Port.Skills.Generations;
 using Marrow.Services.Port.Skills.Import;
 using Marrow.Services.Port.Skills.Install;
@@ -28,14 +30,16 @@ public sealed class SkillsHost : IDisposable
     private bool disposed;
     private Task? collection;
 
-    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, ImportedSkillsLibrary imported, TermsStep terms, SkillsDownloads fetches, SkillsCatalogue catalogue,
+    private SkillsHost(string key, StorePaths paths, SkillsPipeline pipeline, SkillGenerations generations, ImportedSkillsLibrary imported, CustomSources custom, TermsStep terms, SkillsDownloads fetches, SkillsCatalogue catalogue,
         Func<CatalogueItem, ItemRecord, IProgress<double?>, CancellationToken, Task<InstallPlan>>? downloads, IReadOnlyList<string> unrestored)
     {
         this.key = key;
         Paths = paths;
+        ProviderSkills = new(() => LoginEnvironment.HomeDirectory, paths.Root);
         Pipeline = pipeline;
         Generations = generations;
         Imported = imported;
+        CustomSources = custom;
         Terms = terms;
         Downloads = fetches;
         Catalogue = catalogue;
@@ -44,6 +48,8 @@ public sealed class SkillsHost : IDisposable
     }
 
     public StorePaths Paths { get; }
+
+    public Marrow.Services.Port.Skills.Pages.ProviderSkillReports ProviderSkills { get; }
 
     /// <summary>SK-14: the catalogue the host was opened with: the in-chat offers read it.</summary>
     public SkillsCatalogue Catalogue { get; }
@@ -56,6 +62,9 @@ public sealed class SkillsHost : IDisposable
 
     /// <summary>SK-18 (OD-0118): the skills the user brought in from other apps. Their files live beside, not inside, the managed trees, so Reset skills and tools leaves them; the generations hand them out.</summary>
     public ImportedSkillsLibrary Imported { get; }
+
+    /// <summary>OD-0099 / RR-18: explicit custom additions, with their own registry and provenance.</summary>
+    public CustomSources CustomSources { get; }
 
     public TermsStep Terms { get; }
 
@@ -118,9 +127,10 @@ public sealed class SkillsHost : IDisposable
         pipeline = new SkillsPipeline(paths, options.Catalogue, trust.Versions, AddonsState.Empty, new ItemInstaller(options.InstallLock, options.InstallProcess), options.Protection,
             options.Deletion, guarded, options.Bindings, trustedDirectories: trust.Directories);
         var imported = new ImportedSkillsLibrary(paths.Skills, options.Clock ?? TimeProvider.System);
-        var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource, imported);
+        var custom = new CustomSources(Path.Combine(paths.Skills, "own"), options.CustomFiles ?? new DiskCustomSourceFiles(), options.CustomGitHub ?? new PublicGitHubSource(), options.Clock ?? TimeProvider.System);
+        var generations = new SkillGenerations(paths, pipeline, options.Protection, options.ClashSource, new CombinedOwnSkillSource(imported, custom));
         var terms = new TermsStep(options.Catalogue, () => pipeline.State, (id, at) => pipeline.AcceptTerms(id, at), options.LicenceText, options.Clock);
-        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, terms, new SkillsDownloads(pipeline, options.Catalogue), options.Catalogue, guarded, trust.Unrestored);
+        return new SkillsHost(paths.Root, paths, pipeline, generations, imported, custom, terms, new SkillsDownloads(pipeline, options.Catalogue), options.Catalogue, guarded, trust.Unrestored);
     }
 
     /// <summary>

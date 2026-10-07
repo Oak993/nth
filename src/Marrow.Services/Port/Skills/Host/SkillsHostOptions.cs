@@ -2,6 +2,7 @@
 using Marrow.Core.Port.Skills.Catalogue;
 using Marrow.Core.Port.Skills.State;
 using Marrow.Services.Port.Skills.Generations;
+using Marrow.Services.Port.Skills.Custom;
 using Marrow.Services.Port.Skills.Install;
 using Marrow.Services.Port.Skills.Pipelines;
 using Marrow.Services.Port.Skills.Store;
@@ -41,6 +42,10 @@ public sealed record SkillsHostOptions
     public Func<StorePaths, SkillsCatalogue, AddonsState, TrustedInstalls>? Trust { get; init; }
 
     public TimeProvider? Clock { get; init; }
+
+    public ICustomSourceFiles? CustomFiles { get; init; }
+
+    public ICustomGitHubSource? CustomGitHub { get; init; }
 
     /// <summary>
     /// The app's composition: the embedded catalogue, the Windows ACL protection and lock, a process runner with an EMPTY executable allow-list (it runs nothing until an executable is pinned
