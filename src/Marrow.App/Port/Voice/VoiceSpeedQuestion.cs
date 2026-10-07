@@ -58,6 +58,24 @@ public sealed class VoiceSpeedQuestion(VoicePreparation preparation)
     public async Task YesAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
     {
         if (!Move(VoiceQuestionState.Ask, VoiceQuestionState.Yes)) return;
+        await PrepareAsync(progress, cancellationToken).ConfigureAwait(false);
+    }
+
+    // OD-0098: an orb click is consent even after Maybe later or after Welcome has gone. A click during Yes joins the same work.
+    internal async Task AtOrbAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
+    {
+        lock (gate)
+        {
+            if (state == VoiceQuestionState.Slow) return;
+            state = VoiceQuestionState.Yes;
+            error = null;
+        }
+        Changed?.Invoke();
+        await PrepareAsync(progress, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task PrepareAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
+    {
         preparation.GrantConsent();
         VoicePreparationResult result;
         try

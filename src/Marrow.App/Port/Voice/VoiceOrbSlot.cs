@@ -3,6 +3,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -34,6 +35,7 @@ internal sealed class VoiceOrbSlot : Decorator
     private ContinuousInstant lastLevel;
     private IInputElement? keyboardBefore;
     private VoiceSessionState lastState;
+    private readonly Popup? setup;
 
     public VoiceOrbSlot(ComposerVoiceController voice)
     {
@@ -44,6 +46,13 @@ internal sealed class VoiceOrbSlot : Decorator
         Child = canvas;
         canvas.Children.Add(Orb);
         canvas.Children.Add(HitTarget);
+        if (voice.FirstRun is { } flow)
+        {
+            setup = PlainControls.Popover(HitTarget, new Binding<bool>(() => voice.SetupOpen, open => voice.SetupOpen = open),
+                () => new VoiceSetupCard(flow), PlacementMode.TopEdgeAlignedRight);
+            canvas.Children.Add(setup);
+            DetachedFromVisualTree += (_, _) => voice.SetupOpen = false;
+        }
         shownSize = voice.OrbSettings.OrbSize;
         side = new AnimatedScalar(this, shownSize, Place);
         ToolTip.SetTip(HitTarget, "Voice input");

@@ -36,6 +36,7 @@ public sealed class VoicePreparation
     private readonly string runtimeVersion;
     private readonly TimeProvider clock;
     private readonly Func<string?>? currentKey;
+    private readonly Func<string?>? currentPart;
     private readonly Lock gate = new();
     private readonly List<IProgress<VoicePrepItem>> subscribers = [];
     private HardwareProfile? profile;
@@ -47,7 +48,7 @@ public sealed class VoicePreparation
     /// <param name="runtimeVersion">The Whisper.net runtime version of the key (V-10.5).</param>
     /// <param name="currentKey">Today's key when no probe has run yet (the startup check); null: only a probe can say.</param>
     public VoicePreparation(IHardwareProbe probe, IVoiceModelSource models, Func<ISpeechEngine> engine, IVoicePreparationSettings settings,
-        Func<ReadOnlyMemory<float>> clip, string app, string runtimeVersion, TimeProvider? clock = null, Func<string?>? currentKey = null)
+        Func<ReadOnlyMemory<float>> clip, string app, string runtimeVersion, TimeProvider? clock = null, Func<string?>? currentKey = null, Func<string?>? currentPart = null)
     {
         this.probe = probe;
         this.models = models;
@@ -58,6 +59,7 @@ public sealed class VoicePreparation
         this.runtimeVersion = runtimeVersion;
         this.clock = clock ?? TimeProvider.System;
         this.currentKey = currentKey;
+        this.currentPart = currentPart;
     }
 
     /// <summary>The hardware part of today's key (the key the slow-PC answer is stored under, R5) from the last probe; null before any.</summary>
@@ -65,7 +67,7 @@ public sealed class VoicePreparation
     {
         get
         {
-            lock (gate) return profile is null ? null : HardwareKey.ComputeHardwarePart(profile);
+            lock (gate) return profile is null ? currentPart?.Invoke() : HardwareKey.ComputeHardwarePart(profile);
         }
     }
 
@@ -152,12 +154,29 @@ public sealed class VoicePreparation
     /// </summary>
     public async Task<VoicePreparationResult> PrepareAsync(IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
     {
-        if (IsPrepared(out var stored) && stored is not null) return new VoicePreparationResult(VoicePreparationStatus.Prepared, stored, false, null);
+        if (IsPrepared(out var stored) && UsableResult(stored))
+        {
+            return new VoicePreparationResult(VoicePreparationStatus.Prepared, stored, NeedsSlowAnswer(stored!), null);
+        }
         HardwareProfile? known;
         lock (gate) known = profile;
         known ??= await ProbeAsync(progress, cancellationToken);
+        // The startup key may be unavailable until this probe. A current record is reused after the read, never re-timed.
+        if (IsPrepared(out stored) && UsableResult(stored))
+            return new VoicePreparationResult(VoicePreparationStatus.Prepared, stored, NeedsSlowAnswer(stored!), null);
         return await InstallAndTimeAsync(Recommend(known).ModelId, known, progress, cancellationToken);
     }
+
+    internal bool NeedsSlowAnswer(VoiceHardwareRecord record)
+    {
+        var part = HardwarePart;
+        return record.Backend == VoiceBackend.Cpu && !record.LiveWords && SelfTestPlan.StepDown(record.Model) is not null
+            && record.Rtf > SelfTestPlan.LiveWordsMaxRtf && (part is null || !SelfTestPlan.AnsweredFor(settings.Typing, part));
+    }
+
+    // IsPrepared is V-10.5's key check. A manual probe can write that same key without installing or timing any model (VT-14).
+    // That record is useful hardware evidence, but never licenses skipping the consent-gated setup or starting capture.
+    internal static bool UsableResult(VoiceHardwareRecord? record) => record is not null && Marrow.Core.Port.Voice.ModelCatalog.Find(record.Model) is not null;
 
     /// <summary>
     /// V-10.3 for model <paramref name="id"/> and the probed <paramref name="found"/>: install it if needed (steps <see cref="DownloadId"/>, <see cref="VerifyId"/>), time it (<see cref="SelfTestId"/>), step down

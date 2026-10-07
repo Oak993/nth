@@ -757,6 +757,8 @@ public sealed class DetailView : Decorator
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }
 
+        voiceQuestion ??= Marrow.App.Port.Voice.VoiceFirstRun.Find(model.Settings)?.Question; // WV-1: the same question every composer reads
+
         // :130 `if let threadID = model.selectedThreadID, model.thread(threadID) != nil`
         if (model.SelectedThreadID is { } threadID && model.Thread(threadID) is not null)
         {

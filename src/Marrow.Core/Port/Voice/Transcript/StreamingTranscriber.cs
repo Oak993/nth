@@ -32,6 +32,7 @@ public sealed class StreamingTranscriber
     private readonly ISpeechEngine engine;
     private readonly string language;
     private readonly bool processingOnly;
+    private readonly bool liveWords;
     private readonly List<float> audio = [];
     private readonly List<(long Start, long End)> speechSpans = [];
     private readonly List<(string Text, double Start, double End)> committed = [];
@@ -47,10 +48,11 @@ public sealed class StreamingTranscriber
     private bool cleared;
     private string? detectedLanguage;
 
-    public StreamingTranscriber(ISpeechEngine engine, string language, bool processingOnly = false)
+    public StreamingTranscriber(ISpeechEngine engine, string language, bool liveWords = true, bool processingOnly = false)
     {
         this.engine = engine;
         this.language = language;
+        this.liveWords = liveWords;
         this.processingOnly = processingOnly;
     }
 
@@ -200,7 +202,8 @@ public sealed class StreamingTranscriber
     {
         var start = bufferStart;
         var maximum = (long)Math.Round(WindowSeconds * SampleRate);
-        if (end - start > maximum) start = end - maximum;
+        // V-7.7: the after-stop path has no earlier committed passes. Its final decode must retain the entire recording.
+        if (liveWords && end - start > maximum) start = end - maximum;
         var pad = padSilence ? (int)Math.Round(FinalSilenceSeconds * SampleRate) : 0;
         var samples = new float[(int)(end - start) + pad];
         audio.CopyTo((int)(start - audioBase), samples, 0, (int)(end - start));
