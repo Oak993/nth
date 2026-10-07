@@ -22,6 +22,9 @@ public sealed class VoiceGlowView : Control
     private CompositionCustomVisual? visual;
     private VoiceGlowHandler? handler;
     private VoiceGlowSnapshot? sent;
+    private ManualFrameSource? manualFrames;
+    private double? manualOrigin;
+    private TimeProvider? manualClock;
 
     public VoiceGlowView()
     {
@@ -61,6 +64,11 @@ public sealed class VoiceGlowView : Control
     private void Install()
     {
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
+        manualFrames = FrameClock.Source.Current as ManualFrameSource;
+        var clock = SwiftClock.Provider.Current;
+        manualClock = manualFrames is null ? null : clock;
+        manualOrigin = manualClock is null ? null : clock.GetTimestamp() / (double)clock.TimestampFrequency;
+        if (manualFrames is not null) manualFrames.FrameCompleted += OnManualFrame;
         handler = new VoiceGlowHandler();
         visual = host.Compositor.CreateCustomVisual(handler);
         visual.ClipToBounds = false;
@@ -71,6 +79,10 @@ public sealed class VoiceGlowView : Control
 
     private void Remove()
     {
+        if (manualFrames is not null) manualFrames.FrameCompleted -= OnManualFrame;
+        manualFrames = null;
+        manualOrigin = null;
+        manualClock = null;
         // the handler releases its surface on the render thread, where it was made
         visual?.SendHandlerMessage(VoiceGlowStop.Instance);
         ElementComposition.SetElementChildVisual(this, null);
@@ -79,12 +91,22 @@ public sealed class VoiceGlowView : Control
         sent = null;
     }
 
+    // Freeze the level after the frame's voice callbacks, rather than reading a later mutable audio sample at paint time.
+    private void OnManualFrame()
+    {
+        if (visual is null || manualClock is not { } clock) return;
+        var input = new VoiceGlowInput(Active, Processing, new VoiceGlowLevel { Value = Level.Value },
+            ActualThemeVariant == ThemeVariant.Dark, EnvironmentValues.GetAccessibilityReduceMotion(this),
+            Bounds.Width, Bounds.Height, Radius);
+        visual.SendHandlerMessage(new VoiceGlowTick(input, clock.GetTimestamp() / (double)clock.TimestampFrequency));
+    }
+
     private void Send()
     {
         if (visual is null) return;
         var snapshot = new VoiceGlowSnapshot(
-            new VoiceGlowInput(Active, Processing, Level, ActualThemeVariant == ThemeVariant.Dark, EnvironmentValues.GetAccessibilityReduceMotion(this), Bounds.Width, Bounds.Height, Radius),
-            SwiftClock.Provider.Current);
+            new VoiceGlowInput(Active, Processing, manualFrames is null ? Level : new VoiceGlowLevel { Value = Level.Value }, ActualThemeVariant == ThemeVariant.Dark, EnvironmentValues.GetAccessibilityReduceMotion(this), Bounds.Width, Bounds.Height, Radius),
+            manualClock ?? SwiftClock.Provider.Current, manualOrigin);
         if (snapshot == sent) return;
         sent = snapshot;
         visual.Size = new Vector(Bounds.Width, Bounds.Height);

@@ -2,4 +2,4 @@
 namespace Marrow.UI.Port.Voice.Glow;
 
 /// <summary>The scene's input, plus the clock the view's frames are timed with.</summary>
-public sealed record VoiceGlowSnapshot(VoiceGlowInput Input, TimeProvider Clock);
+public sealed record VoiceGlowSnapshot(VoiceGlowInput Input, TimeProvider Clock, double? ManualOrigin = null);

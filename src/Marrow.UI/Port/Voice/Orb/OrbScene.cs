@@ -49,6 +49,8 @@ public sealed class OrbScene
     /// <summary>Steps everything to <paramref name="now"/> (seconds) and prepares each visible orb's frame for <paramref name="devicePixelRatio"/>.</summary>
     public void Advance(double now, in OrbSceneInput input, double devicePixelRatio)
     {
+        // A delayed composition sample cannot replay behind a frame already prepared by the injected clock.
+        if (lastNow is { } previousTime && now < previousTime) return;
         var dt = lastNow is { } last ? Math.Max(0, now - last) : 0;
         lastNow = now;
         motion.Step(now, dt, new OrbMotionInput(input.Mode, input.Hovered, input.Pressed, input.Bands, input.SlotDiameter, input.ReduceMotion));

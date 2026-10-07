@@ -23,6 +23,9 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
     private int animating;
     private int frames;
     private bool software;
+    private bool backendKnown;
+    private VoiceOrbSnapshot? manualInitial;
+    private readonly List<VoiceOrbTick> pendingManualFrames = [];
 
     /// <summary>With no GPU (Skia's software rasterizer) the orb is one still; tests that need the motion on the headless renderer turn this on.</summary>
     internal static volatile bool AnimateWithoutGpu;
@@ -50,8 +53,17 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
             Volatile.Write(ref animating, 0);
             return;
         }
+        if (message is VoiceOrbTick tick)
+        {
+            if (IsStopped || scene is null) return;
+            if (!backendKnown) pendingManualFrames.Add(tick);
+            else scene.Advance(tick.At, tick.Input with { ReduceMotion = tick.Input.ReduceMotion || software }, tick.Dpr);
+            Invalidate();
+            return;
+        }
         if (IsStopped || message is not VoiceOrbSnapshot next) return;
         snapshot = next;
+        if (next.ManualOrigin is not null) manualInitial ??= next;
         scene ??= new OrbScene(next.Input.Kind, next.Input.SlotDiameter, next.Input.Dark);
         Invalidate();
         if (drawnSinceRequest) Request();
@@ -89,7 +101,16 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
         var m = canvas.TotalMatrix;
         var dpr = Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
         var input = s.Input with { ReduceMotion = s.Input.ReduceMotion || software };
-        scene.Advance(Seconds(s.Clock), input, dpr);
+        if (s.ManualOrigin is null) scene.Advance(Seconds(s.Clock), input, dpr);
+        else if (!backendKnown)
+        {
+            backendKnown = true;
+            var initial = manualInitial ?? s;
+            scene.Advance(initial.ManualOrigin!.Value, initial.Input with { ReduceMotion = initial.Input.ReduceMotion || software }, dpr);
+            foreach (var tick in pendingManualFrames)
+                scene.Advance(tick.At, tick.Input with { ReduceMotion = tick.Input.ReduceMotion || software }, tick.Dpr);
+            pendingManualFrames.Clear();
+        }
         for (var i = 0; i < 2; i++)
         {
             var kind = (Marrow.Core.Port.Voice.VoiceOrbKind)i;

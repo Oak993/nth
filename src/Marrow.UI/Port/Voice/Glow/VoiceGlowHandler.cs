@@ -23,6 +23,9 @@ internal sealed class VoiceGlowHandler : CompositionCustomVisualHandler
     private int animating;
     private int frames;
     private bool software;
+    private bool backendKnown;
+    private VoiceGlowSnapshot? manualInitial;
+    private readonly List<VoiceGlowTick> pendingManualFrames = [];
 
     /// <summary>With no GPU (Skia's software rasterizer) the glow is one still; tests that need the motion on the headless renderer turn this on.</summary>
     internal static volatile bool AnimateWithoutGpu;
@@ -50,8 +53,18 @@ internal sealed class VoiceGlowHandler : CompositionCustomVisualHandler
             Volatile.Write(ref animating, 0);
             return;
         }
+        if (message is VoiceGlowTick tick)
+        {
+            if (IsStopped) return;
+            var input = tick.Input with { ReduceMotion = tick.Input.ReduceMotion || software };
+            if (!backendKnown) pendingManualFrames.Add(tick);
+            else scene.Advance(tick.At, input);
+            Invalidate();
+            return;
+        }
         if (IsStopped || message is not VoiceGlowSnapshot next) return;
         snapshot = next;
+        if (next.ManualOrigin is not null) manualInitial ??= next;
         Invalidate();
         if (drawnSinceRequest) Request();
     }
@@ -93,7 +106,16 @@ internal sealed class VoiceGlowHandler : CompositionCustomVisualHandler
         var dpr = Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
         var input = software && !s.Input.ReduceMotion ? s.Input with { ReduceMotion = true } : s.Input;
         painter.Prepare(lease.GrContext, input.Width, input.Height, dpr);       // V-13.5: the surface exists from the first layout, not from the first click
-        scene.Advance(Seconds(s.Clock), input);
+        if (s.ManualOrigin is null) scene.Advance(Seconds(s.Clock), input);
+        else if (!backendKnown)
+        {
+            backendKnown = true;
+            var initial = manualInitial ?? s;
+            scene.Advance(initial.ManualOrigin!.Value, initial.Input with { ReduceMotion = initial.Input.ReduceMotion || software });
+            foreach (var tick in pendingManualFrames)
+                scene.Advance(tick.At, tick.Input with { ReduceMotion = tick.Input.ReduceMotion || software });
+            pendingManualFrames.Clear();
+        }
         if (scene.Visible && scene.Frame is { } frame && scene.Look is { } look)
         {
             painter.Draw(canvas, lease.GrContext, look, frame, input.Width, input.Height, dpr, scene.Opacity * lease.CurrentOpacity);
