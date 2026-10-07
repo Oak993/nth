@@ -303,6 +303,8 @@ internal sealed class DictationLayer : Control
         if (op.Kind == WordOpKind.Add && phase == DictationPhase.Armed) Activate(at);
         if (phase == DictationPhase.Armed) return; // nothing is there to revise, remove or confirm
         words.Still = Still;
+        if (op.Kind == WordOpKind.Add && words.Logical.LastOrDefault() is { } previous)
+            previous.Ink.Go(0, at, DictationMotion.Ink, Still); // V-7.5: visual confirmation; the transcriber's logical tail remains revisable.
         words.Apply(op, at);
     }
 

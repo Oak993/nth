@@ -1,0 +1,100 @@
+T34 voice gaps: preserved run excerpts and raw-log fingerprints
+Base: 285b6b7a99b39e0e517f34c8d34a1860c945f83f
+Branch: codex/voice-gaps
+Exact commands, scope and limitations: T34-voice-gaps-validation.md
+Raw logs retained under /tmp/t34-evidence in this workspace. Fingerprints below are of those bytes.
+
+core-baseline.log
+SHA256 d9244d89819d3158b8c4e0f426c29bf9d9a36ea58578bece043290e5f6e5fbf2
+Passed!  - Failed:     0, Passed:   653, Skipped:     0, Total:   653, Duration: 33 s - Marrow.Core.Tests.dll (net10.0)
+
+app-baseline.log
+SHA256 21a0ae4f745ba7d2bdf6685dfabab8eed307ebd140f446465d2bccaabae71bbf
+Failed!  - Failed:    25, Passed:    30, Skipped:     0, Total:    55, Duration: 7 s - Marrow.App.Tests.dll (net10.0)
+
+rr10-red.log
+SHA256 730b2029024de02c569b2fe5fb42adb687eb14717a872ec2edaf0d87e362c425
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Voice/Models/NvidiaCompanionInstallerTests.cs(26,35): error CS0246: The type or namespace name 'NvidiaCompanionArchive' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/Voice/Models/NvidiaCompanionInstallerTests.cs(44,14): error CS0246: The type or namespace name 'NvidiaCompanionInstaller' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+
+rr10-service-green.log
+SHA256 d8c942955599b0ffcf1d529ca931a2b5a17f2f78b7280731bdfe01d938530f40
+Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 172 ms - Marrow.Services.Tests.dll (net10.0)
+
+rr11-red.log
+SHA256 81ae46158b269d66f89b23e8d1c1501abf75ee5ffbc38e8beec0941cdf5c25ae
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/Notes/VoiceReleaseNoteTests.cs(26,23): error CS0103: The name 'VoiceReleaseNotes' does not exist in the current context [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/Voice/Notes/VoiceReleaseNoteTests.cs(40,21): error CS0103: The name 'MicrophoneAccessResult' does not exist in the current context [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+
+notes-refresh-red.log
+SHA256 cc481dba83ebc90154bb203ec789310aececc9f4736523a979246ad57735cf63
+Failed!  - Failed:     1, Passed:    16, Skipped:     0, Total:    17, Duration: 477 ms - Marrow.App.Tests.dll (net10.0)
+
+cuda-boundary-red.log
+SHA256 5f1fdb32aed19a955217e44db85883344bf41f464489823595bca427b8f0827a
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 258 ms - Marrow.App.Tests.dll (net10.0)
+
+app-trace-red.log
+SHA256 4d9adae081499c5c0b1c6ef29ad97be0a6dec15f6432723a29819acbdacdf7d5
+Failed!  - Failed:     3, Passed:     0, Skipped:     0, Total:     3, Duration: 558 ms - Marrow.App.Tests.dll (net10.0)
+
+services-trace-red.log
+SHA256 7951129a9c1a6fbf2c51c1ad1b14747bd1a446419ad30f56a4d9a0414ce63017
+Failed!  - Failed:     3, Passed:     0, Skipped:     0, Total:     3, Duration: 238 ms - Marrow.Services.Tests.dll (net10.0)
+
+core-voice-final.log
+SHA256 2a6e75818c6f04152437be902fbf7b454d0ebd126d942e8a3b304ca5c1f34695
+Passed!  - Failed:     0, Passed:   653, Skipped:     0, Total:   653, Duration: 52 s - Marrow.Core.Tests.dll (net10.0)
+
+core-trace-red.log
+SHA256 a66b641b9c05866e5d3922884bffa95f5bf338e4acd66d2aae1d589de9544efd
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 136 ms - Marrow.Core.Tests.dll (net10.0)
+
+services-verified.log
+SHA256 635d136d060aba799eb0c2044eefd0146e7068efec924061aed74f56943fed5b
+Passed!  - Failed:     0, Passed:   491, Skipped:    12, Total:   503, Duration: 9 s - Marrow.Services.Tests.dll (net10.0)
+
+app-verified-final.log
+SHA256 37beb1a581d4424da727052e36317dbc86a2148c89506a89255629fc44ed9277
+Passed!  - Failed:     0, Passed:    64, Skipped:     0, Total:    64, Duration: 38 s - Marrow.App.Tests.dll (net10.0)
+
+app-voice-broad.log
+SHA256 82069c6e286f7d20bcecf61788391eb4efbb0214a55a526d26c7c796bf10c1c2
+Failed!  - Failed:    35, Passed:   338, Skipped:     1, Total:   374, Duration: 48 s - Marrow.App.Tests.dll (net10.0)
+
+core-full.log
+SHA256 672d395eef1afebb0677b6e95e718bc632a105f2d02245c537d9d73e7bd663cd
+Failed!  - Failed:   235, Passed:  1949, Skipped:     0, Total:  2184, Duration: 4 s - Marrow.Core.Tests.dll (net10.0)
+Test Run Aborted.
+
+core-full-icu.log
+SHA256 54efba46f3062a1c9fdcafcef488acd1391b76d7bd86c6c2df4687c305b06d10
+Failed!  - Failed:   177, Passed:  2314, Skipped:     0, Total:  2491, Duration: 3 s - Marrow.Core.Tests.dll (net10.0)
+Test Run Aborted.
+
+services-full.log
+SHA256 d1a6876ff8044cb9803d4b2bf284160755f4bc3f434b5c214be1928cecca1343
+Failed!  - Failed:  1186, Passed:  3450, Skipped:    42, Total:  4678, Duration: 8 m 35 s - Marrow.Services.Tests.dll (net10.0)
+Test Run Aborted.
+
+add-baseline-red.log
+SHA256 bdacfb5a0464a06d9ef059cfeac434fbf532467d735313ae6b5b032362f1b414
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 262 ms - Marrow.App.Tests.dll (net10.0)
+
+protected.log
+SHA256 d62f0564a57739d9d975d6014de99589b16b3eff8f71965b23fad6dd2774d3d8
+
+gate-a.log
+SHA256 d5680a0514d5fcee01145b30b9ec6f50e889d258d005ded63364e06e826d0d90
+FAIL=5  PASS=7
+RESULT: NOT ACCEPTABLE (mandatory checks unmet)
+
+gate-b.log
+SHA256 d438ffbf40b3d464bce128abb6905a99f1c5e4b6438980dd081855d92852e63b
+PASS=8
+RESULT: all implemented checks pass
+
+requirements.log
+SHA256 aa6a68a1b40c0cc6eb0731acebc481f3919397ce1031e801696b9fe8ebd58836
+<ref *1> Error: spawnSync dotnet ENOENT
+  code: 'ENOENT',

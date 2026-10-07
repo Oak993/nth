@@ -641,3 +641,7 @@ RR-10 implementation DONE: pinned NVIDIA companion installer, complete staged pu
 
 ## T34 voice release gaps — RR-11 (2026-10-07)
 RR-11 BLOCKED: picked error notes are mounted and real AVX2 facts bound, with fake lifetime/announcement/mounted-surface coverage; the 30-second Countdown C is still not mounted. Its exact pill integration and first-download-note suppression require the protected VT-12/CZ-7b/VT-15 files; the OpenAI key row needs VT-16 integration. No protected source/test/reference was edited or imported. Evidence and Windows checklist: porting/first-release/reports/T34-voice-gaps-RR11.md. ED-NEW-voice-gaps-2.
+
+
+## T34 voice release gaps — RR-12 and final verdict (2026-10-07)
+RR-12 BLOCKED: Add now visually confirms its preceding word without changing transcriber logical Tentative semantics; the focused regression passes. Automatic RTL paragraph direction, independently rising wrapped fragments and final-fragment caret/scroll parity remain incomplete. The unproven renderer was excluded after independent review; no original test/assertion/reference/tolerance changed. Affected checks: Core voice 653 plus 3 metadata passed; Services voice/metadata 491 passed, 12 Windows skips; App affected/metadata 64 passed. Broad App and full Core/Services runs encounter recorded Windows/font/platform failures on Linux. RR-10 implementation DONE; RR-11 and RR-12 BLOCKED; verdict NOT READY. Windows work and exact evidence: porting/first-release/reports/T34-voice-gaps-validation.md. ED-NEW-voice-gaps-3.
