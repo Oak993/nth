@@ -189,7 +189,8 @@ public sealed class OpenRouterPicker : Decorator
     private static string Count(int n)=>n==1?"1 model":n.ToString(System.Globalization.CultureInfo.InvariantCulture)+" models";
     internal static TextBlock Label(string text,double size,double alpha)=>new() { Text=text, FontSize=size, Foreground=Brush(.957,.965,.984,alpha), VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center, TextTrimming=TextTrimming.CharacterEllipsis };
     internal static SolidColorBrush Brush(double r,double g,double b,double a)=>new(Color.FromArgb((byte)Math.Round(a*255),(byte)Math.Round(r*255),(byte)Math.Round(g*255),(byte)Math.Round(b*255)));
-    internal static Control Dot(string color,double size)=>new Border { Width=size, Height=size, CornerRadius=new CornerRadius(size/2), HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Center, Background=new SolidColorBrush(Color.Parse(color)), BorderThickness=new Thickness(1), BorderBrush=Brush(1,1,1,.28), VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center };
+    internal static Control Dot(string color,double size)
+        => new Border { Width=size, Height=size, CornerRadius=new CornerRadius(size/2), HorizontalAlignment=Avalonia.Layout.HorizontalAlignment.Center, Background=new SolidColorBrush(Color.Parse(color)), BorderThickness=new Thickness(1), BorderBrush=Brush(1,1,1,.28), VerticalAlignment=Avalonia.Layout.VerticalAlignment.Center };
     internal void UpdateMakerDots(){foreach(var group in rows.GroupBy(r=>r.Model.Maker,StringComparer.Ordinal))makerDots[group.Key].To(group.First().TargetColour,Animation.Smooth(1.2));}
 }
 
