@@ -16,12 +16,12 @@ internal sealed class AccountPopoverHost : MainActorModel
     private bool presented;
     internal bool Presented { get => Read(presented); set => Set(ref presented, value); }
     internal Popup Popup { get; }
-    internal AccountPopoverHost(ComposerCapsuleSlot slot, AccountPopoverModel model)
+    internal AccountPopoverHost(ComposerCapsuleSlot slot, AccountPopoverModel model, AccountPopoverContext? context = null)
     {
         slot.Clicked += Toggle;
         Popup = PlainControls.Popover(slot, new Binding<bool>(() => Presented, value => Presented = value), () =>
         {
-            var view = new AccountPopover(model); view.CloseRequested += () => Presented = false;
+            var view = new AccountPopover(model, context); view.CloseRequested += () => Presented = false;
             view.CreatePillRequested += () => { Presented = false; SettingsNavigation.Shared.RequestedPage = SettingsPage.Pills; };
             return view;
         });
@@ -33,7 +33,7 @@ internal sealed class AccountPopoverHost : MainActorModel
         if (runtime.App is not { } app || runtime.Thread is not { } thread || ThreadPortSeams.Offer.Current.Account(runtime.ThreadID, thread.Provider) is not { } port) return slot;
         var model = new AccountPopoverModel(port, app.Settings.Accounts, service => app.Providers.Models(service),
             () => app.Settings.Accounts.Accounts.Count(app.IsAccountConnected));
-        var host = new AccountPopoverHost(slot, model);
+        var host = new AccountPopoverHost(slot, model, new AccountPopoverContext(app.Settings.Accounts, service => app.Providers.Models(service)));
         var panel = new Panel { Children = { slot, host.Popup } }; return panel;
     }
 }

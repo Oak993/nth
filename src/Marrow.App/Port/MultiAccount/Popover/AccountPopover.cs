@@ -13,11 +13,24 @@ namespace Marrow.App.Port.MultiAccount.Popover;
 internal sealed class AccountPopover : Decorator
 {
     private readonly AccountPopoverModel model;
-    private readonly CrossfadeSlot content = new();
+    private readonly CrossfadeSlot pinSlot = new();
+    private readonly CrossfadeSlot footerSlot = new();
+    private readonly CrossfadeSlot rememberSlot = new();
+    private readonly StackPanel list = new() { Spacing = 2 };
+    private readonly Dictionary<Guid, AccountPopoverRowControl> kept = [];
+    private readonly Dictionary<CrossfadeSlot, string> shown = [];
+    private readonly AccountPopoverContext? context;
+    private readonly Button pill;
     private Guid? focusAccount;
-    internal AccountPopover(AccountPopoverModel model)
+    internal AccountPopover(AccountPopoverModel model, AccountPopoverContext? context = null)
     {
-        this.model = model; Width = 340; Child = content; Refresh();
+        this.model = model; this.context = context; Width = 340;
+        var panel = new StackPanel { Spacing = 2, Margin = new Thickness(8) };
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 6, 8, 4) };
+        header.Children.Add(LibraryUi.Text(model.Header, 12, secondary: true, weight: SwiftFont.Weight.Semibold));
+        var hint = LibraryUi.Text(model.OrderHint, 11, secondary: true); Grid.SetColumn(hint, 1); header.Children.Add(hint); panel.Children.Add(header);
+        pill = Button(model.CreatePillText, "popover-create-pill", () => CreatePillRequested?.Invoke());
+        panel.Children.Add(pinSlot); panel.Children.Add(list); panel.Children.Add(footerSlot); panel.Children.Add(pill); panel.Children.Add(rememberSlot); Child = panel; Refresh();
         AttachedToVisualTree += (_, _) => { model.Changed += OnChanged; Refresh(); };
         DetachedFromVisualTree += (_, _) => model.Changed -= OnChanged;
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { CloseRequested?.Invoke(); e.Handled = true; } };
@@ -31,22 +44,28 @@ internal sealed class AccountPopover : Decorator
     }
     private void Refresh()
     {
-        var panel = new StackPanel { Spacing = 2, Margin = new Thickness(8) };
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 6, 8, 4) };
-        header.Children.Add(LibraryUi.Text(model.Header, 12, secondary: true, weight: SwiftFont.Weight.Semibold));
-        var hint = LibraryUi.Text(model.OrderHint, 11, secondary: true); Grid.SetColumn(hint, 1); header.Children.Add(hint); panel.Children.Add(header);
         var pin = model.PinnedText;
-        if (pin is null) panel.Children.Add(LibraryUi.Text(model.Subtitle, 12, secondary: true));
-        else panel.Children.Add(Line(pin.Replace(" · Back to order", "", StringComparison.Ordinal), "Back to order", "popover-back-to-order", model.BackToOrder));
-        var list = new StackPanel { Spacing = 2 }; var values = model.Rows; Rows = values.Select((row, index) => new AccountPopoverRowControl(row, Pin, Move, index, values.Count)).ToArray();
-        foreach (var row in Rows) list.Children.Add(row); panel.Children.Add(list);
-        panel.Children.Add(LibraryUi.Text(model.Footer, 11.5, secondary: true));
-        if (model.CanCreatePill) panel.Children.Add(Button(model.CreatePillText, "popover-create-pill", () => CreatePillRequested?.Invoke()));
-        panel.Children.Add(model.RememberText.EndsWith(" · Use Settings", StringComparison.Ordinal)
+        TextSlot(pinSlot, pin ?? model.Subtitle, () => pin is null ? LibraryUi.Text(model.Subtitle, 12, secondary: true)
+            : Line(pin.Replace(" · Back to order", "", StringComparison.Ordinal), "Back to order", "popover-back-to-order", model.BackToOrder));
+        var values = model.Rows;
+        foreach (var id in kept.Keys.Where(id => !values.Any(r => r.Account.Id == id)).ToArray()) { list.Children.Remove(kept[id]); kept.Remove(id); }
+        var wanted = new List<AccountPopoverRowControl>();
+        for (var index = 0; index < values.Count; index++)
+        {
+            var value = values[index];
+            if (!kept.TryGetValue(value.Account.Id, out var row)) { row = new AccountPopoverRowControl(value, Pin, Move, index, values.Count, context); kept.Add(value.Account.Id, row); list.Children.Add(row); }
+            else row.Apply(value, index, values.Count);
+            var old = list.Children.IndexOf(row); if (old != index) list.Children.Move(old, index); wanted.Add(row);
+        }
+        Rows = wanted; TextSlot(footerSlot, model.Footer, () => LibraryUi.Text(model.Footer, 11.5, secondary: true, wrap: true)); pill.IsVisible = model.CanCreatePill;
+        TextSlot(rememberSlot, model.RememberText, () => model.RememberText.EndsWith(" · Use Settings", StringComparison.Ordinal)
             ? Line(model.RememberText.Replace(" · Use Settings", "", StringComparison.Ordinal), "Use Settings", "popover-use-settings", model.UseSettings)
             : LibraryUi.Text(model.RememberText, 12, secondary: true));
-        content.Show(panel, FrameClock.IsBound ? Animation.EaseOut(duration: .25) : null);
-        if (focusAccount is { } id) Avalonia.Threading.Dispatcher.UIThread.Post(() => Rows.FirstOrDefault(r => r.AccountId == id)?.FocusPin());
+        if (focusAccount is { } focusedId) Avalonia.Threading.Dispatcher.UIThread.Post(() => Rows.FirstOrDefault(r => r.AccountId == focusedId)?.FocusPin());
+    }
+    private void TextSlot(CrossfadeSlot slot, string value, Func<Control> make)
+    {
+        if (shown.GetValueOrDefault(slot) == value) return; shown[slot] = value; slot.Show(make(), FrameClock.IsBound ? Animation.EaseOut(duration: .25) : null);
     }
     private void Move(Guid id, int target)
     {

@@ -17,11 +17,12 @@ internal sealed class AccountUsageBar : Control
     internal bool Hot { get; private set; }
     internal bool Out { get; private set; }
     internal string Percent { get; private set; } = "";
+    internal event Action? Applied;
     internal void Apply(PopoverUsageBar bar)
     {
         Target = bar.Fraction; Hot = bar.Hot; Out = bar.Out; Percent = bar.Percent;
         shown.Set(bar.Fraction ?? 0, FrameClock.IsBound && !CapsuleMotion.Reduce(this) ? Animation.TimingCurve(.22, 1, .36, 1, .6) : null);
-        InvalidateVisual();
+        InvalidateVisual(); Applied?.Invoke();
     }
     public override void Render(DrawingContext context)
     {
