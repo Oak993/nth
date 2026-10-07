@@ -110,7 +110,7 @@ public sealed class HandshakeMachine(
             switch (phase)
             {
                 case HandshakePhase.Idle: await IdleTickAsync(ct); break;
-                case HandshakePhase.InSync when host.AtSafePoint: await SwitchNowAsync(ct); break;
+                case HandshakePhase.InSync when host.AtSafePoint: await CommitPreparedSwitchAsync(ct); break;
                 case HandshakePhase.Waiting: await WaitTickAsync(ct); break;
             }
         }
@@ -130,6 +130,21 @@ public sealed class HandshakeMachine(
                 answerPolicies[DecisionKind.OnLimit] = StoredPolicy(DecisionKind.OnLimit);
             }
             await HardLimitAsync(accountId, resetsAt, ct);
+        }
+        finally { gate.Release(); }
+    }
+
+    /// <summary>The waiting note's explicit Switch now action; unresolved transfer choices still ask.</summary>
+    public async Task SwitchNowAsync(CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (phase != HandshakePhase.Waiting) throw new InvalidOperationException("This conversation is no longer waiting.");
+            answers[DecisionKind.OnLimit] = DecisionValues.Switch;
+            answerPolicies[DecisionKind.OnLimit] = StoredPolicy(DecisionKind.OnLimit);
+            SetPhase(HandshakePhase.Idle);
+            await HardLimitAsync(host.ActiveAccountId, waitUntil, ct);
         }
         finally { gate.Release(); }
     }
@@ -510,7 +525,7 @@ public sealed class HandshakeMachine(
             linking = null;
         }
 
-        if (host.AtSafePoint) await SwitchNowAsync(ct);
+        if (host.AtSafePoint) await CommitPreparedSwitchAsync(ct);
     }
 
     private bool Deferred(SwitchTarget to) => standby?.Kind == StandbyKind.Deferred || host is IDeferredDeliveryHost deferred && deferred.DeliversDeferred(to);
@@ -527,7 +542,7 @@ public sealed class HandshakeMachine(
             throw new InvalidOperationException("Permission for context transfer changed.");
     }
 
-    private async Task SwitchNowAsync(CancellationToken ct)
+    private async Task CommitPreparedSwitchAsync(CancellationToken ct)
     {
         // PORT-ONLY: ED-NEW-ma-ui. Preparation cannot retain permission to use a row turned Off meanwhile.
         if (target is null || Find(target.Account.Id) is not { Enabled: true }
