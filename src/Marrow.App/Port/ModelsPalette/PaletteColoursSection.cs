@@ -56,7 +56,7 @@ internal sealed class PaletteColoursSection : Decorator
             var line=new StackPanel{Orientation=Orientation.Horizontal,Spacing=6,Margin=new Thickness(0,0,14,6)};
             if(text.StartsWith("New maker: ",StringComparison.Ordinal)||text.EndsWith("'s shades re-spaced",StringComparison.Ordinal))
             {
-                var name=text.StartsWith("New maker: ",StringComparison.Ordinal)?text[11..]:text[..^18];var maker=controller.FindMaker(name);if(maker is not null)line.Children.Add(new PaletteMakerDot(maker.Colour,false){Width=9,Height=9});
+                var name=text.StartsWith("New maker: ",StringComparison.Ordinal)?text[11..]:text[..^19];var maker=controller.FindMaker(name);if(maker is not null)line.Children.Add(new PaletteMakerDot(maker.Colour,false){Width=9,Height=9});
             }
             else line.Children.Add(new TextBlock{Text="✓",FontSize=13,Foreground=new SolidColorBrush(Color.Parse("#64C98A")),VerticalAlignment=VerticalAlignment.Center});
             var label=new TextBlock{Text=text,TextWrapping=TextWrapping.Wrap,Foreground=Chrome.SecondaryText.Brush(this)};SwiftFont.System(12).Apply(label);line.Children.Add(label);summary.Children.Add(line);

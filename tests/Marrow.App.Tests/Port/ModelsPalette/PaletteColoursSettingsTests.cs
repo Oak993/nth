@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.Core.Port;
 using Marrow.App.Port.ModelsPalette;
 using Marrow.App.Tests.Fixtures;
@@ -82,6 +83,27 @@ public sealed class PaletteColoursSettingsTests(HeadlessSession headless)
             runtime.Advance(TimeSpan.FromMilliseconds(125));frames.Advance(TimeSpan.FromMilliseconds(125));
             Assert.Equal(Animation.TimingCurve(.25,.1,.25,1,.25).Progress(.125),detail.IncomingOpacity,10);
             EnvironmentValues.SetAccessibilityReduceMotion(window,true);detail.SetText("Checked just now · no new models");Assert.Equal(1,detail.IncomingOpacity);
+        }
+        finally{window.Close();}
+    });
+
+    [Fact]
+    public void A_re_spaced_maker_summary_draws_its_real_colour_dot()=>headless.OnUiThread(()=>
+    {
+        using var runtime=new TestRuntime();using var roots=new ModelsPaletteRoots();using var fake=new PalettePipelineFixture();
+        using var engine=new PaletteEngine(roots.New(),fake.Http,fake,runtime.Time,fake.Pack);
+        var warm=engine.CheckNow();runtime.Loop.RunUntil(()=>warm.IsCompleted);warm.GetAwaiter().GetResult();
+        using var controller=new PaletteColoursController(engine,()=>0,runtime.Time);var control=new PaletteColoursSection(controller);
+        var window=new Avalonia.Controls.Window{Content=control};window.Show();
+        try
+        {
+            fake.ImageVersion=1;fake.Date="Thu, 08 Oct 2026 06:20:00 GMT";runtime.Advance(TimeSpan.FromDays(1));
+            var run=controller.Refresh();runtime.Loop.RunUntil(()=>run.IsCompleted);run.GetAwaiter().GetResult();
+            fake.Date="Fri, 09 Oct 2026 06:20:00 GMT";runtime.Advance(TimeSpan.FromDays(1));
+            run=controller.Refresh();runtime.Loop.RunUntil(()=>run.IsCompleted);run.GetAwaiter().GetResult();
+            Assert.Equal(new[]{"Acme's shades re-spaced"},controller.View.Summary);
+            var dot=Assert.Single(control.GetVisualDescendants().OfType<PaletteMakerDot>(),d=>d.Width==9);
+            Assert.Equal(Color.Parse(engine.Current.Makers["acme"].Heart),dot.TargetColour);
         }
         finally{window.Close();}
     });
