@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="d59cb279-3e05-47ac-956a-39e0ef079a2f" name="@a39ab932e15a 2026-10-07 09:21:56" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T09:21:56.1136345+00:00" queuing="2026-10-07T09:21:56.1136345+00:00" start="2026-10-07T09:21:52.5283484+00:00" finish="2026-10-07T09:21:56.2072834+00:00" />
+  <TestSettings name="default" id="36e26039-45e9-4156-92f0-aa6ee53c79bd">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_09_21_56" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="570546e6-6f32-4a0b-9ef6-bb1cdce2f0da" testId="2a4390b5-2f8f-4c69-5737-97ece2db2a2d" testName="Marrow.App.Tests.Port.ModelsPalette.ModelShadesTests.Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post" computerName="a39ab932e15a" duration="00:00:00.4485156" startTime="2026-10-07T09:21:54.7987502+00:00" endTime="2026-10-07T09:21:55.2225547+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="570546e6-6f32-4a0b-9ef6-bb1cdce2f0da" />
+    <UnitTestResult executionId="0930c1a1-75fe-40de-a320-d2f99457f872" testId="446b474f-38dd-3f3d-48f2-31c59368fbb5" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;kimi&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" computerName="a39ab932e15a" duration="00:00:00.0708405" startTime="2026-10-07T09:21:54.7975221+00:00" endTime="2026-10-07T09:21:54.8460103+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0930c1a1-75fe-40de-a320-d2f99457f872" />
+    <UnitTestResult executionId="54d5d2f9-5a9b-47d9-b966-e349e91edb94" testId="500718c5-911e-bf5c-cce3-0e1323b2d129" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;MOONSHOTAI&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" computerName="a39ab932e15a" duration="00:00:00.0001506" startTime="2026-10-07T09:21:54.8565218+00:00" endTime="2026-10-07T09:21:54.8565959+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="54d5d2f9-5a9b-47d9-b966-e349e91edb94" />
+    <UnitTestResult executionId="2882be09-a61f-42b6-8b76-f0790a6a690b" testId="d1e3f736-1d24-39c9-e91c-c74311949099" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.A_failed_API_refresh_does_not_manufacture_picker_models" computerName="a39ab932e15a" duration="00:00:00.0017351" startTime="2026-10-07T09:21:54.8573468+00:00" endTime="2026-10-07T09:21:54.8573888+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2882be09-a61f-42b6-8b76-f0790a6a690b" />
+    <UnitTestResult executionId="fd37e258-1587-4beb-b5b8-0dde15fc1d72" testId="1f0375fc-fc96-1a02-752d-5901d7dd7599" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" computerName="a39ab932e15a" duration="00:00:00.4050408" startTime="2026-10-07T09:21:55.6886886+00:00" endTime="2026-10-07T09:21:56.0938571+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fd37e258-1587-4beb-b5b8-0dde15fc1d72" />
+    <UnitTestResult executionId="2c75eabd-465e-4096-8d4f-804909109777" testId="ada485af-f23c-d7de-dc16-8cbd3165079c" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" computerName="a39ab932e15a" duration="00:00:00.0520244" startTime="2026-10-07T09:21:56.1013503+00:00" endTime="2026-10-07T09:21:56.1460677+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2c75eabd-465e-4096-8d4f-804909109777" />
+    <UnitTestResult executionId="0949ea09-5e27-4332-bc1d-4bd6e2acd077" testId="cf271da8-e5c3-f36b-fc31-be8db8eaa2f7" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.Retarget_uses_the_actual_rgb_blend_and_title_glow_and_motion_share_the_clock" computerName="a39ab932e15a" duration="00:00:00.4502201" startTime="2026-10-07T09:21:54.7987101+00:00" endTime="2026-10-07T09:21:55.2224767+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0949ea09-5e27-4332-bc1d-4bd6e2acd077" />
+    <UnitTestResult executionId="3833cb58-8a34-4553-92f8-0083254f1c1a" testId="b414fb67-7c88-840b-46f1-afef35ff1f1a" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.A_running_arrival_defers_the_glide_and_warm_frame_sampling_allocates_nothing" computerName="a39ab932e15a" duration="00:00:00.2542985" startTime="2026-10-07T09:21:55.2245113+00:00" endTime="2026-10-07T09:21:55.4782068+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3833cb58-8a34-4553-92f8-0083254f1c1a" />
+    <UnitTestResult executionId="cdade708-3e84-4523-8dd8-8830413ce5df" testId="6619db28-abab-ff88-0fec-0c241f4ea6ff" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;moonshotai/kimi-k2&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" computerName="a39ab932e15a" duration="00:00:00.0015146" startTime="2026-10-07T09:21:54.8558303+00:00" endTime="2026-10-07T09:21:54.8559053+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cdade708-3e84-4523-8dd8-8830413ce5df" />
+    <UnitTestResult executionId="f922c450-18f8-4e99-8a7d-9829ac447559" testId="3de41ad6-4c5d-da39-a900-7a3c748b433c" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;claude&quot;, expected: &quot;anthropic/claude-sonnet-4.5&quot;)" computerName="a39ab932e15a" duration="00:00:00.0001521" startTime="2026-10-07T09:21:54.8566817+00:00" endTime="2026-10-07T09:21:54.8567191+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f922c450-18f8-4e99-8a7d-9829ac447559" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.ModelShadesTests.Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2a4390b5-2f8f-4c69-5737-97ece2db2a2d">
+      <Execution id="570546e6-6f32-4a0b-9ef6-bb1cdce2f0da" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.ModelShadesTests" name="Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;moonshotai/kimi-k2&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="6619db28-abab-ff88-0fec-0c241f4ea6ff">
+      <Execution id="cdade708-3e84-4523-8dd8-8830413ce5df" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ada485af-f23c-d7de-dc16-8cbd3165079c">
+      <Execution id="2c75eabd-465e-4096-8d4f-804909109777" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests" name="Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.A_failed_API_refresh_does_not_manufacture_picker_models" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="d1e3f736-1d24-39c9-e91c-c74311949099">
+      <Execution id="2882be09-a61f-42b6-8b76-f0790a6a690b" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="A_failed_API_refresh_does_not_manufacture_picker_models" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;claude&quot;, expected: &quot;anthropic/claude-sonnet-4.5&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="3de41ad6-4c5d-da39-a900-7a3c748b433c">
+      <Execution id="f922c450-18f8-4e99-8a7d-9829ac447559" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;kimi&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="446b474f-38dd-3f3d-48f2-31c59368fbb5">
+      <Execution id="0930c1a1-75fe-40de-a320-d2f99457f872" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;MOONSHOTAI&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="500718c5-911e-bf5c-cce3-0e1323b2d129">
+      <Execution id="54d5d2f9-5a9b-47d9-b966-e349e91edb94" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.Retarget_uses_the_actual_rgb_blend_and_title_glow_and_motion_share_the_clock" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="cf271da8-e5c3-f36b-fc31-be8db8eaa2f7">
+      <Execution id="0949ea09-5e27-4332-bc1d-4bd6e2acd077" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests" name="Retarget_uses_the_actual_rgb_blend_and_title_glow_and_motion_share_the_clock" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.A_running_arrival_defers_the_glide_and_warm_frame_sampling_allocates_nothing" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="b414fb67-7c88-840b-46f1-afef35ff1f1a">
+      <Execution id="3833cb58-8a34-4553-92f8-0083254f1c1a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests" name="A_running_arrival_defers_the_glide_and_warm_frame_sampling_allocates_nothing" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="1f0375fc-fc96-1a02-752d-5901d7dd7599">
+      <Execution id="fd37e258-1587-4beb-b5b8-0dde15fc1d72" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests" name="The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="2a4390b5-2f8f-4c69-5737-97ece2db2a2d" executionId="570546e6-6f32-4a0b-9ef6-bb1cdce2f0da" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="446b474f-38dd-3f3d-48f2-31c59368fbb5" executionId="0930c1a1-75fe-40de-a320-d2f99457f872" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="500718c5-911e-bf5c-cce3-0e1323b2d129" executionId="54d5d2f9-5a9b-47d9-b966-e349e91edb94" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d1e3f736-1d24-39c9-e91c-c74311949099" executionId="2882be09-a61f-42b6-8b76-f0790a6a690b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1f0375fc-fc96-1a02-752d-5901d7dd7599" executionId="fd37e258-1587-4beb-b5b8-0dde15fc1d72" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ada485af-f23c-d7de-dc16-8cbd3165079c" executionId="2c75eabd-465e-4096-8d4f-804909109777" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cf271da8-e5c3-f36b-fc31-be8db8eaa2f7" executionId="0949ea09-5e27-4332-bc1d-4bd6e2acd077" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b414fb67-7c88-840b-46f1-afef35ff1f1a" executionId="3833cb58-8a34-4553-92f8-0083254f1c1a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6619db28-abab-ff88-0fec-0c241f4ea6ff" executionId="cdade708-3e84-4523-8dd8-8830413ce5df" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3de41ad6-4c5d-da39-a900-7a3c748b433c" executionId="f922c450-18f8-4e99-8a7d-9829ac447559" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="10" executed="10" passed="10" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.31]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.81]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.86]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:03.27]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

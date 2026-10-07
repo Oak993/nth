@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="80d770b4-695f-46c6-ac35-5d303ff6b142" name="@a39ab932e15a 2026-10-07 13:17:00" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T13:17:00.9602059+00:00" queuing="2026-10-07T13:17:00.9602059+00:00" start="2026-10-07T13:16:56.9551281+00:00" finish="2026-10-07T13:17:01.3623417+00:00" />
+  <TestSettings name="default" id="0b976abe-eb46-48b0-ba7e-91da9cd7fabf">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_13_17_00" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="00bdbada-a2ef-409b-85fc-9e3ffeb2f7dd" testId="610953ba-2562-61ff-ce86-798db080b95e" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.The_actual_slider_adapter_draws_more_than_three_models_without_replacing_the_Strike" computerName="a39ab932e15a" duration="00:00:00.4832845" startTime="2026-10-07T13:16:59.9836075+00:00" endTime="2026-10-07T13:17:00.4590224+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="00bdbada-a2ef-409b-85fc-9e3ffeb2f7dd" />
+    <UnitTestResult executionId="e629d874-bc52-42ea-8627-d84b85bf5ad8" testId="26a721a9-f64c-4fe3-ce41-4b9c8d96e406" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.The_bound_Strike_retains_its_clock_and_reads_every_precomputed_model_row_and_dial" computerName="a39ab932e15a" duration="00:00:00.1610618" startTime="2026-10-07T13:17:00.4607032+00:00" endTime="2026-10-07T13:17:00.6192337+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e629d874-bc52-42ea-8627-d84b85bf5ad8" />
+    <UnitTestResult executionId="d24964b6-f67c-48f1-8615-b67349669dcd" testId="1a9a0f1e-3be9-7f05-484a-2590ae980d3a" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes" computerName="a39ab932e15a" duration="00:00:00.6503245" startTime="2026-10-07T13:17:00.6212315+00:00" endTime="2026-10-07T13:17:01.2766448+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d24964b6-f67c-48f1-8615-b67349669dcd">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Single() Failure: The collection contained 2 items
+Collection: [TrackEffect { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Child = EffectCanvas { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Classes = [···], Clip = null, ··· }, Classes = [], ··· }, TrackEffect { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Child = EffectCanvas { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Classes = [···], Clip = null, ··· }, Classes = [], ··· }]</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.&lt;&gt;c__DisplayClass2_0.&lt;The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteComposerBindingTests.cs:line 39
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteComposerBindingTests.cs:line 24
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ed1df644-e55c-495c-ab90-db01b15c3dae" testId="f699205f-d111-0fba-d6da-2c0120f8fac5" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement" computerName="a39ab932e15a" duration="00:00:00.5297851" startTime="2026-10-07T13:16:59.4462049+00:00" endTime="2026-10-07T13:16:59.9668460+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ed1df644-e55c-495c-ab90-db01b15c3dae">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Same() Failure: Values are not the same instance
+Expected: [#ff509a73, #ff509a73, #ff509a73, #ff509a73, #ff509a73, ···]
+Actual:   [#ffffffff, #ffffffff, #ffffffff, #ffffffff, #fffeffff, ···]</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.&lt;&gt;c__DisplayClass4_0.&lt;A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteTrackBindingTests.cs:line 72
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteTrackBindingTests.cs:line 68
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="1a9a0f1e-3be9-7f05-484a-2590ae980d3a">
+      <Execution id="d24964b6-f67c-48f1-8615-b67349669dcd" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests" name="The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.The_bound_Strike_retains_its_clock_and_reads_every_precomputed_model_row_and_dial" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="26a721a9-f64c-4fe3-ce41-4b9c8d96e406">
+      <Execution id="e629d874-bc52-42ea-8627-d84b85bf5ad8" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests" name="The_bound_Strike_retains_its_clock_and_reads_every_precomputed_model_row_and_dial" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.The_actual_slider_adapter_draws_more_than_three_models_without_replacing_the_Strike" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="610953ba-2562-61ff-ce86-798db080b95e">
+      <Execution id="00bdbada-a2ef-409b-85fc-9e3ffeb2f7dd" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests" name="The_actual_slider_adapter_draws_more_than_three_models_without_replacing_the_Strike" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="f699205f-d111-0fba-d6da-2c0120f8fac5">
+      <Execution id="ed1df644-e55c-495c-ab90-db01b15c3dae" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests" name="A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="610953ba-2562-61ff-ce86-798db080b95e" executionId="00bdbada-a2ef-409b-85fc-9e3ffeb2f7dd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="26a721a9-f64c-4fe3-ce41-4b9c8d96e406" executionId="e629d874-bc52-42ea-8627-d84b85bf5ad8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1a9a0f1e-3be9-7f05-484a-2590ae980d3a" executionId="d24964b6-f67c-48f1-8615-b67349669dcd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f699205f-d111-0fba-d6da-2c0120f8fac5" executionId="ed1df644-e55c-495c-ab90-db01b15c3dae" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="4" executed="4" passed="2" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.30]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.74]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.79]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.61]       Assert.Same() Failure: Values are not the same instance
+[xUnit.net 00:00:02.61]       Expected: [#ff509a73, #ff509a73, #ff509a73, #ff509a73, #ff509a73, ···]
+[xUnit.net 00:00:02.61]       Actual:   [#ffffffff, #ffffffff, #ffffffff, #ffffffff, #fffeffff, ···]
+[xUnit.net 00:00:02.61]       Stack Trace:
+[xUnit.net 00:00:02.61]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteTrackBindingTests.cs(72,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.&lt;&gt;c__DisplayClass4_0.&lt;A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement&gt;b__0()
+[xUnit.net 00:00:02.61]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:02.61]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:02.61]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:02.61]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.61]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:02.61]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteTrackBindingTests.cs(68,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement()
+[xUnit.net 00:00:02.61]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:03.91]       Assert.Single() Failure: The collection contained 2 items
+[xUnit.net 00:00:03.92]       Collection: [TrackEffect { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Child = EffectCanvas { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Classes = [···], Clip = null, ··· }, Classes = [], ··· }, TrackEffect { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Child = EffectCanvas { ActualThemeVariant = Light, Bounds = 0, 0, 308, 34, CacheMode = null, Classes = [···], Clip = null, ··· }, Classes = [], ··· }]
+[xUnit.net 00:00:03.92]       Stack Trace:
+[xUnit.net 00:00:03.92]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteComposerBindingTests.cs(39,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.&lt;&gt;c__DisplayClass2_0.&lt;The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes&gt;b__0()
+[xUnit.net 00:00:03.92]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:03.92]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:03.92]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:03.92]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:03.92]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:03.92]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteComposerBindingTests.cs(24,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes()
+[xUnit.net 00:00:03.92]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:03.92]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T13:16:59.9695468+00:00">
+        <Text>[xUnit.net 00:00:02.61]     Marrow.App.Tests.Port.ModelsPalette.PaletteTrackBindingTests.A_bound_target_requested_during_arrival_keeps_the_displayed_rows_and_arrangement [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T13:17:01.2772496+00:00">
+        <Text>[xUnit.net 00:00:03.91]     Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

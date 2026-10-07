@@ -1,0 +1,29 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:04.24]     Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes [FAIL]
+  Failed Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes [254 ms]
+  Error Message:
+   Assert.Single() Failure: The collection contained 2 items
+Collection: [SelectedModelSpan { ModelId = acme/nova-1, IsLead = False, Start = 0, End = 0.38461538461538464 }, SelectedModelSpan { ModelId = acme/nova-1, IsLead = True, Start = 0.38461538461538464, End = 1 }]
+  Stack Trace:
+     at Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.<>c__DisplayClass2_0.<The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteComposerBindingTests.cs:line 37
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.ModelsPalette.PaletteComposerBindingTests.The_gated_card_binding_maps_actual_provider_choices_on_the_actor_and_keeps_the_same_effect_when_effort_changes() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteComposerBindingTests.cs:line 24
+--- End of stack trace from previous location ---
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr20-composer-binding-green.trx
+
+Failed!  - Failed:     1, Passed:    24, Skipped:     0, Total:    25, Duration: 4 s - Marrow.App.Tests.dll (net10.0)

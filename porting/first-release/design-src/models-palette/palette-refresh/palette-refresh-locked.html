@@ -1,0 +1,276 @@
+<title>Palette Refresh Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: a decision sheet. Three real-size Settings windows in the app's dark glass, each with a state switch; notes beside them; the pick at the end. */
+:root{
+  --ink:#ECE9E4; --ink2:#B9B4AD; --ink3:#8A857E;
+  --ground:#17161A; --ground2:#1F1D22;
+  --win:#3B3936; --side:#5E615F; --glass:rgba(255,255,255,.07); --glassE:rgba(255,255,255,.10);
+  --row:rgba(255,255,255,.05); --rowE:rgba(255,255,255,.07);
+  --accent:#4B9FFC; --ok:#3FCB6B;
+  --display:"Instrument Sans",system-ui,sans-serif;
+  --app:"Inter","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--app);font-size:14px;line-height:1.5;margin:0;
+  background-image:radial-gradient(1200px 600px at 10% -10%,rgba(75,159,252,.10),transparent 60%),radial-gradient(900px 500px at 100% 0,rgba(212,126,88,.10),transparent 60%)}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 64px;display:flex;flex-direction:column;gap:40px}
+h1{font-family:var(--display);font-size:34px;font-weight:600;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:var(--display);font-size:22px;font-weight:600;margin:0;text-wrap:balance}
+.lede{max-width:66ch;color:var(--ink2);margin:10px 0 0}
+.refs{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-top:8px}
+.what{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.what div{background:var(--ground2);border:1px solid var(--rowE);border-radius:10px;padding:12px 14px;min-width:0}
+.what b{display:block;font-weight:600;margin-bottom:2px}
+.what span{color:var(--ink2);font-size:13px}
+
+.option{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+@media (max-width:980px){.option{grid-template-columns:minmax(0,1fr)}}
+.ohead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.letter{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-family:var(--display);font-weight:700;background:var(--glass);box-shadow:inset 0 0 0 1px var(--glassE)}
+.rec{font-size:12px;font-weight:600;color:#0E1A10;background:var(--ok);border-radius:999px;padding:2px 10px}
+.states{display:inline-flex;gap:2px;background:var(--glass);border-radius:999px;padding:3px;margin-left:auto}
+.states button{font:500 12px var(--app);color:var(--ink2);background:none;border:0;border-radius:999px;padding:4px 12px;cursor:pointer}
+.states button[aria-pressed="true"]{background:rgba(255,255,255,.14);color:var(--ink)}
+.states button:focus-visible,.copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* The Settings window */
+.win{display:grid;grid-template-columns:200px minmax(0,1fr);border-radius:10px;overflow:hidden;background:var(--win);box-shadow:0 30px 60px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.08);min-height:430px}
+@media (max-width:640px){.win{grid-template-columns:minmax(0,1fr)}.side{display:none}}
+.side{background:linear-gradient(180deg,#646a6b,#6f6457);padding:46px 10px 14px;display:flex;flex-direction:column;gap:2px}
+.search{height:28px;border-radius:999px;background:rgba(255,255,255,.12);margin:0 4px 10px;font-size:12.5px;color:rgba(255,255,255,.6);display:flex;align-items:center;padding-left:28px;position:relative}
+.search:before{content:"";position:absolute;left:11px;top:8px;width:9px;height:9px;border:1.5px solid rgba(255,255,255,.65);border-radius:50%}
+.nav{font-size:13px;color:#F2F0EC;padding:5px 10px 5px 34px;border-radius:6px;position:relative}
+.nav:before{content:"";position:absolute;left:12px;top:9px;width:12px;height:12px;border:1.4px solid rgba(255,255,255,.75);border-radius:3px}
+.nav.on{background:rgba(255,255,255,.16)}
+.page{padding:18px 22px 22px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ptitle{font-size:14px;font-weight:600}
+.sect{font-size:13px;font-weight:600;color:var(--ink2);margin-top:6px}
+.group{background:var(--row);border-radius:8px;box-shadow:inset 0 0 0 1px var(--rowE)}
+.r{display:flex;align-items:center;gap:14px;padding:11px 14px;position:relative;min-width:0}
+.r + .r{border-top:1px solid rgba(255,255,255,.06)}
+.rt{flex:1;min-width:0}
+.rt b{display:block;font-weight:500;font-size:13.5px}
+.rt small{display:block;color:var(--ink2);font-size:12px;transition:opacity .25s}
+.ctl{font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 14px;border-radius:999px;font:500 12.5px var(--app);color:var(--ink);background:var(--glass);box-shadow:inset 0 0 0 1px var(--glassE);white-space:nowrap}
+.spin{width:12px;height:12px;border-radius:50%;border:1.6px solid rgba(255,255,255,.25);border-top-color:rgba(255,255,255,.85);animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.bar{position:absolute;left:14px;right:14px;bottom:4px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px;animation:fill 3.2s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes fill{0%{width:4%}80%{width:92%}100%{width:92%}}
+.dots{display:flex;gap:4px;flex:none}
+.dot{width:12px;height:12px;border-radius:50%;transition:background-color 1.1s cubic-bezier(.4,0,.2,1),transform .6s}
+.new{transform:scale(0)} .done .new{transform:scale(1)}
+.summary{font-size:12px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:6px 14px;padding:0 14px 12px}
+.summary span{display:inline-flex;align-items:center;gap:6px}
+.summary .dot{width:9px;height:9px}
+.check{width:13px;height:13px;border-radius:50%;background:var(--ok);display:inline-grid;place-items:center}
+.check:after{content:"";width:5px;height:3px;border-left:1.5px solid #0E1A10;border-bottom:1.5px solid #0E1A10;transform:rotate(-45deg) translate(0,-1px)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 92px 92px 108px;gap:8px;align-items:center}
+.cols .h{font-size:11.5px;color:var(--ink3)}
+.app-ico{width:26px;height:26px;border-radius:6px;background:rgba(255,255,255,.08);flex:none;display:grid;place-items:center}
+.mlist .r{padding:9px 14px}
+.chip{font-size:11px;color:var(--ink3)}
+.fade{color:var(--ink3)}
+.state-before .w-run,.state-before .w-done{display:none}
+.state-run .w-before,.state-run .w-done{display:none}
+.state-done .w-before,.state-done .w-run{display:none}
+
+.notes{display:flex;flex-direction:column;gap:10px}
+.note{background:var(--ground2);border:1px solid var(--rowE);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--ink2)}
+.note h3{margin:0 0 4px;font-size:13px;color:var(--ink);font-weight:600}
+.note ul{margin:4px 0 0;padding-left:18px}
+.words{width:100%;border-collapse:collapse;font-size:13px}
+.words td{padding:8px 10px;border-top:1px solid var(--rowE);vertical-align:top}
+.words td:first-child{color:var(--ink3);white-space:nowrap;width:1%}
+.tablebox{overflow-x:auto;background:var(--ground2);border:1px solid var(--rowE);border-radius:10px}
+.pick{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--ground2);border:1px solid var(--rowE);border-radius:12px;padding:14px 16px}
+.pick p{margin:0;color:var(--ink2);flex:1;min-width:240px}
+@media (prefers-reduced-motion:reduce){.spin,.bar i{animation:none}.bar i{width:60%}.dot{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Palette Refresh Control</h1>
+    <p class="lede">You asked for a Settings option that refreshes the colour palettes on demand. What it does is already decided. This page is only about <b>where it sits and how it looks</b>. Each option is drawn in the Settings window at real size. Use the switch to see it before, during and after a refresh.</p>
+    <div class="refs">OD-0067 · runs the same engine as OD-0064 · same result on every PC (OD-0065) · families re-spaced (OD-0066) · shades glide, never snap (OD-0076)</div>
+  </header>
+
+  <section class="what" aria-label="What the refresh does">
+    <div><b>Checks every source now</b><span>OpenRouter and each provider you use, instead of waiting for the next automatic check.</span></div>
+    <div><b>Colours what's new</b><span>New models take their place in their maker's family. A new maker gets its own palette from its logo.</span></div>
+    <div><b>Shows progress, then a summary</b><span>A short line says what changed. Changed shades glide to their new colour.</span></div>
+    <div><b>Never gives you different colours</b><span>It only brings forward what every user's app reaches anyway.</span></div>
+  </section>
+
+  <!-- A -->
+  <section class="option" data-opt="A">
+    <div>
+      <div class="ohead">
+        <div class="letter">A</div><h2>Appearance, a "Model colours" row</h2><span class="rec">Recommended</span>
+        <div class="states" role="group" aria-label="State for option A"></div>
+      </div>
+      <div class="win state-before">
+        <nav class="side" aria-hidden="true"><div class="search">Search</div><div class="nav">General</div><div class="nav">Hydra</div><div class="nav on">Appearance</div><div class="nav">Customization</div><div class="nav">Voice typing</div><div class="nav">Providers</div><div class="nav">Updates</div><div class="nav">MCP</div><div class="nav">Models</div><div class="nav">Source control</div><div class="nav">Shortcuts</div><div class="nav">Archive</div><div class="nav">About</div></nav>
+        <div class="page">
+          <div class="ptitle">Appearance</div>
+          <div class="group">
+            <div class="r"><div class="rt"><b>Theme</b><small>Follows Windows</small></div><span class="ctl">System ▾</span></div>
+            <div class="r"><div class="rt"><b>Accent colour</b><small>Used for links, focus and selection</small></div><span class="ctl">Windows accent ▾</span></div>
+          </div>
+          <div class="sect">Colours</div>
+          <div class="group">
+            <div class="r">
+              <div class="dots" aria-hidden="true"><span class="dot" data-c="claude"></span><span class="dot" data-c="openai"></span><span class="dot" data-c="google"></span><span class="dot" data-c="mistral"></span><span class="dot new" data-c="newmaker"></span></div>
+              <div class="rt"><b>Model colours</b>
+                <small class="w-before">Checked 2 hours ago · 214 models from 31 makers</small>
+                <small class="w-run">Checking OpenRouter and 5 providers… 140 of 217 models</small>
+                <small class="w-done">Checked just now · 217 models from 32 makers</small>
+              </div>
+              <span class="btn w-before">Refresh</span>
+              <span class="btn w-run"><span class="spin"></span>Refreshing…</span>
+              <span class="btn w-done">Refresh</span>
+              <div class="bar w-run"><i></i></div>
+            </div>
+            <div class="summary w-done">
+              <span><span class="check"></span>3 new models coloured</span>
+              <span><span class="dot" data-c="mistral"></span>Mistral's shades re-spaced</span>
+              <span><span class="dot" data-c="newmaker"></span>New maker: Reka</span>
+            </div>
+          </div>
+          <div class="group">
+            <div class="r"><div class="rt"><b>Window transparency</b><small>Glass behind the sidebar</small></div><span class="ctl">On</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <div class="note"><h3>Why here</h3>This is where your own OD-0067 proposal put it. Appearance already holds the theme and the accent, and the Customization page says Appearance is "about how Marrow looks".</div>
+      <div class="note"><h3>How it behaves</h3><ul><li>The coloured dots are a few real makers. They glide to their new shades when the refresh lands.</li><li>The progress line under the row is the one the Updates page uses.</li><li>The summary appears below the row and stays until you leave the page.</li></ul></div>
+      <div class="note"><h3>Trade-off</h3>It doesn't happen when you press "Update everything". It is a separate button.</div>
+    </aside>
+  </section>
+
+  <!-- B -->
+  <section class="option" data-opt="B">
+    <div>
+      <div class="ohead">
+        <div class="letter">B</div><h2>Updates, one more row in the table</h2>
+        <div class="states" role="group" aria-label="State for option B"></div>
+      </div>
+      <div class="win state-before">
+        <nav class="side" aria-hidden="true"><div class="search">Search</div><div class="nav">General</div><div class="nav">Hydra</div><div class="nav">Appearance</div><div class="nav">Customization</div><div class="nav">Voice typing</div><div class="nav">Providers</div><div class="nav on">Updates</div><div class="nav">MCP</div><div class="nav">Models</div><div class="nav">Source control</div><div class="nav">Shortcuts</div><div class="nav">Archive</div><div class="nav">About</div></nav>
+        <div class="page">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:18px;font-weight:600" class="w-before">Everything is up to date</div>
+              <div style="font-size:18px;font-weight:600" class="w-run">Checking for updates…</div>
+              <div style="font-size:18px;font-weight:600" class="w-done">Updated Model colours.</div>
+              <div class="fade" style="font-size:12px">Checked 2 hours ago</div>
+            </div>
+            <span class="btn w-before">Check now</span><span class="btn w-run"><span class="spin"></span>Checking…</span><span class="btn w-done">Check now</span>
+          </div>
+          <div class="sect">Marrow</div>
+          <div class="cols"><span class="h" style="padding-left:54px">Item</span><span class="h">Installed</span><span class="h">Latest</span><span class="h" style="text-align:right;padding-right:14px">Status</span></div>
+          <div class="group">
+            <div class="r cols"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="app-ico"></span><div class="rt"><b>Marrow</b><small>The app</small></div></div><span class="ctl">1.1.0</span><span class="ctl">1.1.0</span><span class="ctl" style="text-align:right">Up to date</span></div>
+            <div class="r cols"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="app-ico"><span class="dots" style="gap:2px;transform:scale(.55)"><span class="dot" data-c="claude"></span><span class="dot" data-c="openai"></span></span></span><div class="rt"><b>Model colours</b><small>214 models from 31 makers</small></div></div>
+              <span class="ctl">Today 13:02</span><span class="ctl"><span class="w-before">Today 13:02</span><span class="w-run">…</span><span class="w-done">Now</span></span>
+              <span class="ctl" style="text-align:right"><span class="w-before">Up to date</span><span class="w-run"><span class="spin" style="display:inline-block;vertical-align:-2px"></span> Checking…</span><span class="w-done"><span class="check"></span> 3 new</span></span>
+              <div class="bar w-run"><i></i></div></div>
+          </div>
+          <div class="sect">Provider tools</div>
+          <div class="group">
+            <div class="r cols"><div style="display:flex;gap:12px;align-items:center;min-width:0"><span class="app-ico"></span><div class="rt"><b>Claude Code</b><small>claude update</small></div></div><span class="ctl">2.1.290</span><span class="ctl">2.1.290</span><span class="ctl" style="text-align:right">Up to date</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <div class="note"><h3>Why here</h3>One place for everything Marrow fetches. "Check now" and "Update everything" also refresh the colours.</div>
+      <div class="note"><h3>Trade-off</h3>The Updates table is about versions of software. Colours don't have versions you'd recognise, so the Installed and Latest columns show times, which reads oddly. The new-model summary also has to squeeze into the Status cell.</div>
+    </aside>
+  </section>
+
+  <!-- C -->
+  <section class="option" data-opt="C">
+    <div>
+      <div class="ohead">
+        <div class="letter">C</div><h2>Models, a line above the model list</h2>
+        <div class="states" role="group" aria-label="State for option C"></div>
+      </div>
+      <div class="win state-before">
+        <nav class="side" aria-hidden="true"><div class="search">Search</div><div class="nav">General</div><div class="nav">Hydra</div><div class="nav">Appearance</div><div class="nav">Customization</div><div class="nav">Voice typing</div><div class="nav">Providers</div><div class="nav">Updates</div><div class="nav">MCP</div><div class="nav on">Models</div><div class="nav">Source control</div><div class="nav">Shortcuts</div><div class="nav">Archive</div><div class="nav">About</div></nav>
+        <div class="page">
+          <div class="ptitle">Models</div>
+          <div class="group">
+            <div class="r">
+              <div class="rt"><small class="w-before">Colours checked 2 hours ago</small><small class="w-run">Checking for new models… 140 of 217</small><small class="w-done">3 new models coloured · Mistral re-spaced · checked just now</small></div>
+              <span class="btn w-before">Refresh colours</span><span class="btn w-run"><span class="spin"></span>Refreshing…</span><span class="btn w-done">Refresh colours</span>
+              <div class="bar w-run"><i></i></div>
+            </div>
+          </div>
+          <div class="group mlist">
+            <div class="r"><span class="dot" data-c="claude"></span><div class="rt"><b>Claude Opus 5.5</b><small>Anthropic</small></div><span class="chip">On</span></div>
+            <div class="r"><span class="dot" data-c="openai"></span><div class="rt"><b>GPT-6.1 Sol</b><small>OpenAI</small></div><span class="chip">On</span></div>
+            <div class="r"><span class="dot" data-c="google"></span><div class="rt"><b>Gemini 3.5 Pro</b><small>Google</small></div><span class="chip">On</span></div>
+            <div class="r"><span class="dot" data-c="mistral"></span><div class="rt"><b>Mistral Large 4</b><small>Mistral</small></div><span class="chip">Off</span></div>
+            <div class="r w-done"><span class="dot" data-c="newmaker"></span><div class="rt"><b>Reka Core 3</b><small>Reka · new</small></div><span class="chip">Off</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <div class="note"><h3>Why here</h3>It sits right next to the models it colours, so you see the new dots appear in the list.</div>
+      <div class="note"><h3>Trade-off</h3>The Models page is about which models are switched on, so a colour control there is easy to miss when you look for it under how Marrow looks. Your words were "Settings gets an option to refresh the colour palettes", and Appearance is the more natural place to look.</div>
+    </aside>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom:10px">The words (option A)</h2>
+    <div class="tablebox">
+      <table class="words">
+        <tr><td>Section</td><td>Colours</td></tr>
+        <tr><td>Row title</td><td>Model colours</td></tr>
+        <tr><td>Resting line</td><td>Checked 2 hours ago · 214 models from 31 makers</td></tr>
+        <tr><td>Button</td><td>Refresh → Refreshing… (disabled while it runs)</td></tr>
+        <tr><td>While running</td><td>Checking OpenRouter and 5 providers… 140 of 217 models</td></tr>
+        <tr><td>Summary</td><td>3 new models coloured · Mistral's shades re-spaced · New maker: Reka</td></tr>
+        <tr><td>Nothing new</td><td>Checked just now · no new models</td></tr>
+        <tr><td>Offline</td><td>Couldn't reach the model lists. Check your connection and try again. (Colours stay as they are.)</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <div class="pick">
+    <p>Tell the lead a letter (A, B or C) and, if you like, any change to the words. This page sends nothing.</p>
+    <button class="btn copy" id="copy-pick" type="button" style="cursor:pointer;border:0">Copy "A"</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var C={before:{claude:"#B95D3A",openai:"#3E9C7E",google:"#4C7FE0",mistral:"#E07B2E",newmaker:"#9B6BD6"},
+         done:{claude:"#B95D3A",openai:"#3E9C7E",google:"#4C7FE0",mistral:"#C9631C",newmaker:"#9B6BD6"}};
+  var labels=[["before","Before"],["run","Refreshing"],["done","Done"]];
+  document.querySelectorAll(".option").forEach(function(opt){
+    var win=opt.querySelector(".win"), grp=opt.querySelector(".states");
+    function paint(s){
+      win.className="win state-"+s+(s==="done"?" done":"");
+      win.querySelectorAll(".dot[data-c]").forEach(function(d){d.style.backgroundColor=(s==="done"?C.done:C.before)[d.dataset.c];});
+      grp.querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.s===s));});
+    }
+    labels.forEach(function(l){var b=document.createElement("button");b.type="button";b.dataset.s=l[0];b.textContent=l[1];b.id="st-"+opt.dataset.opt+"-"+l[0];b.addEventListener("click",function(){paint(l[0]);});grp.appendChild(b);});
+    paint("before");
+  });
+  var cp=document.getElementById("copy-pick");
+  cp.addEventListener("click",function(){
+    var done=function(){cp.textContent="Copied";setTimeout(function(){cp.textContent='Copy "A"';},1500);};
+    try{navigator.clipboard.writeText("Palette refresh: A").then(done,function(){cp.textContent="Tell the lead: A";});}catch(e){cp.textContent="Tell the lead: A";}
+  });
+})();
+</script>

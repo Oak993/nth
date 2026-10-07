@@ -1,0 +1,9 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PalettePrimeBudgetTests.cs(11,21): error CS0103: The name 'PalettePrimeBudget' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PalettePrimeBudgetTests.cs(14,60): error CS0103: The name 'PalettePrimeBudget' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PalettePrimeBudgetTests.cs(20,21): error CS0103: The name 'PalettePrimeBudget' does not exist in the current context [/workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj]

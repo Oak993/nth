@@ -1,0 +1,4 @@
+source /workspace/.tools/marrow-env.sh
+export MARROW_PORT_DATA_DIR=/tmp/t37-data
+dotnet test tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj --no-restore --filter "FullyQualifiedName~SelectedModelBlendTests|FullyQualifiedName~TraceabilityTests|FullyQualifiedName~LayeringTests" --logger trx
+dotnet test tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj --no-restore -p:EnableWindowsTargeting=true --filter "FullyQualifiedName~PublicModelCatalogue|FullyQualifiedName~OpenRouterAPITests|FullyQualifiedName~TraceabilityTests|FullyQualifiedName~LayeringTests" --logger trx

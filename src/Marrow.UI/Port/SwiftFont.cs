@@ -397,10 +397,23 @@ public static class SwiftFontAppBuilderExtensions
     // The package's WithInterFont() does only ConfigureFonts(m => m.AddFontCollection(new InterFontCollection())) in
     // 12.1.2; InterFontCollectionWithReleaseFiles takes its place under the same fonts:Inter key with the release files
     // added (OD-0020 item 2), so the key is registered once.
-    public static AppBuilder WithSwiftFonts(this AppBuilder builder) =>
-        builder.ConfigureFonts(m =>
+    public static AppBuilder WithSwiftFonts(this AppBuilder builder)
+    {
+        // ED-628: the same bundled families also resolve implicit Text on Linux.
+        if (OperatingSystem.IsLinux()) builder = builder.With(new FontManagerOptions
+        {
+            DefaultFamilyName = "fonts:Inter#Inter",
+            FontFamilyMappings = new Dictionary<string, FontFamily>
+            {
+                ["Cascadia Mono"] = new("fonts:CascadiaMono#Cascadia Mono"),
+                ["Consolas"] = new("fonts:CascadiaMono#Cascadia Mono"),
+                ["monospace"] = new("fonts:CascadiaMono#Cascadia Mono"),
+            },
+        });
+        return builder.ConfigureFonts(m =>
         {
             m.AddFontCollection(new InterFontCollectionWithReleaseFiles());
             m.AddFontCollection(new CascadiaMonoFontCollection());
         });
+    }
 }

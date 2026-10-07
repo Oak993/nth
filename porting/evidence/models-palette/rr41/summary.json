@@ -1,0 +1,92 @@
+{
+  "code_head_at_final_run": "d47eae31dd1970d544b0aaeaae3df21b69851e6b",
+  "source_tree": "4d6e88fcc6118449c2c49ecb58efa4d58302bf9f",
+  "test_tree": "ee2160d9f7e2e6bf6ab41c14efae69e0c9f44f28",
+  "trx_counts": {
+    "contract-app-final.trx": {
+      "total": "339",
+      "executed": "339",
+      "passed": "338",
+      "failed": "1",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "contract-ui-baseline.trx": {
+      "total": "5",
+      "executed": "5",
+      "passed": "0",
+      "failed": "5",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "ui-structural.trx": {
+      "total": "5",
+      "executed": "5",
+      "passed": "5",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "gate_a": {
+    "pass": 7,
+    "fail": 5,
+    "reason": "Missing pinned E:/Droppy/reference checkout"
+  },
+  "gate_b": {
+    "pass": 8
+  },
+  "gate_c": {
+    "pass": 1,
+    "fail": 1,
+    "not_implemented": 1
+  },
+  "req_verify_no_run": {
+    "exit": 2,
+    "reason": "No recorded complete run"
+  },
+  "effort_slider_seams": [],
+  "verdict": "NOT READY",
+  "final_relevant_test_totals": {
+    "passed": 416,
+    "failed": 6,
+    "skipped": 0
+  },
+  "baseline_title_failure": {
+    "base": "285b6b7a99b39e0e517f34c8d34a1860c945f83f",
+    "test": "EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule",
+    "assertion": "Title(380) equals Title(400)",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/rr41/title-original-base.trx"
+  }
+}

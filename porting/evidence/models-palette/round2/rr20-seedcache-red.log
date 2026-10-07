@@ -1,0 +1,36 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.32]     Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: "{}") [FAIL]
+[xUnit.net 00:00:01.33]     Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: "{\"Key\":null,\"Seed\":null,\"Evidence\":null,\"Da"···) [FAIL]
+  Failed Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: "{}") [71 ms]
+  Error Message:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  Stack Trace:
+     at Marrow.Services.Port.ModelsPalette.PaletteStore.Valid(StoredSeed seed) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 35
+   at Marrow.Services.Port.ModelsPalette.PaletteStore.LoadSeeds() in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 27
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String root, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, PaletteExecutor executor, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 46
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String dataRoot, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 41
+   at Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(String entry) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteSeedCacheTests.cs:line 20
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: "{\"Key\":null,\"Seed\":null,\"Evidence\":null,\"Da"···) [5 ms]
+  Error Message:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  Stack Trace:
+     at Marrow.Services.Port.ModelsPalette.PaletteStore.Valid(StoredSeed seed) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 35
+   at Marrow.Services.Port.ModelsPalette.PaletteStore.LoadSeeds() in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 27
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String root, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, PaletteExecutor executor, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 46
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String dataRoot, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 41
+   at Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(String entry) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteSeedCacheTests.cs:line 20
+   at InvokeStub_PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr20-seedcache-red.trx
+
+Failed!  - Failed:     2, Passed:     2, Skipped:     0, Total:     4, Duration: 499 ms - Marrow.Services.Tests.dll (net10.0)

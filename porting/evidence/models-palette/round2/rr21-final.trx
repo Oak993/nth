@@ -1,0 +1,962 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5ef82414-aa1a-4fa1-a9ca-35e7a49ba4b4" name="@a39ab932e15a 2026-10-07 10:28:32" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T10:28:32.2549958+00:00" queuing="2026-10-07T10:28:32.2549959+00:00" start="2026-10-07T10:28:29.2892338+00:00" finish="2026-10-07T10:29:10.5948411+00:00" />
+  <TestSettings name="default" id="964640e6-99e0-494a-9c9d-8ac160094b78">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_10_28_32" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="bed27dc1-d7cc-4423-93ce-c838eb32712a" testId="05476505-9d92-5ca3-9f1d-67c3b03c488c" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.Maker_dots_glide_from_the_displayed_colour_and_reduce_motion_settles_them" computerName="a39ab932e15a" duration="00:00:00.0073560" startTime="2026-10-07T10:28:33.9125092+00:00" endTime="2026-10-07T10:28:33.9197055+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bed27dc1-d7cc-4423-93ce-c838eb32712a" />
+    <UnitTestResult executionId="1813e5c0-2bc5-49bf-89cf-4086f979fba2" testId="fd5159cb-80f2-2261-cea4-9464124faaa6" testName="Marrow.App.Tests.Port.SettingsRiseTests.A_page_with_more_than_ten_blocks_still_ends_its_wave_at_260_ms" computerName="a39ab932e15a" duration="00:00:00.1077639" startTime="2026-10-07T10:28:41.8060929+00:00" endTime="2026-10-07T10:28:41.9128039+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1813e5c0-2bc5-49bf-89cf-4086f979fba2" />
+    <UnitTestResult executionId="c694f447-281d-46f2-b458-8670240fca9d" testId="dcfcf4bd-771f-d951-de02-21321ed0c5df" testName="Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames" computerName="a39ab932e15a" duration="00:00:00.5814785" startTime="2026-10-07T10:28:44.8427921+00:00" endTime="2026-10-07T10:28:45.4234649+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c694f447-281d-46f2-b458-8670240fca9d">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames&gt;b__19_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 312
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 307
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="ad8721aa-3781-49c4-a601-2f3e578e8210" testId="da753003-0a98-628c-67cb-bc6aa2dbf474" testName="Marrow.App.Tests.Port.SettingsRiseTests.The_spec_curve_used_by_these_tests_reproduces_the_spec_samples" computerName="a39ab932e15a" duration="00:00:00.0004752" startTime="2026-10-07T10:28:42.4903563+00:00" endTime="2026-10-07T10:28:42.4903927+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ad8721aa-3781-49c4-a601-2f3e578e8210" />
+    <UnitTestResult executionId="8d3dbff3-c67d-4828-b88b-7b8a2f776a92" testId="a17cfbd0-b6db-0a3d-a636-9ea52c000b8c" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.The_arrows_pick_and_focus_the_next_swatch_wrapping_at_both_ends_and_down_and_up_change_line_at_the_column" computerName="a39ab932e15a" duration="00:00:02.0039352" startTime="2026-10-07T10:28:52.3105208+00:00" endTime="2026-10-07T10:28:54.3141621+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8d3dbff3-c67d-4828-b88b-7b8a2f776a92" />
+    <UnitTestResult executionId="036deb27-97fb-4700-8f7e-68edf49629fc" testId="a9ec7dd0-8c76-9b38-9b1b-7105c95fcb55" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.Tab_visits_each_segment_then_the_accent_group_once_at_its_pick_then_more" computerName="a39ab932e15a" duration="00:00:01.7744125" startTime="2026-10-07T10:28:47.9657581+00:00" endTime="2026-10-07T10:28:49.7401697+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="036deb27-97fb-4700-8f7e-68edf49629fc" />
+    <UnitTestResult executionId="4b2a9d69-6558-4768-913e-7a44a4658921" testId="6619db28-abab-ff88-0fec-0c241f4ea6ff" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;moonshotai/kimi-k2&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" computerName="a39ab932e15a" duration="00:00:00.0012552" startTime="2026-10-07T10:28:31.7932683+00:00" endTime="2026-10-07T10:28:31.7933394+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b2a9d69-6558-4768-913e-7a44a4658921" />
+    <UnitTestResult executionId="386fa0ce-19b3-4a21-ac62-18fae59a8963" testId="84c22495-865b-dbc0-77e9-085195769b2b" testName="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Theme_picker_lists_system_then_the_dark_and_light_themes_with_swatches_and_a_check_and_selects_immediately_by_click" computerName="a39ab932e15a" duration="00:00:11.2994472" startTime="2026-10-07T10:28:56.0945389+00:00" endTime="2026-10-07T10:29:07.3943640+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="386fa0ce-19b3-4a21-ac62-18fae59a8963" />
+    <UnitTestResult executionId="36857e95-d2d8-4e8c-95fe-d9829577ce5b" testId="8fd21960-9eab-7afa-f935-451b0474a840" testName="Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: &quot;dark&quot;)" computerName="a39ab932e15a" duration="00:00:00.5665338" startTime="2026-10-07T10:28:43.6459819+00:00" endTime="2026-10-07T10:28:44.2120368+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="36857e95-d2d8-4e8c-95fe-d9829577ce5b">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c__DisplayClass29_0.&lt;Port_frames_render_at_the_canvas_times&gt;b__0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 581
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(String appearance) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 570
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="d6859d88-82d8-4173-83a6-ea47dbf12c90" testId="bf0c751a-0135-6ba2-2ff1-be8baa5933d0" testName="Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order" computerName="a39ab932e15a" duration="00:00:00.5919062" startTime="2026-10-07T10:28:40.0526053+00:00" endTime="2026-10-07T10:28:40.6439010+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d6859d88-82d8-4173-83a6-ea47dbf12c90">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Two_columns_rise_top_to_bottom_in_the_spec_s_order&gt;b__18_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 284
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 279
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c9b2fbcb-9570-4030-b8d6-99b8d4941eda" testId="0c5d0d37-57a0-2666-0748-ea87fe078cf1" testName="Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated" computerName="a39ab932e15a" duration="00:00:00.5556377" startTime="2026-10-07T10:28:40.6450326+00:00" endTime="2026-10-07T10:28:41.2001164+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c9b2fbcb-9570-4030-b8d6-99b8d4941eda">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated&gt;b__24_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 466
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 454
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="54dd3e9f-6aec-4e2e-b0ef-5cf09e970d57" testId="22011551-5dec-ce84-0054-ea174aaf81e7" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.Detail_uses_the_locked_opacity_curve_and_reduce_motion_lands_at_once" computerName="a39ab932e15a" duration="00:00:00.0137268" startTime="2026-10-07T10:28:33.1455424+00:00" endTime="2026-10-07T10:28:33.1592544+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="54dd3e9f-6aec-4e2e-b0ef-5cf09e970d57" />
+    <UnitTestResult executionId="e8c9c5f3-6b80-4e3e-a4b9-4cd18a7f22e8" testId="3c6b232a-2c7f-1685-b702-1e7a3f4d8509" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_no_change_refresh_uses_the_exact_words_and_offline_keeps_the_colours" computerName="a39ab932e15a" duration="00:00:00.2405323" startTime="2026-10-07T10:28:33.1595175+00:00" endTime="2026-10-07T10:28:33.3999387+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e8c9c5f3-6b80-4e3e-a4b9-4cd18a7f22e8" />
+    <UnitTestResult executionId="ca84b669-520b-4808-8d3b-271d06ef0a6f" testId="0a0906b6-570a-d045-25af-41c8598c3386" testName="Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: &quot;light&quot;)" computerName="a39ab932e15a" duration="00:00:00.6288987" startTime="2026-10-07T10:28:44.2129827+00:00" endTime="2026-10-07T10:28:44.8414024+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ca84b669-520b-4808-8d3b-271d06ef0a6f">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c__DisplayClass29_0.&lt;Port_frames_render_at_the_canvas_times&gt;b__0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 581
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(String appearance) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 570
+   at InvokeStub_SettingsRiseTests.Port_frames_render_at_the_canvas_times(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="efeabebf-6a8c-4080-b256-772266e7956a" testId="7691a4e3-c55e-2db8-5d19-683002307822" testName="Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it" computerName="a39ab932e15a" duration="00:00:00.6470631" startTime="2026-10-07T10:28:38.2372654+00:00" endTime="2026-10-07T10:28:38.8809495+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="efeabebf-6a8c-4080-b256-772266e7956a">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it&gt;b__26_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 501
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 494
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="53da6081-28d9-4918-b913-41d9a972f32b" testId="2ea70b3c-28e2-80e4-b251-d779b446b8fc" testName="Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving" computerName="a39ab932e15a" duration="00:00:00.5588189" startTime="2026-10-07T10:28:43.0860089+00:00" endTime="2026-10-07T10:28:43.6450756+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="53da6081-28d9-4918-b913-41d9a972f32b">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving&gt;b__15_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 188
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 183
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="908ac333-85b9-40ec-9f1a-2159d64a338f" testId="efd302a5-9714-0b97-53e8-69099de9b962" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.Moving_onto_a_shut_signature_line_opens_it_and_its_ring_fades_in_there_as_the_line_arrives" computerName="a39ab932e15a" duration="00:00:01.7796649" startTime="2026-10-07T10:28:54.3145219+00:00" endTime="2026-10-07T10:28:56.0941588+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="908ac333-85b9-40ec-9f1a-2159d64a338f" />
+    <UnitTestResult executionId="e6ac874c-108f-4b20-a734-d37b34872eae" testId="5d00eb1f-ac20-9a5d-2e18-cd35facdcce9" testName="Marrow.App.Tests.Port.SettingsRiseTests.The_caption_buttons_are_whole_from_glass_ready_and_not_in_the_wave" computerName="a39ab932e15a" duration="00:00:00.5813307" startTime="2026-10-07T10:28:38.8819770+00:00" endTime="2026-10-07T10:28:39.4624777+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e6ac874c-108f-4b20-a734-d37b34872eae" />
+    <UnitTestResult executionId="b317f676-ce3b-4d08-bd20-7766e6d0164f" testId="f3b4cf6f-a88d-e13f-a0e4-7e7559a81884" testName="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Theme_picker_capsule_puts_the_swatch_the_name_and_the_chevron_on_the_28_point_centre_line" computerName="a39ab932e15a" duration="00:00:00.6227817" startTime="2026-10-07T10:29:07.3947886+00:00" endTime="2026-10-07T10:29:08.0172908+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b317f676-ce3b-4d08-bd20-7766e6d0164f" />
+    <UnitTestResult executionId="aa03a188-d658-4391-b2dc-ca36db81405a" testId="1f0375fc-fc96-1a02-752d-5901d7dd7599" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" computerName="a39ab932e15a" duration="00:00:00.0177096" startTime="2026-10-07T10:28:33.9200060+00:00" endTime="2026-10-07T10:28:33.9382965+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="aa03a188-d658-4391-b2dc-ca36db81405a" />
+    <UnitTestResult executionId="1a89a50a-ab49-4f12-be17-2d40e5fa8815" testId="500718c5-911e-bf5c-cce3-0e1323b2d129" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;MOONSHOTAI&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" computerName="a39ab932e15a" duration="00:00:00.0002105" startTime="2026-10-07T10:28:31.7939279+00:00" endTime="2026-10-07T10:28:31.7939726+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1a89a50a-ab49-4f12-be17-2d40e5fa8815" />
+    <UnitTestResult executionId="63892b10-d3a8-4042-b74a-50ab9d3f2f21" testId="446b474f-38dd-3f3d-48f2-31c59368fbb5" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;kimi&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" computerName="a39ab932e15a" duration="00:00:00.0895788" startTime="2026-10-07T10:28:31.7418962+00:00" endTime="2026-10-07T10:28:31.7829874+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="63892b10-d3a8-4042-b74a-50ab9d3f2f21" />
+    <UnitTestResult executionId="91ed2f9d-a212-407e-b80c-8fe663b05d68" testId="dac63037-6ed3-ed32-69da-940277542fee" testName="Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early" computerName="a39ab932e15a" duration="00:00:01.1572999" startTime="2026-10-07T10:28:35.5496309+00:00" endTime="2026-10-07T10:28:36.6958353+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="91ed2f9d-a212-407e-b80c-8fe663b05d68">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early&gt;b__23_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 441
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 431
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="31e7cc11-3f92-4531-89a1-bdfd5a452320" testId="e424c4c5-6c14-2a00-7d59-07f2ab0e0be2" testName="Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs" computerName="a39ab932e15a" duration="00:00:00.5759517" startTime="2026-10-07T10:28:41.9129759+00:00" endTime="2026-10-07T10:28:42.4892397+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="31e7cc11-3f92-4531-89a1-bdfd5a452320">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Input_reaches_the_window_while_the_wave_runs&gt;b__25_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 477
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 471
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5be8b0ed-22b1-4a41-9e30-a7f849b33756" testId="1a69deb8-7649-441a-e45b-c929bbf4b743" testName="Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart" computerName="a39ab932e15a" duration="00:00:00.6269801" startTime="2026-10-07T10:28:37.6073155+00:00" endTime="2026-10-07T10:28:38.2361477+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5be8b0ed-22b1-4a41-9e30-a7f849b33756">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart&gt;b__17_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 262
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 257
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="89e0ed8d-5bd5-40f9-beb3-aee973a330d2" testId="bcd01df5-9cbc-5d19-2410-2ff301dc0ff1" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.Refresh_draws_the_real_result_and_keeps_the_summary_until_the_page_is_left" computerName="a39ab932e15a" duration="00:00:00.1671169" startTime="2026-10-07T10:28:33.7452109+00:00" endTime="2026-10-07T10:28:33.9122298+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="89e0ed8d-5bd5-40f9-beb3-aee973a330d2" />
+    <UnitTestResult executionId="03cd7c5d-e0d7-46ca-8673-e589d3c7f400" testId="cc217b4e-d9d0-e10f-38b9-46ce3abcbc31" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.The_menu_opened_by_pointer_keeps_focus_on_the_segment_and_escape_closes_it_all_the_same" computerName="a39ab932e15a" duration="00:00:00.6902177" startTime="2026-10-07T10:28:45.4249789+00:00" endTime="2026-10-07T10:28:46.1146185+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="03cd7c5d-e0d7-46ca-8673-e589d3c7f400" />
+    <UnitTestResult executionId="431c6a48-f939-4697-809b-a67c8cad0a43" testId="2fe9baae-8b7a-fbc9-10d5-6c2f19ca80ae" testName="Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" computerName="a39ab932e15a" duration="00:00:00.2430819" startTime="2026-10-07T10:28:31.8779352+00:00" endTime="2026-10-07T10:28:32.1210909+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="431c6a48-f939-4697-809b-a67c8cad0a43" />
+    <UnitTestResult executionId="bc74d1a9-8d17-456a-8b79-f1cea2c4c322" testId="01e54612-f118-e87e-f5a4-3e5c22c91e57" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.Segment_keys_pick_and_the_menu_opened_by_keyboard_focuses_the_current_row_moves_clamped_and_picks_or_escapes" computerName="a39ab932e15a" duration="00:00:01.7397723" startTime="2026-10-07T10:28:49.7403569+00:00" endTime="2026-10-07T10:28:51.4810256+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bc74d1a9-8d17-456a-8b79-f1cea2c4c322" />
+    <UnitTestResult executionId="a6e4e427-8622-43ea-9b83-a4f96e8c0a08" testId="ada485af-f23c-d7de-dc16-8cbd3165079c" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" computerName="a39ab932e15a" duration="00:00:00.0477680" startTime="2026-10-07T10:28:33.9385298+00:00" endTime="2026-10-07T10:28:33.9857958+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a6e4e427-8622-43ea-9b83-a4f96e8c0a08" />
+    <UnitTestResult executionId="9f5990a7-44d2-45a9-ba2f-7711dd366df0" testId="d7c78aa6-0cce-6758-9393-a58e559519c5" testName="Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" computerName="a39ab932e15a" duration="00:00:00.2486380" startTime="2026-10-07T10:28:32.1213492+00:00" endTime="2026-10-07T10:28:32.3695689+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9f5990a7-44d2-45a9-ba2f-7711dd366df0" />
+    <UnitTestResult executionId="8fe2f3b9-70c1-4c12-bb91-e62f26555fe2" testId="ac154215-740e-b3dc-c633-d536fd372534" testName="Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start" computerName="a39ab932e15a" duration="00:00:01.5465468" startTime="2026-10-07T10:28:33.9860778+00:00" endTime="2026-10-07T10:28:35.5387372+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8fe2f3b9-70c1-4c12-bb91-e62f26555fe2">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start&gt;b__13_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 157
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 143
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="417356ad-7a25-449e-a155-c5de8f522e05" testId="b414fb67-7c88-840b-46f1-afef35ff1f1a" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.A_running_arrival_defers_the_glide_and_warm_frame_sampling_allocates_nothing" computerName="a39ab932e15a" duration="00:00:00.2165250" startTime="2026-10-07T10:28:32.2410049+00:00" endTime="2026-10-07T10:28:32.4372763+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="417356ad-7a25-449e-a155-c5de8f522e05" />
+    <UnitTestResult executionId="0f074be9-47c4-49a6-960c-9e5182e7a1cd" testId="d03c5b73-5b39-8874-2a8a-acbaafbba354" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.An_arrow_that_focuses_a_swatch_out_of_view_does_not_scroll_the_page" computerName="a39ab932e15a" duration="00:00:00.8582415" startTime="2026-10-07T10:28:47.1073535+00:00" endTime="2026-10-07T10:28:47.9655977+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0f074be9-47c4-49a6-960c-9e5182e7a1cd" />
+    <UnitTestResult executionId="70e4f521-a595-4d1b-bc5c-9afedb808724" testId="ea524346-6b24-d109-7a2d-78252a7f89fa" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.Space_or_enter_on_more_folds_the_line_and_keys_on_more_are_not_the_groups" computerName="a39ab932e15a" duration="00:00:00.8297814" startTime="2026-10-07T10:28:51.4811914+00:00" endTime="2026-10-07T10:28:52.3103575+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="70e4f521-a595-4d1b-bc5c-9afedb808724" />
+    <UnitTestResult executionId="30522bc4-a8e7-45ec-8c87-63ad06896bf0" testId="e55b7ba2-6988-2e0c-237d-9ae0508f05ab" testName="Marrow.App.Tests.Port.SettingsRiseTests.The_windows_corners_fade_in_with_the_glass_not_as_a_hard_square_corner" computerName="a39ab932e15a" duration="00:00:00.5959184" startTime="2026-10-07T10:28:42.4904711+00:00" endTime="2026-10-07T10:28:43.0858206+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="30522bc4-a8e7-45ec-8c87-63ad06896bf0" />
+    <UnitTestResult executionId="546c9f7f-57cf-4f4d-bbc5-88e0014b39cc" testId="3a4971ed-93b7-73a0-e547-cf75503ec2b3" testName="Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" computerName="a39ab932e15a" duration="00:00:00.1861202" startTime="2026-10-07T10:28:31.7420964+00:00" endTime="2026-10-07T10:28:31.8775673+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="546c9f7f-57cf-4f4d-bbc5-88e0014b39cc" />
+    <UnitTestResult executionId="ea11d898-65c6-447e-8433-8bb2433257ad" testId="2a4390b5-2f8f-4c69-5737-97ece2db2a2d" testName="Marrow.App.Tests.Port.ModelsPalette.ModelShadesTests.Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post" computerName="a39ab932e15a" duration="00:00:00.5261340" startTime="2026-10-07T10:28:31.7420543+00:00" endTime="2026-10-07T10:28:32.2410651+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ea11d898-65c6-447e-8433-8bb2433257ad" />
+    <UnitTestResult executionId="b527144d-ae91-45db-85d5-d400dced3f78" testId="bb427c9b-7b0a-225f-b2da-ddfd3ca5621a" testName="Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start" computerName="a39ab932e15a" duration="00:00:00.9098984" startTime="2026-10-07T10:28:36.6972816+00:00" endTime="2026-10-07T10:28:37.6063440+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b527144d-ae91-45db-85d5-d400dced3f78">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Every_later_open_plays_the_same_rise_from_a_hidden_start&gt;b__22_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 393
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 388
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="220ece65-17e1-4c69-9d86-8813b04f325d" testId="cf271da8-e5c3-f36b-fc31-be8db8eaa2f7" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.Retarget_uses_the_actual_rgb_blend_and_title_glow_and_motion_share_the_clock" computerName="a39ab932e15a" duration="00:00:00.5230084" startTime="2026-10-07T10:28:31.7345541+00:00" endTime="2026-10-07T10:28:32.2193385+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="220ece65-17e1-4c69-9d86-8813b04f325d" />
+    <UnitTestResult executionId="c830c1a7-3220-47fe-a877-dc465c82f99d" testId="739f55c5-453f-ef8c-48e7-11780e8ba6fc" testName="Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked" computerName="a39ab932e15a" duration="00:00:00.6042542" startTime="2026-10-07T10:28:41.2011546+00:00" endTime="2026-10-07T10:28:41.8049239+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c830c1a7-3220-47fe-a877-dc465c82f99d">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked&gt;b__27_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 529
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 519
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="c23ad496-2971-4770-a2ae-5a2fc443a54f" testId="36759785-c799-e9da-0e6a-d9d2020b0546" testName="Marrow.App.Tests.Port.LookCardKeyboardTests.Tab_closes_the_open_menu_and_from_a_row_returns_focus_to_segment_4" computerName="a39ab932e15a" duration="00:00:00.9924307" startTime="2026-10-07T10:28:46.1148116+00:00" endTime="2026-10-07T10:28:47.1071885+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c23ad496-2971-4770-a2ae-5a2fc443a54f" />
+    <UnitTestResult executionId="f7d5abf9-874e-417b-bc4e-2502dc569ade" testId="caad95fd-b094-261b-5073-291c9fa4b506" testName="Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show" computerName="a39ab932e15a" duration="00:00:00.5887304" startTime="2026-10-07T10:28:39.4627973+00:00" endTime="2026-10-07T10:28:40.0515414+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f7d5abf9-874e-417b-bc4e-2502dc569ade">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+                                                  ↑ (pos 0)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show&gt;b__21_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 360
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 351
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="7006fa97-6dcd-4307-ac13-3cb22323d6ba" testId="90071092-e128-b64b-3626-e4db02880806" testName="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Settings_switch_is_also_the_toggle_of_the_appearance_hydra_and_provider_pages_and_dims_the_sidebar_row_in_panel_only_mode" computerName="a39ab932e15a" duration="00:00:01.4658328" startTime="2026-10-07T10:29:09.0673903+00:00" endTime="2026-10-07T10:29:10.5332775+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7006fa97-6dcd-4307-ac13-3cb22323d6ba" />
+    <UnitTestResult executionId="e5bdc9d0-ea59-4dfd-9a67-e5e287051c89" testId="00813fe9-2f96-354a-ba30-cea496ba8ba8" testName="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Transparency_slider_follows_a_real_drag_live_and_shows_its_reset_only_off_stock_without_taking_layout_room" computerName="a39ab932e15a" duration="00:00:01.0497853" startTime="2026-10-07T10:29:08.0174436+00:00" endTime="2026-10-07T10:29:09.0672396+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e5bdc9d0-ea59-4dfd-9a67-e5e287051c89" />
+    <UnitTestResult executionId="22c04891-6fcb-4de7-bc26-a30ca8e4aaa7" testId="3de41ad6-4c5d-da39-a900-7a3c748b433c" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;claude&quot;, expected: &quot;anthropic/claude-sonnet-4.5&quot;)" computerName="a39ab932e15a" duration="00:00:00.0001873" startTime="2026-10-07T10:28:31.7940502+00:00" endTime="2026-10-07T10:28:31.7940894+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="22c04891-6fcb-4de7-bc26-a30ca8e4aaa7" />
+    <UnitTestResult executionId="30d3a23d-e0fc-4718-bcab-19cf3b06cd6c" testId="2150c110-ee01-f5ca-5232-edd451f0afba" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot" computerName="a39ab932e15a" duration="00:00:00.3449063" startTime="2026-10-07T10:28:33.4002331+00:00" endTime="2026-10-07T10:28:33.7449826+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="30d3a23d-e0fc-4718-bcab-19cf3b06cd6c" />
+    <UnitTestResult executionId="0be79014-7b2c-43dc-adf7-0afffd608b86" testId="83ec56a5-1257-b8bd-6e70-99e15245ec10" testName="Marrow.App.Tests.Port.ModelsPalette.PickerScrollTests.Keyboard_scroll_moves_toward_the_nearest_row_and_reduce_motion_lands_immediately" computerName="a39ab932e15a" duration="00:00:00.4493488" startTime="2026-10-07T10:28:32.6953990+00:00" endTime="2026-10-07T10:28:33.1451964+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0be79014-7b2c-43dc-adf7-0afffd608b86" />
+    <UnitTestResult executionId="e52c7bc8-4458-40f3-af42-e8488da8879d" testId="d1e3f736-1d24-39c9-e91c-c74311949099" testName="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.A_failed_API_refresh_does_not_manufacture_picker_models" computerName="a39ab932e15a" duration="00:00:00.0015574" startTime="2026-10-07T10:28:31.7947293+00:00" endTime="2026-10-07T10:28:31.7947727+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e52c7bc8-4458-40f3-af42-e8488da8879d" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="d7c78aa6-0cce-6758-9393-a58e559519c5">
+      <Execution id="9f5990a7-44d2-45a9-ba2f-7711dd366df0" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.TraceabilityTests" name="Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: &quot;light&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="0a0906b6-570a-d045-25af-41c8598c3386">
+      <Execution id="ca84b669-520b-4808-8d3b-271d06ef0a6f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Port_frames_render_at_the_canvas_times" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;claude&quot;, expected: &quot;anthropic/claude-sonnet-4.5&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="3de41ad6-4c5d-da39-a900-7a3c748b433c">
+      <Execution id="22c04891-6fcb-4de7-bc26-a30ca8e4aaa7" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="1a69deb8-7649-441a-e45b-c929bbf4b743">
+      <Execution id="5be8b0ed-22b1-4a41-9e30-a7f849b33756" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;kimi&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="446b474f-38dd-3f3d-48f2-31c59368fbb5">
+      <Execution id="63892b10-d3a8-4042-b74a-50ab9d3f2f21" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="caad95fd-b094-261b-5073-291c9fa4b506">
+      <Execution id="f7d5abf9-874e-417b-bc4e-2502dc569ade" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.Retarget_uses_the_actual_rgb_blend_and_title_glow_and_motion_share_the_clock" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="cf271da8-e5c3-f36b-fc31-be8db8eaa2f7">
+      <Execution id="220ece65-17e1-4c69-9d86-8813b04f325d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests" name="Retarget_uses_the_actual_rgb_blend_and_title_glow_and_motion_share_the_clock" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.ModelShadesTests.Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2a4390b5-2f8f-4c69-5737-97ece2db2a2d">
+      <Execution id="ea11d898-65c6-447e-8433-8bb2433257ad" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.ModelShadesTests" name="Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="0c5d0d37-57a0-2666-0748-ea87fe078cf1">
+      <Execution id="c9b2fbcb-9570-4030-b8d6-99b8d4941eda" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.Maker_dots_glide_from_the_displayed_colour_and_reduce_motion_settles_them" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="05476505-9d92-5ca3-9f1d-67c3b03c488c">
+      <Execution id="bed27dc1-d7cc-4423-93ce-c838eb32712a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests" name="Maker_dots_glide_from_the_displayed_colour_and_reduce_motion_settles_them" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.The_arrows_pick_and_focus_the_next_swatch_wrapping_at_both_ends_and_down_and_up_change_line_at_the_column" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="a17cfbd0-b6db-0a3d-a636-9ea52c000b8c">
+      <Execution id="8d3dbff3-c67d-4828-b88b-7b8a2f776a92" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="The_arrows_pick_and_focus_the_next_swatch_wrapping_at_both_ends_and_down_and_up_change_line_at_the_column" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.Tab_visits_each_segment_then_the_accent_group_once_at_its_pick_then_more" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="a9ec7dd0-8c76-9b38-9b1b-7105c95fcb55">
+      <Execution id="036deb27-97fb-4700-8f7e-68edf49629fc" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="Tab_visits_each_segment_then_the_accent_group_once_at_its_pick_then_more" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="dac63037-6ed3-ed32-69da-940277542fee">
+      <Execution id="91ed2f9d-a212-407e-b80c-8fe663b05d68" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PickerScrollTests.Keyboard_scroll_moves_toward_the_nearest_row_and_reduce_motion_lands_immediately" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="83ec56a5-1257-b8bd-6e70-99e15245ec10">
+      <Execution id="0be79014-7b2c-43dc-adf7-0afffd608b86" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PickerScrollTests" name="Keyboard_scroll_moves_toward_the_nearest_row_and_reduce_motion_lands_immediately" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Theme_picker_capsule_puts_the_swatch_the_name_and_the_chevron_on_the_28_point_centre_line" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="f3b4cf6f-a88d-e13f-a0e4-7e7559a81884">
+      <Execution id="b317f676-ce3b-4d08-bd20-7766e6d0164f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests" name="Theme_picker_capsule_puts_the_swatch_the_name_and_the_chevron_on_the_28_point_centre_line" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="7691a4e3-c55e-2db8-5d19-683002307822">
+      <Execution id="efeabebf-6a8c-4080-b256-772266e7956a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="bb427c9b-7b0a-225f-b2da-ddfd3ca5621a">
+      <Execution id="b527144d-ae91-45db-85d5-d400dced3f78" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Every_later_open_plays_the_same_rise_from_a_hidden_start" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.Detail_uses_the_locked_opacity_curve_and_reduce_motion_lands_at_once" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="22011551-5dec-ce84-0054-ea174aaf81e7">
+      <Execution id="54dd3e9f-6aec-4e2e-b0ef-5cf09e970d57" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests" name="Detail_uses_the_locked_opacity_curve_and_reduce_motion_lands_at_once" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Transparency_slider_follows_a_real_drag_live_and_shows_its_reset_only_off_stock_without_taking_layout_room" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="00813fe9-2f96-354a-ba30-cea496ba8ba8">
+      <Execution id="e5bdc9d0-ea59-4dfd-9a67-e5e287051c89" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests" name="Transparency_slider_follows_a_real_drag_live_and_shows_its_reset_only_off_stock_without_taking_layout_room" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="1f0375fc-fc96-1a02-752d-5901d7dd7599">
+      <Execution id="aa03a188-d658-4391-b2dc-ca36db81405a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests" name="The_card_and_retained_rows_fold_on_the_source_curve_and_count_has_two_clocks" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests.A_running_arrival_defers_the_glide_and_warm_frame_sampling_allocates_nothing" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="b414fb67-7c88-840b-46f1-afef35ff1f1a">
+      <Execution id="417356ad-7a25-449e-a155-c5de8f522e05" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteGlideTests" name="A_running_arrival_defers_the_glide_and_warm_frame_sampling_allocates_nothing" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_no_change_refresh_uses_the_exact_words_and_offline_keeps_the_colours" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="3c6b232a-2c7f-1685-b702-1e7a3f4d8509">
+      <Execution id="e8c9c5f3-6b80-4e3e-a4b9-4cd18a7f22e8" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests" name="A_no_change_refresh_uses_the_exact_words_and_offline_keeps_the_colours" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Settings_switch_is_also_the_toggle_of_the_appearance_hydra_and_provider_pages_and_dims_the_sidebar_row_in_panel_only_mode" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="90071092-e128-b64b-3626-e4db02880806">
+      <Execution id="7006fa97-6dcd-4307-ac13-3cb22323d6ba" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests" name="Settings_switch_is_also_the_toggle_of_the_appearance_hydra_and_provider_pages_and_dims_the_sidebar_row_in_panel_only_mode" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests.Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ada485af-f23c-d7de-dc16-8cbd3165079c">
+      <Execution id="a6e4e427-8622-43ea-9b83-a4f96e8c0a08" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerTests" name="Real_picker_filters_all_words_retains_rows_and_moves_the_key_highlight" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.Refresh_draws_the_real_result_and_keeps_the_summary_until_the_page_is_left" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="bcd01df5-9cbc-5d19-2410-2ff301dc0ff1">
+      <Execution id="89e0ed8d-5bd5-40f9-beb3-aee973a330d2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests" name="Refresh_draws_the_real_result_and_keeps_the_summary_until_the_page_is_left" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.A_failed_API_refresh_does_not_manufacture_picker_models" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="d1e3f736-1d24-39c9-e91c-c74311949099">
+      <Execution id="e52c7bc8-4458-40f3-af42-e8488da8879d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="A_failed_API_refresh_does_not_manufacture_picker_models" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.A_page_with_more_than_ten_blocks_still_ends_its_wave_at_260_ms" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="fd5159cb-80f2-2261-cea4-9464124faaa6">
+      <Execution id="1813e5c0-2bc5-49bf-89cf-4086f979fba2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="A_page_with_more_than_ten_blocks_still_ends_its_wave_at_260_ms" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="bf0c751a-0135-6ba2-2ff1-be8baa5933d0">
+      <Execution id="d6859d88-82d8-4173-83a6-ea47dbf12c90" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Two_columns_rise_top_to_bottom_in_the_spec_s_order" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests.Theme_picker_lists_system_then_the_dark_and_light_themes_with_swatches_and_a_check_and_selects_immediately_by_click" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="84c22495-865b-dbc0-77e9-085195769b2b">
+      <Execution id="386fa0ce-19b3-4a21-ac62-18fae59a8963" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Views.Settings.SettingsViewFinishAppearanceTests" name="Theme_picker_lists_system_then_the_dark_and_light_themes_with_swatches_and_a_check_and_selects_immediately_by_click" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2ea70b3c-28e2-80e4-b251-d779b446b8fc">
+      <Execution id="53da6081-28d9-4918-b913-41d9a972f32b" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="dcfcf4bd-771f-d951-de02-21321ed0c5df">
+      <Execution id="c694f447-281d-46f2-b458-8670240fca9d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.Moving_onto_a_shut_signature_line_opens_it_and_its_ring_fades_in_there_as_the_line_arrives" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="efd302a5-9714-0b97-53e8-69099de9b962">
+      <Execution id="908ac333-85b9-40ec-9f1a-2159d64a338f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="Moving_onto_a_shut_signature_line_opens_it_and_its_ring_fades_in_there_as_the_line_arrives" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.The_menu_opened_by_pointer_keeps_focus_on_the_segment_and_escape_closes_it_all_the_same" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="cc217b4e-d9d0-e10f-38b9-46ce3abcbc31">
+      <Execution id="03cd7c5d-e0d7-46ca-8673-e589d3c7f400" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="The_menu_opened_by_pointer_keeps_focus_on_the_segment_and_escape_closes_it_all_the_same" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: &quot;dark&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="8fd21960-9eab-7afa-f935-451b0474a840">
+      <Execution id="36857e95-d2d8-4e8c-95fe-d9829577ce5b" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Port_frames_render_at_the_canvas_times" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="739f55c5-453f-ef8c-48e7-11780e8ba6fc">
+      <Execution id="c830c1a7-3220-47fe-a877-dc465c82f99d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.Tab_closes_the_open_menu_and_from_a_row_returns_focus_to_segment_4" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="36759785-c799-e9da-0e6a-d9d2020b0546">
+      <Execution id="c23ad496-2971-4770-a2ae-5a2fc443a54f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="Tab_closes_the_open_menu_and_from_a_row_returns_focus_to_segment_4" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.Space_or_enter_on_more_folds_the_line_and_keys_on_more_are_not_the_groups" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ea524346-6b24-d109-7a2d-78252a7f89fa">
+      <Execution id="70e4f521-a595-4d1b-bc5c-9afedb808724" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="Space_or_enter_on_more_folds_the_line_and_keys_on_more_are_not_the_groups" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;moonshotai/kimi-k2&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="6619db28-abab-ff88-0fec-0c241f4ea6ff">
+      <Execution id="4b2a9d69-6558-4768-913e-7a44a4658921" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.The_caption_buttons_are_whole_from_glass_ready_and_not_in_the_wave" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="5d00eb1f-ac20-9a5d-2e18-cd35facdcce9">
+      <Execution id="e6ac874c-108f-4b20-a734-d37b34872eae" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="The_caption_buttons_are_whole_from_glass_ready_and_not_in_the_wave" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="e424c4c5-6c14-2a00-7d59-07f2ab0e0be2">
+      <Execution id="31e7cc11-3f92-4531-89a1-bdfd5a452320" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Input_reaches_the_window_while_the_wave_runs" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests.API_rows_are_searchable_by_name_maker_and_exact_id(query: &quot;MOONSHOTAI&quot;, expected: &quot;moonshotai/kimi-k2&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="500718c5-911e-bf5c-cce3-0e1323b2d129">
+      <Execution id="1a89a50a-ab49-4f12-be17-2d40e5fa8815" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.OpenRouterPickerCatalogueTests" name="API_rows_are_searchable_by_name_maker_and_exact_id" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.Segment_keys_pick_and_the_menu_opened_by_keyboard_focuses_the_current_row_moves_clamped_and_picks_or_escapes" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="01e54612-f118-e87e-f5a4-3e5c22c91e57">
+      <Execution id="bc74d1a9-8d17-456a-8b79-f1cea2c4c322" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="Segment_keys_pick_and_the_menu_opened_by_keyboard_focuses_the_current_row_moves_clamped_and_picks_or_escapes" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2150c110-ee01-f5ca-5232-edd451f0afba">
+      <Execution id="30d3a23d-e0fc-4718-bcab-19cf3b06cd6c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests" name="A_re_spaced_maker_summary_draws_its_real_colour_dot" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="3a4971ed-93b7-73a0-e547-cf75503ec2b3">
+      <Execution id="546c9f7f-57cf-4f4d-bbc5-88e0014b39cc" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.TraceabilityTests" name="Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.The_spec_curve_used_by_these_tests_reproduces_the_spec_samples" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="da753003-0a98-628c-67cb-bc6aa2dbf474">
+      <Execution id="ad8721aa-3781-49c4-a601-2f3e578e8210" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="The_spec_curve_used_by_these_tests_reproduces_the_spec_samples" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2fe9baae-8b7a-fbc9-10d5-6c2f19ca80ae">
+      <Execution id="431c6a48-f939-4697-809b-a67c8cad0a43" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.TraceabilityTests" name="Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.LookCardKeyboardTests.An_arrow_that_focuses_a_swatch_out_of_view_does_not_scroll_the_page" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="d03c5b73-5b39-8874-2a8a-acbaafbba354">
+      <Execution id="0f074be9-47c4-49a6-960c-9e5182e7a1cd" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.LookCardKeyboardTests" name="An_arrow_that_focuses_a_swatch_out_of_view_does_not_scroll_the_page" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.The_windows_corners_fade_in_with_the_glass_not_as_a_hard_square_corner" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="e55b7ba2-6988-2e0c-237d-9ae0508f05ab">
+      <Execution id="30522bc4-a8e7-45ec-8c87-63ad06896bf0" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="The_windows_corners_fade_in_with_the_glass_not_as_a_hard_square_corner" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="ac154215-740e-b3dc-c633-d536fd372534">
+      <Execution id="8fe2f3b9-70c1-4c12-bb91-e62f26555fe2" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.SettingsRiseTests" name="Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="05476505-9d92-5ca3-9f1d-67c3b03c488c" executionId="bed27dc1-d7cc-4423-93ce-c838eb32712a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fd5159cb-80f2-2261-cea4-9464124faaa6" executionId="1813e5c0-2bc5-49bf-89cf-4086f979fba2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dcfcf4bd-771f-d951-de02-21321ed0c5df" executionId="c694f447-281d-46f2-b458-8670240fca9d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="da753003-0a98-628c-67cb-bc6aa2dbf474" executionId="ad8721aa-3781-49c4-a601-2f3e578e8210" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a17cfbd0-b6db-0a3d-a636-9ea52c000b8c" executionId="8d3dbff3-c67d-4828-b88b-7b8a2f776a92" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a9ec7dd0-8c76-9b38-9b1b-7105c95fcb55" executionId="036deb27-97fb-4700-8f7e-68edf49629fc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6619db28-abab-ff88-0fec-0c241f4ea6ff" executionId="4b2a9d69-6558-4768-913e-7a44a4658921" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="84c22495-865b-dbc0-77e9-085195769b2b" executionId="386fa0ce-19b3-4a21-ac62-18fae59a8963" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8fd21960-9eab-7afa-f935-451b0474a840" executionId="36857e95-d2d8-4e8c-95fe-d9829577ce5b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bf0c751a-0135-6ba2-2ff1-be8baa5933d0" executionId="d6859d88-82d8-4173-83a6-ea47dbf12c90" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0c5d0d37-57a0-2666-0748-ea87fe078cf1" executionId="c9b2fbcb-9570-4030-b8d6-99b8d4941eda" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="22011551-5dec-ce84-0054-ea174aaf81e7" executionId="54dd3e9f-6aec-4e2e-b0ef-5cf09e970d57" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3c6b232a-2c7f-1685-b702-1e7a3f4d8509" executionId="e8c9c5f3-6b80-4e3e-a4b9-4cd18a7f22e8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0a0906b6-570a-d045-25af-41c8598c3386" executionId="ca84b669-520b-4808-8d3b-271d06ef0a6f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7691a4e3-c55e-2db8-5d19-683002307822" executionId="efeabebf-6a8c-4080-b256-772266e7956a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2ea70b3c-28e2-80e4-b251-d779b446b8fc" executionId="53da6081-28d9-4918-b913-41d9a972f32b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="efd302a5-9714-0b97-53e8-69099de9b962" executionId="908ac333-85b9-40ec-9f1a-2159d64a338f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5d00eb1f-ac20-9a5d-2e18-cd35facdcce9" executionId="e6ac874c-108f-4b20-a734-d37b34872eae" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f3b4cf6f-a88d-e13f-a0e4-7e7559a81884" executionId="b317f676-ce3b-4d08-bd20-7766e6d0164f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1f0375fc-fc96-1a02-752d-5901d7dd7599" executionId="aa03a188-d658-4391-b2dc-ca36db81405a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="500718c5-911e-bf5c-cce3-0e1323b2d129" executionId="1a89a50a-ab49-4f12-be17-2d40e5fa8815" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="446b474f-38dd-3f3d-48f2-31c59368fbb5" executionId="63892b10-d3a8-4042-b74a-50ab9d3f2f21" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dac63037-6ed3-ed32-69da-940277542fee" executionId="91ed2f9d-a212-407e-b80c-8fe663b05d68" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e424c4c5-6c14-2a00-7d59-07f2ab0e0be2" executionId="31e7cc11-3f92-4531-89a1-bdfd5a452320" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1a69deb8-7649-441a-e45b-c929bbf4b743" executionId="5be8b0ed-22b1-4a41-9e30-a7f849b33756" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bcd01df5-9cbc-5d19-2410-2ff301dc0ff1" executionId="89e0ed8d-5bd5-40f9-beb3-aee973a330d2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cc217b4e-d9d0-e10f-38b9-46ce3abcbc31" executionId="03cd7c5d-e0d7-46ca-8673-e589d3c7f400" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2fe9baae-8b7a-fbc9-10d5-6c2f19ca80ae" executionId="431c6a48-f939-4697-809b-a67c8cad0a43" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="01e54612-f118-e87e-f5a4-3e5c22c91e57" executionId="bc74d1a9-8d17-456a-8b79-f1cea2c4c322" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ada485af-f23c-d7de-dc16-8cbd3165079c" executionId="a6e4e427-8622-43ea-9b83-a4f96e8c0a08" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d7c78aa6-0cce-6758-9393-a58e559519c5" executionId="9f5990a7-44d2-45a9-ba2f-7711dd366df0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ac154215-740e-b3dc-c633-d536fd372534" executionId="8fe2f3b9-70c1-4c12-bb91-e62f26555fe2" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b414fb67-7c88-840b-46f1-afef35ff1f1a" executionId="417356ad-7a25-449e-a155-c5de8f522e05" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d03c5b73-5b39-8874-2a8a-acbaafbba354" executionId="0f074be9-47c4-49a6-960c-9e5182e7a1cd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ea524346-6b24-d109-7a2d-78252a7f89fa" executionId="70e4f521-a595-4d1b-bc5c-9afedb808724" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e55b7ba2-6988-2e0c-237d-9ae0508f05ab" executionId="30522bc4-a8e7-45ec-8c87-63ad06896bf0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3a4971ed-93b7-73a0-e547-cf75503ec2b3" executionId="546c9f7f-57cf-4f4d-bbc5-88e0014b39cc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2a4390b5-2f8f-4c69-5737-97ece2db2a2d" executionId="ea11d898-65c6-447e-8433-8bb2433257ad" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bb427c9b-7b0a-225f-b2da-ddfd3ca5621a" executionId="b527144d-ae91-45db-85d5-d400dced3f78" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cf271da8-e5c3-f36b-fc31-be8db8eaa2f7" executionId="220ece65-17e1-4c69-9d86-8813b04f325d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="739f55c5-453f-ef8c-48e7-11780e8ba6fc" executionId="c830c1a7-3220-47fe-a877-dc465c82f99d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="36759785-c799-e9da-0e6a-d9d2020b0546" executionId="c23ad496-2971-4770-a2ae-5a2fc443a54f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="caad95fd-b094-261b-5073-291c9fa4b506" executionId="f7d5abf9-874e-417b-bc4e-2502dc569ade" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="90071092-e128-b64b-3626-e4db02880806" executionId="7006fa97-6dcd-4307-ac13-3cb22323d6ba" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="00813fe9-2f96-354a-ba30-cea496ba8ba8" executionId="e5bdc9d0-ea59-4dfd-9a67-e5e287051c89" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3de41ad6-4c5d-da39-a900-7a3c748b433c" executionId="22c04891-6fcb-4de7-bc26-a30ca8e4aaa7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2150c110-ee01-f5ca-5232-edd451f0afba" executionId="30d3a23d-e0fc-4718-bcab-19cf3b06cd6c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="83ec56a5-1257-b8bd-6e70-99e15245ec10" executionId="0be79014-7b2c-43dc-adf7-0afffd608b86" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d1e3f736-1d24-39c9-e91c-c74311949099" executionId="e52c7bc8-4458-40f3-af42-e8488da8879d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="49" executed="49" passed="35" failed="14" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.31]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.84]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.95]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:05.84]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:05.84]                                                         ↓ (pos 0)
+[xUnit.net 00:00:05.84]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:05.84]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:05.84]                                                         ↑ (pos 0)
+[xUnit.net 00:00:05.84]       Stack Trace:
+[xUnit.net 00:00:05.84]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:05.84]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(157,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start&gt;b__13_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:05.84]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:05.84]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:05.84]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:05.84]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:05.84]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:05.84]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:05.84]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:05.84]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(143,0): at Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start()
+[xUnit.net 00:00:05.84]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.84]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:06.99]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:06.99]                                                         ↓ (pos 0)
+[xUnit.net 00:00:06.99]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:06.99]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:06.99]                                                         ↑ (pos 0)
+[xUnit.net 00:00:06.99]       Stack Trace:
+[xUnit.net 00:00:06.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:06.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(441,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early&gt;b__23_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:06.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:06.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:06.99]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:06.99]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:06.99]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:06.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:06.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:06.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(431,0): at Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early()
+[xUnit.net 00:00:06.99]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:06.99]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:06.99]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:06.99]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:07.90]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:07.90]                                                         ↓ (pos 0)
+[xUnit.net 00:00:07.90]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:07.90]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:07.90]                                                         ↑ (pos 0)
+[xUnit.net 00:00:07.90]       Stack Trace:
+[xUnit.net 00:00:07.90]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:07.90]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(393,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Every_later_open_plays_the_same_rise_from_a_hidden_start&gt;b__22_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:07.90]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:07.90]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:07.90]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:07.90]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:07.90]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:07.90]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:07.90]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:07.90]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(388,0): at Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start()
+[xUnit.net 00:00:07.90]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:07.90]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:07.90]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:07.90]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:08.53]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:08.53]                                                         ↓ (pos 0)
+[xUnit.net 00:00:08.53]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:08.53]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:08.53]                                                         ↑ (pos 0)
+[xUnit.net 00:00:08.53]       Stack Trace:
+[xUnit.net 00:00:08.53]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:08.53]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(262,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart&gt;b__17_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:08.53]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:08.53]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:08.53]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:08.53]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:08.53]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:08.53]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:08.53]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:08.53]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(257,0): at Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart()
+[xUnit.net 00:00:08.53]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:08.53]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:08.53]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:08.53]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:09.17]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:09.17]                                                         ↓ (pos 0)
+[xUnit.net 00:00:09.17]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:09.17]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:09.17]                                                         ↑ (pos 0)
+[xUnit.net 00:00:09.17]       Stack Trace:
+[xUnit.net 00:00:09.17]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:09.17]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(501,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it&gt;b__26_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:09.17]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:09.17]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:09.17]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:09.17]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:09.17]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:09.17]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:09.17]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:09.17]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(494,0): at Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it()
+[xUnit.net 00:00:09.17]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:09.17]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:09.17]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:09.17]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:10.34]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:10.34]                                                         ↓ (pos 0)
+[xUnit.net 00:00:10.34]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:10.34]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:10.34]                                                         ↑ (pos 0)
+[xUnit.net 00:00:10.34]       Stack Trace:
+[xUnit.net 00:00:10.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:10.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(360,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show&gt;b__21_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:10.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:10.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:10.34]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:10.34]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:10.34]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:10.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:10.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:10.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(351,0): at Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show()
+[xUnit.net 00:00:10.34]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:10.34]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:10.34]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:10.34]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:10.94]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:10.94]                                                         ↓ (pos 0)
+[xUnit.net 00:00:10.94]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:10.94]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:10.94]                                                         ↑ (pos 0)
+[xUnit.net 00:00:10.94]       Stack Trace:
+[xUnit.net 00:00:10.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:10.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(284,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Two_columns_rise_top_to_bottom_in_the_spec_s_order&gt;b__18_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:10.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:10.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:10.94]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:10.94]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:10.94]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:10.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:10.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:10.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(279,0): at Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order()
+[xUnit.net 00:00:10.94]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:10.94]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:10.94]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:10.94]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:11.49]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:11.49]                                                         ↓ (pos 0)
+[xUnit.net 00:00:11.49]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:11.49]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:11.49]                                                         ↑ (pos 0)
+[xUnit.net 00:00:11.49]       Stack Trace:
+[xUnit.net 00:00:11.49]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:11.49]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(466,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated&gt;b__24_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:11.49]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:11.49]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:11.49]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:11.49]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:11.49]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:11.49]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:11.49]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:11.49]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(454,0): at Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated()
+[xUnit.net 00:00:11.49]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:11.49]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:11.49]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:11.49]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:12.10]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:12.10]                                                         ↓ (pos 0)
+[xUnit.net 00:00:12.10]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:12.10]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:12.10]                                                         ↑ (pos 0)
+[xUnit.net 00:00:12.10]       Stack Trace:
+[xUnit.net 00:00:12.10]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:12.10]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(529,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked&gt;b__27_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:12.10]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:12.10]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:12.10]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:12.10]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:12.10]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:12.10]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:12.10]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:12.10]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(519,0): at Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked()
+[xUnit.net 00:00:12.10]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:12.10]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:12.10]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:12.10]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:12.78]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:12.78]                                                         ↓ (pos 0)
+[xUnit.net 00:00:12.78]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:12.78]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:12.78]                                                         ↑ (pos 0)
+[xUnit.net 00:00:12.78]       Stack Trace:
+[xUnit.net 00:00:12.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:12.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(477,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;Input_reaches_the_window_while_the_wave_runs&gt;b__25_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:12.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:12.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:12.78]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:12.78]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:12.78]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:12.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:12.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:12.78]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(471,0): at Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs()
+[xUnit.net 00:00:12.78]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:12.78]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:13.94]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:13.94]                                                         ↓ (pos 0)
+[xUnit.net 00:00:13.94]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:13.94]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:13.94]                                                         ↑ (pos 0)
+[xUnit.net 00:00:13.94]       Stack Trace:
+[xUnit.net 00:00:13.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:13.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(188,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving&gt;b__15_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:13.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:13.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:13.94]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:13.94]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:13.94]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:13.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:13.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:13.94]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(183,0): at Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving()
+[xUnit.net 00:00:13.94]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:13.94]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:14.50]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:14.50]                                                         ↓ (pos 0)
+[xUnit.net 00:00:14.50]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:14.50]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:14.50]                                                         ↑ (pos 0)
+[xUnit.net 00:00:14.50]       Stack Trace:
+[xUnit.net 00:00:14.50]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:14.50]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(581,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c__DisplayClass29_0.&lt;Port_frames_render_at_the_canvas_times&gt;b__0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:14.50]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:14.50]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:14.50]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:14.50]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:14.50]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:14.50]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:14.51]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:14.51]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(570,0): at Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(String appearance)
+[xUnit.net 00:00:14.51]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:14.51]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:14.51]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:14.51]            at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:15.13]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:15.13]                                                         ↓ (pos 0)
+[xUnit.net 00:00:15.13]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:15.13]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:15.13]                                                         ↑ (pos 0)
+[xUnit.net 00:00:15.13]       Stack Trace:
+[xUnit.net 00:00:15.13]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:15.13]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(581,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c__DisplayClass29_0.&lt;Port_frames_render_at_the_canvas_times&gt;b__0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:15.13]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:15.13]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:15.13]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:15.13]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:15.13]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:15.13]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:15.13]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:15.13]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(570,0): at Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(String appearance)
+[xUnit.net 00:00:15.13]            at InvokeStub_SettingsRiseTests.Port_frames_render_at_the_canvas_times(Object, Span`1)
+[xUnit.net 00:00:15.13]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:15.72]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:15.72]                                                         ↓ (pos 0)
+[xUnit.net 00:00:15.72]       Expected: &lt;generated&gt;                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+[xUnit.net 00:00:15.72]       Actual:   ArraySelectIterator&lt;ChromeRow, string&gt; ["Model colours"]
+[xUnit.net 00:00:15.72]                                                         ↑ (pos 0)
+[xUnit.net 00:00:15.72]       Stack Trace:
+[xUnit.net 00:00:15.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(85,0): at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view)
+[xUnit.net 00:00:15.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(312,0): at Marrow.App.Tests.Port.SettingsRiseTests.&lt;&gt;c.&lt;The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames&gt;b__19_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:15.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:15.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:15.72]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:15.72]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:15.72]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:15.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:15.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:15.72]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs(307,0): at Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames()
+[xUnit.net 00:00:15.72]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:15.72]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:40.83]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:35.5468813+00:00">
+        <Text>[xUnit.net 00:00:05.84]     Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:36.6963484+00:00">
+        <Text>[xUnit.net 00:00:06.99]     Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:37.6068188+00:00">
+        <Text>[xUnit.net 00:00:07.90]     Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:38.2366165+00:00">
+        <Text>[xUnit.net 00:00:08.53]     Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:38.8813092+00:00">
+        <Text>[xUnit.net 00:00:09.17]     Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:40.0519935+00:00">
+        <Text>[xUnit.net 00:00:10.34]     Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:40.6442219+00:00">
+        <Text>[xUnit.net 00:00:10.94]     Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:41.2009157+00:00">
+        <Text>[xUnit.net 00:00:11.49]     Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:41.8052563+00:00">
+        <Text>[xUnit.net 00:00:12.10]     Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:42.4896304+00:00">
+        <Text>[xUnit.net 00:00:12.78]     Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:43.6454125+00:00">
+        <Text>[xUnit.net 00:00:13.94]     Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:44.2124002+00:00">
+        <Text>[xUnit.net 00:00:14.50]     Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: "dark") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:44.8417511+00:00">
+        <Text>[xUnit.net 00:00:15.13]     Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: "light") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:28:45.4237702+00:00">
+        <Text>[xUnit.net 00:00:15.72]     Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

@@ -1,0 +1,22 @@
+{
+  "source": "porting/first-release/design-src/models-palette/auto-colour/hardening/r3/intensity_r3.py",
+  "input": {
+    "id": "openai/gpt-7",
+    "price": 0,
+    "created": 2000000000,
+    "context": 1000000
+  },
+  "gpt-7": [
+    1.0,
+    1,
+    4,
+    "lineup"
+  ],
+  "gpt-7-mini": [
+    1.0,
+    1,
+    4,
+    "placed (not in the lineup)"
+  ],
+  "scope": "off-catalogue placement with all older family members made legacy; PLAN 12 acknowledges id-only legacy residuals"
+}

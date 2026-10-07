@@ -1,0 +1,37 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.32]     Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change [FAIL]
+[xUnit.net 00:00:02.43]     Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time [FAIL]
+  Failed Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change [536 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+                   ↓ (pos 8)
+Expected: "Checked just now · 2 models from 2 makers"
+Actual:   "Checked 5 minutes ago · 2 models from 2 m"···
+                   ↑ (pos 8)
+  Stack Trace:
+     at Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteCheckedAgeTests.cs:line 20
+--- End of stack trace from previous location ---
+  Failed Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time [111 ms]
+  Error Message:
+   Assert.Equal() Failure: Strings differ
+                   ↓ (pos 8)
+Expected: "Checked 5 minutes ago · 2 models from 2 m"···
+Actual:   "Checked just now · 2 models from 2 makers"
+                   ↑ (pos 8)
+  Stack Trace:
+     at Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteCheckedAgeTests.cs:line 13
+--- End of stack trace from previous location ---
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr21-checked-age-red.trx
+
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 650 ms - Marrow.App.Tests.dll (net10.0)

@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="0bc97cb3-542b-45fe-9722-8ea051679a9a" name="@a39ab932e15a 2026-10-07 10:23:34" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T10:23:34.3230901+00:00" queuing="2026-10-07T10:23:34.3230902+00:00" start="2026-10-07T10:23:30.7977915+00:00" finish="2026-10-07T10:23:34.3278972+00:00" />
+  <TestSettings name="default" id="0dd0a44d-a36c-4232-b4bb-04424a3d6143">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_10_23_34" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="f1614d7a-e3df-4158-bbf7-3cbda7b7a14e" testId="2150c110-ee01-f5ca-5232-edd451f0afba" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot" computerName="a39ab932e15a" duration="00:00:00.9172564" startTime="2026-10-07T10:23:33.3810233+00:00" endTime="2026-10-07T10:23:34.2410661+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f1614d7a-e3df-4158-bbf7-3cbda7b7a14e">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Single() Failure: The collection did not contain any matching items
+Expected:   (predicate expression)
+Collection: [PaletteMakerDot { ActualThemeVariant = Light, Background = #ffeef0f5, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, PaletteMakerDot { ActualThemeVariant = Light, Background = #ff5d66d3, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }]</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.&lt;&gt;c.&lt;A_re_spaced_maker_summary_draws_its_real_colour_dot&gt;b__6_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursSettingsTests.cs:line 105
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursSettingsTests.cs:line 91
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2150c110-ee01-f5ca-5232-edd451f0afba">
+      <Execution id="f1614d7a-e3df-4158-bbf7-3cbda7b7a14e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests" name="A_re_spaced_maker_summary_draws_its_real_colour_dot" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="2150c110-ee01-f5ca-5232-edd451f0afba" executionId="f1614d7a-e3df-4158-bbf7-3cbda7b7a14e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.39]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.78]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.82]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.99]       Assert.Single() Failure: The collection did not contain any matching items
+[xUnit.net 00:00:02.99]       Expected:   (predicate expression)
+[xUnit.net 00:00:02.99]       Collection: [PaletteMakerDot { ActualThemeVariant = Light, Background = #ffeef0f5, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, PaletteMakerDot { ActualThemeVariant = Light, Background = #ff5d66d3, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }]
+[xUnit.net 00:00:02.99]       Stack Trace:
+[xUnit.net 00:00:02.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursSettingsTests.cs(105,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.&lt;&gt;c.&lt;A_re_spaced_maker_summary_draws_its_real_colour_dot&gt;b__6_0()
+[xUnit.net 00:00:02.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:02.99]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:02.99]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:02.99]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:02.99]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursSettingsTests.cs(91,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot()
+[xUnit.net 00:00:02.99]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:02.99]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.00]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T10:23:34.2439276+00:00">
+        <Text>[xUnit.net 00:00:02.99]     Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

@@ -126,6 +126,7 @@ public sealed class ModelEffortButton : Decorator
             lockedWidth = presented ? naturalWidth : null; frame.Width = compact ? double.NaN : lockedWidth ?? double.NaN; // :108-117
             if (presented)
             {
+                popup.VerticalOffset = inputs.Thread.Provider == ProviderKind.OpenRouter ? -Marrow.App.Port.ModelsPalette.OpenRouterPicker.ChipClearance : 0; // ED-623.
                 var panel = openPanel = new ModelEffortPanel(inputs.Thread.Id, inputs.HasHistory);
                 var content = panel.PresentedChrome();
                 AppEnvironment.SetAppModel(content, AppEnvironment.GetAppModel(this));
@@ -201,6 +202,10 @@ public sealed class ModelEffortButton : Decorator
                 row.Children.Add(new TruncationFill(name) { Margin = new Thickness(5, 0, 0, 0), Child = nameCell });
                 CrossFade(nameCell, oldName, name); shownName = name;
                 if (effortCell is not null && effort is not null) { CrossFade(effortCell, oldEffort, effort); shownEffort = effort; }
+                Marrow.App.Port.ModelsPalette.PaletteSurfaceBinding.Attach(name,model,currentThread.Id,target=>
+                {if(target.Track is not {} palette)return;var brush=Marrow.App.Port.ModelsPalette.PaletteVisibleProjection.Brush(palette.TitleStops);
+                    if(EnvironmentValues.GetAccessibilityReduceMotion(name))EffortView.SetBrush(name,b=>name.Foreground=b,brush);else EffortView.AnimateBrush(name,()=>name.Foreground,b=>name.Foreground=b,brush,Animation.Linear(1.2));
+                    if(effort is not null){if(EnvironmentValues.GetAccessibilityReduceMotion(effort))EffortView.SetBrush(effort,b=>effort.Foreground=b,brush);else EffortView.AnimateBrush(effort,()=>effort.Foreground,b=>effort.Foreground=b,brush,Animation.Linear(1.2));}});
             }
             var parts = new System.Collections.Generic.List<string> { current?.ShortName ?? currentThread.Model ?? currentThread.Provider.DisplayName };
             if (current is { Efforts.Count: > 0 }) parts.Add(ModelOption.EffortTitle(currentThread.Effort ?? current.DefaultEffort ?? ""));
@@ -328,7 +333,7 @@ public sealed class ModelEffortPanel : Decorator
         var brand = EffortBrand.Create(thread.Provider);
         var fadeFrom = shownBrand is { } shown && shown != brand ? shown : (EffortBrand?)null;
         shownBrand = brand;
-        return new EffortSliderCard(option?.ShortName ?? thread.Model ?? thread.Provider.DisplayName, thread.Provider,
+        var card = new EffortSliderCard(option?.ShortName ?? thread.Model ?? thread.Provider.DisplayName, thread.Provider,
             option?.Efforts ?? ValueList<string>.Empty, option?.DefaultEffort, option?.SupportsFast ?? false,
             new Binding<string?>(() => model.Thread(thread.Id)?.Effort, effort => { model.UpdateThread(thread.Id, current => current with { Effort = effort }); Remember(thread.Id); }),
             new Binding<bool>(() => model.Thread(thread.Id)?.FastMode ?? false, fast => { model.UpdateThread(thread.Id, current => current with { FastMode = fast }); Remember(thread.Id); }),
@@ -339,6 +344,8 @@ public sealed class ModelEffortPanel : Decorator
                 var leadEffort = leading?.OrchestratorEffort is { } effort && option?.Efforts.Contains(effort) == true ? effort : null;
                 model.UpdateThread(thread.Id, current => current with { Effort = leadEffort, FastMode = false }); Remember(thread.Id);
             }, pairLook, () => state.ShowsModels = true, fadeFrom);
+        Marrow.App.Port.ModelsPalette.PaletteComposerBinding.Attach(model, thread.Id, card); // guarded by the unchanged UI gate.
+        return card;
     }
 
     // :235-239
@@ -393,6 +400,7 @@ public sealed class ModelList : Decorator
         }, snapshot =>
         {
             var (model, entries, pairs) = snapshot;
+            if (Marrow.App.Port.ModelsPalette.ModelPickerBinding.TryCreate(model, thread, hasHistory, entries, pairs, onChoose, onBack, onEnterPair, Child) is { } approved) { Child = approved; return; }
             var leadsWithPair = pairs.Any(pair => model.LeadsWithHydraPair(pair, thread)); // :280
             var showsProviders = entries.Select(entry => entry.Provider).Distinct().Count() > 1;
             var rowHeight = showsProviders || hasHistory && entries.Any(entry => entry.Provider != thread.Provider) ? 46 : 34;
@@ -535,7 +543,7 @@ public sealed record EffortPairLook
 }
 
 /// <summary>:506-657 <c>struct EffortSliderCard: View</c>.</summary>
-public sealed class EffortSliderCard : Decorator
+public sealed partial class EffortSliderCard : Decorator
 {
     /// <param name="modelName">:507 <c>let modelName: String</c>.</param>
     /// <param name="provider">:508 <c>let provider: ProviderKind?</c>.</param>
@@ -852,7 +860,7 @@ public sealed class RoundIconButton : Decorator
 }
 
 /// <summary>:711-837 <c>struct EffortSlider: View</c>.</summary>
-public sealed class EffortSlider : Decorator
+public sealed partial class EffortSlider : Decorator
 {
     // :712 static let trackHeight: CGFloat = 34
     public const double TrackHeight = 34;
@@ -1174,6 +1182,7 @@ public sealed class EffortSlider : Decorator
             foreach (var child in effects.Children) if (child is TrackEffect fading) fading.Redraw();
         }
         else Material = material;
+        Material = PaletteMaterial(Material); // ED-628: snapshot material on the retained knob.
         LayoutTrack();
         // Main posts geometry and appearance only when an intent or a spring changes them.
         // The retained knob resolves the signal and flowing gem where it is drawn.
@@ -1220,6 +1229,7 @@ public sealed class EffortSlider : Decorator
                 s.Dark ? new SKColor(0x14, 0x1d, 0x27) : new SKColor(0xe6, 0xeb, 0xf1),
                 s.Dark ? new SKColor(0x11, 0x18, 0x20) : new SKColor(0xd1, 0xd8, 0xde), s.Along);
             Uniforms.Lift = s.Lift;
+            ApplyPaletteJewel(Uniforms.Values,date); // snapshot RGB on this existing knob frame/clock.
             if (!ReferenceEquals(into, Uniforms.Values)) Array.Copy(Uniforms.Values, into, into.Length);
         }
     }
@@ -1228,6 +1238,7 @@ public sealed class EffortSlider : Decorator
     // the liquid since OD-0075); made again only when the look or the theme changes
     private SKColor[] FillColours()
     {
+        if(PaletteFillColours() is {} snapshotColours)return snapshotColours;
         var look = Look;
         var theme = ActualThemeVariant;
         if (fillColours is { } kept && fillFor is { } key && Equals(key.Look, look) && key.Theme == theme) return kept;
@@ -1330,6 +1341,7 @@ public sealed class EffortSlider : Decorator
             }
         }
         else if (currentEffect is not null) currentEffect.SetLook(look);
+        BindPaletteEffect(currentEffect); // ED-625: retain the effect selected by the existing identity rule.
         foreach (var child in effects.Children) if (child is TrackEffect effect) effect.TrackWidth = width; // OD-0051: the liquid keeps the track's scale
         drawnLook = look;
     }
@@ -1855,7 +1867,7 @@ public sealed record TrackLook(TrackLook.Kind TrackLookKind, EffortBrand Brand, 
 }
 
 /// <summary>:1039-1347 <c>struct TrackEffect: View</c>.</summary>
-public sealed class TrackEffect : Decorator, LiquidTrack.ILiveSource
+public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
 {
     private TrackLook look = null!;
     private readonly DateTimeOffset startedAt = SwiftDate.Now;
@@ -1895,7 +1907,7 @@ public sealed class TrackEffect : Decorator, LiquidTrack.ILiveSource
         }); // SPEC B-09 / P:1391-1434: a retained tube shown again waits for a clean frame.
         // ED-248 review: the liquid's surfaces live as long as the track is in a window; leaving it hands them to the render
         // thread to dispose
-        DetachedFromVisualTree += (_, _) => { if(ownsLayers) layers?.Retire(); layers = null; scene = null; };
+        DetachedFromVisualTree += (_, _) => { ReleasePaletteView();if(ownsLayers) layers?.Retire(); layers = null; scene = null; };
     }
 
     // :1024-1026 pair kind changes preserve this view's clock and trait cache.
@@ -2141,6 +2153,7 @@ public sealed class TrackEffect : Decorator, LiquidTrack.ILiveSource
             {
                 var normal=Math.Clamp((int)Strike.Round(s.Track/32),4,24); var nucleation=(int)Strike.Round(normal/3d);
                 mixLanes = new StrikeBubbleLanes(bubbleSeed.ToString(System.Globalization.CultureInfo.InvariantCulture) + $",{normal},{nucleation},1", s.Track, s.Size.Height);
+                PreparePaletteBubbleLanes(t,mixLanes);
                 mixContacts = new StrikeContacts(s.Seed, mixLanes, mixClock); mixLaneWidth = s.Track; mixLaneHeight = s.Size.Height;
             }
             var flowTime = s.Still ? 0 : mixClock.ClockC(t);
@@ -2153,6 +2166,7 @@ public sealed class TrackEffect : Decorator, LiquidTrack.ILiveSource
             if (!s.Still) { mixContacts!.Process(s.Geometry, mixStorm.Plans, resolved, t, reentry.Offset, ink.Amount); mixContacts.ResolveLight(s.Geometry, resolved, t); }
             frame = new LiquidTrack.Frame(s.Size, s.Track, s.Still ? 0 : t, s.Gradient, s.Spec, null, false, s.Strands, flow, null, ink.Amount, Layers: s.Layers, PreviousGradient: mix < 1 ? s.FromGradient : null, GradientMix: mix,
                 Mix: resolved, MixGeometry: s.Geometry, MixInk: ink, MixLanes: mixLanes, FastClock: mixClock, MixContacts: mixContacts, MixStill: s.Still, MixSeed: s.Seed);
+            frame = ApplyPalette(frame, t); // ED-625: precomputed tables on this retained effect/clock.
             resolvedScene = s; resolvedPageTime = t; cachedFrame = frame;
             return true;
         }

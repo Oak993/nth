@@ -1,0 +1,20 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:21.46]     Marrow.App.Tests.Port.ModelsPalette.PaletteLoadingAndTimingTests.Pending_uses_living_water_and_loading_until_three_seconds_then_reduce_motion_holds_the_carried_colour [FAIL]
+  Failed Marrow.App.Tests.Port.ModelsPalette.PaletteLoadingAndTimingTests.Pending_uses_living_water_and_loading_until_three_seconds_then_reduce_motion_holds_the_carried_colour [296 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at Marrow.App.Tests.Port.ModelsPalette.PaletteLoadingAndTimingTests.<>c__DisplayClass3_0.<Pending_uses_living_water_and_loading_until_three_seconds_then_reduce_motion_holds_the_carried_colour>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs:line 46
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.ModelsPalette.PaletteLoadingAndTimingTests.Pending_uses_living_water_and_loading_until_three_seconds_then_reduce_motion_holds_the_carried_colour() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs:line 39
+--- End of stack trace from previous location ---
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/visible-app-checked.trx
+
+Failed!  - Failed:     1, Passed:    57, Skipped:     0, Total:    58, Duration: 33 s - Marrow.App.Tests.dll (net10.0)

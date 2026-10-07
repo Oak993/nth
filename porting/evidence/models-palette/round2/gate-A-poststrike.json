@@ -1,0 +1,84 @@
+{
+  "pinned_sha": "52bc7926097cd622d08d6294e0d8b08a48c7516e",
+  "pinned_tree": "115745914ccc103dfe4e74d96c6c539faab2eedb",
+  "reference": "E:/Droppy/reference/droppy-code-v1.7.0",
+  "counts": {
+    "FAIL": 5,
+    "PASS": 7
+  },
+  "ok": false,
+  "results": [
+    {
+      "gate": "A",
+      "name": "reference checkout is at the pinned commit",
+      "status": "FAIL",
+      "detail": "Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 rev-parse HEAD\nfatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory\n"
+    },
+    {
+      "gate": "A",
+      "name": "reference tree hash matches the pinned tree",
+      "status": "FAIL",
+      "detail": "Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 rev-parse HEAD^{tree}\nfatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory\n"
+    },
+    {
+      "gate": "A",
+      "name": "reference working tree is unmodified",
+      "status": "FAIL",
+      "detail": "Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 status --porcelain\nfatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory\n"
+    },
+    {
+      "gate": "A",
+      "name": "inventory reconciles against the pinned git tree",
+      "status": "FAIL",
+      "detail": "Command failed: git -C E:/Droppy/reference/droppy-code-v1.7.0 ls-files\nfatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory\n"
+    },
+    {
+      "gate": "A",
+      "name": "every inventory sha256 matches the file on disk",
+      "status": "FAIL",
+      "detail": "ENOENT: no such file or directory, open 'E:/Droppy/reference/droppy-code-v1.7.0/.commandcode/taste/taste.md'"
+    },
+    {
+      "gate": "A",
+      "name": "every first-party file is marked READ",
+      "status": "PASS",
+      "detail": "441/441 read"
+    },
+    {
+      "gate": "A",
+      "name": "read ledger has exactly one record per inventory path",
+      "status": "PASS",
+      "detail": "441 records, 1:1 with inventory"
+    },
+    {
+      "gate": "A",
+      "name": "ledger digests match the pinned inventory digests",
+      "status": "PASS",
+      "detail": "441 ledger digests match"
+    },
+    {
+      "gate": "A",
+      "name": "text-file coverage reaches the true last line",
+      "status": "PASS",
+      "detail": "all text files covered end to end"
+    },
+    {
+      "gate": "A",
+      "name": "binary assets carry an inspection record",
+      "status": "PASS",
+      "detail": "30 binary assets inspected"
+    },
+    {
+      "gate": "A",
+      "name": "no generic finding reused across different files",
+      "status": "PASS",
+      "detail": "every purpose is file-specific"
+    },
+    {
+      "gate": "A",
+      "name": "every critic finding has been adjudicated",
+      "status": "PASS",
+      "detail": "1079 findings adjudicated across 10 families"
+    }
+  ]
+}

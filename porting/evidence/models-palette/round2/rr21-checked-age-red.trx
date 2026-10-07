@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="189bcab5-94e7-4e7d-80a6-de40752ad60d" name="@a39ab932e15a 2026-10-07 14:00:43" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T14:00:43.6272711+00:00" queuing="2026-10-07T14:00:43.6272711+00:00" start="2026-10-07T14:00:40.7332519+00:00" finish="2026-10-07T14:00:43.6325704+00:00" />
+  <TestSettings name="default" id="8b4cd5fb-9bc1-4d11-a9f4-fc3d4498bfe1">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_14_00_43" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b5cc1bbe-4b82-475e-b1ee-828f63da3238" testId="f6a3fae5-d171-b1d6-776b-c3e38f4dfaab" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change" computerName="a39ab932e15a" duration="00:00:00.5367065" startTime="2026-10-07T14:00:42.9301093+00:00" endTime="2026-10-07T14:00:43.4409861+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b5cc1bbe-4b82-475e-b1ee-828f63da3238">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Strings differ
+                   ↓ (pos 8)
+Expected: "Checked just now · 2 models from 2 makers"
+Actual:   "Checked 5 minutes ago · 2 models from 2 m"···
+                   ↑ (pos 8)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteCheckedAgeTests.cs:line 20
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5f31a190-efbb-4ead-81bf-50db14dabca4" testId="61f10ed4-94fc-6234-941c-3d305b6164de" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time" computerName="a39ab932e15a" duration="00:00:00.1111632" startTime="2026-10-07T14:00:43.4528456+00:00" endTime="2026-10-07T14:00:43.5543915+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5f31a190-efbb-4ead-81bf-50db14dabca4">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Strings differ
+                   ↓ (pos 8)
+Expected: "Checked 5 minutes ago · 2 models from 2 m"···
+Actual:   "Checked just now · 2 models from 2 makers"
+                   ↑ (pos 8)</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteCheckedAgeTests.cs:line 13
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="f6a3fae5-d171-b1d6-776b-c3e38f4dfaab">
+      <Execution id="b5cc1bbe-4b82-475e-b1ee-828f63da3238" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests" name="An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="61f10ed4-94fc-6234-941c-3d305b6164de">
+      <Execution id="5f31a190-efbb-4ead-81bf-50db14dabca4" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests" name="Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f6a3fae5-d171-b1d6-776b-c3e38f4dfaab" executionId="b5cc1bbe-4b82-475e-b1ee-828f63da3238" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="61f10ed4-94fc-6234-941c-3d305b6164de" executionId="5f31a190-efbb-4ead-81bf-50db14dabca4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="2" executed="2" passed="0" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.38]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:01.71]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:01.74]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:02.32]       Assert.Equal() Failure: Strings differ
+[xUnit.net 00:00:02.32]                          ↓ (pos 8)
+[xUnit.net 00:00:02.32]       Expected: "Checked just now · 2 models from 2 makers"
+[xUnit.net 00:00:02.32]       Actual:   "Checked 5 minutes ago · 2 models from 2 m"···
+[xUnit.net 00:00:02.32]                          ↑ (pos 8)
+[xUnit.net 00:00:02.32]       Stack Trace:
+[xUnit.net 00:00:02.32]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteCheckedAgeTests.cs(20,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change()
+[xUnit.net 00:00:02.32]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.43]       Assert.Equal() Failure: Strings differ
+[xUnit.net 00:00:02.43]                          ↓ (pos 8)
+[xUnit.net 00:00:02.43]       Expected: "Checked 5 minutes ago · 2 models from 2 m"···
+[xUnit.net 00:00:02.43]       Actual:   "Checked just now · 2 models from 2 makers"
+[xUnit.net 00:00:02.43]                          ↑ (pos 8)
+[xUnit.net 00:00:02.43]       Stack Trace:
+[xUnit.net 00:00:02.43]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteCheckedAgeTests.cs(13,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time()
+[xUnit.net 00:00:02.43]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:02.44]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T14:00:43.4489207+00:00">
+        <Text>[xUnit.net 00:00:02.32]     Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T14:00:43.5550327+00:00">
+        <Text>[xUnit.net 00:00:02.43]     Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.Opening_Colours_reports_the_actual_earlier_check_instead_of_the_page_creation_time [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

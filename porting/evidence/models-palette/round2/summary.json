@@ -1,0 +1,232 @@
+{
+  "branch": "codex/models-palette",
+  "integration": {
+    "merge": "4f795ba37",
+    "Strike": "2d618f2177c1c7ad04b369e7a9fe66d2beaab630",
+    "standing_contains_Strike": "666097b04"
+  },
+  "rows": {
+    "RR-19": "DONE",
+    "RR-20": "BLOCKED",
+    "RR-21": "DONE",
+    "RR-41": "BLOCKED (reconciliation complete, whole-record acceptance not granted)"
+  },
+  "verdict": "NOT READY",
+  "build": {
+    "receipt": "build-checked-age-final.log",
+    "warnings": 0,
+    "errors": 0
+  },
+  "receipts": {
+    "rr41-app-poststrike-final.trx": {
+      "total": 529,
+      "executed": 529,
+      "passed": 525,
+      "failed": 4,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr41-ui-residual-poststrike-final.trx": {
+      "total": 12,
+      "executed": 12,
+      "passed": 7,
+      "failed": 5,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr20-palette-final.trx": {
+      "total": 27,
+      "executed": 27,
+      "passed": 27,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr20-core-final-poststrike.trx": {
+      "total": 21,
+      "executed": 21,
+      "passed": 21,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr20-services-poststrike-final.trx": {
+      "total": 66,
+      "executed": 66,
+      "passed": 66,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr21-checked-age-app-final.trx": {
+      "total": 50,
+      "executed": 50,
+      "passed": 49,
+      "failed": 1,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr21-checked-age-services-final.trx": {
+      "total": 66,
+      "executed": 66,
+      "passed": 66,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "rr21-checked-age-core-final.trx": {
+      "total": 21,
+      "executed": 21,
+      "passed": 21,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    }
+  },
+  "test_scope_note": "Overlapping scopes are not summed. Native OS-guarded passes receive no native credit.",
+  "remaining_RR20": [
+    "authentic first-cut placeholder/image/seed evidence and catalogue Date/Age boundary bake",
+    "locked C21 clear living water/Stable Fluids ink arrival",
+    "complete visible title/glow/Jewel and remaining bubble-dial/effort-transition integration",
+    "ModelShades.ApplyToUi remains false; original guard preserved"
+  ],
+  "Windows_needs": [
+    "native picker/Colours fonts, glass, placement, scroll, motion, UIA",
+    "authentic codecs/filesystem locks/release-pack adoption and separately authorised captured-real-source ten-root replay",
+    "complete locked page-shell/Jewel/ink/all-model ANGLE comparison and quiet-PC real cadence/GC/performance"
+  ],
+  "seams": [
+    {
+      "seam": "OpenRouter popup -10 px offset",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 129
+    },
+    {
+      "seam": "approved ModelList delegation",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 399
+    },
+    {
+      "seam": "guarded card Attach and return",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 343
+    },
+    {
+      "seam": "EffortSlider partial declaration",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 859
+    },
+    {
+      "seam": "retained effect handoff",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 1333
+    },
+    {
+      "seam": "TrackEffect partial declaration",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 1858
+    },
+    {
+      "seam": "retained frame handoff",
+      "path": "src/Marrow.App/Views/Composer/EffortSlider.cs",
+      "line": 2156
+    }
+  ],
+  "preservation": "preservation-poststrike-final.json",
+  "decision_ids": [
+    "ED-621",
+    "ED-620",
+    "ED-622",
+    "ED-626",
+    "ED-623",
+    "ED-625",
+    "ED-624",
+    "ED-627"
+  ],
+  "final_clock_fix": "successful engine completion age, independent of palette digest/page construction",
+  "final_palette_tests": {
+    "passed": 29,
+    "failed": 0,
+    "scope": "palette slice of rr21-checked-age-app-final.trx"
+  }
+}

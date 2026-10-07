@@ -3,7 +3,7 @@ using System.Globalization;
 namespace Marrow.App.Views.Composer;
 
 // E:917-1010; SPEC K-128..K-136. The A2 public maths remain intact until the new lanes are wired at ST-3.
-public sealed class StrikeBubbleLanes
+public sealed partial class StrikeBubbleLanes
 {
     private readonly int seed;
     private readonly double width, height;
@@ -32,7 +32,7 @@ public sealed class StrikeBubbleLanes
 
     public StrikeBubbleRise Rise(int i, int k)
     {
-        var nuc = i >= NormalCount; var j = nuc ? i - NormalCount : i; var n = nuc ? NucleationCount : NormalCount;
+        var nuc = i >= NormalCount; var j = nuc ? i - NormalCount : i; var n = paletteBound ? nuc ? PaletteNucleationCount : PaletteNormalCount : nuc ? NucleationCount : NormalCount;
         var x = unchecked((uint)((seed + (nuc ? 977 : 0)) * 73856093) ^ (uint)((j + 1) * 19349663) ^ (uint)((k + 7) * 83492791)); if (x == 0) x = 1;
         double R() { x ^= x << 13; x ^= x >> 17; x ^= x << 5; return x % 100000 / 100000d; }
         for (var w = 0; w < 3; w++) R();
@@ -48,13 +48,14 @@ public sealed class StrikeBubbleLanes
         }
         else
         {
-            var kind = R(); var size = kind < 0.6 ? 1.4 + R() * 1.6 : kind < 0.9 ? 3 + R() * 2 : 5 + R() * 3; var up = height * (0.55 + R() * 0.8);
+            var kind = R(); var size = kind < 0.6 ? 1.4 + R() * 1.6 : kind < 1 - paletteLargeShare ? 3 + R() * 2 : 5 + R() * 3; var up = height * (0.55 + R() * 0.8);
             var side = (R() - 0.5) * 2; var flow = R() < 0.25;
             var x1 = flow ? 14 + R() * 24 : side * (4 + R() * 10); var x2 = flow ? 30 + R() * 40 : side * (2 + R() * 14) + (R() - 0.5) * 10; var x3 = flow ? 50 + R() * 60 : (R() - 0.5) * 30;
             var y1 = -up * (0.2 + R() * 0.2); var y2 = -up * (0.45 + R() * 0.25); var y3 = -up; var dur = (flow ? 3.6 : 1.8) + R() * 3.2;
             var slot = i * Stride(n) % n; var at = R() < 0.2 ? 3 + R() * 92 : 3 + (slot + R()) / n * 92; var outer = size + 2;
             var cx = width * at / 100 - (flow ? x3 / 2 : 0) + outer / 2; var cy = height - (-6 + R() * height * 0.45) - outer / 2;
-            var o = 0.55 + R() * 0.4; var s0 = 0.35 + R() * 0.3; var s1 = 0.7 + R() * 0.3; var s2 = 0.9 + R() * 0.35; var gap = R() * 1.4;
+            dur *= paletteRiseScale;
+            var o = 0.55 + R() * 0.4; var s0 = 0.35 + R() * 0.3; var s1 = 0.7 + R() * 0.3; var s2 = 0.9 + R() * 0.35; var gap = R() * palettePause;
             var wa = (0.45 + 0.6 * R()) * height / 40; var wn = 1.5 + 1.5 * R(); var wp = R();
             return new(cx, cy, outer, dur, o, s0, s1, s2, x1, y1, x2, y2, x3, y3, gap, wa, wn, wp, false);
         }
@@ -84,6 +85,7 @@ public sealed class StrikeBubbleLanes
 
     public StrikeBubbleNow Now(int i, double time, double fast)
     {
+        if (paletteBound && (i < NormalCount ? i >= PaletteNormalCount : i-NormalCount >= PaletteNucleationCount)) return default;
         var lane = Lane(i, time); var b = lane.Rise; var p = (time - lane.Start) / b.Dur;
         if (p < 0 || p >= 1) return new(lane.K, 0, 0, 0, 0, 0, b.Outer);
         double tx, ty, scale;

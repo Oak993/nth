@@ -37,7 +37,7 @@ public sealed class WindowsGeniePlatform : IGeniePlatform
     // ED-084, port_impacts.md X4: Windows' "Animation effects" switch, inverted, queried at every call as the source
     // reads the current accessibility value at each morph and launch.
     public bool AccessibilityDisplayShouldReduceMotion =>
-        SystemParametersInfo(SpiGetClientAreaAnimation, 0, out var enabled, 0) && !enabled;
+        OperatingSystem.IsWindows() && SystemParametersInfo(SpiGetClientAreaAnimation, 0, out var enabled, 0) && !enabled;
 
     // ENGINEERING DECISION: NSScreen.main is the screen holding the key window; the port asks the screen of the app's
     // main window, as AttachmentFlightPlatform does for the same AppKit read. No window or screen gives null, which

@@ -1,0 +1,13 @@
+{
+  "base": "285b6b7a99b39e0e517f34c8d34a1860c945f83f",
+  "engineering_decisions_original_bytes": 1786423,
+  "engineering_decisions_original_sha256": "c0981ce8111187b55a44c86f35e4d0eb72270a086a4a18d31099740968735481",
+  "original_prefix_preserved": true,
+  "all_existing_src_tests_preserved": true,
+  "strike_files": {
+    "src/Marrow.App/Views/Composer/EffortSlider.cs": "091daa56aa376c77680794bf79566dc9dc37e7d9cdd8f3c4260d74070bd16feb",
+    "src/Marrow.App/Views/Composer/LiquidTrack.cs": "26d9a7ac0451060b6b141e1038be33ec04bb9fa582d64e2343cfae560cb512d9",
+    "src/Marrow.App/Views/Composer/LiquidStrike.cs": "242989c5a3c3f943b2e9516630bfb3173b9cfec740063e75d214b9b308a35801"
+  },
+  "seams": []
+}

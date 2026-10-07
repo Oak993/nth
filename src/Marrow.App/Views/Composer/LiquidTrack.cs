@@ -243,7 +243,7 @@ public sealed class BubbleLanes(int seed, double width, double height)
 }
 
 /// <summary>The liquid tube's drawing (see the file note).</summary>
-public static class LiquidTrack
+public static partial class LiquidTrack
 {
     /// <summary>The glass: each channel's displacement scale, px (red, green, blue).</summary>
     public static readonly (double R, double G, double B) Refraction = (-36, -32, -28);
@@ -670,7 +670,7 @@ public static class LiquidTrack
     internal readonly record struct Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
         IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0,
         IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null, LiquidLayers? Layers = null, StrikeFrame? ResolvedStrike = null, SKColor[]? PreviousGradient = null, double GradientMix = 1,
-        StrikeResolvedFrame? Mix = null, StrikeGeometry MixGeometry = default, StrikeInk MixInk = default, StrikeBubbleLanes? MixLanes = null, StrikeFastClock? FastClock = null, StrikeContacts? MixContacts = null, bool MixStill = false, int MixSeed = 0);
+        StrikeResolvedFrame? Mix = null, StrikeGeometry MixGeometry = default, StrikeInk MixInk = default, StrikeBubbleLanes? MixLanes = null, StrikeFastClock? FastClock = null, StrikeContacts? MixContacts = null, bool MixStill = false, int MixSeed = 0, Marrow.App.Port.ModelsPalette.PaletteLiveSample? Palette = null);
 
 
     /// <summary>
@@ -736,7 +736,7 @@ public static class LiquidTrack
     /// array made per frame), its children as native handles in the effect's declaration order, and its paint. Every pass
     /// but the bubbles declares the same uniforms (Uniforms_), so one filler serves them all; the bubbles set their own.
     /// </summary>
-    internal sealed class PassUniforms : IDisposable
+    internal sealed partial class PassUniforms : IDisposable
     {
         private readonly float[] size = new float[2], breathe = new float[2], refraction = new float[3], curA = new float[4], curB = new float[4],
             waveB = new float[4], shapes = new float[MaxStrands * 4], colors = new float[MaxStrands * 4], oil = new float[4];
@@ -782,6 +782,7 @@ public static class LiquidTrack
             Set("scale", (float)scale);
             Set("breathe", breathe);
             Set("refraction", refraction);
+            if (f.Palette is not null) { ApplyPalette(f); return; } // ED-625: additive bound uniforms.
             // the currents: one model has the canvas's wave1 (amplitude 5, 4 cycles) and wave2 (7, 2 cycles, phase 2) in a
             // 30-unit viewBox; a blend has a strand per model (the lead 10, a worker 6, 4 cycles, phases spread evenly, 3
             // wide) and wave3 (8, 2 cycles, phase 1) in a 40-unit viewBox. 7 s and 11 s a pass (OD-0073: 4.67 s and 7.33 s in
@@ -905,6 +906,7 @@ public static class LiquidTrack
         private SKShader? previousShader;
         private readonly Dictionary<SKRuntimeEffect, PassUniforms> passes = [];
         private readonly float[] bubbleA = new float[MaxBubbles * 4], bubbleB = new float[MaxBubbles * 4], oneA = new float[4], oneB = new float[4];
+        private readonly Marrow.App.Port.ModelsPalette.PaletteLoadingPaint paletteLoading=new();
         private readonly SKPaint glassPaint = new() { IsAntialias = true };
         private readonly StrikePainter painter = new();
         private StrikeRaster? mixRaster;
@@ -1027,7 +1029,7 @@ public static class LiquidTrack
             var saved = target.Save();
             target.Clear(SKColors.Transparent);
             target.Scale((float)scale);
-            PassUniforms Filled(Lazy<SKRuntimeEffect> effect) { var pass = Pass(effect.Value); pass.Fill(frame, scale); return pass; }
+            PassUniforms Filled(Lazy<SKRuntimeEffect> effect) { var pass = Pass(PaletteEffect(effect, frame)); pass.Fill(frame, scale); return pass; }
             var basePass = Filled(BaseEffect);
             var gradientHandle = Gradient(frame.Gradient).Handle;
             nint mixedGradient = 0;
@@ -1044,6 +1046,8 @@ public static class LiquidTrack
             var oilMask = basePass.OilMask;
             try { Paint(target, basePass, rect, SKBlendMode.SrcOver); }
             finally { basePass.SetChild("grad", 0); SkiaShaders.Release(mixedGradient); }
+            frame.Palette?.Ink?.Draw(target,rect,1-(float)(frame.Palette?.SolidMix??0));
+            if(frame.Palette?.Loading==true)paletteLoading.Draw(target,rect,frame.Palette.LoadingPhase,frame.MixStill); // v22: the worker's retained density picture under the currents/glass.
             if (hasOil && oilMask > 0.5f) Paint(target, Filled(OilEffect), rect, SKBlendMode.Screen); // a blend's oil goes under its currents
             Paint(target, Filled(StrandsEffect), rect, SKBlendMode.SoftLight);
             Paint(target, Filled(SlowEffect), rect, SKBlendMode.SoftLight);
@@ -1161,7 +1165,7 @@ public static class LiquidTrack
             previousShader?.Dispose(); previousImage?.Dispose(); previousShader = null; previousImage = null; previousRow = null;
             foreach (var pass in passes.Values) pass.Dispose();
             passes.Clear();
-            glassPaint.Dispose(); painter.Dispose();
+            paletteLoading.Dispose(); glassPaint.Dispose(); painter.Dispose();
             mixRaster?.Dispose(); mixRaster = null; mixRings.Dispose();
         }
     }

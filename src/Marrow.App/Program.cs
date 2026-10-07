@@ -53,6 +53,9 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // ED-622: offline, owner-local pack generator precedes all desktop/data bindings.
+        if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
+        if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         // SK-17: private, headless MCP relay. It must precede Velopack, single-instance, settings and all desktop work.
         if (args.FirstOrDefault() == Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.Command)
             return Marrow.Services.Port.Skills.Providers.SkillsMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
@@ -109,6 +112,7 @@ public static class Program
         Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.Bind(); // T11 step 2: Settings > Models (accounts) and Settings > Pills read the running AppModel
         Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
+        Marrow.App.Port.ModelsPalette.PaletteStartup.Prepare(); // ED-622: verified tables, off UI, before any window/model.
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
@@ -146,7 +150,7 @@ public static class Program
             reopen.Listen(() => shell.Reopen(lifetime.Windows));
         };
         lifetime.ShutdownRequested += (_, e) => shell.ShutdownRequested(e);
-        lifetime.Exit += (_, _) => shell.WillTerminate();
+        lifetime.Exit += (_, _) => {shell.Delegate.Model?.StopPaletteChecks();shell.WillTerminate();};
         return lifetime.Start(args);
     }
 }

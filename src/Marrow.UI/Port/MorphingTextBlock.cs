@@ -334,6 +334,16 @@ public class MorphingTextBlock : TextBlock
         driftBrushes.Clear();
         UpdateDrift();
     }
+    /// <summary>C25 live RGB stops, already prepared by the palette actor. No second clock or new stop arrays.</summary>
+    public void UpdateLiveForeground()
+    {
+        if(Foreground is ILinearGradientBrush gradient)
+        {
+            if(pinnedStops.TryGetValue(gradient,out var stops))for(var i=0;i<Math.Min(stops.Length,gradient.GradientStops.Count);i++)stops[i]=new ImmutableGradientStop(gradient.GradientStops[i].Offset,gradient.GradientStops[i].Color);
+            foreach(var item in driftBrushes)for(var i=0;i<Math.Min(item.Brush.GradientStops.Count,gradient.GradientStops.Count);i++)item.Brush.GradientStops[i].Color=gradient.GradientStops[i].Color;
+        }
+        InvalidateVisual();
+    }
 
     // One mutable brush per run of the line at rest: the drift moves the colours by moving these brushes' two ends, frame
     // after frame, and nothing else. The compositor carries a brush's own change to what it already draws (a brush is a

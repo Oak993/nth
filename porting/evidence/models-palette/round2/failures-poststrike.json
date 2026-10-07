@@ -1,0 +1,56 @@
+[
+  {
+    "test_name": "Marrow.App.Tests.Window.StrikeChildGcEnvironmentTests.Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-app-poststrike-final.trx",
+    "message": "System.InvalidOperationException : No existing dotnet SDK host was found in the current host, runtime installation or PATH."
+  },
+  {
+    "test_name": "Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-app-poststrike-final.trx",
+    "message": "Assert.Equal() Failure: Collections differ\n                        ↓ (pos 2148)\nExpected: [···, 0, 255, 29, 48, 67, ···]\nActual:   [···, 0, 255, 28, 45, 64, ···]\n                        ↑ (pos 2148)"
+  },
+  {
+    "test_name": "Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-app-poststrike-final.trx",
+    "message": "System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: \n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory\n/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory\n/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory\n"
+  },
+  {
+    "test_name": "Marrow.App.Tests.Window.Native.EffortSliderNativeFrameTests.Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-app-poststrike-final.trx",
+    "message": "System.InvalidOperationException : Native window tests require an interactive Windows x64 desktop."
+  },
+  {
+    "test_name": "Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_leaving_letters_of_a_change_taken_over_keep_that_changes_old_colour",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-ui-residual-poststrike-final.trx",
+    "message": "System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal"
+  },
+  {
+    "test_name": "Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_a_carried_through_the_narrowing_takeover_stays_on_the_h_as_long_as_the_video_shows",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-ui-residual-poststrike-final.trx",
+    "message": "System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal"
+  },
+  {
+    "test_name": "Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_letters_still_arriving_at_a_takeover_go_on_fading_in_and_do_not_jump_to_full",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-ui-residual-poststrike-final.trx",
+    "message": "System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal"
+  },
+  {
+    "test_name": "Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_kept_letters_a_takeover_carries_in_fade_grow_and_rise_into_place_as_in_the_video",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-ui-residual-poststrike-final.trx",
+    "message": "System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal"
+  },
+  {
+    "test_name": "Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_Leaving_letters_keep_the_old_colour_and_arriving_ones_wear_the_new_one_from_their_first_frame",
+    "outcome": "Failed",
+    "receipt": "porting/evidence/models-palette/round2/rr41-ui-residual-poststrike-final.trx",
+    "message": "System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal"
+  }
+]

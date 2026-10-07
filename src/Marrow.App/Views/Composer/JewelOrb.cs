@@ -160,7 +160,7 @@ public sealed class JewelUniforms
     /// <summary>The program's uniform block, bytes.</summary>
     public const int ShaderBytes = Slots * 16;
 
-    public float[] Values { get; } = new float[(Slots + 1) * 4];
+    public float[] Values { get; } = new float[(Slots + 2) * 4];
 
     /// <summary>The deeper shadow's opacity (how far the knob has lifted).</summary>
     public float Lift { get => Values[108]; set => Values[108] = value; }
@@ -536,7 +536,7 @@ public static class JewelKnobShader
 /// The knob's drawing on the render thread: the program into a surface at the render size (kept, one per size and GPU
 /// context), then filtered down into the knob's box. Nothing managed is made per frame (native shaders through Skia's C API).
 /// </summary>
-internal sealed class JewelKnobRenderer
+internal sealed partial class JewelKnobRenderer
 {
     [ThreadStatic] private static Dictionary<(nint Context, int Size), JewelKnobRenderer>? pool;
 
@@ -593,7 +593,7 @@ internal sealed class JewelKnobRenderer
         foreach (var key in pool.Keys.Where(k => k.Context == gpu.Handle).ToArray()) { pool[key].Dispose(); pool.Remove(key); }
     }
 
-    private void Dispose() { foreach (var made in surfaces) made?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); liftGroup.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
+    private void Dispose() { foreach (var made in surfaces) made?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); liftGroup.Dispose(); circle.Dispose(); DisposePaletteGlow(); Marshal.FreeHGlobal(block); }
 
     /// <summary>
     /// GpuWarmup's steps (render thread): 0 the noise program, 1 the fluid, 2 the orb, 3 the page with the
@@ -667,6 +667,7 @@ internal sealed class JewelKnobRenderer
     /// <summary>The shadows, outside the knob's circle as CSS box-shadows are: the knob's own, then the lift's.</summary>
     internal void Shadows(SKCanvas canvas, float[] uniforms, SKRect box, float opacity)
     {
+        DrawPaletteGlow(canvas,uniforms,box,opacity);
         if (circleFor != box) { circle.Rewind(); circle.AddOval(box); circleFor = box; }
         float cx = box.MidX, cy = box.MidY, r = box.Width / 2;
         var dark = uniforms[21] > 0.5f;
@@ -790,7 +791,7 @@ internal sealed class JewelCpuKnob
     private SKSurface? surface;
     private int size;
     private long frames;
-    private readonly float[] scratch = new float[(JewelUniforms.Slots + 1) * 4];
+    private readonly float[] scratch = new float[(JewelUniforms.Slots + 2) * 4];
     private readonly double[] times = new double[16], sorted = new double[16];
     private int filled, next;
 

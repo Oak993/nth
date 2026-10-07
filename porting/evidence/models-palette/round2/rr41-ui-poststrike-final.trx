@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="8f8537ab-0723-4d94-828c-663965542cc6" name="@a39ab932e15a 2026-10-07 13:23:41" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T13:23:41.5536768+00:00" queuing="2026-10-07T13:23:41.5536768+00:00" start="2026-10-07T13:23:39.3761549+00:00" finish="2026-10-07T13:23:41.5607244+00:00" />
+  <TestSettings name="default" id="44c3919b-e7e8-4f3c-9eda-abeea18e56b0">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_13_23_41" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="afb7617b-b6f6-459d-a1e2-b91b344fdae4" testId="aa38f323-0c74-d05c-f143-26e1fa89a618" testName="Marrow.UI.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" computerName="a39ab932e15a" duration="00:00:00.1556619" startTime="2026-10-07T13:23:40.9456566+00:00" endTime="2026-10-07T13:23:41.1082826+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="afb7617b-b6f6-459d-a1e2-b91b344fdae4" />
+    <UnitTestResult executionId="756bd219-c692-47aa-8104-54499860b40f" testId="5e6bf54f-145d-897f-f070-c3b06428332c" testName="Marrow.UI.Tests.Port.ModelsPalette.SkiaLogoDecoderTests.A_png_preserves_unpremultiplied_rgba_and_garbage_is_unavailable" computerName="a39ab932e15a" duration="00:00:00.0702440" startTime="2026-10-07T13:23:40.9468457+00:00" endTime="2026-10-07T13:23:41.0246449+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="756bd219-c692-47aa-8104-54499860b40f" />
+    <UnitTestResult executionId="a70c29dd-d703-4842-a76c-ffe96a0e764c" testId="d3aa93bd-3d03-a984-87de-a07292314395" testName="Marrow.UI.Tests.LayeringTests.UI_does_not_reference(forbidden: &quot;Marrow.Services&quot;)" computerName="a39ab932e15a" duration="00:00:00.0002306" startTime="2026-10-07T13:23:40.9836083+00:00" endTime="2026-10-07T13:23:40.9836754+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a70c29dd-d703-4842-a76c-ffe96a0e764c" />
+    <UnitTestResult executionId="2bc5edc2-ddb3-4fd8-bb8f-9e06b8e31e94" testId="fca7429c-5d24-984a-6e33-7c99ba23221a" testName="Marrow.UI.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" computerName="a39ab932e15a" duration="00:00:00.0510227" startTime="2026-10-07T13:23:41.1087916+00:00" endTime="2026-10-07T13:23:41.1600680+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2bc5edc2-ddb3-4fd8-bb8f-9e06b8e31e94" />
+    <UnitTestResult executionId="cd490679-4690-4210-8dde-4731c2862163" testId="7fd7416c-3190-ed98-21b2-d84a6dab042f" testName="Marrow.UI.Tests.Port.ModelsPalette.SkiaLogoDecoderTests.Ico_chooses_the_largest_embedded_png_frame" computerName="a39ab932e15a" duration="00:00:00.0101960" startTime="2026-10-07T13:23:41.0249362+00:00" endTime="2026-10-07T13:23:41.0315130+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="cd490679-4690-4210-8dde-4731c2862163" />
+    <UnitTestResult executionId="883d3582-2ae1-4ba5-a034-39ac8edbd546" testId="1f9ba00c-84e1-f699-19e8-c9cf27929a9b" testName="Marrow.UI.Tests.LayeringTests.UI_does_not_reference(forbidden: &quot;Marrow.App&quot;)" computerName="a39ab932e15a" duration="00:00:00.0109781" startTime="2026-10-07T13:23:40.9467755+00:00" endTime="2026-10-07T13:23:40.9640022+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="883d3582-2ae1-4ba5-a034-39ac8edbd546" />
+    <UnitTestResult executionId="a9ff6935-5540-41c1-bbe4-d5b3b2e5140c" testId="3048ba12-adc6-427c-5b08-bfeed535ceaa" testName="Marrow.UI.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" computerName="a39ab932e15a" duration="00:00:00.0472410" startTime="2026-10-07T13:23:41.1604236+00:00" endTime="2026-10-07T13:23:41.2122161+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a9ff6935-5540-41c1-bbe4-d5b3b2e5140c" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.UI.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="aa38f323-0c74-d05c-f143-26e1fa89a618">
+      <Execution id="afb7617b-b6f6-459d-a1e2-b91b344fdae4" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.TraceabilityTests" name="Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.Port.ModelsPalette.SkiaLogoDecoderTests.A_png_preserves_unpremultiplied_rgba_and_garbage_is_unavailable" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="5e6bf54f-145d-897f-f070-c3b06428332c">
+      <Execution id="756bd219-c692-47aa-8104-54499860b40f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Port.ModelsPalette.SkiaLogoDecoderTests" name="A_png_preserves_unpremultiplied_rgba_and_garbage_is_unavailable" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="3048ba12-adc6-427c-5b08-bfeed535ceaa">
+      <Execution id="a9ff6935-5540-41c1-bbe4-d5b3b2e5140c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.TraceabilityTests" name="Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.LayeringTests.UI_does_not_reference(forbidden: &quot;Marrow.Services&quot;)" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="d3aa93bd-3d03-a984-87de-a07292314395">
+      <Execution id="a70c29dd-d703-4842-a76c-ffe96a0e764c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.LayeringTests" name="UI_does_not_reference" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="fca7429c-5d24-984a-6e33-7c99ba23221a">
+      <Execution id="2bc5edc2-ddb3-4fd8-bb8f-9e06b8e31e94" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.TraceabilityTests" name="Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.Port.ModelsPalette.SkiaLogoDecoderTests.Ico_chooses_the_largest_embedded_png_frame" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="7fd7416c-3190-ed98-21b2-d84a6dab042f">
+      <Execution id="cd490679-4690-4210-8dde-4731c2862163" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.Port.ModelsPalette.SkiaLogoDecoderTests" name="Ico_chooses_the_largest_embedded_png_frame" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.LayeringTests.UI_does_not_reference(forbidden: &quot;Marrow.App&quot;)" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="1f9ba00c-84e1-f699-19e8-c9cf27929a9b">
+      <Execution id="883d3582-2ae1-4ba5-a034-39ac8edbd546" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.LayeringTests" name="UI_does_not_reference" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="aa38f323-0c74-d05c-f143-26e1fa89a618" executionId="afb7617b-b6f6-459d-a1e2-b91b344fdae4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5e6bf54f-145d-897f-f070-c3b06428332c" executionId="756bd219-c692-47aa-8104-54499860b40f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d3aa93bd-3d03-a984-87de-a07292314395" executionId="a70c29dd-d703-4842-a76c-ffe96a0e764c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fca7429c-5d24-984a-6e33-7c99ba23221a" executionId="2bc5edc2-ddb3-4fd8-bb8f-9e06b8e31e94" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7fd7416c-3190-ed98-21b2-d84a6dab042f" executionId="cd490679-4690-4210-8dde-4731c2862163" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1f9ba00c-84e1-f699-19e8-c9cf27929a9b" executionId="883d3582-2ae1-4ba5-a034-39ac8edbd546" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3048ba12-adc6-427c-5b08-bfeed535ceaa" executionId="a9ff6935-5540-41c1-bbe4-d5b3b2e5140c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="7" executed="7" passed="7" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.14]   Discovering: Marrow.UI.Tests
+[xUnit.net 00:00:00.98]   Discovered:  Marrow.UI.Tests
+[xUnit.net 00:00:01.06]   Starting:    Marrow.UI.Tests
+[xUnit.net 00:00:01.36]   Finished:    Marrow.UI.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

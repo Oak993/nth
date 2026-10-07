@@ -1,0 +1,4 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+/workspace/marrow-port/tests/Marrow.UI.Tests/Port/ModelsPalette/SkiaLogoDecoderTests.cs(1,22): error CS0234: The type or namespace name 'ModelsPalette' does not exist in the namespace 'Marrow.UI.Port' (are you missing an assembly reference?) [/workspace/marrow-port/tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj]

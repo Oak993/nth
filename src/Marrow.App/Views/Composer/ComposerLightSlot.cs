@@ -36,6 +36,7 @@ internal sealed class ComposerLightSlot : Decorator
         this.Track(() => runtime.IsRunning ? ComposerLightPhase.Running : runtime.DraftIsEmpty ? ComposerLightPhase.Rest : ComposerLightPhase.Typing,
             phase => light.Phase = phase);
         this.Track(() => AppEnvironment.GetAppModel(this).Thread(runtime.ThreadID)?.Provider, p => { provider = p; UpdatePalette(); });
+        AttachedToVisualTree+=(_,_)=>BindSnapshot(runtime.ThreadID);
         // PORT-ONLY (voice-SPEC V-13.4, OD-0097 B1 to B3; VT-12): the light's level while the voice is on (the setting's: steps aside, dims to 35 %, stays on) and 1 otherwise; the light eases to it itself
         if ((composer as ComposerView)?.Voice is { } voice)
             this.Track(() => VoiceLightTarget.For(voice.OrbSettings.LightVoice, voice.State), level => light.VoiceLight = level);
@@ -54,7 +55,13 @@ internal sealed class ComposerLightSlot : Decorator
     }
 
     // the maker's liquid stops (OD-0063: heart and second, dark; the deeper pair, light) and the accent, per appearance
-    private void UpdatePalette() => light.Palette = PaletteFor(EffortBrand.Create(provider));
+    private void UpdatePalette(){if(!snapshotBound)light.Palette=PaletteFor(EffortBrand.Create(provider));}
+    private bool snapshotBound;
+    private void BindSnapshot(Guid id)
+    {
+        if(snapshotBound)return;snapshotBound=true;
+        Marrow.App.Port.ModelsPalette.PaletteSurfaceBinding.Attach(this,AppEnvironment.GetAppModel(this),id,target=>light.Palette=target.Composer);
+    }
 
     /// <summary>The palette a composer of this brand wears. The preview in Settings > Customization takes the same rule (CZ-4.5.5, ComposerLightPalettes).</summary>
     internal static ComposerLightPalette PaletteFor(EffortBrand brand)

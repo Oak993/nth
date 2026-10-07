@@ -1,0 +1,44 @@
+  Determining projects to restore...
+  Restored /tmp/t37-baseline-proof/src/Marrow.Services/Marrow.Services.csproj (in 242 ms).
+  Restored /tmp/t37-baseline-proof/src/Marrow.Shim/Marrow.Shim.csproj (in 242 ms).
+  Restored /tmp/t37-baseline-proof/tests/Marrow.Skills.PipelineWorker/Marrow.Skills.PipelineWorker.csproj (in 242 ms).
+  Restored /tmp/t37-baseline-proof/tests/Marrow.Testing/Marrow.Testing.csproj (in 242 ms).
+  Restored /tmp/t37-baseline-proof/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 24 ms).
+  Restored /tmp/t37-baseline-proof/src/Marrow.Core/Marrow.Core.csproj (in 24 ms).
+  Restored /tmp/t37-baseline-proof/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 40 ms).
+  Restored /tmp/t37-baseline-proof/src/Marrow.UI/Marrow.UI.csproj (in 19 ms).
+  Restored /tmp/t37-baseline-proof/src/Marrow.App/Marrow.App.csproj (in 47 ms).
+  Restored /tmp/t37-baseline-proof/tests/Marrow.App.Tests/Marrow.App.Tests.csproj (in 23 ms).
+  Marrow.Core -> /tmp/t37-baseline-proof/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /tmp/t37-baseline-proof/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /tmp/t37-baseline-proof/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Services -> /tmp/t37-baseline-proof/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /tmp/t37-baseline-proof/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /tmp/t37-baseline-proof/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /tmp/t37-baseline-proof/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /tmp/t37-baseline-proof/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App -> /tmp/t37-baseline-proof/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.App.Tests -> /tmp/t37-baseline-proof/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /tmp/t37-baseline-proof/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:03.38]     Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule [FAIL]
+  Failed Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule [1 s]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                        ↓ (pos 2148)
+Expected: [···, 0, 255, 29, 48, 67, ···]
+Actual:   [···, 0, 255, 28, 45, 64, ···]
+                        ↑ (pos 2148)
+  Stack Trace:
+     at Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.<>c.<The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule>b__2_0() in /tmp/t37-baseline-proof/tests/Marrow.App.Tests/Views/Composer/EffortSliderTitleFramesTests.cs:line 35
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /tmp/t37-baseline-proof/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /tmp/t37-baseline-proof/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule() in /tmp/t37-baseline-proof/tests/Marrow.App.Tests/Views/Composer/EffortSliderTitleFramesTests.cs:line 15
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /tmp/t37-evidence/rr41/title-original-base.trx
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 1 s - Marrow.App.Tests.dll (net10.0)
