@@ -67,6 +67,7 @@ public sealed class RootView : Decorator
         set => detailView.VoiceQuestion = value;
     }
     private readonly Border detailClip;
+    private readonly SaturationLayer detailSaturation;
     private readonly Border detailPadded;
     private readonly Panel detailSlot = new OverlayPanel();
     private readonly WindowBackdrop backdrop;
@@ -109,7 +110,7 @@ public sealed class RootView : Decorator
     /// and is taken out of the tree when it is gone. Called when the window's content is made (the launch's reveal of the window is the
     /// sheet's entrance), never later.
     /// ENGINEERING DECISION (ED-306): the pane is blurred with Gaussian sigma 9 returning to 0 and dimmed to 0.45 returning to 1
-    /// (the page's filter: blur(9px) saturate(.6) and opacity .45); the saturation is not drawn (Avalonia has no such effect). Below a
+    /// (the page's filter: blur(9px) saturate(.6) and opacity .45). A live Skia layer supplies the saturation. Below a
     /// sigma of 0.5 the effect is taken off, which is the blur Skia gives a radius of zero.
     /// </summary>
     internal void ShowGettingReady(Marrow.App.Port.FirstRun.GettingReadySheet sheet)
@@ -130,6 +131,7 @@ public sealed class RootView : Decorator
             }
             else detailPadded.Effect = null;
             detailPadded.Opacity = Marrow.App.Port.FirstRun.GettingReadyLook.PaneOpacity(hand);
+            detailSaturation.Amount = .6 + .4 * Marrow.App.Port.FirstRun.GettingReadyLook.Hi(hand);
         }
         sheet.HandChanged += Apply;
         sheet.Lifted += () =>
@@ -137,6 +139,7 @@ public sealed class RootView : Decorator
             sheet.HandChanged -= Apply;
             detailPadded.Effect = null;
             detailPadded.Opacity = 1;
+            detailSaturation.Amount = 1;
             detailPadded.IsHitTestVisible = true;
             detailSlot.Children.Remove(sheet);
             GettingReady = null;
@@ -191,9 +194,10 @@ public sealed class RootView : Decorator
         // every side but the leading one (:41-43; inert at Chrome.SheetInset == 0, PR-WIN-063).
         detailView.HorizontalAlignment = HorizontalAlignment.Stretch;
         detailView.VerticalAlignment = VerticalAlignment.Stretch;
+        detailSaturation = new SaturationLayer(detailView);
         detailClip = new Border
         {
-            Child = detailView,
+            Child = detailSaturation,
             ClipToBounds = true, // :40 .clipped()
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
