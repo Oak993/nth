@@ -1,0 +1,27 @@
+Droppy Code -> Windows port verification
+pinned source 52bc7926097cd622d08d6294e0d8b08a48c7516e
+reference     E:/Droppy/reference/droppy-code-v1.7.0
+
+Gate C
+  [PASS] no quarantined behavior is implemented while its owner decision is open
+         no open quarantine entries
+  [FAIL] no temporary stub remains in the implementation
+         26 stub(s) remain:
+    src/Marrow.App/Runtime/AutoContinue.cs:113 NotImplementedException
+    src/Marrow.App/Runtime/AutoContinue.cs:113 MARROW_STUB marker
+    src/Marrow.App/Views/RootView.cs:49 MARROW_STUB marker
+    src/Marrow.App/Views/Settings/SettingsView.cs:37 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:40 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:55 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:66 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:75 MARROW_STUB marker
+    src/Marrow.App/Views/Sidebar/SidebarView.cs:77 MARROW_STUB marker
+    src/Marrow.Core/Models/Hydra.cs:12 MARROW_STUB marker
+    src/Marrow.Core/Models/Hydra.cs:27 MARROW_STUB marker
+    src/Marrow.Core/Models/Hydra.cs:56 MARROW_STUB marker
+    ... and 14 more
+  [TODO] no fake-success paths, dead controls or unapproved product changes
+         gate not built yet; it fails by design rather than passing by omission
+
+PASS=1  FAIL=1  NOT_IMPLEMENTED=1
+RESULT: NOT ACCEPTABLE (mandatory checks unmet)

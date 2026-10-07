@@ -1,0 +1,612 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.74]     Marrow.App.Tests.Port.Skills.REVIEW_OfferCardTests.REVIEW_Reduce_Motion_retains_a_short_opacity_fade [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.REVIEW_OfferCardTests.REVIEW_Reduce_Motion_retains_a_short_opacity_fade [99 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.REVIEW_OfferCardTests.<>c.<REVIEW_Reduce_Motion_retains_a_short_opacity_fade>b__4_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/REVIEW_OfferCardTests.cs:line 72
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.REVIEW_OfferCardTests.REVIEW_Reduce_Motion_retains_a_short_opacity_fade() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/REVIEW_OfferCardTests.cs:line 66
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.91]     Marrow.App.Tests.Port.Skills.OfferCardTests.Downloading_draws_the_bar_150_wide_as_the_design_pages_offer_state_rule_does [FAIL]
+[xUnit.net 00:00:03.00]     Marrow.App.Tests.Port.Skills.OfferCardTests.Return_does_nothing_while_the_primary_action_is_off_or_there_is_none [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.Downloading_draws_the_bar_150_wide_as_the_design_pages_offer_state_rule_does [9 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<Downloading_draws_the_bar_150_wide_as_the_design_pages_offer_state_rule_does>b__11_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 129
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.Downloading_draws_the_bar_150_wide_as_the_design_pages_offer_state_rule_does() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 124
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.Return_does_nothing_while_the_primary_action_is_off_or_there_is_none [88 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<Return_does_nothing_while_the_primary_action_is_off_or_there_is_none>b__19_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 235
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.Return_does_nothing_while_the_primary_action_is_off_or_there_is_none() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 228
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.08]     Marrow.App.Tests.Port.Skills.OfferCardTests.Downloading_shows_the_bar_and_the_percent_that_only_move_forward_and_a_cancel [FAIL]
+[xUnit.net 00:00:03.19]     Marrow.App.Tests.Port.Skills.OfferCardTests.A_failed_download_can_still_be_declined_and_a_running_one_cannot [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.Downloading_shows_the_bar_and_the_percent_that_only_move_forward_and_a_cancel [8 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<Downloading_shows_the_bar_and_the_percent_that_only_move_forward_and_a_cancel>b__12_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 139
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.Downloading_shows_the_bar_and_the_percent_that_only_move_forward_and_a_cancel() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 135
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.A_failed_download_can_still_be_declined_and_a_running_one_cannot [8 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<A_failed_download_can_still_be_declined_and_a_running_one_cannot>b__7_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 68
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.A_failed_download_can_still_be_declined_and_a_running_one_cannot() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 66
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.22]     Marrow.App.Tests.Port.Skills.OfferCardTests.A_failure_shows_its_reason_as_given_and_Retry_asks_the_offer_again [FAIL]
+[xUnit.net 00:00:03.24]     Marrow.App.Tests.Port.Skills.OfferCardTests.Checking_says_checking_with_no_button [FAIL]
+[xUnit.net 00:00:03.25]     Marrow.App.Tests.Port.Skills.OfferCardTests.The_card_sits_in_the_layout_above_the_composer_and_never_covers_its_text [FAIL]
+[xUnit.net 00:00:03.32]     Marrow.App.Tests.Port.Skills.OfferCardTests.With_Reduce_Motion_a_change_of_state_lands_within_a_short_fade [FAIL]
+[xUnit.net 00:00:03.33]     Marrow.App.Tests.Port.Skills.OfferCardTests.A_change_of_state_crossfades_over_several_frames [FAIL]
+[xUnit.net 00:00:03.35]     Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known [FAIL]
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.A_failure_shows_its_reason_as_given_and_Retry_asks_the_offer_again [16 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Int64 value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1350
+   at Marrow.Core.Port.SwiftFormatters.ZeroByteCount(String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 551
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 518
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<A_failure_shows_its_reason_as_given_and_Retry_asks_the_offer_again>b__14_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 173
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.A_failure_shows_its_reason_as_given_and_Retry_asks_the_offer_again() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 164
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.Checking_says_checking_with_no_button [8 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<Checking_says_checking_with_no_button>b__13_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 155
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.Checking_says_checking_with_no_button() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 153
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.The_card_sits_in_the_layout_above_the_composer_and_never_covers_its_text [9 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<The_card_sits_in_the_layout_above_the_composer_and_never_covers_its_text>b__20_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 253
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.The_card_sits_in_the_layout_above_the_composer_and_never_covers_its_text() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 242
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.With_Reduce_Motion_a_change_of_state_lands_within_a_short_fade [61 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<With_Reduce_Motion_a_change_of_state_lands_within_a_short_fade>b__22_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 281
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.With_Reduce_Motion_a_change_of_state_lands_within_a_short_fade() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 277
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardTests.A_change_of_state_crossfades_over_several_frames [11 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.<>c.<A_change_of_state_crossfades_over_several_frames>b__21_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 265
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardTests.A_change_of_state_crossfades_over_several_frames() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardTests.cs:line 261
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known [9 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'icu.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/icu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/icu.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libicu.dll: cannot open shared object file: No such file or directory
+/workspace/dotnet/shared/Microsoft.NETCore.App/10.0.0/libicu.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.Core.Port.IcuFormatting.Native.unumf_openForSkeletonAndLocale(String skeleton, Int32 length, String locale, Int32& status)
+   at Marrow.Core.Port.IcuFormatting.FormatSkeletonCore(String skeleton, String locale, Func`3 format) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1330
+   at Marrow.Core.Port.IcuFormatting.FormatSkeleton(String skeleton, String locale, Double value) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 1353
+   at Marrow.Core.Port.SwiftFormatters.ByteCountStyleFile(Int64 bytes, String locale) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftFormatters.cs:line 537
+   at Marrow.App.Port.Skills.OfferCardControl.Refresh() in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 157
+   at Marrow.App.Port.Skills.OfferCardControl.<>c__DisplayClass21_0.<.ctor>b__1(ValueTuple`7 _) in /workspace/marrow-port/src/Marrow.App/Port/Skills/OfferCardControl.cs:line 62
+   at Marrow.UI.Port.Tracked`1.<Update>b__9_0() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.UI.Port.Transaction.WithAnimation(Animation animation, Action body) in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 32
+   at Marrow.UI.Port.Tracked`1.Update() in /workspace/marrow-port/src/Marrow.UI/Port/ViewSupport.cs:line 80
+   at Marrow.Core.Port.SwiftTask.RunOutsideTask(Action work) in /workspace/marrow-port/src/Marrow.Core/Port/SwiftTask.cs:line 124
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__1() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Marrow.Core.Port.MainActor.<>c.<RunUnder>b__18_0(Object w) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Marrow.Core.Port.MainActor.RunUnder(ExecutionContext context, Action work) in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 137
+   at Marrow.Core.Port.MainActor.<>c__DisplayClass9_0.<Post>b__0() in /workspace/marrow-port/src/Marrow.Core/Port/MainActor.cs:line 54
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.<>c.<Execute>b__56_0(Object s)
+   at Avalonia.Threading.CulturePreservingExecutionContext.CallbackWrapper(Object obj)
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.CulturePreservingExecutionContext.Run(CulturePreservingExecutionContext executionContext, ContextCallback callback, Object state)
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority, CancellationToken cancellationToken)
+   at Avalonia.Threading.Dispatcher.RunJobs(Nullable`1 priority)
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Settle() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 86
+   at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.<>c.<Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known>b__2_0(OfferCardHarness h) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 17
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.<>c__DisplayClass35_0.<Run>g__Body|0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 74
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Fixtures.OfferCardHarness.Run(HeadlessSession headless, ScriptedOfferSource source, Action`1 check, Boolean motion, Boolean reduceMotion, AddonsState state, Double width, SkillsCatalogue catalogue) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/OfferCardHarness.cs:line 78
+   at Marrow.App.Tests.Port.Skills.OfferCardPresentationTests.Downloading_shows_transferred_bytes_and_only_shows_percent_when_the_total_is_known() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Skills/OfferCardPresentationTests.cs:line 13
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /tmp/skills-ui-evidence/rr44.trx
+
+Failed!  - Failed:    11, Passed:    28, Skipped:     0, Total:    39, Duration: 1 s - Marrow.App.Tests.dll (net10.0)
