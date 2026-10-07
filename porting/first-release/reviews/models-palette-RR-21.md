@@ -66,3 +66,10 @@ DONE. OD-0127 option A remains the last Appearance card, following the existing 
 ### Round 2 final resting-line clock correction
 
 ED-NEW-models-palette-16 (OD-0127) fixes "Checked {when}" to use the engine's actual successful-check time, including an automatic check that republishes no palette. The two fake-pipeline cases failed before the fix and now pass. Leaving the page releases the transient no-new-models outcome; returning shows the normal age/count line. The trailing card, styles, progress, dot motion and all original rise guards remain unchanged. Latest App scope: 49/50 with only the original user32 input failure, including all 29 palette cases; Core 21/21, Services 66/66; full build zero warnings/errors. RR-21 remains DONE; native visual/Windows acceptance remains listed in the final report.
+
+
+## Round 2 — visible renderer closure on full standing
+
+RR-21 remains ALREADY DONE in this continuation. The trailing Colours card and all fourteen original SettingsRise guards are unchanged; the original user32 input failure is repaired in production. Final App scope passes 63/63. Native page/picker/Colours comparison remains Windows work; no control or slot change was made.
+
+Final receipts: Core 23/23, Services 68/68, App 63/63, UI 122/122; expanded original effort/model-chip/Strike/composer scope 483 passed / 4 Windows-dependent failures. Solution build: zero warnings/errors. Gate B: 8/8. See models-palette-round2.md and round2/visible-results.json for exact scopes, native needs, seam list and preservation proof. Overall verdict: NOT READY for release acceptance.
