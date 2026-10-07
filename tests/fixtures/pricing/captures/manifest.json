@@ -1,0 +1,38 @@
+[
+  {
+    "file": "deepseek.html",
+    "service": "deepseek",
+    "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+    "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
+    "capturedAt": "2026-10-07T07:51:52.528664+00:00",
+    "timestampBasis": "saved capture file write time",
+    "byteLength": 23982
+  },
+  {
+    "file": "meta-shell.html",
+    "service": "meta",
+    "sourceUrl": "https://dev.meta.ai/docs/pricing",
+    "sourceSha256": "a2f90a0327fb0c589cfc19b55624352ad175560bc6766ac45be646062197cd34",
+    "capturedAt": "2026-10-07T07:52:51.265464+00:00",
+    "timestampBasis": "saved capture file write time",
+    "byteLength": 113601
+  },
+  {
+    "file": "meta-product.html",
+    "service": "meta",
+    "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+    "sourceSha256": "210cbc9843fe3885a4f491cf436c308f10cc9ece03daf0497d2f930dac65cb47",
+    "capturedAt": "2026-10-07T08:08:53.535641+00:00",
+    "timestampBasis": "saved capture file write time",
+    "byteLength": 385982
+  },
+  {
+    "file": "zai.html",
+    "service": "zai",
+    "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+    "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+    "capturedAt": "2026-10-07T07:51:54.046913+00:00",
+    "timestampBasis": "saved capture file write time",
+    "byteLength": 290339
+  }
+]

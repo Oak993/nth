@@ -188,6 +188,9 @@ public class OpenAICompatibleSession : ProviderSession
     internal Task<StreamRound> PerformStreamForTests(string model, string? effort = null, bool withTools = true) =>
         PerformStream(RequestPayload(model, effort, withTools));
 
+    // RR-50: exercise the final dispatch boundary with a future tool-bearing payload and fake transport.
+    internal Task<StreamRound> PerformPayloadForTests(Dictionary<string, JSONValue> payload) => PerformStream(payload);
+
     // Test-only seams for this part's self-contained history and message helpers (InternalsVisibleTo
     // Marrow.Services.Tests): CondenseHistory, TrimHistory and SanitizeHistory read and rewrite
     // `messages` (:43) directly, so tests seed it here rather than driving a whole turn.
@@ -746,6 +749,7 @@ public class OpenAICompatibleSession : ProviderSession
             RefreshSystemPrompt();
         }
         var payload = RequestPayload(model, effort, withTools); // :511. A refusal retries this same payload.
+        ProviderToolBillingGuard.Validate(OpenAICompatibleSessionConfig.Kind, payload); // RR-50: before reservation, for capped and uncapped heads.
         var attempt = 0; // :516
         while (true) // :517
         {
@@ -1085,6 +1089,7 @@ public class OpenAICompatibleSession : ProviderSession
         // A USD receipt after dispatch cannot stand in for a quoted, reserved maximum before HTTP.
         if (dispatchRequiresPrice && (dispatchReservation is null || dispatchPrice?.CeilingUsd is null && dispatchEstimatorQuote is null))
             throw new ProviderError(new ProviderError.Case.Failed("This capped account has no current verified price and request bound for this model. No request was sent."));
+        ProviderToolBillingGuard.Validate(OpenAICompatibleSessionConfig.Kind, payload); // RR-50: final wire payload, including retries/test seam.
         var request = new URLRequest(OpenAICompatibleSessionConfig.ChatURL, timeoutInterval: 300)
             { HttpMethod = "POST", FollowRedirects = OpenAICompatibleSessionConfig.FollowRedirects, UseCookies = OpenAICompatibleSessionConfig.UseCookies } // :601-602; ED-410
             .SetValue("application/json", "Content-Type")   // :603
