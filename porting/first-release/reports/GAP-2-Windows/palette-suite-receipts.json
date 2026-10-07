@@ -1,0 +1,168 @@
+{
+  "tested_source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+  "collected_at_utc": "2026-10-07T12:42:21.174928+00:00",
+  "scope": "App GAP / full Port.Settings Customization / full Views.Composer plus Traceability; Native excluded",
+  "heavy": "unchanged E:/Droppy/work/scratch/lead/heavy.sh",
+  "wrappers": [
+    "unchanged one-names-long.sh for combined",
+    "unchanged one-full.sh for exact alone methods"
+  ],
+  "build": {
+    "sha256": "07d4b954f64fdd6d02f43285f8c5c4093bb29f50ec90fd4a0bb78fbb1a42398f",
+    "warnings": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "label": "palette-final-GAP-1",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-final-GAP-1-tests.log",
+      "sha256": "44a44409b88b53f38ac55e63de9c71c27ad09f2e9b251cb077afac29f35ab24e",
+      "bytes": 118,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "total": 8,
+      "duration": "2 s",
+      "raw_failure_lines": []
+    },
+    {
+      "label": "palette-final-GAP-2",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-final-GAP-2-tests.log",
+      "sha256": "0b7b952dc79d07642f911279d5409bd227c610c8c97a5d82f77d7c4196e995e5",
+      "bytes": 118,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "total": 8,
+      "duration": "1 s",
+      "raw_failure_lines": []
+    },
+    {
+      "label": "palette-final-Customization-1",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-final-Customization-1-tests.log",
+      "sha256": "b4370d886ae8030bdb8d35f647f89b7792763644b7fa23aa4d8381fd2e535a63",
+      "bytes": 315,
+      "passed": 401,
+      "failed": 1,
+      "skipped": 0,
+      "total": 402,
+      "duration": "24 s",
+      "raw_failure_lines": [
+        "Failed Marrow.App.Tests.Port.Settings.CustomizationAllocationTests.Drawing_a_style_glyph_allocates_nothing(style: \"aura\") [42 ms]"
+      ]
+    },
+    {
+      "label": "palette-final-Customization-2",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-final-Customization-2-tests.log",
+      "sha256": "5badb08416f6a55100eddb896c0f78246921c7086024afb46a7f31a4b36abb5d",
+      "bytes": 313,
+      "passed": 401,
+      "failed": 1,
+      "skipped": 0,
+      "total": 402,
+      "duration": "27 s",
+      "raw_failure_lines": [
+        "Failed Marrow.App.Tests.Port.Settings.CustomizationAllocationTests.Drawing_a_style_glyph_allocates_nothing(style: \"off\") [30 ms]"
+      ]
+    },
+    {
+      "label": "palette-final-Composer-1",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-final-Composer-1-tests.log",
+      "sha256": "b002828488a17d0ae734475d09b879f21ff8904061fcfc44cdafad11610d3977",
+      "bytes": 123,
+      "passed": 1223,
+      "failed": 0,
+      "skipped": 0,
+      "total": 1223,
+      "duration": "2 m 59 s",
+      "raw_failure_lines": []
+    },
+    {
+      "label": "palette-final-Composer-2",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-final-Composer-2-tests.log",
+      "sha256": "9d2004f97d2fda6eab21bbbb4d9e218483105e122beb0fd131530e9bc16ff623",
+      "bytes": 122,
+      "passed": 1223,
+      "failed": 0,
+      "skipped": 0,
+      "total": 1223,
+      "duration": "3 m 9 s",
+      "raw_failure_lines": []
+    },
+    {
+      "label": "palette-allocation-alone-1",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-allocation-alone-1-tests.log",
+      "sha256": "eb2fa38857b502ec0874e733e9bc4c9edad39de75e67ac015152ba641ac15ca2",
+      "bytes": 120,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3,
+      "duration": "43 ms",
+      "raw_failure_lines": []
+    },
+    {
+      "label": "palette-allocation-alone-2",
+      "source_head": "941a86827dc31ea5378fa0ec6223a62f6a314c49",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\palette-allocation-alone-2-tests.log",
+      "sha256": "99c39cae66f828577094b4712156f52ba8b03896c0d269bc14425084c289f8d9",
+      "bytes": 120,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "total": 3,
+      "duration": "42 ms",
+      "raw_failure_lines": []
+    }
+  ],
+  "pre_repair_red": [
+    {
+      "label": "palette-red-1",
+      "production_base": "0b77f28de6945419904ba8624252f9ca20c67d08",
+      "replacement_test_overlay": false,
+      "sha256": "0457eb347c6e08ae667846a107056298b548e267ef00b653d883855857fb2c22",
+      "failed": 1,
+      "passed": 0,
+      "skipped": 0,
+      "total": 1
+    },
+    {
+      "label": "palette-red-2",
+      "production_base": "0b77f28de6945419904ba8624252f9ca20c67d08",
+      "replacement_test_overlay": false,
+      "sha256": "14734a2539cf3c0e2d3f0b9fcf90e4b95de7082648aa564e9baf33abcff48449",
+      "failed": 1,
+      "passed": 0,
+      "skipped": 0,
+      "total": 1
+    },
+    {
+      "label": "palette-exact-red-1",
+      "production_base": "0b77f28de6945419904ba8624252f9ca20c67d08",
+      "replacement_test_overlay": true,
+      "sha256": "672aa4ba42c6623fc75f741b38129046e290ef844900dfed1d817b45e7debb22",
+      "failed": 28,
+      "passed": 0,
+      "skipped": 0,
+      "total": 28
+    },
+    {
+      "label": "palette-exact-red-2",
+      "production_base": "0b77f28de6945419904ba8624252f9ca20c67d08",
+      "replacement_test_overlay": true,
+      "sha256": "45195685af432685d124b44e36114634b82379570ef543cf47449e2bdbb94e95",
+      "failed": 28,
+      "passed": 0,
+      "skipped": 0,
+      "total": 28
+    }
+  ],
+  "verdict": "READY under the commissioned alone-twice rule; both raw Customization failures are retained"
+}

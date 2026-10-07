@@ -161,12 +161,21 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
     public void MAUI_002_Ask_others_B_is_an_accessible_composer_action() => headless.OnUiThread(() =>
     {
         // HTML 4804-4811,4855-4871; checklist 5; OD-0115 opinions=B / OD-0120.
-        var accounts = new AccountsRig(); accounts.Connect(ProviderKind.Codex); accounts.ConnectAnother(ProviderKind.Codex);
-        var port = new FakeThreadAccountPort(accounts, ProviderKind.Codex);
-        using var ports = ThreadPortSeams.Offer.Override(new((_, _) => port, new FakeCardPort(), new FakeLinkPort(), new FakeOpinionsPort()));
-        using var composer = ComposerChipRig.Start();
-        composer.OnMain(() => Assert.Contains(composer.View.GetVisualDescendants().OfType<Button>(),
-            b => b.IsEffectivelyVisible && AutomationProperties.GetName(b) == "Ask others for this message"));
+        // RR-49 / ED-NEW-ma-gaps-5 (lead fixture ruling, ED-639): opinions go only to verified heads, so the action is
+        // proved on a Claude thread (a verified head); the review's Codex fixture now proves the fail-closed side instead.
+        foreach (var (service, offered) in new[] { (ProviderKind.Claude, true), (ProviderKind.Codex, false) })
+        {
+            var accounts = new AccountsRig(); accounts.Connect(service); accounts.ConnectAnother(service);
+            var port = new FakeThreadAccountPort(accounts, service);
+            using var ports = ThreadPortSeams.Offer.Override(new((_, _) => port, new FakeCardPort(), new FakeLinkPort(), new FakeOpinionsPort()));
+            using var composer = ComposerChipRig.Start(provider: service);
+            composer.OnMain(() =>
+            {
+                var buttons = composer.View.GetVisualDescendants().OfType<Button>().ToList();
+                if (offered) Assert.Contains(buttons, b => b.IsEffectivelyVisible && AutomationProperties.GetName(b) == "Ask others for this message");
+                else Assert.DoesNotContain(buttons, b => b.IsEffectivelyVisible && AutomationProperties.GetName(b) == "Ask others for this message");
+            });
+        }
     });
 
     [Fact, Trait("Feature", "MA-8"), Trait("Rule", "R-TEST-4")]

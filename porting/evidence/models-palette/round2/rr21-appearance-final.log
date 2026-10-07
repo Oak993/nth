@@ -1,0 +1,321 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:05.24]     Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start [FAIL]
+[xUnit.net 00:00:06.49]     Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start [1 s]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start>b__13_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 157
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Settings_is_shown_cloaked_and_uncloaked_only_after_a_frame_has_drawn_the_hidden_start() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 143
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early [1 s]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early>b__23_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 441
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Bringing_an_open_window_forward_plays_nothing_and_a_cloaked_one_is_not_activated_early() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 431
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:07.21]     Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start [FAIL]
+[xUnit.net 00:00:07.84]     Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start [719 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Every_later_open_plays_the_same_rise_from_a_hidden_start>b__22_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 393
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Every_later_open_plays_the_same_rise_from_a_hidden_start() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 388
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart [628 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart>b__17_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 262
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Every_item_rises_10_px_on_one_curve_from_its_own_start_12_ms_apart() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 257
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:08.51]     Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it [667 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it>b__26_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 501
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.A_row_s_own_opacity_is_multiplied_by_the_rise_and_kept_after_it() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 494
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:10.05]     Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show [FAIL]
+[xUnit.net 00:00:10.90]     Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show [715 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show>b__21_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 360
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Reduce_motion_reveals_the_complete_window_after_the_same_cloaked_show() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 351
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order [850 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Two_columns_rise_top_to_bottom_in_the_spec_s_order>b__18_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 284
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Two_columns_rise_top_to_bottom_in_the_spec_s_order() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 279
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:11.74]     Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated [FAIL]
+[xUnit.net 00:00:12.46]     Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated [847 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated>b__24_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 466
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Without_a_cloak_the_window_is_shown_and_activated_at_once_with_nothing_animated() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 454
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked [719 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked>b__27_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 529
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Hiding_the_window_during_the_open_settles_it_and_never_leaves_it_cloaked() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 519
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:13.32]     Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs [720 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Input_reaches_the_window_while_the_wave_runs>b__25_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 477
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 471
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:14.65]     Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving [FAIL]
+[xUnit.net 00:00:15.31]     Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: "dark") [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving [642 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving>b__15_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 188
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.The_glass_and_card_one_s_surface_fade_in_over_80_ms_without_moving() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 183
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: "dark") [653 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c__DisplayClass29_0.<Port_frames_render_at_the_canvas_times>b__0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 581
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(String appearance) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 570
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:15.94]     Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: "light") [FAIL]
+[xUnit.net 00:00:16.66]     Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(appearance: "light") [635 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c__DisplayClass29_0.<Port_frames_render_at_the_canvas_times>b__0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 581
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Port_frames_render_at_the_canvas_times(String appearance) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 570
+   at InvokeStub_SettingsRiseTests.Port_frames_render_at_the_canvas_times(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames [713 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                                                  ↓ (pos 0)
+Expected: <generated>                            ["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"]
+Actual:   ArraySelectIterator<ChromeRow, string> ["Refresh"]
+                                                  ↑ (pos 0)
+  Stack Trace:
+     at Marrow.App.Tests.Port.SettingsRiseTests.Parts(SettingsView view) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 85
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames>b__19_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 312
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.The_open_is_done_at_260_ms_from_glass_ready_and_asks_for_no_more_frames() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 307
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr21-appearance-final.trx
+
+Failed!  - Failed:    14, Passed:    34, Skipped:     0, Total:    48, Duration: 41 s - Marrow.App.Tests.dll (net10.0)

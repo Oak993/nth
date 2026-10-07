@@ -17,11 +17,15 @@ internal sealed class AccountPopoverHost : MainActorModel
     internal bool Presented { get => Read(presented); set => Set(ref presented, value); }
     internal Popup Popup { get; }
     internal AccountPopoverHost(ComposerCapsuleSlot slot, AccountPopoverModel model, AccountPopoverContext? context = null)
+        : this(slot, () => model, context, ownsModel: false) { }
+    private AccountPopoverHost(ComposerCapsuleSlot slot, Func<AccountPopoverModel> make, AccountPopoverContext? context, bool ownsModel)
     {
         slot.Clicked += Toggle;
         Popup = PlainControls.Popover(slot, new Binding<bool>(() => Presented, value => Presented = value), () =>
         {
+            var model = make();
             var view = new AccountPopover(model, context); view.CloseRequested += () => Presented = false;
+            if (ownsModel) view.DetachedFromVisualTree += (_, _) => model.Dispose();
             view.CreatePillRequested += () => { Presented = false; SettingsNavigation.Shared.RequestedPage = SettingsPage.Pills; };
             return view;
         });
@@ -31,9 +35,11 @@ internal sealed class AccountPopoverHost : MainActorModel
     internal static Control With(ComposerCapsuleSlot slot, ThreadRuntime runtime)
     {
         if (runtime.App is not { } app || runtime.Thread is not { } thread || ThreadPortSeams.Offer.Current.Account(runtime.ThreadID, thread.Provider) is not { } port) return slot;
-        var model = new AccountPopoverModel(port, app.Settings.Accounts, service => app.Providers.Models(service),
-            () => app.Settings.Accounts.Accounts.Count(app.IsAccountConnected));
-        var host = new AccountPopoverHost(slot, model, new AccountPopoverContext(app.Settings.Accounts, service => app.Providers.Models(service)));
+        AccountPopoverModel Make() => new(ThreadPortSeams.Offer.Current.Account(runtime.ThreadID, runtime.Thread?.Provider ?? port.Service) ?? port,
+            app.Settings.Accounts, service => app.Providers.Models(service),
+            () => app.Settings.Accounts.Accounts.Count(app.IsAccountConnected),
+            id => app.Providers.Local.Resolve(app.Settings.Accounts.Get(id).Defaults.Model)?.Server.BaseURL.Host);
+        var host = new AccountPopoverHost(slot, Make, new AccountPopoverContext(app.Settings.Accounts, service => app.Providers.Models(service)), ownsModel: true);
         var panel = new Panel { Children = { slot, host.Popup } }; return panel;
     }
 }

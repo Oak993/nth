@@ -1,0 +1,3 @@
+/tmp/gap2-baseline-worktree/src/Marrow.App/Port/SettingsRise.cs(148,22): error CS8604: Possible null reference argument for parameter 'node' in 'void SettingsRiseLayout.Walk(Control node, List<Control[]> items, ref ChromeCard? first)'. [/tmp/gap2-baseline-worktree/src/Marrow.App/Marrow.App.csproj]
+
+The build failed. Fix the build errors and run again.

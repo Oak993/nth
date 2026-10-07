@@ -1,0 +1,31 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:02.99]     Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot [FAIL]
+  Failed Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot [917 ms]
+  Error Message:
+   Assert.Single() Failure: The collection did not contain any matching items
+Expected:   (predicate expression)
+Collection: [PaletteMakerDot { ActualThemeVariant = Light, Background = #ffeef0f5, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, PaletteMakerDot { ActualThemeVariant = Light, Background = #ff5d66d3, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }]
+  Stack Trace:
+     at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.<>c.<A_re_spaced_maker_summary_draws_its_real_colour_dot>b__6_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursSettingsTests.cs:line 105
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursSettingsTests.A_re_spaced_maker_summary_draws_its_real_colour_dot() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursSettingsTests.cs:line 91
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr21-summary-dot-behavior-red.trx
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 917 ms - Marrow.App.Tests.dll (net10.0)

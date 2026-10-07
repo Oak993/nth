@@ -1,0 +1,5 @@
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/visible-ui-checked.trx
+
+Passed!  - Failed:     0, Passed:   122, Skipped:     0, Total:   122, Duration: 4 m 12 s - Marrow.UI.Tests.dll (net10.0)

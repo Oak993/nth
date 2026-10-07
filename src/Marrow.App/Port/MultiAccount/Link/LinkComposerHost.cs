@@ -6,14 +6,22 @@ using Marrow.App.Port.MultiAccount.Popover;
 using Marrow.App.Runtime;
 using Marrow.UI.Port;
 using Marrow.Core.Port.MultiAccount.Link;
+using Marrow.Core.Port;
+using Marrow.App.Port.MultiAccount.Thread;
+using Marrow.Core.Port.MultiAccount.Opinions;
 namespace Marrow.App.Port.MultiAccount.Link;
 internal static class LinkComposerHost
 {
     internal static Control With(ComposerCapsuleSlot slot, ThreadRuntime runtime)
     {
         var existing = AccountPopoverHost.With(slot, runtime);
-        if (LinkComposerSeams.Offer.Current(runtime.ThreadID) is not { } model) return existing;
-        return With(slot, existing, model);
+        var model = LinkComposerSeams.Offer.Current(runtime.ThreadID);
+        if (model is null && runtime.Thread is { } thread)
+            model = ThreadPortSeams.Offer.Current.CreateLinkModel(runtime.ThreadID, thread.Provider, new OtherServiceConsentStore(UserDefaults.Standard.Current));
+        if (model is null) return existing;
+        var view = With(slot, existing, model);
+        var lifetime = model; view.AttachedToVisualTree += (_, _) => lifetime.Resume(); view.DetachedFromVisualTree += (_, _) => lifetime.Dispose();
+        return view;
     }
     internal static Control With(ComposerCapsuleSlot slot, Control existing, LinkUpModel model)
     {

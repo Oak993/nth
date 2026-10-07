@@ -1,0 +1,10 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    33, Skipped:     0, Total:    33, Duration: 936 ms - Marrow.UI.Tests.dll (net10.0)

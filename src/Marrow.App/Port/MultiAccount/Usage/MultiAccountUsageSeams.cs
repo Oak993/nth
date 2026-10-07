@@ -6,5 +6,10 @@ namespace Marrow.App.Port.MultiAccount.Usage;
 internal static class MultiAccountUsageSeams
 {
     internal static Ambient<Func<ProviderKind, UsagePanelModel?>> Offer { get; } = new(_ => null);
-    internal static MultiAccountUsageView? Try(ProviderKind provider) => Offer.Current(provider) is { MoreCount: >= 1 } model ? new(model) : null;
+    internal static MultiAccountUsageView? Try(ProviderKind provider)
+    {
+        var model = Offer.Current(provider);
+        if (model is { MoreCount: >= 1 }) return new(model, ownsModel: true);
+        model?.Dispose(); return null;
+    }
 }

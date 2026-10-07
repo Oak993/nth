@@ -1,0 +1,67 @@
+{
+  "post_merge_commit": "3ad3d40e8aeeba2ec268c450594732e650781514",
+  "untouched_files": [
+    {
+      "path": "src/Marrow.UI/Port/Settings/CzControls/CzCrossfadeText.cs",
+      "sha256": "13cd862ae31c3cb2a592f85beca6bdf4b2d92468e2a4d36ba481ae4d5691faaf",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "src/Marrow.UI/Port/Settings/CzControls/CzMotion.cs",
+      "sha256": "dfd51623eca613368a27b34ec4c9ee757e7c2addb646f0dd5414ab3e59181102",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "src/Marrow.UI/Port/Settings/CzControls/CzNumber.cs",
+      "sha256": "4f16ff077d98e9c691eba1f356286bb0a077e7b271205504a75fc1440ac77e77",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "src/Marrow.UI/Port/SwiftAnimation.cs",
+      "sha256": "ba0a48bdba50cffb41d7644656fae63ada13fc93bd3b081fe9f22a91e1348aac",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "src/Marrow.App/Port/Settings/ComposerPreview.cs",
+      "sha256": "556fc844197716ac852416383393b3dededc7e644000249bd752b19a1d12c464",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "tests/Marrow.App.Tests/Fixtures/FrameCurves.cs",
+      "sha256": "8ea7739fa3c4690bc1dcefa809c30fa03d50522b6a9938494dd3f0b8e39f80bc",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "tests/Marrow.App.Tests/Fixtures/CustomizationPageRig.cs",
+      "sha256": "82cf72a85bfbec55ac48e0aac6ec077b8532c92c7742225460391327918f3f8e",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "tests/Marrow.App.Tests/Port/Settings/CustomizationMotionTests.cs",
+      "sha256": "306fffdd5f2aedd6f863db60530637e5fdef2a48523469211f240606c5074f97",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "porting/first-release/design-src/customization/gen.py",
+      "sha256": "dd4a77ec9f8ed1ad4ee1581b19cf614db3aeb19f9b4f35d83c5e81b0400741de",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "porting/first-release/customization-SPEC.md",
+      "sha256": "fd4664b5b471decc2ee3193aa6a5b988382a7a7687f5606e777d0d5f545b2865",
+      "byte_identical_to_post_merge": true
+    },
+    {
+      "path": "porting/owner_decisions.md",
+      "sha256": "c08e93fcc1d5c1a509557be6129a9b5d7500c3032e104b60881c40615b0f09a4",
+      "byte_identical_to_post_merge": true
+    }
+  ],
+  "changed_test": "tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs",
+  "before_sha256": "90d491756b26a7ff7a5368617a5d6537829e767a3d13a812f2464153ba5681b9",
+  "after_sha256": "397180e5d46e9174ac72d7d5586ca3bc4a17670f143377faf2903305f10b2a6f",
+  "all_content_before_step_loop_identical": true,
+  "monotonicity_identical": true,
+  "only_step_comparison_and_its_comment_diagnostic_changed": true,
+  "previous_actual_page_csv_sha256": "642b82ebe94136b1fd9f9a387fdc21c5758b96b9155741e9cb357ae2666fa3e7"
+}

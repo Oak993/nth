@@ -1,0 +1,74 @@
+using System.Globalization;
+using System.Reflection;
+using Marrow.App.Tests.Fixtures;
+using Marrow.Core.Port;
+using Marrow.UI.Port;
+using Marrow.UI.Port.Settings;
+using Marrow.Testing;
+
+static object Member(object obj, string name) => obj.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(obj)!;
+static void Select(object obj, string id)
+{
+    var method = obj.GetType().GetMethod("Select", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)!;
+    var parameters = method.GetParameters().Select((p, i) => i == 0 ? (object)id : p.DefaultValue).ToArray();
+    method.Invoke(obj, parameters);
+}
+static string F(double value) => value.ToString("G17", CultureInfo.InvariantCulture);
+static void Emit(string stage, string path, string transition, int index, long ticks, double value, double previous) => Console.WriteLine(string.Join(",", stage, path, transition, index, F(ticks / 10000.0), F(value), F(previous - value), F((previous - value) * 100)));
+Console.WriteLine("stage,path,transition,frame,elapsed_ms,opacity,step_fraction,step_percent");
+var stage = args.Length == 0 ? "before" : args[0];
+TestApp.BuildAvaloniaApp().SetupWithoutStarting();
+MainActor.Bind(AvaloniaMainExecutor.Instance);
+using var platform = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false });
+{
+    foreach (var transition in new[] { "detail-out", "placeholder-out" })
+    {
+        using var rig = new CustomizationPageRig();
+        rig.Advance(1500);
+        var page = Member(rig, "Page");
+        object target;
+        string property;
+        if (transition == "detail-out")
+        {
+            var segment = Member(Member(page, "Beam"), "Motion");
+            target = Member(Member(segment, "Row"), "Detail"); property = "OutgoingOpacity";
+            rig.Do(() => Select(Member(segment, "Control"), "pulse"));
+        }
+        else
+        {
+            target = Member(Member(page, "Stage"), "Preview"); property = "HintOpacity";
+            rig.Do(() => Select(Member(page, "PreviewStatePick"), "typing"));
+        }
+        var start = rig.Get(() => SwiftClock.Now.Ticks);
+        var previous = rig.Get(() => (double)Member(target, property));
+        Emit(stage, "page", transition, 0, 0, previous, previous);
+        for (var i = 1; i <= 24; i++)
+        {
+            rig.Advance(1000.0 / 60, settle: false);
+            var value = rig.Get(() => (double)Member(target, property));
+            var ticks = rig.Get(() => SwiftClock.Now.Ticks) - start;
+            Emit(stage, "page", transition, i, ticks, value, previous);
+            previous = value;
+        }
+    }
+    foreach (var duration in new[] { .1, .15 })
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var binding = FrameClock.Source.Override(frames);
+        var scalar = new CzNumber(new CzMotion(new Avalonia.Controls.Control()), 1);
+        var transition = duration == .1 ? "detail-out" : "placeholder-out";
+        runtime.OnMain(() => scalar.To(0, CzMotion.Ease(duration)));
+        var start = runtime.OnMain(() => SwiftClock.Now.Ticks);
+        double previous = scalar.Value;
+        Emit(stage, "scalar", transition, 0, 0, previous, previous);
+        for (var i = 1; i <= 24; i++)
+        {
+            runtime.AdvanceMilliseconds(1000.0 / 60);
+            runtime.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(1000.0 / 60)));
+            var value = scalar.Value;
+            Emit(stage, "scalar", transition, i, runtime.OnMain(() => SwiftClock.Now.Ticks) - start, value, previous);
+            previous = value;
+        }
+    }
+}

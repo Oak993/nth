@@ -1,0 +1,21 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.43]     Marrow.Services.Tests.Port.ModelsPalette.PaletteFrozenReservationTests.Draft_example_swatches_cannot_change_a_new_makers_derived_palette [FAIL]
+  Failed Marrow.Services.Tests.Port.ModelsPalette.PaletteFrozenReservationTests.Draft_example_swatches_cannot_change_a_new_makers_derived_palette [388 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+Expected: ["#008E5A", "#00A66A", "#53C48C"]
+Actual:   ["#008D60", "#00A671", "#4CC491"]
+  Stack Trace:
+     at Marrow.Services.Tests.Port.ModelsPalette.PaletteFrozenReservationTests.Draft_example_swatches_cannot_change_a_new_makers_derived_palette() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteFrozenReservationTests.cs:line 17
+--- End of stack trace from previous location ---
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr20-frozen-red.trx
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 407 ms - Marrow.Services.Tests.dll (net10.0)

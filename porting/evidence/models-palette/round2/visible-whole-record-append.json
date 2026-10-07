@@ -1,0 +1,11 @@
+{
+  "preceding_records": 45,
+  "added_records": 15,
+  "total_records": 60,
+  "prior_bytes": 980517,
+  "prior_sha256": "ae16b91802b23e172a01558919d843b748f6e4b4253c4f73c23b87c37f6d9732",
+  "append_sha256": "70e4e58a90ab4db8162ceb51efd9d228c19c2c55bfffdb0f44f7a7d4f634b69d",
+  "prefix_preserved": true,
+  "all_fields_preserved": true,
+  "all_acceptance": "NOT_GRANTED"
+}

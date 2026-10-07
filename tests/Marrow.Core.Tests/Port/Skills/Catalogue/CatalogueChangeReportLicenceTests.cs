@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // termsClass is not open (A2, O5) show the licence text before the download ... The acceptance is stored with the date and the licence file's hash, so a later pin with
 // changed terms asks again"; 3.7: "A changed licence text in a non-open item asks for the terms again before updating". The licence text is the SHA-256 the catalogue
 // holds for the item's licence file (SK-7's ItemTerms.LicenceHash), so a changed text is a changed hash. Cases the plan leaves open are in ED-298.
+[Trait("Spec", "DL-2")]
 public sealed class CatalogueChangeReportLicenceTests
 {
     private static SkillsCatalogue Licensed(TermsClass terms, string text) =>

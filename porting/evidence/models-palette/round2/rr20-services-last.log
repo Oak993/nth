@@ -1,0 +1,32 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.26]     Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [FAIL]
+[xUnit.net 00:00:01.45]     Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [FAIL]
+  Failed Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read [115 ms]
+  Error Message:
+   Assert.Empty() Failure: Collection was not empty
+Collection: ["PaletteSingleFlightTests: nested type DelayedCatal"···, "PaletteWindowTests: nested type FakePaletteNetwork"]
+  Stack Trace:
+     at Marrow.Testing.Traceability.AssertShapesReqVerifyCanRead(Assembly tests) in /workspace/marrow-port/tests/Marrow.Testing/Traceability.cs:line 111
+   at Marrow.Services.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read() in /workspace/marrow-port/tests/Marrow.Services.Tests/TraceabilityTests.cs:line 18
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords [114 ms]
+  Error Message:
+   Assert.Empty() Failure: Collection was not empty
+Collection: ["PaletteSingleFlightTests.cs:18: `class/record Dela"···, "PaletteWindowTests.cs:40: `class/record FakePalett"···]
+  Stack Trace:
+     at Marrow.Testing.Traceability.AssertSourceLayout(Assembly tests, String projectDirectory) in /workspace/marrow-port/tests/Marrow.Testing/Traceability.cs:line 150
+   at Marrow.Services.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords() in /workspace/marrow-port/tests/Marrow.Services.Tests/TraceabilityTests.cs:line 23
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr20-services-last.trx
+
+Failed!  - Failed:     2, Passed:    40, Skipped:     0, Total:    42, Duration: 3 s - Marrow.Services.Tests.dll (net10.0)

@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="f891f79d-93de-4b78-b3ad-f1eebc3936bd" name="@a6a9ae2a722d 2026-10-05 12:41:26" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T12:41:26.3005803+00:00" queuing="2026-10-05T12:41:26.3005804+00:00" start="2026-10-05T12:41:22.3315841+00:00" finish="2026-10-05T12:41:26.3113280+00:00" />
+  <TestSettings name="default" id="246ccaf7-f9ec-465e-8db9-62beaba5807e">
+    <Deployment runDeploymentRoot="_a6a9ae2a722d_2026-10-05_12_41_26" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="f4b2e647-3d00-41c4-8cac-1c97a9a14053" testId="3048ba12-adc6-427c-5b08-bfeed535ceaa" testName="Marrow.UI.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" computerName="a6a9ae2a722d" duration="00:00:00.1896695" startTime="2026-10-05T12:41:25.6655767+00:00" endTime="2026-10-05T12:41:25.8592991+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f4b2e647-3d00-41c4-8cac-1c97a9a14053" />
+    <UnitTestResult executionId="deadc323-137e-4182-95ef-a7b746fe481d" testId="aa38f323-0c74-d05c-f143-26e1fa89a618" testName="Marrow.UI.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" computerName="a6a9ae2a722d" duration="00:00:00.1571363" startTime="2026-10-05T12:41:25.4801211+00:00" endTime="2026-10-05T12:41:25.5599180+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="deadc323-137e-4182-95ef-a7b746fe481d" />
+    <UnitTestResult executionId="58cf673b-d17b-4569-9f88-07defaab6995" testId="fca7429c-5d24-984a-6e33-7c99ba23221a" testName="Marrow.UI.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" computerName="a6a9ae2a722d" duration="00:00:00.1033106" startTime="2026-10-05T12:41:25.5867527+00:00" endTime="2026-10-05T12:41:25.6642057+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="58cf673b-d17b-4569-9f88-07defaab6995" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.UI.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="aa38f323-0c74-d05c-f143-26e1fa89a618">
+      <Execution id="deadc323-137e-4182-95ef-a7b746fe481d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.TraceabilityTests" name="Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="3048ba12-adc6-427c-5b08-bfeed535ceaa">
+      <Execution id="f4b2e647-3d00-41c4-8cac-1c97a9a14053" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.TraceabilityTests" name="Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed" />
+    </UnitTest>
+    <UnitTest name="Marrow.UI.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" storage="/workspace/marrow-port/tests/marrow.ui.tests/bin/debug/net10.0/marrow.ui.tests.dll" id="fca7429c-5d24-984a-6e33-7c99ba23221a">
+      <Execution id="58cf673b-d17b-4569-9f88-07defaab6995" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.UI.Tests.TraceabilityTests" name="Test_classes_and_Req_tests_have_the_shape_req_verify_can_read" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="3048ba12-adc6-427c-5b08-bfeed535ceaa" executionId="f4b2e647-3d00-41c4-8cac-1c97a9a14053" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="aa38f323-0c74-d05c-f143-26e1fa89a618" executionId="deadc323-137e-4182-95ef-a7b746fe481d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="fca7429c-5d24-984a-6e33-7c99ba23221a" executionId="58cf673b-d17b-4569-9f88-07defaab6995" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="3" executed="3" passed="3" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.25]   Discovering: Marrow.UI.Tests
+[xUnit.net 00:00:02.33]   Discovered:  Marrow.UI.Tests
+[xUnit.net 00:00:02.37]   Starting:    Marrow.UI.Tests
+[xUnit.net 00:00:02.91]   Finished:    Marrow.UI.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

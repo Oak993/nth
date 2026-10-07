@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // Unit SK-7: "dependents of an item (from SK-1's needs graph)". ONDEMAND-PLAN.md 2.4: "The detail of an item shows what it needs and what uses it";
 // 3.8: "If other installed items need it, the confirmation names them". Expected lists are worked out by hand from the needs columns of 2.1 and 2.2
 // as SK-1's SkillsCatalogueNeedsTests transcribes them, not read back from the code under test.
+[Trait("Spec", "DL-7")]
 public sealed class ItemDependentsTests
 {
     private static string[] Direct(string id) => ItemDependents.Direct(StateFixtures.Catalogue, id).ToArray();

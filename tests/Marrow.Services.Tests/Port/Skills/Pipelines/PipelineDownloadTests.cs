@@ -4,6 +4,7 @@ using Marrow.Services.Port.Skills.Pipelines;
 using Marrow.Services.Tests.Port.Skills.Install;
 using Marrow.Testing.Downloads;
 namespace Marrow.Services.Tests.Port.Skills.Pipelines;
+[Trait("Spec", "DL-8")]
 public sealed class PipelineDownloadTests
 {
     [Fact]

@@ -42,6 +42,7 @@ internal static class WindowCentering
         // is impossible; its leading edge stays on screen and its size is never shrunk.
         x = Math.Max(work.X - border, Math.Min(x, work.Right - width - border));
         y = Math.Max(work.Y, Math.Min(y, work.Bottom - height));
-        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(x)), checked((int)SwiftNumber.Rounded(y)));
+        var inset = window.Content is SettingsShell shell ? shell.Inset * selected.Scaling : 0;
+        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(x - inset)), checked((int)SwiftNumber.Rounded(y - inset)));
     }
 }

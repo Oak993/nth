@@ -1,0 +1,1654 @@
+{
+  "schemaVersion": 2,
+  "filledCount": 7,
+  "unfilledCount": 2,
+  "sources": [
+    {
+      "service": "deepseek",
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+      "retrievedAt": "2026-10-07T12:34:16.390292Z",
+      "status": "fetched",
+      "byteLength": 23982,
+      "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T12:34:16.706497Z",
+      "status": "fetched",
+      "byteLength": 386035,
+      "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+      "retrievedAt": "2026-10-07T12:34:17.615461Z",
+      "status": "fetched",
+      "byteLength": 255942,
+      "sourceSha256": "e1698ee4f763949981f1668737e9b9affd135f90899a49f3f7ab770e8ab522bc",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+      "retrievedAt": "2026-10-07T12:34:18.578217Z",
+      "status": "fetched",
+      "byteLength": 224346,
+      "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": [
+        "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+        "There is no long-context premium : you pay the same rate whether your context window is mostly empty or almost full."
+      ]
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+      "retrievedAt": "2026-10-07T12:34:19.498561Z",
+      "status": "fetched",
+      "byteLength": 92189,
+      "sourceSha256": "fb054f7c7d563e3b3aaf2e038e241d32bf3380d9f87c7ead72992ae8c5def141",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+      "retrievedAt": "2026-10-07T12:34:20.101550Z",
+      "status": "fetched",
+      "byteLength": 196416,
+      "sourceSha256": "a88a2a5ce15731557b52dcef570c8e73442a8c05d68d61a5f9dc2537776ddcd8",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+      "retrievedAt": "2026-10-07T12:34:20.921631Z",
+      "status": "fetched",
+      "byteLength": 85266,
+      "sourceSha256": "1302a38930a5fa843fc743eac40c7b00854b2ad57e646179ed683dded84319eb",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "meta",
+      "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+      "retrievedAt": "2026-10-07T12:34:21.652365Z",
+      "status": "fetched",
+      "byteLength": 84309,
+      "sourceSha256": "e25f3fd350c23b58b79c9534f91c8080340fd26072da74e995124a14845fa2c3",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "zai",
+      "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "retrievedAt": "2026-10-07T12:34:22.569401Z",
+      "status": "fetched",
+      "byteLength": 290339,
+      "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "zai",
+      "sourceUrl": "https://docs.z.ai/help/faq",
+      "retrievedAt": "2026-10-07T12:34:23.095038Z",
+      "status": "fetched",
+      "byteLength": 228011,
+      "sourceSha256": "1731ede373a4963dac44506aed1ec8c078464b988f92eb193d12c3f885821f75",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "zai",
+      "sourceUrl": "https://z.ai/manage-apikey/billing",
+      "retrievedAt": "2026-10-07T12:34:23.669268Z",
+      "status": "fetched",
+      "byteLength": 202223,
+      "sourceSha256": "2c94b0814bc2f2dff49a11eeba71e63448a5c28112f9fdd8a6df2a425b0ce1b1",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    },
+    {
+      "service": "deepseek",
+      "sourceUrl": "https://static.deepseek.com/faq/index.html?lang=en",
+      "retrievedAt": "2026-10-07T12:34:25.369106Z",
+      "status": "fetched",
+      "byteLength": 562,
+      "sourceSha256": "0df1b0db7fa4954817707542aa5f4c49624e0708a5aaa9bcda3703431674a01f",
+      "explicitNoRequestFeeQuotes": [],
+      "billingQuotes": []
+    }
+  ],
+  "models": [
+    {
+      "service": "deepseek",
+      "model": "deepseek-flash",
+      "identity": {
+        "service": "deepseek",
+        "model": "deepseek-flash",
+        "displayText": "deepseek-flash(1)",
+        "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Source must explicitly establish USD per million tokens",
+        "Missing complete official token-price-list review: Public pricing token grid is complete, but linked FAQ is a client shell and account billing pages return HTTP 403; no login. Current table also lacks explicit USD currency evidence."
+      ],
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+      "retrievedAt": "2026-10-07T12:34:16.390292Z",
+      "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
+      "billingConditionQuotes": [
+        "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                16,
+                3
+              ],
+              "text": "$0.15"
+            },
+            {
+              "cell": [
+                0,
+                17,
+                3
+              ],
+              "text": "$0.3"
+            }
+          ],
+          "highestCell": [
+            0,
+            17,
+            3
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                18,
+                3
+              ],
+              "text": "$0.6"
+            },
+            {
+              "cell": [
+                0,
+                19,
+                3
+              ],
+              "text": "$1.2"
+            }
+          ],
+          "highestCell": [
+            0,
+            19,
+            3
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                14,
+                3
+              ],
+              "text": "$0.003"
+            },
+            {
+              "cell": [
+                0,
+                15,
+                3
+              ],
+              "text": "$0.006"
+            }
+          ],
+          "highestCell": [
+            0,
+            15,
+            3
+          ]
+        }
+      },
+      "listedCharges": []
+    },
+    {
+      "service": "deepseek",
+      "model": "deepseek-v4-pro",
+      "identity": {
+        "service": "deepseek",
+        "model": "deepseek-v4-pro",
+        "displayText": "deepseek-v4-pro",
+        "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "status": "unfilled",
+      "reasons": [
+        "Source must explicitly establish USD per million tokens",
+        "Missing complete official token-price-list review: Public pricing token grid is complete, but linked FAQ is a client shell and account billing pages return HTTP 403; no login. Current table also lacks explicit USD currency evidence."
+      ],
+      "sourceUrl": "https://api-docs.deepseek.com/quick_start/pricing/",
+      "retrievedAt": "2026-10-07T12:34:16.390292Z",
+      "sourceSha256": "210f102275ccf1a6542f08a3bc9e4b4c7c83278cb74b35217bffa112df6363b2",
+      "billingConditionQuotes": [
+        "Off-peak rates are half of the peak rates. Peak hours are 01:00 - 04:00 and 06:00 - 10:00 UTC, Monday through Friday, excluding Chinese public holidays. All other hours are off-peak, including weekends and Chinese public holidays in full."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                16,
+                4
+              ],
+              "text": "$0.66"
+            },
+            {
+              "cell": [
+                0,
+                17,
+                4
+              ],
+              "text": "$1.32"
+            }
+          ],
+          "highestCell": [
+            0,
+            17,
+            4
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                18,
+                4
+              ],
+              "text": "$1.98"
+            },
+            {
+              "cell": [
+                0,
+                19,
+                4
+              ],
+              "text": "$3.96"
+            }
+          ],
+          "highestCell": [
+            0,
+            19,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                14,
+                4
+              ],
+              "text": "$0.022"
+            },
+            {
+              "cell": [
+                0,
+                15,
+                4
+              ],
+              "text": "$0.044"
+            }
+          ],
+          "highestCell": [
+            0,
+            15,
+            4
+          ]
+        }
+      },
+      "listedCharges": []
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.3-contributor",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.3-contributor",
+        "displayText": "muse-spark-1.3-contributor",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "filled",
+      "reasons": [],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T12:34:16.706497Z",
+      "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+      "billingConditionQuotes": [
+        "Used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                2
+              ],
+              "text": "$0.10"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                4
+              ],
+              "text": "$0.20"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                3
+              ],
+              "text": "$0.002"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            3
+          ]
+        }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T12:34:17.615461Z",
+        "sourceSha256": "e1698ee4f763949981f1668737e9b9affd135f90899a49f3f7ab770e8ab522bc"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T12:34:18.578217Z",
+        "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "requestFeeEvidence": {
+        "kind": "complete-official-price-list",
+        "statement": "none listed on the official pricing page",
+        "requestUsd": 0,
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+        "captures": [
+          {
+            "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+            "retrievedAt": "2026-10-07T12:34:16.706497Z",
+            "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+            "reviewedContentSha256": "f841daf3385c0678b38be9adfcecfc01a38586202ad0c3c9a5682261f81f5179"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "reviewedContentSha256": "a1a616a452e40e4feb0a8111c6156bbff0b5098661f9b08ee3a55dc4683c2fa8"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+            "retrievedAt": "2026-10-07T12:34:19.498561Z",
+            "sourceSha256": "fb054f7c7d563e3b3aaf2e038e241d32bf3380d9f87c7ead72992ae8c5def141",
+            "reviewedContentSha256": "b53e4e2892a2413e6d9c614b2f861ead0534600acb2932c516eefd336d31a2d1"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+            "retrievedAt": "2026-10-07T12:34:20.101550Z",
+            "sourceSha256": "a88a2a5ce15731557b52dcef570c8e73442a8c05d68d61a5f9dc2537776ddcd8",
+            "reviewedContentSha256": "887744a1d0d05ea6b4fe17f45370a16886bd6ed3b111618a6fe7b22c4d4600a7"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+            "retrievedAt": "2026-10-07T12:34:20.921631Z",
+            "sourceSha256": "1302a38930a5fa843fc743eac40c7b00854b2ad57e646179ed683dded84319eb",
+            "reviewedContentSha256": "80b19515a132be35c413359c985f8c3de948a9286623f81d38e42a2c55bdcf76"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+            "retrievedAt": "2026-10-07T12:34:21.652365Z",
+            "sourceSha256": "e25f3fd350c23b58b79c9534f91c8080340fd26072da74e995124a14845fa2c3",
+            "reviewedContentSha256": "b250dcd088d8b700d14b4b2f92ad4b5b0119fe70e6162a0fb9f5a45399137c1a"
+          }
+        ],
+        "listedConditionalCharges": [
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+            "disposition": "excluded-provider-web-search-tool",
+            "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "requestBuilderProof": {
+              "service": "meta",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "reviewedAt": "2026-10-07T12:28:35.271002+00:00",
+              "sources": [
+                {
+                  "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                  "line": 972,
+                  "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+                  "dispatchGuardLines": [
+                    730,
+                    1021
+                  ],
+                  "localFunctionDefinitionLines": [
+                    145,
+                    906,
+                    1925
+                  ]
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/MetaSession.cs",
+                  "line": 42,
+                  "sourceSha256": "b7061cfeb5520a220807abee1dc60096f453197a5bd53099d36615fc2ae7b395"
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                  "line": 11,
+                  "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+                },
+                {
+                  "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                  "line": 31,
+                  "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                }
+              ],
+              "regressionTests": [
+                "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+              ],
+              "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+            }
+          }
+        ],
+        "accountDashboards": [
+          {
+            "sourceUrl": "https://dev.meta.ai/billing",
+            "kind": "account-transaction-dashboard",
+            "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+          }
+        ],
+        "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+      }
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.3",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.3",
+        "displayText": "muse-spark-1.3",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "filled",
+      "reasons": [],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T12:34:16.706497Z",
+      "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+      "billingConditionQuotes": [
+        "Not used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                2,
+                2
+              ],
+              "text": "$1.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            2,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                2,
+                4
+              ],
+              "text": "$4.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            2,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                2,
+                3
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            2,
+            3
+          ]
+        }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T12:34:17.615461Z",
+        "sourceSha256": "e1698ee4f763949981f1668737e9b9affd135f90899a49f3f7ab770e8ab522bc"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T12:34:18.578217Z",
+        "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "requestFeeEvidence": {
+        "kind": "complete-official-price-list",
+        "statement": "none listed on the official pricing page",
+        "requestUsd": 0,
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+        "captures": [
+          {
+            "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+            "retrievedAt": "2026-10-07T12:34:16.706497Z",
+            "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+            "reviewedContentSha256": "f841daf3385c0678b38be9adfcecfc01a38586202ad0c3c9a5682261f81f5179"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "reviewedContentSha256": "a1a616a452e40e4feb0a8111c6156bbff0b5098661f9b08ee3a55dc4683c2fa8"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+            "retrievedAt": "2026-10-07T12:34:19.498561Z",
+            "sourceSha256": "fb054f7c7d563e3b3aaf2e038e241d32bf3380d9f87c7ead72992ae8c5def141",
+            "reviewedContentSha256": "b53e4e2892a2413e6d9c614b2f861ead0534600acb2932c516eefd336d31a2d1"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+            "retrievedAt": "2026-10-07T12:34:20.101550Z",
+            "sourceSha256": "a88a2a5ce15731557b52dcef570c8e73442a8c05d68d61a5f9dc2537776ddcd8",
+            "reviewedContentSha256": "887744a1d0d05ea6b4fe17f45370a16886bd6ed3b111618a6fe7b22c4d4600a7"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+            "retrievedAt": "2026-10-07T12:34:20.921631Z",
+            "sourceSha256": "1302a38930a5fa843fc743eac40c7b00854b2ad57e646179ed683dded84319eb",
+            "reviewedContentSha256": "80b19515a132be35c413359c985f8c3de948a9286623f81d38e42a2c55bdcf76"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+            "retrievedAt": "2026-10-07T12:34:21.652365Z",
+            "sourceSha256": "e25f3fd350c23b58b79c9534f91c8080340fd26072da74e995124a14845fa2c3",
+            "reviewedContentSha256": "b250dcd088d8b700d14b4b2f92ad4b5b0119fe70e6162a0fb9f5a45399137c1a"
+          }
+        ],
+        "listedConditionalCharges": [
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+            "disposition": "excluded-provider-web-search-tool",
+            "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "requestBuilderProof": {
+              "service": "meta",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "reviewedAt": "2026-10-07T12:28:35.271002+00:00",
+              "sources": [
+                {
+                  "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                  "line": 972,
+                  "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+                  "dispatchGuardLines": [
+                    730,
+                    1021
+                  ],
+                  "localFunctionDefinitionLines": [
+                    145,
+                    906,
+                    1925
+                  ]
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/MetaSession.cs",
+                  "line": 42,
+                  "sourceSha256": "b7061cfeb5520a220807abee1dc60096f453197a5bd53099d36615fc2ae7b395"
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                  "line": 11,
+                  "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+                },
+                {
+                  "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                  "line": 31,
+                  "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                }
+              ],
+              "regressionTests": [
+                "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+              ],
+              "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+            }
+          }
+        ],
+        "accountDashboards": [
+          {
+            "sourceUrl": "https://dev.meta.ai/billing",
+            "kind": "account-transaction-dashboard",
+            "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+          }
+        ],
+        "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+      }
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.2-contributor",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.2-contributor",
+        "displayText": "muse-spark-1.2-contributor",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "filled",
+      "reasons": [],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T12:34:16.706497Z",
+      "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+      "billingConditionQuotes": [
+        "Used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                2
+              ],
+              "text": "$0.10"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                4
+              ],
+              "text": "$0.20"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                3
+              ],
+              "text": "$0.002"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            3
+          ]
+        }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T12:34:17.615461Z",
+        "sourceSha256": "e1698ee4f763949981f1668737e9b9affd135f90899a49f3f7ab770e8ab522bc"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T12:34:18.578217Z",
+        "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "requestFeeEvidence": {
+        "kind": "complete-official-price-list",
+        "statement": "none listed on the official pricing page",
+        "requestUsd": 0,
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+        "captures": [
+          {
+            "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+            "retrievedAt": "2026-10-07T12:34:16.706497Z",
+            "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+            "reviewedContentSha256": "f841daf3385c0678b38be9adfcecfc01a38586202ad0c3c9a5682261f81f5179"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "reviewedContentSha256": "a1a616a452e40e4feb0a8111c6156bbff0b5098661f9b08ee3a55dc4683c2fa8"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+            "retrievedAt": "2026-10-07T12:34:19.498561Z",
+            "sourceSha256": "fb054f7c7d563e3b3aaf2e038e241d32bf3380d9f87c7ead72992ae8c5def141",
+            "reviewedContentSha256": "b53e4e2892a2413e6d9c614b2f861ead0534600acb2932c516eefd336d31a2d1"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+            "retrievedAt": "2026-10-07T12:34:20.101550Z",
+            "sourceSha256": "a88a2a5ce15731557b52dcef570c8e73442a8c05d68d61a5f9dc2537776ddcd8",
+            "reviewedContentSha256": "887744a1d0d05ea6b4fe17f45370a16886bd6ed3b111618a6fe7b22c4d4600a7"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+            "retrievedAt": "2026-10-07T12:34:20.921631Z",
+            "sourceSha256": "1302a38930a5fa843fc743eac40c7b00854b2ad57e646179ed683dded84319eb",
+            "reviewedContentSha256": "80b19515a132be35c413359c985f8c3de948a9286623f81d38e42a2c55bdcf76"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+            "retrievedAt": "2026-10-07T12:34:21.652365Z",
+            "sourceSha256": "e25f3fd350c23b58b79c9534f91c8080340fd26072da74e995124a14845fa2c3",
+            "reviewedContentSha256": "b250dcd088d8b700d14b4b2f92ad4b5b0119fe70e6162a0fb9f5a45399137c1a"
+          }
+        ],
+        "listedConditionalCharges": [
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+            "disposition": "excluded-provider-web-search-tool",
+            "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "requestBuilderProof": {
+              "service": "meta",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "reviewedAt": "2026-10-07T12:28:35.271002+00:00",
+              "sources": [
+                {
+                  "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                  "line": 972,
+                  "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+                  "dispatchGuardLines": [
+                    730,
+                    1021
+                  ],
+                  "localFunctionDefinitionLines": [
+                    145,
+                    906,
+                    1925
+                  ]
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/MetaSession.cs",
+                  "line": 42,
+                  "sourceSha256": "b7061cfeb5520a220807abee1dc60096f453197a5bd53099d36615fc2ae7b395"
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                  "line": 11,
+                  "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+                },
+                {
+                  "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                  "line": 31,
+                  "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                }
+              ],
+              "regressionTests": [
+                "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+              ],
+              "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+            }
+          }
+        ],
+        "accountDashboards": [
+          {
+            "sourceUrl": "https://dev.meta.ai/billing",
+            "kind": "account-transaction-dashboard",
+            "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+          }
+        ],
+        "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+      }
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.2",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.2",
+        "displayText": "muse-spark-1.2",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "filled",
+      "reasons": [],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T12:34:16.706497Z",
+      "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+      "billingConditionQuotes": [
+        "Not used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                4,
+                2
+              ],
+              "text": "$1.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            4,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                4,
+                4
+              ],
+              "text": "$4.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            4,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                4,
+                3
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            4,
+            3
+          ]
+        }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T12:34:17.615461Z",
+        "sourceSha256": "e1698ee4f763949981f1668737e9b9affd135f90899a49f3f7ab770e8ab522bc"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T12:34:18.578217Z",
+        "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "requestFeeEvidence": {
+        "kind": "complete-official-price-list",
+        "statement": "none listed on the official pricing page",
+        "requestUsd": 0,
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+        "captures": [
+          {
+            "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+            "retrievedAt": "2026-10-07T12:34:16.706497Z",
+            "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+            "reviewedContentSha256": "f841daf3385c0678b38be9adfcecfc01a38586202ad0c3c9a5682261f81f5179"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "reviewedContentSha256": "a1a616a452e40e4feb0a8111c6156bbff0b5098661f9b08ee3a55dc4683c2fa8"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+            "retrievedAt": "2026-10-07T12:34:19.498561Z",
+            "sourceSha256": "fb054f7c7d563e3b3aaf2e038e241d32bf3380d9f87c7ead72992ae8c5def141",
+            "reviewedContentSha256": "b53e4e2892a2413e6d9c614b2f861ead0534600acb2932c516eefd336d31a2d1"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+            "retrievedAt": "2026-10-07T12:34:20.101550Z",
+            "sourceSha256": "a88a2a5ce15731557b52dcef570c8e73442a8c05d68d61a5f9dc2537776ddcd8",
+            "reviewedContentSha256": "887744a1d0d05ea6b4fe17f45370a16886bd6ed3b111618a6fe7b22c4d4600a7"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+            "retrievedAt": "2026-10-07T12:34:20.921631Z",
+            "sourceSha256": "1302a38930a5fa843fc743eac40c7b00854b2ad57e646179ed683dded84319eb",
+            "reviewedContentSha256": "80b19515a132be35c413359c985f8c3de948a9286623f81d38e42a2c55bdcf76"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+            "retrievedAt": "2026-10-07T12:34:21.652365Z",
+            "sourceSha256": "e25f3fd350c23b58b79c9534f91c8080340fd26072da74e995124a14845fa2c3",
+            "reviewedContentSha256": "b250dcd088d8b700d14b4b2f92ad4b5b0119fe70e6162a0fb9f5a45399137c1a"
+          }
+        ],
+        "listedConditionalCharges": [
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+            "disposition": "excluded-provider-web-search-tool",
+            "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "requestBuilderProof": {
+              "service": "meta",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "reviewedAt": "2026-10-07T12:28:35.271002+00:00",
+              "sources": [
+                {
+                  "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                  "line": 972,
+                  "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+                  "dispatchGuardLines": [
+                    730,
+                    1021
+                  ],
+                  "localFunctionDefinitionLines": [
+                    145,
+                    906,
+                    1925
+                  ]
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/MetaSession.cs",
+                  "line": 42,
+                  "sourceSha256": "b7061cfeb5520a220807abee1dc60096f453197a5bd53099d36615fc2ae7b395"
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                  "line": 11,
+                  "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+                },
+                {
+                  "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                  "line": 31,
+                  "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                }
+              ],
+              "regressionTests": [
+                "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+              ],
+              "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+            }
+          }
+        ],
+        "accountDashboards": [
+          {
+            "sourceUrl": "https://dev.meta.ai/billing",
+            "kind": "account-transaction-dashboard",
+            "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+          }
+        ],
+        "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+      }
+    },
+    {
+      "service": "meta",
+      "model": "muse-spark-1.1",
+      "identity": {
+        "service": "meta",
+        "model": "muse-spark-1.1",
+        "displayText": "muse-spark-1.1",
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api"
+      },
+      "status": "filled",
+      "reasons": [],
+      "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+      "retrievedAt": "2026-10-07T12:34:16.706497Z",
+      "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+      "billingConditionQuotes": [
+        "Not used to improve our products."
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                5,
+                2
+              ],
+              "text": "$1.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            5,
+            2
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                5,
+                4
+              ],
+              "text": "$4.25"
+            }
+          ],
+          "highestCell": [
+            0,
+            5,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                5,
+                3
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            5,
+            3
+          ]
+        }
+      },
+      "currencyEvidence": {
+        "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+        "quote": "Unless otherwise noted, all currency references are in U.S. Dollars.",
+        "retrievedAt": "2026-10-07T12:34:17.615461Z",
+        "sourceSha256": "e1698ee4f763949981f1668737e9b9affd135f90899a49f3f7ab770e8ab522bc"
+      },
+      "tokenUnitEvidence": {
+        "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+        "quote": "Price per 1M tokens",
+        "retrievedAt": "2026-10-07T12:34:18.578217Z",
+        "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66"
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+          "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "requestFeeEvidence": {
+        "kind": "complete-official-price-list",
+        "statement": "none listed on the official pricing page",
+        "requestUsd": 0,
+        "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+        "captures": [
+          {
+            "sourceUrl": "https://dev.meta.ai/products/meta-model-api",
+            "retrievedAt": "2026-10-07T12:34:16.706497Z",
+            "sourceSha256": "1c7a2b29bc98284412689119b43e2e56b8d11a1837d0b57f30ffb3d64ebfe05f",
+            "reviewedContentSha256": "f841daf3385c0678b38be9adfcecfc01a38586202ad0c3c9a5682261f81f5179"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "reviewedContentSha256": "a1a616a452e40e4feb0a8111c6156bbff0b5098661f9b08ee3a55dc4683c2fa8"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+            "retrievedAt": "2026-10-07T12:34:19.498561Z",
+            "sourceSha256": "fb054f7c7d563e3b3aaf2e038e241d32bf3380d9f87c7ead72992ae8c5def141",
+            "reviewedContentSha256": "b53e4e2892a2413e6d9c614b2f861ead0534600acb2932c516eefd336d31a2d1"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/muse-code/auth",
+            "retrievedAt": "2026-10-07T12:34:20.101550Z",
+            "sourceSha256": "a88a2a5ce15731557b52dcef570c8e73442a8c05d68d61a5f9dc2537776ddcd8",
+            "reviewedContentSha256": "887744a1d0d05ea6b4fe17f45370a16886bd6ed3b111618a6fe7b22c4d4600a7"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/set-up-billing",
+            "retrievedAt": "2026-10-07T12:34:20.921631Z",
+            "sourceSha256": "1302a38930a5fa843fc743eac40c7b00854b2ad57e646179ed683dded84319eb",
+            "reviewedContentSha256": "80b19515a132be35c413359c985f8c3de948a9286623f81d38e42a2c55bdcf76"
+          },
+          {
+            "sourceUrl": "https://dev.meta.ai/help/billing/download-invoice",
+            "retrievedAt": "2026-10-07T12:34:21.652365Z",
+            "sourceSha256": "e25f3fd350c23b58b79c9534f91c8080340fd26072da74e995124a14845fa2c3",
+            "reviewedContentSha256": "b250dcd088d8b700d14b4b2f92ad4b5b0119fe70e6162a0fb9f5a45399137c1a"
+          }
+        ],
+        "listedConditionalCharges": [
+          {
+            "sourceUrl": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "quote": "Web search grounding costs $2.50 per 1,000 search queries , in addition to the request's token cost.",
+            "disposition": "excluded-provider-web-search-tool",
+            "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+            "retrievedAt": "2026-10-07T12:34:18.578217Z",
+            "sourceSha256": "ce76482b1aa3e953752720ab5e54059e9026ab8c051d933a712459b410a29f66",
+            "requestBuilderProof": {
+              "service": "meta",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "reviewedAt": "2026-10-07T12:28:35.271002+00:00",
+              "sources": [
+                {
+                  "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                  "line": 972,
+                  "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+                  "dispatchGuardLines": [
+                    730,
+                    1021
+                  ],
+                  "localFunctionDefinitionLines": [
+                    145,
+                    906,
+                    1925
+                  ]
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/MetaSession.cs",
+                  "line": 42,
+                  "sourceSha256": "b7061cfeb5520a220807abee1dc60096f453197a5bd53099d36615fc2ae7b395"
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                  "line": 11,
+                  "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+                },
+                {
+                  "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                  "line": 31,
+                  "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                }
+              ],
+              "regressionTests": [
+                "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+              ],
+              "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+            }
+          }
+        ],
+        "accountDashboards": [
+          {
+            "sourceUrl": "https://dev.meta.ai/billing",
+            "kind": "account-transaction-dashboard",
+            "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+          }
+        ],
+        "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+      }
+    },
+    {
+      "service": "zai",
+      "model": "glm-5.3",
+      "identity": {
+        "service": "zai",
+        "model": "glm-5.3",
+        "displayText": "GLM-5.3",
+        "sourceUrl": "https://docs.z.ai/guides/overview/pricing"
+      },
+      "status": "filled",
+      "reasons": [],
+      "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "retrievedAt": "2026-10-07T12:34:22.569401Z",
+      "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+      "billingConditionQuotes": [
+        "Limited-time Free"
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                1
+              ],
+              "text": "$1.4"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            1
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                4
+              ],
+              "text": "$4.4"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                2
+              ],
+              "text": "$0.26"
+            }
+          ],
+          "highestCell": [
+            0,
+            3,
+            2
+          ]
+        },
+        "storageCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                3,
+                3
+              ],
+              "text": "Limited-time Free"
+            }
+          ],
+          "highestCell": null
+        }
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+          "quote": "Web Search $0.01 / use",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "requestFeeEvidence": {
+        "kind": "complete-official-price-list",
+        "statement": "none listed on the official pricing page",
+        "requestUsd": 0,
+        "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+        "captures": [
+          {
+            "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+            "retrievedAt": "2026-10-07T12:34:22.569401Z",
+            "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+            "reviewedContentSha256": "fb92677645f261f49aebef59f803dc83e68a02ef3921dcff82d847b326c36320"
+          },
+          {
+            "sourceUrl": "https://docs.z.ai/help/faq",
+            "retrievedAt": "2026-10-07T12:34:23.095038Z",
+            "sourceSha256": "1731ede373a4963dac44506aed1ec8c078464b988f92eb193d12c3f885821f75",
+            "reviewedContentSha256": "562b40c8fc4e0c9b8c74f57f8cc16ad0e6620b7faf026e01e81a9e91c6f64d09"
+          }
+        ],
+        "listedConditionalCharges": [
+          {
+            "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+            "quote": "Web Search $0.01 / use",
+            "disposition": "excluded-provider-web-search-tool",
+            "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+            "retrievedAt": "2026-10-07T12:34:22.569401Z",
+            "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+            "requestBuilderProof": {
+              "service": "zai",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "reviewedAt": "2026-10-07T12:28:35.271782+00:00",
+              "sources": [
+                {
+                  "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                  "line": 972,
+                  "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+                  "dispatchGuardLines": [
+                    730,
+                    1021
+                  ],
+                  "localFunctionDefinitionLines": [
+                    145,
+                    906,
+                    1925
+                  ]
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ZaiSession.cs",
+                  "line": 35,
+                  "sourceSha256": "5302d131d1c468bf7b4d2169b802368bd3fac9d9f8ad7016ed5934161168b638"
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                  "line": 11,
+                  "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+                },
+                {
+                  "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                  "line": 31,
+                  "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                }
+              ],
+              "regressionTests": [
+                "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+              ],
+              "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+            }
+          }
+        ],
+        "accountDashboards": [
+          {
+            "sourceUrl": "https://z.ai/manage-apikey/billing",
+            "kind": "account-transaction-dashboard",
+            "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+          }
+        ],
+        "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+      },
+      "storageCondition": "Limited-time Free"
+    },
+    {
+      "service": "zai",
+      "model": "glm-5.3-flash",
+      "identity": {
+        "service": "zai",
+        "model": "glm-5.3-flash",
+        "displayText": "GLM-5.3-Flash",
+        "sourceUrl": "https://docs.z.ai/guides/overview/pricing"
+      },
+      "status": "filled",
+      "reasons": [],
+      "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+      "retrievedAt": "2026-10-07T12:34:22.569401Z",
+      "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+      "billingConditionQuotes": [
+        "Limited-time Free"
+      ],
+      "selectionPolicy": "highest applicable cited numeric cell; never average",
+      "observedTokenCells": {
+        "inputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                1
+              ],
+              "text": "$0.15"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            1
+          ]
+        },
+        "outputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                4
+              ],
+              "text": "$0.50"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            4
+          ]
+        },
+        "cachedInputCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                2
+              ],
+              "text": "$0.03"
+            }
+          ],
+          "highestCell": [
+            0,
+            1,
+            2
+          ]
+        },
+        "storageCell": {
+          "cells": [
+            {
+              "cell": [
+                0,
+                1,
+                3
+              ],
+              "text": "Limited-time Free"
+            }
+          ],
+          "highestCell": null
+        }
+      },
+      "listedCharges": [
+        {
+          "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+          "quote": "Web Search $0.01 / use",
+          "disposition": "excluded-provider-web-search-tool",
+          "statement": "applies only to the provider's web-search tool, which Marrow never enables"
+        }
+      ],
+      "requestFeeEvidence": {
+        "kind": "complete-official-price-list",
+        "statement": "none listed on the official pricing page",
+        "requestUsd": 0,
+        "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+        "captures": [
+          {
+            "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+            "retrievedAt": "2026-10-07T12:34:22.569401Z",
+            "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+            "reviewedContentSha256": "fb92677645f261f49aebef59f803dc83e68a02ef3921dcff82d847b326c36320"
+          },
+          {
+            "sourceUrl": "https://docs.z.ai/help/faq",
+            "retrievedAt": "2026-10-07T12:34:23.095038Z",
+            "sourceSha256": "1731ede373a4963dac44506aed1ec8c078464b988f92eb193d12c3f885821f75",
+            "reviewedContentSha256": "562b40c8fc4e0c9b8c74f57f8cc16ad0e6620b7faf026e01e81a9e91c6f64d09"
+          }
+        ],
+        "listedConditionalCharges": [
+          {
+            "sourceUrl": "https://docs.z.ai/guides/overview/pricing",
+            "quote": "Web Search $0.01 / use",
+            "disposition": "excluded-provider-web-search-tool",
+            "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+            "retrievedAt": "2026-10-07T12:34:22.569401Z",
+            "sourceSha256": "578fce97838d5056e33b9a3a24f3193a1142c9b356036056ce6384318f80436c",
+            "requestBuilderProof": {
+              "service": "zai",
+              "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+              "reviewedAt": "2026-10-07T12:28:35.271782+00:00",
+              "sources": [
+                {
+                  "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+                  "line": 972,
+                  "sourceSha256": "638587000d8df6f32ddb1823d5ee37a15a86ee709b858892af3ce1f6f745cf73",
+                  "dispatchGuardLines": [
+                    730,
+                    1021
+                  ],
+                  "localFunctionDefinitionLines": [
+                    145,
+                    906,
+                    1925
+                  ]
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ZaiSession.cs",
+                  "line": 35,
+                  "sourceSha256": "5302d131d1c468bf7b4d2169b802368bd3fac9d9f8ad7016ed5934161168b638"
+                },
+                {
+                  "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+                  "line": 11,
+                  "sourceSha256": "d97cba4a901ea9a5fed7582560ace62449b2981519a3726d98a77835211cf52a"
+                },
+                {
+                  "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+                  "line": 31,
+                  "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+                }
+              ],
+              "regressionTests": [
+                "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+                "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+              ],
+              "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests."
+            }
+          }
+        ],
+        "accountDashboards": [
+          {
+            "sourceUrl": "https://z.ai/manage-apikey/billing",
+            "kind": "account-transaction-dashboard",
+            "reason": "Account/payment transaction UI, not a public pricing or billing terms page. Public pricing and linked public billing documentation are fully captured. No login or identity confirmation. RR-50 round-4 complete-list ruling applies to text/local-function requests; optional web-search is excluded only with fresh source proof and transport guard."
+          }
+        ],
+        "scope": "complete official token price list and linked public billing terms; no applicable separate request charge; account transaction UIs are not price lists"
+      },
+      "storageCondition": "Limited-time Free"
+    }
+  ],
+  "note": "Observed raw cells are audit evidence only. Only prices passing every original quote/numeric/bounds guard enter model-prices.json."
+}

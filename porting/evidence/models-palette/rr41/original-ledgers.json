@@ -1,0 +1,10 @@
+{
+  "porting/parity_matrix.json": {
+    "sha256": "454ea9ee42ae5d83064678fb8692bc3efb220a1c06874646c1e7bd19b8da9cff",
+    "bytes": 8803782
+  },
+  "porting/ui_contract.json": {
+    "sha256": "8584cb597263a1ee454b33f7ee6a345c44ee6f7e8c84160997366087440d41d2",
+    "bytes": 2029717
+  }
+}

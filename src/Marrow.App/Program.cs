@@ -60,6 +60,11 @@ public static class Program
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
         RunVelopackHook(AppContext.BaseDirectory);
+        // ED-NEW-models-palette-11: offline, owner-local pack generator. It runs right after the Velopack hook (ED-235: nothing
+        // but the SK-17 relay may precede the hook; a normal launch returns from the hook at once) and before every other
+        // desktop or data binding: the single-instance lock, toast identity, settings and the app lifetime.
+        if(args.FirstOrDefault()=="--colour-bake")return Marrow.Services.Port.ModelsPalette.PaletteBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
+        if(args.FirstOrDefault()=="--colour-bake-live")return Marrow.Services.Port.ModelsPalette.PaletteLiveBake.Run(args,new Marrow.UI.Port.ModelsPalette.SkiaLogoDecoder());
         WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
@@ -109,6 +114,7 @@ public static class Program
         Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.Bind(); // T11 step 2: Settings > Models (accounts) and Settings > Pills read the running AppModel
         Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
+        Marrow.App.Port.ModelsPalette.PaletteStartup.Prepare(); // ED-622: verified tables, off UI, before any window/model.
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
@@ -139,13 +145,14 @@ public static class Program
 
         lifetime.Startup += (_, _) =>
         {
+            Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
             shell.FinishLaunching();
             skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
             DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
             reopen.Listen(() => shell.Reopen(lifetime.Windows));
         };
         lifetime.ShutdownRequested += (_, e) => shell.ShutdownRequested(e);
-        lifetime.Exit += (_, _) => shell.WillTerminate();
+        lifetime.Exit += (_, _) => {shell.Delegate.Model?.StopPaletteChecks();shell.WillTerminate();};
         return lifetime.Start(args);
     }
 }

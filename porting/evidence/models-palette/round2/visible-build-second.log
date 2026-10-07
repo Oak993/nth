@@ -1,0 +1,20 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+/workspace/marrow-port/src/Marrow.App/Port/ModelsPalette/PaletteLoadingPaint.cs(9,70): error CS0246: The type or namespace name 'Animation' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/src/Marrow.App/Marrow.App.csproj]
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+  Marrow.Setup -> /workspace/marrow-port/src/Marrow.Setup/bin/Debug/net10.0-windows/Marrow.Setup.dll
+
+Build FAILED.
+
+/workspace/marrow-port/src/Marrow.App/Port/ModelsPalette/PaletteLoadingPaint.cs(9,70): error CS0246: The type or namespace name 'Animation' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/src/Marrow.App/Marrow.App.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:01:03.81

@@ -1,0 +1,22 @@
+  Determining projects to restore...
+  Restored /workspace/marrow-port/tests/Marrow.Core.Tests/Marrow.Core.Tests.csproj (in 299 ms).
+  2 of 3 projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.00]     Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released [FAIL]
+  Failed Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released [24 ms]
+  Error Message:
+   Assert.Throws() Failure: No exception was thrown
+Expected: typeof(System.IO.IOException)
+  Stack Trace:
+     at Marrow.Core.Tests.Port.FileOpsTests.An_atomic_write_blocked_by_a_held_handle_retries_on_the_manual_clock_and_lands_once_released() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/FileOpsTests.cs:line 187
+--- End of stack trace from previous location ---
+Results File: /tmp/gap2-t24-core/core-clock.trx
+
+Failed!  - Failed:     1, Passed:    21, Skipped:     0, Total:    22, Duration: 296 ms - Marrow.Core.Tests.dll (net10.0)

@@ -1,0 +1,5 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/visible-app-delayed-final.trx
+
+Passed!  - Failed:     0, Passed:    59, Skipped:     0, Total:    59, Duration: 19 s - Marrow.App.Tests.dll (net10.0)

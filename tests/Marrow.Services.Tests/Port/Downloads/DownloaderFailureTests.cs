@@ -6,6 +6,7 @@ namespace Marrow.Services.Tests.Port.Downloads;
 
 // SK-3 (DL-3, section 3.9): 404, 410, 500, TLS failure, offline and the two timeouts, each mapped to its message, each keeping the partial file the
 // way the table says; timeouts run on the manual clock.
+[Trait("Spec", "DL-3")]
 public sealed class DownloaderFailureTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(10_000, seed: 13);

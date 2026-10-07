@@ -1,0 +1,10 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteCheckedAgeTests.cs(19,144): error CA1307: 'Xunit.Assert.StartsWith(string?, string?)' has a method overload that takes a 'StringComparison' parameter. Replace this call in 'Marrow.App.Tests.Port.ModelsPalette.PaletteCheckedAgeTests.An_automatic_check_updates_the_resting_age_even_when_the_palette_digest_does_not_change()' with a call to 'Xunit.Assert.StartsWith(string?, string?, System.StringComparison)' for clarity of intent. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1307) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]

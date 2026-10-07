@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "providers": [
+    {
+      "service": "meta",
+      "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+      "reviewedAt": "2026-10-07T12:28:35.271002+00:00",
+      "sources": [
+        {
+          "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+          "line": 1086,
+          "sourceSha256": "d19fd1fa3f0995f40d5d6b251fbbfee6df6f33102f1c750559d3193ce1abc9f8",
+          "dispatchGuardLines": [
+            752,
+            1092
+          ],
+          "localFunctionDefinitionLines": [
+            146,
+            973,
+            1997
+          ]
+        },
+        {
+          "path": "src/Marrow.Services/Providers/MetaSession.cs",
+          "line": 42,
+          "sourceSha256": "b7061cfeb5520a220807abee1dc60096f453197a5bd53099d36615fc2ae7b395"
+        },
+        {
+          "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+          "line": 11,
+          "sourceSha256": "e5cf1086eddc6f402516944721f4fce3d6853fcdbe3007a40e1d5c340deae7ad"
+        },
+        {
+          "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+          "line": 31,
+          "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+        }
+      ],
+      "regressionTests": [
+        "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+        "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+      ],
+      "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests.",
+      "mergeReview": {
+        "scope": "ED-634 actual MA-gaps / MA-prices merge interaction; inspected preserved local-function-only builders, both dispatch guards and fake transport refusal; unchanged ProviderToolBillingGuardTests plus caller-price contracts pass13/13 twice. No price/capture/quote regeneration.",
+        "evidence": "standing/06-final/preflight-isolation/merged-price-guard-1.log and -2.log",
+        "headBeforeProofUpdate": "624abad9f3ce457fa49610a0fbf660aa66dd4e85"
+      }
+    },
+    {
+      "service": "zai",
+      "statement": "applies only to the provider's web-search tool, which Marrow never enables",
+      "reviewedAt": "2026-10-07T12:28:35.271782+00:00",
+      "sources": [
+        {
+          "path": "src/Marrow.Services/Providers/OpenAICompatibleSession.cs",
+          "line": 1086,
+          "sourceSha256": "d19fd1fa3f0995f40d5d6b251fbbfee6df6f33102f1c750559d3193ce1abc9f8",
+          "dispatchGuardLines": [
+            752,
+            1092
+          ],
+          "localFunctionDefinitionLines": [
+            146,
+            973,
+            1997
+          ]
+        },
+        {
+          "path": "src/Marrow.Services/Providers/ZaiSession.cs",
+          "line": 35,
+          "sourceSha256": "5302d131d1c468bf7b4d2169b802368bd3fac9d9f8ad7016ed5934161168b638"
+        },
+        {
+          "path": "src/Marrow.Services/Providers/ProviderToolBillingGuard.cs",
+          "line": 11,
+          "sourceSha256": "e5cf1086eddc6f402516944721f4fce3d6853fcdbe3007a40e1d5c340deae7ad"
+        },
+        {
+          "path": "tests/Marrow.Services.Tests/Providers/ProviderToolBillingGuardTests.cs",
+          "line": 31,
+          "sourceSha256": "6227b1ebe6f13cf6b71a4b3b57bbf21c14f5308984713518ff20a57fd6663cc2"
+        }
+      ],
+      "regressionTests": [
+        "Every_known_Meta_and_Zai_model_effort_and_tool_mode_builds_only_local_function_tools",
+        "A_future_provider_tool_or_unknown_enablement_field_fails_closed_before_transport"
+      ],
+      "scope": "All known model IDs, all mapped efforts and unknown effort, tools on/off, normal/Hydra heads, built-in/local skill/MCP definitions. Only local function tools; payload allow-list enforced before reservation and at final transport for capped and uncapped requests.",
+      "mergeReview": {
+        "scope": "ED-634 actual MA-gaps / MA-prices merge interaction; inspected preserved local-function-only builders, both dispatch guards and fake transport refusal; unchanged ProviderToolBillingGuardTests plus caller-price contracts pass13/13 twice. No price/capture/quote regeneration.",
+        "evidence": "standing/06-final/preflight-isolation/merged-price-guard-1.log and -2.log",
+        "headBeforeProofUpdate": "624abad9f3ce457fa49610a0fbf660aa66dd4e85"
+      }
+    }
+  ]
+}

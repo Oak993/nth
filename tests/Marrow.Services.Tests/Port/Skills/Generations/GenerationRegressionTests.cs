@@ -3,6 +3,7 @@ using Marrow.Services.Port.Skills.Generations;
 
 namespace Marrow.Services.Tests.Port.Skills.Generations;
 
+[Trait("Spec", "DL-9")]
 public sealed class GenerationRegressionTests
 {
     [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: WU-5-YAML-inline-comment

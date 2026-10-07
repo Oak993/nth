@@ -1,0 +1,8 @@
+{
+  "file": "porting/STATE.md",
+  "before_bytes": 95295,
+  "append_bytes": 1581,
+  "prefix_exact": true,
+  "before_sha256": "e27ef452897581c88c6b8570899fb8e09db174191f8cc6b534040a1cec163957",
+  "after_sha256": "eea5f1f141c7fdea994668b9fb8f6ba2aa4cbe6f9b35d6349dd62a8c9ae6050d"
+}

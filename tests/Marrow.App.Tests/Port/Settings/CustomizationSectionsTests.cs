@@ -14,6 +14,8 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T16, CZ-T39, CZ-12.8: for every style, every Advanced state and the Line and Pulse outside shapes, the page's rows, folds and dividers are the design's
+    [Trait("Spec", "CZ-T16")]
+    [Trait("Spec", "CZ-T39")]
     public void The_sections_rows_folds_and_dividers_are_the_designs_in_every_state() => headless.OnUiThread(() =>
     {
         using var fixture = PageFixture.Open();
@@ -39,6 +41,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T23, CZ-5.1: three cards in a radio group named Light with the design's texts; a pick writes `style` and keeps the other styles' settings (CZ-5.3)
+    [Trait("Spec", "CZ-T23")]
     public void The_style_cards_are_a_radio_group_and_a_pick_writes_the_style_keeping_the_others_settings() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with
@@ -68,6 +71,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T22, CZ-8: Off shows the note card only; switching back keeps both styles' settings
+    [Trait("Spec", "CZ-T22")]
     public void Off_shows_the_note_alone_and_both_styles_keep_their_settings() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -91,6 +95,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T24, CZ-6.4, CZ-7.4: the Advanced open state is shared by both styles' Advanced rows, and it is session state (a new page starts shut)
+    [Trait("Spec", "CZ-T24")]
     public void The_advanced_open_state_is_shared_between_the_styles_and_is_session_only() => headless.OnUiThread(() =>
     {
         using (var rig = new CustomizationPageRig(reduceMotion: true))
@@ -117,6 +122,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T17, CZ-6.5: Reset is idle (0.42, inert, not focusable) at the defaults, active otherwise, and resets family, shape and palette too
+    [Trait("Spec", "CZ-T17")]
     public void Border_beam_reset_is_idle_at_the_defaults_and_resets_everything() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -143,6 +149,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T21, CZ-7.5: the Uiverse reset, including the Custom colours folded shut while it happens
+    [Trait("Spec", "CZ-T21")]
     public void Uiverse_reset_returns_every_setting_and_the_hidden_wells_follow() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true, seed: s => s.ComposerLight = ComposerLightSettings.Default with

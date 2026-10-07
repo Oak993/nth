@@ -1,0 +1,14 @@
+[
+  "dotnet",
+  "test",
+  "tests/Marrow.UI.Tests/Marrow.UI.Tests.csproj",
+  "--no-build",
+  "--no-restore",
+  "-p:EnableWindowsTargeting=true",
+  "--filter",
+  "(FullyQualifiedName~Marrow.UI.Tests.TraceabilityTests.)&FullyQualifiedName!~Native",
+  "--logger",
+  "trx;LogFileName=ui.trx",
+  "--results-directory",
+  "/tmp/GAP-2-evidence"
+]

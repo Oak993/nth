@@ -1,0 +1,37 @@
+[
+  {
+    "file": "meta-api-bill.html",
+    "sourceUrl": "https://dev.meta.ai/help/billing/api-bill",
+    "sourceSha256": "19dc852182fe6a6435d28c245eeb6206b51cb34a4c33e554e66c47e64c3d7318",
+    "savedAt": "2026-10-07T11:30:18.845289+00:00",
+    "timestampBasis": "local saved capture write time"
+  },
+  {
+    "file": "meta-terms.html",
+    "sourceUrl": "https://dev.meta.ai/legal/terms-of-service",
+    "sourceSha256": "38f54c120cd65b022d6c0d1620e7e37a73190c44b4b319e205a6d992e748f681",
+    "savedAt": "2026-10-07T11:29:14.189319+00:00",
+    "timestampBasis": "local saved capture write time"
+  },
+  {
+    "file": "zai-faq.html",
+    "sourceUrl": "https://docs.z.ai/help/faq",
+    "sourceSha256": "1731ede373a4963dac44506aed1ec8c078464b988f92eb193d12c3f885821f75",
+    "savedAt": "2026-10-07T11:29:11.690936+00:00",
+    "timestampBasis": "local saved capture write time"
+  },
+  {
+    "file": "zai-billing.html",
+    "sourceUrl": "https://z.ai/manage-apikey/billing",
+    "sourceSha256": "2c94b0814bc2f2dff49a11eeba71e63448a5c28112f9fdd8a6df2a425b0ce1b1",
+    "savedAt": "2026-10-07T11:29:13.371856+00:00",
+    "timestampBasis": "local saved capture write time"
+  },
+  {
+    "file": "deepseek-faq.html",
+    "sourceUrl": "https://static.deepseek.com/faq/index.html?lang=en",
+    "sourceSha256": "0df1b0db7fa4954817707542aa5f4c49624e0708a5aaa9bcda3703431674a01f",
+    "savedAt": "2026-10-07T11:29:11.293346+00:00",
+    "timestampBasis": "local saved capture write time"
+  }
+]

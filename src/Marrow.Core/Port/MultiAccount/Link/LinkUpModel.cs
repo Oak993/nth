@@ -11,10 +11,11 @@ public sealed class LinkUpModel : IDisposable
     private readonly OtherServiceConsentStore consent;
     private Guid? flight;
     private bool remember;
+    private bool observing;
     public LinkUpModel(Guid thread, IThreadAccountPort current, IReadOnlyList<IThreadAccountPort> accounts, ILinkPort port, OtherServiceConsentStore consent)
     {
         this.thread = thread; this.current = current; this.accounts = accounts.Append(current).Distinct().ToArray(); this.port = port; this.consent = consent;
-        foreach (var account in this.accounts) account.Changed += Refresh; port.Changed += LinksChanged;
+        Resume();
     }
     public event Action? Changed;
     public IReadOnlyList<ThreadAccount> Accounts => accounts.SelectMany(p => p.Accounts).DistinctBy(a => a.Id).ToArray();
@@ -61,5 +62,6 @@ public sealed class LinkUpModel : IDisposable
         if (flight is { } id && !CanLink(id)) { flight = null; remember = false; }
         Changed?.Invoke();
     }
-    public void Dispose() { foreach (var account in accounts) account.Changed -= Refresh; port.Changed -= LinksChanged; }
+    public void Resume() { if (observing) return; observing = true; foreach (var account in accounts) account.Changed += Refresh; port.Changed += LinksChanged; Refresh(); }
+    public void Dispose() { if (!observing) return; observing = false; foreach (var account in accounts) account.Changed -= Refresh; port.Changed -= LinksChanged; Pending = null; flight = null; remember = false; DontAskAgain = false; }
 }

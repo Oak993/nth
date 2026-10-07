@@ -3,6 +3,7 @@ using Marrow.Services.Port.Skills.Shims;
 namespace Marrow.Services.Tests.Port.Skills.Shims;
 
 // PORT-ONLY: ONDEMAND 3.6 and DL-6.
+[Trait("Spec", "DL-6")]
 public sealed class ShimPathTests
 {
     [Fact, Trait("Feature", "SK-6"), Trait("Rule", "R-TEST-4")]

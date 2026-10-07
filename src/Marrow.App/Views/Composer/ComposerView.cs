@@ -392,6 +392,8 @@ public sealed class ComposerView : Decorator
 
     private readonly ThreadRuntime runtime;
     private readonly string? workingDirectory; // :120
+    private readonly Marrow.App.Port.MultiAccount.Opinions.AskOthersView? askOthers;
+    private ComposerDraft? opinionDraft;
     private readonly bool compactModelChip;
     private readonly bool takesFocusOnAppear; // :123
     private readonly ComposerController controller = new(); // :126
@@ -488,16 +490,24 @@ public sealed class ComposerView : Decorator
         layers.Children.Add(padded);
         // :186 .modifier(ComposerSurface())
         // PORT-ONLY, owner-ruled (OD-0091, voice-SPEC V-14.1): the attachment button sits at the pill's left, inside it or in the margin the pill gives up for it, so the
-        // pill hangs in a grid that lets the margin button overflow to its left.
+        // pill has a sibling overlay that lets the margin button overflow to its left.
+        // Keep the plate itself as Child, and the overlay outside its panel-content clip.
+        Child = new ComposerSurface().Body(layers);
         root = new Grid { ClipToBounds = false };
-        root.Children.Add(new ComposerSurface().Body(layers));
-        Child = root;
+        VisualChildren.Add(root);
+        LogicalChildren.Add(root);
         root.Children.Add(outsideHost); // the margin button hangs to the left of the pill: a canvas, because a negative margin would make its box wider than the button
         widthPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         insetPlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         fadePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         scalePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
-        Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
+        askOthers = Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
+        if (askOthers is not null) askOthers.Sent += (_, _) =>
+        {
+            // A confirmation may finish after the user edits the draft. Clear only the draft actually submitted.
+            if (opinionDraft is { } sent && runtime.Draft == sent) runtime.Draft = new ComposerDraft();
+            opinionDraft = null;
+        };
         if (VoiceFeature.Enabled)
         {
             voice = new ComposerVoiceController(new ComposerVoiceHost(() => Model.Settings, DraftSelection, ReplaceDraft, Send));
@@ -577,6 +587,20 @@ public sealed class ComposerView : Decorator
             if (SwiftTask.IsCancelled) return;
             Transaction.WithAnimation(Chrome.PanelSlide, () => state.AttachmentNotice = null);
         });
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var plate = base.MeasureOverride(availableSize);
+        root.Measure(availableSize);
+        return new Size(Math.Max(plate.Width, root.DesiredSize.Width), Math.Max(plate.Height, root.DesiredSize.Height));
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = base.ArrangeOverride(finalSize);
+        root.Arrange(new Rect(finalSize));
+        return size;
     }
 
     private void Appear()
@@ -763,7 +787,7 @@ public sealed class ComposerView : Decorator
     // or the notice line; the composer leaving stops the session.
     private void StartVoiceViews(ComposerVoiceController voiceController)
     {
-        this.Track(() => voiceController.IsLive, live =>
+        this.Track(() => voiceController.IsLive || voiceController.Preparing, live =>
         {
             WatchEscape(live);
             ApplyDictating();
@@ -816,7 +840,7 @@ public sealed class ComposerView : Decorator
 
     private void OnVoiceKey(object? sender, KeyEventArgs e)
     {
-        if (e.Handled || e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None || voice is not { IsLive: true } active) return;
+        if (e.Handled || e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None || voice is not { } active || !(active.IsLive || active.Preparing)) return;
         // V-14.4 "otherwise Esc keeps its existing meaning": a sheet or popover opened after the session went live is the keyboard's first (as an NSWindow's sheet or an NSPopover is a
         // key window of its own); this handler was added when the session went live, so it runs before theirs and has to ask
         if (sender is TopLevel top && (SheetKeyboard.IsTaken(top) || WindowTransients.Newest(top) is not null)) return;
@@ -1090,6 +1114,13 @@ public sealed class ComposerView : Decorator
         if (runtime.Draft.IsEmpty) return; // :371
         historyIndex = null; // :372
         state.Suggestions = new SuggestionState(); // :373
+        if (!runtime.IsRunning && askOthers?.HasSelection == true)
+        {
+            opinionDraft = runtime.Draft;
+            var message = opinionDraft.OutgoingText;
+            _ = MainActor.Spawn(() => askOthers.SendAsync(message));
+            return;
+        }
         // :375-378 Return while the turn runs stops it and sends right away. With heads at work it queues instead (a
         // head takes it, or it waits for the lead): the heads run inside the lead's session, and a stop would kill them.
         if (runtime.IsRunning) runtime.InterruptAndSend();

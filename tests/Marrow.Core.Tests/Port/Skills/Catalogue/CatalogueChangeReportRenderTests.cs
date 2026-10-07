@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 
 // Unit SK-2: the report as the owner reads it (ONDEMAND-PLAN.md 3.7: "The catalogue builder writes a change report (versions, hashes, licence changes, sizes) for the
 // owner"; 2.1: "a pin changes only with the owner's approval of its change report"). Markdown, line feeds, ends with one, the same text for the same two catalogues.
+[Trait("Spec", "DL-2")]
 public sealed class CatalogueChangeReportRenderTests
 {
     private static string Render(CatalogueChangeReport report, ChangeReportRenderOptions? options = null) => report.ToMarkdown(options);

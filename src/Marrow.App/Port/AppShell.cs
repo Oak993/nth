@@ -170,6 +170,7 @@ public sealed class AppShell : ITerminationSender
         if (msg == WM_ACTIVATEAPP && wParam != 0)
         {
             UpdateChecker.Shared.HandleActivation();
+            Delegate.Model?.ResumePaletteChecks(); // OD-0064 / AC-3: same captured transport and debounced automatic path.
             // HydraButton.swift:475 the charge views observe the same didBecomeActiveNotification (PR-HYDRA-241).
             Marrow.App.Views.Chat.HydraChargeLayerView.PostApplicationDidBecomeActive();
         }

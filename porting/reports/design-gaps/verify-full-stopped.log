@@ -1,0 +1,6 @@
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+fatal: cannot change to 'E:/Droppy/reference/droppy-code-v1.7.0': No such file or directory
+
+Linux full verification stopped after 14 minutes: App/UI test hosts did not exit; native Windows APIs and pinned E:/ source are unavailable. Targeted Linux suites run separately.

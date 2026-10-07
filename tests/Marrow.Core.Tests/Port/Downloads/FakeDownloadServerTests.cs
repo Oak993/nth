@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Port.Downloads;
 
 // SK-0 (DL-0, skills-ONDEMAND-PLAN.md section 7): the fake download server's plain behaviour: https with a test certificate trusted
 // only by the test's handler, Accept-Ranges on and off, 404 and 500, the request log, holds. Loopback only; nothing leaves the process.
+[Trait("Spec", "DL-0")]
 public sealed class FakeDownloadServerTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(5000, seed: 7);

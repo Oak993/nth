@@ -32,7 +32,8 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
     {
         var cards = Nodes<ChromeCard>(w);
         Assert.Same(card.Card, cards[0]);
-        Assert.Equal(4, cards.Length); // the Look card, the rows card, the picture card, the zoom card
+        Assert.Equal(5, cards.Length); // the Look card, the rows card, the picture card, the zoom card, then OD-0127's Colours card (ED-636 (4))
+        Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(cards[4]).OfType<Marrow.App.Port.ModelsPalette.PaletteColoursSection>());
         var content = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(card.Card.Child).Child).Children[0]);
         Assert.Collection(content.Children,
             c => Assert.Same(card.Mini, c),

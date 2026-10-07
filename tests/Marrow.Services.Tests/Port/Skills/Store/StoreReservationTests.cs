@@ -10,6 +10,7 @@ using WindowsOnlyFactAttribute = Marrow.Services.Tests.Port.Skills.Store.Fixture
 namespace Marrow.Services.Tests.Port.Skills.Store;
 
 [Trait("Platform", "WINDOWS-ONLY")]
+[Trait("Spec", "DL-5")]
 public sealed class StoreReservationTests
 {
     [WindowsOnlyFact]

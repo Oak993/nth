@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="3ff67444-e866-4487-b723-2479b4e3d699" name="@a39ab932e15a 2026-10-07 06:41:27" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T06:41:27.6222641+00:00" queuing="2026-10-07T06:41:27.6222642+00:00" start="2026-10-07T06:41:26.2797208+00:00" finish="2026-10-07T06:41:27.6296689+00:00" />
+  <TestSettings name="default" id="287a4bcb-fb4c-4616-b8a5-c9e222ee4f8c">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_06_41_27" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="86f69a1e-4958-4b64-afac-517ec02dd28e" testId="d06ca410-0b44-4ca9-7176-ff255dece5a0" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Models_of_the_same_maker_keep_their_own_spans" computerName="a39ab932e15a" duration="00:00:00.0003064" startTime="2026-10-07T06:41:27.5282996+00:00" endTime="2026-10-07T06:41:27.5283527+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="86f69a1e-4958-4b64-afac-517ec02dd28e" />
+    <UnitTestResult executionId="46eecb39-07b6-480f-b871-a256aa982b36" testId="b16abf77-2ba2-8490-f7d3-73bb45c6736c" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Every_model_has_a_span_with_workers_left_and_the_first_lead_at_the_knob" computerName="a39ab932e15a" duration="00:00:00.0107263" startTime="2026-10-07T06:41:27.5266057+00:00" endTime="2026-10-07T06:41:27.5277883+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="46eecb39-07b6-480f-b871-a256aa982b36" />
+    <UnitTestResult executionId="dbfa9b99-deb2-49f3-b645-81dd12df71fa" testId="15241b0a-85a5-c21f-50d7-0c235fe36be5" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_pair_has_exactly_the_approved_one_point_six_lead_share" computerName="a39ab932e15a" duration="00:00:00.0119135" startTime="2026-10-07T06:41:27.4992207+00:00" endTime="2026-10-07T06:41:27.5168628+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dbfa9b99-deb2-49f3-b645-81dd12df71fa" />
+    <UnitTestResult executionId="e8c9ee6f-a84e-4aea-a0c1-65e9acce7226" testId="2844e62e-b982-7a03-68b7-0da6f12b45f8" testName="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_solo_model_fills_the_tube_and_an_empty_selection_has_no_spans" computerName="a39ab932e15a" duration="00:00:00.0021871" startTime="2026-10-07T06:41:27.5284369+00:00" endTime="2026-10-07T06:41:27.5303516+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e8c9ee6f-a84e-4aea-a0c1-65e9acce7226" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Every_model_has_a_span_with_workers_left_and_the_first_lead_at_the_knob" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="b16abf77-2ba2-8490-f7d3-73bb45c6736c">
+      <Execution id="46eecb39-07b6-480f-b871-a256aa982b36" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="Every_model_has_a_span_with_workers_left_and_the_first_lead_at_the_knob" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_solo_model_fills_the_tube_and_an_empty_selection_has_no_spans" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="2844e62e-b982-7a03-68b7-0da6f12b45f8">
+      <Execution id="e8c9ee6f-a84e-4aea-a0c1-65e9acce7226" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="A_solo_model_fills_the_tube_and_an_empty_selection_has_no_spans" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.A_pair_has_exactly_the_approved_one_point_six_lead_share" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="15241b0a-85a5-c21f-50d7-0c235fe36be5">
+      <Execution id="dbfa9b99-deb2-49f3-b645-81dd12df71fa" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="A_pair_has_exactly_the_approved_one_point_six_lead_share" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests.Models_of_the_same_maker_keep_their_own_spans" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="d06ca410-0b44-4ca9-7176-ff255dece5a0">
+      <Execution id="86f69a1e-4958-4b64-afac-517ec02dd28e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.SelectedModelBlendTests" name="Models_of_the_same_maker_keep_their_own_spans" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="d06ca410-0b44-4ca9-7176-ff255dece5a0" executionId="86f69a1e-4958-4b64-afac-517ec02dd28e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="b16abf77-2ba2-8490-f7d3-73bb45c6736c" executionId="46eecb39-07b6-480f-b871-a256aa982b36" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="15241b0a-85a5-c21f-50d7-0c235fe36be5" executionId="dbfa9b99-deb2-49f3-b645-81dd12df71fa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2844e62e-b982-7a03-68b7-0da6f12b45f8" executionId="e8c9ee6f-a84e-4aea-a0c1-65e9acce7226" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="4" executed="4" passed="4" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.11]   Discovering: Marrow.Core.Tests
+[xUnit.net 00:00:00.78]   Discovered:  Marrow.Core.Tests
+[xUnit.net 00:00:00.80]   Starting:    Marrow.Core.Tests
+[xUnit.net 00:00:00.86]   Finished:    Marrow.Core.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

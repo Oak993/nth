@@ -85,13 +85,12 @@ public sealed class CustomizationPageRig : IDisposable
     /// <summary>The frame clock and the runtime's clock move together by <paramref name="milliseconds"/>, in steps of one frame (1/60 s) at most.</summary>
     public void Advance(double milliseconds, bool settle = true)
     {
-        var remaining = milliseconds;
-        while (remaining > 0)
+        var end = Main.Time.Elapsed + TimeSpan.FromMilliseconds(milliseconds);
+        while (Main.Time.Elapsed < end)
         {
-            var step = Math.Min(remaining, 1000.0 / 60);
-            Main.AdvanceMilliseconds(step);
-            Main.OnMain(() => { if (Quiet is not null) Quiet.Advance(TimeSpan.FromMilliseconds(step)); else Frames.Advance(TimeSpan.FromMilliseconds(step)); });
-            remaining -= step;
+            var step = TimeSpan.FromTicks(Math.Min((end - Main.Time.Elapsed).Ticks, TimeSpan.FromSeconds(1.0 / 60).Ticks));
+            Main.Advance(step);
+            Main.OnMain(() => { if (Quiet is not null) Quiet.Advance(step); else Frames.Advance(step); });
         }
         if (settle) Settle();
     }

@@ -43,6 +43,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T46, CZ-4.3: the placeholder is the real composer's string for a Claude thread
+    [Trait("Spec", "CZ-T46")]
     public void The_placeholder_is_the_real_composers_for_a_Claude_thread_and_the_designs() => headless.OnUiThread(() =>
     {
         using var fixture = Fixture();
@@ -62,6 +63,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T37, CZ-4.3: 472 wide at left 12, bottom 12; the light's rectangle is the pill's and its fade edge the stage's bottom
+    [Trait("Spec", "CZ-T37")]
     public void The_composer_sits_472_wide_12_from_the_left_and_the_bottom_and_the_light_is_given_its_rectangle() => headless.OnUiThread(() =>
     {
         using var fixture = Fixture();
@@ -83,6 +85,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T45, CZ-4.3; voice-SPEC V-14.1: at width 472 the preview matches the real pill (46 high, attach at left, trailing chip/ring/send)
+    [Trait("Spec", "CZ-T45")]
     public void At_472_the_preview_is_laid_out_as_a_real_composer_of_the_same_width() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -147,6 +150,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T45, CZ-4.3: the rendered placeholder and the ring and send end of the plate, against the real composer's pixels
+    [Trait("Spec", "CZ-T45")]
     public void The_rendered_placeholder_and_the_control_end_match_a_real_composers_pixels() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -193,6 +197,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T35, CZ-4.3: Typing types the playground's string one character every 0.055 s from empty and stays; leaving crossfades the placeholder back
+    [Trait("Spec", "CZ-T35")]
     public void Typing_types_the_playgrounds_string_at_0_055_seconds_a_character_and_leaving_it_brings_the_placeholder_back() => headless.OnUiThread(() =>
     {
         using var fixture = Fixture();
@@ -281,6 +286,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-4.3, CZ-4.5.5: clicking the composer's chip steps to the next maker; the light wears the maker's palette
+    [Trait("Spec", "CZ-T32")]
     public void The_chip_steps_the_maker_and_the_light_wears_that_makers_palette_and_the_settings_given() => headless.OnUiThread(() =>
     {
         var session = new PreviewSession(ProviderKind.Claude);
@@ -303,6 +309,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T36, CZ-4.8: the preview opens no draft, thread, microphone, network or model; its text and controls are inert
+    [Trait("Spec", "CZ-T36")]
     public void The_preview_holds_no_runtime_no_draft_and_no_editable_text_and_its_controls_are_inert() => headless.OnUiThread(() =>
     {
         var session = new PreviewSession(ProviderKind.Claude);

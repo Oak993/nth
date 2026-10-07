@@ -1,5 +1,6 @@
 using Marrow.Services.Port.Skills.Install;
 namespace Marrow.Services.Tests.Port.Skills.Install;
+[Trait("Spec", "DL-4")]
 public sealed class InstallerCrashTests
 {
     public static IEnumerable<object[]> Crashes() => Enum.GetValues<InstallerKind>().SelectMany(k => Enum.GetValues<InstallStep>().Select(s => new object[] { k, s }));

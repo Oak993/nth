@@ -4,6 +4,7 @@ using Marrow.Services.Port.Voice.Cloud;
 namespace Marrow.Services.Tests.Port.Voice.Cloud;
 
 // VT-16, voice-SPEC V-18.1 "the session audio as 16 kHz mono PCM16 WAV" (V-T110).
+[Trait("Spec", "V-T110")]
 public sealed class PcmWavTests
 {
     [Fact]

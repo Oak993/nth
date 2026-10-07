@@ -11,6 +11,9 @@
     <EmbeddedResource Include="Models\ComposerLights\border-beam-tables.json" LogicalName="Marrow.Core.BorderBeamTables.json" />
     <!-- ED-294 (unit SK-1): the skills and tools catalogue, compiled in and never fetched at run time (ONDEMAND-PLAN.md 2.3). -->
     <EmbeddedResource Include="Port\Skills\Catalogue\catalogue.json" LogicalName="Marrow.Core.SkillsCatalogue.json" />
+    <EmbeddedResource Include="Port\ModelsPalette\palette-source1.json" LogicalName="Marrow.Core.ModelsPalette.Source1.json" />
+    <EmbeddedResource Include="Port\ModelsPalette\psl-icann.txt" LogicalName="Marrow.Core.ModelsPalette.PslIcann.txt" />
+    <EmbeddedResource Include="Port\ModelsPalette\toc-source1.json" LogicalName="Marrow.Core.ModelsPalette.Toc.json" />
   </ItemGroup>
 
 </Project>

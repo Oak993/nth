@@ -615,7 +615,7 @@ internal sealed class AppearanceSettingsPage : Decorator
             open.Track(() => settings.SidebarMode, mode => { open.IsEnabled = mode != SidebarMode.PanelOnly; open.Opacity = mode == SidebarMode.PanelOnly ? 0.5 : 1; }); // :449-450
             var rows = new StackPanel();
             foreach (var row in new Control[] { new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
-            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { look, new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
+            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { look, new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)), new Marrow.App.Port.ModelsPalette.PaletteColoursSection(model.CreatePaletteColoursController()) } }); // :452-454
         });
     }
 }

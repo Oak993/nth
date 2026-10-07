@@ -1,0 +1,49 @@
+{
+  "src/Marrow.App/Views/Composer/EffortSlider.cs": {
+    "originalSha256": "091daa56aa376c77680794bf79566dc9dc37e7d9cdd8f3c4260d74070bd16feb",
+    "currentSha256": "091daa56aa376c77680794bf79566dc9dc37e7d9cdd8f3c4260d74070bd16feb",
+    "originalBytes": 117471,
+    "prefixPreserved": true,
+    "identical": true
+  },
+  "src/Marrow.App/Views/Composer/LiquidTrack.cs": {
+    "originalSha256": "26d9a7ac0451060b6b141e1038be33ec04bb9fa582d64e2343cfae560cb512d9",
+    "currentSha256": "26d9a7ac0451060b6b141e1038be33ec04bb9fa582d64e2343cfae560cb512d9",
+    "originalBytes": 49819,
+    "prefixPreserved": true,
+    "identical": true
+  },
+  "src/Marrow.App/Views/Composer/LiquidStrike.cs": {
+    "originalSha256": "242989c5a3c3f943b2e9516630bfb3173b9cfec740063e75d214b9b308a35801",
+    "currentSha256": "242989c5a3c3f943b2e9516630bfb3173b9cfec740063e75d214b9b308a35801",
+    "originalBytes": 23811,
+    "prefixPreserved": true,
+    "identical": true
+  },
+  "porting/parity_matrix.json": {
+    "originalSha256": "454ea9ee42ae5d83064678fb8692bc3efb220a1c06874646c1e7bd19b8da9cff",
+    "currentSha256": "454ea9ee42ae5d83064678fb8692bc3efb220a1c06874646c1e7bd19b8da9cff",
+    "originalBytes": 8803782,
+    "prefixPreserved": true,
+    "identical": true
+  },
+  "porting/ui_contract.json": {
+    "originalSha256": "8584cb597263a1ee454b33f7ee6a345c44ee6f7e8c84160997366087440d41d2",
+    "currentSha256": "8584cb597263a1ee454b33f7ee6a345c44ee6f7e8c84160997366087440d41d2",
+    "originalBytes": 2029717,
+    "prefixPreserved": true,
+    "identical": true
+  },
+  "porting/engineering_decisions.md": {
+    "originalSha256": "4bc9538526411a8066543774cce8579e1ca52620569967d5774b8ceaeea86cea",
+    "currentSha256": "b39f67c93aa4fec575fcf2c9ac2c2a9e12284775d702142f5150b88c501d3ac8",
+    "originalBytes": 1790276,
+    "prefixPreserved": true,
+    "identical": false
+  },
+  "preTaskTestsReferencesAssertionsUnchanged": true,
+  "modifiedPreTaskTestPaths": [],
+  "copiedSourceHashesMatch": true,
+  "wholeRecordEvidencePrefixPreserved": true,
+  "wholeRecordEvidenceRows": 30
+}

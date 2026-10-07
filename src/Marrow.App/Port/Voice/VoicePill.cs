@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Voice;
 using Marrow.UI.Port;
+using Marrow.App.Port.Voice.Countdown;
 
 namespace Marrow.App.Port.Voice;
 
@@ -44,6 +45,10 @@ internal sealed class VoicePill : Panel
     private readonly Panel material = new() { IsHitTestVisible = false, Background = Brushes.Transparent };
     private readonly Border filtered = new() { IsHitTestVisible = false };
     private readonly Panel contents = new() { Background = Brushes.Transparent };
+    private readonly VoiceCountdownFooter countdown = new();
+    private readonly VoicePreparationFace preparation = new();
+    private readonly LookNumber preparationOpacity;
+    private bool preparing;
     private readonly ScaleTransform crossTransform = new(0.6, 0.6);
     private VoiceListeningStyle style = VoiceListeningStyle.Pill;
     private bool open;
@@ -72,6 +77,7 @@ internal sealed class VoicePill : Panel
         crossScale = new LookNumber(motion, 0.6);
         nameOpacity = new LookNumber(motion, 1);
         outgoingOpacity = new LookNumber(motion, 0);
+        preparationOpacity = new LookNumber(motion, 0);
         IsHitTestVisible = false;
         ClipToBounds = false;
         body = new Border { IsHitTestVisible = false }.Capsule(RoundedCornerStyle.Circular);
@@ -98,6 +104,8 @@ internal sealed class VoicePill : Panel
             contents.Children.Add(labels[k]);
         }
         contents.Children.Add(Cross);
+        contents.Children.Add(countdown);
+        contents.Children.Add(preparation);
         Cross.Opacity = 0;
         Cross.IsHitTestVisible = false;
         AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Polite); // V-12.9: the label is the pill's polite live region
@@ -206,7 +214,18 @@ internal sealed class VoicePill : Panel
     }
 
     /// <summary>The width the open pill is, or is easing to: the label shown, the name, H + 8 + label + name + 8 + 24 + 8 (V-12.2, V-12.10).</summary>
-    public double OpenWidth => VoicePillGeometry.OpenWidth(style, labels[(int)state].WordsWidth, labels[(int)state].NameWidth);
+    public double OpenWidth => preparing ? preparation.OpenWidth : VoicePillGeometry.OpenWidth(style, labels[(int)state].WordsWidth, labels[(int)state].NameWidth);
+
+    internal bool ShowsDownload => preparation.IsDownload && preparationOpacity.Value > 0 && ShownOpacity > 0;
+
+    internal void ShowPreparation(bool active, VoicePrepItem? item)
+    {
+        if (active && !preparing) preparation.Reset();
+        var changed = active != preparing;
+        preparing = active;
+        if (active) preparation.Update(item);
+        if (changed || active) Retarget();
+    }
 
     /// <summary>The width now (eased).</summary>
     public double ShownWidth => widthValue.Value;
@@ -230,6 +249,8 @@ internal sealed class VoicePill : Panel
 
     public double NameOpacity => nameOpacity.Value;
 
+    internal string Label => labels[(int)state].Words;
+
     /// <summary>The text sweep's position now, 1.35 to -0.55 in the design's terms (a test reads it).</summary>
     public double SweepPosition => VoicePillSweep.Position(sweepSeconds);
 
@@ -237,7 +258,13 @@ internal sealed class VoicePill : Panel
     public bool SweepRunning => sweepLink is not null;
 
     /// <summary>True while any transition of the pill is still moving.</summary>
-    public bool IsMoving => motion.IsMoving || relabelTimer is not null;
+    public bool IsMoving => motion.IsMoving || relabelTimer is not null || countdown.IsMoving;
+
+    internal void ShowCountdown(CapCountdownFrame? frame)
+    {
+        countdown.Update(frame);
+        InvalidateArrange();
+    }
 
     private bool Still => motion.Still;
 
@@ -263,7 +290,7 @@ internal sealed class VoicePill : Panel
         }
         for (var k = 0; k < 3; k++)
         {
-            var on = k == (int)state;
+            var on = !preparing && k == (int)state;
             if (relabeling && on) labelOpacity[k].To(0, LookCurve.Ease(0.14)); // `.vpill.relabel .pl.on{opacity:0!important;transition:opacity .14s ease!important}`
             else if (open && on) labelOpacity[k].To(1, LookCurve.Ease(0.26), 0.14); // `.vpill.open .pl.on`
             else labelOpacity[k].To(0, LookCurve.Ease(0.2)); // `.pl`
@@ -271,6 +298,7 @@ internal sealed class VoicePill : Panel
             else labelShift[k].To(-4, LookCurve.Ez(0.32));
         }
         Cross.IsHitTestVisible = open; // `.vpill.open{pointer-events:auto}`
+        preparationOpacity.To(open && preparing ? 1 : 0, LookCurve.Ease(open && preparing ? .3 : .2), open && preparing ? .12 : 0);
         IsHitTestVisible = open; // disabling the panel would also disable its cancel control
         Cross.Live = open;
         InvalidateMeasure();
@@ -415,10 +443,11 @@ internal sealed class VoicePill : Panel
             labels[k].OutgoingOpacity = outgoingOpacity.Value;
         }
         Cross.Opacity = crossOpacity.Value;
+        preparation.Opacity = preparationOpacity.Value;
         crossTransform.ScaleX = crossTransform.ScaleY = crossScale.Value;
         foreach (var label in labels) label.Sweep = VoicePillSweep.Position(sweepSeconds);
         if (outgoingOpacity.Value <= 0 && labels[0].OutgoingName is not null) foreach (var label in labels) label.OutgoingName = null;
-        AutomationProperties.SetName(this, labels[(int)state].Words + (language is null ? "" : " " + language));
+        AutomationProperties.SetName(this, preparing ? preparation.Description : labels[(int)state].Words + (language is null ? "" : " " + language));
     }
 
     // `.vpill{overflow:hidden}`: the label and the cross stay inside the capsule while it opens and folds
@@ -457,6 +486,8 @@ internal sealed class VoicePill : Panel
         }
         var crossX = style == VoiceListeningStyle.Float ? width - VoicePillGeometry.Pad - VoicePillGeometry.CrossSize : VoicePillGeometry.Pad;
         Cross.Arrange(new Rect(crossX, (h - VoicePillGeometry.CrossSize) / 2, VoicePillGeometry.CrossSize, VoicePillGeometry.CrossSize));
+        countdown.Place(width, h);
+        preparation.Arrange(new Rect(0, 0, width, h));
         return finalSize;
     }
 

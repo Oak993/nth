@@ -1,0 +1,25 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:11.18]     Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule [FAIL]
+  Failed Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule [535 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                        ↓ (pos 2148)
+Expected: [···, 0, 255, 29, 48, 67, ···]
+Actual:   [···, 0, 255, 28, 45, 64, ···]
+                        ↑ (pos 2148)
+  Stack Trace:
+     at Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.<>c.<The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule>b__2_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/EffortSliderTitleFramesTests.cs:line 35
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/EffortSliderTitleFramesTests.cs:line 15
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /tmp/t37-evidence/rr41/contract-app-final.trx
+
+Failed!  - Failed:     1, Passed:   338, Skipped:     0, Total:   339, Duration: 24 s - Marrow.App.Tests.dll (net10.0)

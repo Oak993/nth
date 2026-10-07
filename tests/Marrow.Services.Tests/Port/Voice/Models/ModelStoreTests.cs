@@ -9,6 +9,7 @@ using Marrow.Testing.Downloads;
 namespace Marrow.Services.Tests.Port.Voice.Models;
 
 // VT-7 (voice-SPEC V-9.3, V-9.4, V-T44; OD-0099 Q-V-13 B): the store's folder, installed.json and its trust rules, and Remove.
+[Trait("Spec", "V-T44")]
 public sealed class ModelStoreTests : IDisposable
 {
     private static readonly FakeArtifact Tiny = FakeArtifact.Pattern(5_000, seed: 71);

@@ -27,10 +27,8 @@
 // input from the moment it is displayed. Reduce motion (ED-084): the same hidden show and reveal, with nothing animated.
 // Every open (the window going from hidden to shown) plays it; bringing an open window forward does not.
 //
-// NOT BUILT (owner's call, ED-249): (1) the Acrylic blur is DWM's and appears whole at G: Window.Opacity, a layered alpha
-// and a position off the screen do not hide it (P14), so only the app-drawn glass fades over 80 ms where the canvas fades
-// blur and tint together. (2) The canvas's close (160 ms fade and 0.985 scale) is not built: the same Acrylic would stay
-// whole under the fading content; the window is hidden as before.
+// RR-37: the native Acrylic sprite now follows the glass curve. The common WinUI root owns the
+// locked close fade/scale (SettingsNativePresentation, SettingsClose); native pixels still need Windows evidence.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
@@ -108,6 +106,8 @@ internal sealed class SettingsRiseLayout
     {
         var layout = new SettingsRiseLayout();
         layout.Glass.Add(view.RiseBackdrop);
+        if (TopLevel.GetTopLevel(view) is AvaloniaWindow { Content: SettingsShell shell })
+            layout.Glass.Add(shell.Shadow);
         if (view.RiseSheet is { } sheet)
             foreach (var child in sheet.Children)
                 if (child is Shape) layout.Glass.Add(child); // DetailSheetModifier's wash and tint (Chrome.swift:195-196)
@@ -194,6 +194,8 @@ internal sealed class SettingsRise
     private ContinuousInstant glassReady;
     private bool cloaked;
     private bool requested;
+    private SettingsNativePresentation? native;
+    private bool? fullOpacity;
 
     private SettingsRise(AvaloniaWindow window, SettingsView view, Func<AvaloniaWindow, bool, bool> cloak, Action activate)
     {
@@ -227,7 +229,8 @@ internal sealed class SettingsRise
             activate();
             return null;
         }
-        var rise = new SettingsRise(window, view, cloak, activate) { cloaked = true };
+        var rise = new SettingsRise(window, view, cloak, activate) { cloaked = true, fullOpacity = RenderOptions.GetRequiresFullOpacityHandling(window) };
+        RenderOptions.SetRequiresFullOpacityHandling(window, true);
         var activated = window.ShowActivated;
         window.ShowActivated = false; // activated at the reveal (ED-236's order)
         try { show(); }
@@ -249,6 +252,9 @@ internal sealed class SettingsRise
             frames.CancelFrame(frame);
         }
         Release();
+        native?.Dispose();
+        native = null;
+        RenderOptions.SetRequiresFullOpacityHandling(window, fullOpacity);
         if (cloaked)
         {
             cloaked = false; // never leave the window hidden
@@ -279,14 +285,22 @@ internal sealed class SettingsRise
             var layout = SettingsRiseLayout.Gather(view);
             if (reduceMotion) Release();
             else Hide(layout);
+            var attached = false;
+            if (native is null && SettingsNativePresentation.Attach.Current(window) is { } presentation)
+            { native = presentation; attached = true; }
+            native?.Glass(reduceMotion ? 1 : 0);
             hiddenFrames++;
             var held = hidden is { } before && before.SameAs(layout);
             hidden = layout;
-            if (!held && hiddenFrames < MaxHiddenFrames)
+            // Native readiness is independent of a stable managed layout. Never uncloak before
+            // its Acrylic sprite exists, nor on the same frame that first sets its hidden alpha.
+            if ((native is null && SettingsNativePresentation.RequiresSurface.Current(window))
+                || attached || (!held && hiddenFrames < MaxHiddenFrames))
             {
                 Request();
                 return;
             }
+            if (native is null) SettingsNativePresentation.ReportUnavailable(window);
             // G: the hidden state was drawn by the previous frame; the first frame displayed is the wave's start.
             cloaked = false;
             cloak(window, false);
@@ -319,6 +333,7 @@ internal sealed class SettingsRise
     private void Apply(SettingsRiseLayout layout, double t)
     {
         var glass = SettingsRiseTiming.Glass(t);
+        native?.Glass(glass);
         foreach (var layer in layout.Glass) For(layer).Set(glass, null);
         if (layout.FirstCard is { } card) For(card).Set(glass, null);
         foreach (var (index, parts) in layout.Items)
@@ -380,7 +395,7 @@ internal sealed class SettingsRise
     }
 
     // A value source an Avalonia binding follows.
-    private sealed class Feed<T> : IObservable<T>
+    internal sealed class Feed<T> : IObservable<T>
     {
         private readonly List<IObserver<T>> observers = [];
         private T value = default!;

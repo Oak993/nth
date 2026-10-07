@@ -1,0 +1,18 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:01.42]     Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step [FAIL]
+  Failed Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step [314 ms]
+  Error Message:
+   Assert.InRange() Failure: Value not in range
+Range:  (0 - 9.9999999999999995E-07)
+Actual: 4.1723251342773438E-06
+  Stack Trace:
+     at Marrow.Core.Tests.Port.ModelsPalette.PaletteInkTests.The_fluid_matches_the_independently_executed_locked_v22_at_every_captured_step() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteInkTests.cs:line 22
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/visible-ink-first.trx
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 326 ms - Marrow.Core.Tests.dll (net10.0)

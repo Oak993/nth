@@ -1,0 +1,22 @@
+Test run for /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:07.99]     Marrow.Services.Tests.Port.Voice.Models.GapModelDownloadAcceptanceTests.GAP_A_voice_model_partial_is_resumed_with_Range_and_refetches_no_byte [FAIL]
+  Failed Marrow.Services.Tests.Port.Voice.Models.GapModelDownloadAcceptanceTests.GAP_A_voice_model_partial_is_resumed_with_Range_and_refetches_no_byte [78 ms]
+  Error Message:
+   Assert.Equal() Failure: Values differ
+Expected: Tuple (40000, 206, 80000)
+Actual:   Tuple (null, 200, 120000)
+  Stack Trace:
+     at Marrow.Services.Tests.Port.Voice.Models.GapModelDownloadAcceptanceTests.GAP_A_voice_model_partial_is_resumed_with_Range_and_refetches_no_byte() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Voice/Models/GapModelDownloadAcceptanceTests.cs:line 28
+   at Marrow.Services.Tests.Port.Voice.Models.GapModelDownloadAcceptanceTests.GAP_A_voice_model_partial_is_resumed_with_Range_and_refetches_no_byte() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/Voice/Models/GapModelDownloadAcceptanceTests.cs:line 30
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:10.13]     Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.A_failed_build_releases_its_reservation_so_GC_removes_the_tmp_residue [SKIP]
+[xUnit.net 00:00:10.13]     Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.Store_GC_at_every_install_step_keeps_the_build_and_its_fresh_spares_while_reserved [SKIP]
+[xUnit.net 00:00:10.13]     Marrow.Services.Tests.Port.Skills.Pipelines.PipelineRepairCrashTests.Abrupt_exit_at_every_repair_step_leaves_a_damaged_or_installed_pin_that_restart_finishes [SKIP]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.A_failed_build_releases_its_reservation_so_GC_removes_the_tmp_residue [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Store.StoreReservationTests.Store_GC_at_every_install_step_keeps_the_build_and_its_fresh_spares_while_reserved [1 ms]
+  Skipped Marrow.Services.Tests.Port.Skills.Pipelines.PipelineRepairCrashTests.Abrupt_exit_at_every_repair_step_leaves_a_damaged_or_installed_pin_that_restart_finishes [1 ms]
+WARNING: Overwriting results file: /tmp/GAP-2-evidence/services.trx
+Results File: /tmp/GAP-2-evidence/services.trx
+
+Failed!  - Failed:     1, Passed:   447, Skipped:     3, Total:   451, Duration: 8 s - Marrow.Services.Tests.dll (net10.0)

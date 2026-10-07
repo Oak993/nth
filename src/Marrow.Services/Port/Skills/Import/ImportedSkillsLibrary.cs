@@ -20,6 +20,9 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
 
     private static readonly UTF8Encoding Strict = new(false, true);
     private readonly object gate = new();
+    private readonly object importGate = new();
+
+    internal Func<string, Dictionary<string, byte[]>> ReadSkillTree { get; set; } = ReadTree;
     private readonly string folder;
     private readonly string index;
     private readonly string copies;
@@ -47,12 +50,12 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
 
     public IReadOnlyList<ImportedSkill> List()
     {
-        lock (gate) return [.. entries.Select(Resolve).Select(r => r.Skill).OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)];
+        lock (gate) return [.. entries.Select(e => e.Skill).OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)];
     }
 
     public DuplicateQuestion? FindDuplicate(ForeignSkill skill)
     {
-        lock (gate) return Duplicate(skill) is { } existing ? new DuplicateQuestion(skill, Resolve(existing).Skill) : null;
+        lock (gate) return Duplicate(skill) is { } existing ? new DuplicateQuestion(skill, existing.Skill) : null;
     }
 
     public ImportResult Import(IEnumerable<ForeignSkill> chosen, ImportMode mode, Func<DuplicateQuestion, DuplicateChoice> onDuplicate)
@@ -70,37 +73,42 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
             {
                 // The question is asked with the library free: the person may take a while, and the page and the chats read the library meanwhile.
                 DuplicateQuestion? question;
-                lock (gate) question = Duplicate(skill) is { } found ? new DuplicateQuestion(skill, Resolve(found).Skill) : null;
+                lock (gate) question = Duplicate(skill) is { } found ? new DuplicateQuestion(skill, found.Skill) : null;
                 var choice = DuplicateChoice.KeepBoth;
                 if (question is not null)
                 {
                     choice = onDuplicate(question);
                     if (choice == DuplicateChoice.Skip) { skipped.Add(skill); continue; }
                 }
-                lock (gate)
+                lock (importGate)
                 {
-                    CheckWritable();
-                    var existing = Duplicate(skill);
+                    var id = Guid.NewGuid().ToString("N");
                     try
                     {
-                        var name = existing is null || choice == DuplicateChoice.Replace ? skill.Name : UniqueName(skill);
-                        var id = Guid.NewGuid().ToString("N");
-                        var record = new ImportedSkill(id, name, skill.Name, skill.Description, skill.App, skill.Source, mode, skill.Path, skill.Layout,
-                            existing is not null && choice == DuplicateChoice.Replace ? existing.Skill.Enabled : true, clock.GetUtcNow(), false);
+                        // Reading another app's drive must never hold the metadata gate used by the UI.
                         if (mode == ImportMode.Copy) MakeCopy(id, skill);
                         else Probe(skill);
-                        if (existing is not null && choice == DuplicateChoice.Replace)
+                        lock (gate)
                         {
-                            entries.Remove(existing);
-                            DeleteCopy(existing.Skill.Id);
-                            replaced.Add(existing.Skill);
+                            CheckWritable();
+                            var existing = Duplicate(skill);
+                            var name = existing is null || choice == DuplicateChoice.Replace ? skill.Name : UniqueName(skill);
+                            var record = new ImportedSkill(id, name, skill.Name, skill.Description, skill.App, skill.Source, mode, skill.Path, skill.Layout,
+                                existing is not null && choice == DuplicateChoice.Replace ? existing.Skill.Enabled : true, clock.GetUtcNow(), false);
+                            if (existing is not null && choice == DuplicateChoice.Replace)
+                            {
+                                DeleteCopy(existing.Skill.Id);
+                                entries.Remove(existing);
+                                replaced.Add(existing.Skill);
+                            }
+                            entries.Add(new Entry(record, skill.Description));
+                            imported.Add(record);
+                            changed = true;
                         }
-                        entries.Add(new Entry(record, skill.Description));
-                        imported.Add(record);
-                        changed = true;
                     }
                     catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or DecoderFallbackException)
                     {
+                        DeleteCopy(id); // roll back a copy not published in the index
                         failed.Add(new ImportFailure(skill, error.Message));
                     }
                 }
@@ -145,20 +153,37 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
     }
 
     /// <summary>The skills to hand out now: enabled, readable and, for a Link, as the original is now.</summary>
-    public IReadOnlyList<ImportedGenerationSkill> Snapshot()
+    public IReadOnlyList<ImportedGenerationSkill> Snapshot() => ReadCurrent(enabledOnly: true).Skills;
+
+    /// <summary>Pool-thread refresh for page metadata; List itself never opens imported files.</summary>
+    public bool Refresh() => ReadCurrent(enabledOnly: false).Changed;
+
+    private (IReadOnlyList<ImportedGenerationSkill> Skills, bool Changed) ReadCurrent(bool enabledOnly)
     {
-        lock (gate)
+        Entry[] snapshot;
+        lock (gate) snapshot = [.. entries.OrderBy(e => e.Skill.Name, StringComparer.OrdinalIgnoreCase)];
+        var result = new List<ImportedGenerationSkill>();
+        var changed = false;
+        foreach (var entry in snapshot)
         {
-            var result = new List<ImportedGenerationSkill>();
-            foreach (var entry in entries.OrderBy(e => e.Skill.Name, StringComparer.OrdinalIgnoreCase))
+            if (enabledOnly && !entry.Skill.Enabled) continue;
+            // Foreign disks can be slow. Never hold the library lock while opening or hashing them.
+            var (skill, files) = Resolve(entry);
+            lock (gate)
             {
-                if (!entry.Skill.Enabled) continue;
-                var (skill, files) = Resolve(entry);
-                if (skill.OriginalMissing || files is null || skill.Description.Length == 0) continue;
+                var at = entries.FindIndex(e => e.Skill.Id == entry.Skill.Id);
+                if (at < 0) continue; // removed or replaced while this tree was read
+                skill = entries[at].Skill with { Description = skill.Description, OriginalMissing = skill.OriginalMissing };
+                if (skill != entries[at].Skill)
+                {
+                    entries[at] = entries[at] with { Skill = skill };
+                    changed = true;
+                }
+                if (!skill.Enabled || skill.OriginalMissing || files is null || skill.Description.Length == 0) continue;
                 result.Add(new ImportedGenerationSkill(skill.Id, skill.Name, skill.Description, files));
             }
-            return result;
         }
+        return (result, changed);
     }
 
     // ---- reading what an entry is now
@@ -171,7 +196,7 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
             Dictionary<string, byte[]> files;
             if (skill.Mode == ImportMode.Copy)
             {
-                files = ReadTree(Path.Combine(copies, skill.Id));
+                files = ReadSkillTree(Path.Combine(copies, skill.Id));
             }
             else if (skill.Layout == ForeignLayout.CursorRule)
             {
@@ -181,13 +206,13 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
             else
             {
                 if (!Directory.Exists(skill.SourcePath)) return (skill with { OriginalMissing = true }, null);
-                files = ReadTree(skill.SourcePath);
+                files = ReadSkillTree(skill.SourcePath);
             }
             if (!files.TryGetValue("SKILL.md", out var bytes)) return (skill with { OriginalMissing = skill.Mode == ImportMode.Link }, null);
             var parsed = ForeignFrontmatter.Parse(Strict.GetString(bytes));
             var description = string.IsNullOrWhiteSpace(parsed.Description) ? entry.LastDescription : parsed.Description!;
             files["SKILL.md"] = Encoding.UTF8.GetBytes(ForeignFrontmatter.WithName(Strict.GetString(bytes).TrimStart('﻿'), skill.Name));
-            return (skill with { Description = description }, files);
+            return (skill with { Description = description, OriginalMissing = false }, files);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or DecoderFallbackException)
         {
@@ -249,12 +274,12 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
     private void Probe(ForeignSkill skill)
     {
         if (skill.Layout == ForeignLayout.CursorRule) _ = RuleFiles(skill.Path, skill.Name, out _);
-        else _ = ReadTree(skill.Path);
+        else _ = ReadSkillTree(skill.Path);
     }
 
     private void MakeCopy(string id, ForeignSkill skill)
     {
-        var files = skill.Layout == ForeignLayout.CursorRule ? RuleFiles(skill.Path, skill.Name, out _) : ReadTree(skill.Path);
+        var files = skill.Layout == ForeignLayout.CursorRule ? RuleFiles(skill.Path, skill.Name, out _) : ReadSkillTree(skill.Path);
         if (!files.ContainsKey("SKILL.md")) throw new InvalidDataException("The skill has no SKILL.md.");
         Directory.CreateDirectory(copies);
         var temporary = Path.Combine(copies, ".tmp-" + id);
@@ -275,10 +300,13 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
         }
     }
 
+    // Tests model an OS deletion failure without touching user folders.
+    internal Action<string> DeleteDirectory { get; set; } = path => Directory.Delete(path, recursive: true);
+
     private void DeleteCopy(string id)
     {
         var target = Path.Combine(copies, id);
-        if (id.Length == 32 && id.All(char.IsAsciiHexDigit) && Directory.Exists(target)) Directory.Delete(target, recursive: true);
+        if (id.Length == 32 && id.All(char.IsAsciiHexDigit) && Directory.Exists(target)) DeleteDirectory(target);
     }
 
     // ---- duplicates and names

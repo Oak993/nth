@@ -1,0 +1,5 @@
+{
+  "src/Marrow.Core/Port/ModelsPalette/SelectedModelBlend.cs": "9c739cfe7a87e16aadf203ecec6f83bd9ea76bae4e5e245b8a7ef257f08c18e2",
+  "src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogue.cs": "57b74884a030d578a52b2360301c46a138860d12a13db348553a6e829ca9bf37",
+  "src/Marrow.Services/Port/ModelsPalette/PublicModelCatalogueStore.cs": "fd0f485fcdfbfd613bb3d6cf4fd0a97e5eb2fb29236738ffadf795e782ca4594"
+}

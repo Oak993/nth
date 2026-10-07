@@ -1,0 +1,108 @@
+{
+  "testedImplementationHead": "d0f2cdbab48b53b82e790ef0e2cc6e718c4eb709",
+  "originalSevenTwiceAloneExecutions": {
+    "Passed": 14
+  },
+  "originalSevenTwiceAlone": [
+    {
+      "method": "Landing_leaves_the_text_or_sends_after_landing_plus_035_and_runs_for_three_seconds",
+      "rounds": [
+        {
+          "round": 1,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-Landing_leaves_the_text_or_sends_after_landing_plus_035_and_runs_for_three_seconds-1\\omera_OAK-BLACK_2026-10-07_21_15_08_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.Landing_leaves_the_text_or_sends_after_landing_plus_035_and_runs_for_three_seconds(after: Send)",
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.Landing_leaves_the_text_or_sends_after_landing_plus_035_and_runs_for_three_seconds(after: Leave)"
+          ]
+        },
+        {
+          "round": 2,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-Landing_leaves_the_text_or_sends_after_landing_plus_035_and_runs_for_three_seconds-2\\omera_OAK-BLACK_2026-10-07_21_15_11_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.Landing_leaves_the_text_or_sends_after_landing_plus_035_and_runs_for_three_seconds(after: Leave)",
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.Landing_leaves_the_text_or_sends_after_landing_plus_035_and_runs_for_three_seconds(after: Send)"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening",
+      "rounds": [
+        {
+          "round": 1,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening-1\\omera_OAK-BLACK_2026-10-07_21_15_15_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening(setting: Away, level: 0)",
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening(setting: Dim, level: 0.34999999999999998)",
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening(setting: Stay, level: 1)"
+          ]
+        },
+        {
+          "round": 2,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening-2\\omera_OAK-BLACK_2026-10-07_21_15_18_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening(setting: Dim, level: 0.34999999999999998)",
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening(setting: Stay, level: 1)",
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_light_gets_the_picked_level_and_the_real_glow_draws_while_listening(setting: Away, level: 0)"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "The_question_uses_the_presenter_preserves_pick_focus_and_keeps_answers_session_local",
+      "rounds": [
+        {
+          "round": 1,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-The_question_uses_the_presenter_preserves_pick_focus_and_keeps_answers_session_local-1\\omera_OAK-BLACK_2026-10-07_21_15_21_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_question_uses_the_presenter_preserves_pick_focus_and_keeps_answers_session_local"
+          ]
+        },
+        {
+          "round": 2,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-The_question_uses_the_presenter_preserves_pick_focus_and_keeps_answers_session_local-2\\omera_OAK-BLACK_2026-10-07_21_15_24_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.The_question_uses_the_presenter_preserves_pick_focus_and_keeps_answers_session_local"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "Words_relabel_before_replay_and_a_new_pick_replaces_the_pending_start",
+      "rounds": [
+        {
+          "round": 1,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-Words_relabel_before_replay_and_a_new_pick_replaces_the_pending_start-1\\omera_OAK-BLACK_2026-10-07_21_15_27_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.Words_relabel_before_replay_and_a_new_pick_replaces_the_pending_start"
+          ]
+        },
+        {
+          "round": 2,
+          "trx": "E:\\Droppy\\work\\scratch\\codex-cz-7b-fix\\results\\green-alone-Words_relabel_before_replay_and_a_new_pick_replaces_the_pending_start-2\\omera_OAK-BLACK_2026-10-07_21_15_30_net10.0.trx",
+          "cases": [
+            "Marrow.App.Tests.Port.Settings.ComposerPreviewVoiceTests.Words_relabel_before_replay_and_a_new_pick_replaces_the_pending_start"
+          ]
+        }
+      ]
+    }
+  ],
+  "fullAppPillMatrix": {
+    "Nothing_of_the_pills_material_shows_beside_the_orb": {
+      "Passed": 224
+    },
+    "The_pill_and_a_margin_round_it_have_no_specks": {
+      "Failed": 153,
+      "Passed": 71
+    }
+  },
+  "affectedApp": {
+    "passed": 237,
+    "failed": 0,
+    "skipped": 0
+  },
+  "metadata": {
+    "A": 12,
+    "B": 8
+  }
+}

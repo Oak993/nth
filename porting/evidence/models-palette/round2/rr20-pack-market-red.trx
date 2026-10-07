@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="46736a94-de48-4258-9257-213a4acf2d80" name="@a39ab932e15a 2026-10-07 12:09:00" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T12:09:00.3087322+00:00" queuing="2026-10-07T12:09:00.3087322+00:00" start="2026-10-07T12:08:58.1163219+00:00" finish="2026-10-07T12:09:00.3157096+00:00" />
+  <TestSettings name="default" id="5e937689-f344-4a44-8806-7725958e977b">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_12_09_00" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="af7152eb-dea5-4ba1-b4e0-5a2696caa7c9" testId="63b00d2a-1883-361a-1a37-574b6bc0fb5d" testName="Marrow.Services.Tests.Port.ModelsPalette.PalettePackMarketAuthorityTests.A_newer_pack_ignores_the_older_market_lineup_instead_of_resurrecting_its_facts" computerName="a39ab932e15a" duration="00:00:00.3760243" startTime="2026-10-07T12:08:59.8445607+00:00" endTime="2026-10-07T12:09:00.2388441+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="af7152eb-dea5-4ba1-b4e0-5a2696caa7c9">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 82937
+Actual:   82933</Message>
+          <StackTrace>   at Marrow.Services.Tests.Port.ModelsPalette.PalettePackMarketAuthorityTests.A_newer_pack_ignores_the_older_market_lineup_instead_of_resurrecting_its_facts() in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PalettePackMarketAuthorityTests.cs:line 19
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="53fa43bd-7d46-49be-bf95-b829e9b6618a" testId="12ee0af1-f8c7-a18f-cd74-8d9dd4d80e91" testName="Marrow.Services.Tests.Port.ModelsPalette.PalettePlaceholderEvidenceTests.Placeholder_bake_retains_actual_hash_size_url_and_fetch_date_through_the_pack" computerName="a39ab932e15a" duration="00:00:00.2851099" startTime="2026-10-07T12:08:59.8446204+00:00" endTime="2026-10-07T12:09:00.1401654+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="53fa43bd-7d46-49be-bf95-b829e9b6618a" />
+    <UnitTestResult executionId="96de1f6b-ee00-4173-ae44-cc8c2c7ce25f" testId="d60fd7d7-91d6-cdbd-c3de-ee4759d8c41a" testName="Marrow.Services.Tests.Port.ModelsPalette.PalettePackAliasSnapshotTests.Pack_zero_and_global_lineups_apply_the_pack_alias_policy_before_first_draw" computerName="a39ab932e15a" duration="00:00:00.2850766" startTime="2026-10-07T12:08:59.8433623+00:00" endTime="2026-10-07T12:09:00.1434180+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="96de1f6b-ee00-4173-ae44-cc8c2c7ce25f" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PalettePackMarketAuthorityTests.A_newer_pack_ignores_the_older_market_lineup_instead_of_resurrecting_its_facts" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="63b00d2a-1883-361a-1a37-574b6bc0fb5d">
+      <Execution id="af7152eb-dea5-4ba1-b4e0-5a2696caa7c9" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PalettePackMarketAuthorityTests" name="A_newer_pack_ignores_the_older_market_lineup_instead_of_resurrecting_its_facts" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PalettePlaceholderEvidenceTests.Placeholder_bake_retains_actual_hash_size_url_and_fetch_date_through_the_pack" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="12ee0af1-f8c7-a18f-cd74-8d9dd4d80e91">
+      <Execution id="53fa43bd-7d46-49be-bf95-b829e9b6618a" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PalettePlaceholderEvidenceTests" name="Placeholder_bake_retains_actual_hash_size_url_and_fetch_date_through_the_pack" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PalettePackAliasSnapshotTests.Pack_zero_and_global_lineups_apply_the_pack_alias_policy_before_first_draw" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="d60fd7d7-91d6-cdbd-c3de-ee4759d8c41a">
+      <Execution id="96de1f6b-ee00-4173-ae44-cc8c2c7ce25f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PalettePackAliasSnapshotTests" name="Pack_zero_and_global_lineups_apply_the_pack_alias_policy_before_first_draw" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="63b00d2a-1883-361a-1a37-574b6bc0fb5d" executionId="af7152eb-dea5-4ba1-b4e0-5a2696caa7c9" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="12ee0af1-f8c7-a18f-cd74-8d9dd4d80e91" executionId="53fa43bd-7d46-49be-bf95-b829e9b6618a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d60fd7d7-91d6-cdbd-c3de-ee4759d8c41a" executionId="96de1f6b-ee00-4173-ae44-cc8c2c7ce25f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="3" executed="3" passed="2" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.21]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:01.19]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:01.24]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:01.66]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.66]       Expected: 82937
+[xUnit.net 00:00:01.66]       Actual:   82933
+[xUnit.net 00:00:01.66]       Stack Trace:
+[xUnit.net 00:00:01.66]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PalettePackMarketAuthorityTests.cs(19,0): at Marrow.Services.Tests.Port.ModelsPalette.PalettePackMarketAuthorityTests.A_newer_pack_ignores_the_older_market_lineup_instead_of_resurrecting_its_facts()
+[xUnit.net 00:00:01.66]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:01.66]   Finished:    Marrow.Services.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T12:09:00.2421964+00:00">
+        <Text>[xUnit.net 00:00:01.66]     Marrow.Services.Tests.Port.ModelsPalette.PalettePackMarketAuthorityTests.A_newer_pack_ignores_the_older_market_lineup_instead_of_resurrecting_its_facts [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

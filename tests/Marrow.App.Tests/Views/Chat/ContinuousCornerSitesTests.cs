@@ -55,6 +55,10 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
         ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
+        ("Marrow.App/Port/ModelsPalette/OpenRouterPicker.cs", "999", 1, Capsule), // RR-19 (ED-636): the 28 pt search field, openrouter-picker/Main.dc.html .field (CSS border-radius 999), r far past h / 2
+        ("Marrow.App/Port/ModelsPalette/OpenRouterPicker.cs", "9", 1, Circular), // RR-19: the 46 pt model row button, design-page layout (Main.dc.html .row, CSS border-radius 9), not a Swift shape
+        ("Marrow.App/Port/ModelsPalette/OpenRouterPicker.cs", "size/2", 1, Circle), // RR-19: a maker dot, size x size with r = size / 2 (Main.dc.html .dot, CSS border-radius 50%), a circle by construction
+        ("Marrow.App/Port/ModelsPalette/PaletteColoursSection.cs", "6", 1, Circle), // RR-21 (OD-0127): the Model colours row's 12 x 12 dot (palette-refresh-locked.html .dot, CSS border-radius 50%), a circle by construction
         ("Marrow.App/Port/MultiAccount/Capsule/AccountCapsule.cs", "11", 1, Capsule), // MA-9 (ED-452): the blurred rim copy behind the 22 pt account capsule (styles 11, 11o), r = h / 2
         ("Marrow.App/Port/MultiAccount/Capsule/PillPreview.cs", "8", 1, Circular), // MA-9 (ED-452): the preview stage inside a style card, design-page layout (multi-account.html .pv, CSS border-radius 8), not a Swift shape
         ("Marrow.App/Port/MultiAccount/Capsule/PillPreview.cs", "15", 1, Circle), // MA-9 (ED-452): the 30 x 30 send button of the preview composer, a circle by construction
@@ -63,12 +67,14 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "999", 1, Capsule), // MA-9 (ED-452): the small "default" tag, a pill with r far past h / 2
         ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "9", 1, Circular), // MA-9 (ED-452): the glow variant button, design-page layout (CSS border-radius 9)
         ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "10", 1, Circular), // MA-9 (ED-452): the picked-card ring, design-page layout (CSS border-radius 10)
+        ("Marrow.App/Port/MultiAccount/Opinions/OpinionRoundView.cs", "13", 1, Capsule), // MA-W (ED-NEW-ma-wire-lead-1): the 26 pt Combine button, r = h / 2
         ("Marrow.App/Port/MultiAccount/Capsule/PillStyleCards.cs", "3", 1, Circle), // MA-9 (ED-452): the 6 x 6 dot of the legend, a circle by construction
         ("Marrow.App/Port/Settings/PreviewMenuItem.cs", "7", 1, Circular), // CZ-3 (ED-335): a model menu row, design-page layout (CSS .pitem border-radius 7)
         ("Marrow.App/Port/Settings/PreviewStepper.cs", "11", 1, Circle), // CZ-3 (ED-335): the 22 x 22 stepper, a circle by construction
         ("Marrow.App/Port/Settings/PreviewSwitchChip.cs", "14", 1, Capsule), // CZ-3 (ED-335): the 28 pt chip of the preview model switch, r = h / 2
         ("Marrow.App/Port/Settings/UpdatesMainButton.cs", "ButtonHeight / 2", 1, Capsule), // UE-4 (ED-343): the Updates page's 30 pt glass capsule; CzButton draws its focus ring from this radius, r = h / 2
         ("Marrow.App/Port/Voice/VoiceLanguageQuestion.cs", "CardRadius", 2, Circular), // VT-12 (V-12.11, ED-292): the design-page question card's 14 px border radius, not a Swift shape (glass and rim)
+        ("Marrow.App/Port/SettingsShell.cs", "8", 1, Circular), // RR-37 (ED-NEW-design-gaps-lead-1): the Settings window's shadow carrier, design-page layout (settings-open-rise-2-locked .glass, CSS border-radius 8 with its 0 34px 90px / 0 8px 24px shadows)
         ("Marrow.App/Views/Chat/ChatBadge.cs", "TimelineMetrics.PillRadius", 1, Other),
         ("Marrow.App/Views/Chat/HydraButton.cs", "999", 1, Capsule),
         ("Marrow.App/Views/Chat/HydraMergePopover.cs", "10", 1, Fit),

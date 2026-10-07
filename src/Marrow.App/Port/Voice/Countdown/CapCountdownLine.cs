@@ -6,7 +6,7 @@ namespace Marrow.App.Port.Voice.Countdown;
 
 /// <summary>
 /// The draining line over one voice session: <see cref="Frame"/> is what the pill draws now (null outside the countdown), read from the session's own clock so the line and
-/// the cap cannot disagree. The pill's drawing of the line is NOT DONE here (VoicePill is VT-12's). Two polite screen-reader announcements go with it
+/// the cap cannot disagree. VoicePillSlot feeds it into the mounted pill. Two polite screen-reader announcements go with it
 /// (ED-351, the page's proposal: "once at 0:30 and once at 0:10"): "30 seconds left." when the countdown starts and "10 seconds left." 20 s later; a session that
 /// ends first makes no later one.
 /// </summary>
@@ -47,7 +47,9 @@ public sealed class CapCountdownLine : IDisposable
     {
         Announced?.Invoke(ThirtySeconds);
         tenSeconds?.Cancel();
-        tenSeconds = MainActor.AsyncAfter(CapCountdown.Length - TimeSpan.FromSeconds(10), () => Announced?.Invoke(TenSeconds));
+        // Anchor the second announcement to the session's cap, even if this callback was delivered late.
+        var delay = (session.CapCountdownRemaining ?? CapCountdown.Length) - TimeSpan.FromSeconds(10);
+        tenSeconds = MainActor.AsyncAfter(delay, () => Announced?.Invoke(TenSeconds));
     }
 
     private void OnState(VoiceSessionState from, VoiceSessionState to)

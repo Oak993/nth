@@ -191,6 +191,8 @@ public sealed class VoicePreparation
             if (!consent) return Task.FromResult(new VoicePreparationResult(VoicePreparationStatus.AwaitingConsent, null, false, null));
             if (running is { } joined)
             {
+                if (joined.Cancellation.IsCancellationRequested)
+                    return RetryAfterCancellationAsync(joined.Task, id, found, progress, cancellationToken);
                 if (progress is not null)
                 {
                     if (latest is { } so) progress.Report(so);
@@ -198,31 +200,58 @@ public sealed class VoicePreparation
                 }
                 return joined.Task.WaitAsync(cancellationToken);
             }
-            state = new RunState();
+            state = new RunState { Cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) };
             running = state;
             latest = null;
             subscribers.Clear();
             if (progress is not null) subscribers.Add(progress);
-            state.Task = Run(id, found, state, cancellationToken); // may run on until its first real wait before this returns; the lock is re-entered by the same thread
+            state.Task = Run(id, found, state, state.Cancellation.Token); // may run on until its first real wait before this returns; the lock is re-entered by the same thread
         }
         return state.Task.WaitAsync(cancellationToken);
+    }
+
+    private async Task<VoicePreparationResult> RetryAfterCancellationAsync(Task<VoicePreparationResult> previous, string id,
+        HardwareProfile found, IProgress<VoicePrepItem>? progress, CancellationToken cancellationToken)
+    {
+        // A synchronous native load can outlive cancellation. Release its resources before reusing the shared engine.
+        try { await previous.WaitAsync(cancellationToken); }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
+        cancellationToken.ThrowIfCancellationRequested();
+        return await InstallAndTimeAsync(id, found, progress, cancellationToken);
     }
 
     private sealed class RunState
     {
         public Task<VoicePreparationResult> Task { get; set; } = null!;
+        public CancellationTokenSource Cancellation { get; init; } = null!;
     }
 
-    private void Emit(string id, string label, double? fraction, VoicePrepState state)
+    /// <summary>The preparation cross cancels the actual shared transfer, including one begun by Welcome.</summary>
+    public void Cancel()
     {
-        var item = new VoicePrepItem(id, label, fraction, state);
+        RunState? current;
+        lock (gate) current = running;
+        // Cancellation invokes collaborators; no callback runs under our shared-operation lock.
+        try { current?.Cancellation.Cancel(); }
+        catch (ObjectDisposedException) { } // the completed run was disposed between the read and cancel
+    }
+
+    private void Emit(string id, string label, double? fraction, VoicePrepState state, string? modelId = null, RunState? owner = null)
+    {
+        var item = new VoicePrepItem(id, label, fraction, state) { ModelId = modelId };
         IProgress<VoicePrepItem>[] to;
         lock (gate)
         {
+            if (owner is not null && (!ReferenceEquals(running, owner) || owner.Cancellation.IsCancellationRequested)) return;
             latest = item;
             to = [.. subscribers];
         }
-        foreach (var s in to) s.Report(item);
+        foreach (var s in to)
+        {
+            lock (gate)
+                if (owner is not null && (!ReferenceEquals(running, owner) || owner.Cancellation.IsCancellationRequested)) return;
+            s.Report(item);
+        }
     }
 
     private sealed class PreparationFailure(string message) : Exception(message);
@@ -244,8 +273,8 @@ public sealed class VoicePreparation
             SelfTestDecision decision;
             while (true)
             {
-                await EnsureInstalledAsync(model, cancellationToken);
-                rtf = await TimeAsync(model, gpu, audio, cancellationToken);
+                await EnsureInstalledAsync(model, cancellationToken, state);
+                rtf = await TimeAsync(model, gpu, audio, cancellationToken, state);
                 decision = SelfTestPlan.Decide(model, rtf, steppedDown, basis, answered);
                 if (decision.Action != SelfTestAction.StepDown) break;
                 model = decision.ModelId;
@@ -258,7 +287,7 @@ public sealed class VoicePreparation
                 if (!string.Equals(applied.ModelId, model, StringComparison.Ordinal))
                 {
                     model = applied.ModelId;
-                    await EnsureInstalledAsync(model, cancellationToken);
+                    await EnsureInstalledAsync(model, cancellationToken, state);
                 }
                 live = applied.LiveWords;
             }
@@ -280,6 +309,7 @@ public sealed class VoicePreparation
                 At = WholeSeconds(clock.GetUtcNow()),
                 App = app,
             };
+            cancellationToken.ThrowIfCancellationRequested();
             settings.Record = record;
             var current = settings.Typing;
             if (current.Model is null) settings.Typing = current with { Model = model };
@@ -304,42 +334,43 @@ public sealed class VoicePreparation
             {
                 if (ReferenceEquals(running, state)) running = null;
                 subscribers.Clear();
+                state.Cancellation.Dispose();
             }
         }
     }
 
-    private async Task EnsureInstalledAsync(string modelId, CancellationToken cancellationToken)
+    private async Task EnsureInstalledAsync(string modelId, CancellationToken cancellationToken, RunState? owner = null)
     {
         var file = Marrow.Core.Port.Voice.ModelCatalog.Find(modelId) ?? throw new PreparationFailure(modelId + " is not a voice model of the catalogue.");
         const string label = "Voice model";
         if (!models.IsInstalled(file))
         {
-            Emit(DownloadId, label, 0.0, VoicePrepState.Running);
-            var result = await models.InstallAsync(file, fraction => Emit(DownloadId, label, fraction, VoicePrepState.Running), cancellationToken);
+            Emit(DownloadId, label, 0.0, VoicePrepState.Running, modelId, owner);
+            var result = await models.InstallAsync(file, fraction => Emit(DownloadId, label, fraction, VoicePrepState.Running, modelId, owner), cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (result.Status != ModelDownloadStatus.Installed)
                 throw new PreparationFailure("The voice model download " + result.Status.ToString().ToLowerInvariant() + ".");
         }
-        Emit(DownloadId, label, 1.0, VoicePrepState.Done);
-        Emit(VerifyId, label, null, VoicePrepState.Running);
+        Emit(DownloadId, label, 1.0, VoicePrepState.Done, modelId, owner);
+        Emit(VerifyId, label, null, VoicePrepState.Running, modelId, owner);
         var verification = await models.VerifyAsync(file, cancellationToken);
         if (verification is ModelVerification.Corrupt or ModelVerification.Missing)
             throw new PreparationFailure("The voice model did not verify (" + verification.ToString().ToLowerInvariant() + ").");
-        Emit(VerifyId, label, 1.0, VoicePrepState.Done);
+        Emit(VerifyId, label, 1.0, VoicePrepState.Done, modelId, owner);
     }
 
     /// <summary>V-10.3: a warm-up load, then one timed transcription of the clip with the live parameters; RTF = seconds / 10.</summary>
-    private async Task<double> TimeAsync(string modelId, bool gpu, ReadOnlyMemory<float> audio, CancellationToken cancellationToken)
+    private async Task<double> TimeAsync(string modelId, bool gpu, ReadOnlyMemory<float> audio, CancellationToken cancellationToken, RunState owner)
     {
         const string label = "Voice speed test";
         var file = Marrow.Core.Port.Voice.ModelCatalog.Find(modelId)!;
-        Emit(SelfTestId, label, null, VoicePrepState.Running);
+        Emit(SelfTestId, label, null, VoicePrepState.Running, modelId, owner);
         var speech = engine();
         await speech.LoadAsync(new SpeechModel(file.Id, models.PathFor(file)), new EngineLoadOptions(UseGpu: gpu), cancellationToken);
         var start = clock.GetTimestamp();
         await speech.TranscribeAsync(audio, new DecodeRequest(ClipLanguage, "", DecodeMode.Live, TimeSpan.Zero), cancellationToken);
         var seconds = clock.GetElapsedTime(start).TotalSeconds;
-        Emit(SelfTestId, label, 1.0, VoicePrepState.Done);
+        Emit(SelfTestId, label, 1.0, VoicePrepState.Done, modelId, owner);
         return SelfTestPlan.Rtf(seconds);
     }
 

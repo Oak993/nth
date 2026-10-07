@@ -15,6 +15,7 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T5, CZ-3.2: the chrome row has the Preview state control, Rest | Typing | Running a turn, at Rest
+    [Trait("Spec", "CZ-T5")]
     public void The_chrome_row_carries_the_Preview_state_control_at_Rest() => headless.OnUiThread(() =>
     {
         var page = new CustomizationSettingsPage();
@@ -30,6 +31,7 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T2 / SA-1: the page is ready, so the sidebar lists it and a search finds it
+    [Trait("Spec", "CZ-T2")]
     public void The_page_is_ready_and_the_sidebar_lists_it()
     {
         Assert.True(CustomizationSettingsPage.IsReady);
@@ -60,6 +62,7 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-3.2, CZ-4.6, CZ-T35: the chrome control is the session's pick, both ways (touching Working dots moves it)
+    [Trait("Spec", "CZ-T35")]
     public void The_chrome_control_and_the_previews_phase_are_one_pick() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -81,6 +84,7 @@ public sealed class CustomizationPageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-3.3, CZ-T39: the pinned block first, then Style, then the sections of each style in order; the headings are the design's
+    [Trait("Spec", "CZ-T39")]
     public void The_page_holds_the_stage_then_Style_then_the_style_sections_in_order() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);

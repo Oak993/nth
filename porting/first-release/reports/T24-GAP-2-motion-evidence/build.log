@@ -1,0 +1,50 @@
+
+Welcome to .NET 10.0!
+---------------------
+SDK Version: 10.0.100
+
+Telemetry
+---------
+The .NET tools collect usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the DOTNET_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your favorite shell.
+
+Read more about .NET CLI Tools telemetry: https://aka.ms/dotnet-cli-telemetry
+
+----------------
+Installed an ASP.NET Core HTTPS development certificate.
+To trust the certificate, run 'dotnet dev-certs https --trust'
+Learn about HTTPS: https://aka.ms/dotnet-https
+
+----------------
+Write your first app: https://aka.ms/dotnet-hello-world
+Find out what's new: https://aka.ms/dotnet-whats-new
+Explore documentation: https://aka.ms/dotnet-docs
+Report issues and find source on GitHub: https://github.com/dotnet/core
+Use 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli
+--------------------------------------------------------------------------------------
+  Determining projects to restore...
+  Restored /workspace/marrow-port/tests/Marrow.Testing/Marrow.Testing.csproj (in 1.78 sec).
+  Restored /workspace/marrow-port/src/Marrow.Shim/Marrow.Shim.csproj (in 2.09 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/Marrow.Shim.FakeTarget.csproj (in 1 ms).
+  Restored /workspace/marrow-port/src/Marrow.Core/Marrow.Core.csproj (in 2 ms).
+  Restored /workspace/marrow-port/src/Marrow.Services/Marrow.Services.csproj (in 3.05 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/Marrow.Skills.PipelineWorker.csproj (in 4.84 sec).
+  Restored /workspace/marrow-port/tests/Marrow.Services.Tests/Marrow.Services.Tests.csproj (in 4.85 sec).
+  Restored /workspace/marrow-port/src/Marrow.UI/Marrow.UI.csproj (in 4.04 sec).
+  Restored /workspace/marrow-port/src/Marrow.App/Marrow.App.csproj (in 6.79 sec).
+  Restored /workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj (in 4.04 sec).
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.App.Tests -> /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:01:27.86

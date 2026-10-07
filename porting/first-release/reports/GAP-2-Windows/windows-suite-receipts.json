@@ -1,0 +1,98 @@
+{
+  "production_head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3",
+  "collected_at_head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3",
+  "runs": [
+    {
+      "label": "final-Composer-1",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\final-Composer-1-tests.log",
+      "sha256": "f673601252d107b2e11a1898213cf5b4f0421bb16fbc8b569fca535d8e876afb",
+      "complete": true,
+      "failed": 0,
+      "passed": 172,
+      "skipped": 0,
+      "total": 172,
+      "duration": "29 s",
+      "project": "Marrow.App.Tests.dll (net10.0)",
+      "failing_names": [],
+      "head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3"
+    },
+    {
+      "label": "final-Composer-2",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\final-Composer-2-tests.log",
+      "sha256": "2feeaaf920de20698a235f417993bc6ac9a23d86539b6ab6f0b774d2056e9510",
+      "complete": true,
+      "failed": 0,
+      "passed": 172,
+      "skipped": 0,
+      "total": 172,
+      "duration": "24 s",
+      "project": "Marrow.App.Tests.dll (net10.0)",
+      "failing_names": [],
+      "head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3"
+    },
+    {
+      "label": "final-Customization-1",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\final-Customization-1-tests.log",
+      "sha256": "f51bde762263181b4fd098444ebd06b46d1367ca6ce12876e55263d6b583ea14",
+      "complete": true,
+      "failed": 1,
+      "passed": 373,
+      "skipped": 0,
+      "total": 374,
+      "duration": "28 s",
+      "project": "Marrow.App.Tests.dll (net10.0)",
+      "failing_names": [
+        "Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand [9 ms]"
+      ],
+      "head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3"
+    },
+    {
+      "label": "final-Customization-2",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\final-Customization-2-tests.log",
+      "sha256": "9de8a6b623756dd8b7f5f186ae50925298607c5ca2bde04f4178cdd6a519ac87",
+      "complete": true,
+      "failed": 1,
+      "passed": 373,
+      "skipped": 0,
+      "total": 374,
+      "duration": "27 s",
+      "project": "Marrow.App.Tests.dll (net10.0)",
+      "failing_names": [
+        "Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand [12 ms]"
+      ],
+      "head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3"
+    },
+    {
+      "label": "final-GAP-1",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\final-GAP-1-tests.log",
+      "sha256": "daa3463152f794ad6472ffb3ff7234fb05324cf1bcc16f7364ab0c1b68525f34",
+      "complete": true,
+      "failed": 1,
+      "passed": 7,
+      "skipped": 0,
+      "total": 8,
+      "duration": "2 s",
+      "project": "Marrow.App.Tests.dll (net10.0)",
+      "failing_names": [
+        "Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand [14 ms]"
+      ],
+      "head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3"
+    },
+    {
+      "label": "final-GAP-2",
+      "log": "E:\\Droppy\\work\\scratch\\codex-gap-2\\final-GAP-2-tests.log",
+      "sha256": "0726f91f82d1738f68c7320ff21c3cbb459eb9323704fc11381a7f1d7b5dd2b7",
+      "complete": true,
+      "failed": 1,
+      "passed": 7,
+      "skipped": 0,
+      "total": 8,
+      "duration": "1 s",
+      "project": "Marrow.App.Tests.dll (net10.0)",
+      "failing_names": [
+        "Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand [13 ms]"
+      ],
+      "head": "e3601f4e2a74fc53bfacd4293e97bb990f431cd3"
+    }
+  ]
+}

@@ -24,8 +24,8 @@ public sealed class EffortSliderTitleFramesTests(HeadlessSession headless)
         var folder = Path.Combine(root!, "effort-title-frames-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var frames = EffortTitleFramesRig.Render(new EffortTitleFramesRig.Study(folder, "high;0:xhigh", 20, 400, false, null));
-            Assert.Equal(Enumerable.Range(0, 21).Select(i => i * 20), frames.Times);
+            var frames = EffortTitleFramesRig.Render(new EffortTitleFramesRig.Study(folder, "high;0:xhigh", 20, 600, false, null));
+            Assert.Equal(Enumerable.Range(0, 31).Select(i => i * 20), frames.Times);
             Assert.Equal((330, 140), (frames.Width, frames.Height)); // the rig's window, at the headless scale of 1
             foreach (var ms in frames.Times)
                 Assert.Equal(frames.RowBytes * frames.Height, new FileInfo(Path.Combine(folder, $"t{ms:0000}.raw")).Length);
@@ -33,6 +33,8 @@ public sealed class EffortSliderTitleFramesTests(HeadlessSession headless)
             byte[] Title(int ms) => EffortTitleFramesRig.Crop(folder, ms, frames, frames.Title);
             Assert.NotEqual(Title(0), Title(100)); // the title moves while the change runs
             Assert.Equal(Title(380), Title(400)); // and holds still once it is over (a plain colour: no drift)
+            Assert.NotEqual(Title(420), Title(440)); // the last letter lands at .4397 s (ED-NEW-models-palette-20's snappy pace)
+            foreach (var ms in frames.Times.Where(ms => ms >= 460)) Assert.Equal(Title(460), Title(ms)); // then every frame holds still
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
     });

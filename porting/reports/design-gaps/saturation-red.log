@@ -1,0 +1,82 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:06.41]     Marrow.UI.Tests.Port.DesignGapsSaturationTests.Overlapping_children_are_composited_before_one_group_opacity [FAIL]
+  Failed Marrow.UI.Tests.Port.DesignGapsSaturationTests.Overlapping_children_are_composited_before_one_group_opacity [3 s]
+  Error Message:
+   Assert.InRange() Failure: Value not in range
+Range:  (3 - 5)
+Actual: 64
+  Stack Trace:
+     at Marrow.UI.Tests.Port.DesignGapsSaturationTests.Expect(ValueTuple`3 value, Int32 r, Int32 g, Int32 b) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 69
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.<>c.<Overlapping_children_are_composited_before_one_group_opacity>b__4_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 58
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.Overlapping_children_are_composited_before_one_group_opacity() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 52
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:06.44]     Marrow.UI.Tests.Port.DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(saturation: 0.80000000000000004, red: 215, green: 11, blue: 11) [FAIL]
+[xUnit.net 00:00:06.48]     Marrow.UI.Tests.Port.DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(saturation: 0.59999999999999998, red: 175, green: 22, blue: 22) [FAIL]
+[xUnit.net 00:00:06.61]     Marrow.UI.Tests.Port.DesignGapsSaturationTests.A_child_only_redraw_is_filtered_and_the_sibling_and_background_are_untouched [FAIL]
+  Failed Marrow.UI.Tests.Port.DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(saturation: 0.80000000000000004, red: 215, green: 11, blue: 11) [16 ms]
+  Error Message:
+   Assert.InRange() Failure: Value not in range
+Range:  (214 - 216)
+Actual: 255
+  Stack Trace:
+     at Marrow.UI.Tests.Port.DesignGapsSaturationTests.Expect(ValueTuple`3 value, Int32 r, Int32 g, Int32 b) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 69
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.<>c__DisplayClass2_0.<The_live_subtree_draws_the_CSS_saturate_matrix>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 23
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(Double saturation, Int32 red, Int32 green, Int32 blue) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 17
+   at InvokeStub_DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.UI.Tests.Port.DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(saturation: 0.59999999999999998, red: 175, green: 22, blue: 22) [38 ms]
+  Error Message:
+   Assert.InRange() Failure: Value not in range
+Range:  (174 - 176)
+Actual: 255
+  Stack Trace:
+     at Marrow.UI.Tests.Port.DesignGapsSaturationTests.Expect(ValueTuple`3 value, Int32 r, Int32 g, Int32 b) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 69
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.<>c__DisplayClass2_0.<The_live_subtree_draws_the_CSS_saturate_matrix>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 23
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(Double saturation, Int32 red, Int32 green, Int32 blue) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 17
+   at InvokeStub_DesignGapsSaturationTests.The_live_subtree_draws_the_CSS_saturate_matrix(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Failed Marrow.UI.Tests.Port.DesignGapsSaturationTests.A_child_only_redraw_is_filtered_and_the_sibling_and_background_are_untouched [123 ms]
+  Error Message:
+   Assert.InRange() Failure: Value not in range
+Range:  (174 - 176)
+Actual: 255
+  Stack Trace:
+     at Marrow.UI.Tests.Port.DesignGapsSaturationTests.Expect(ValueTuple`3 value, Int32 r, Int32 g, Int32 b) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 69
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.<>c.<A_child_only_redraw_is_filtered_and_the_sibling_and_background_are_untouched>b__3_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 39
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.DesignGapsSaturationTests.A_child_only_redraw_is_filtered_and_the_sibling_and_background_are_untouched() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/DesignGapsSaturationTests.cs:line 28
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:     4, Passed:     1, Skipped:     0, Total:     5, Duration: 3 s - Marrow.UI.Tests.dll (net10.0)

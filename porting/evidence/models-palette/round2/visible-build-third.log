@@ -1,0 +1,27 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Services -> /workspace/marrow-port/src/Marrow.Services/bin/Debug/net10.0-windows/Marrow.Services.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.App -> /workspace/marrow-port/src/Marrow.App/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.dll
+  Marrow.Testing -> /workspace/marrow-port/tests/Marrow.Testing/bin/Debug/net10.0/Marrow.Testing.dll
+  Marrow.Core.Tests -> /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+  Marrow.Shim.FakeTarget -> /workspace/marrow-port/tests/Marrow.Shim.FakeTarget/bin/Debug/net10.0/Marrow.Shim.FakeTarget.dll
+  Marrow.Skills.PipelineWorker -> /workspace/marrow-port/tests/Marrow.Skills.PipelineWorker/bin/Debug/net10.0-windows/Marrow.Skills.PipelineWorker.dll
+  Marrow.Services.Tests -> /workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll
+  Marrow.UI.Tests -> /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(19,78): error CS0246: The type or namespace name 'PaletteRenderSelection' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(19,225): error CS1503: Argument 2: cannot convert from 'PaletteRenderSelection[]' to 'System.Collections.Generic.IReadOnlyList<Marrow.Core.Port.ModelsPalette.PaletteRenderSelection>' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(37,32): error CS0246: The type or namespace name 'PaletteRenderSelection' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(37,173): error CS1503: Argument 2: cannot convert from 'PaletteRenderSelection[]' to 'System.Collections.Generic.IReadOnlyList<Marrow.Core.Port.ModelsPalette.PaletteRenderSelection>' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+  Marrow.Setup -> /workspace/marrow-port/src/Marrow.Setup/bin/Debug/net10.0-windows/Marrow.Setup.dll
+
+Build FAILED.
+
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(19,78): error CS0246: The type or namespace name 'PaletteRenderSelection' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(19,225): error CS1503: Argument 2: cannot convert from 'PaletteRenderSelection[]' to 'System.Collections.Generic.IReadOnlyList<Marrow.Core.Port.ModelsPalette.PaletteRenderSelection>' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(37,32): error CS0246: The type or namespace name 'PaletteRenderSelection' could not be found (are you missing a using directive or an assembly reference?) [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+/workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteLoadingAndTimingTests.cs(37,173): error CS1503: Argument 2: cannot convert from 'PaletteRenderSelection[]' to 'System.Collections.Generic.IReadOnlyList<Marrow.Core.Port.ModelsPalette.PaletteRenderSelection>' [/workspace/marrow-port/tests/Marrow.App.Tests/Marrow.App.Tests.csproj]
+    0 Warning(s)
+    4 Error(s)
+
+Time Elapsed 00:01:17.61

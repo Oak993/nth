@@ -1,0 +1,107 @@
+Test run for /workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:18.36]     Marrow.App.Tests.Window.StrikeChildGcEnvironmentTests.Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts [FAIL]
+  Failed Marrow.App.Tests.Window.StrikeChildGcEnvironmentTests.Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts [12 ms]
+  Error Message:
+   System.InvalidOperationException : No existing dotnet SDK host was found in the current host, runtime installation or PATH.
+  Stack Trace:
+     at Marrow.App.Tests.Fixtures.WindowManagerProcessProtocol.ResolveDotnetHost() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WindowManagerProcessProtocol.cs:line 101
+   at Marrow.App.Tests.Window.StrikeChildGcEnvironmentTests.Measurement_children_explicitly_enable_server_gc_before_the_runtime_starts() in /workspace/marrow-port/tests/Marrow.App.Tests/Window/StrikeChildGcEnvironmentTests.cs:line 14
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:02:45.00]     Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs [FAIL]
+  Failed Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs [767 ms]
+  Error Message:
+   System.DllNotFoundException : Unable to load shared library 'user32.dll' or one of its dependencies. In order to help diagnose loading problems, consider using a tool like strace. If you're using glibc, consider setting the LD_DEBUG environment variable: 
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll.so: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/user32.dll: cannot open shared object file: No such file or directory
+/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/user32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/runtimes/linux-x64/native/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/.tools/dotnet/shared/Microsoft.NETCore.App/10.0.12/libuser32.dll: cannot open shared object file: No such file or directory
+/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/libuser32.dll: cannot open shared object file: No such file or directory
+
+  Stack Trace:
+     at Marrow.UI.Port.WindowsGeniePlatform.SystemParametersInfo(UInt32 action, UInt32 parameter, Boolean& enabled, UInt32 update)
+   at Marrow.UI.Port.WindowsGeniePlatform.get_AccessibilityDisplayShouldReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/GeniePlatform.cs:line 40
+   at Marrow.UI.Port.AnimatedScalar.get_ReduceMotion() in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 62
+   at Marrow.UI.Port.AnimatedScalar.Set(Double target, Animation animation) in /workspace/marrow-port/src/Marrow.UI/Port/AnimatedScalar.cs:line 37
+   at Marrow.UI.Chrome.SidebarRow.<>c__DisplayClass1_1.<.ctor>b__4(Object _, AvaloniaPropertyChangedEventArgs change) in /workspace/marrow-port/src/Marrow.UI/Chrome/Chrome.cs:line 1383
+   at Avalonia.AvaloniaObject.RaisePropertyChanged[T](AvaloniaProperty`1 property, Optional`1 oldValue, BindingValue`1 newValue, BindingPriority priority, Boolean isEffectiveValue)
+   at Avalonia.AvaloniaObject.SetAndRaise[T](DirectPropertyBase`1 property, T& field, T value)
+   at Avalonia.Controls.Button.set_IsPressed(Boolean value)
+   at Avalonia.Controls.Button.OnPointerPressed(PointerPressedEventArgs e)
+   at Avalonia.Input.InputElement.<>c.<.cctor>b__34_10(InputElement x, PointerPressedEventArgs e)
+   at Avalonia.Interactivity.RoutedEvent`1.<>c__DisplayClass1_0`1.<AddClassHandler>g__Adapter|0(Object sender, RoutedEventArgs e)
+   at Avalonia.Interactivity.RoutedEvent.<>c__DisplayClass23_0.<AddClassHandler>b__0(ValueTuple`2 args)
+   at Avalonia.Reactive.LightweightObservableBase`1.PublishNext(T value)
+   at Avalonia.Interactivity.EventRoute.RaiseEventImpl(RoutedEventArgs e)
+   at Avalonia.Interactivity.EventRoute.RaiseEvent(Interactive source, RoutedEventArgs e)
+   at Avalonia.Interactivity.Interactive.RaiseEvent(RoutedEventArgs e)
+   at Avalonia.Input.MouseDevice.MouseDown(IMouseDevice device, UInt64 timestamp, IInputRoot root, Point p, PointerPointProperties properties, KeyModifiers inputModifiers, IInputElement hitTest, Object platformInputEventCookie)
+   at Avalonia.Input.MouseDevice.ProcessRawEvent(RawPointerEventArgs e)
+   at Avalonia.Input.MouseDevice.ProcessRawEvent(RawInputEventArgs e)
+   at Avalonia.Input.InputManager.ProcessInput(RawInputEventArgs e)
+   at Avalonia.Controls.PresentationSource.HandleInputCore(Object state)
+   at Avalonia.Threading.Dispatcher.Send(SendOrPostCallback action, Object arg, Nullable`1 priority)
+   at Avalonia.Controls.PresentationSource.HandleInput(RawInputEventArgs e)
+   at Avalonia.Headless.HeadlessWindowImpl.Avalonia.Headless.IHeadlessWindow.MouseDown(Point point, MouseButton button, RawInputModifiers modifiers)
+   at Avalonia.Headless.HeadlessWindowExtensions.<>c__DisplayClass7_0.<MouseDown>b__0(IHeadlessWindow w)
+   at Avalonia.Headless.HeadlessWindowExtensions.RunJobsOnImpl(TopLevel topLevel, Action`1 action)
+   at Avalonia.Headless.HeadlessWindowExtensions.MouseDown(TopLevel topLevel, Point point, MouseButton button, RawInputModifiers modifiers)
+   at Marrow.App.Tests.Window.SettingsWindowFixture.Click(Window window, Control control, Nullable`1 local) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 118
+   at Marrow.App.Tests.Port.SettingsRiseTests.<>c.<Input_reaches_the_window_while_the_wave_runs>b__25_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 481
+   at Marrow.App.Tests.Window.SettingsWindowFixture.<>c__DisplayClass2_0.<WithManager>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.SettingsRiseTests.Input_reaches_the_window_while_the_wave_runs() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/SettingsRiseTests.cs:line 471
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:02:52.50]     Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule [FAIL]
+  Failed Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule [556 ms]
+  Error Message:
+   Assert.Equal() Failure: Collections differ
+                        ↓ (pos 2148)
+Expected: [···, 0, 255, 29, 48, 67, ···]
+Actual:   [···, 0, 255, 28, 45, 64, ···]
+                        ↑ (pos 2148)
+  Stack Trace:
+     at Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.<>c.<The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule>b__2_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/EffortSliderTitleFramesTests.cs:line 35
+   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Views.Composer.EffortSliderTitleFramesTests.The_titles_frames_for_the_side_by_sides_render_every_step_of_a_schedule() in /workspace/marrow-port/tests/Marrow.App.Tests/Views/Composer/EffortSliderTitleFramesTests.cs:line 15
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:03:10.51]     Marrow.App.Tests.Window.Native.EffortSliderNativeFrameTests.Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor [FAIL]
+  Failed Marrow.App.Tests.Window.Native.EffortSliderNativeFrameTests.Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor [2 ms]
+  Error Message:
+   System.InvalidOperationException : Native window tests require an interactive Windows x64 desktop.
+  Stack Trace:
+     at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WindowManagerNativeChildHost.cs:line 17
+   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member, Type factType) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/WindowManagerNativeSession.cs:line 100
+   at Marrow.App.Tests.Window.Native.EffortSliderNativeFrameTests.Strike_round_three_records_sixty_seconds_with_server_gc_on_the_real_compositor() in /workspace/marrow-port/tests/Marrow.App.Tests/Window/EffortSliderNativeFrameTests.cs:line 471
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr41-app-poststrike-final.trx
+
+Failed!  - Failed:     4, Passed:   525, Skipped:     0, Total:   529, Duration: 3 m 7 s - Marrow.App.Tests.dll (net10.0)

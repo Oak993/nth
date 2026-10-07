@@ -1,0 +1,114 @@
+[
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/openrouter-picker/Main.dc.html",
+    "copied_to": "porting/first-release/design-src/models-palette/openrouter-picker/Main.dc.html",
+    "bytes": 17581,
+    "sha256": "65b2da6d2f1b4c6cd29b460b05e7350d4eb12e3a27ba175428c1559a4d35ea34"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/openrouter-picker/capture.js",
+    "copied_to": "porting/first-release/design-src/models-palette/openrouter-picker/capture.js",
+    "bytes": 6521,
+    "sha256": "df14b99d948f79c8a29409d91fc61c9f2493b241b4bfcc12043e1764aa521619"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/openrouter-picker/probe.js",
+    "copied_to": "porting/first-release/design-src/models-palette/openrouter-picker/probe.js",
+    "bytes": 1432,
+    "sha256": "dfe1f9c31dc59b22df1ec30ba73d2fb591f88159077c1fa48a9a104c5b8d9579"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/auto-colour/PLAN.md",
+    "copied_to": "porting/first-release/design-src/models-palette/auto-colour/PLAN.md",
+    "bytes": 135836,
+    "sha256": "af8077b0eeecd87cfcfe8f6036b5e7f148b8fbb5aa03b69972f31aa4ec7411ea"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/auto-colour/discovery.md",
+    "copied_to": "porting/first-release/design-src/models-palette/auto-colour/discovery.md",
+    "bytes": 24279,
+    "sha256": "1666a59201c92b468b12c90a1e8eecda0b2c4b50b99eeb5c9d0ff7b72d62f7d5"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/auto-colour/sources.md",
+    "copied_to": "porting/first-release/design-src/models-palette/auto-colour/sources.md",
+    "bytes": 42661,
+    "sha256": "5ca391776a71456abac5cc96390137d3c75110e66da885779374a68aae084e17"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/auto-colour/colours.py",
+    "copied_to": "porting/first-release/design-src/models-palette/auto-colour/colours.py",
+    "bytes": 3630,
+    "sha256": "b19599eb5a78213c9f75719d8dad9743d4bc09acb06431d26be6c2d57320db34"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/auto-colour/hardening/r3/intensity_r3.py",
+    "copied_to": "porting/first-release/design-src/models-palette/auto-colour/hardening/r3/intensity_r3.py",
+    "bytes": 90211,
+    "sha256": "3e1201ccdb7b020215cbf24d6ba56fbb08f5d760d2c9c5f625033ae52a35d1bd"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/intensity/builtin-models.json",
+    "copied_to": "porting/first-release/design-src/models-palette/intensity/builtin-models.json",
+    "bytes": 49521,
+    "sha256": "6432424df7d15d04c1b5021ebd0aa6dce3252e2a5310a3092784376ffa4e7a25"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/intensity/openrouter-models.json",
+    "copied_to": "porting/first-release/design-src/models-palette/intensity/openrouter-models.json",
+    "bytes": 169450,
+    "sha256": "7bb63248d4d5c26bf0f585364d9cb6807949af02811ba3008cfa77e9e1e9eb23"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/intensity/openrouter-catalogue-snapshot.json",
+    "copied_to": "porting/first-release/design-src/models-palette/intensity/openrouter-catalogue-snapshot.json",
+    "bytes": 94931,
+    "sha256": "f5835284ecdc7994b0884228bfb59699627dc1fa3234f64b1bcdf5d0306015ed"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "26f8fbe89ee8480c9b18b4afe16d6c57bccb3610",
+    "path": "porting/first-release/design-src/work-design/auto-colour/raw/toc.json",
+    "copied_to": "porting/first-release/design-src/models-palette/auto-colour/raw/toc.json",
+    "bytes": 105355,
+    "sha256": "3f452ff41612b251f79bedc20a30d1b6f4734dbe1147f7171cb2f6f9bcda5da8"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "5726326d2668ac12638af64fbed4d3a4649c2c35",
+    "path": "porting/first-release/design-src/work-design/decisions-2026-10-07/palette-refresh/palette-refresh-locked.html",
+    "copied_to": "porting/first-release/design-src/models-palette/palette-refresh/palette-refresh-locked.html",
+    "bytes": 21818,
+    "sha256": "3636a1d1a6c1efad62bec616e108dbc2d422c79c844179bb306de326a48759a5"
+  },
+  {
+    "ref": "origin/claude/design-sources",
+    "commit": "5726326d2668ac12638af64fbed4d3a4649c2c35",
+    "path": "porting/first-release/design-src/work-design/effort-liquid-locked-v22.dc.html",
+    "copied_to": "porting/first-release/design-src/models-palette/effort-liquid-locked-v22.dc.html",
+    "bytes": 83916,
+    "sha256": "17f68194954281bb72993317d279d302ee68335a57ca19473c30e7db3b4a33a1"
+  }
+]

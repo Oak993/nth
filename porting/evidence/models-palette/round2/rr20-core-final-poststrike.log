@@ -1,0 +1,5 @@
+Test run for /workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr20-core-final-poststrike.trx
+
+Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 1 s - Marrow.Core.Tests.dll (net10.0)

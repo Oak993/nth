@@ -9,6 +9,7 @@ namespace Marrow.Core.Tests.Port.Downloads;
 
 // SK-0 (DL-0, skills-ONDEMAND-PLAN.md section 7): the network guard. Any connection that is not to the loopback port of a fake server
 // of this test is refused, as a refused connection, before a socket is opened; a name is never looked up.
+[Trait("Spec", "DL-0")]
 public sealed class NetworkGuardTests
 {
     private static readonly FakeArtifact Artifact = FakeArtifact.Pattern(1000, seed: 9);

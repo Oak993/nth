@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="1ae5c0db-9033-43f2-b4bf-6d9f18dea76e" name="@a39ab932e15a 2026-10-07 09:54:17" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T09:54:17.0479848+00:00" queuing="2026-10-07T09:54:17.0479849+00:00" start="2026-10-07T09:54:15.0573847+00:00" finish="2026-10-07T09:54:17.3096382+00:00" />
+  <TestSettings name="default" id="8fa34b0a-1bec-4eb9-b697-eaab359ccf94">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_09_54_17" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="1c1af6b7-9006-48a5-ae61-e64328a0a85f" testId="b13e1808-b053-3f2b-807d-51834eed8635" testName="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: &quot;{\&quot;Key\&quot;:null,\&quot;Seed\&quot;:null,\&quot;Evidence\&quot;:null,\&quot;Da&quot;···)" computerName="a39ab932e15a" duration="00:00:00.0059572" startTime="2026-10-07T09:54:16.8372862+00:00" endTime="2026-10-07T09:54:16.8373794+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="1c1af6b7-9006-48a5-ae61-e64328a0a85f">
+      <Output>
+        <ErrorInfo>
+          <Message>System.NullReferenceException : Object reference not set to an instance of an object.</Message>
+          <StackTrace>   at Marrow.Services.Port.ModelsPalette.PaletteStore.Valid(StoredSeed seed) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 35
+   at Marrow.Services.Port.ModelsPalette.PaletteStore.LoadSeeds() in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 27
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String root, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, PaletteExecutor executor, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 46
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String dataRoot, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 41
+   at Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(String entry) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteSeedCacheTests.cs:line 20
+   at InvokeStub_PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="18993731-30e4-47f7-be18-fff22d0c244e" testId="3f630900-18fc-3bcc-41a3-698d4bb1bf49" testName="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.A_future_seed_schema_is_never_overwritten_by_this_engine" computerName="a39ab932e15a" duration="00:00:00.2889396" startTime="2026-10-07T09:54:16.9999638+00:00" endTime="2026-10-07T09:54:17.2346258+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="18993731-30e4-47f7-be18-fff22d0c244e" />
+    <UnitTestResult executionId="8ec29838-b624-48c7-bb91-eacc38dbc874" testId="0b46fe1d-bacf-ad1e-57e4-dc2fe70d17e3" testName="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: &quot;{\&quot;Key\&quot;:\&quot;bad\&quot;,\&quot;Seed\&quot;:{},\&quot;Evidence\&quot;:[],\&quot;Day&quot;···)" computerName="a39ab932e15a" duration="00:00:00.1135788" startTime="2026-10-07T09:54:16.8392437+00:00" endTime="2026-10-07T09:54:16.9424042+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8ec29838-b624-48c7-bb91-eacc38dbc874" />
+    <UnitTestResult executionId="4cb10f70-77c6-4470-8a7c-4262107d3579" testId="ccf96bf7-2dcf-8617-e7a4-404ee113098a" testName="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: &quot;{}&quot;)" computerName="a39ab932e15a" duration="00:00:00.0715678" startTime="2026-10-07T09:54:16.7350462+00:00" endTime="2026-10-07T09:54:16.8221383+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4cb10f70-77c6-4470-8a7c-4262107d3579">
+      <Output>
+        <ErrorInfo>
+          <Message>System.NullReferenceException : Object reference not set to an instance of an object.</Message>
+          <StackTrace>   at Marrow.Services.Port.ModelsPalette.PaletteStore.Valid(StoredSeed seed) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 35
+   at Marrow.Services.Port.ModelsPalette.PaletteStore.LoadSeeds() in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs:line 27
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String root, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, PaletteExecutor executor, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 46
+   at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String dataRoot, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, IPaletteNetworkStatus network) in /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs:line 41
+   at Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(String entry) in /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteSeedCacheTests.cs:line 20
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: &quot;{\&quot;Key\&quot;:\&quot;bad\&quot;,\&quot;Seed\&quot;:{},\&quot;Evidence\&quot;:[],\&quot;Day&quot;···)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="0b46fe1d-bacf-ad1e-57e4-dc2fe70d17e3">
+      <Execution id="8ec29838-b624-48c7-bb91-eacc38dbc874" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests" name="Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: &quot;{}&quot;)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="ccf96bf7-2dcf-8617-e7a4-404ee113098a">
+      <Execution id="4cb10f70-77c6-4470-8a7c-4262107d3579" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests" name="Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.A_future_seed_schema_is_never_overwritten_by_this_engine" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="3f630900-18fc-3bcc-41a3-698d4bb1bf49">
+      <Execution id="18993731-30e4-47f7-be18-fff22d0c244e" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests" name="A_future_seed_schema_is_never_overwritten_by_this_engine" />
+    </UnitTest>
+    <UnitTest name="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: &quot;{\&quot;Key\&quot;:null,\&quot;Seed\&quot;:null,\&quot;Evidence\&quot;:null,\&quot;Da&quot;···)" storage="/workspace/marrow-port/tests/marrow.services.tests/bin/debug/net10.0-windows/marrow.services.tests.dll" id="b13e1808-b053-3f2b-807d-51834eed8635">
+      <Execution id="1c1af6b7-9006-48a5-ae61-e64328a0a85f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Services.Tests/bin/Debug/net10.0-windows/Marrow.Services.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests" name="Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="b13e1808-b053-3f2b-807d-51834eed8635" executionId="1c1af6b7-9006-48a5-ae61-e64328a0a85f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3f630900-18fc-3bcc-41a3-698d4bb1bf49" executionId="18993731-30e4-47f7-be18-fff22d0c244e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0b46fe1d-bacf-ad1e-57e4-dc2fe70d17e3" executionId="8ec29838-b624-48c7-bb91-eacc38dbc874" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ccf96bf7-2dcf-8617-e7a4-404ee113098a" executionId="4cb10f70-77c6-4470-8a7c-4262107d3579" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="4" executed="4" passed="2" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.20]   Discovering: Marrow.Services.Tests
+[xUnit.net 00:00:01.14]   Discovered:  Marrow.Services.Tests
+[xUnit.net 00:00:01.20]   Starting:    Marrow.Services.Tests
+[xUnit.net 00:00:01.32]       System.NullReferenceException : Object reference not set to an instance of an object.
+[xUnit.net 00:00:01.32]       Stack Trace:
+[xUnit.net 00:00:01.32]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs(35,0): at Marrow.Services.Port.ModelsPalette.PaletteStore.Valid(StoredSeed seed)
+[xUnit.net 00:00:01.32]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs(27,0): at Marrow.Services.Port.ModelsPalette.PaletteStore.LoadSeeds()
+[xUnit.net 00:00:01.32]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs(46,0): at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String root, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, PaletteExecutor executor, IPaletteNetworkStatus network)
+[xUnit.net 00:00:01.32]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs(41,0): at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String dataRoot, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, IPaletteNetworkStatus network)
+[xUnit.net 00:00:01.32]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteSeedCacheTests.cs(20,0): at Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(String entry)
+[xUnit.net 00:00:01.32]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:01.32]            at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.33]       System.NullReferenceException : Object reference not set to an instance of an object.
+[xUnit.net 00:00:01.33]       Stack Trace:
+[xUnit.net 00:00:01.33]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs(35,0): at Marrow.Services.Port.ModelsPalette.PaletteStore.Valid(StoredSeed seed)
+[xUnit.net 00:00:01.33]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteStore.cs(27,0): at Marrow.Services.Port.ModelsPalette.PaletteStore.LoadSeeds()
+[xUnit.net 00:00:01.33]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs(46,0): at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String root, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, PaletteExecutor executor, IPaletteNetworkStatus network)
+[xUnit.net 00:00:01.33]         /workspace/marrow-port/src/Marrow.Services/Port/ModelsPalette/PaletteEngine.cs(41,0): at Marrow.Services.Port.ModelsPalette.PaletteEngine..ctor(String dataRoot, HttpMessageHandler transport, ILogoDecoder decoder, TimeProvider time, PaletteSourcePack pack, IPaletteNetworkStatus network)
+[xUnit.net 00:00:01.33]         /workspace/marrow-port/tests/Marrow.Services.Tests/Port/ModelsPalette/PaletteSeedCacheTests.cs(20,0): at Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(String entry)
+[xUnit.net 00:00:01.33]            at InvokeStub_PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(Object, Span`1)
+[xUnit.net 00:00:01.33]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:01.74]   Finished:    Marrow.Services.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T09:54:16.8262857+00:00">
+        <Text>[xUnit.net 00:00:01.32]     Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: "{}") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T09:54:16.8380887+00:00">
+        <Text>[xUnit.net 00:00:01.33]     Marrow.Services.Tests.Port.ModelsPalette.PaletteSeedCacheTests.Null_or_incomplete_entries_cannot_crash_launch_or_rewrite_the_original(entry: "{\"Key\":null,\"Seed\":null,\"Evidence\":null,\"Da"···) [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

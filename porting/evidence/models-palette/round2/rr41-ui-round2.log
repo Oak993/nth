@@ -1,0 +1,250 @@
+Test run for /workspace/marrow-port/tests/Marrow.UI.Tests/bin/Debug/net10.0/Marrow.UI.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:05.49]     Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_kept_letters_a_takeover_carries_in_fade_grow_and_rise_into_place_as_in_the_video [FAIL]
+[xUnit.net 00:00:05.50]     Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_Leaving_letters_keep_the_old_colour_and_arriving_ones_wear_the_new_one_from_their_first_frame [FAIL]
+  Failed Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_kept_letters_a_takeover_carries_in_fade_grow_and_rise_into_place_as_in_the_video [954 ms]
+  Error Message:
+   System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal
+  Stack Trace:
+     at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection& resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Marrow.UI.Port.MorphingTextBlock.MeasureOverride(Size availableSize) in /workspace/marrow-port/src/Marrow.UI/Port/MorphingTextBlock.cs:line 407
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.StackPanel.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Presenters.ContentPresenter.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.Title(String text, Color colour, ManualFrameSource frames, ManualTimeProvider clock) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 79
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.<>c.<REVIEW_The_kept_letters_a_takeover_carries_in_fade_grow_and_rise_into_place_as_in_the_video>b__12_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 224
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_kept_letters_a_takeover_carries_in_fade_grow_and_rise_into_place_as_in_the_video() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 218
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_Leaving_letters_keep_the_old_colour_and_arriving_ones_wear_the_new_one_from_their_first_frame [26 ms]
+  Error Message:
+   System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal
+  Stack Trace:
+     at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection& resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Marrow.UI.Port.MorphingTextBlock.MeasureOverride(Size availableSize) in /workspace/marrow-port/src/Marrow.UI/Port/MorphingTextBlock.cs:line 407
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.StackPanel.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Presenters.ContentPresenter.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.Title(String text, Color colour, ManualFrameSource frames, ManualTimeProvider clock) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 79
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.<>c.<REVIEW_Leaving_letters_keep_the_old_colour_and_arriving_ones_wear_the_new_one_from_their_first_frame>b__8_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 111
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_Leaving_letters_keep_the_old_colour_and_arriving_ones_wear_the_new_one_from_their_first_frame() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 105
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:05.55]     Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_a_carried_through_the_narrowing_takeover_stays_on_the_h_as_long_as_the_video_shows [FAIL]
+[xUnit.net 00:00:05.55]     Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_leaving_letters_of_a_change_taken_over_keep_that_changes_old_colour [FAIL]
+[xUnit.net 00:00:05.57]     Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_letters_still_arriving_at_a_takeover_go_on_fading_in_and_do_not_jump_to_full [FAIL]
+  Failed Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_a_carried_through_the_narrowing_takeover_stays_on_the_h_as_long_as_the_video_shows [34 ms]
+  Error Message:
+   System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal
+  Stack Trace:
+     at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection& resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Marrow.UI.Port.MorphingTextBlock.MeasureOverride(Size availableSize) in /workspace/marrow-port/src/Marrow.UI/Port/MorphingTextBlock.cs:line 407
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.StackPanel.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Presenters.ContentPresenter.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.Title(String text, Color colour, ManualFrameSource frames, ManualTimeProvider clock) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 79
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.<>c.<REVIEW_The_a_carried_through_the_narrowing_takeover_stays_on_the_h_as_long_as_the_video_shows>b__14_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 288
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_a_carried_through_the_narrowing_takeover_stays_on_the_h_as_long_as_the_video_shows() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 282
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_leaving_letters_of_a_change_taken_over_keep_that_changes_old_colour [11 ms]
+  Error Message:
+   System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal
+  Stack Trace:
+     at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection& resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Marrow.UI.Port.MorphingTextBlock.MeasureOverride(Size availableSize) in /workspace/marrow-port/src/Marrow.UI/Port/MorphingTextBlock.cs:line 407
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.StackPanel.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Presenters.ContentPresenter.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.Title(String text, Color colour, ManualFrameSource frames, ManualTimeProvider clock) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 79
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.<>c.<REVIEW_The_leaving_letters_of_a_change_taken_over_keep_that_changes_old_colour>b__9_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 134
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_leaving_letters_of_a_change_taken_over_keep_that_changes_old_colour() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 128
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_letters_still_arriving_at_a_takeover_go_on_fading_in_and_do_not_jump_to_full [15 ms]
+  Error Message:
+   System.InvalidOperationException : Could not create glyphTypeface. Font family: $Default (key: ). Style: Normal. Weight: Medium. Stretch: Normal
+  Stack Trace:
+     at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties& previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection& resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Marrow.UI.Port.MorphingTextBlock.MeasureOverride(Size availableSize) in /workspace/marrow-port/src/Marrow.UI/Port/MorphingTextBlock.cs:line 407
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.StackPanel.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutHelper.MeasureChild(Layoutable control, Size availableSize, Thickness padding, Thickness borderThickness)
+   at Avalonia.Controls.Presenters.ContentPresenter.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.Window.MeasureOverride(Size availableSize)
+   at Avalonia.Controls.WindowBase.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Controls.TopLevelHost.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteInitialLayoutPass()
+   at Avalonia.Controls.Window.ShowCore[TResult](Window owner, Boolean modal)
+   at Avalonia.Controls.Window.Show()
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.Title(String text, Color colour, ManualFrameSource frames, ManualTimeProvider clock) in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 79
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.<>c.<REVIEW_The_letters_still_arriving_at_a_takeover_go_on_fading_in_and_do_not_jump_to_full>b__13_0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 262
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<DispatchOnce>b__0() in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 44
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()
+--- End of stack trace from previous location ---
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.DispatchOnce(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 41
+   at Marrow.UI.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs:line 34
+   at Marrow.UI.Tests.Port.MorphingTextBlockColourAndResidualReviewTests.REVIEW_The_letters_still_arriving_at_a_takeover_go_on_fading_in_and_do_not_jump_to_full() in /workspace/marrow-port/tests/Marrow.UI.Tests/Port/MorphingTextBlockColourAndResidualReviewTests.cs:line 256
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+Results File: /workspace/marrow-port/porting/evidence/models-palette/round2/rr41-ui-round2.trx
+
+Failed!  - Failed:     5, Passed:     7, Skipped:     0, Total:    12, Duration: 1 s - Marrow.UI.Tests.dll (net10.0)

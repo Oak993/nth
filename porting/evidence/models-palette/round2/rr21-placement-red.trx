@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="4c2b14bc-a94a-4a6a-b38e-22e69cde5ecb" name="@a39ab932e15a 2026-10-07 11:03:50" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T11:03:50.0732362+00:00" queuing="2026-10-07T11:03:50.0732363+00:00" start="2026-10-07T11:03:43.4743268+00:00" finish="2026-10-07T11:03:50.0787203+00:00" />
+  <TestSettings name="default" id="c3925bd5-8b7f-4c69-bf9c-79620ee5752b">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_11_03_50" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="2b767816-15d0-47e6-9eae-6554d03d52ff" testId="e855d885-f8c5-72fd-256d-d8dfb569944c" testName="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests.Colours_is_the_last_card_and_joins_the_same_rise_curve" computerName="a39ab932e15a" duration="00:00:02.1552667" startTime="2026-10-07T11:03:47.8436245+00:00" endTime="2026-10-07T11:03:49.9875947+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2b767816-15d0-47e6-9eae-6554d03d52ff">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Same() Failure: Values are not the same instance
+Expected: ChromeCard { ActualThemeVariant = Light, Bounds = 0, 28, 520, 58, CacheMode = null, Child = Border { ActualThemeVariant = Light, Background = #07000000, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Classes = [], ··· }
+Actual:   ChromeCard { ActualThemeVariant = Light, Bounds = 0, 0, 520, 58, CacheMode = null, Child = Border { ActualThemeVariant = Light, Background = #07000000, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Classes = [], ··· }</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests.&lt;&gt;c.&lt;Colours_is_the_last_card_and_joins_the_same_rise_curve&gt;b__1_0(AppModelHarness _, WindowManager manager) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursRiseTests.cs:line 24
+   at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 49
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs:line 33
+   at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests.Colours_is_the_last_card_and_joins_the_same_rise_curve() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursRiseTests.cs:line 18
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests.Colours_is_the_last_card_and_joins_the_same_rise_curve" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="e855d885-f8c5-72fd-256d-d8dfb569944c">
+      <Execution id="2b767816-15d0-47e6-9eae-6554d03d52ff" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests" name="Colours_is_the_last_card_and_joins_the_same_rise_curve" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="e855d885-f8c5-72fd-256d-d8dfb569944c" executionId="2b767816-15d0-47e6-9eae-6554d03d52ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="1" executed="1" passed="0" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.99]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:02.90]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:02.94]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:05.34]       Assert.Same() Failure: Values are not the same instance
+[xUnit.net 00:00:05.34]       Expected: ChromeCard { ActualThemeVariant = Light, Bounds = 0, 28, 520, 58, CacheMode = null, Child = Border { ActualThemeVariant = Light, Background = #07000000, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Classes = [], ··· }
+[xUnit.net 00:00:05.34]       Actual:   ChromeCard { ActualThemeVariant = Light, Bounds = 0, 0, 520, 58, CacheMode = null, Child = Border { ActualThemeVariant = Light, Background = #07000000, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Classes = [], ··· }
+[xUnit.net 00:00:05.34]       Stack Trace:
+[xUnit.net 00:00:05.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursRiseTests.cs(24,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests.&lt;&gt;c.&lt;Colours_is_the_last_card_and_joins_the_same_rise_curve&gt;b__1_0(AppModelHarness _, WindowManager manager)
+[xUnit.net 00:00:05.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(49,0): at Marrow.App.Tests.Window.SettingsWindowFixture.&lt;&gt;c__DisplayClass2_0.&lt;WithManager&gt;b__0()
+[xUnit.net 00:00:05.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:05.34]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:05.34]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:05.34]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:05.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:05.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/SettingsWindowFixture.cs(33,0): at Marrow.App.Tests.Window.SettingsWindowFixture.WithManager(Action`2 check, Boolean realSettings)
+[xUnit.net 00:00:05.34]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/ModelsPalette/PaletteColoursRiseTests.cs(18,0): at Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests.Colours_is_the_last_card_and_joins_the_same_rise_curve()
+[xUnit.net 00:00:05.34]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:05.34]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:05.35]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T11:03:49.9926286+00:00">
+        <Text>[xUnit.net 00:00:05.34]     Marrow.App.Tests.Port.ModelsPalette.PaletteColoursRiseTests.Colours_is_the_last_card_and_joins_the_same_rise_curve [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

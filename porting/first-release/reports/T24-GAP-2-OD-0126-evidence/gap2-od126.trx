@@ -1,0 +1,201 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="24ab538d-ba41-409e-9e66-2a30e48ff1c2" name="@9e233ac65b1d 2026-10-07 05:30:38" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T05:30:38.3262548+00:00" queuing="2026-10-07T05:30:38.3262548+00:00" start="2026-10-07T05:30:14.0868868+00:00" finish="2026-10-07T05:30:39.1388363+00:00" />
+  <TestSettings name="default" id="783841f8-436f-4986-bee7-f1f0676e229f">
+    <Deployment runDeploymentRoot="_9e233ac65b1d_2026-10-07_05_30_38" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="462a9643-4abc-47cc-8474-95aecdb08258" testId="5c77c81a-52dc-5b5f-f96e-0c0af327981f" testName="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_preview_runs_with_microphone_capture_engine_and_transport_seams_that_throw_if_touched" computerName="9e233ac65b1d" duration="00:00:14.2984569" startTime="2026-10-07T05:30:23.9649113+00:00" endTime="2026-10-07T05:30:38.1955582+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="462a9643-4abc-47cc-8474-95aecdb08258" />
+    <UnitTestResult executionId="4b8bafe5-7b53-4cb2-84ee-ff921accc48c" testId="3f3e4a6b-00a4-1afb-4165-445e70ef4ecc" testName="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(transition: &quot;detail out&quot;)" computerName="9e233ac65b1d" duration="00:00:00.3724146" startTime="2026-10-07T05:30:38.3529412+00:00" endTime="2026-10-07T05:30:38.6487870+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b8bafe5-7b53-4cb2-84ee-ff921accc48c">
+      <Output>
+        <ErrorInfo>
+          <Message>System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Medium. Stretch: Normal</Message>
+          <StackTrace>   at Avalonia.Media.Typeface.get_GlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+   at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties)
+   at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties, RentedList`1 results)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection&amp; resolvedFlowDirection)
+   at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+   at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+   at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+   at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+   at Avalonia.Controls.TextBlock.get_TextLayout()
+   at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+   at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+   at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+   at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+   at Avalonia.Layout.LayoutManager.ExecuteMeasurePass()
+   at Avalonia.Layout.LayoutManager.InnerLayoutPass()
+   at Avalonia.Layout.LayoutManager.ExecuteLayoutPass()
+   at Avalonia.Layout.LayoutManager.ExecuteQueuedLayoutPass()
+   at Avalonia.Media.MediaContext.FireInvokeOnRenderCallbacks()
+   at Avalonia.Media.MediaContext.RenderCore()
+   at Avalonia.Media.MediaContext.Render()
+   at Avalonia.Threading.DispatcherOperation.InvokeCore()
+   at Avalonia.Threading.DispatcherOperation.Execute()
+   at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+   at Avalonia.Threading.Dispatcher.ResetForUnitTests()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass14_0.&lt;EnsureIsolatedApplication&gt;b__0()
+   at Avalonia.Reactive.Disposable.AnonymousDisposable.Dispose()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(String transition) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs:line 69
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="d5b4eedc-d394-4095-8e43-59834e34f39f" testId="2edafa0a-8260-19d8-c3ab-f5560fa31081" testName="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(transition: &quot;placeholder out&quot;)" computerName="9e233ac65b1d" duration="00:00:00.3777468" startTime="2026-10-07T05:30:38.6508096+00:00" endTime="2026-10-07T05:30:39.0282563+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d5b4eedc-d394-4095-8e43-59834e34f39f">
+      <Output>
+        <ErrorInfo>
+          <Message>placeholder out, frame 2 at 60 Hz: step 0.233404321 exceeds 0.15 of the travel and the approved design step 0.000000000</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.&lt;&gt;c__DisplayClass4_0.&lt;GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs:line 96
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(String transition) in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs:line 69
+   at InvokeStub_GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="9e870b92-110f-48f3-9836-e6560eb4fb39" testId="8838a27a-2c21-ae1a-fb2d-83f49e65176c" testName="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand" computerName="9e233ac65b1d" duration="00:00:00.0667454" startTime="2026-10-07T05:30:38.2895265+00:00" endTime="2026-10-07T05:30:38.2900453+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9e870b92-110f-48f3-9836-e6560eb4fb39">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Empty() Failure: Collection was not empty
+Collection: ["Claude / Claude: composer ComposerLightPalette { M"···, "Deepseek / DeepSeek: composer ComposerLightPalette"···, "Meta / Meta: composer ComposerLightPalette { Maker"···, "Antigravity / Gemini: composer ComposerLightPalett"···, "Silver / OpenAI: composer ComposerLightPalette { M"···, ···]</Message>
+          <StackTrace>   at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.&lt;&gt;c.&lt;GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand&gt;b__3_0() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs:line 61
+   at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0() in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 39
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+   at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+--- End of stack trace from previous location ---
+   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs:line 35
+   at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand() in /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs:line 49
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_preview_runs_with_microphone_capture_engine_and_transport_seams_that_throw_if_touched" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="5c77c81a-52dc-5b5f-f96e-0c0af327981f">
+      <Execution id="462a9643-4abc-47cc-8474-95aecdb08258" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests" name="GAP_The_preview_runs_with_microphone_capture_engine_and_transport_seams_that_throw_if_touched" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(transition: &quot;detail out&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="3f3e4a6b-00a4-1afb-4165-445e70ef4ecc">
+      <Execution id="4b8bafe5-7b53-4cb2-84ee-ff921accc48c" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests" name="GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(transition: &quot;placeholder out&quot;)" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="2edafa0a-8260-19d8-c3ab-f5560fa31081">
+      <Execution id="d5b4eedc-d394-4095-8e43-59834e34f39f" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests" name="GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel" />
+    </UnitTest>
+    <UnitTest name="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand" storage="/workspace/marrow-port/tests/marrow.app.tests/bin/debug/net10.0-windows10.0.19041.0/marrow.app.tests.dll" id="8838a27a-2c21-ae1a-fb2d-83f49e65176c">
+      <Execution id="9e870b92-110f-48f3-9836-e6560eb4fb39" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.App.Tests/bin/Debug/net10.0-windows10.0.19041.0/Marrow.App.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests" name="GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="5c77c81a-52dc-5b5f-f96e-0c0af327981f" executionId="462a9643-4abc-47cc-8474-95aecdb08258" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3f3e4a6b-00a4-1afb-4165-445e70ef4ecc" executionId="4b8bafe5-7b53-4cb2-84ee-ff921accc48c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2edafa0a-8260-19d8-c3ab-f5560fa31081" executionId="d5b4eedc-d394-4095-8e43-59834e34f39f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8838a27a-2c21-ae1a-fb2d-83f49e65176c" executionId="9e870b92-110f-48f3-9836-e6560eb4fb39" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="4" executed="4" passed="1" failed="3" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.0)
+[xUnit.net 00:00:01.07]   Discovering: Marrow.App.Tests
+[xUnit.net 00:00:06.42]   Discovered:  Marrow.App.Tests
+[xUnit.net 00:00:06.50]   Starting:    Marrow.App.Tests
+[xUnit.net 00:00:22.41]       Assert.Empty() Failure: Collection was not empty
+[xUnit.net 00:00:22.41]       Collection: ["Claude / Claude: composer ComposerLightPalette { M"···, "Deepseek / DeepSeek: composer ComposerLightPalette"···, "Meta / Meta: composer ComposerLightPalette { Maker"···, "Antigravity / Gemini: composer ComposerLightPalett"···, "Silver / OpenAI: composer ComposerLightPalette { M"···, ···]
+[xUnit.net 00:00:22.41]       Stack Trace:
+[xUnit.net 00:00:22.46]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs(61,0): at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.&lt;&gt;c.&lt;GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand&gt;b__3_0()
+[xUnit.net 00:00:22.46]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:22.46]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:22.46]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:22.46]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:22.46]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:22.46]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs(49,0): at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand()
+[xUnit.net 00:00:22.46]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:22.46]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:22.46]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:22.46]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:22.76]       System.InvalidOperationException : Could not create glyphTypeface. Font family: Inter (key: fonts:Inter). Style: Normal. Weight: Medium. Stretch: Normal
+[xUnit.net 00:00:22.76]       Stack Trace:
+[xUnit.net 00:00:22.76]            at Avalonia.Media.Typeface.get_GlyphTypeface()
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextRunProperties.get_CachedGlyphTypeface()
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextCharacters.CreateShapeableRun(ReadOnlyMemory`1 text, TextRunProperties defaultProperties, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties)
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextCharacters.GetShapeableCharacters(ReadOnlyMemory`1 text, SByte biDiLevel, FontManager fontManager, TextRunProperties&amp; previousProperties, RentedList`1 results)
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextFormatterImpl.CoalesceLevels(IReadOnlyList`1 textCharacters, ReadOnlySpan`1 levels, FontManager fontManager, RentedList`1 processedRuns)
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextFormatterImpl.ShapeTextRuns(IReadOnlyList`1 textRuns, TextParagraphProperties paragraphProperties, FormattingObjectPool objectPool, FontManager fontManager, FlowDirection&amp; resolvedFlowDirection)
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextFormatterImpl.FormatLine(ITextSource textSource, Int32 firstTextSourceIndex, Double paragraphWidth, TextParagraphProperties paragraphProperties, TextLineBreak previousLineBreak, TextRunCache textRunCache)
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextLayout.CreateTextLines()
+[xUnit.net 00:00:22.76]            at Avalonia.Media.TextFormatting.TextLayout..ctor(ITextSource textSource, TextParagraphProperties paragraphProperties, TextTrimming textTrimming, Double maxWidth, Double maxHeight, Int32 maxLines, TextRunCache textRunCache)
+[xUnit.net 00:00:22.76]            at Avalonia.Controls.TextBlock.CreateTextLayout(String text)
+[xUnit.net 00:00:22.76]            at Avalonia.Controls.TextBlock.get_TextLayout()
+[xUnit.net 00:00:22.76]            at Avalonia.Controls.TextBlock.MeasureOverride(Size availableSize)
+[xUnit.net 00:00:22.76]            at Avalonia.Layout.Layoutable.MeasureCore(Size availableSize)
+[xUnit.net 00:00:22.76]            at Avalonia.Layout.Layoutable.Measure(Size availableSize)
+[xUnit.net 00:00:22.76]            at Avalonia.Layout.LayoutManager.Measure(Layoutable control)
+[xUnit.net 00:00:22.76]            at Avalonia.Layout.LayoutManager.ExecuteMeasurePass()
+[xUnit.net 00:00:22.76]            at Avalonia.Layout.LayoutManager.InnerLayoutPass()
+[xUnit.net 00:00:22.76]            at Avalonia.Layout.LayoutManager.ExecuteLayoutPass()
+[xUnit.net 00:00:22.76]            at Avalonia.Layout.LayoutManager.ExecuteQueuedLayoutPass()
+[xUnit.net 00:00:22.76]            at Avalonia.Media.MediaContext.FireInvokeOnRenderCallbacks()
+[xUnit.net 00:00:22.76]            at Avalonia.Media.MediaContext.RenderCore()
+[xUnit.net 00:00:22.76]            at Avalonia.Media.MediaContext.Render()
+[xUnit.net 00:00:22.76]            at Avalonia.Threading.DispatcherOperation.InvokeCore()
+[xUnit.net 00:00:22.76]            at Avalonia.Threading.DispatcherOperation.Execute()
+[xUnit.net 00:00:22.76]            at Avalonia.Threading.Dispatcher.ExecuteJob(DispatcherOperation job)
+[xUnit.net 00:00:22.76]            at Avalonia.Threading.Dispatcher.ResetForUnitTests()
+[xUnit.net 00:00:22.76]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass14_0.&lt;EnsureIsolatedApplication&gt;b__0()
+[xUnit.net 00:00:22.76]            at Avalonia.Reactive.Disposable.AnonymousDisposable.Dispose()
+[xUnit.net 00:00:22.76]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:22.76]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:22.76]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:22.76]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs(69,0): at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(String transition)
+[xUnit.net 00:00:22.76]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:22.76]            at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+[xUnit.net 00:00:22.76]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:22.76]            at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+[xUnit.net 00:00:23.14]       placeholder out, frame 2 at 60 Hz: step 0.233404321 exceeds 0.15 of the travel and the approved design step 0.000000000
+[xUnit.net 00:00:23.14]       Stack Trace:
+[xUnit.net 00:00:23.14]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs(96,0): at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.&lt;&gt;c__DisplayClass4_0.&lt;GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel&gt;b__0()
+[xUnit.net 00:00:23.14]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(39,0): at Marrow.App.Tests.Fixtures.HeadlessSession.&lt;&gt;c__DisplayClass4_0.&lt;OnUiThread&gt;b__0()
+[xUnit.net 00:00:23.14]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass9_0.&lt;Dispatch&gt;b__0()
+[xUnit.net 00:00:23.14]            at Avalonia.Headless.HeadlessUnitTestSession.&lt;&gt;c__DisplayClass12_0`1.&lt;DispatchCore&gt;b__0()
+[xUnit.net 00:00:23.14]         --- End of stack trace from previous location ---
+[xUnit.net 00:00:23.14]         /workspace/marrow-port/tests/Marrow.App.Tests/Fixtures/HeadlessFixtures.cs(35,0): at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body)
+[xUnit.net 00:00:23.14]         /workspace/marrow-port/tests/Marrow.App.Tests/Port/Settings/GapCustomizationAcceptanceTests.cs(69,0): at Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(String transition)
+[xUnit.net 00:00:23.14]            at InvokeStub_GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(Object, Span`1)
+[xUnit.net 00:00:23.14]            at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:23.14]   Finished:    Marrow.App.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="9e233ac65b1d" outcome="Error" timestamp="2026-10-07T05:30:38.3453774+00:00">
+        <Text>[xUnit.net 00:00:22.41]     Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_The_actual_preview_palette_matches_the_composer_slot_for_every_brand [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="9e233ac65b1d" outcome="Error" timestamp="2026-10-07T05:30:38.6498845+00:00">
+        <Text>[xUnit.net 00:00:22.76]     Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(transition: "detail out") [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="9e233ac65b1d" outcome="Error" timestamp="2026-10-07T05:30:39.0287549+00:00">
+        <Text>[xUnit.net 00:00:23.14]     Marrow.App.Tests.Port.Settings.GapCustomizationAcceptanceTests.GAP_Each_transition_frame_is_monotonic_and_moves_at_most_fifteen_percent_of_its_travel(transition: "placeholder out") [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

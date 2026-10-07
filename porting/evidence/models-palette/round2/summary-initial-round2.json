@@ -1,0 +1,76 @@
+{
+  "branch": "codex/models-palette",
+  "build": {
+    "warnings": 0,
+    "errors": 0,
+    "receipt": "build-final2.log"
+  },
+  "rows": {
+    "RR-19": "DONE (standalone control + additive handoff)",
+    "RR-20": "BLOCKED",
+    "RR-21": "BLOCKED (visible control implemented)",
+    "RR-41": "BLOCKED"
+  },
+  "receipts": {
+    "rr20-core-final3.trx": {
+      "total": 20,
+      "passed": 19,
+      "failed": 1,
+      "notExecuted": 0
+    },
+    "rr20-services-verified.trx": {
+      "total": 42,
+      "passed": 42,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "rr21-control-verified.trx": {
+      "total": 19,
+      "passed": 19,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "rr21-final.trx": {
+      "total": 49,
+      "passed": 35,
+      "failed": 14,
+      "notExecuted": 0
+    },
+    "rr41-app-round2.trx": {
+      "total": 326,
+      "passed": 326,
+      "failed": 0,
+      "notExecuted": 0
+    },
+    "rr41-app-residual-round2.trx": {
+      "total": 5,
+      "passed": 4,
+      "failed": 1,
+      "notExecuted": 0
+    },
+    "rr41-ui-round2.trx": {
+      "total": 12,
+      "passed": 7,
+      "failed": 5,
+      "notExecuted": 0
+    }
+  },
+  "effortSliderEditedLines": [],
+  "seams": [
+    "after Strike, bind ModelPickerSeam.Create/Place, preserve Choose/Back/history/Hydra/.12s outer page transition",
+    "ModelShades frozen reads + PaletteGlide + PaletteArrangement supplied; ApplyToUi remains false"
+  ],
+  "verdict": "NOT READY",
+  "network": "in-process fake only; no real models/logo API",
+  "originalTestsReferencesTolerancesAssertions": "unchanged from ae9b3177",
+  "wholeRecordEvidenceAppended": 15,
+  "linuxLimits": [
+    "5 unchanged UI title tests cannot create $Default glyphTypeface",
+    "unchanged 380/400ms title-frame equality still fails; untouched-base reproduction retained",
+    "Windows source reference unavailable to Gate A"
+  ],
+  "newAcceptanceFailures": [
+    "strict archived-IR3/new-generation expectation conflict (1)",
+    "OD-0127 Colours card conflicts with unchanged old-card-position rise fixture (14)"
+  ]
+}

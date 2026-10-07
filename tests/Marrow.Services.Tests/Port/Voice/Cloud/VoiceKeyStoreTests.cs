@@ -7,6 +7,7 @@ namespace Marrow.Services.Tests.Port.Voice.Cloud;
 // VT-16, voice-SPEC V-17.2 and V-T47: the OpenAI key lives in Credential Manager through SecretStore, service "Marrow Code", account
 // "voice-openai"; it is never logged. The store runs on an in-memory Credential Manager here (ED-093's backend seam); the real one is
 // never touched.
+[Trait("Spec", "V-T47")]
 public sealed class VoiceKeyStoreTests
 {
     [Fact]

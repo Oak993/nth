@@ -41,6 +41,9 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T14, CZ-T15, CZ-T19, CZ-6.1 to CZ-6.4: in every fixture case each row's detail, shown value and dimmed state are the design's
+    [Trait("Spec", "CZ-T14")]
+    [Trait("Spec", "CZ-T15")]
+    [Trait("Spec", "CZ-T19")]
     public void Every_beam_row_says_what_the_design_says_in_every_fixture_case() => headless.OnUiThread(() =>
     {
         using var fixture = PageFixture.Open();
@@ -70,6 +73,7 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T10, CZ-6, CZ-12.2.6: Auto shows BorderBeamResolved.AutoValues at the preview composer's size; moving the slider stores a value; the capsule toggles between null and the shown value
+    [Trait("Spec", "CZ-T10")]
     public void Auto_shows_the_resolved_value_moving_stores_and_the_capsule_toggles() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -112,6 +116,7 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T10, CZ-6: the Auto values are the window's theme's (the light recipe differs from the dark one)
+    [Trait("Spec", "CZ-T10")]
     public void Auto_follows_the_windows_theme() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(light: true, reduceMotion: true);
@@ -125,6 +130,7 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T12, CZ-6.1: a Motion pick sets the family's first shape; the Shape sets swap with the family and each writes the type
+    [Trait("Spec", "CZ-T12")]
     public void Motion_sets_the_families_first_shape_and_the_shape_sets_swap() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -156,6 +162,7 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T13, CZ-6.2: eight palettes in order, named; a pick writes the palette and the row's detail names it
+    [Trait("Spec", "CZ-T13")]
     public void The_colours_row_has_the_eight_palettes_and_a_pick_writes_one() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -175,6 +182,8 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T14, CZ-T42, CZ-12.2.7: Colour drift is dimmed and inert (not focusable) for Pulse, Mono and Hold colours still; Line caps it at 13
+    [Trait("Spec", "CZ-T14")]
+    [Trait("Spec", "CZ-T42")]
     public void Colour_drift_is_dimmed_and_inert_where_it_does_nothing() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -211,6 +220,7 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T15, CZ-6.4, CZ-12.3: Hold colours still is shown on, dimmed and inert under Mono; elsewhere it is the setting
+    [Trait("Spec", "CZ-T15")]
     public void Hold_colours_still_is_forced_on_and_inert_under_mono() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);
@@ -238,6 +248,7 @@ public sealed class CustomizationBeamRowsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T11, CZ-13.2: the Corner runs 0..26; a stored 30 shows at the right end and is not rewritten until the user moves it
+    [Trait("Spec", "CZ-T11")]
     public void A_stored_corner_above_the_sliders_end_shows_at_the_end_and_is_not_rewritten() => headless.OnUiThread(() =>
     {
         using var rig = new CustomizationPageRig(reduceMotion: true);

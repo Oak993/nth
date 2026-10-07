@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // Unit SK-2: "every version, hash, size ... change" (DL-2). Versions are pins (a tool's version, a repository's commit, a per-skill commit, a package's version);
 // hashes are the SHA-256 of every artifact and of every file; sizes are the plan's approximate size, every artifact's size and the total of an item's files.
 // ONDEMAND-PLAN.md 3.7 asks the report for "versions, hashes, licence changes, sizes" and the download size of an update.
+[Trait("Spec", "DL-2")]
 public sealed class CatalogueChangeReportHashAndSizeTests
 {
     private static CatalogueChangeReport Compare(Func<SkillsCatalogue, SkillsCatalogue> change) => CatalogueChangeReport.Compare(ChangeReportFixtures.Previous(), change(ChangeReportFixtures.Previous()));

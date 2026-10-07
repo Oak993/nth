@@ -1,0 +1,1460 @@
+[
+ {
+  "provider": "Claude",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "haiku",
+  "display_name": "Haiku",
+  "strength_rank": 0,
+  "strength_evidence": "Tier Haiku < Sonnet < Opus < Fable; seed has no effort list for Haiku (smallest tier, no thinking scale)",
+  "efforts": [],
+  "source": "ProviderRegistry.cs ClaudeSeed :128-134 (live `claude` catalog merged over it; Fable/Opus/Sonnet versions come from the CLI at runtime)"
+ },
+ {
+  "provider": "Claude",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "sonnet",
+  "display_name": "Sonnet",
+  "strength_rank": 1,
+  "strength_evidence": "Tier Sonnet above Haiku, below Opus; seed lists it after Opus/Fable",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "ProviderRegistry.cs ClaudeSeed :128-134 (live `claude` catalog merged over it; Fable/Opus/Sonnet versions come from the CLI at runtime)"
+ },
+ {
+  "provider": "Claude",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "opus",
+  "display_name": "Opus",
+  "strength_rank": 2,
+  "strength_evidence": "Tier Opus above Sonnet; has fastTier 'fast'; Fable is described as more capable than the Opus tier",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "ProviderRegistry.cs ClaudeSeed :128-134 (live `claude` catalog merged over it; Fable/Opus/Sonnet versions come from the CLI at runtime)",
+  "fast_tier": "fast"
+ },
+ {
+  "provider": "Claude",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-fable-5-1[1m]",
+  "display_name": "Fable",
+  "strength_rank": 3,
+  "strength_evidence": "Detail text 'Most capable for your hardest and longest-running tasks' (Fable 5.1, 1M context)",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "ProviderRegistry.cs ClaudeSeed :128-134 (live `claude` catalog merged over it; Fable/Opus/Sonnet versions come from the CLI at runtime)"
+ },
+ {
+  "provider": "Claude",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "default",
+  "display_name": "Default",
+  "strength_rank": null,
+  "strength_evidence": "Alias row ('Claude Code's recommended model'); resolves to a real tier at runtime, so it takes that tier's intensity, not its own rank",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "ProviderRegistry.cs ClaudeSeed :128-134 (live `claude` catalog merged over it; Fable/Opus/Sonnet versions come from the CLI at runtime)",
+  "alias": true,
+  "fast_tier": "fast",
+  "is_default": true
+ },
+ {
+  "provider": "Antigravity",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "gemini-3.6-flash",
+  "display_name": "Gemini 3.6 Flash",
+  "strength_rank": 0,
+  "strength_evidence": "Flash < Pro; older Flash version",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "ProviderRegistry.cs AntigravitySeed :178-186 (live `agy models` replaces it; efforts are grouped from -low/-medium/-high slugs)"
+ },
+ {
+  "provider": "Antigravity",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "gemini-3.7-flash",
+  "display_name": "Gemini 3.7 Flash",
+  "strength_rank": 1,
+  "strength_evidence": "Newer Flash than 3.6 (seed lists newest first)",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "ProviderRegistry.cs AntigravitySeed :178-186 (live `agy models` replaces it; efforts are grouped from -low/-medium/-high slugs)"
+ },
+ {
+  "provider": "Antigravity",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "gemini-3.8-flash",
+  "display_name": "Gemini 3.8 Flash",
+  "strength_rank": 2,
+  "strength_evidence": "Newest Flash; seed default (CommandCode: 'newest Gemini Flash, improved core reasoning')",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "ProviderRegistry.cs AntigravitySeed :178-186 (live `agy models` replaces it; efforts are grouped from -low/-medium/-high slugs)",
+  "is_default": true
+ },
+ {
+  "provider": "Antigravity",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "gemini-3.1-pro",
+  "display_name": "Gemini 3.1 Pro",
+  "strength_rank": 3,
+  "strength_evidence": "Pro tier above Flash (tier-first rule); only low and high efforts offered. Ambiguity: 3.8 Flash is a newer generation than 3.1 Pro, tier-first chosen",
+  "efforts": [
+   "low",
+   "high"
+  ],
+  "source": "ProviderRegistry.cs AntigravitySeed :178-186 (live `agy models` replaces it; efforts are grouped from -low/-medium/-high slugs)"
+ },
+ {
+  "provider": "Antigravity",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-sonnet-4-6",
+  "display_name": "Claude Sonnet 4.6 (Thinking)",
+  "strength_rank": 0,
+  "strength_evidence": "Sonnet below Opus, same 4.6 generation; no effort scale in seed",
+  "efforts": [],
+  "source": "ProviderRegistry.cs AntigravitySeed :178-186 (live `agy models` replaces it; efforts are grouped from -low/-medium/-high slugs)"
+ },
+ {
+  "provider": "Antigravity",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-opus-4-6-thinking",
+  "display_name": "Claude Opus 4.6 (Thinking)",
+  "strength_rank": 1,
+  "strength_evidence": "Opus above Sonnet, same 4.6 generation; no effort scale in seed",
+  "efforts": [],
+  "source": "ProviderRegistry.cs AntigravitySeed :178-186 (live `agy models` replaces it; efforts are grouped from -low/-medium/-high slugs)"
+ },
+ {
+  "provider": "Antigravity",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-oss-120b",
+  "display_name": "GPT-OSS 120B",
+  "strength_rank": 0,
+  "strength_evidence": "Only OpenAI row in Antigravity; single effort 'medium'",
+  "efforts": [
+   "medium"
+  ],
+  "source": "ProviderRegistry.cs AntigravitySeed :178-186 (live `agy models` replaces it; efforts are grouped from -low/-medium/-high slugs)"
+ },
+ {
+  "provider": "DeepSeek",
+  "maker": "DeepSeek",
+  "brand": "Deepseek",
+  "model_id": "deepseek-flash",
+  "display_name": "V4.1 Flash",
+  "strength_rank": 0,
+  "strength_evidence": "Flash < Pro; detail 'Newest, fast, reads images'",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "DeepSeekAPI.cs Option :58-71 + ProviderRegistry.DeepseekSeed (live /models list; deepseek-chat, deepseek-reasoner, v4-flash and vision-exp ids are filtered out)",
+  "default_effort": "high"
+ },
+ {
+  "provider": "DeepSeek",
+  "maker": "DeepSeek",
+  "brand": "Deepseek",
+  "model_id": "deepseek-v4-pro",
+  "display_name": "V4 Pro",
+  "strength_rank": 1,
+  "strength_evidence": "Detail 'Best reasoning and coding quality'; seed default",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "DeepSeekAPI.cs Option :58-71 + ProviderRegistry.DeepseekSeed (live /models list; deepseek-chat, deepseek-reasoner, v4-flash and vision-exp ids are filtered out)",
+  "default_effort": "high",
+  "is_default": true
+ },
+ {
+  "provider": "Meta",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "muse-spark-1.1",
+  "display_name": "Spark 1.1",
+  "strength_rank": 0,
+  "strength_evidence": "Detail 'Original checkpoint'; oldest",
+  "efforts": [
+   "minimal",
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "MetaAPI.cs Option :43-63 + Efforts :39-41 + ProviderRegistry.MetaSeed (live api.meta.ai/v1/models, only muse-spark* ids)"
+ },
+ {
+  "provider": "Meta",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "muse-spark-1.2-contributor",
+  "display_name": "Spark 1.2 Contributor",
+  "strength_rank": 1,
+  "strength_evidence": "'Cheaper 1.2' (data-sharing tier of the 1.2 checkpoint), same scale as 1.2",
+  "efforts": [
+   "minimal",
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "MetaAPI.cs Option :43-63 + Efforts :39-41 + ProviderRegistry.MetaSeed (live api.meta.ai/v1/models, only muse-spark* ids)"
+ },
+ {
+  "provider": "Meta",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "muse-spark-1.2",
+  "display_name": "Spark 1.2",
+  "strength_rank": 1,
+  "strength_evidence": "'Previous checkpoint, Standard tier'; ties with its Contributor twin (same checkpoint)",
+  "efforts": [
+   "minimal",
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "MetaAPI.cs Option :43-63 + Efforts :39-41 + ProviderRegistry.MetaSeed (live api.meta.ai/v1/models, only muse-spark* ids)"
+ },
+ {
+  "provider": "Meta",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "muse-spark-1.3-contributor",
+  "display_name": "Spark 1.3 Contributor",
+  "strength_rank": 2,
+  "strength_evidence": "'Cheaper 1.3 ... no max effort': newest checkpoint but without the top effort, so below 1.3",
+  "efforts": [
+   "minimal",
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "MetaAPI.cs Option :43-63 + Efforts :39-41 + ProviderRegistry.MetaSeed (live api.meta.ai/v1/models, only muse-spark* ids)"
+ },
+ {
+  "provider": "Meta",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "muse-spark-1.3",
+  "display_name": "Spark 1.3",
+  "strength_rank": 3,
+  "strength_evidence": "'Latest Muse Spark, best agentic coding'; only checkpoint with max (probed live 2026-09-13); seed default",
+  "efforts": [
+   "minimal",
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "MetaAPI.cs Option :43-63 + Efforts :39-41 + ProviderRegistry.MetaSeed (live api.meta.ai/v1/models, only muse-spark* ids)",
+  "is_default": true
+ },
+ {
+  "provider": "Z.ai",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "glm-5.3-flash",
+  "display_name": "GLM-5.3 Flash",
+  "strength_rank": 0,
+  "strength_evidence": "Flash < full; detail 'Fast, reads images'",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "ZaiAPI.cs Option :56-78 + ZaiEfforts :34 + ProviderRegistry.ZaiSeed (live coding/paas/v4/models; only glm-5.3* ids, FlashX excluded)",
+  "default_effort": "max"
+ },
+ {
+  "provider": "Z.ai",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "glm-5.3",
+  "display_name": "GLM-5.3",
+  "strength_rank": 1,
+  "strength_evidence": "Detail 'Best reasoning and coding'; seed default",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "ZaiAPI.cs Option :56-78 + ZaiEfforts :34 + ProviderRegistry.ZaiSeed (live coding/paas/v4/models; only glm-5.3* ids, FlashX excluded)",
+  "default_effort": "max",
+  "is_default": true
+ },
+ {
+  "provider": "OpenRouter",
+  "maker": "(the model's own maker)",
+  "brand": "(the maker's brand; OD-0063: OpenRouter has no colour of its own)",
+  "model_id": "openrouter/auto",
+  "display_name": "Auto Router",
+  "strength_rank": null,
+  "strength_evidence": "Router row, not a model: it picks a model per request, so it takes the maker colour and intensity of whichever model answers (neutral until known). Real rows come from the live OpenRouter list, ranked in E:/Droppy/work/design/intensity/openrouter-models.json",
+  "efforts": [],
+  "source": "OpenRouterAPI.cs SeedOption :153; live rows get low/medium/high when the model supports reasoning (ReasoningEfforts :39)",
+  "alias": true
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-haiku-4-5",
+  "display_name": "Claude Haiku 4.5",
+  "strength_rank": 0,
+  "strength_evidence": "Haiku tier, lowest; ContextWindow table only (200k vs 1M for the rest), no effort scale",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-sonnet-4-6",
+  "display_name": "Claude Sonnet 4.6",
+  "strength_rank": 1,
+  "strength_evidence": "Sonnet tier, generation 4.6",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-opus-4-7",
+  "display_name": "Claude Opus 4.7",
+  "strength_rank": 2,
+  "strength_evidence": "Opus above Sonnet; 4.7 < 4.8",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-opus-4-8",
+  "display_name": "Claude Opus 4.8",
+  "strength_rank": 3,
+  "strength_evidence": "Newer Opus than 4.7",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-sonnet-5",
+  "display_name": "Claude Sonnet 5",
+  "strength_rank": 4,
+  "strength_evidence": "Seed default: 'best combo of speed & intelligence'; generation 5 placed above Opus 4.x (inferred: generation-first)",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime",
+  "is_default": true
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-opus-5",
+  "display_name": "Claude Opus 5",
+  "strength_rank": 5,
+  "strength_evidence": "Seed: 'most intelligent Opus for agents and coding'; Opus above Sonnet within generation 5",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-opus-5-5",
+  "display_name": "Claude Opus 5.5",
+  "strength_rank": 6,
+  "strength_evidence": "Seed: 'the newest Opus, for everyday complex work and coding'",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-fable-5",
+  "display_name": "Claude Fable 5",
+  "strength_rank": 7,
+  "strength_evidence": "Fable tier above Opus (version 5 < 5.1)",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Anthropic",
+  "brand": "Claude",
+  "model_id": "claude-fable-5-1",
+  "display_name": "Claude Fable 5.1",
+  "strength_rank": 8,
+  "strength_evidence": "Seed: 'most capable for demanding reasoning & long-horizon agents'",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-5.4-mini",
+  "display_name": "GPT-5.4 Mini",
+  "strength_rank": 0,
+  "strength_evidence": "mini < full; effort scale stops at high; 400k context",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-5.3-codex",
+  "display_name": "GPT-5.3 Codex",
+  "strength_rank": 1,
+  "strength_evidence": "Older generation (5.3); scale to xhigh; 400k context",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-5.4",
+  "display_name": "GPT-5.4",
+  "strength_rank": 2,
+  "strength_evidence": "Generation 5.4; scale to xhigh; 400k context",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-5.5",
+  "display_name": "GPT-5.5",
+  "strength_rank": 3,
+  "strength_evidence": "Generation 5.5; scale to xhigh; 400k context",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-5.6-luna",
+  "display_name": "GPT-5.6 Luna",
+  "strength_rank": 4,
+  "strength_evidence": "Seed: 'fast and efficient model' (smallest 5.6 variant; full scale, 1.05M context)",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-5.6-terra",
+  "display_name": "GPT-5.6 Terra",
+  "strength_rank": 5,
+  "strength_evidence": "Between Luna and Sol (inferred from table order sol, terra, luna and the Luna/Sol descriptions); full scale",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-5.6-sol",
+  "display_name": "GPT-5.6 Sol",
+  "strength_rank": 6,
+  "strength_evidence": "Seed: 'latest frontier model for general complex work'",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "gpt-6-astra",
+  "display_name": "GPT-6 Astra",
+  "strength_rank": 7,
+  "strength_evidence": "Seed: 'most capable OpenAI model for demanding reasoning & agents' (next generation)",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "google/gemini-3.1-flash-lite",
+  "display_name": "Gemini 3.1 Flash Lite",
+  "strength_rank": 0,
+  "strength_evidence": "Lite < Flash; oldest version",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "google/gemini-3.5-flash-lite",
+  "display_name": "Gemini 3.5 Flash Lite",
+  "strength_rank": 1,
+  "strength_evidence": "Lite below Flash, newer than 3.1",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "google/gemini-3.5-flash",
+  "display_name": "Gemini 3.5 Flash",
+  "strength_rank": 2,
+  "strength_evidence": "Flash above Lite",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "google/gemini-3.6-flash",
+  "display_name": "Gemini 3.6 Flash",
+  "strength_rank": 3,
+  "strength_evidence": "Newer Flash",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "google/gemini-3.7-flash",
+  "display_name": "Gemini 3.7 Flash",
+  "strength_rank": 4,
+  "strength_evidence": "Newer Flash",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Google",
+  "brand": "Antigravity",
+  "model_id": "google/gemini-3.8-flash",
+  "display_name": "Gemini 3.8 Flash",
+  "strength_rank": 5,
+  "strength_evidence": "Seed: 'newest Gemini Flash, improved core reasoning'",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "DeepSeek",
+  "brand": "Deepseek",
+  "model_id": "deepseek/deepseek-v4-flash-vision-exp",
+  "display_name": "DeepSeek V4 Flash Vision (exp)",
+  "strength_rank": 0,
+  "strength_evidence": "Experimental vision build of V4 Flash; the native app filters it out",
+  "efforts": [
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "DeepSeek",
+  "brand": "Deepseek",
+  "model_id": "deepseek/deepseek-v4-flash",
+  "display_name": "DeepSeek V4 Flash",
+  "strength_rank": 1,
+  "strength_evidence": "Seed: 'fast hybrid-attention reasoning'; Flash < Pro",
+  "efforts": [
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "DeepSeek",
+  "brand": "Deepseek",
+  "model_id": "deepseek/deepseek-v4-flash-fast",
+  "display_name": "DeepSeek V4 Flash Fast",
+  "strength_rank": 1,
+  "strength_evidence": "Speed variant of V4 Flash (ties)",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "DeepSeek",
+  "brand": "Deepseek",
+  "model_id": "deepseek/deepseek-v4.1-flash",
+  "display_name": "DeepSeek V4.1 Flash",
+  "strength_rank": 2,
+  "strength_evidence": "Newer Flash (4.1)",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "DeepSeek",
+  "brand": "Deepseek",
+  "model_id": "deepseek/deepseek-v4-pro",
+  "display_name": "DeepSeek V4 Pro",
+  "strength_rank": 3,
+  "strength_evidence": "Pro > Flash ('Best reasoning and coding quality' in DeepSeekAPI)",
+  "efforts": [
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Moonshot (Kimi)",
+  "brand": "new maker (no palette yet) (auto palette key: moonshot)",
+  "model_id": "moonshotai/kimi-k2.5",
+  "display_name": "Kimi K2.5",
+  "strength_rank": 0,
+  "strength_evidence": "Oldest K2.x (ContextWindow table only, 256k)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Moonshot (Kimi)",
+  "brand": "new maker (no palette yet) (auto palette key: moonshot)",
+  "model_id": "moonshotai/kimi-k2.6",
+  "display_name": "Kimi K2.6",
+  "strength_rank": 1,
+  "strength_evidence": "K2.6 above K2.5 (ContextWindow table only)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Moonshot (Kimi)",
+  "brand": "new maker (no palette yet) (auto palette key: moonshot)",
+  "model_id": "moonshotai/kimi-k2.7-code",
+  "display_name": "Kimi K2.7 Code",
+  "strength_rank": 2,
+  "strength_evidence": "K2.7 coding build (ContextWindow table only)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Moonshot (Kimi)",
+  "brand": "new maker (no palette yet) (auto palette key: moonshot)",
+  "model_id": "moonshotai/kimi-k2.7-code-highspeed",
+  "display_name": "Kimi K2.7 Code Highspeed",
+  "strength_rank": 2,
+  "strength_evidence": "Speed variant of K2.7 Code (ties)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Moonshot (Kimi)",
+  "brand": "new maker (no palette yet) (auto palette key: moonshot)",
+  "model_id": "moonshotai/kimi-k3",
+  "display_name": "Kimi K3",
+  "strength_rank": 3,
+  "strength_evidence": "Seed: 'long-horizon coding & knowledge work with 1M context'; newest generation",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "zai-org/glm-5",
+  "display_name": "GLM 5",
+  "strength_rank": 0,
+  "strength_evidence": "Oldest GLM 5.x (200k context)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "zai-org/glm-5.1",
+  "display_name": "GLM 5.1",
+  "strength_rank": 1,
+  "strength_evidence": "GLM 5.1 (200k context)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "zai-org/glm-5.2",
+  "display_name": "GLM 5.2",
+  "strength_rank": 2,
+  "strength_evidence": "GLM 5.2, 1M context",
+  "efforts": [
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "zai-org/glm-5.2-fast",
+  "display_name": "GLM 5.2 Fast",
+  "strength_rank": 2,
+  "strength_evidence": "Speed variant of 5.2 (ties)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "z-ai/glm-5.3-flash",
+  "display_name": "GLM 5.3 Flash",
+  "strength_rank": 3,
+  "strength_evidence": "Flash < full, but generation 5.3 above 5.2",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Z.ai",
+  "brand": "Z.ai",
+  "model_id": "zai-org/glm-5.3",
+  "display_name": "GLM 5.3",
+  "strength_rank": 4,
+  "strength_evidence": "Seed: 'frontier coding with emergent cyber capabilities'; native Z.ai: 'Best reasoning and coding'",
+  "efforts": [
+   "low",
+   "high",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Seed :528-540 (9 seed ids) + Efforts() :281-310 and ContextWindow() :312-345 (every id the code knows); the live `cmd` list replaces the seed at runtime"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Qwen",
+  "brand": "new maker (no palette yet) (auto palette key: qwenlm)",
+  "model_id": "qwen/qwen3.7-flash",
+  "display_name": "Qwen 3.7 Flash",
+  "strength_rank": 0,
+  "strength_evidence": "Flash tier, generation 3.7",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Qwen",
+  "brand": "new maker (no palette yet) (auto palette key: qwenlm)",
+  "model_id": "qwen/qwen3.8-flash",
+  "display_name": "Qwen 3.8 Flash",
+  "strength_rank": 1,
+  "strength_evidence": "Flash tier, generation 3.8",
+  "efforts": [
+   "low",
+   "medium",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Qwen",
+  "brand": "new maker (no palette yet) (auto palette key: qwenlm)",
+  "model_id": "qwen/qwen3.8-27b",
+  "display_name": "Qwen 3.8 27B",
+  "strength_rank": 2,
+  "strength_evidence": "Small open-weight (27B, 262k context), placed above Flash by size",
+  "efforts": [
+   "low",
+   "medium",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Qwen",
+  "brand": "new maker (no palette yet) (auto palette key: qwenlm)",
+  "model_id": "qwen/qwen3.7-plus",
+  "display_name": "Qwen 3.7 Plus",
+  "strength_rank": 3,
+  "strength_evidence": "Plus tier, 3.7",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Qwen",
+  "brand": "new maker (no palette yet) (auto palette key: qwenlm)",
+  "model_id": "qwen/qwen3.7-max",
+  "display_name": "Qwen 3.7 Max",
+  "strength_rank": 4,
+  "strength_evidence": "Max tier, 3.7",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Qwen",
+  "brand": "new maker (no palette yet) (auto palette key: qwenlm)",
+  "model_id": "qwen/qwen3.8-max",
+  "display_name": "Qwen 3.8 Max",
+  "strength_rank": 5,
+  "strength_evidence": "Max tier, 3.8",
+  "efforts": [
+   "low",
+   "medium",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Qwen",
+  "brand": "new maker (no palette yet) (auto palette key: qwenlm)",
+  "model_id": "qwen/qwen3.8-max-0902",
+  "display_name": "Qwen 3.8 Max (0902)",
+  "strength_rank": 6,
+  "strength_evidence": "Dated 02 Sep snapshot of 3.8 Max (newest)",
+  "efforts": [
+   "low",
+   "medium",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "MiniMax",
+  "brand": "new maker (no palette yet) (auto palette key: minimax)",
+  "model_id": "minimaxai/minimax-m2.5",
+  "display_name": "MiniMax M2.5",
+  "strength_rank": 0,
+  "strength_evidence": "Oldest (200k)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "MiniMax",
+  "brand": "new maker (no palette yet) (auto palette key: minimax)",
+  "model_id": "minimaxai/minimax-m2.7",
+  "display_name": "MiniMax M2.7",
+  "strength_rank": 1,
+  "strength_evidence": "M2.7 (197k)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "MiniMax",
+  "brand": "new maker (no palette yet) (auto palette key: minimax)",
+  "model_id": "minimaxai/minimax-m3",
+  "display_name": "MiniMax M3",
+  "strength_rank": 2,
+  "strength_evidence": "M3, 1M context",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "MiniMax",
+  "brand": "new maker (no palette yet) (auto palette key: minimax)",
+  "model_id": "minimax/minimax-m3-free",
+  "display_name": "MiniMax M3 (free)",
+  "strength_rank": 2,
+  "strength_evidence": "Free-tier listing of M3 (ties)",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "xAI",
+  "brand": "Grok",
+  "model_id": "xai/grok-4.5",
+  "display_name": "Grok 4.5",
+  "strength_rank": 0,
+  "strength_evidence": "Older version",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "xAI",
+  "brand": "Grok",
+  "model_id": "xai/grok-4.6",
+  "display_name": "Grok 4.6",
+  "strength_rank": 1,
+  "strength_evidence": "Newer version; scale reaches xhigh",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "meta/muse-spark-1.1",
+  "display_name": "Muse Spark 1.1",
+  "strength_rank": 0,
+  "strength_evidence": "Oldest checkpoint",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "meta/muse-spark-1.2",
+  "display_name": "Muse Spark 1.2",
+  "strength_rank": 1,
+  "strength_evidence": "Next checkpoint",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "meta/muse-spark-1.2-contributor",
+  "display_name": "Muse Spark 1.2 Contributor",
+  "strength_rank": 1,
+  "strength_evidence": "Contributor tier of 1.2 (ties)",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "meta/muse-spark-1.3-contributor",
+  "display_name": "Muse Spark 1.3 Contributor",
+  "strength_rank": 2,
+  "strength_evidence": "1.3 without max effort",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Meta",
+  "brand": "Meta",
+  "model_id": "meta/muse-spark-1.3",
+  "display_name": "Muse Spark 1.3",
+  "strength_rank": 3,
+  "strength_evidence": "Newest checkpoint, only one with max",
+  "efforts": [
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Tencent",
+  "brand": "new maker (no palette yet) (auto palette key: tencent)",
+  "model_id": "tencent/hy3-paid",
+  "display_name": "Hunyuan HY3",
+  "strength_rank": 0,
+  "strength_evidence": "Older generation (ContextWindow table only)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Tencent",
+  "brand": "new maker (no palette yet) (auto palette key: tencent)",
+  "model_id": "tencent/hy4-preview",
+  "display_name": "Hunyuan HY4 Preview",
+  "strength_rank": 1,
+  "strength_evidence": "Newer generation, preview",
+  "efforts": [
+   "low",
+   "medium",
+   "high"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Xiaomi",
+  "brand": "new maker (no palette yet)",
+  "model_id": "xiaomi/mimo-v2.5",
+  "display_name": "MiMo V2.5",
+  "strength_rank": 0,
+  "strength_evidence": "Base tier (ContextWindow table only)",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Xiaomi",
+  "brand": "new maker (no palette yet)",
+  "model_id": "xiaomi/mimo-v2.5-pro",
+  "display_name": "MiMo V2.5 Pro",
+  "strength_rank": 1,
+  "strength_evidence": "Pro > base",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "StepFun",
+  "brand": "new maker (no palette yet)",
+  "model_id": "stepfun/step-3.5-flash",
+  "display_name": "Step 3.5 Flash",
+  "strength_rank": 0,
+  "strength_evidence": "Older Flash",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "StepFun",
+  "brand": "new maker (no palette yet)",
+  "model_id": "stepfun/step-3.7-flash",
+  "display_name": "Step 3.7 Flash",
+  "strength_rank": 1,
+  "strength_evidence": "Newer Flash",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Thinking Machines",
+  "brand": "new maker (no palette yet)",
+  "model_id": "thinkingmachines/inkling-small",
+  "display_name": "Inkling Small",
+  "strength_rank": 0,
+  "strength_evidence": "Small < full",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Thinking Machines",
+  "brand": "new maker (no palette yet)",
+  "model_id": "thinkingmachines/inkling",
+  "display_name": "Inkling",
+  "strength_rank": 1,
+  "strength_evidence": "Full model",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Sakana",
+  "brand": "new maker (no palette yet)",
+  "model_id": "sakana/fugu-ultra",
+  "display_name": "Fugu Ultra",
+  "strength_rank": 0,
+  "strength_evidence": "Only Sakana row; 'Ultra' tier; scale high/xhigh",
+  "efforts": [
+   "high",
+   "xhigh"
+  ],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Meituan",
+  "brand": "new maker (no palette yet)",
+  "model_id": "meituan/longcat-2.0:free",
+  "display_name": "LongCat 2.0 (free)",
+  "strength_rank": 0,
+  "strength_evidence": "Only Meituan row",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "Poolside",
+  "brand": "new maker (no palette yet)",
+  "model_id": "poolside/laguna-s-2.1-free",
+  "display_name": "Laguna S 2.1 (free)",
+  "strength_rank": 0,
+  "strength_evidence": "Only Poolside row",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "InclusionAI",
+  "brand": "new maker (no palette yet)",
+  "model_id": "inclusionai/ling-3.0-flash-sante:free",
+  "display_name": "Ling 3.0 Flash (free)",
+  "strength_rank": 0,
+  "strength_evidence": "Only InclusionAI row",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Command Code",
+  "maker": "NVIDIA",
+  "brand": "new maker (no palette yet) (auto palette key: nvidia; owner: darken to a premium green)",
+  "model_id": "nvidia/nemotron-3-ultra-550b-a55b",
+  "display_name": "Nemotron 3 Ultra 550B",
+  "strength_rank": 0,
+  "strength_evidence": "Only NVIDIA row; 'Ultra' 550B",
+  "efforts": [],
+  "source": "CommandCodeAPI.cs Efforts()/ContextWindow() tables :281-345 (id known to the code, not in the 9-row seed; live list may differ)"
+ },
+ {
+  "provider": "Codex",
+  "maker": "OpenAI",
+  "brand": "Silver",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "per model from supportedReasoningEfforts (test fixtures show gpt-5.5 with low..xhigh and gpt-5.5-mini with low..high; fastTier from serviceTiers)",
+  "source": "CodexSession.ListModels :655-690 (app-server model/list; no seed, no static ids)",
+  "live_only": true
+ },
+ {
+  "provider": "Copilot",
+  "maker": "(per model maker)",
+  "brand": "(maker brand)",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "per model from supportedReasoningEfforts",
+  "source": "CopilotSession.ListModels :482-515 (models.list, premium multiplier in the row)",
+  "live_only": true
+ },
+ {
+  "provider": "Cursor",
+  "maker": "(per model maker; Composer is Cursor's own)",
+  "brand": "Cursor for Composer, else the maker's brand",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "from the thought_level/effort config option, ordered low..max",
+  "source": "ACPSession.ProbeModels / ProbeModelEfforts :399 (Cursor reports only the current model's scale; walked per model)",
+  "live_only": true
+ },
+ {
+  "provider": "Grok",
+  "maker": "xAI",
+  "brand": "Grok",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "per model from _meta.reasoningEfforts",
+  "source": "ACPSession.ProbeModels (efforts from _meta.reasoningEfforts, reordered low..max by OrderedEfforts :555)",
+  "live_only": true
+ },
+ {
+  "provider": "Devin",
+  "maker": "(per model maker)",
+  "brand": "(maker's brand)",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "from the thought_level/effort option",
+  "source": "ACPSession.ProbeModels",
+  "live_only": true
+ },
+ {
+  "provider": "OpenCode Zen",
+  "maker": "(per model maker)",
+  "brand": "(maker's brand)",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "effort walk per model (LacksEffortWalk :1134)",
+  "source": "ACPSession.ProbeModels + ProviderRegistry.OpenCodeModels :868 (ids without the opencode-go/ prefix)",
+  "live_only": true
+ },
+ {
+  "provider": "OpenCode Go",
+  "maker": "(per model maker)",
+  "brand": "(maker's brand)",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "effort walk per model",
+  "source": "ACPSession.ProbeModels + OpenCodeModels (ids with the opencode-go/ prefix)",
+  "live_only": true
+ },
+ {
+  "provider": "Pi",
+  "maker": "(per model maker; row detail = pi provider)",
+  "brand": "(maker's brand)",
+  "model_id": "(live catalog)",
+  "display_name": "(runtime list)",
+  "strength_rank": null,
+  "strength_evidence": "No static model list in the port or the Swift: the catalog is fetched from the CLI at runtime. Rank at runtime by tier words and version numbers within the maker (same rules as the rows above).",
+  "efforts": "off,minimal,low,medium,high,xhigh,max when reasoning=true, else none",
+  "source": "PiCLI.Catalog :153-192 (get_available_models)",
+  "live_only": true
+ },
+ {
+  "provider": "Pi",
+  "maker": "(whatever pi is set to)",
+  "brand": "(maker's brand)",
+  "model_id": "default",
+  "display_name": "Default",
+  "strength_rank": null,
+  "strength_evidence": "Seed alias row ('The model pi itself is set to'); takes the intensity of the model it resolves to",
+  "efforts": [
+   "off",
+   "minimal",
+   "low",
+   "medium",
+   "high",
+   "xhigh",
+   "max"
+  ],
+  "source": "ProviderRegistry.PiSeed :198-203",
+  "alias": true,
+  "default_effort": "medium",
+  "is_default": true
+ },
+ {
+  "provider": "Copilot",
+  "maker": "(chosen per request)",
+  "brand": "(maker's brand)",
+  "model_id": "auto",
+  "display_name": "Auto",
+  "strength_rank": null,
+  "strength_evidence": "Seed alias: 'Copilot picks the model for each request'",
+  "efforts": [],
+  "source": "ProviderRegistry.CopilotAuto :190",
+  "alias": true,
+  "is_default": true
+ }
+]

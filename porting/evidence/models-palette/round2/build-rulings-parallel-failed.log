@@ -1,0 +1,15 @@
+  Marrow.Core -> /workspace/marrow-port/src/Marrow.Core/bin/Debug/net10.0/Marrow.Core.dll
+  Marrow.Setup -> /workspace/marrow-port/src/Marrow.Setup/bin/Debug/net10.0-windows/Marrow.Setup.dll
+  Marrow.UI -> /workspace/marrow-port/src/Marrow.UI/bin/Debug/net10.0/Marrow.UI.dll
+  Marrow.Shim -> /workspace/marrow-port/src/Marrow.Shim/bin/Debug/net10.0/Marrow.Shim.dll
+MSBUILD : error MSB4166: Child node "3" exited prematurely. Shutting down. Diagnostic information may be found in files in "/tmp/MSBuildTempq08fFO/" and will be named MSBuild_*.failure.txt. This location can be changed by setting the MSBUILDDEBUGPATH environment variable to a different directory.
+MSBUILD : error MSB4166: Child node "4" exited prematurely. Shutting down. Diagnostic information may be found in files in "/tmp/MSBuildTempq08fFO/" and will be named MSBuild_*.failure.txt. This location can be changed by setting the MSBUILDDEBUGPATH environment variable to a different directory.
+
+Build FAILED.
+
+MSBUILD : error MSB4166: Child node "3" exited prematurely. Shutting down. Diagnostic information may be found in files in "/tmp/MSBuildTempq08fFO/" and will be named MSBuild_*.failure.txt. This location can be changed by setting the MSBUILDDEBUGPATH environment variable to a different directory.
+MSBUILD : error MSB4166: Child node "4" exited prematurely. Shutting down. Diagnostic information may be found in files in "/tmp/MSBuildTempq08fFO/" and will be named MSBuild_*.failure.txt. This location can be changed by setting the MSBUILDDEBUGPATH environment variable to a different directory.
+    0 Warning(s)
+    2 Error(s)
+
+Time Elapsed 00:00:04.06

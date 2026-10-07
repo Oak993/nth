@@ -6,6 +6,7 @@ using Marrow.Services.Tests.Port.Skills.Store.Fixtures;
 namespace Marrow.Services.Tests.Port.Skills.Generations;
 
 [Trait("Feature", "SK-9")]
+[Trait("Spec", "DL-9")]
 public sealed class GenerationTests
 {
     [Fact, Trait("Feature", "SK-9"), Trait("Rule", "R-TEST-4")] // plan rule: DL-9-installed-enabled

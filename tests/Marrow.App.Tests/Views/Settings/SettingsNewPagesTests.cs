@@ -27,6 +27,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T1 / CZ-2.1: raw values, and AllCases puts Customization and Voice typing after Appearance; Updates takes the Tools place; Plugins sits directly above Skills
+    [Trait("Spec", "CZ-T1")]
     public void The_new_pages_sit_in_the_sidebar_order_with_their_raw_values()
     {
         var pages = SwiftEnum<SettingsPage>.AllCases;
@@ -51,6 +52,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T2 / CZ-2.1: titles, symbols and the Q-CZ-4 search words, exactly
+    [Trait("Spec", "CZ-T2")]
     public void Titles_symbols_and_keywords_are_the_specs()
     {
         Assert.Equal(["Customization", "Voice typing", "Updates", "Plugins", "Skills", "Pills"], NewPages.Select(page => page.Title));
@@ -65,6 +67,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T3 / CZ-2.1.1: every new page symbol resolves, and the sidebar row draws a non-empty icon
+    [Trait("Spec", "CZ-T3")]
     public void Every_new_pages_symbol_draws_a_non_empty_icon() => headless.OnUiThread(() =>
     {
         foreach (var page in NewPages)
@@ -76,6 +79,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-2.1.2: the Tint arms are Chrome.Gray, and no code path of the app reads a SettingsPage's Tint
+    [Trait("Spec", "CZ-T4")]
     public void The_new_tints_are_gray_and_no_sidebar_code_reads_a_tint()
     {
         var theme = Avalonia.Styling.ThemeVariant.Light;
@@ -89,6 +93,7 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // CZ-T2 / CZ-2.1.3: search matches titles and keywords for a ready page ("glow" finds Customization); a hidden page is never found
+    [Trait("Spec", "CZ-T2")]
     public void Search_finds_a_ready_page_by_title_or_keyword_and_never_a_hidden_one()
     {
         Func<SettingsPage, bool> allReady = _ => true;

@@ -41,6 +41,7 @@ public sealed class CustomizationStageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T38, CZ-3.4: the pinned block at rest is 372 high (the design's 371 with the port's 60 top) and fills the 520 column
+    [Trait("Spec", "CZ-T38")]
     public void The_pinned_block_at_rest_is_372_high_and_520_wide() => headless.OnUiThread(() =>
     {
         using var fixture = Fixture();
@@ -61,6 +62,7 @@ public sealed class CustomizationStageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T37, CZ-4.1, CZ-3.4: the heading, the card's 12 padding, the 496 x 212 stage with radius 10, the 46 high foot
+    [Trait("Spec", "CZ-T37")]
     public void The_stage_is_496_by_212_with_radius_10_in_the_card_under_the_heading_above_the_foot() => headless.OnUiThread(() =>
     {
         using var fixture = Fixture();
@@ -160,6 +162,7 @@ public sealed class CustomizationStageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T35, CZ-4.6: the preview's phase is the session's; the chip's pick of a maker reaches the foot's switch
+    [Trait("Spec", "CZ-T35")]
     public void The_session_drives_the_preview_and_the_switch_and_the_composer_chip_share_one_maker() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -181,6 +184,7 @@ public sealed class CustomizationStageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-251")] // customization-SPEC CZ-T36, CZ-4.8: working the whole stage writes nothing to the settings store, opens no popup but the model menu, and holds no thread
+    [Trait("Spec", "CZ-T36")]
     public void Working_the_stage_writes_nothing_and_opens_only_the_model_menu() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

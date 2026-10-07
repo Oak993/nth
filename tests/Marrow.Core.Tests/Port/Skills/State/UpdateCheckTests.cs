@@ -7,6 +7,7 @@ namespace Marrow.Core.Tests.Port.Skills.State;
 // Unit SK-7: "'update available' computed from the catalogue pin after an app update". ONDEMAND-PLAN.md 3.7: "After an app update, any installed item whose
 // catalogue pin differs shows Update available with 'old -> new' and the download size ... A pin moves only with a Marrow release." The comparison is
 // between the pin an item was installed at and the pin the (new) embedded catalogue carries; nothing here asks a vendor for 'latest'.
+[Trait("Spec", "DL-7")]
 public sealed class UpdateCheckTests
 {
     private const string OldCommit = "8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4";

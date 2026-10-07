@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="94062d6a-b229-4ea6-a979-d835d84cdc0e" name="@a39ab932e15a 2026-10-07 08:36:30" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-07T08:36:30.1188034+00:00" queuing="2026-10-07T08:36:30.1188035+00:00" start="2026-10-07T08:36:27.7164042+00:00" finish="2026-10-07T08:36:30.1264360+00:00" />
+  <TestSettings name="default" id="bb1a01c2-c882-4e61-9b52-872e085c834e">
+    <Deployment runDeploymentRoot="_a39ab932e15a_2026-10-07_08_36_30" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="36762058-4277-43f0-bf10-b6e29c76723d" testId="d684d423-5422-cfa2-57f4-88a3cec48290" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.All_global_lineups_match_the_reference_in_ten_shuffled_instances" computerName="a39ab932e15a" duration="00:00:00.3295620" startTime="2026-10-07T08:36:29.6864781+00:00" endTime="2026-10-07T08:36:30.0081646+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="36762058-4277-43f0-bf10-b6e29c76723d" />
+    <UnitTestResult executionId="25f8bc3b-efc9-46ae-8615-a1b885b8f8f3" testId="e9af768a-7b23-7a8e-4c80-517348a916f0" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity" computerName="a39ab932e15a" duration="00:00:00.0342283" startTime="2026-10-07T08:36:30.0086416+00:00" endTime="2026-10-07T08:36:30.0397637+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="25f8bc3b-efc9-46ae-8615-a1b885b8f8f3">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure
+Expected: True
+Actual:   False</Message>
+          <StackTrace>   at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs:line 76
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="4ed71079-f99f-4c30-af8f-9971ab71f6df" testId="e64b859c-1ad8-64b4-d822-8f4a75e566dd" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference" computerName="a39ab932e15a" duration="00:00:00.0475852" startTime="2026-10-07T08:36:29.6333904+00:00" endTime="2026-10-07T08:36:29.6762504+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4ed71079-f99f-4c30-af8f-9971ab71f6df">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 0.63700000000000001
+Actual:   0.63800000000000001</Message>
+          <StackTrace>   at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference() in /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs:line 23
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="af841122-0872-429d-98f5-a99d686517d3" testId="464c43c1-66a6-29b4-88eb-5ec4e3ee844a" testName="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_perceptual_level_matches_reference_and_meets_the_point_zero_two_floor" computerName="a39ab932e15a" duration="00:00:00.3944416" startTime="2026-10-07T08:36:29.2184458+00:00" endTime="2026-10-07T08:36:29.6200827+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="af841122-0872-429d-98f5-a99d686517d3" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="e64b859c-1ad8-64b4-d822-8f4a75e566dd">
+      <Execution id="4ed71079-f99f-4c30-af8f-9971ab71f6df" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_perceptual_level_matches_reference_and_meets_the_point_zero_two_floor" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="464c43c1-66a6-29b4-88eb-5ec4e3ee844a">
+      <Execution id="af841122-0872-429d-98f5-a99d686517d3" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="Every_perceptual_level_matches_reference_and_meets_the_point_zero_two_floor" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="e9af768a-7b23-7a8e-4c80-517348a916f0">
+      <Execution id="25f8bc3b-efc9-46ae-8615-a1b885b8f8f3" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity" />
+    </UnitTest>
+    <UnitTest name="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.All_global_lineups_match_the_reference_in_ten_shuffled_instances" storage="/workspace/marrow-port/tests/marrow.core.tests/bin/debug/net10.0/marrow.core.tests.dll" id="d684d423-5422-cfa2-57f4-88a3cec48290">
+      <Execution id="36762058-4277-43f0-bf10-b6e29c76723d" />
+      <TestMethod codeBase="/workspace/marrow-port/tests/Marrow.Core.Tests/bin/Debug/net10.0/Marrow.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests" name="All_global_lineups_match_the_reference_in_ten_shuffled_instances" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="d684d423-5422-cfa2-57f4-88a3cec48290" executionId="36762058-4277-43f0-bf10-b6e29c76723d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e9af768a-7b23-7a8e-4c80-517348a916f0" executionId="25f8bc3b-efc9-46ae-8615-a1b885b8f8f3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e64b859c-1ad8-64b4-d822-8f4a75e566dd" executionId="4ed71079-f99f-4c30-af8f-9971ab71f6df" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="464c43c1-66a6-29b4-88eb-5ec4e3ee844a" executionId="af841122-0872-429d-98f5-a99d686517d3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="4" executed="4" passed="2" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.15]   Discovering: Marrow.Core.Tests
+[xUnit.net 00:00:01.03]   Discovered:  Marrow.Core.Tests
+[xUnit.net 00:00:01.06]   Starting:    Marrow.Core.Tests
+[xUnit.net 00:00:01.55]       Assert.Equal() Failure: Values differ
+[xUnit.net 00:00:01.55]       Expected: 0.63700000000000001
+[xUnit.net 00:00:01.55]       Actual:   0.63800000000000001
+[xUnit.net 00:00:01.55]       Stack Trace:
+[xUnit.net 00:00:01.55]         /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs(23,0): at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference()
+[xUnit.net 00:00:01.55]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:01.55]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:01.91]       Assert.True() Failure
+[xUnit.net 00:00:01.91]       Expected: True
+[xUnit.net 00:00:01.91]       Actual:   False
+[xUnit.net 00:00:01.91]       Stack Trace:
+[xUnit.net 00:00:01.91]         /workspace/marrow-port/tests/Marrow.Core.Tests/Port/ModelsPalette/PaletteReferenceTests.cs(76,0): at Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity()
+[xUnit.net 00:00:01.91]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:01.91]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:01.91]   Finished:    Marrow.Core.Tests
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T08:36:29.6846381+00:00">
+        <Text>[xUnit.net 00:00:01.55]     Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Every_stop_title_and_motion_dial_matches_the_executable_IR3_reference [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="a39ab932e15a" outcome="Error" timestamp="2026-10-07T08:36:30.0405170+00:00">
+        <Text>[xUnit.net 00:00:01.91]     Marrow.Core.Tests.Port.ModelsPalette.PaletteReferenceTests.Harness_word_order_effort_synonyms_and_new_generation_preserve_global_identity [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

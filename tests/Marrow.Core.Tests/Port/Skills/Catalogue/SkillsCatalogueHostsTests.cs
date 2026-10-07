@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.Skills.Catalogue;
 // Unit SK-1: the host allow-list. ONDEMAND-PLAN.md 3.2: "HTTPS only. The first URL must be on the catalogue's host list (www.python.org, nodejs.org,
 // download.documentfoundation.org, github.com, raw.githubusercontent.com, files.pythonhosted.org, registry.npmjs.org, cdn.playwright.dev)".
 // The list is code (the downloader of SK-3 reads it), the catalogue only names URLs; nothing here opens a connection.
+[Trait("Spec", "DL-1")]
 public sealed class SkillsCatalogueHostsTests
 {
     private static IEnumerable<(string Id, string Field, string Url)> AllUrls(SkillsCatalogue catalogue) =>
