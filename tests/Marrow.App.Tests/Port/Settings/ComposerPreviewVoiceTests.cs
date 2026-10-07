@@ -3,11 +3,13 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using Marrow.App.Port.Settings;
 using Marrow.App.Port.Voice;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Session;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Tests.Port.Settings;
 
@@ -280,8 +282,8 @@ public sealed class ComposerPreviewVoiceTests(HeadlessSession headless)
     {
         using var rig = new CustomizationPageRig(seed: s => s.VoiceOrb = s.VoiceOrb with { LangMode = VoiceLangMode.Ask });
         var preview = rig.Page.Stage!.Preview;
-        var focus = rig.Page.PreviewStatePick;
-        rig.Do(() => { focus.Focus(); rig.Page.Session!.VoicePreviewTouched("langMode", TimeSpan.Zero); });
+        var focus = Assert.IsType<CzMenuButton>(rig.Page.Voice!.Section.Rows.Slots.Select(slot => slot.Row).OfType<CzRow>().Single(row => row.Title.Text == "Spoken language").Control);
+        rig.Do(() => { Assert.True(focus.Focus()); Assert.True(focus.IsFocused); rig.Page.Session!.VoicePreviewTouched("langMode", TimeSpan.Zero); });
         Assert.True(preview.Question!.IsOpen);
         Assert.Single(rig.Overlay.Popups);
         Assert.DoesNotContain(preview.Question, rig.Page.Stage.Surface.GetVisualDescendants());
