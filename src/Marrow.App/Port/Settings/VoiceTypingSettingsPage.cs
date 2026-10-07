@@ -38,13 +38,14 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
     private bool speechWatched;
     private bool built;
     private bool refreshing;
+    private VoiceKeyEditor? keyEditor;
 
     public VoiceTypingSettingsPage()
     {
         Child = root;
         this.Track(() => AppEnvironment.GetAppModel(this), model => Build(model.Settings));
         AttachedToVisualTree += (_, _) => { WatchDevices(); WatchSpeech(); };
-        DetachedFromVisualTree += (_, _) => { StopWatching(); StopWatchingSpeech(); };
+        DetachedFromVisualTree += (_, _) => { StopWatching(); StopWatchingSpeech(); keyEditor?.Close(); };
         WindowsDisplayLanguage.Watch(this, Refresh); // the Language row names the display language under language default C
     }
 
@@ -92,11 +93,12 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
         EngineControl.SelectionChanged += id => Write(current => current with { Engine = id == CloudId ? VoiceEngine.Cloud : VoiceEngine.Local });
         EngineRow = new VoiceSettingsRow(VoiceTypingText.EngineTitle, EngineControl, cloud ? VoiceTypingText.EngineCloudDetail : VoiceTypingText.EngineLocalDetail);
 
-        // OpenAI key (V-16.3.1): folds open for the cloud engine only. Inert until VT-16 builds the field and the storing (BUILD-PLAN VT-16): the capsule is dimmed and
-        // not focusable, set without a transition because it is the row's resting look, not a change.
-        KeyButton = new CzCapsuleButton(VoiceTypingText.KeyAdd) { IsEnabled = false, Focusable = false, Opacity = .5 };
+        // OpenAI key (V-16.3.1): the Providers protected field pattern, with its own Add key / Cancel fold. Merely picking cloud stores no key and makes no request.
+        keyEditor = new VoiceKeyEditor();
+        KeyButton = keyEditor.Button;
+        KeyButton.IsEnabled = KeyButton.Focusable = cloud;
         KeyRow = new VoiceSettingsRow(VoiceTypingText.KeyTitle, KeyButton, VoiceTypingText.KeyDetail);
-        KeyFold = new CzFoldRow(new StackPanel { Children = { new ChromeRowDivider(), KeyRow } }, cloud);
+        KeyFold = new CzFoldRow(new StackPanel { Children = { new ChromeRowDivider(), KeyRow, keyEditor.Fold } }, cloud);
 
         // Language (V-16.3.1, V-7.14): the menu names the language default's value while nothing is picked.
         LanguageMenu = new CzMenuButton(VoiceTypingText.LanguageTitle, VoiceLanguageRow.MenuItems, language.CheckedCode, valueText: language.ButtonText);
@@ -179,6 +181,9 @@ internal sealed class VoiceTypingSettingsPage : Decorator, ISettingsPageChrome
             EngineControl.Select(cloud ? CloudId : LocalId);
             EngineRow.SetDetail(cloud ? VoiceTypingText.EngineCloudDetail : VoiceTypingText.EngineLocalDetail);
             KeyFold.Open = cloud;
+            // Lead VT-16 ruling: the collapsed key row leaves no enabled/focusable button, even during its exit transition.
+            KeyButton.IsEnabled = KeyButton.Focusable = cloud;
+            if (!cloud) keyEditor?.Close();
             SpeechFold.Open = !cloud;
             SpeechModel.Refresh();
             PrivacyLine.SetText(cloud ? VoiceTypingText.PrivacyCloud : VoiceTypingText.PrivacyLocal);

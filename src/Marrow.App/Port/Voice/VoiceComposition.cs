@@ -4,6 +4,7 @@ using Marrow.Core.Port.Voice;
 using Marrow.Core.Port.Voice.Seams;
 using Marrow.Core.Support;
 using Marrow.Services.Port.Voice.Capture;
+using Marrow.Services.Port.Voice.Cloud;
 using Marrow.Services.Port.Voice.Engine;
 using Marrow.Services.Port.Voice.Models;
 using Marrow.Services.Port.Voice.Probe;
@@ -66,6 +67,8 @@ internal static class VoiceComposition
         VoiceSeams.Capture.SetProcessDefault(parts.Capture);
         HardwareProbeSeams.Probe.SetProcessDefault(parts.Probe);
         SpeechModelSeams.Backend.SetProcessDefault(parts.Models);
+        // A dedicated voice client: no provider key/header, no redirect carrying a voice recording elsewhere. Constructing it sends nothing.
+        VoiceCloudEngine.Current.SetProcessDefault(new OpenAiTranscriber(new VoiceKeyStore(), new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false }));
         installed = parts;
     }
 

@@ -13,6 +13,9 @@ internal static class VoiceTypingText
     public const string KeyTitle = "OpenAI key";
     public const string KeyDetail = "Cloud voice typing uses your own key, kept in Windows’ credential store";
     public const string KeyAdd = "Add key";
+    public const string KeyCancel = "Cancel";
+    public const string KeyPlaceholder = "Paste your OpenAI key";
+    public const string KeyRefusal = "Credential Manager did not accept this key, so it was not saved.";
     public const string LanguageTitle = "Language";
     public const string MicrophoneTitle = "Microphone";
     public const string OrbTitle = "Orb and after voice input";
