@@ -197,7 +197,7 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
         });
     }
 
-    private static (bool[] Outlier, int Width, int Height) Outliers((int Stride, byte[] Bytes, PixelSize Size) frame, Rect area)
+    internal static (bool[] Outlier, int Width, int Height) Outliers((int Stride, byte[] Bytes, PixelSize Size) frame, Rect area)
     {
         var w = frame.Size.Width;
         var h = frame.Size.Height;
@@ -308,7 +308,17 @@ public sealed class ComposerVoiceCleanPillTests(HeadlessSession headless)
             if (specks.Count > 0 && Environment.GetEnvironmentVariable("VT12_DUMP") is { } dump)
                 scene.Rig.Main.OnMain(() => { using var f = scene.Window.CaptureRenderedFrame(); f!.Save(System.IO.Path.Combine(dump, $"specks-{style}-{diameter}-{dark}-{state}-{scale}.png")); VoicePillDiagnostics.Capture(scene, $"{style}-{diameter}-{dark}-{state}-{scale}"); });
 #pragma warning restore CS0618
-            Assert.True(specks.Count == 0, "specks: " + string.Join("; ", specks.Take(8)));
+            // OD-0125: the detector above is unchanged. A speck fails only when the approved design (voice-composer.html drawn in Chrome at this scale, state, theme and backdrop; locked
+            // references checked against their SHA-256) has no speck within 1 pixel of the same spot.
+            if (Environment.GetEnvironmentVariable("VT12_DESIGN_DUMP") is { } designDump)
+                VoicePillDesignReference.Dump(scene, $"{style}-{diameter}-{dark}-{state}-{scale}", designDump, area);
+            var designSpecks = specks.Count == 0 ? [] : VoicePillDesignReference.Has($"{style}-{diameter}-{dark}-{state}-{scale}")
+                ? VoicePillDesignReference.Specks($"{style}-{diameter}-{dark}-{state}-{scale}", (x, y) => Math.Sqrt((x + 0.5 - orb.X) * (x + 0.5 - orb.X) + (y + 0.5 - orb.Y) * (y + 0.5 - orb.Y)) <= ballRadius * scale + 1)
+                : [];
+            var notInTheDesign = new List<string>();
+            for (var k = 0; k < specks.Count; k++)
+                if (!components[k].Any(m => designSpecks.Any(d => Math.Abs(d.X - m.X) <= 1 && Math.Abs(d.Y - m.Y) <= 1))) notInTheDesign.Add(specks[k]);
+            Assert.True(notInTheDesign.Count == 0, "specks the approved design does not have (within 1 px): " + string.Join("; ", notInTheDesign.Take(8)));
         });
     }
 
