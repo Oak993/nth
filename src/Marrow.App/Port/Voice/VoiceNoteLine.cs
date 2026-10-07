@@ -7,7 +7,6 @@ using Path = Avalonia.Controls.Shapes.Path;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.Core.Port;
-using Marrow.App.Port.Voice.Notes;
 using Marrow.Services.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -81,9 +80,7 @@ internal sealed class VoiceNoteLine : Decorator
     // V-14.6: the link opens the Windows page that fixes it, through the shell seam (R-TEST-10: a test records it).
     private void Open()
     {
-        if (Content.LinkTarget is not { } target) return;
-        if (target.StartsWith("voice:", StringComparison.Ordinal)) { VoiceNoteNavigation.Open(target); return; }
-        if (SwiftURL.Create(target) is { } url) Workspace.Open.Current(url);
+        if (Content.LinkTarget is { } target && SwiftURL.Create(target) is { } url) Workspace.Open.Current(url);
     }
 
     // 15 px circle and mark in the warning colour (DESIGN `.note svg`, viewBox 16: circle r 6.2, a stroke 1.4 wide).

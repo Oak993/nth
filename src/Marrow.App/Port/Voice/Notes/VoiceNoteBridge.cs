@@ -7,7 +7,7 @@ namespace Marrow.App.Port.Voice.Notes;
 
 /// <summary>
 /// Listens to one voice session and says which note the composer shows now, on which surface, and for how long (V-14.6: 5.2 s here for all twelve). The composer's
-/// view draws <see cref="Current"/> through VoiceReleaseNotes on the existing field and notice surfaces.
+/// view draws <see cref="Current"/>; it is NOT DONE here (the field's note layer and the notice line's link are VT-12's and VT-13's drawing).
 /// A device removed mid-session ends the session like a click and the note comes after its final pass (V-4.4); a changed default device or format stops it with no
 /// note (nothing broke that a link fixes). The still-downloading note stays away while the pill itself shows the download.
 /// </summary>
@@ -49,16 +49,6 @@ public sealed class VoiceNoteBridge : IDisposable
         if (surface == shown.Surface) return;
         Current = shown with { Surface = surface };
         Changed?.Invoke(Current);
-    }
-
-    internal long Occurrence { get; private set; }
-
-    internal void Dismiss()
-    {
-        expiry?.Cancel();
-        if (Current is null) return;
-        Current = null;
-        Changed?.Invoke(null);
     }
 
     public void Dispose()
@@ -106,7 +96,6 @@ public sealed class VoiceNoteBridge : IDisposable
     {
         var note = VoiceNotes.For(noteCase);
         expiry?.Cancel();
-        Occurrence++;
         Current = new VoiceNotePresentation(note, VoiceNotes.SurfaceFor(draft()), VoiceNotes.DisplayLength, VoiceNotes.Announcement(note));
         Changed?.Invoke(Current);
         expiry = MainActor.AsyncAfter(VoiceNotes.DisplayLength, () =>

@@ -1,6 +1,5 @@
 // PORT-ONLY, owner-ruled addition (OD-0091; first-release voice typing, VT-10, voice-SPEC V-14.5): the composer's polite live region.
 using Avalonia.Automation;
-using Marrow.App.Port.Voice.Notes;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Marrow.UI.Port;
@@ -26,9 +25,5 @@ internal sealed class VoiceAnnouncer : TextBlock
         Text = "";
         AutomationProperties.SetLiveSetting(this, AutomationLiveSetting.Polite);
         this.Track(() => voice.Announcement, said => Text = said);
-        var errors = VoiceErrorAnnouncements.For(voice.Session);
-        void SayError(string said) => Text = said;
-        AttachedToVisualTree += (_, _) => errors.Announced += SayError;
-        DetachedFromVisualTree += (_, _) => errors.Announced -= SayError;
     }
 }
