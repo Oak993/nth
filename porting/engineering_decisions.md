@@ -4166,3 +4166,6 @@ MAUI P1 001/002/019/020/057/065: retained popover rows own their Link action (di
 ## ED-NEW-ma-wave1-13
 
 MAUI P2 popover/layout: 003/006/007/010/012/013/014/058/059 now use the locked row menu, auto/min-68 layout with 7px vertical padding, live monogram, 7px green active dot/halo, .42 off content, pinned/hover tint, config chevron and exact text tokens. Dialogs 021/022/024/026 use 330px/248px widths, account-specific aria and the existing effort renderer in optional compact 18px/12px Handshake geometry; default 48px/34px effort geometry is untouched. 023 hides reset with no own value (HTML 2642); its new test is contradictory because Harness.Find filters visible controls before Assert.False(IsEffectivelyVisible). Old account-dialog tests still expect the generic aria replaced by HTML 2635. All tests remain byte-exact for lead disposition.
+
+## ED-NEW-ma-wave1-14
+MAUI-041/051/052: equal-to-general Settings points do not add a quiet note (OD-0119). Queued real Handshake events retain the locked Standby 1000 ms and In sync 1400 ms intervals (HTML 3039). Existing short-interval tests remain unchanged; conflicting assertions are reported separately.

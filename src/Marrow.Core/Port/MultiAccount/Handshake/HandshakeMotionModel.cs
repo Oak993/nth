@@ -31,7 +31,7 @@ public sealed class HandshakeMotionModel : IDisposable
     public event Action? Changed;
     public void Dispose()=>port.Changed-=Observe;
     private static int Rank(HandshakePhase p)=>p switch {HandshakePhase.Standby=>1,HandshakePhase.Linking=>2,HandshakePhase.InSync=>3,HandshakePhase.Switch=>4,_=>0};
-    private static double Minimum(HandshakePhase p)=>p switch {HandshakePhase.Standby=>600,HandshakePhase.Linking=>1000,HandshakePhase.InSync=>800,_=>620};
+    private static double Minimum(HandshakePhase p)=>p switch {HandshakePhase.Standby=>1000,HandshakePhase.Linking=>1000,HandshakePhase.InSync=>1400,_=>620};
     private void Observe(object? sender,HandshakeEvent e)
     {
         if(e.ThreadId!=thread)return;
