@@ -58,7 +58,7 @@ internal sealed class MultiAccountCardRows : Decorator
             return;
         }
         if (request == next) return;
-        request = next; var model = new LimitCardModel(state, accounts(), port, context?.Zone); Card = new LimitCardView(model);
+        request = next; var rows = accounts(); var model = new LimitCardModel(state, rows, port, context?.Zone); Card = new LimitCardView(model, rows.Select(a => a.Name).ToArray());
         Card.Answered += () => Show(model.AfterNote is { } note ? new LimitCardNote(note, context) : null);
         Show(Card);
     }

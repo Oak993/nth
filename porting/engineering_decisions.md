@@ -4108,3 +4108,7 @@ Tests: first missing namespace red, UI-thread fixture error failed alone twice, 
 ## ED-NEW-ma-wave2-6
 MA-3b-12: limit answers replace the card with the exact Waiting/Continued note on the existing timeline slot. Switch now and What was handed over bind through a thread-specific App context; absent adapters disable the link. The handed sheet consumes only the adapter's recorded data and reuses HandedSheetView/ChatSheetPresentation, never HandedOverExample.For. Waiting phase events draw notes without a DecisionRequest; Idle clears the extent. The clock zone is injectable for deterministic reset text; production uses the local zone.
 Tests first red on missing context; build 0 warnings/errors and cards slice 7/7. Native note/sheet styling remains required. W owns both real action adapters.
+
+## ED-NEW-ma-wave2-7
+MA-3b-13: the shared chassis draws the model's other-service consent and primary Wait choice, and earlier-account Go back/Stay actions. Account names in titles use semibold inline spans. CardTitleBlock retains the complete Text after span construction because Avalonia clears it when Inlines changes; the title remains readable by accessibility and plain-text inspection. No Core file changed.
+Tests first: missing bold names failed alone twice, rich-title text regression reproduced alone twice for each failing case; implementation fixed and new Codex fixture given two accounts to match its numbered name. Final build 0 warnings/errors; all card tests 9/9. Native title/font and card appearance remains required.

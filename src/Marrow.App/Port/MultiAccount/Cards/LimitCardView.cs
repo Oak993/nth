@@ -24,13 +24,14 @@ internal sealed class LimitCardView : Decorator
     internal CzRadioGroup Remember { get; }
     internal IReadOnlyDictionary<DecisionKind, CzRadioGroup> Options { get; }
     internal event Action? Answered;
-    internal LimitCardView(LimitCardModel model)
+    internal LimitCardView(LimitCardModel model, IReadOnlyList<string>? accountNames = null)
     {
         this.model = model; Focusable = true; this.Named(model.Title, "limit-card");
         var stack = new StackPanel { Spacing = 10 };
         var title = new Grid { ColumnDefinitions = new ColumnDefinitions("16,*"), ColumnSpacing = 9 };
         var icon = LibraryUi.Glyph("gauge.with.needle", 16, ChromeTokens.SecondaryText); icon.Margin = new Thickness(0, 2, 0, 0);
-        var words = LibraryUi.Text(model.Title, 13.5, wrap: true); words.LineHeight = 19; Grid.SetColumn(words, 1); title.Children.Add(icon); title.Children.Add(words); stack.Children.Add(title);
+        var words = new CardTitleBlock { Text = model.Title, FontSize = 13.5, TextWrapping = TextWrapping.Wrap, Foreground = ChromeTokens.PrimaryText.Brush(this), LineHeight = 19 };
+        SwiftFont.System(13.5).Apply(words); CardTitle.Emphasize(words, accountNames ?? []); Grid.SetColumn(words, 1); title.Children.Add(icon); title.Children.Add(words); stack.Children.Add(title);
         if (model.Explanation is { } explanation)
         {
             var text = LibraryUi.Text(explanation, 12, secondary: true, wrap: true); text.LineHeight = 17; text.Margin = new Thickness(25, -4, 0, 0); stack.Children.Add(text);
