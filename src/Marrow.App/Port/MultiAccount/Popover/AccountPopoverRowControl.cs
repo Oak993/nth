@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 using Avalonia.Interactivity;
 using Marrow.UI.Port.Settings;
 using Avalonia.Media;
@@ -50,13 +51,23 @@ internal sealed class AccountPopoverRowControl : Decorator
     private readonly AccountConfigLine config;
     private readonly AccountPopoverContext? context;
     internal AccountPopoverDialogs? Dialogs { get; }
-    private bool dragging;
-    private double dragStart;
-    internal AccountPopoverRowControl(AccountPopoverRow row, Action<Guid> pin, Action<Guid, int> move, int index, int count, AccountPopoverContext? context = null, Action<Guid, int>? navigate = null, Action? backToOrder = null)
+    private bool pressed, dragging;
+    private double dragStart, dragPitch, dragGoal;
+    private int dragFrom, dragTo;
+    private AccountPopoverRowControl[] dragRows = [];
+    private readonly AnimatedScalar dragOffset, dragScale;
+    private readonly OpacityTransition dragOpacity;
+    private readonly MatrixTransform dragTransform = new();
+    private readonly Func<IReadOnlyList<AccountPopoverRowControl>>? peers;
+    internal AccountPopoverRowControl(AccountPopoverRow row, Action<Guid> pin, Action<Guid, int> move, int index, int count, AccountPopoverContext? context = null, Action<Guid, int>? navigate = null, Action? backToOrder = null, Func<IReadOnlyList<AccountPopoverRowControl>>? peers = null)
     {
-        this.context = context; this.navigate = navigate; this.pin = pin; this.backToOrder = backToOrder;
+        this.peers = peers; this.context = context; this.navigate = navigate; this.pin = pin; this.backToOrder = backToOrder;
         this.move = move; this.index = index; this.count = count;
         AccountId = row.Account.Id; Dimmed = row.Dimmed;
+        dragOffset = new AnimatedScalar(this, 0, _ => PaintDrag());
+        dragScale = new AnimatedScalar(this, 1, _ => PaintDrag());
+        dragOpacity = new OpacityTransition(this, 1, value => { Opacity = value; if (value == 1 && !dragging) ZIndex = 0; });
+        RenderTransformOrigin = new RelativePoint(.5, .5, RelativeUnit.Relative);
         MinHeight = 68; // final .prow.cf :1347: auto height and 7px vertical padding
         main = new StackPanel { Spacing = 5, Opacity = row.Account.Enabled ? row.Dimmed ? .5 : 1 : .42 };
         var top = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto") };
@@ -82,10 +93,59 @@ internal sealed class AccountPopoverRowControl : Decorator
         var body = new Grid { ColumnDefinitions = new ColumnDefinitions("22,20,26,*,26,22"), Margin = new Thickness(2, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
         var grip = new Border { Width = 22, Height = 22, Background = Brushes.Transparent, Child = LibraryUi.Glyph("line.3.horizontal", 12, ChromeTokens.SecondaryText), Cursor = new Cursor(StandardCursorType.SizeAll) };
         grip.Named("Drag to set the order", "popover-grip-" + AccountId.ToString("N"));
-        grip.PointerPressed += (_, e) => { if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return; dragging = true; dragStart = e.GetPosition(null).Y; e.Pointer.Capture(grip); e.Handled = true; };
-        grip.PointerMoved += (_, e) => { if (dragging) { RenderTransform = CapsuleMotion.Reduce(this) ? null : new TranslateTransform(0, e.GetPosition(null).Y - dragStart); ZIndex = 1; e.Handled = true; } };
-        grip.PointerReleased += (_, e) => { if (!dragging) return; dragging = false; e.Pointer.Capture(null); DragBy(e.GetPosition(null).Y - dragStart); RenderTransform = null; ZIndex = 0; e.Handled = true; };
-        grip.PointerCaptureLost += (_, _) => { dragging = false; RenderTransform = null; ZIndex = 0; };
+        grip.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(grip).Properties.IsLeftButtonPressed) return;
+            pressed = true; dragging = false; dragStart = e.GetPosition(null).Y;
+            dragRows = peers?.Invoke().ToArray() ?? [this]; dragFrom = Array.IndexOf(dragRows, this); dragTo = dragFrom;
+            dragPitch = dragRows.Length > 1 ? dragRows[1].Bounds.Y - dragRows[0].Bounds.Y : Bounds.Height;
+            if (dragPitch <= 0) dragPitch = Bounds.Height + 2;
+            e.Pointer.Capture(grip); e.Handled = true;
+        };
+        grip.PointerMoved += (_, e) =>
+        {
+            if (!pressed) return;
+            var distance = e.GetPosition(null).Y - dragStart;
+            if (!dragging && Math.Abs(distance) < 5) return;
+            dragging = true; ZIndex = 5;
+            var low = -dragFrom * dragPitch; var high = (dragRows.Length - 1 - dragFrom) * dragPitch;
+            var carried = distance < low ? low - Math.Min(dragPitch * .35, (low - distance) * .3)
+                : distance > high ? high + Math.Min(dragPitch * .35, (distance - high) * .3) : distance;
+            dragTo = Math.Clamp(dragFrom + (int)Math.Floor(carried / dragPitch + .5), 0, dragRows.Length - 1);
+            dragOffset.Set(carried, null); dragScale.Set(1.02, null);
+            if (CapsuleMotion.Reduce(this)) { dragOpacity.Set(.5, null); }
+            for (var i = 0; i < dragRows.Length; i++)
+            {
+                if (i == dragFrom) continue;
+                var target = dragFrom < dragTo && i > dragFrom && i <= dragTo ? -dragPitch
+                    : dragFrom > dragTo && i >= dragTo && i < dragFrom ? dragPitch : 0;
+                dragRows[i].GlideDrag(target);
+            }
+            e.Handled = true;
+        };
+        grip.PointerReleased += (_, e) =>
+        {
+            if (!pressed) return; pressed = false;
+            if (dragging)
+            {
+                dragging = false;
+                var before = dragRows.Select(row => row.Bounds.Y + row.dragOffset.Value).ToArray();
+                move(AccountId, dragTo);
+                // FLIP: retained rows are reordered in the same stack; compensate their new positions before the next layout.
+                for (var i = 0; i < dragRows.Length; i++)
+                {
+                    var to = i == dragFrom ? dragTo : dragFrom < dragTo && i > dragFrom && i <= dragTo ? i - 1
+                        : dragFrom > dragTo && i >= dragTo && i < dragFrom ? i + 1 : i;
+                    dragRows[i].SettleDrag(before[i] - (dragRows[0].Bounds.Y + to * dragPitch), i == dragFrom);
+                }
+            }
+            e.Pointer.Capture(null); e.Handled = true;
+        };
+        grip.PointerCaptureLost += (_, _) =>
+        {
+            if (!pressed) return; pressed = dragging = false;
+            foreach (var row in dragRows) row.SettleDrag(row.dragOffset.Value, row == this);
+        };
         body.Children.Add(grip);
         number = MultiAccountText.Text(row.Account.Number.ToString(CultureInfo.InvariantCulture), 12, secondary: true); number.Opacity = main.Opacity; Grid.SetColumn(number, 1); body.Children.Add(number);
         mono = MultiAccountText.Text(row.Account.Mono, 10, weight: SwiftFont.Weight.Semibold);
@@ -168,7 +228,27 @@ internal sealed class AccountPopoverRowControl : Decorator
         var color = pinned ? Color.Parse(dark ? "#2460CDFF" : "#1A0067C0") : hovered ? Color.Parse(dark ? "#0FFFFFFF" : "#0D000000") : Colors.Transparent;
         rowFill.To(color, CzMotion.Ease(.15));
     }
-    internal void DragBy(double distance) => move(AccountId, AccountRowControl.DragTarget(index, distance, 72, count)); // 70 + plist gap 2
+    private void PaintDrag()
+    {
+        if (dragOffset is null || dragScale is null) return;
+        if (CapsuleMotion.Reduce(this) || dragOffset.Value == 0 && dragScale.Value == 1) { RenderTransform = null; if (!dragging) ZIndex = 0; return; }
+        dragTransform.Matrix = new Matrix(dragScale.Value, 0, 0, dragScale.Value, 0, dragOffset.Value); RenderTransform = dragTransform;
+    }
+    private void GlideDrag(double target)
+    {
+        if (dragGoal == target) return; dragGoal = target;
+        if (CapsuleMotion.Reduce(this)) { dragOffset.Set(target, null); dragOpacity.Set(.4, null); dragOpacity.Set(1, Animation.TimingCurve(.25, .1, .25, 1, .2)); }
+        else dragOffset.Set(target, Animation.TimingCurve(.32, .72, 0, 1, .34));
+    }
+    private void SettleDrag(double displacement, bool carried)
+    {
+        dragGoal = 0; dragOffset.Set(displacement, null); dragScale.Set(carried ? 1.02 : 1, null);
+        var curve = carried ? PopoverSettleCurve.Instance : Animation.Spring(response: 2 * Math.PI / Math.Sqrt(280), dampingFraction: 32 / (2 * Math.Sqrt(280)));
+        dragOffset.Set(0, FrameClock.IsBound ? curve : null); dragScale.Set(1, FrameClock.IsBound ? curve : null);
+        if (CapsuleMotion.Reduce(this)) { dragOpacity.Set(carried ? .5 : .4, null); dragOpacity.Set(1, Animation.TimingCurve(.25, .1, .25, 1, .22)); }
+        ZIndex = carried && FrameClock.IsBound ? 5 : 0;
+    }
+    internal void DragBy(double distance) => move(AccountId, AccountRowControl.DragTarget(index, distance, Bounds.Height > 0 ? Bounds.Height + 2 : 70, count));
     internal void FocusPin() => pinButton.Focus();
     internal void Refuse()
     {

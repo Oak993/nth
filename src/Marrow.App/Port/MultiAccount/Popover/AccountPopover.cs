@@ -54,7 +54,7 @@ internal sealed class AccountPopover : Decorator
         for (var index = 0; index < values.Count; index++)
         {
             var value = values[index];
-            if (!kept.TryGetValue(value.Account.Id, out var row)) { row = new AccountPopoverRowControl(value, Pin, Move, index, values.Count, context, Navigate, model.BackToOrder); kept.Add(value.Account.Id, row); list.Children.Add(row); }
+            if (!kept.TryGetValue(value.Account.Id, out var row)) { row = new AccountPopoverRowControl(value, Pin, Move, index, values.Count, context, Navigate, model.BackToOrder, () => Rows); kept.Add(value.Account.Id, row); list.Children.Add(row); }
             else row.Apply(value, index, values.Count);
             var old = list.Children.IndexOf(row); if (old != index) list.Children.Move(old, index); wanted.Add(row);
         }
