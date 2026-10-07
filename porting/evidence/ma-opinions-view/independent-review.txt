@@ -1,5 +1,0 @@
-Independent reviewer: /root/review_opinions, mandated by PORT_CONTRACT section 15.
-Final source review, 2026-10-07:
-Confirmed mark highlight beneath hue rim and closing-note theme from its own tree. No outstanding actionable source findings. Reviewed rendering, order, streaming, Combine gating, historical projections, lifecycle and motion against locked design and owner decisions.
-Scope: source review only. Reviewer did not execute tests or edit files. Native Windows visual/runtime verification and W projection binding remain unverified.
-Earlier findings repaired: timeline-tail chronology; E1 partial-error readiness; content-only Combine chrome; note theme/docking; independent Combine and post-docking arrival; historical names/bylines; streamed backtick monospace; live Reduce Motion held press; focus/shadow timing; mark shadow paint order; independently docked note theme.
