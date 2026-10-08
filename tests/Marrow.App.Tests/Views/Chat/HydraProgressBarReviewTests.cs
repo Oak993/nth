@@ -144,6 +144,25 @@ public sealed class HydraProgressBarReviewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-HYDRA-030")] // App/Views/Chat/HydraProgressBar.swift:516-528: the title is Chrome.primaryText in the current appearance
+    public void A_finished_working_title_takes_the_new_appearance_primary_text_when_the_theme_changes() => headless.OnUiThread(() =>
+    {
+        // Lead (native gallery, 2026-10-08): a stopped title does not tick, so after Dark -> Light it kept white text on the light panel.
+        using var rt=new TestRuntime(); using var main=MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var frames=new ManualFrameSource();using var clock=FrameClock.Source.Override(frames);
+        var view=new HydraWorkingTitle("Task",false);
+        var label=LogicalQuery.SelfAndDescendants<TextBlock>(view).Single();
+        Assert.IsType<Grid>(view.Child).Children.Clear();
+        var w=Show(view);
+        w.RequestedThemeVariant=Avalonia.Styling.ThemeVariant.Dark; Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Chrome.PrimaryText.Resolve(Avalonia.Styling.ThemeVariant.Dark),Assert.IsType<LinearGradientBrush>(label.Foreground).GradientStops[0].Color);
+        w.RequestedThemeVariant=Avalonia.Styling.ThemeVariant.Light; Dispatcher.UIThread.RunJobs();
+        var light=Assert.IsType<LinearGradientBrush>(label.Foreground);
+        Assert.All(light.GradientStops,stop=>Assert.Equal(Chrome.PrimaryText.Resolve(Avalonia.Styling.ThemeVariant.Light),stop.Color));
+        w.Close();
+    });
+
+    [Fact]
     [Trait("Req", "PR-HYDRA-191")] // App/Views/Chat/HydraProgressBar.swift:491-534
     [Trait("Req", "UI-HYDRA-030")] // App/Views/Chat/HydraProgressBar.swift:500-534
     public void Working_title_breathes_and_moves_the_darker_gradient_band() => headless.OnUiThread(() =>
