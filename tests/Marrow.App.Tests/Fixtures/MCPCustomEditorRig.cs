@@ -33,7 +33,7 @@ internal sealed class MCPCustomEditorRig : IDisposable
         {
             Section = new MCPCustomSection(""); AppEnvironment.SetAppModel(Section, Model);
             var host = new Border { Child = Section, Width = 520, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Margin = new Thickness(20) };
-            Window = new Avalonia.Controls.Window { Width = 800, Height = 800, Content = host }; SettingsProviderPopupLayers.Install(Window); Window.Show();
+            Window = new Avalonia.Controls.Window { Width = 800, Height = 800, Content = new Border { Background = Brushes.Transparent, Child = host } }; SettingsProviderPopupLayers.Install(Window); Window.Show();
         });
         Settle();
     }

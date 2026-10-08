@@ -73,13 +73,12 @@ internal sealed class ComposerAttachButton : Decorator
             var shows = now.Shown && now.Active; // the popover belongs to the button that is showing
             if (shows == presented) return;
             presented = shows;
-            if (shows) popup.Child = new DownloadsPopover(
+            if (shows && popup.Child is null) popup.Child = new DownloadsPopover(
                 pick: path => { showingRecents.Value = false; onAttach([path]); }, // :643
                 chooseOther: () => { showingRecents.Value = false; onChooseFiles(); }); // :644
             Presentation.Presenter.Current.SetPresented(popup, shows);
-            if (!shows) popup.Child = null;
         });
-        popup.Closed += (_, _) => { if (presented && showingRecents.Value) showingRecents.Value = false; };
+        popup.Closed += (_, _) => { popup.Child = null; if (presented && showingRecents.Value) showingRecents.Value = false; };
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         state.Active = true;
         if (inside)

@@ -354,33 +354,43 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
     [Fact]
     [Trait("Req", "PR-WIN-007")]
     [Trait("Req", "PR-SETTINGS-001")]
-    public void Settings_maximize_is_rejected_at_caption_acceptance_and_at_system_command_dispatch()
+    public void Settings_maximize_activates_at_caption_acceptance_and_at_system_command_dispatch()
     {
         native.Run(subject =>
         {
             subject.Focus(subject.Settings, subject.SettingsProbe);
-            Assert.False(native.OnUi(() => subject.Settings.CanMaximize));
+            Assert.True(native.OnUi(() => subject.Settings.CanMaximize)); // T45 owner override, while CanResize stays false.
+            var original = N.Rect(subject.SettingsProbe.Handle);
             using var pointer = new WindowManagerNativePointer(subject);
             var point = subject.Center(subject.SettingsContent.MaximizeZone);
-            var releases = subject.SettingsProbe.InputQueue.ReleaseCount;
             pointer.Down(subject.SettingsProbe, point, N.HTMAXBUTTON);
+            N.Until(() => subject.SettingsProbe.Messages.Any(item => item.Message == N.WM_NCLBUTTONDOWN && item.Returned && item.PendingCaption == N.HTMAXBUTTON),
+                "Settings maximize press did not reach caption acceptance.");
             pointer.Up(subject.SettingsProbe, point);
-            N.Until(() => subject.SettingsProbe.Count(N.WM_NCLBUTTONDOWN, returned: true) > 0, "Native maximize press never returned.");
-            N.Until(() => subject.SettingsProbe.InputQueue.ReleaseCount > releases,
-                "The native disabled-button tracking loop did not dequeue the physical release.");
+            N.Until(() => N.IsZoomed(subject.SettingsProbe.Handle), "Settings caption release did not maximize.");
             subject.SettingsProbe.Fence();
             // A09: observes acceptance before the separate command guard can mask this mutation.
             var press = Assert.Single(subject.SettingsProbe.Messages, item => item.Message == N.WM_NCLBUTTONDOWN && item.Returned);
-            Assert.Equal((nint?)0, press.PendingCaption);
-            Assert.False(N.IsZoomed(subject.SettingsProbe.Handle));
+            Assert.Equal((nint?)N.HTMAXBUTTON, press.PendingCaption);
+            Assert.True(N.IsZoomed(subject.SettingsProbe.Handle));
+            subject.Focus(subject.Settings, subject.SettingsProbe);
+            point = subject.Center(subject.SettingsContent.MaximizeZone);
+            pointer.Down(subject.SettingsProbe, point, N.HTMAXBUTTON);
+            pointer.Up(subject.SettingsProbe, point);
+            N.Until(() => !N.IsZoomed(subject.SettingsProbe.Handle), "Second Settings caption click did not restore.");
+            subject.SettingsProbe.Fence();
+            var restored = N.Rect(subject.SettingsProbe.Handle);
+            Assert.Equal(original.Left, restored.Left); Assert.Equal(original.Top, restored.Top);
+            Assert.Equal(original.Width, restored.Width); Assert.Equal(original.Height, restored.Height);
 
             // A10: a native non-caption command bypasses IsCaptionButton entirely.
             var before = subject.SettingsProbe.CommandCount(N.SC_MAXIMIZE);
             N.Post(subject.SettingsProbe.Handle, N.WM_SYSCOMMAND, (nint)N.SC_MAXIMIZE);
             N.Until(() => subject.SettingsProbe.CommandCount(N.SC_MAXIMIZE) > before, "Native SC_MAXIMIZE was not delivered.");
             subject.SettingsProbe.Fence();
-            Assert.Equal(WindowState.Normal, native.OnUi(() => subject.Settings.WindowState));
-            Assert.False(N.IsZoomed(subject.SettingsProbe.Handle));
+            N.Until(() => N.IsZoomed(subject.SettingsProbe.Handle), "Native SC_MAXIMIZE did not maximize Settings.");
+            Assert.Equal(WindowState.Maximized, native.OnUi(() => subject.Settings.WindowState));
+            Assert.True(N.IsZoomed(subject.SettingsProbe.Handle));
         });
     }
 

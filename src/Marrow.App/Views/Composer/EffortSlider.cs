@@ -124,7 +124,7 @@ public sealed class ModelEffortButton : Decorator
             presented = !presented;
             button.Chip(presented); // :114 .buttonStyle(.chip(active: isPresented)).
             lockedWidth = presented ? naturalWidth : null; frame.Width = compact ? double.NaN : lockedWidth ?? double.NaN; // :108-117
-            if (presented)
+            if (presented && popup.Child is null)
             {
                 popup.VerticalOffset = inputs.Thread.Provider == ProviderKind.OpenRouter ? -Marrow.App.Port.ModelsPalette.OpenRouterPicker.ChipClearance : 0; // ED-623.
                 var panel = openPanel = new ModelEffortPanel(inputs.Thread.Id, inputs.HasHistory);
@@ -133,7 +133,6 @@ public sealed class ModelEffortButton : Decorator
                 Popovers.SetClosePopover(content, () => Presentation.Presenter.Current.SetPresented(popup, false));
                 popup.Child = content;
             }
-            else { popup.Child = null; openPanel = null; }
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         button.Focusable = false; popup.PlacementTarget = button; // :115,120

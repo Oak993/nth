@@ -1142,7 +1142,7 @@ public sealed class DiffPopoverCoordinator
     {
         isShown = false;
         Presentation.Presenter.Current.SetPresented(popover, false);
-        if (notifiedCloseSession != pendingSession) PopoverDidClose();
+        if (!popover.IsOpen && notifiedCloseSession != pendingSession) PopoverDidClose();
     }
 
     // :640-658. UPSTREAM DEFECT 67, REPRODUCED (PORT_CONTRACT section 8, ED-196, PR-GIT-137): a close that a reopen started reaches

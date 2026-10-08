@@ -77,7 +77,7 @@ public static class PortControlThemes
     // vertical, square corners (the Inspect panel lists none), fill Dark #262626@0.8 / Light #E7E7E7@0.85, shadows
     // 0 0 2 #000000@0.4 and 0 2 8 #000000@0.2 and, in Dark, an inner 0.6 hairline #FFFFFF@0.15; the text SF Pro Medium 11 /
     // 13 (the port's own family), Dark #FFFFFF@0.96 (Labels Dark Vibrant 1 Primary, plus lighter), Light #4C4C4C (plus
-    // darker; both drawn in normal blending). Not drawn: the kit's 45-point background blur behind the card (a tooltip
+    // darker; both drawn in normal blending). ToolTipBackdrop supplies the kit's 45-point background blur behind the card (a tooltip
     // is its own popup; OD-0005 governs materials). The card keeps 8 / 8 / 8 / 10 points round it inside the tip so the
     // popup does not clip its shadows (ENGINEERING DECISION).
     private static readonly SwiftColor TipFill = SwiftColor.Dynamic(SwiftColor.Rgb(0xE7E7E7).Opacity(0.85), SwiftColor.Rgb(0x262626).Opacity(0.8));
@@ -112,7 +112,7 @@ public static class PortControlThemes
         }
         card.ActualThemeVariantChanged += (_, _) => Shadows();
         Shadows();
-        return card;
+        return new Panel { Children = { new ToolTipBackdrop(card), card } };
     });
 
     // Owner finding F4 (2026-10-08, installed build): hovering a title-bar button showed the dark tip card inside a white
@@ -260,6 +260,11 @@ public static class PortControlThemes
         SoftScroll.Install(); // OD-0071 (ED-246): a ScrollViewer marked SoftScroll.IsEnabled (the chat timeline's, ED-333) scrolls softly
         application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
+        // ED-NEW-T45: every .help site uses a long dwell, including after a previous tag.
+        application.Styles.Add(new Style(selector => selector.Is<Control>())
+        {
+            Setters = { new Setter(ToolTip.ShowDelayProperty, 1500), new Setter(ToolTip.BetweenShowDelayProperty, 0) },
+        });
         application.Resources[typeof(Slider)] = SliderTheme;
         RegisterPrimaryTextDefault(application);
         GreyscaleText.Register(application); // OD-0099 Q-TEXT A: text is greyscale everywhere (GreyscaleText.cs)

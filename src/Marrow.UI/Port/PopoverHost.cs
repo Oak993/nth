@@ -125,6 +125,8 @@ public static class PopoverHost
         popup.Classes.Set(TippedClass, tipped);
         if (tipped) Wrap(popup);
         if (carded.TryAdd(popup, popup)) Follow(popup);
+        if (popup.IsOpen && !WindowTransients.IsShown(popup) && popup.PlacementTarget is { } target)
+            WindowTransients.Show(popup, target, () => Presentation.DismissMotion(popup));
         if (popup.Parent is not null || popup.PlacementTarget is not { } anchor) return;
         ((ISetLogicalParent)popup).SetParent(anchor);
         adopted.Add(popup, popup);
@@ -138,6 +140,25 @@ public static class PopoverHost
     }
 
     private static readonly ConditionalWeakTable<Popup, object> carded = new();
+    private static readonly ConditionalWeakTable<Popup, object> lightDismiss = new();
+
+    internal static void BeginPresentation(Popup popup)
+    {
+        // Popup.Open installs a blocking light-dismiss overlay before Opened. Only an actual presentation suppresses
+        // that native policy; Prepare also serves recording seams which must retain the site's configured policy.
+        if (!lightDismiss.TryGetValue(popup, out _) && (popup.IsLightDismissEnabled || popup.GetValue(Presentation.MotionProperty) is not null))
+        {
+            lightDismiss.Add(popup, popup.IsLightDismissEnabled);
+            popup.IsLightDismissEnabled = false;
+        }
+    }
+
+    /// <summary>The native caption bridge calls this for presses that do not become managed pointer events.</summary>
+    public static void DismissOutside(TopLevel owner)
+    {
+        if (WindowTransients.Newest(owner) is Popup popup && !GetIsSheet(popup))
+            Presentation.DismissMotion(popup);
+    }
 
     /// <summary>What a popup presented with no child shows until its site sets its content (Prepare): nothing, no size.</summary>
     internal sealed class PendingContent : Control
@@ -156,10 +177,9 @@ public static class PopoverHost
         // arrive here (the overlay's host) light-dismisses it, as Avalonia does for a press outside the top-level.
         void PressBeside(object? sender, PointerPressedEventArgs e)
         {
-            if (!popup.IsOpen || !(popup.IsLightDismissEnabled || popup.GetValue(Presentation.MotionProperty) is not null) || CardOf(popup) is not { } card) return;
+            if (!popup.IsOpen || !lightDismiss.TryGetValue(popup, out _) || CardOf(popup) is not { } card) return;
             if (card.HitTest(e.GetPosition(card))) return;
-            if (popup.GetValue(Presentation.MotionProperty) is not null) Presentation.DismissMotion(popup);
-            else popup.IsOpen = false;
+            Presentation.DismissMotion(popup);
             e.Handled = true;
         }
         void Detach()
@@ -188,6 +208,9 @@ public static class PopoverHost
         // The window the popover hangs over keeps the keyboard (a native popup window is not activated: Windows sends every key to the window under it), so the keys a popover
         // owns reach it from there: Escape closes it and Return is its default button (see ForwardKey).
         Action? release = null;
+        Action? releaseOutside = null;
+        void ReleaseOutside() { releaseOutside?.Invoke(); releaseOutside = null; }
+        popup.DetachedFromVisualTree += (_, _) => ReleaseOutside();
         void Release()
         {
             release?.Invoke();
@@ -195,6 +218,39 @@ public static class PopoverHost
         }
         popup.Opened += (_, _) =>
         {
+            // ED-NEW-T45: native light dismiss destroys the popup immediately. Keep it alive through its close frames.
+            // This also covers popovers presented directly, rather than by PlainControls' binding helper.
+            var dismissible = lightDismiss.TryGetValue(popup, out _);
+            if (popup.PlacementTarget is { } anchor && WindowTransients.WindowOf(anchor) is { } outsideOwner)
+            {
+                if (!WindowTransients.IsShown(popup)) WindowTransients.Show(popup, anchor, () => Presentation.DismissMotion(popup));
+                void OwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs change)
+                {
+                    // A retained owner can hide without detaching its anchor. There is no visible surface left to animate.
+                    if (change.Property == Visual.IsVisibleProperty && !outsideOwner.IsVisible) popup.IsOpen = false;
+                }
+                outsideOwner.PropertyChanged += OwnerChanged;
+                releaseOutside = () => outsideOwner.PropertyChanged -= OwnerChanged;
+                if (dismissible)
+                {
+                    void Press(object? sender, PointerPressedEventArgs e)
+                    {
+                        if (!popup.IsOpen) return;
+                        if (e.Source is Visual source && (ReferenceEquals(source, anchor) || source.GetVisualAncestors().Contains(anchor))) return;
+                        if (popup.Child is { } child && (ReferenceEquals(e.Source, child) || e.Source is Visual inside && inside.GetVisualAncestors().Contains(child))) return;
+                        Presentation.DismissMotion(popup);
+                    }
+                    void Deactivate(object? sender, EventArgs e) => Presentation.DismissMotion(popup);
+                    outsideOwner.AddHandler(InputElement.PointerPressedEvent, Press, RoutingStrategies.Tunnel, handledEventsToo: true);
+                    if (outsideOwner is Window window) window.Deactivated += Deactivate;
+                    releaseOutside = () =>
+                    {
+                        outsideOwner.PropertyChanged -= OwnerChanged;
+                        outsideOwner.RemoveHandler(InputElement.PointerPressedEvent, Press);
+                        if (outsideOwner is Window window) window.Deactivated -= Deactivate;
+                    };
+                }
+            }
             var found = host ?? HostOf(popup.Child);
             Detach();
             host = found;
@@ -206,6 +262,9 @@ public static class PopoverHost
         };
         popup.Closed += (_, _) =>
         {
+            ReleaseOutside();
+            if (popup.Child is { } content) PopoverAppear.Cancel(content);
+            if (lightDismiss.TryGetValue(popup, out var policy)) { lightDismiss.Remove(popup); popup.IsLightDismissEnabled = (bool)policy; }
             Detach();
             Release();
             CardOf(popup)?.Hidden();
@@ -288,9 +347,9 @@ public static class PopoverHost
 
     private sealed class AvaloniaWindowProcedureHooks : IWindowProcedureHooks
     {
-        public void Add(TopLevel window, Win32Properties.CustomWndProcHookCallback hook) => Win32Properties.AddWndProcHookCallback(window, hook);
+        public void Add(TopLevel window, Win32Properties.CustomWndProcHookCallback hook) => NativeWindowHooks.Add(window, hook);
 
-        public void Remove(TopLevel window, Win32Properties.CustomWndProcHookCallback hook) => Win32Properties.RemoveWndProcHookCallback(window, hook);
+        public void Remove(TopLevel window, Win32Properties.CustomWndProcHookCallback hook) => NativeWindowHooks.Remove(window, hook);
     }
 
     internal static Ambient<IWindowProcedureHooks> WindowProcedure { get; } = new(new AvaloniaWindowProcedureHooks());

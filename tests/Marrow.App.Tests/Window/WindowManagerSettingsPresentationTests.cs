@@ -11,6 +11,25 @@ namespace Marrow.App.Tests.Window;
 public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
     [Fact]
+    [Trait("Decision", "ED-NEW-windows-45")]
+    public void Settings_opened_first_gains_Main_as_owner_without_replacing_its_window_or_content()
+    {
+        WithManager((_, manager) =>
+        {
+            manager.ShowSettings(); var settings = Settings(manager); var content = settings.Content;
+            Assert.Null(manager.MainWindow);
+            manager.ShowMain(); var main = MainOf(manager);
+            Assert.Same(main, settings.Owner);
+            Assert.Same(settings, Assert.Single(main.OwnedWindows));
+            Assert.Same(content, settings.Content);
+            Assert.True(main.IsVisible); Assert.True(settings.IsVisible);
+            Assert.False(main.Topmost); Assert.False(settings.Topmost);
+            settings.Close(); manager.ShowSettings();
+            Assert.Same(main, settings.Owner); Assert.Same(content, settings.Content);
+        }, realSettings: false);
+    }
+
+    [Fact]
     [Trait("Req", "PR-SETTINGS-002")]
     [Trait("Req", "PR-WIN-011")]
     public void Cached_show_centers_before_the_platform_show_request()
@@ -76,9 +95,8 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Trait("Req", "PR-WIN-010")]
     public void Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties()
     {
-        // RESOLVED (RECORD != SWIFT): WIN.json PR-WIN-010 says "owned top-level window" and PR-SETTINGS-001 "child window",
-        // but WindowManager.swift:80-84, :57-60 build an independent NSWindow with no parent, so the port sets no owner; the
-        // test below (Settings_and_main_windows_have_no_owner_relationship) asserts that absence.
+        // ED-NEW-T45: the owner explicitly requires Windows ownership after Settings got lost behind Main.
+        // The source's independent NSWindow is recorded as the Mac fact, rather than a Windows ordering oracle.
         // WindowManager.swift:80-84,92-110. Border content prevents SettingsView's probe masking missing Configure.
         WithManager((_, manager) =>
         {
@@ -91,7 +109,7 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
             Assert.True(settings.MinHeight <= 580);
             Assert.False(settings.CanResize);
             Assert.True(settings.CanMinimize);
-            Assert.False(settings.CanMaximize);
+            Assert.True(settings.CanMaximize); // T45 owner caption override.
             Assert.True(settings.ExtendClientAreaToDecorationsHint);
             Assert.Equal(WindowDecorations.Full, settings.WindowDecorations);
             Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(settings.Background).Color);
@@ -102,28 +120,29 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Fact]
     [Trait("Req", "PR-SETTINGS-001")]
     [Trait("Req", "PR-WIN-010")]
-    public void Settings_and_main_windows_have_no_owner_relationship()
+    [Trait("Decision", "ED-NEW-windows-45")]
+    public void Settings_is_owned_by_main_on_every_open_and_a_close_keeps_main_visible()
     {
-        // WindowManager.swift:80-84 builds the Settings window with makeWindow, an independent NSWindow, and :57-60 only
-        // activates and orders it front: it is not a child of the main window (no addChildWindow, no level change). The
-        // records' words "owned" and "child window" are not in the source (RECORD != SWIFT), so the port sets no Owner.
+        // Owner instruction 2026-10-08 supersedes the previous absence-of-ownership expectation.
         WithManager((_, manager) =>
         {
             manager.ShowMain(); manager.ShowSettings();
             var main = MainOf(manager); var settings = Settings(manager);
             Assert.True(main.IsVisible);
             Assert.True(settings.IsVisible);
-            Assert.Null(settings.Owner);
+            Assert.Same(main, settings.Owner);
             Assert.Null(main.Owner);
             Assert.Empty(settings.OwnedWindows);
-            Assert.Empty(main.OwnedWindows);
+            Assert.Same(settings, Assert.Single(main.OwnedWindows));
             Assert.False(settings.Topmost);
             Assert.False(main.Topmost);
-            // closing and reopening it again leaves it unowned (every show re-centres it, :36)
+            main.Activate();
             settings.Close();
+            Assert.False(settings.IsVisible);
+            Assert.True(main.IsVisible);
             manager.ShowSettings();
-            Assert.Null(settings.Owner);
-            Assert.Empty(main.OwnedWindows);
+            Assert.Same(main, settings.Owner);
+            Assert.Same(settings, Assert.Single(main.OwnedWindows));
         }, realSettings: false);
     }
 

@@ -34,6 +34,7 @@ internal sealed class RightClickPopoverModifier
         var popover = new Popup
         {
             Placement = PlacementMode.Top, // :16 arrowEdge: .top
+            IsLightDismissEnabled = true,
         };
 
         var shown = false;

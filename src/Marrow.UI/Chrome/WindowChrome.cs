@@ -121,6 +121,7 @@ public static class WindowChrome
         public bool Configured;
         public TrafficLightButtons? Buttons;
         public Canvas? Layer;
+        public double CaptionScale = 1;
     }
 
     // DEVIATION OD-0044 (OD-0046): Windows order, minimise, maximise, close, left to right at the top right.
@@ -255,6 +256,37 @@ public static class WindowChrome
     /// </summary>
     public static Canvas CaptionLayer(Window window) => StateFor(window).Layer ??= new Canvas();
 
+    /// <summary>Owner T45: the entire invisible caption cell follows app zoom; native DPI scaling remains the window's.</summary>
+    public static void SetCaptionScale(Window window, double scale)
+    {
+        var state = StateFor(window);
+        state.CaptionScale = scale;
+        if (state.Buttons is { } buttons) ScaleCaptionCluster(buttons.Cluster, scale);
+    }
+
+    private static void ScaleCaptionCluster(Panel cluster, double scale)
+    {
+        cluster.RenderTransformOrigin = RelativePoint.TopLeft;
+        cluster.RenderTransform = scale == 1 ? null : new ScaleTransform(scale, scale);
+        // Canvas positions the untransformed layout box: account for the rendered extra width at its right edge.
+        Canvas.SetRight(cluster, CaptionTrailingInset * scale + CaptionClusterWidth * (scale - 1));
+        Canvas.SetTop(cluster, CaptionTop * scale);
+    }
+
+    /// <summary>ED-NEW-T45: the full caption boxes take priority over the platform's title-bar drag band.</summary>
+    public static int CaptionHitTest(Window window, Point clientPoint)
+    {
+        if (StateFor(window).Buttons is not { } buttons) return 0;
+        foreach (var button in buttons.Items)
+        {
+            if (!button.IsEffectivelyVisible || !button.IsHitTestVisible) continue;
+            var local = window.TranslatePoint(clientPoint, button);
+            if (local is { } point && new Rect(button.Bounds.Size).Contains(point))
+                return (int)Win32Properties.GetNonClientHitTestResult(button);
+        }
+        return 0;
+    }
+
     /// <summary>The cluster holding the three buttons, exposed for tests via InternalsVisibleTo.</summary>
     internal static Panel CaptionCluster(Window window) => (StateFor(window).Buttons ??= CreateButtons(window)).Cluster;
 
@@ -275,6 +307,7 @@ public static class WindowChrome
         // A window with no caption layer falls back to its overlay layer, when its template has one (the port's windows
         // have no template, so they have none: an earlier version that used only the overlay layer never showed them).
         var state = StateFor(window);
+        ScaleCaptionCluster(cluster, state.CaptionScale);
         if (state.Layer is { } layer) layer.Children.Add(cluster);
         else if (OverlayLayer.GetOverlayLayer(window) is { } overlay) overlay.Children.Add(cluster);
         else (state.Layer = new Canvas()).Children.Add(cluster);

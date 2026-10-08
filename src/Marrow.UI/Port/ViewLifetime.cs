@@ -94,6 +94,7 @@ public static class Presentation
     internal static void DismissMotion(Popup popup)
     {
         if (motionDismiss.TryGetValue(popup, out var dismiss)) dismiss();
+        else Presenter.Current.SetPresented(popup, false);
     }
 
     internal static void OpenMotion(Popup popup, Control content)
@@ -112,7 +113,7 @@ public static class Presentation
     /// </summary>
     public static void SetPresented(Popup popup, bool presented, Visual anchor, Action dismiss)
     {
-        if (presented && popup.GetValue(MotionProperty) is not null) motionDismiss.AddOrUpdate(popup, dismiss);
+        if (presented) motionDismiss.AddOrUpdate(popup, dismiss);
         else motionDismiss.Remove(popup);
         if (presented) WindowTransients.Show(popup, anchor, dismiss);
         else WindowTransients.Hide(popup);
@@ -122,11 +123,27 @@ public static class Presentation
     private sealed class AvaloniaPopoverPresenter : IPopoverPresenter
     {
         private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, Action> closing = new();
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, object> watched = new();
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, Control> animated = new();
 
         public void SetPresented(Popup popup, bool presented)
         {
+            if (watched.TryAdd(popup, popup)) popup.Closed += (_, _) =>
+            {
+                if (closing.TryGetValue(popup, out var cancel)) { closing.Remove(popup); cancel(); }
+                if (animated.TryGetValue(popup, out var content)) { animated.Remove(popup); PopoverAppear.Cancel(content); }
+            };
             var wasClosing = closing.TryGetValue(popup, out var stop);
-            if (wasClosing) { closing.Remove(popup); stop!(); }
+            if (wasClosing && !presented) return;
+            if (wasClosing)
+            {
+                var child = popup.Child;
+                var pose = child?.RenderTransform;
+                var opacity = child?.Opacity ?? 1;
+                closing.Remove(popup); stop!();
+                if (presented && child is not null && popup.GetValue(MotionProperty) is null)
+                { child.RenderTransform = pose; child.Opacity = opacity; }
+            }
             if (!presented && popup.IsOpen && popup.Child is { } shown)
             {
                 // NSPopover shrinks back into its arrow before it goes (PopoverAppear.cs).
@@ -138,10 +155,11 @@ public static class Presentation
                 return;
             }
             var wasOpen = popup.IsOpen;
-            if (presented) PopoverHost.Prepare(popup); // the anchor's appearance and the panel fill (ED-238)
+            if (presented) { PopoverHost.Prepare(popup); PopoverHost.BeginPresentation(popup); } // ED-238, ED-NEW-T45
             popup.IsOpen = presented;
             // NSPopover grows in from its arrow (PopoverAppear.cs); the child is final once the popup has opened.
-            if (presented && (!wasOpen || wasClosing && popup.GetValue(MotionProperty) is not null) && popup.IsOpen && popup.Child is { } content) OpenMotion(popup, content);
+            if (presented && (!wasOpen || wasClosing) && popup.IsOpen && popup.Child is { } content)
+            { animated.AddOrUpdate(popup, content); OpenMotion(popup, content); }
         }
     }
 }

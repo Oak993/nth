@@ -185,7 +185,7 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         Assert.Equal("Marrow", main.Title);
         Assert.True(main.CanResize);
         Assert.False(settings.CanResize);
-        Assert.False(settings.CanMaximize);
+        Assert.True(settings.CanMaximize); // T45 owner caption override.
         Assert.True(settings.CanMinimize);
         main.Close();
         Assert.Equal(1, requests);

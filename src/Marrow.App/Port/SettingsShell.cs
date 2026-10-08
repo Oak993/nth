@@ -14,13 +14,18 @@ internal sealed class SettingsShell : Panel
     internal const double ShadowSpace = 180; // three sigma of the 90 px CSS blur plus its 34 px offset
     internal Control Client { get; }
     internal Border Shadow { get; }
-    internal double Inset { get; }
+    internal double Inset { get; private set; }
+    internal bool IsNative { get; }
+    internal double ClipRadius { get; private set; } = 8;
+    private readonly Size normalSize;
     internal SettingsAcrylicClip? AcrylicClip { get; set; }
     internal SettingsShellInput? Input { get; private set; }
 
     private SettingsShell(Control client, Size clientSize, bool native)
     {
         Client = client;
+        IsNative = native;
+        normalSize = clientSize;
         Inset = native ? ShadowSpace : 0;
         Shadow = new Border
         {
@@ -53,7 +58,35 @@ internal sealed class SettingsShell : Panel
         window.Content = null; // detach the previous logical owner before reparenting the whole caption/client group
         var shell = new SettingsShell(client, clientSize, native);
         window.Content = shell;
-        window.Closed += (_, _) => { shell.AcrylicClip?.Dispose(); shell.AcrylicClip = null; };
+        void FitShell()
+        {
+            var maximized = window.WindowState == WindowState.Maximized;
+            shell.Inset = native && !maximized ? ShadowSpace : 0;
+            shell.ClipRadius = maximized ? 0 : 8;
+            var size = maximized ? window.ClientSize : shell.normalSize;
+            foreach (var part in new[] { shell.Shadow, shell.Client })
+            {
+                part.Width = size.Width;
+                part.Height = size.Height;
+                part.Margin = new Thickness(shell.Inset);
+            }
+            shell.Shadow.IsVisible = native && !maximized;
+            if (native) shell.Client.Clip = new RectangleGeometry(new Rect(size), shell.ClipRadius, shell.ClipRadius);
+            shell.AcrylicClip?.Update(window.RenderScaling);
+        }
+        void OnSize(object? sender, SizeChangedEventArgs e) => FitShell();
+        void OnState(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == HostWindow.WindowStateProperty) FitShell();
+        }
+        window.SizeChanged += OnSize;
+        window.PropertyChanged += OnState;
+        window.Closed += (_, _) =>
+        {
+            window.SizeChanged -= OnSize;
+            window.PropertyChanged -= OnState;
+            shell.AcrylicClip?.Dispose(); shell.AcrylicClip = null;
+        };
         if (!native) return;
         window.WindowDecorations = WindowDecorations.None;
         // Preserve Alt+Space and the source's minimise/close system commands without a system caption.
@@ -69,7 +102,7 @@ internal sealed class SettingsShell : Panel
 
     internal static void SuppressNonClient(HostWindow window)
     {
-        if (window.Content is not SettingsShell { Inset: > 0 }
+        if (window.Content is not SettingsShell { IsNative: true }
             || window.TryGetPlatformHandle() is not { Handle: not 0, HandleDescriptor: "HWND" } handle) return;
         var none = unchecked((int)0xfffffffe); // DWMWA_COLOR_NONE, never restore a different shadow at rest
         var disabled = 1; // DWMNCRP_DISABLED
