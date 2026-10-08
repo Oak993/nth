@@ -38,6 +38,9 @@ internal static class ToolTipBackdropEffect
             // Retain the managed effect's native shadow for the whole factory call,
             // exactly as Avalonia's own CreateAcrylicBlurBackdropBrush does.
             var lease = runtime.GetMethods().Single(m => m.Name == "LeaseNativePointerForCall" && m.IsGenericMethodDefinition);
+            // Windows can release a nested source while still inspecting the graph.
+            // Preserve its CCW too, as the pinned Avalonia acrylic factory does.
+            Hold(lease.MakeGenericMethod(T("IGraphicsEffectSource")).Invoke(null, [blur])!);
             Hold(lease.MakeGenericMethod(T("IGraphicsEffectSource")).Invoke(null, [saturated])!);
             var effectFactory = Hold(T("ICompositor").GetMethod("CreateEffectFactory")!.Invoke(compositor, [saturated])!);
             var effectBrush = Hold(T("ICompositionEffectFactory").GetMethod("CreateBrush")!.Invoke(effectFactory, null)!);

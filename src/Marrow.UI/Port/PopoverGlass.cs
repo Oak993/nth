@@ -108,7 +108,7 @@ internal sealed class PopoverGlass : IDisposable
         }
         catch (Exception error) when (NonFatal(error))
         {
-            Fail("a composition call failed: " + (error.InnerException ?? error).Message);
+            Fail("a composition call failed: " + (error.InnerException ?? error).ToString());
             return false;
         }
     }
@@ -125,7 +125,7 @@ internal sealed class PopoverGlass : IDisposable
         }
         catch (Exception error) when (NonFatal(error))
         {
-            Fail("a composition call failed: " + (error.InnerException ?? error).Message);
+            Fail("a composition call failed: " + (error.InnerException ?? error).ToString());
         }
     }
 
