@@ -47,13 +47,13 @@ public sealed partial class EffortSlider
         if(palette is null||paletteEffect is null)return;
         var sample=paletteEffect.SamplePalette(SwiftDate.Now);if(sample is null)return;
         for(var i=0;i<5;i++){var n=(int)Math.Round(i*255/4d)*4;paletteAlong[i]=new(sample.Row[n],sample.Row[n+1],sample.Row[n+2]);}
-        paletteFill??=new SolidColorBrush();paletteFill.Color=sample.Water?Colors.Transparent:new((byte)(sample.Frame.Glow>>24),(byte)(sample.Frame.Glow>>16),(byte)(sample.Frame.Glow>>8),(byte)sample.Frame.Glow);fill.Background=paletteFill;
+        paletteFill??=new SolidColorBrush();paletteFill.Color=sample.Water?Colors.Transparent:unchecked(new Color((byte)(sample.Frame.Glow>>24),(byte)(sample.Frame.Glow>>16),(byte)(sample.Frame.Glow>>8),(byte)sample.Frame.Glow));fill.Background=paletteFill;
         if(paletteTitle is not null&&!fastMode)
         {
             Color Colour(int n)=>new(sample.TitleRow[n+3],sample.TitleRow[n],sample.TitleRow[n+1],sample.TitleRow[n+2]);
             if(paletteSolidTitle is not null)paletteSolidTitle.Color=Colour(512);
             if(paletteTitleBrush is not null)foreach(var stop in paletteTitleBrush.GradientStops)stop.Color=Colour((int)Math.Clamp(Math.Round(stop.Offset*255),0,255)*4);
-            var hash=2166136261u;foreach(var value in sample.TitleRow)hash=(hash^value)*16777619;
+            var hash=2166136261u;foreach(var value in sample.TitleRow)hash=unchecked((hash^value)*16777619); // FNV-1a wraps by design (CheckForOverflowUnderflow is on project-wide, ED-074)
             if(hash!=paletteTitleHash){paletteTitleHash=hash;paletteTitle.UpdateLiveForeground();}
             if(sample.Frame.Progress>=1&&palette.TitleStops.Count==1&&paletteTitleBrush is not null){paletteSolidTitle=new(Colour(512));paletteTitleBrush=null;EffortView.SetBrush(paletteTitle,b=>paletteTitle.Foreground=b,paletteSolidTitle);}
         }
