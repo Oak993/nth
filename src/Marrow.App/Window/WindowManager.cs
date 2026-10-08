@@ -817,7 +817,7 @@ internal sealed class HostedRoot : ThemeVariantScope
 /// from: a window's root, and a chat column hosted on its own inside the main window (see <c>ThreadColumns</c>).</summary>
 /// <param name="Model">:166 <c>let model: AppModel</c>.</param>
 /// <param name="LiveResize">:167 <c>let liveResize: WindowLiveResize</c>.</param>
-public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResize)
+public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResize, bool Zooms = true)
 {
     // :169-178 func body(content: Content) -> some View
     public Control Body(Control content)
@@ -826,12 +826,16 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
         AppEnvironment.SetWindowLiveResize(content, LiveResize); // :172 .environment(liveResize)
         // :173-175 The zoom in Settings scales the whole app: every window root and every chat column carries it, so the
         // sidebar, settings and composer move together.
-        var zoomed = new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content);
+        // Lead (native gallery at 200 %, 2026-10-08): on the Mac a chat column is an NSHostingView of its own, which the window
+        // root's scaleEffect does not reach, so the column applies the zoom itself. Here the column is a child of the window root's
+        // already zoomed tree, and zooming it again drew the chat at the square of the setting (4x at 200 %). The column passes
+        // Zooms: false and takes the root's zoom; the environment and the theme tint stay its own.
+        var zoomed = Zooms ? new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content) : content;
         Popovers.SetIsCapsuleButtonBorderShape(zoomed, true); // :176 .buttonBorderShape(.capsule)
         var tinted = new ThemeTint(Model.Settings.Theme, Model.Settings.Accent).Body(zoomed); // :177
         // The body reads model.settings.appZoom (:175) and model.settings.theme (:177), so SwiftUI evaluates it again
         // when either changes; AppZoomModifier keeps its layout and ThemeTint its view when they are evaluated again.
-        tinted.Track(() => Model.Settings.AppZoom, percent => new AppZoomModifier(Percent(percent)).Body(content));
+        if (Zooms) tinted.Track(() => Model.Settings.AppZoom, percent => new AppZoomModifier(Percent(percent)).Body(content));
         tinted.Track(() => (Model.Settings.Theme, Model.Settings.Accent), pair => new ThemeTint(pair.Theme, pair.Accent).Body(zoomed)); // and the accent (OD-0088)
         return tinted;
     }

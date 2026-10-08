@@ -142,12 +142,12 @@ public sealed class TourViewTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-054")]
     public void A_missing_tour_image_shows_the_gradient_and_photo_placeholder() => headless.OnUiThread(() =>
     {
-        // None of the tour-*.imageset names are registered in SwiftImage's asset catalogue at this commit's C# tree,
-        // so every page here exercises the fallback: the safety net this record proves.
-        var view = new TourView(SamplePages());
+        // RR-22 (ED-NEW-testing-lead-1 (12)): the eight tour pictures now ship, so the safety net is proved on a page whose
+        // image name is in no asset catalogue; the assertions are those of the record, unchanged.
+        var view = new TourView([new TourPage("tour-not-in-the-catalogue", "Welcome to Droppy Code", "One native macOS window for every coding agent you use.")]);
         ShowInFrame(view);
 
-        Assert.DoesNotContain(view.GetVisualDescendants().OfType<SwiftImage>(), i => i.AssetName == "tour-welcome");
+        Assert.DoesNotContain(view.GetVisualDescendants().OfType<SwiftImage>(), i => i.AssetName == "tour-not-in-the-catalogue" && i.Bitmap is not null);
         var glyph = view.GetVisualDescendants().OfType<SwiftImage>().Single(i => i.SymbolName == "photo"); // :270
         var gradientHost = glyph.GetVisualAncestors().OfType<Border>().First(b => b.Background is LinearGradientBrush);
         var brush = Assert.IsType<LinearGradientBrush>(gradientHost.Background);
@@ -155,6 +155,25 @@ public sealed class TourViewTests(HeadlessSession headless)
         Assert.Equal(new RelativePoint(0, 1, RelativeUnit.Relative), brush.EndPoint); // :267 .bottom
         Assert.Equal(Color.FromRgb(41, 31, 102), brush.GradientStops[0].Color); // :263 (0.16, 0.12, 0.40)
         Assert.Equal(Color.FromRgb(13, 13, 26), brush.GradientStops[1].Color); // :264 (0.05, 0.05, 0.10)
+    });
+
+    // RR-22 (OD-0027): every page of Tour.Pages names a picture retaken from Windows Marrow, shipped at 660 x 412 and 1320 x 824,
+    // so the tour shows the app, never the placeholder.
+    [Fact]
+    [Trait("Decision", "OD-0027")]
+    public void Every_tour_page_shows_its_Windows_picture_at_1x_and_2x() => headless.OnUiThread(() =>
+    {
+        foreach (var page in Marrow.App.Views.Tour.Tour.Pages)
+        {
+            var image = SwiftImage.Named(page.ImageName);
+            Assert.False(image.IsEmpty, page.ImageName);
+            Assert.Equal(new PixelSize(660, 412), image.Bitmap!.PixelSize);
+            Assert.Equal(new PixelSize(1320, 824), image.Bitmap2x!.PixelSize);
+        }
+        var view = new TourView(Marrow.App.Views.Tour.Tour.Pages);
+        ShowInFrame(view);
+        Assert.Contains(view.GetVisualDescendants().OfType<SwiftImage>(), i => i.AssetName == Marrow.App.Views.Tour.Tour.Pages[0].ImageName && i.Bitmap is not null);
+        Assert.DoesNotContain(view.GetVisualDescendants().OfType<SwiftImage>(), i => i.SymbolName == "photo");
     });
 
     // PR-UPDATE-103 / UI-UPDATE-045: an empty page list shows a 220pt empty state with no controls.

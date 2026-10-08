@@ -887,7 +887,7 @@ internal sealed class ThreadColumns : Decorator
         // :266-283 make/root. Keep the ChatView tree when its visibility input changes, preserving its @State.
         private FrameHostingView Make(Guid id, bool isShown, Control pane, AppModel model, WindowLiveResize liveResize)
         {
-            var column = new FrameHostingView(new HostedEnvironment(model, liveResize).Body(new ChatView(model.Runtime(id))));
+            var column = new FrameHostingView(new HostedEnvironment(model, liveResize, Zooms: false).Body(new ChatView(model.Runtime(id)))); // the window root zooms it (HostedEnvironment)
             RootView.SetChatColumnIsShown(column, isShown);
             ((Panel)pane).Children.Add(column);
             column.Measure(pane.Bounds.Size);
