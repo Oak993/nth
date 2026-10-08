@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -80,7 +81,8 @@ public sealed class BootStageWindow
         };
         stage.FrameChanged += OnFrame;
         stage.MainWindowShown += (_, _) => ShowMain();
-        stage.Closed += (_, _) => Finish();
+        // T44: HWND destruction performs a synchronous compositor commit. Never reenter it from RenderCore.
+        stage.Closed += (_, _) => Dispatcher.UIThread.Post(Finish, DispatcherPriority.Background);
         stageWindow.Closed += (_, _) => FinishWithoutClosing();
     }
 
@@ -119,7 +121,7 @@ public sealed class BootStageWindow
     {
         using var work = AuroraBootTrace.Begin("Boot: UI cloaked show");
         warmTried = true;
-        if (main.IsVisible) return;
+        if (!stageWindow.IsVisible || main.IsVisible) return;
         var activated = main.ShowActivated;
         main.ShowActivated = false;
         try
@@ -173,7 +175,11 @@ public sealed class BootStageWindow
 
     private void OnFrame(object? sender, EventArgs e)
     {
-        if (!warmTried && WarmDue()) WarmMain();
+        if (!warmTried && WarmDue())
+        {
+            warmTried = true;
+            Dispatcher.UIThread.Post(WarmMain, DispatcherPriority.Background);
+        }
         if (following) Apply(stage.Frame);
     }
 

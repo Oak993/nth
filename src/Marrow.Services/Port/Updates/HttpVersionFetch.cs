@@ -5,12 +5,23 @@ public static class HttpVersionFetch
 {
     private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(10), DefaultRequestHeaders = { { "User-Agent", "marrow-update-check" } } };
 
-    /// <summary>An https GET with a ten second limit; any other scheme is refused. Tests never call this (they give the listing their own fetch).</summary>
-    public static async Task<string> Get(Uri uri, CancellationToken cancellation)
+    /// <summary>An https GET with a ten second limit; any other scheme is refused. Tests supply an offline HttpClient handler.</summary>
+    public static Task<string> Get(Uri uri, CancellationToken cancellation) => Get(uri, cancellation, Client);
+
+    public static async Task<string> Get(Uri uri, CancellationToken cancellation, HttpClient client)
     {
         if (uri.Scheme != Uri.UriSchemeHttps) throw new InvalidOperationException("Only https listings are read.");
-        using var response = await Client.GetAsync(uri, cancellation);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(cancellation);
+        try
+        {
+            using var response = await client.GetAsync(uri, cancellation);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync(cancellation);
+        }
+        // HttpClient uses TaskCanceledException for its own timeout as well as caller cancellation.
+        // Only the latter cancels the operation; the orchestrator already displays ordinary check errors.
+        catch (OperationCanceledException error) when (!cancellation.IsCancellationRequested)
+        {
+            throw new TimeoutException(error.Message, error);
+        }
     }
 }

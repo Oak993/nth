@@ -17,10 +17,13 @@ internal static class PaletteSnapshotCodec
     {
         if(data.Digest is not {Length:64}||data.Models.Length>20000||data.Shades.Length!=data.Models.Length*18)throw new InvalidDataException("Invalid snapshot tables.");
         var models=data.Models.ToFrozenDictionary(m=>m.Id,m=>new PaletteModel(m.Id,m.Maker,m.Name,m.State is PaletteState.Ready?PaletteState.Known:m.State,new(m.Key,new(m.Stops),m.Title),new(m.Strength,m.Level,m.Levels),m.Crowded),StringComparer.Ordinal);
+        var interned=new Dictionary<PaletteShade,PaletteShade>();
         var shades=data.Shades.ToFrozenDictionary(s=>new PaletteShadeKey(s.Id,s.Effort,s.Light),s=>
         {
             if(!models.ContainsKey(s.Id)||s.Row.Length!=1024||s.Stops.Length!=3||s.Motion.Values.Any(v=>!double.IsFinite(v)))throw new InvalidDataException("Invalid shade table.");
-            return new PaletteShade(new(s.Stops),s.Title,s.Glow,s.Motion.ToFrozenDictionary(StringComparer.Ordinal),new(s.Row));
+            var candidate=new PaletteShade(new(s.Stops),s.Title,s.Glow,s.Motion.ToFrozenDictionary(StringComparer.Ordinal),new(s.Row));
+            if(interned.TryGetValue(candidate,out var shared))return shared;
+            interned.Add(candidate,candidate);return candidate;
         });
         return new(data.Digest,data.Boundary,models,shades){Makers=data.Makers.ToFrozenDictionary(m=>m.Id,StringComparer.Ordinal)};
     }

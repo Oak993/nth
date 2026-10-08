@@ -924,8 +924,24 @@ internal static class ProcessNative
     /// target that this call takes over, keeps the target's pid from being reused until the helper has ended. The
     /// helper's lifetime is bounded (ED-242): see <see cref="CtrlBreakHelper"/>.
     /// </summary>
-    public static void SendCtrlBreak(int pid, SafeProcessHandle? reserved = null) =>
-        CtrlBreakHelper.Start(CtrlBreakScript(pid), reserved).Release(CtrlBreakHelper.Lifetime);
+    internal static Ambient<Action<int, SafeProcessHandle?>> CtrlBreakSender { get; } = new(
+        (pid, reserved) => CtrlBreakHelper.Start(CtrlBreakScript(pid), reserved).WaitAndRelease(CtrlBreakHelper.Lifetime));
+
+    public static void SendCtrlBreak(int pid, SafeProcessHandle? reserved = null)
+    {
+        // CreateProcessW can spend seconds starting PowerShell. The signal is asynchronous;
+        // its launcher must also be off the caller, so the ladder's deadline starts immediately.
+        var sender = CtrlBreakSender.Current;
+        try
+        {
+            StartBackground("Marrow Ctrl+Break launch", () =>
+            {
+                try { sender(pid, reserved); }
+                catch (Exception error) when (SwiftTry.IsThrownError(error)) { reserved?.Dispose(); }
+            });
+        }
+        catch { reserved?.Dispose(); throw; }
+    }
 
     /// <summary>The helper's PowerShell script for <paramref name="pid"/>: the four kernel32 calls of P6.</summary>
     internal static string CtrlBreakScript(int pid)
@@ -1075,15 +1091,19 @@ internal sealed class CtrlBreakHelper
     /// </summary>
     internal void Release(TimeSpan lifetime)
     {
+        ProcessNative.StartBackground("Marrow Ctrl+Break helper", () => WaitAndRelease(lifetime));
+    }
+
+    // The production signal launcher already runs on its own worker. Keep creation and
+    // waiting on that same worker: a second Thread.Start cannot lose the live helper.
+    internal void WaitAndRelease(TimeSpan lifetime)
+    {
         var milliseconds = (uint)Math.Clamp((long)Math.Ceiling(lifetime.TotalMilliseconds), 0, ProcessNative.INFINITE - 1);
-        ProcessNative.StartBackground("Marrow Ctrl+Break helper", () =>
-        {
-            if (ProcessNative.WaitForSingleObject(process, milliseconds) != 0)
-                ProcessNative.TerminateProcess(process, ExpiredExitCode);
-            job.Dispose();
-            process.Dispose();
-            reserved?.Dispose();
-        });
+        if (ProcessNative.WaitForSingleObject(process, milliseconds) != 0)
+            ProcessNative.TerminateProcess(process, ExpiredExitCode);
+        job.Dispose();
+        process.Dispose();
+        reserved?.Dispose();
     }
 
     /// <summary>Closes the helper's handles without waiting, as the system does when its creator ends.</summary>

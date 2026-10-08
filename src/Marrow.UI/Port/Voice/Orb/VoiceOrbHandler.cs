@@ -12,8 +12,10 @@ namespace Marrow.UI.Port.Voice.Orb;
 /// orb asks for a frame after every frame; a view nobody draws (hidden, minimised, occluded) asks for none, and drawing it again resumes it. Under reduce motion, and
 /// on the software rasterizer (no GPU), it draws one still and asks for no frames (ED-251's rule for the composer light).
 /// </summary>
-internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
+internal sealed class VoiceOrbHandler(AmbientMotionController? ambient = null) : CompositionCustomVisualHandler
 {
+    private double interactionUntil;
+    private bool Interaction(double now) => now < interactionUntil || snapshot?.Input.Mode != Marrow.Core.Port.Voice.Orb.OrbMotionMode.Rest;
     private VoiceOrbSnapshot? snapshot;
     private OrbScene? scene;
     private readonly OrbRenderer renderer = new();
@@ -41,11 +43,17 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
     public bool IsAnimating => Volatile.Read(ref animating) != 0;
 
     public bool IsStopped => Volatile.Read(ref stopped) != 0;
+    internal double AmbientSpeed => ambient?.Clock.Speed ?? 1;
 
     private static double Seconds(TimeProvider clock) => clock.GetTimestamp() / (double)clock.TimestampFrequency;
 
     public override void OnMessage(object message)
     {
+        if (ReferenceEquals(message, ambient))
+        {
+            if (snapshot is { } current) { var now = Seconds(current.Clock); ambient?.Sample(now, Interaction(now)); }
+            Request(); return;
+        }
         if (message is VoiceOrbStop)
         {
             Interlocked.Exchange(ref stopped, 1);
@@ -58,11 +66,12 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
             if (IsStopped || scene is null) return;
             if (!backendKnown) pendingManualFrames.Add(tick);
             else scene.Advance(tick.At, tick.Input with { ReduceMotion = tick.Input.ReduceMotion || software }, tick.Dpr);
-            Invalidate();
+            Invalidate(GetRenderBounds());
             return;
         }
         if (IsStopped || message is not VoiceOrbSnapshot next) return;
         snapshot = next;
+        interactionUntil = Seconds(next.Clock) + .7;
         if (next.ManualOrigin is not null) manualInitial ??= next;
         scene ??= new OrbScene(next.Input.Kind, next.Input.SlotDiameter, next.Input.Dark);
         Invalidate();
@@ -71,16 +80,25 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
 
     public override void OnAnimationFrameUpdate()
     {
+        using var work = AuroraBootTrace.Begin("Voice orb: compositor frame");
         frameRequested = false;
         Volatile.Write(ref animating, 0);
         if (IsStopped || snapshot is null) return;
-        Invalidate();
+        ambient?.Sample(Seconds(snapshot.Clock), Interaction(Seconds(snapshot.Clock)));
+        if (ambient is not null && !ambient.Available) return;
+        Invalidate(GetRenderBounds());
         if (drawnSinceRequest) Request();
     }
 
     private void Request()
     {
         if (frameRequested || IsStopped || snapshot is null || snapshot.Input.ReduceMotion || software) return;
+        var now = Seconds(snapshot.Clock);
+        if (ambient is not null && !ambient.Request(now, Interaction(now)))
+        {
+            Volatile.Write(ref animating, ambient.Available && ambient.Clock.Moving ? 1 : 0); return;
+        }
+        using var request = AuroraBootTrace.Begin("Voice orb: frame request");
         frameRequested = true;
         drawnSinceRequest = false;
         Volatile.Write(ref animating, 1);
@@ -91,6 +109,7 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
 
     public override void OnRender(ImmediateDrawingContext context)
     {
+        using var work = AuroraBootTrace.Begin("Voice orb: compositor draw");
         if (IsStopped || snapshot is not { } s || scene is null) return;
         drawnSinceRequest = true;
         var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
@@ -101,7 +120,12 @@ internal sealed class VoiceOrbHandler : CompositionCustomVisualHandler
         var m = canvas.TotalMatrix;
         var dpr = Math.Max(1, Math.Sqrt(m.ScaleX * m.ScaleX + m.SkewY * m.SkewY));
         var input = s.Input with { ReduceMotion = s.Input.ReduceMotion || software };
-        if (s.ManualOrigin is null) scene.Advance(Seconds(s.Clock), input, dpr);
+        if (s.ManualOrigin is null)
+        {
+            var now = Seconds(s.Clock);
+            ambient?.Sample(now, Interaction(now));
+            scene.Advance(now, input, dpr, ambient?.Clock.Time);
+        }
         else if (!backendKnown)
         {
             backendKnown = true;

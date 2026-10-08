@@ -309,12 +309,12 @@ public sealed partial class AppModel : MainActorModel
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: login environment"))
         await LoginEnvironment.Load(); // AppModel.swift:245
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra copy sweep (UI)"))
-        SweepHydraCopies(); // AppModel.swift:247
+        PerformanceProfileMaintenance.Run(SweepHydraCopies); // AppModel.swift:247; explicit diagnostics cannot mutate copied real project paths.
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra merge resumption"))
-        await ResumeHydraMerges(); // AppModel.swift:248-249
+        await PerformanceProfileMaintenance.Run(ResumeHydraMerges); // AppModel.swift:248-249
         hydraMergeSweepTask?.Cancel(); // AppModel.swift:254
         var weakSelf = new WeakReference<AppModel>(this);
-        hydraMergeSweepTask = MainActor.Spawn(async () =>
+        PerformanceProfileMaintenance.Run(() => { hydraMergeSweepTask = MainActor.Spawn(async () =>
         {
             while (true)
             {
@@ -322,7 +322,7 @@ public sealed partial class AppModel : MainActorModel
                 if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var model)) return; // AppModel.swift:258
                 await model.ResumeHydraMerges(); // AppModel.swift:259
             }
-        }); // AppModel.swift:255-261
+        }); }); // AppModel.swift:255-261
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: provider refresh"))
         await Providers.RefreshAll(); // AppModel.swift:263
         StartAccountReports(); // OD-0114: Settings can read each connected account before a chat opens.
@@ -339,14 +339,14 @@ public sealed partial class AppModel : MainActorModel
         // fails outright. Their own updaters run here, in the background, at most every twelve hours; a
         // newer version reloads its catalog. (PR-LAUNCH-085, new at B3)
         var providers = Providers; // AppModel.swift:278 Swift: `Task { [providers] in ... }` captures only the registry, not self (R-ISO-4)
-        _ = MainActor.Spawn(async () =>
+        PerformanceProfileMaintenance.Run(() => { _ = MainActor.Spawn(async () =>
         {
             foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex }) // AppModel.swift:279
             {
                 if (!providers.Status(provider).IsInstalled) continue; // AppModel.swift:279
                 await providers.UpdateCLIIfDue(provider); // AppModel.swift:280
             }
-        }); // AppModel.swift:275-282; un-awaited: bootstrap proceeds to the sweep below without waiting for it.
+        }); }); // AppModel.swift:275-282; un-awaited: bootstrap proceeds to the sweep below without waiting for it.
         // Last, once nothing the first click needs is waiting on the disk: the attachment files no
         // thread refers to any more go, a day after they were written.
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: orphan attachments"))

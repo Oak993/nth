@@ -5,8 +5,12 @@ namespace Marrow.UI.Port;
 // PORT-ONLY: authenticated native diagnostic opt-in. Fixed storage; no logging/I/O on either frame thread.
 public sealed class AuroraBootTrace
 {
-    private readonly AuroraBootWorkEvent[] events = new AuroraBootWorkEvent[16384];
+    private readonly AuroraBootWorkEvent[] events = new AuroraBootWorkEvent[131072];
     private int count;
+    private long queueAt;
+    private int queueThread;
+    public void QueuePosted() { queueThread = Environment.CurrentManagedThreadId; queueAt = Stopwatch.GetTimestamp(); }
+    public void RecordQueueDelay() => Record(new("Diagnostic: UI queue delay", queueAt, Stopwatch.GetTimestamp(), queueThread, Environment.CurrentManagedThreadId));
     public static AuroraBootTrace? Current;
     public static long Frequency => Stopwatch.Frequency;
     public static AuroraBootWorkScope Begin(string name) => Volatile.Read(ref Current) is { } trace ? new(trace, name) : default;

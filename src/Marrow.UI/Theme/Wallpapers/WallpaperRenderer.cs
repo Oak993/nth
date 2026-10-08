@@ -53,6 +53,7 @@ public sealed class WallpaperRenderer : IDisposable
     public double Phase { get; private set; }
     public int Renders { get; private set; }
     public bool NeedsFrames => Visible && (fade < 1 || (wall is not null && ((staticController?.Busy ?? (transition < 1)) || (wall.Kind == WallpaperKind.Animated && !ReduceMotion))));
+    internal bool HasTransitions => fade < 1 || (wall is not null && (staticController?.Busy ?? transition < 1));
 
     public WallpaperRenderer(WallpaperSelection selection, bool dark = true, WallpaperEnvironment? environment = null)
     {

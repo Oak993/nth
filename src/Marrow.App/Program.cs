@@ -60,6 +60,18 @@ public static class Program
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
         RunVelopackHook(AppContext.BaseDirectory);
+        // ED-NEW-T44: an explicitly marked copied profile, including Release, never the owner's live roots.
+        if (args.Contains("--performance-profile", StringComparer.Ordinal))
+        {
+            var profile = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+            if (string.IsNullOrWhiteSpace(profile) || !Path.IsPathFullyQualified(profile)
+                || !File.Exists(Path.Combine(profile, ".marrow-performance-profile"))) return 2;
+            var root = Path.GetFullPath(profile);
+            var live = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+            if (string.Equals(root.TrimEnd(Path.DirectorySeparatorChar), live.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
+                || root.StartsWith(Path.Combine(live, "Marrow Code"), StringComparison.OrdinalIgnoreCase)) return 2;
+            DevDataRoot.PerformanceRoot.SetProcessDefault(root);
+        }
         // ED-NEW-models-palette-11: offline, owner-local pack generator. It runs right after the Velopack hook (ED-235: nothing
         // but the SK-17 relay may precede the hook; a normal launch returns from the hook at once) and before every other
         // desktop or data binding: the single-instance lock, toast identity, settings and the app lifetime.
@@ -128,6 +140,7 @@ public static class Program
         // ED-065, R-ISO-1: the main actor is Avalonia's UI thread, bound before any window and before the hang
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.
         MainActor.Bind(AvaloniaMainExecutor.Instance);
+        DesktopPerformanceProbe.Start();
         // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
         InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
 

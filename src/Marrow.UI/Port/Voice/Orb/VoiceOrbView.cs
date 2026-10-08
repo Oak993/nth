@@ -35,6 +35,7 @@ public sealed class VoiceOrbView : Control
     private ManualFrameSource? manualFrames;
     private double? manualOrigin;
     private TimeProvider? manualClock;
+    private AmbientMotionController? ambient;
 
     public VoiceOrbView()
     {
@@ -82,8 +83,11 @@ public sealed class VoiceOrbView : Control
         manualClock = manualFrames is null ? null : clock;
         manualOrigin = manualClock is null ? null : clock.GetTimestamp() / (double)clock.TimestampFrequency;
         if (manualFrames is not null) manualFrames.FrameCompleted += OnManualFrame;
-        handler = new VoiceOrbHandler();
+        var availability = AmbientWindowState.Acquire(this);
+        ambient = availability is null ? null : new(availability);
+        handler = new VoiceOrbHandler(ambient);
         visual = host.Compositor.CreateCustomVisual(handler);
+        ambient?.Bind(visual);
         visual.ClipToBounds = false;
         ElementComposition.SetElementChildVisual(this, visual);
         sent = null;
@@ -98,6 +102,7 @@ public sealed class VoiceOrbView : Control
         manualClock = null;
         // the handler releases its surface on the render thread, where it was made
         visual?.SendHandlerMessage(VoiceOrbStop.Instance);
+        ambient?.Dispose(); ambient = null;
         ElementComposition.SetElementChildVisual(this, null);
         visual = null;
         handler = null;
