@@ -358,11 +358,26 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     {
         if (provider.IsAPIKeyBased || provider == ProviderKind.Local) return null; // :220; ED-410
         var custom = settings.BinaryPath(provider); // :221
+        return ResolveExecutable(provider, custom, FallbackExecutables(provider));
+    }
+
+    // T44: snapshot UI-owned settings before dispatching only filesystem discovery to the pool.
+    private Task<SwiftURL?> ExecutableForProbe(ProviderKind provider)
+    {
+        if (testCLIUpdaterExecutable.Value is { } resolver) return Task.Run(() => resolver(provider));
+        var custom = settings.BinaryPath(provider);
+        var candidates = FallbackExecutables(provider);
+        return Task.Run(() => ResolveExecutable(provider, custom, candidates) is { } path ? FileUrl(path) : null);
+    }
+
+    private static string? ResolveExecutable(ProviderKind provider, string custom, IReadOnlyList<string> candidates)
+    {
+        if (provider.IsAPIKeyBased || provider == ProviderKind.Local) return null;
         if (custom.Length == 0 && provider.ExecutableName.Length == 0) return null; // :222
         var primary = custom.Length == 0 ? provider.ExecutableName : custom;
         if (LoginEnvironment.Which(primary) is { } found && !RejectsAsCommandInterpreter(provider, found) && AllowedForTesting(found)) return found; // :223
         if (custom.Length != 0) return null; // :224
-        foreach (var candidate in FallbackExecutables(provider)) // :225
+        foreach (var candidate in candidates) // :225
         {
             if (LoginEnvironment.Which(candidate) is { } resolved && !RejectsAsCommandInterpreter(provider, resolved) && AllowedForTesting(resolved)) return resolved;
         }
@@ -466,10 +481,18 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     public ValueMap<string, string> Environment(ProviderKind provider) => accountStore is null
         ? LegacyEnvironment(provider) : Environment(RequireAccount(provider).Id);
 
-    private ValueMap<string, string> LegacyEnvironment(ProviderKind provider)
+    private ValueMap<string, string> LegacyEnvironment(ProviderKind provider) => LegacyEnvironment(provider, ResolveExecutable(provider));
+
+    private ValueMap<string, string> ProbeEnvironment(ProviderKind provider, SwiftURL executable)
+    {
+        var inherited = LegacyEnvironment(provider, executable.Path);
+        return accountStore is null ? inherited : Environment(RequireAccount(provider), inherited);
+    }
+
+    private ValueMap<string, string> LegacyEnvironment(ProviderKind provider, string? executablePath)
     {
         var environment = new Dictionary<string, string>(LoginEnvironment.Current, StringComparer.OrdinalIgnoreCase); // :261, ED-128
-        if (ResolveExecutable(provider) is { } executablePath) // :262
+        if (executablePath is not null) // :262
         {
             var directory = SwiftPath.DeletingLastPathComponent(executablePath);
             if (environment.TryGetValue("PATH", out var path)) // :263
@@ -625,16 +648,28 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
             return; // :364
         }
         await LoginEnvironment.Load(); // :366
-        var executable = Executable(provider); // :367
+        SwiftURL? executable;
+        using (ProviderProbeTrace.Begin(provider, "executable discovery"))
+            executable = await ExecutableForProbe(provider); // :367; T44 filesystem work does not occupy the UI actor
+        // Account changes can run while discovery yields the actor. Do not prepare or launch a disabled account.
+        if (!HasEnabledAccount(provider))
+        {
+            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() });
+            return;
+        }
         if (executable is null)
         {
             Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus()); // :376
             return; // :369
         }
-        var environment = Environment(provider); // :371
+        var environment = ProbeEnvironment(provider, executable); // :371, reuse the same resolved executable
         // :372-374. Both probes spawn the CLI: run one after the other, not together.
-        var version = await Version(executable.Path, environment); // :375
-        var auth = await Auth(provider, executable, environment); // :376
+        string? version;
+        ProviderStatus.Auth auth;
+        using (ProviderProbeTrace.Begin(provider, "version"))
+            version = await Version(executable.Path, environment); // :375
+        using (ProviderProbeTrace.Begin(provider, "authentication"))
+            auth = await Auth(provider, executable, environment); // :376
         Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :385
         {
             Executable = executable,

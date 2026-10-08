@@ -19,5 +19,7 @@ public sealed class AuroraBootTrace
         var index = Interlocked.Increment(ref count) - 1;
         if (index < events.Length) events[index] = item;
     }
+    public void RecordExternalWork(string name, long started, long finished, int thread, int endThread) =>
+        Record(new(name, started, finished, thread, endThread));
     public AuroraBootWorkEvent[] Snapshot() => events.Take(Math.Min(Volatile.Read(ref count), events.Length)).Where(x => x.Finished != 0).OrderBy(x => x.Started).ToArray();
 }

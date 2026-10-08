@@ -8,6 +8,59 @@ namespace Marrow.App.Tests.Port.ModelsPalette;
 public sealed class ModelShadesTests
 {
     [Fact]
+    [Trait("Decision", "ED-617")]
+    public async Task A_timer_callback_queued_before_disposal_never_posts_to_the_retired_actor()
+    {
+        using var roots = new ModelsPaletteRoots(); using var fake = new PalettePipelineFixture();
+        using var engine = new PaletteEngine(roots.New(), fake.Http, fake, fake.Time, fake.Pack);
+        var timer = new Marrow.App.Tests.Fixtures.RetiredPaletteTimer();
+        var posts = new Queue<Action>();
+        using var facade = new ModelShades(engine, posts.Enqueue, timer);
+        await engine.CheckNow();
+        facade.Dispose();
+        Assert.True(timer.IsDisposed);
+        timer.DeliverQueuedCallback();
+        Assert.Empty(posts);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-617")]
+    public async Task A_drain_already_enqueued_before_disposal_does_not_publish_a_change()
+    {
+        using var roots = new ModelsPaletteRoots(); using var fake = new PalettePipelineFixture();
+        using var engine = new PaletteEngine(roots.New(), fake.Http, fake, fake.Time, fake.Pack);
+        var posts = new Queue<Action>(); using var facade = new ModelShades(engine, posts.Enqueue, fake.Time);
+        var changes = 0; facade.Changed += () => changes++;
+        await engine.CheckNow(); fake.Time.Advance(TimeSpan.FromMilliseconds(100));
+        var drain = Assert.Single(posts);
+        facade.Dispose(); drain();
+        Assert.Equal(0, changes);
+    }
+
+
+    [Fact]
+    public async Task Default_scheduling_uses_the_bound_clock_and_disposal_retires_its_timer()
+    {
+        using var roots=new ModelsPaletteRoots();using var fake=new PalettePipelineFixture();
+        using var clock=Marrow.Core.Port.SwiftClock.Provider.Override(fake.Time);
+        using var engine=new PaletteEngine(roots.New(),fake.Http,fake,fake.Time,fake.Pack);
+        var posts=new Queue<Action>();using var facade=new ModelShades(engine,posts.Enqueue);
+        await engine.CheckNow();
+        Assert.Equal(1,fake.Time.ActiveTimers);
+        Assert.Empty(posts);
+        fake.Time.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.Single(posts);
+        posts.Dequeue()();
+        fake.ImageVersion++;
+        await engine.CheckNow();
+        Assert.Equal(1,fake.Time.ActiveTimers);
+        facade.Dispose();
+        Assert.Equal(0,fake.Time.ActiveTimers);
+        fake.Time.Advance(TimeSpan.FromSeconds(1));
+        Assert.Empty(posts);
+    }
+
+    [Fact]
     public async Task Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post()
     {
         using var roots=new ModelsPaletteRoots();using var fake=new PalettePipelineFixture();

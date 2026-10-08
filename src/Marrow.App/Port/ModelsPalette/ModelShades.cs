@@ -20,7 +20,7 @@ public sealed class ModelShades : IDisposable
     public event Action? Changed;
     public ModelShades(PaletteEngine engine,Action<Action>? post=null,TimeProvider? time=null)
     {
-        this.engine=engine;this.post=post??MainActor.Post;this.time=time??TimeProvider.System;
+        this.engine=engine;this.post=post??MainActor.Post;this.time=time??SwiftClock.Provider.Current;
         current=latest=previous=engine.Current;engine.Changed+=SnapshotChanged;engine.Progress+=ProgressChanged;
     }
     /// <summary>No I/O, colour math or allocation on a warm lookup. Strike consumes this seam after its merge.</summary>
@@ -36,8 +36,14 @@ public sealed class ModelShades : IDisposable
     private void Schedule()
     {
         if(queued||disposed)return;queued=true;
-        timer=time.CreateTimer(_=>post(Drain),null,TimeSpan.FromMilliseconds(100),Timeout.InfiniteTimeSpan);
+        timer=time.CreateTimer(_=>
+        {
+            // Dispose cannot recall a callback already queued by TimerQueue. Serialize
+            // its post with disposal, before touching the actor (Drain alone is too late).
+            lock(gate) { if(!disposed) post(Drain); }
+        },null,TimeSpan.FromMilliseconds(100),Timeout.InfiniteTimeSpan);
     }
+    private void PostDrain(){lock(gate){if(!disposed)post(Drain);}}
     private void Drain()
     {
         lock(gate)

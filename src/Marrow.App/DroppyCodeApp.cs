@@ -54,9 +54,13 @@ public static class DroppyCodeApp
     internal static string ToastPipeName => "Marrow.Toast." + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(ReopenSignalName)));
     internal static bool ForwardNotificationArguments(IReadOnlyList<string> arguments) =>
         ToastSecondLaunch.Forward(ToastLaunchTransport.Current.Current, ToastPipeName, WindowsToastStartup.Identity, arguments);
-    internal static IDisposable ListenForNotificationArguments(AppDelegate appDelegate) =>
+    internal static IDisposable ListenForNotificationArguments(AppDelegate appDelegate, Task? launchReady = null) =>
         ToastLaunchTransport.Current.Current.Listen(ToastPipeName, payload =>
-            MainActor.Spawn(async () => await ToastSecondLaunch.Route(appDelegate, WindowsToastStartup.Identity, payload)));
+            MainActor.Spawn(async () =>
+            {
+                if (launchReady is not null) await launchReady;
+                await ToastSecondLaunch.Route(appDelegate, WindowsToastStartup.Identity, payload);
+            }));
     internal static void ReceiveNotificationArguments(AppDelegate appDelegate, IReadOnlyList<string> arguments)
     {
         foreach (var argument in arguments)

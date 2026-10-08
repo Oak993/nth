@@ -79,6 +79,8 @@ public sealed class BootStageWindow
             if (stageWindow.TryGetPlatformHandle()?.Handle is { } handle and not 0)
                 SetWindowLongPtr(handle, GwlExStyle, GetWindowLongPtr(handle, GwlExStyle) | ClickThrough);
         };
+        DesktopPerformanceProbe.ObserveWindow(main, "main");
+        DesktopPerformanceProbe.ObserveWindow(stageWindow, "boot stage");
         stage.FrameChanged += OnFrame;
         stage.MainWindowShown += (_, _) => ShowMain();
         // T44: HWND destruction performs a synchronous compositor commit. Never reenter it from RenderCore.
@@ -102,7 +104,11 @@ public sealed class BootStageWindow
     }
 
     /// <summary>OD-0113: bootstrap and preparation are ready; B can begin its grow after its launch.</summary>
-    public void Ready() => stage.Ready();
+    public void Ready()
+    {
+        using var work = AuroraBootTrace.Begin("Boot: initialization ready");
+        stage.Ready();
+    }
 
     /// <summary>The final window layout, in stage coordinates.</summary>
     internal static BootWindowLayout Layout(Rect frame)
@@ -157,8 +163,16 @@ public sealed class BootStageWindow
         Apply(stage.Frame);
     }
 
+    // T44: content attached after the first stage frame inherits the current clip/fade while cloaked.
+    internal void ContentReady()
+    {
+        following = false;
+        Follow();
+    }
+
     private void ShowMain()
     {
+        using var work = AuroraBootTrace.Begin("Boot: hand-over");
         warmTried = true; // the hand-over is here: no early show after it
         if (!following && main.Content is Control hiddenContent) hiddenContent.Opacity = 0;
         if (cloaked)
@@ -197,6 +211,7 @@ public sealed class BootStageWindow
 
     private void Finish()
     {
+        using var work = AuroraBootTrace.Begin("Boot: finish");
         stage.FrameChanged -= OnFrame;
         presentation.Restore();
         if (cloaked)

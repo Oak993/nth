@@ -26,6 +26,68 @@ namespace Marrow.Services.Tests.Providers;
 // ProviderRegistryTests.cs's comment above that test for the same rationale (PR-PROVAPI-088).
 public sealed class ProviderRegistryRefreshTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-PROVREG-109")]
+    public async Task Disabling_or_removing_accounts_during_discovery_finishes_signed_out_without_a_probe(bool remove)
+    {
+        using var runtime = new TestRuntime();
+        using var storage = BindStorage();
+        SeedUnblockingCache(runtime);
+        var accounts = new Marrow.Core.Port.Accounts.AccountStore(UserDefaults.Standard.Current);
+        var registry = new ProviderRegistry(new FakeProviderSettings(), accounts, TempDir());
+        var script = ProviderProbeStandIns.CopyFor("codex");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        using var seam = ProviderRegistry.SetCLIUpdaterExecutableForTesting(_ =>
+        {
+            entered.SetResult();
+            if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("test did not release discovery");
+            return FileUrl(script.ExecutablePath);
+        });
+        var refresh = Task.Run(() => runtime.Loop.Run(() => registry.Refresh(ProviderKind.Codex), TimeSpan.FromSeconds(30)));
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await MainActor.Invoke(() =>
+            {
+                foreach (var account in accounts.ForService(ProviderKind.Codex))
+                    if (remove) accounts.Remove(account.Id); else accounts.SetEnabled(account.Id, false);
+                return Task.CompletedTask;
+            });
+        }
+        finally { release.Set(); }
+        await refresh;
+        Assert.Empty(script.RecordedCalls());
+        Assert.False(registry.Status(ProviderKind.Codex).IsChecking);
+        Assert.IsType<ProviderStatus.Auth.SignedOut>(registry.Status(ProviderKind.Codex).ProviderStatusAuth);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-109")]
+    public async Task Refresh_resolves_files_off_the_main_actor_and_publishes_status_on_it()
+    {
+        using var runtime = new TestRuntime();
+        using var storage = BindStorage();
+        var registry = MakeRegistry(runtime, new FakeProviderSettings());
+        bool? resolverOnMain = null;
+        var writesOnMain = new List<bool>();
+        registry.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ProviderRegistry.Statuses)) writesOnMain.Add(MainActor.IsIsolated);
+        };
+        using var seam = ProviderRegistry.SetCLIUpdaterExecutableForTesting(_ =>
+        {
+            resolverOnMain = MainActor.IsIsolated;
+            return null; // fail closed: no installed provider or process can be reached
+        });
+        await Task.Run(() => runtime.Loop.Run(() => registry.Refresh(ProviderKind.Codex)));
+        Assert.Equal(false, resolverOnMain);
+        Assert.Equal(new[] { true, true }, writesOnMain);
+        Assert.Equal(new ProviderStatus(), registry.Status(ProviderKind.Codex));
+    }
+
     private static string TempDir()
     {
         var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");

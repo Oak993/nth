@@ -29,6 +29,23 @@ namespace Marrow.App;
 /// UNUserNotificationCenterDelegate</c>.</summary>
 public sealed class AppDelegate
 {
+    private BootStageWindow? preparedBoot;
+    private Action? showPreparedMain;
+
+    public AppDelegate() => StartBoot = StartDefaultBoot;
+
+    // T44: the restored shell and approved stage precede palette/model/content initialization.
+    internal void PrepareBoot() => preparedBoot ??= BootStageWindow.Start(
+        WindowManager.Shared.PrepareMainShell(), ReduceMotion(), () => showPreparedMain?.Invoke());
+
+    private BootStageWindow StartDefaultBoot(WindowManager windows, Action show)
+    {
+        if (preparedBoot is not { } boot) return BootStageWindow.Start(windows.PrepareMain(), ReduceMotion(), show);
+        windows.PrepareMain(); // GettingReadyLaunch has wrapped the factory before content is attached.
+        boot.ContentReady();
+        showPreparedMain = show;
+        return boot;
+    }
     // :7 var model: AppModel?
     public AppModel? Model { get; set; }
 
@@ -111,8 +128,7 @@ public sealed class AppDelegate
 
     // PORT-ONLY (OD-0018, ED-103): the boot sequence, or a plain show when there is no stage to run. Settable only so the
     // launch tests, which run headless and record the main window, can keep the plain show; nothing in the app sets it.
-    internal Func<WindowManager, Action, BootStageWindow?> StartBoot { get; set; } = (windows, show) =>
-        BootStageWindow.Start(windows.PrepareMain(), ReduceMotion(), show);
+    internal Func<WindowManager, Action, BootStageWindow?> StartBoot { get; set; }
 
     // ED-103 (6): Windows' "Animation effects" setting off is reduce motion (as AttachmentFlightPlatform reads it).
     private static bool ReduceMotion() =>

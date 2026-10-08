@@ -10,12 +10,27 @@ namespace Marrow.App.Port;
 // PORT-ONLY: T44 bounded diagnostic recording. Active only for an explicitly marked copied profile.
 internal static class DesktopPerformanceProbe
 {
+    internal static void BeginStartup()
+    {
+        if (DevDataRoot.PerformanceRoot.Current.Length != 0) AuroraBootTrace.Current = new AuroraBootTrace();
+    }
+
+    internal static void ObserveWindow(Avalonia.Controls.Window window, string role)
+    {
+        if (DevDataRoot.PerformanceRoot.Current.Length != 0) WindowPaintProbe.Attach(window, role);
+    }
+
     internal static void Start()
     {
         if (DevDataRoot.PerformanceRoot.Current.Length == 0) return;
         var root = DevDataRoot.PerformanceRoot.Current;
-        var trace = new AuroraBootTrace();
+        var trace = AuroraBootTrace.Current ?? new AuroraBootTrace();
         AuroraBootTrace.Current = trace;
+        Action<string, long, long, int, int> providerWork = (name, started, finished, thread, endThread) =>
+        {
+            if (ReferenceEquals(AuroraBootTrace.Current, trace)) trace.RecordExternalWork(name, started, finished, thread, endThread);
+        };
+        Marrow.Services.Providers.ProviderProbeTrace.Record = providerWork;
         _ = Task.Run(async () =>
         {
             var begin = Stopwatch.GetTimestamp();
@@ -29,13 +44,18 @@ internal static class DesktopPerformanceProbe
                 Dispatcher.UIThread.Post(answer, DispatcherPriority.Input);
             }
             if (ReferenceEquals(AuroraBootTrace.Current, trace)) AuroraBootTrace.Current = null;
+            if (ReferenceEquals(Marrow.Services.Providers.ProviderProbeTrace.Record, providerWork))
+                Marrow.Services.Providers.ProviderProbeTrace.Record = null;
             var process = Process.GetCurrentProcess();
-            await File.WriteAllTextAsync(Path.Combine(root, "performance.json"), JsonSerializer.Serialize(new
+            await WriteJson(root, "performance.json", new
             {
                 frequency = AuroraBootTrace.Frequency, serverGc = GCSettings.IsServerGC,
+                processStartedUtc = process.StartTime.ToUniversalTime(),
+                recordedTimestamp = Stopwatch.GetTimestamp(),
+                recordedUtc = DateTime.UtcNow,
                 workingSet = process.WorkingSet64, cpuSeconds = process.TotalProcessorTime.TotalSeconds,
                 events = trace.Snapshot(),
-            })).ConfigureAwait(false);
+            }).ConfigureAwait(false);
             _ = MeasureQuiet(root);
         });
     }
@@ -54,10 +74,18 @@ internal static class DesktopPerformanceProbe
         var cpuSeconds = process.TotalProcessorTime.TotalSeconds - cpu;
         var elapsedSeconds = Stopwatch.GetElapsedTime(started).TotalSeconds;
         var allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocated;
-        await File.WriteAllTextAsync(Path.Combine(root, "quiet-performance.json"), JsonSerializer.Serialize(new
+        await WriteJson(root, "quiet-performance.json", new
         {
             elapsedSeconds, cpuSeconds, allocatedBytes, workingSet = process.WorkingSet64,
             privateBytes = process.PrivateMemorySize64, utc = DateTime.UtcNow,
-        })).ConfigureAwait(false);
+        }).ConfigureAwait(false);
+    }
+
+    // The probe must not retain a large pooled UTF-16 buffer just to report the real app's memory.
+    private static async Task WriteJson<T>(string root, string name, T value)
+    {
+        await using var file = new FileStream(Path.Combine(root, name), FileMode.Create, FileAccess.Write,
+            FileShare.Read, 16 * 1024, useAsync: true);
+        await JsonSerializer.SerializeAsync(file, value).ConfigureAwait(false);
     }
 }

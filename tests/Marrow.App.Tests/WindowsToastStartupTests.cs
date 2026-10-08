@@ -81,4 +81,29 @@ public sealed class WindowsToastStartupTests
         Assert.False(DroppyCodeApp.ForwardNotificationArguments([]));
         Assert.Single(transport.Sent);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Decision", "ED-220")]
+    public void Forwarded_activations_wait_for_launch_authority_without_losing_the_payload(bool update)
+    {
+        using var runtime = new TestRuntime();
+        var windows = new RecordingToastWindows();
+        var transport = new RecordingToastTransport();
+        using var ui = ToastActivationWindows.Current.Override(windows);
+        using var pipe = ToastLaunchTransport.Current.Override(transport);
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var appDelegate = new AppDelegate();
+        var payload = update ? new Dictionary<string, object> { ["update"] = "2.0" }
+            : new Dictionary<string, object> { ["threadID"] = Guid.NewGuid().ToString() };
+        var uri = ToastActivation.Encode(WindowsToastStartup.Identity, payload);
+        using var listener = runtime.OnMain(() => DroppyCodeApp.ListenForNotificationArguments(appDelegate, ready.Task));
+        runtime.OnMain(() => Assert.True(DroppyCodeApp.ForwardNotificationArguments([uri])));
+        Assert.Empty(windows.Events);
+        ready.SetResult();
+        runtime.Loop.RunUntil(() => windows.Events.Count == 2);
+        Assert.Equal(update ? new[] { "activate", "about" } : new[] { "main", "activate" }, windows.Events);
+        Assert.Equal(uri, Assert.Single(transport.Sent).Payload);
+    }
 }
