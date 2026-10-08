@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Port.Voice;
@@ -54,14 +55,20 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
         });
     }
 
-    [Fact] // V-T70
+    [Theory] // V-T70; OD-0132 replaces only the former height-22 single-line centre oracle.
+    [InlineData(1)]
+    [InlineData(1.25)]
+    [InlineData(1.5)]
+    [InlineData(2)]
     [Trait("Rule", "R-TEST-10")]
-    public void Outside_it_is_a_36_circle_in_the_margin_the_composer_gives_it_44_and_the_text_starts_at_14()
+    public void Outside_it_is_a_36_circle_in_the_margin_the_composer_gives_it_44_and_the_text_starts_at_14(double scale)
     {
         headless.OnUiThread(() =>
         {
             using var rig = new VoiceComposerRig(Outside);
             var (view, window) = rig.Open(600);
+            rig.Main.OnMain(() => window.SetRenderScaling(scale));
+            rig.PumpWindow(window);
             rig.Main.OnMain(() =>
             {
                 var attach = Named(view, "Attach files");
@@ -69,7 +76,7 @@ public sealed class ComposerAttachmentPlaceTests(HeadlessSession headless)
                 Assert.Equal(36, frame.Width, 0.5);
                 Assert.Equal(36, frame.Height, 0.5);
                 Assert.Equal(-44, frame.X, 0.5); // the margin is the 44 the composer gave up: 36 and 8 to the pill
-                Assert.Equal(view.Bounds.Height - 22, frame.Center.Y, 0.5); // centred on the composer's last line (a one-line pill is 44 high)
+                Assert.Equal(view.Bounds.Height / 2, frame.Center.Y, 0.5 / scale); // owner OD-0132: within half a physical pixel of the unchanged outline centre
                 Assert.Equal(44, Frame(view, Host(window)).X, 0.5);
                 Assert.Equal(556, view.Bounds.Width, 0.5);
                 Assert.Equal(14, Frame(One<ComposerTextColumn>(view), view).X, 0.5);

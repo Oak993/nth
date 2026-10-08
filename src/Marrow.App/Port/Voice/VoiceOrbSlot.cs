@@ -221,4 +221,5 @@ internal sealed class VoiceOrbSlot : Decorator
         HitTarget.Height = d + 2 * HitInset;
         Margin = new Thickness(0, (RowHeight - d) / 2, ChipGap, (RowHeight - d) / 2);
     }
+
 }

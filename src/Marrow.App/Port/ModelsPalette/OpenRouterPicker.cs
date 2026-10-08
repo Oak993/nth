@@ -107,6 +107,7 @@ public sealed class OpenRouterPicker : Decorator
         emptyLabel = Label("",13,.6); emptyLabel.TextAlignment=TextAlignment.Center; emptyLabel.Margin=new Thickness(12,18,12,22);
         empty = new PickerFold(emptyLabel,false); list.Children.Add(empty);
         scroll = new ScrollViewer { Content=list, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled, VerticalScrollBarVisibility=ScrollBarVisibility.Hidden };
+        PickerScroll.Apply(scroll);
         stack.Children.Add(scroll);
         scrollOffset=new(scroll,0,v=>scroll.Offset=new Vector(0,v));
         contentHeight=models.Count*47+groups.Count*24+2;TargetListHeight = Math.Min(440,contentHeight);
