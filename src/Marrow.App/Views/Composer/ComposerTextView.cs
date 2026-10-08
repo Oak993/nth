@@ -542,19 +542,17 @@ public sealed class ComposerNSTextView : TextBox
     }
 
     // :198-211 override func draw(_ dirtyRect: NSRect)
+    internal FormattedText CreatePlaceholderText() => new(
+        placeholder, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+        new Typeface(FontFamily, FontStyle, FontWeight), FontSize,
+        SwiftColor.PlaceholderTextColor.Brush(this));
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
         placeholderShown = string.IsNullOrEmpty(Text) && !string.IsNullOrEmpty(placeholder); // :200
         if (!placeholderShown) return;
-        var typeface = new Typeface(FontFamily, FontStyle, FontWeight);
-        var formatted = new FormattedText(
-            placeholder,
-            CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            FontSize,
-            SwiftColor.PlaceholderTextColor.Brush(this)); // :203-204 font, .placeholderTextColor
+        var formatted = CreatePlaceholderText(); // :203-204 font, .placeholderTextColor
         var origin = new Point(Padding.Left, Padding.Top + placeholderRise); // :206-209 inset.width + lineFragmentPadding, inset.height
         using (context.PushOpacity(placeholderOpacity)) context.DrawText(formatted, origin); // :210
     }
@@ -634,8 +632,18 @@ public sealed class ComposerTextView : Decorator
             var empty = string.IsNullOrEmpty(textView.LiveText ?? textView.Text);
             var displayed = empty ? textView.Placeholder : textView.LiveText ?? textView.Text!;
             if (displayed.Length == 0 || textView.Bounds.Height <= 0) { inkPlace.Y = 0; return; }
-            // The placeholder is drawn unwrapped by FormattedText; use that same unconstrained single line.
-            using var layout = textView.CreateComposerLayout(displayed, empty ? double.PositiveInfinity : Math.Max(1, textView.Bounds.Width - textView.Padding.Left - textView.Padding.Right));
+            // FormattedText's extent is rounded in logical pixels. Use its actual glyph outlines
+            // so fractional display scaling does not multiply that rounding into a visible offset.
+            if (empty)
+            {
+                var formatted = textView.CreatePlaceholderText();
+                var inkBounds = formatted.BuildGeometry(new Point())?.Bounds;
+                inkPlace.Y = inkBounds is { Height: > 0 } ink
+                    ? textView.Bounds.Height / 2 - ink.Center.Y - textView.Padding.Top
+                    : 0;
+                return;
+            }
+            using var layout = textView.CreateComposerLayout(displayed, Math.Max(1, textView.Bounds.Width - textView.Padding.Left - textView.Padding.Right));
             inkPlace.Y = layout.TextLines.Count == 1 && layout.Extent > 0
                 ? textView.Bounds.Height / 2 - (layout.Height + layout.OverhangAfter - layout.Extent / 2) - textView.Padding.Top
                 : 0;

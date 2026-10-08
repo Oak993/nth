@@ -707,6 +707,7 @@ public sealed class ComposerView : Decorator
             voice: voice)
         {
             Margin = new Thickness(8, 0, 0, 0), // :145 spacing: 8
+            HorizontalAlignment = HorizontalAlignment.Right, // :145-178 trailing padding; fixed fractional width must not centre in a rounded Auto column
             VerticalAlignment = VerticalAlignment.Bottom,
             UseLayoutRounding = false, // T46: a half-pixel row centre must not round before its glyphs rasterise
         };

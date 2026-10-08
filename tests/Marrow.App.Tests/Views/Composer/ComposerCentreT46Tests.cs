@@ -72,6 +72,9 @@ public sealed class ComposerCentreT46Tests(HeadlessSession headless)
                         }
                         Check("text ink", ComposerCentreProbe.InkCentre(view, window));
                         Check("painted outline", ComposerCentreProbe.OutlineCentre(view, window));
+                        foreach (var measured in centres.Where(pair => pair.Key != "painted outline"))
+                            if (Math.Abs(measured.Value - centres["painted outline"]) > .5)
+                                errors.Add($"{scale} dark={dark} collab={collab} diameter={diameter} text={text.Length}: {measured.Key} differs from painted outline by {measured.Value - centres["painted outline"]:F3}px");
                         ComposerCentreProbe.Save(view, window, $"centre-{scale}-{dark}-{collab}-{diameter}-{text.Length}", centre, centres);
                     });
                 }
@@ -79,6 +82,61 @@ public sealed class ComposerCentreT46Tests(HeadlessSession headless)
             finally { rig.Close(window); }
         }
         Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors));
+    });
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(1.25)]
+    [InlineData(1.5)]
+    [InlineData(2)]
+    public void Without_voice_the_controls_keep_the_source_trailing_edge_and_share_the_painted_centre(double scale) => headless.OnUiThread(() =>
+    {
+        using var h = RuntimeHarness();
+        h.Main.OnMain(() => h.App.Settings.ShowsUsagePanel = false);
+        var view = Marrow.App.Tests.Views.Composer.ComposerViewTests.Pill(h, h.Runtime, null);
+        var window = h.Main.OnMain(() => Show(view, h.App, 820));
+        try
+        {
+            h.Main.OnMain(() => ComposerCentreProbe.Prepare(window, scale, true));
+            Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                window.FocusManager?.Focus(null);
+                var controls = One<ComposerControls>(view);
+                Assert.Null(controls.OrbSlot);
+                var row = Assert.IsType<StackPanel>(controls.Child);
+                var disc = LogicalQuery.SelfAndDescendants<Button>(row.Children[^1]).First(button => button.Bounds.Width >= 27);
+                var outline = ComposerCentreProbe.OutlineCentre(view, window);
+                var centres = new Dictionary<string, double>();
+                foreach (var control in row.Children)
+                {
+                    centres[control.GetType().Name] = Frame(control, window).Center.Y * scale;
+                    centres[control.GetType().Name + " ink"] = ComposerCentreProbe.InkCentre(control, window);
+                }
+                centres["text ink"] = ComposerCentreProbe.InkCentre(view, window);
+                centres["painted outline"] = outline;
+                if (Environment.GetEnvironmentVariable("T46_CENTRE_DUMP") is { } folder)
+                {
+                    System.IO.Directory.CreateDirectory(folder);
+                    var box = DictationProbe.Box(view);
+                    var formatted = box.CreatePlaceholderText();
+                    using var layout = box.CreateComposerLayout(box.Text ?? "", Math.Max(1, box.Bounds.Width));
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(folder, $"metric-no-voice-{scale}.json"), System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        text = box.Text, placeholder = box.Placeholder, box = Frame(box, window), column = Frame(One<ComposerTextColumn>(view), window),
+                        box.Padding, box.FontSize, font = box.FontFamily.ToString(), transform = (box.RenderTransform as Avalonia.Media.TranslateTransform)?.Y,
+                        formatted = new { formatted.Height, formatted.Extent, formatted.OverhangAfter, geometry = formatted.BuildGeometry(new Point())?.Bounds }, layout = new { layout.Height, layout.Extent, layout.OverhangAfter },
+                    }));
+                }
+                ComposerCentreProbe.Save(view, window, $"no-voice-{scale}", outline, centres);
+                var expected = Frame(view, window).Right - 8;
+                var actual = Frame(disc, window).Right;
+                Assert.True(Math.Abs(actual - expected) * scale <= .05,
+                    $"{scale}: disc right={actual}, expected={expected}; controls right={Frame(controls, window).Right}, row right={Frame(row, window).Right}");
+                foreach (var centre in centres) Assert.InRange(Math.Abs(centre.Value - outline), 0, .5);
+            });
+        }
+        finally { Close(h, window); }
     });
 
     [Theory]
