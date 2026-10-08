@@ -834,15 +834,20 @@ public sealed class HydraChargeLayerView : Control
         RingOpacity = RingRestOpacity;
         GlowOpacity = GlowRestOpacity;
         ActualThemeVariantChanged += (_, _) => ApplyColors(); // :512-516 viewDidChangeEffectiveAppearance
-        Live.Add(new WeakReference<HydraChargeLayerView>(this));
+        lock (Live) Live.Add(new WeakReference<HydraChargeLayerView>(this));
     }
 
+    // ThemeManager is set from any actor and posts DidChange on the setter's thread: each view takes the notification on its own
+    // thread (now if this is it, else posted), as every other theme observer does.
     private static void Notify(Action<HydraChargeLayerView> post)
     {
-        foreach (var weak in Live.ToArray())
+        WeakReference<HydraChargeLayerView>[] live;
+        lock (Live) live = Live.ToArray();
+        foreach (var weak in live)
         {
-            if (weak.TryGetTarget(out var view)) post(view);
-            else Live.Remove(weak);
+            if (!weak.TryGetTarget(out var view)) { lock (Live) Live.Remove(weak); continue; }
+            if (view.CheckAccess()) post(view);
+            else view.Dispatcher.Post(() => post(view));
         }
     }
 
