@@ -69,6 +69,8 @@ public sealed class AppModelHarness : IDisposable
     public static readonly TimeSpan Bound = TimeSpan.FromSeconds(120);
 
     private readonly List<IDisposable> scopes = [];
+    private readonly HashSet<AppModel> paletteModels = [];
+    private readonly Lock paletteGate = new();
     private readonly string baseFolder;
 
     public AppModelHarness(bool withRuntime = true)
@@ -112,6 +114,7 @@ public sealed class AppModelHarness : IDisposable
         scopes.Add(SecretStore.Shared.Override(new SecretStore(Credentials)));
         scopes.Add(Workspace.Open.Override(_ => true));
         scopes.Add(OpenPanel.Runner.Override(new RecordingOpenPanelRunner(null))); // R-TEST-10: a click on Add project must never show the real Windows folder dialog (it blocks the test host); a test that drives the panel overrides this again.
+        scopes.Add(AppModel.PaletteLifetimeForTesting.Override(model => { lock (paletteGate) paletteModels.Add(model); }));
     }
 
     public TestRuntime? Runtime { get; }
@@ -208,6 +211,10 @@ public sealed class AppModelHarness : IDisposable
     {
         try
         {
+            // Stop timers and their actor posts while this fixture's dispatcher,
+            // credentials and directories still exist. Hidden views do not own an
+            // AppModel's palette lifetime, and detaching them is insufficient.
+            StopOwnedPalettes();
             FinishDiskWrites();
             try
             {
@@ -218,12 +225,22 @@ public sealed class AppModelHarness : IDisposable
         }
         finally
         {
+            // FinishFileIndexBuilds may pump an already-queued actor continuation.
+            // Collect any palette it creates before removing the ownership scope.
+            StopOwnedPalettes();
             for (var index = scopes.Count - 1; index >= 0; index--) scopes[index].Dispose();
             Runtime?.Dispose();
             try { Directory.Delete(baseFolder, recursive: true); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
+    }
+
+    private void StopOwnedPalettes()
+    {
+        AppModel[] owned;
+        lock (paletteGate) { owned = [.. paletteModels]; paletteModels.Clear(); }
+        foreach (var model in owned) model.StopPaletteChecks();
     }
 
     // R-TEST-5: a queued write captures this fixture's manual clock. Keep that clock and

@@ -11,7 +11,18 @@ public sealed partial class AppModel
     private PaletteEngine? paletteEngine;
     private Port.ModelsPalette.ModelShades? paletteShades;
     internal Port.ModelsPalette.ModelShades PaletteShades=>paletteShades??=new(PaletteEngine);
-    internal PaletteEngine PaletteEngine=>paletteEngine??=new PaletteEngine(Storage.Root,URLSession.Transport.Current,new SkiaLogoDecoder(),releasePack:Port.ModelsPalette.PaletteStartup.Pack);
+    // ED-NEW-T46 / R-TEST-5: observe ownership only; production never substitutes the
+    // engine. A disposable fixture owns every model created in its ambient roots,
+    // including models constructed directly instead of through MakeModel.
+    internal static Ambient<Action<AppModel>> PaletteLifetimeForTesting { get; } = new(_ => { });
+    internal PaletteEngine PaletteEngine
+    {
+        get
+        {
+            PaletteLifetimeForTesting.Current(this);
+            return paletteEngine??=new PaletteEngine(Storage.Root,URLSession.Transport.Current,new SkiaLogoDecoder(),releasePack:Port.ModelsPalette.PaletteStartup.Pack);
+        }
+    }
     private void InitializePalette()
     {
         // Only the desktop startup supplies the prepared pack; isolated source-twin tests do not start extra services.
