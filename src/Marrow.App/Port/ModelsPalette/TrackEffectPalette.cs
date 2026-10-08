@@ -24,6 +24,14 @@ public sealed partial class TrackEffect
     private Color[] paletteStrands=[];
     private bool inkRequested,neutralHeld;
     private PaletteInkWorker? paletteInk;
+    // Lead (native gallery, 2026-10-08): ApplyPalette runs on the render thread (LiquidTrack.Live.Render -> TryFrame), and so does
+    // SetPalette when PaletteArrivalFinished runs from there; reading the AccessibilityReduceMotion property off the UI thread threw
+    // "a different thread owns it" on every frame and the render loop dropped the whole effort popover (it showed empty). The UI
+    // thread reads the property and keeps this copy; any other thread reads the copy.
+    private volatile bool paletteReduceCopy;
+    private bool PaletteReduceMotion => Avalonia.Threading.Dispatcher.UIThread.CheckAccess()
+        ? paletteReduceCopy = EnvironmentValues.GetAccessibilityReduceMotion(this)
+        : paletteReduceCopy;
     private static readonly Animation InkEase=Animation.TimingCurve(.25,.1,.25,1,.5);
     internal void ReleasePaletteInk(){palettePendingTimer?.Dispose();palettePendingTimer=null;paletteInk?.Retire();paletteInk=null;paletteSample.Ink=null;}
     internal void ReleasePaletteView(){ReleasePaletteInk();paletteHasDrawn=hasShownPending=false;paletteBorn=null;}
@@ -49,7 +57,7 @@ public sealed partial class TrackEffect
             if(target.State==PaletteState.Pending&&paletteTarget?.State!=PaletteState.Pending){ReleasePaletteInk();paletteBorn=null;solidBegan=null;hasShownPending=false;neutralHeld=false;}
             if(hasShownPending&&paletteTarget?.State==PaletteState.Pending&&target.State==PaletteState.Ready)
             {ReleasePaletteInk();solidBegan=null;neutralHeld=false;inkRequested=true;}
-            if(arrivalRunning&&!EnvironmentValues.GetAccessibilityReduceMotion(this)){paletteWaiting=target;return;}
+            if(arrivalRunning&&!PaletteReduceMotion){paletteWaiting=target;return;}
             paletteWaiting=null;
             var at=TimeAt(SwiftDate.Now)+mixPageOrigin;
             if(paletteTarget is not null)
@@ -57,7 +65,7 @@ public sealed partial class TrackEffect
                 paletteRenderer.Sample(at,paletteSample.Row,paletteSample.Values);
                 paletteFrom=new SKColor[256];for(var n=0;n<256;n++)paletteFrom[n]=new(paletteSample.Row[n*4],paletteSample.Row[n*4+1],paletteSample.Row[n*4+2]);
             }
-            var reduce=EnvironmentValues.GetAccessibilityReduceMotion(this);var effort=paletteTarget is {} old&&old.SnapshotDigest==target.SnapshotDigest&&old.ModelsKey==target.ModelsKey;
+            var reduce=PaletteReduceMotion;var effort=paletteTarget is {} old&&old.SnapshotDigest==target.SnapshotDigest&&old.ModelsKey==target.ModelsKey;
             previousSpecularFrom=specularFrom;previousSpecularTo=specularTo;previousSpecularBegan=specularBegan;previousSpecularSeconds=specularSeconds;
             specularBegan=at;specularSeconds=effort?.6:1.2;
             var sampleAt=reduce?at-1.2:at;specularFrom=paletteSample.Specular;specularTo=target.Composite.Shade.Motion.GetValueOrDefault("specular_scale",1);
@@ -82,7 +90,7 @@ public sealed partial class TrackEffect
         paletteHasDrawn=true;if(target.State==PaletteState.Pending)hasShownPending=true;
         var stateAt=paletteClock.GetTimestamp()/(double)paletteClock.TimestampFrequency;
         if(paletteBorn is null){paletteBorn=stateAt;if(target.State==PaletteState.Pending)palettePendingTimer=paletteClock.CreateTimer(_=>MainActor.Post(()=>{lock((object?)layers??this){resolvedScene=null;canvas.InvalidateVisual();}}),null,TimeSpan.FromSeconds(3),Timeout.InfiniteTimeSpan);}
-        var reduce=EnvironmentValues.GetAccessibilityReduceMotion(this);
+        var reduce=PaletteReduceMotion;
         if(target.State==PaletteState.Pending&&!neutralHeld&&stateAt-paletteBorn>=3)inkRequested=true;
         if(inkRequested&&stateAt-paletteBorn>=.8)
         {

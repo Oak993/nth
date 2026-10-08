@@ -1897,7 +1897,8 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
             if (!RenderFrameSource.InvalidateTicking()) canvas.InvalidateVisual();
         }, onRenderThread: true); // :1049-1068
         // OD-0073: Reduce Motion turned on or off at run time shows the fast look's still (or lets it run) at once
-        PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) canvas.InvalidateVisual(); };
+        PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) { _ = PaletteReduceMotion; canvas.InvalidateVisual(); } }; // also refreshes the render thread's copy (TrackEffectPalette)
+        AttachedToVisualTree += (_, _) => _ = PaletteReduceMotion;
         // ED-248 review 2: what the track draws is recorded again when the theme or the size changes (no longer every frame)
         ActualThemeVariantChanged += (_, _) => canvas.InvalidateVisual();
         canvas.SizeChanged += (_, _) => canvas.InvalidateVisual();
