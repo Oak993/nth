@@ -20,7 +20,9 @@ public sealed class ImportSkillsTests(HeadlessSession headless)
     private static void OpenSheet(LibraryPageHarness h)
     {
         Assert.True(h.Press("import-skills"));
-        h.Until(() => h.Find<Button>("import-cancel").IsEffectivelyVisible);
+        // the sheet shows (with its Cancel) while it is still scanning off the UI thread; what it found, and what it could not read,
+        // shows once the scan is in (ImportSheetView.Apply: the Choosing phase), when "Looking…" is gone
+        h.Until(() => h.Find<Button>("import-cancel").IsEffectivelyVisible && !Shown(h).Contains(ImportWords.Scanning));
     }
 
     [Fact]
