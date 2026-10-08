@@ -1,3 +1,4 @@
+using Avalonia;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
 using Marrow.UI.Port;
@@ -14,6 +15,26 @@ namespace Marrow.App.Tests.Views.Composer;
 [Trait("Decision", "ED-NEW-pickerpill-1")]
 public sealed class ComposerVoicePillT46Tests(HeadlessSession headless)
 {
+    [Fact]
+    public void Inline_placement_preserves_the_approved_pill_and_orb_window_coordinates() => headless.OnUiThread(() =>
+    {
+        using var motion = new VoicePillMotion();
+        using var scene = ComposerVoiceCleanPillTests.Open(VoiceListeningStyle.Pill, 26, true, "quiet", 1);
+        using var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(VoicePillDesignReference.Folder(), "manifest.json")));
+        var crop = manifest.RootElement.GetProperty("identities").GetProperty("Pill-26-True-quiet-1").GetProperty("crop");
+        // The locked approved render's vertical centre is independent of its earlier pill height.
+        var approvedCentre = crop[1].GetDouble() + crop[3].GetDouble() / 2;
+        scene.Rig.Main.OnMain(() =>
+        {
+            var orb = Slot(scene.View);
+            var centre = orb.TranslatePoint(new Avalonia.Point(orb.Diameter / 2, orb.Diameter / 2), scene.Window)!.Value;
+            var pill = Pill(scene.View);
+            var origin = pill.TranslatePoint(default, scene.Window)!.Value;
+            Assert.Equal(approvedCentre, centre.Y, .001);
+            Assert.Equal(approvedCentre, origin.Y + pill.Bounds.Height / 2, .001);
+        });
+    });
+
     [Theory]
     [InlineData(600, 26)]
     [InlineData(600, 32)]

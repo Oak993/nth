@@ -8,6 +8,7 @@ using Avalonia.Input.GestureRecognizers;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Port.ModelsPalette;
 
@@ -40,9 +41,9 @@ internal static class PickerScroll
                         Name = "PART_Thumb", MinHeight = 24,
                         Template = new FuncControlTemplate<Thumb>((_, _) => new Border
                         {
-                            Margin = new Thickness(3, 1), CornerRadius = new CornerRadius(3),
+                            Margin = new Thickness(3, 1),
                             Background = Chrome.SecondaryText.Opacity(.55).Brush(b),
-                        }),
+                        }.Capsule(RoundedCornerStyle.Continuous)),
                     };
                     var track = new Track
                     {

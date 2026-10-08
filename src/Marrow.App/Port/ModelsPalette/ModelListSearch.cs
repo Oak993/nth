@@ -42,8 +42,8 @@ internal sealed class ModelListSearch
         Field.PlaceholderForeground = Chrome.SecondaryText.Brush(Field);
         AutomationProperties.SetName(Field, "Search models");
         Control = new Border { Height = 28, Margin = new Thickness(4, 4, 4, 8), Padding = new Thickness(10, 0),
-            CornerRadius = new CornerRadius(14), Background = Chrome.PrimaryText.Opacity(.08).Brush(Field),
-            BorderBrush = Chrome.PrimaryText.Opacity(.12).Brush(Field), BorderThickness = new Thickness(1), Child = Field };
+            Background = Chrome.PrimaryText.Opacity(.08).Brush(Field),
+            BorderBrush = Chrome.PrimaryText.Opacity(.12).Brush(Field), BorderThickness = new Thickness(1), Child = Field }.Capsule(RoundedCornerStyle.Continuous);
         for (var i = 0; i < entries.Count; i++)
         {
             var entry = entries[i]; var row = modelRows[i];

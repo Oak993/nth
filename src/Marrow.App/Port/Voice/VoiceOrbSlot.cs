@@ -123,6 +123,10 @@ internal sealed class VoiceOrbSlot : Decorator
 
     internal double CrossOpacity => crossOpacity.Value;
 
+    internal double InlineInset => inlineInset is null ? InlineInsetTarget : inlineInset.Value;
+
+    internal event Action<double>? InlineInsetChanged;
+
     // V-12.5 and V-12.2, V-15's Listening row: the Cross style slides the cross out (transform 0.42 s ez, opacity 0.24 s ease after 0.04 s; back: opacity 0.2 s ease), the Float style lifts the orb
     private void ShowListening(bool live, VoiceListeningStyle style)
     {
@@ -222,10 +226,11 @@ internal sealed class VoiceOrbSlot : Decorator
         Canvas.SetTop(HitTarget, -HitInset);
         HitTarget.Width = d + 2 * HitInset;
         HitTarget.Height = d + 2 * HitInset;
-        // Owner T46 placement ED: one point up centres the 40pt inline pill in the 46pt composer, retaining the row's height.
+        // Owner T46 / OD-0132: the composer follows this one-point inset around the approved inline pill anchor.
         // Float keeps its approved anchor and lift; the pill itself remains centred on the orb for its clean-cap mask.
-        var inset = inlineInset is null ? InlineInsetTarget : inlineInset.Value;
-        Margin = new Thickness(0, (RowHeight - d) / 2 - inset, ChipGap, (RowHeight - d) / 2 + inset);
+        var inset = InlineInset;
+        Margin = new Thickness(0, (RowHeight - d) / 2, ChipGap, (RowHeight - d) / 2);
+        InlineInsetChanged?.Invoke(inset);
     }
 
     private double InlineInsetTarget =>

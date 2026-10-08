@@ -673,7 +673,12 @@ public sealed class ComposerView : Decorator
             SetRecentDownloadsPicker(update.RecentDownloadsPicker);
             return;
         }
-        if (controls is { } previous) row.Children.Remove(previous);
+        if (controls is { } previous)
+        {
+            if (previous.OrbSlot is { } oldOrb) oldOrb.InlineInsetChanged -= PlaceInlineComposer;
+            row.Children.Remove(previous);
+        }
+        PlaceInlineComposer(0);
         controls = null;
         if (inputs is not { } value)
         {
@@ -698,12 +703,28 @@ public sealed class ComposerView : Decorator
         controls = made;
         if (made.OrbSlot is { } orbSlot)
         {
+            orbSlot.InlineInsetChanged += PlaceInlineComposer;
+            PlaceInlineComposer(orbSlot.InlineInset);
             pillSlot?.Attach(orbSlot); // PORT-ONLY (VT-12): the pill and the question hang from the orb's slot
             question?.Attach(orbSlot, root);
             if (question is not null) question.ReturnFocus = () => orbSlot.HitTarget.Focus();
         }
         MakeAttachButtons(value.RecentDownloadsPicker);
         ShowAttach(true);
+    }
+
+    // T46 / OD-0132: align the composer around the approved window-space pill/orb anchor. The row's matching
+    // counter-offset keeps the pill's locked raster position and leaves the composer height unchanged.
+    private readonly TranslateTransform inlineComposerPlacement = new();
+    private readonly TranslateTransform inlineRowPlacement = new();
+
+    private void PlaceInlineComposer(double inset)
+    {
+        inlineComposerPlacement.Y = inset;
+        inlineRowPlacement.Y = -inset;
+        if (inset != 0 || ReferenceEquals(RenderTransform, inlineComposerPlacement)) RenderTransform = inlineComposerPlacement;
+        if (inset != 0 || ReferenceEquals(row.RenderTransform, inlineRowPlacement)) row.RenderTransform = inlineRowPlacement;
+        pillSlot?.InvalidateArrange();
     }
 
     // ---- the attachment button at the pill's left (voice-SPEC V-14.1; owner-ruled, OD-0091 and OD-0086) ----
