@@ -432,7 +432,19 @@ public sealed class ModelList : Decorator
             var back = PlainControls.Button(new Border { Width = 20, Height = 20, Background = Brushes.Transparent, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299, :294 .contentShape(.rect): the whole frame takes the press
             var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(8, 8, 8, 4), Children = { back, EffortView.Text("Select model", SwiftFont.Body, Chrome.SecondaryText) } };
             var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + Math.Max(entries.Count, 1) * (rowHeight + 1), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-            Child = new Border { Padding = new Thickness(6), Child = new StackPanel { Spacing = 0, Children = { header, scroll } } }; // :348-353
+            // Owner task T46: keep the source rows, pair order and disabled-provider guards; add model/maker search above them.
+            Marrow.App.Port.ModelsPalette.PickerScroll.Apply(scroll);
+            var stack = new StackPanel { Spacing = 0, Children = { header } };
+            if (entries.Count > 0)
+            {
+                var previousSearch = Child?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+                var search = new Marrow.App.Port.ModelsPalette.ModelListSearch(scroll, entries, rows.Children.OfType<ModelListRow>().ToArray(), rowHeight, pairsHeight, onChoose);
+                stack.Children.Add(search.Control);
+                search.Field.Text = previousSearch?.Text;
+                if (previousSearch?.IsFocused == true) MainActor.Post(() => search.Field.Focus());
+            }
+            stack.Children.Add(scroll);
+            Child = new Border { Padding = new Thickness(6), Child = stack }; // :348-353
         });
         this.Task(() => 0, async _ =>
         {

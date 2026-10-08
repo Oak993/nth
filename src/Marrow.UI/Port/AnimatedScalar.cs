@@ -31,7 +31,7 @@ public sealed class AnimatedScalar
     /// <summary>The value drawn now.</summary>
     public double Value { get; private set; }
 
-    public void Set(double target, Animation? animation)
+    public void Set(double target, Animation? animation, bool preserveFrameProgress = false)
     {
         Stop();
         var from = Value;
@@ -43,12 +43,17 @@ public sealed class AnimatedScalar
         }
         goal = target;
         var start = SwiftClock.Now;
+        var previousFrame = start;
         var span = TimeSpan.FromSeconds(animation.Duration);
         var frames = FrameClock.Source.Current;
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
             var now = SwiftClock.Now;
+            var gap = now - previousFrame;
+            if (preserveFrameProgress && gap > TimeSpan.FromMilliseconds(50))
+                start += gap - TimeSpan.FromSeconds(1.0 / 60);
+            previousFrame = now;
             var complete = FrameClock.IsComplete(start, now, span);
             Value = complete ? target : from + (target - from) * animation.Progress((now - start).TotalSeconds);
             apply(Value);

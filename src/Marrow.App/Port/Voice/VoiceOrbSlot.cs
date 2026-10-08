@@ -34,6 +34,7 @@ internal sealed class VoiceOrbSlot : Decorator
     private readonly Canvas canvas = new() { ClipToBounds = false };
     private readonly AnimatedScalar side;
     private readonly AnimatedScalar lift;
+    private readonly AnimatedScalar inlineInset;
     private readonly LookMotion motion;
     private readonly LookNumber crossSlide;
     private readonly LookNumber crossOpacity;
@@ -81,6 +82,7 @@ internal sealed class VoiceOrbSlot : Decorator
         }
         shownSize = voice.OrbSettings.OrbSize;
         side = new AnimatedScalar(this, shownSize, Place);
+        inlineInset = new AnimatedScalar(this, InlineInsetTarget, _ => Place(Diameter));
         ToolTip.SetTip(HitTarget, "Voice input");
         HitTarget.Click += (_, _) => voice.Activate();
         HitTarget.PointerEntered += (_, _) => voice.PointerEnter();
@@ -104,6 +106,7 @@ internal sealed class VoiceOrbSlot : Decorator
         DetachedFromVisualTree += (_, _) => StopFollowing();
         this.Track(() => (voice.State, voice.PointerOver, voice.OrbSettings), shown => Show(shown.State, shown.PointerOver, shown.OrbSettings));
         this.Track(() => (voice.IsLive, voice.LiveStyle), shown => ShowListening(shown.IsLive, shown.LiveStyle));
+        this.Track(() => InlineInsetTarget, target => inlineInset.Set(target, LookCurve.Ez(0.42), preserveFrameProgress: true));
     }
 
     /// <summary>The slot's side now, a spring toward the orb size (V-14.2): the pill's anchor and the radius its material clears round the orb (V-12.12).</summary>
@@ -219,6 +222,12 @@ internal sealed class VoiceOrbSlot : Decorator
         Canvas.SetTop(HitTarget, -HitInset);
         HitTarget.Width = d + 2 * HitInset;
         HitTarget.Height = d + 2 * HitInset;
-        Margin = new Thickness(0, (RowHeight - d) / 2, ChipGap, (RowHeight - d) / 2);
+        // Owner T46 placement ED: one point up centres the 40pt inline pill in the 46pt composer, retaining the row's height.
+        // Float keeps its approved anchor and lift; the pill itself remains centred on the orb for its clean-cap mask.
+        var inset = inlineInset is null ? InlineInsetTarget : inlineInset.Value;
+        Margin = new Thickness(0, (RowHeight - d) / 2 - inset, ChipGap, (RowHeight - d) / 2 + inset);
     }
+
+    private double InlineInsetTarget =>
+        (voice.Preparing ? VoiceListeningStyle.Pill : voice.IsLive ? voice.LiveStyle : voice.OrbSettings.ListeningStyle) == VoiceListeningStyle.Pill ? 1 : 0;
 }

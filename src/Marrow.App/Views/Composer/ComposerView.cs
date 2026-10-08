@@ -519,7 +519,7 @@ public sealed class ComposerView : Decorator
             layers.Children.Insert(2, pillSlot);
             insetRight = new AnimatedScalar(this, 0, inset => { textColumn.Margin = new Thickness(0, 4, inset, 4); FadeBesidePill(inset); });
             textColumn.SizeChanged += (_, _) => FadeBesidePill(textColumn.Margin.Right);
-            pillSlot.InsetTargetChanged += target => insetRight.Set(target, LookCurve.Ez(0.42)); // V-12.6: the text's right edge eases over 0.42 s ez
+            pillSlot.InsetTargetChanged += target => insetRight.Set(target, LookCurve.Ez(0.42), preserveFrameProgress: true); // T46: keep inset and pill on the same clock, including stalled paint callbacks.
             question = new VoiceLanguageQuestion();
             questionHost.Children.Add(question);
             root.Children.Add(questionHost);
