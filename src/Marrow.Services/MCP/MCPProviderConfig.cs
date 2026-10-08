@@ -275,7 +275,7 @@ public static class MCPProviderConfig
 
     internal static JSONValue? CodexOverrides(IReadOnlyList<string> userServerNames) // :199-203
     {
-        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.CodexConfigURL)); // :200
+        var data = ReadOptionalConfig(MCPPaths.CodexConfigURL); // :200
         var parsed = data is null ? null : JSONValue.Parse(data); // :201
         var mcpServers = parsed?["mcp_servers"]?.JSONValueObject; // :202
         if (mcpServers is null || mcpServers.Count == 0) return null; // :202-203
@@ -299,7 +299,7 @@ public static class MCPProviderConfig
     // :217-223. PR-MCP-172. Returns the whole copilot.json re-serialized as a compact JSON string, not a path.
     public static string? CopilotConfigJSON() // :217
     {
-        var data = SwiftTry.Optional(() => File.ReadAllBytes(MCPPaths.CopilotConfigURL)); // :218
+        var data = ReadOptionalConfig(MCPPaths.CopilotConfigURL); // :218
         var parsed = data is null ? null : JSONValue.Parse(data); // :219
         var mcpServers = parsed?["mcpServers"]?.JSONValueObject; // :220
         if (mcpServers is null || mcpServers.Count == 0) return null; // :220-221
@@ -328,11 +328,15 @@ public static class MCPProviderConfig
     // :237-243. True only when the file reads, parses, and the named key holds a non-empty object.
     private static bool ServersPresent(string url, string key) // :237
     {
-        var data = SwiftTry.Optional(() => File.ReadAllBytes(url)); // :238
+        var data = ReadOptionalConfig(url); // :238
         var parsed = data is null ? null : JSONValue.Parse(data); // :239
         var @object = parsed?[key]?.JSONValueObject; // :240
         return @object is not null && @object.Count > 0; // :240-241
     }
+
+    // T44: nil for an absent/unreadable optional file, as try? Data(contentsOf:) above; never cache absence.
+    private static byte[]? ReadOptionalConfig(string path) =>
+        File.Exists(path) ? SwiftTry.Optional(() => File.ReadAllBytes(path)) : null;
 
     private static JSONValue ObjectOf(IEnumerable<KeyValuePair<string, JSONValue>> pairs) =>
         new JSONValue.Object(new ValueMap<string, JSONValue>(pairs, SwiftStringComparer.Instance));

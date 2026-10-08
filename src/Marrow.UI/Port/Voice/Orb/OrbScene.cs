@@ -47,7 +47,7 @@ public sealed class OrbScene
     public double Dpr => dpr;
 
     /// <summary>Steps everything to <paramref name="now"/> (seconds) and prepares each visible orb's frame for <paramref name="devicePixelRatio"/>.</summary>
-    public void Advance(double now, in OrbSceneInput input, double devicePixelRatio)
+    public void Advance(double now, in OrbSceneInput input, double devicePixelRatio, double? decorationNow = null)
     {
         // A delayed composition sample cannot replay behind a frame already prepared by the injected clock.
         if (lastNow is { } previousTime && now < previousTime) return;
@@ -78,7 +78,7 @@ public sealed class OrbScene
             }
             if (layoutChanged) runtime.Resize(viewSize, ball, dpr);
             if (darkChanged) runtime.SetDark(dark);
-            runtime.Frame(now, input.TileGlow is { } glow
+            runtime.Frame(decorationNow ?? now, input.TileGlow is { } glow
                 ? new OrbFrameState(Act: 0, Speed: 1, Scale: 1, Glow: glow, ReduceMotion: input.ReduceMotion)
                 : motion.FrameState(input.Mode, input.Bands, input.ReduceMotion));
             opacities[i] = fade.Mix(kind);

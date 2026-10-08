@@ -37,6 +37,29 @@ public sealed class ModelShadesTests
         Assert.Equal(0, changes);
     }
 
+
+    [Fact]
+    public async Task Default_scheduling_uses_the_bound_clock_and_disposal_retires_its_timer()
+    {
+        using var roots=new ModelsPaletteRoots();using var fake=new PalettePipelineFixture();
+        using var clock=Marrow.Core.Port.SwiftClock.Provider.Override(fake.Time);
+        using var engine=new PaletteEngine(roots.New(),fake.Http,fake,fake.Time,fake.Pack);
+        var posts=new Queue<Action>();using var facade=new ModelShades(engine,posts.Enqueue);
+        await engine.CheckNow();
+        Assert.Equal(1,fake.Time.ActiveTimers);
+        Assert.Empty(posts);
+        fake.Time.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.Single(posts);
+        posts.Dequeue()();
+        fake.ImageVersion++;
+        await engine.CheckNow();
+        Assert.Equal(1,fake.Time.ActiveTimers);
+        facade.Dispose();
+        Assert.Equal(0,fake.Time.ActiveTimers);
+        fake.Time.Advance(TimeSpan.FromSeconds(1));
+        Assert.Empty(posts);
+    }
+
     [Fact]
     public async Task Resolve_reads_frozen_tables_and_progress_and_changes_share_a_single_post()
     {

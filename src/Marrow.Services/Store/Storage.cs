@@ -516,10 +516,14 @@ public static partial class Storage
     {
         DiskWriter.Shared.WaitForQueuedWrites(); // :74, PR-STORE-021
 
+        // T44: a missing document still returns nil, without allocating an exception on every idle probe.
+        var path = ThreadURL(id);
+        if (!File.Exists(path)) return null;
+
         byte[] data;
         try
         {
-            data = File.ReadAllBytes(ThreadURL(id)); // :75
+            data = File.ReadAllBytes(path); // :75; a deletion after the existence check still takes the same error path.
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e))
         {

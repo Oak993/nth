@@ -65,7 +65,9 @@ public sealed class WindowManager
     internal static IDisposable OverrideShared(WindowManager manager) => SharedAmbient.Override(manager);
 
     // :13 let model = AppModel()
-    public AppModel Model { get; }
+    private readonly Lazy<AppModel> model = new(() => new AppModel());
+    public AppModel Model => model.Value;
+    internal bool HasCreatedModel => model.IsValueCreated;
 
     private AvaloniaWindow? mainWindow; // :15
     private AvaloniaWindow? settingsWindow; // :16
@@ -135,18 +137,24 @@ public sealed class WindowManager
     internal AvaloniaWindow? SettingsWindow => settingsWindow;
 
     // The implicit init of the Swift singleton (module-internal in Swift): `model` (:13) is made here.
-    internal WindowManager() => Model = new AppModel();
+    internal WindowManager() { }
 
     /// <summary>
     /// PORT-ONLY (OD-0018, ED-103): makes the main window as showMain would (:27-28), frame restored, without showing
     /// it, so the launch's boot sequence can be laid out on it before it appears.
     /// </summary>
-    internal AvaloniaWindow PrepareMain() => mainWindow ??= MakeMainWindow();
+    internal AvaloniaWindow PrepareMainShell() => mainWindow ??= MakeMainWindowCore(deferContent: true);
+    internal AvaloniaWindow PrepareMain()
+    {
+        var window = mainWindow ??= MakeMainWindow();
+        if (window.Content is null) AttachContent(window, MainContent);
+        return window;
+    }
 
     // :26-30 func showMain()
     public void ShowMain()
     {
-        var window = mainWindow ?? MakeMainWindow(); // :27
+        var window = PrepareMain(); // :27
         mainWindow = window; // :28
         if (settingsWindow is SecondaryWindow settings) settings.SetMainOwner(window);
         Present(window); // :29
@@ -290,17 +298,19 @@ public sealed class WindowManager
     private readonly ConditionalWeakTable<AvaloniaWindow, StrongBox<WindowState>> restoredStates = new();
 
     // :62-72 private func makeMainWindow() -> NSWindow
-    private AvaloniaWindow MakeMainWindow()
+    private AvaloniaWindow MakeMainWindow() => MakeMainWindowCore(deferContent: false);
+
+    private AvaloniaWindow MakeMainWindowCore(bool deferContent)
     {
-        var window = MakeWindow(AppInfo.Current.Name, Size.Main, resizable: true, MainContent, windowClass: () => new ThreadWindow()); // :63
-        var model = new WeakReference<AppModel>(Model); // [weak model]
+        var window = MakeWindow(AppInfo.Current.Name, Size.Main, resizable: true, MainContent, windowClass: () => new ThreadWindow(), deferContent: deferContent); // :63
+        var owner = new WeakReference<WindowManager>(this);
         (window as ThreadWindow)?.SelectThread = offset => // :64
         {
-            if (model.TryGetTarget(out var target)) target.SelectThread(offset);
+            if (owner.TryGetTarget(out var target)) target.Model.SelectThread(offset);
         };
         (window as ThreadWindow)?.SelectThreadNumber = number => // :65
         {
-            if (model.TryGetTarget(out var target)) target.SelectThreadNumber(number);
+            if (owner.TryGetTarget(out var target)) target.Model.SelectThreadNumber(number);
         };
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
@@ -329,7 +339,7 @@ public sealed class WindowManager
     }
 
     // :86-110 private func makeWindow<Content: View>(title:size:resizable:windowClass:content:) -> NSWindow
-    private AvaloniaWindow MakeWindow(string title, Avalonia.Size size, bool resizable, Func<Control> content, Func<AvaloniaWindow>? windowClass = null)
+    private AvaloniaWindow MakeWindow(string title, Avalonia.Size size, bool resizable, Func<Control> content, Func<AvaloniaWindow>? windowClass = null, bool deferContent = false)
     {
         // :95-96 windowClass.init(contentRect: frame, styleMask: style, backing: .buffered, defer: false): an Avalonia
         // window makes its platform window in its constructor (not deferred) and draws through its own buffer, so
@@ -391,6 +401,12 @@ public sealed class WindowManager
         NativeWindowHooks.Add(window, (nint hWnd, uint message, nint wParam, nint lParam, ref bool handled) =>
             HandleNativeWindowMessage(window, hWnd, message, wParam, lParam, ref handled));
 
+        if (!deferContent) AttachContent(window, content);
+        return window; // :109
+    }
+
+    private void AttachContent(AvaloniaWindow window, Func<Control> content)
+    {
         var liveResize = new WindowLiveResize(window); // :103
         var hosting = new FrameHostingView(new HostedRoot(Model, liveResize, content())); // :104
         // :105 hosting.frame = frame, :106 NSView(frame: frame): the plain container fills the client area and lays
@@ -408,7 +424,6 @@ public sealed class WindowManager
         // key-down, as SwiftUI re-reads the Commands body, over this manager's model (:13). Views that monitor the window's
         // keys register when they attach, after this, so they still see a key-down first, as a local monitor does.
         _ = MenuKeyEquivalents.Attach(window, (positional, typed) => new AppCommands(Model).PerformKeyDown(positional, typed));
-        return window; // :109
     }
 
     /// <summary>

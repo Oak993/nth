@@ -7,6 +7,12 @@ namespace Marrow.UI.Port;
 
 internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
 {
+    private readonly Action invalidate, register;
+    internal AuroraBootHandler(Action? invalidate = null, Action? register = null)
+    {
+        this.invalidate = invalidate ?? Invalidate;
+        this.register = register ?? RegisterForNextAnimationFrameUpdate;
+    }
     private readonly AuroraBootPainter painter = new();
     private AuroraBootSnapshot? snapshot;
     private bool stopped, requested, drawn = true;
@@ -17,7 +23,7 @@ internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
         {
             if (snapshot is not { } old || old.Window != next.Window || old.ReduceMotion != next.ReduceMotion)
                 sequence = new AuroraBootSequence(next.Window, next.ReduceMotion);
-            snapshot = next; Invalidate(); Request();
+            snapshot = next; invalidate(); Request();
         }
         else if (message is false) { stopped = true; painter.Dispose(); }
     }
@@ -26,13 +32,14 @@ internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
     {
         requested = false;
         if (stopped || snapshot is null) return;
-        Invalidate();
+        invalidate();
         if (drawn) Request();
     }
     private void Request()
     {
         if (requested || stopped) return;
-        requested = true; drawn = false; RegisterForNextAnimationFrameUpdate();
+        if (snapshot is { } s && sequence!.At(s.Clock.GetElapsedTime(s.Started).TotalSeconds, s.ReadyAt).StageClosed) return;
+        requested = true; drawn = false; register();
     }
     public override void OnRender(ImmediateDrawingContext context)
     {

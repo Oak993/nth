@@ -44,9 +44,11 @@ public sealed class ComposerChipRig : IDisposable
     public static ComposerChipRig Start(Action<AppModel>? configure = null, string effort = "low", bool fast = false, bool hydra = false, ProviderKind provider = ProviderKind.Codex)
     {
         Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+        // Runtime/palette callbacks capture the construction context; bind before any of them start.
+        var frames = new ManualFrameSource();
+        var frameBinding = FrameClock.Source.Override(frames);
         var harness = new ThreadRuntimePart12Harness(provider); // the thread's service (MAUI-002 under RR-49: a verified opinion head)
         harness.Main.Loop.Run(() => harness.Runtime.EnsureLoaded(), AppModelHarness.Bound);
-        var frames = new ManualFrameSource();
         var presenter = new RecordingPresenter();
         ComposerChipRig rig = null!;
         harness.Main.OnMain(() =>
@@ -66,7 +68,7 @@ public sealed class ComposerChipRig : IDisposable
             window.Show();
         });
         rig = new ComposerChipRig { Harness = harness, Frames = frames, Presenter = presenter, View = view, Window = window };
-        rig.owned.Add(FrameClock.Source.Override(frames));
+        rig.owned.Add(frameBinding);
         rig.owned.Add(Presentation.Presenter.Override(presenter));
         rig.owned.Add(harness);
         rig.Pump();

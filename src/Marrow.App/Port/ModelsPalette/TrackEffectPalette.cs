@@ -32,6 +32,16 @@ public sealed partial class TrackEffect
     private bool PaletteReduceMotion => Avalonia.Threading.Dispatcher.UIThread.CheckAccess()
         ? paletteReduceCopy = EnvironmentValues.GetAccessibilityReduceMotion(this)
         : paletteReduceCopy;
+    private bool PaletteTransitionActive
+    {
+        get
+        {
+            lock ((object?)layers ?? this)
+                return paletteTarget is not null && (Time + mixPageOrigin < specularBegan + specularSeconds
+                    || paletteTarget.State == PaletteState.Pending && !neutralHeld || inkRequested || paletteInk is { Finished: false }
+                    || solidBegan is { } solid && Time + mixPageOrigin < solid + .5);
+        }
+    }
     private static readonly Animation InkEase=Animation.TimingCurve(.25,.1,.25,1,.5);
     internal void ReleasePaletteInk(){palettePendingTimer?.Dispose();palettePendingTimer=null;paletteInk?.Retire();paletteInk=null;paletteSample.Ink=null;}
     internal void ReleasePaletteView(){ReleasePaletteInk();paletteHasDrawn=hasShownPending=false;paletteBorn=null;}
@@ -80,6 +90,7 @@ public sealed partial class TrackEffect
             paletteTarget=target;paletteSample.Keys=paletteRenderer.MotionKeys;
             if(paletteSample.Values.Length!=paletteRenderer.MotionCount)paletteSample.Values=new double[paletteRenderer.MotionCount];
             resolvedScene=null;canvas.InvalidateVisual();
+            RenderFrameSource.WakeAmbientFor(this);
         }
     }
     public void PaletteArrivalFinished()

@@ -20,7 +20,7 @@ public sealed partial class AppModel
         get
         {
             PaletteLifetimeForTesting.Current(this);
-            return paletteEngine??=new PaletteEngine(Storage.Root,URLSession.Transport.Current,new SkiaLogoDecoder(),releasePack:Port.ModelsPalette.PaletteStartup.Pack);
+            return paletteEngine??=new PaletteEngine(Storage.Root,URLSession.Transport.Current,new SkiaLogoDecoder(),time:SwiftClock.Provider.Current,releasePack:Port.ModelsPalette.PaletteStartup.Pack);
         }
     }
     private void InitializePalette()

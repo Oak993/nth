@@ -309,12 +309,12 @@ public sealed partial class AppModel : MainActorModel
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: login environment"))
         await LoginEnvironment.Load(); // AppModel.swift:245
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra copy sweep (UI)"))
-        SweepHydraCopies(); // AppModel.swift:247
+        if (PerformanceProfileMaintenance.Allowed) SweepHydraCopies(); // AppModel.swift:247; explicit diagnostics cannot mutate copied real project paths.
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra merge resumption"))
-        await ResumeHydraMerges(); // AppModel.swift:248-249
+        if (PerformanceProfileMaintenance.Allowed) await ResumeHydraMerges(); // AppModel.swift:248-249
         hydraMergeSweepTask?.Cancel(); // AppModel.swift:254
         var weakSelf = new WeakReference<AppModel>(this);
-        hydraMergeSweepTask = MainActor.Spawn(async () =>
+        if (PerformanceProfileMaintenance.Allowed) hydraMergeSweepTask = MainActor.Spawn(async () =>
         {
             while (true)
             {
@@ -339,7 +339,7 @@ public sealed partial class AppModel : MainActorModel
         // fails outright. Their own updaters run here, in the background, at most every twelve hours; a
         // newer version reloads its catalog. (PR-LAUNCH-085, new at B3)
         var providers = Providers; // AppModel.swift:278 Swift: `Task { [providers] in ... }` captures only the registry, not self (R-ISO-4)
-        _ = MainActor.Spawn(async () =>
+        if (PerformanceProfileMaintenance.Allowed) _ = MainActor.Spawn(async () =>
         {
             foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex }) // AppModel.swift:279
             {

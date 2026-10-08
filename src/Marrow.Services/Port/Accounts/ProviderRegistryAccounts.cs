@@ -38,8 +38,13 @@ public sealed partial class ProviderRegistry
     public ValueMap<string, string> Environment(Guid accountId)
     {
         var account = RequireAccount(accountId);
-        if (accountEnvironment is null && account.UsesLegacyCredentials) return LegacyEnvironment(account.Service);
-        var env = accountEnvironment!.Build(account, LegacyEnvironment(account.Service));
+        return Environment(account, LegacyEnvironment(account.Service));
+    }
+
+    private ValueMap<string, string> Environment(Account account, ValueMap<string, string> inherited)
+    {
+        if (accountEnvironment is null && account.UsesLegacyCredentials) return inherited;
+        var env = accountEnvironment!.Build(account, inherited);
         if (account.Service == ProviderKind.Commandcode && !account.UsesLegacyCredentials && APIKeychain.Key(account, "") is { Length: > 0 } key)
             env = env.Mutating(d => d["COMMAND_CODE_API_KEY"] = key);
         return env;

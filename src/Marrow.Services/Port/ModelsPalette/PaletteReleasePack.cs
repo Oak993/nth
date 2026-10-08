@@ -95,7 +95,7 @@ public sealed class PaletteReleasePack
     public byte[] Encode()
     {
         var document=new Document(Version,MinimumEngine,SeedVersion,DeriveVersion,Source.Export(),Seeds.Values.OrderBy(s=>s.Epoch).ToArray(),BakedPalettes.Values.OrderBy(p=>p.Key,StringComparer.Ordinal).Select(ToAnchor).ToArray(),FrozenReserved.Select(ToAnchor).ToArray(),PlaceholderHashes.ToDictionary(),MakerDomains.ToDictionary(),PaletteSnapshotCodec.Export(Snapshot0),Resource("Marrow.Core.ModelsPalette.Toc.json"),Resource("Marrow.Core.ModelsPalette.PslIcann.txt"),Tombstones.ToArray(),MakerAliases.OrderBy(p=>p.Key,StringComparer.Ordinal).ToDictionary(),PlaceholderEvidence.OrderBy(e=>e.Kind,StringComparer.Ordinal).ThenBy(e=>e.Sha256,StringComparer.Ordinal).ToArray(),Market);
-        var bytes=JsonSerializer.SerializeToUtf8Bytes(document);return JsonSerializer.SerializeToUtf8Bytes(new {schema=1,hash=Convert.ToHexString(SHA256.HashData(bytes)),data=document});
+        return PaletteJsonEnvelope.Encode(document);
     }
     private static Anchor ToAnchor(PaletteAnchor p)=>new(p.Key,p.Stops.ToArray(),p.Title);
     private static PaletteAnchor FromAnchor(Anchor p)=>p.Stops.Length==3?new(p.Key,new(p.Stops),p.Title):throw new InvalidDataException("Invalid palette.");
@@ -104,9 +104,9 @@ public sealed class PaletteReleasePack
     {
         try
         {
-            using var root=JsonDocument.Parse(bytes);var r=root.RootElement;var data=r.GetProperty("data");
-            if(r.GetProperty("schema").GetInt32()!=1||r.GetProperty("hash").GetString()!=Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(data.GetRawText()))))throw new InvalidDataException("Invalid pack checksum.");
-            var d=data.Deserialize<Document>()??throw new InvalidDataException("Missing pack.");
+            var envelope=PaletteJsonEnvelope.Read(bytes);
+            if(envelope.Schema!=1||envelope.Data is not {} data||envelope.Hash!=PaletteJsonEnvelope.Digest(data.Span))throw new InvalidDataException("Invalid pack checksum.");
+            var d=JsonSerializer.Deserialize<Document>(data.Span)??throw new InvalidDataException("Missing pack.");
             if(d.version<=0||d.minimumEngine!="AC-3"||d.seedVersion!="S2"||d.deriveVersion!="D3"||d.toc!=Resource("Marrow.Core.ModelsPalette.Toc.json")||d.psl!=Resource("Marrow.Core.ModelsPalette.PslIcann.txt"))throw new InvalidDataException("Incompatible pack rules.");
             ValidateMarket(d.market);
             foreach(var seed in d.seeds)Validate(seed,d.placeholders);

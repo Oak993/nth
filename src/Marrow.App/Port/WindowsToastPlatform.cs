@@ -92,7 +92,15 @@ public static class WindowsToastStartup
 #endif
     }
 
-    public static void Bind()
+    public static void Bind() => Bind(BindPlatform);
+
+    internal static void Bind(Action bindPlatform)
+    {
+        // T44: copied-profile diagnostics must never redirect the owner's installed protocol or post OS toasts.
+        PerformanceProfileMaintenance.Run(bindPlatform);
+    }
+
+    private static void BindPlatform()
     {
         var executable = Environment.ProcessPath ?? throw new InvalidOperationException("No application executable path.");
         var platform = new WindowsToastPlatform();

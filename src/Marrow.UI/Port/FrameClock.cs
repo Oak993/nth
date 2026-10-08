@@ -225,7 +225,7 @@ public readonly record struct FrameRateRange(float Minimum, float Maximum, float
 /// (HydraProgressBar.swift:142, :507, TimelineRows.swift:499, EffortSlider.swift:1050, AboutUpdateViews.swift:364,
 /// :450). A null MinimumInterval updates at every frame.
 /// </summary>
-public sealed record AnimationTimelineSchedule(double? MinimumInterval = null, bool Paused = false);
+public sealed record AnimationTimelineSchedule(double? MinimumInterval = null, bool Paused = false, bool Ambient = false);
 
 /// <summary>PORT-ONLY. The frame clock: the frame source seam and the frame-driven stand-ins (ED-083, ED-117).</summary>
 public static class FrameClock
@@ -282,10 +282,10 @@ public static class FrameClock
     /// invalidates the control's area through <see cref="RenderFrameSource.InvalidateTicking"/>. Appearing, the schedule and
     /// its pausing stay on main. Any other frame source (tests) delivers on main as before.
     /// </summary>
-    public static T TimelineView<T>(this T control, Func<AnimationTimelineSchedule> schedule, Action<DateTimeOffset> update, bool onRenderThread)
+    public static T TimelineView<T>(this T control, Func<AnimationTimelineSchedule> schedule, Action<DateTimeOffset> update, bool onRenderThread, Func<bool>? ambientInteraction = null)
         where T : Control
     {
-        var timeline = new AnimationTimeline(schedule, update, onRenderThread ? control : null);
+        var timeline = new AnimationTimeline(schedule, update, onRenderThread ? control : null, ambientInteraction);
         control.AttachedToVisualTree += (_, _) => timeline.Appear();
         control.DetachedFromVisualTree += (_, _) => timeline.Disappear();
         // \.accessibilityReduceMotion is an inherited Avalonia property (ED-084), which observation tracking does not see:
@@ -384,6 +384,7 @@ public sealed class AnimationTimeline
     private readonly Action<DateTimeOffset> update;
     private readonly Action<TimeSpan> frame;
     private readonly Control? renderHost;
+    private readonly Func<bool>? ambientInteraction;
     private readonly object gate = new();
     private Tracked<AnimationTimelineSchedule>? tracked;
     private AnimationTimelineSchedule current = new();
@@ -398,11 +399,12 @@ public sealed class AnimationTimeline
     public AnimationTimeline(Func<AnimationTimelineSchedule> schedule, Action<DateTimeOffset> update) : this(schedule, update, null) { }
 
     /// <summary>A timeline whose frames may come on <paramref name="renderHost"/>'s render thread (see the class note).</summary>
-    public AnimationTimeline(Func<AnimationTimelineSchedule> schedule, Action<DateTimeOffset> update, Control? renderHost)
+    public AnimationTimeline(Func<AnimationTimelineSchedule> schedule, Action<DateTimeOffset> update, Control? renderHost, Func<bool>? ambientInteraction = null)
     {
         this.schedule = schedule;
         this.update = update;
         this.renderHost = renderHost;
+        this.ambientInteraction = ambientInteraction;
         frame = OnFrame;
     }
 
@@ -410,6 +412,8 @@ public sealed class AnimationTimeline
     public DateTimeOffset? Date { get { lock (gate) return date; } private set => date = value; }
 
     private DateTimeOffset? date;
+    private DateTimeOffset dateOrigin;
+    private TimeSpan decorationCarry;
 
     /// <summary>The frame source of the current appearance (tests: whether it is the render thread's).</summary>
     public IFrameSource? Source { get { lock (gate) return source; } }
@@ -423,9 +427,12 @@ public sealed class AnimationTimeline
         {
             if (appeared) return;
             appeared = true;
+            if (dateOrigin == default) dateOrigin = SwiftDate.Now;
             source = FrameClock.Source.Current;
             if (renderHost is not null && source is IRenderFrameSourceProvider provider && provider.RenderFrames(renderHost) is { } frames)
                 source = renderFrames = frames;
+            current = schedule();
+            if (current.Ambient) renderFrames?.EnableAmbientMotion(ambientInteraction, decorationCarry);
             Draw();
             due = lastDraw; // ED-232: the first due time is the appearance
             refreshDue = null;
@@ -447,6 +454,7 @@ public sealed class AnimationTimeline
                 outstanding = false;
                 source!.CancelFrame(frame);
             }
+            if (renderFrames?.DecorationTime is not null && date is { } shown) decorationCarry = shown - dateOrigin;
             renderFrames?.Dispose();
             renderFrames = null;
         }
@@ -478,6 +486,7 @@ public sealed class AnimationTimeline
         lock (gate)
         {
             current = next;
+            if (next.Ambient) renderFrames?.EnableAmbientMotion(ambientInteraction, decorationCarry);
             if (Running) Request(); // ED-117 (6): a resume asks at once, reusing a stale request
         }
     }
@@ -492,7 +501,7 @@ public sealed class AnimationTimeline
     private void Draw()
     {
         lastDraw = SwiftClock.Now;
-        var at = SwiftDate.Now;
+        var at = renderFrames?.DecorationTime is { } decoration ? dateOrigin + decoration : SwiftDate.Now;
         Date = at;
         update(at);
     }
@@ -515,7 +524,7 @@ public sealed class AnimationTimeline
         {
             outstanding = false;
             if (!Running) return; // paused or gone: the stale request does nothing
-            if (current.MinimumInterval is not { } interval)
+            if (current.MinimumInterval is not { } interval || current.Ambient && renderFrames?.DecorationTime is not null && ambientInteraction?.Invoke() == true)
             {
                 Draw();
             }

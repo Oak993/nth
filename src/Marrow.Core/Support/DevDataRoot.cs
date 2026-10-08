@@ -1,8 +1,8 @@
 // PORT-ONLY (ED-212): none of this file has a B3 Swift counterpart. It is a development affordance for a manual
 // Debug launch, so a developer can run the packaged app against a throwaway data folder instead of the real
 // %LOCALAPPDATA%\Marrow Code / %USERPROFILE%\.marrow-dev / Windows Credential Manager (STOP Boot #4,
-// tests/Marrow.App.Tests/AppDelegateThirdTests.cs:305-321). It exists only under #if DEBUG; a Release build never
-// compiles the redirect branch, so a Release binary is byte-for-byte the code that existed before this file.
+// tests/Marrow.App.Tests/AppDelegateThirdTests.cs:305-321). The environment redirect remains Debug-only.
+// T44 adds an explicit, marker-validated copied-profile binding for diagnostic Release launches.
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,10 +12,13 @@ namespace Marrow.Core.Support;
 /// The Debug-only MARROW_DEV_DATA_ROOT redirect (ED-212). Every production site that used to resolve
 /// <c>Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)</c> directly now calls
 /// <see cref="LocalApplicationData"/> instead; a Release build, or a Debug build with the variable unset, empty, or
-/// naming a directory that does not exist, gets the exact same value as before this redirect existed.
+/// naming a directory that does not exist, gets the exact same value as before this redirect existed. An explicitly
+/// bound performance profile overrides it in either configuration; the environment variable alone never does.
 /// </summary>
 public static class DevDataRoot
 {
+    // T44: explicit diagnostic launches only; wrappers setting a scratch env var do not activate it.
+    public static Marrow.Core.Port.Ambient<string> PerformanceRoot { get; } = new(string.Empty);
     /// <summary>The one variable this redirect reads. Never read outside #if DEBUG.</summary>
     public const string VariableName = "MARROW_DEV_DATA_ROOT";
 
@@ -26,6 +29,7 @@ public static class DevDataRoot
     /// </summary>
     public static string LocalApplicationData()
     {
+        if (PerformanceRoot.Current is { Length: > 0 } profile) return profile;
 #if DEBUG
         if (ActiveRoot() is { } root) return root;
 #endif
@@ -37,6 +41,7 @@ public static class DevDataRoot
     {
         get
         {
+            if (PerformanceRoot.Current.Length > 0) return true;
 #if DEBUG
             return ActiveRoot() is not null;
 #else
@@ -77,6 +82,8 @@ public static class DevDataRoot
     /// </summary>
     private static string Tag()
     {
+        if (PerformanceRoot.Current is { Length: > 0 } profile)
+            return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(profile)))[..8];
 #if DEBUG
         var root = ActiveRoot() ?? throw new InvalidOperationException("DevDataRoot is not redirected.");
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(root));

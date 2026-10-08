@@ -20,7 +20,7 @@ public sealed class ModelShades : IDisposable
     public event Action? Changed;
     public ModelShades(PaletteEngine engine,Action<Action>? post=null,TimeProvider? time=null)
     {
-        this.engine=engine;this.post=post??MainActor.Post;this.time=time??TimeProvider.System;
+        this.engine=engine;this.post=post??MainActor.Post;this.time=time??SwiftClock.Provider.Current;
         current=latest=previous=engine.Current;engine.Changed+=SnapshotChanged;engine.Progress+=ProgressChanged;
     }
     /// <summary>No I/O, colour math or allocation on a warm lookup. Strike consumes this seam after its merge.</summary>

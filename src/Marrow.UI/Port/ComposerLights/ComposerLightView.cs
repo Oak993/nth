@@ -29,8 +29,10 @@ internal sealed class ComposerLightStop
 }
 
 /// <summary>The composition handler: the light's animator and renderer, on the render thread.</summary>
-internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
+internal sealed class ComposerLightHandler(AmbientMotionController? ambient = null) : CompositionCustomVisualHandler
 {
+    private double interactionUntil;
+    private bool Interaction(double now) => now < interactionUntil || voice.Moving;
     private ComposerLightSnapshot? snapshot;
     private ComposerLightAnimator? light;
     private readonly ComposerLightRenderer renderer = new();
@@ -39,6 +41,14 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
     private bool wantsFrames;
     private int stopped;
     private double reach = 2, drawnReach = 2;
+    private Rect invalidatedBounds;
+    private void Dirty()
+    {
+        var bounds = GetRenderBounds();
+        // A changed content bound must refresh Avalonia's cached bounds before partial damage is usable.
+        if (bounds != invalidatedBounds) { invalidatedBounds = bounds; Invalidate(); }
+        else Invalidate(bounds);
+    }
     private bool software;
     private readonly VoiceLightFollower voice = new();
     private double? lastVoiceNow;
@@ -67,6 +77,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
 
     /// <summary>True once the handler has stopped and released its renderer.</summary>
     public bool IsStopped => Volatile.Read(ref stopped) != 0;
+    internal double AmbientSpeed => ambient?.Clock.Speed ?? 1;
 
     public void Stop() => Interlocked.Exchange(ref stopped, 1);
 
@@ -75,6 +86,11 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
 
     public override void OnMessage(object message)
     {
+        if (ReferenceEquals(message, ambient))
+        {
+            if (snapshot is { } current) { var pulseNow = Seconds(current.Clock); ambient?.Sample(pulseNow, Interaction(pulseNow)); }
+            Request(); return;
+        }
         if (message is ComposerLightStop)
         {
             Stop();
@@ -84,6 +100,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
         }
         if (IsStopped || message is not ComposerLightSnapshot next) return;
         var now = Seconds(next.Clock);
+        if (snapshot is not null) interactionUntil = now + .9;
         var size = next.Composer.Size;
         if (light is null) voice.Jump(next.VoiceLight);                  // a first frame never starts from full: the level is the host's
         if (light is null)
@@ -103,15 +120,19 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
 
     public override void OnAnimationFrameUpdate()
     {
+        using var work = AuroraBootTrace.Begin("Composer light: compositor frame");
         frameRequested = false;
         Volatile.Write(ref animating, 0);
         if (IsStopped || snapshot is null) return;
+        ambient?.Sample(Seconds(snapshot.Clock), Interaction(Seconds(snapshot.Clock)));
+        if (ambient is not null && !ambient.Available) return;
         Step(Seconds(snapshot.Clock));
     }
 
     private void Step(double now)
     {
         if (light is null || snapshot is null) return;
+        ambient?.Sample(now, Interaction(now));
         // V-13.4: vis = follow(vis, target, dt, 0.2, 0.17) on the frame clock; reduce motion jumps
         // the follower moves by the frame it is in: a light that stood still (or a level that did not move) has no frame to measure from, so its first step after a change is 0 s
         var voiceDt = voice.Moving && lastVoiceNow is { } previous ? Math.Max(0, now - previous) : 0;
@@ -121,13 +142,13 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
         {
             // at 0 the light draws nothing, asks for no frames (unless the level is on its way back) and its motion clock stands still (nothing is advanced; the clock caps a step at 50 ms, so it goes on from where it stopped)
             wantsFrames = voice.Moving;
-            Invalidate();
+            Dirty();
             if (wantsFrames && drawnSinceRequest) Request();
             return;
         }
-        wantsFrames = light.Advance(now) || renderer.Settling || voice.Moving;
+        wantsFrames = light.Advance(now, ambient?.Clock.Speed ?? 1) || renderer.Settling || voice.Moving;
         reach = Reach(light);
-        Invalidate();
+        Dirty();
         // the board's port notes: frames only while something moves, and only while it is seen. A frame is asked for
         // again only once the last one was drawn; a light nobody draws (a hidden chat column) stops, and OnRender
         // resumes it when it is drawn again.
@@ -136,7 +157,13 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
 
     private void Request()
     {
-        if (frameRequested || IsStopped) return;
+        if (frameRequested || IsStopped || snapshot is null || !wantsFrames) return;
+        var now = Seconds(snapshot.Clock);
+        if (ambient is not null && !ambient.Request(now, Interaction(now)))
+        {
+            Volatile.Write(ref animating, ambient.Available && ambient.Clock.Moving ? 1 : 0); return;
+        }
+        using var request = AuroraBootTrace.Begin("Composer light: frame request");
         frameRequested = true;
         drawnSinceRequest = false;
         Volatile.Write(ref animating, 1);
@@ -161,6 +188,7 @@ internal sealed class ComposerLightHandler : CompositionCustomVisualHandler
 
     public override void OnRender(ImmediateDrawingContext context)
     {
+        using var work = AuroraBootTrace.Begin("Composer light: compositor draw");
         if (IsStopped || snapshot is not { } s || light is null) return;
         drawnSinceRequest = true;
         drawnReach = reach;
@@ -215,6 +243,7 @@ public sealed class ComposerLightView : Control
     private CompositionCustomVisual? visual;
     private ComposerLightHandler? handler;
     private ComposerLightSnapshot? sent;
+    private AmbientMotionController? ambient;
 
     public ComposerLightView()
     {
@@ -262,8 +291,11 @@ public sealed class ComposerLightView : Control
     private void Install()
     {
         if (visual is not null || ElementComposition.GetElementVisual(this) is not { } host) return;
-        handler = new ComposerLightHandler();
+        var availability = AmbientWindowState.Acquire(this);
+        ambient = availability is null ? null : new(availability);
+        handler = new ComposerLightHandler(ambient);
         visual = host.Compositor.CreateCustomVisual(handler);
+        ambient?.Bind(visual);
         visual.ClipToBounds = false;
         ElementComposition.SetElementChildVisual(this, visual);
         sent = null;
@@ -274,6 +306,7 @@ public sealed class ComposerLightView : Control
     {
         // the handler releases its bakes and shaders on the render thread, where they were made
         visual?.SendHandlerMessage(ComposerLightStop.Instance);
+        ambient?.Dispose(); ambient = null;
         ElementComposition.SetElementChildVisual(this, null);
         visual = null;
         handler = null;

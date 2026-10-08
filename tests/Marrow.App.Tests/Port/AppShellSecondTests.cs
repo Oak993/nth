@@ -17,6 +17,33 @@ namespace Marrow.App.Tests.Port;
 [Collection("Headless")]
 public sealed class AppShellSecondTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-074")]
+    public void Closing_the_boot_shell_before_initialization_quits_without_constructing_the_model() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var frames = Marrow.UI.Port.FrameClock.Source.Override(new Marrow.UI.Port.ManualFrameSource());
+        var recorder = new ShellRecorder();
+        var shell = new AppShell(launch.Delegate, recorder.Exit, recorder.AfterWillTerminate);
+        var prepare = typeof(AppShell).GetMethod("PrepareBoot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(prepare);
+        launch.Harness.Main.OnMain(() => prepare.Invoke(shell, null));
+        var main = launch.Manager.MainWindow!;
+        try
+        {
+            Assert.False(launch.Manager.HasCreatedModel);
+            launch.Harness.Main.OnMain(main.Close);
+            Assert.Equal(new[] { "exit" }, recorder.Calls);
+            Assert.False(launch.Manager.HasCreatedModel);
+        }
+        finally
+        {
+            var boot = (BootStageWindow?)typeof(AppDelegate).GetField("preparedBoot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(launch.Delegate);
+            boot?.Window.Close();
+            main.Hide();
+        }
+    });
+
     private void WithLaunch(Action<LaunchHarness, AppShell, ShellRecorder> body) => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h => h.Defaults.Set("hasSeenTour", true));

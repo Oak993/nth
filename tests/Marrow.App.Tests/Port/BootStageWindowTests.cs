@@ -29,6 +29,56 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
 {
     private const double Step = 0.05;
 
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    public void Preparing_the_cloaked_window_waits_until_the_render_callback_returns() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var main = MainWindow(new Border());
+        var attempts = 0;
+        var boot = BootStageWindow.Start(main, false, main.Show, (_, _) => { attempts++; return false; });
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            time.Advance(TimeSpan.FromSeconds(.05));
+            frames.Advance(TimeSpan.FromSeconds(.05));
+            Assert.Equal(0, attempts);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(1, attempts);
+            Frame(time, frames, .05);
+            Assert.Equal(1, attempts);
+        }
+        finally { boot.Window.Close(); main.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-103")]
+    public void The_stage_closes_after_the_render_callback_has_returned() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var main = MainWindow(new Border());
+        var boot = BootStageWindow.Start(main, true, main.Show);
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            boot.Ready();
+            time.Advance(TimeSpan.FromSeconds(2.1));
+            frames.Advance(TimeSpan.FromSeconds(2.1));
+            Assert.True(boot.Stage.Frame.StageClosed);
+            Assert.True(boot.Window.IsVisible); // no HWND destruction during MediaContext.Render
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(boot.Window.IsVisible);
+            Assert.Equal(0, frames.Pending);
+        }
+        finally { boot.Window.Close(); main.Close(); }
+    });
+
     private static void Frame(ManualTimeProvider time, ManualFrameSource frames, double seconds)
     {
         time.Advance(TimeSpan.FromSeconds(seconds));
