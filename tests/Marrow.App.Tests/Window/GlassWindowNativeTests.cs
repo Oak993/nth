@@ -44,6 +44,11 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
 
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern long GetWindowLongPtr(nint window, int index);
+
+    private static bool Layered(nint window) => (GetWindowLongPtr(window, -20) & 0x80000) != 0; // GWL_EXSTYLE, WS_EX_LAYERED
+
     private static void Themeless(AvaloniaWindow window) =>
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
 
@@ -250,6 +255,10 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         try
         {
             WaitFor(() => native.OnUi(() => window.IsVisible), "the sequence never showed the main window", 8000); // cloaked 0.5 s before the hand-over
+            // Boot B (OD-0113) fades the whole HWND as a layered window while its rectangle grows, and a layered window has no invisible
+            // border in DWM's bounds; the presentation restores the style at the exact final frame, where the outline is the frame
+            var handle = native.OnUi(() => window.TryGetPlatformHandle()!.Handle);
+            WaitFor(() => native.OnUi(() => !Layered(handle)), "the hand-over never restored the main window's own style", 8000);
             var (outline, stageOrigin, visible) = native.OnUi(() =>
                 (stage.OutlineLayout.Frame, stage.Window.Position, WindowManagerNativePlacementGeometry.ReadVisibleBounds(window.TryGetPlatformHandle()!.Handle).VisibleBounds!));
             Assert.InRange(stageOrigin.X + outline.X * scale, visible.Left - 1, visible.Left + 1);
