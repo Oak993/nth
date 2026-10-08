@@ -13,7 +13,7 @@ namespace Marrow.App.Tests.Window.Native;
 public sealed class ToolTipBackdropNativeTests(WindowManagerNativeSession native)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public void The_real_Dark_and_Light_help_tags_attach_their_owned_compositor_blur_and_release_it_on_close()
     {
         native.Run(_ =>

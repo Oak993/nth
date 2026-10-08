@@ -11,7 +11,7 @@ namespace Marrow.App.Tests.Window;
 public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public void Settings_opened_first_gains_Main_as_owner_without_replacing_its_window_or_content()
     {
         WithManager((_, manager) =>
@@ -120,7 +120,7 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Fact]
     [Trait("Req", "PR-SETTINGS-001")]
     [Trait("Req", "PR-WIN-010")]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public void Settings_is_owned_by_main_on_every_open_and_a_close_keeps_main_visible()
     {
         // Owner instruction 2026-10-08 supersedes the previous absence-of-ownership expectation.

@@ -16,7 +16,7 @@ namespace Marrow.App.Tests.Window.Native;
 public sealed class SettingsOwnershipNativeTests(WindowManagerNativeSession native)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public void Real_Settings_and_its_input_stay_above_Main_follow_owner_minimise_restore_and_close_once()
     {
         native.Run(_ =>

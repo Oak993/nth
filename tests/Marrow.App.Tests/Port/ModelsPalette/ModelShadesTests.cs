@@ -8,7 +8,7 @@ namespace Marrow.App.Tests.Port.ModelsPalette;
 public sealed class ModelShadesTests
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public async Task A_timer_callback_queued_before_disposal_never_posts_to_the_retired_actor()
     {
         using var roots = new ModelsPaletteRoots(); using var fake = new PalettePipelineFixture();
@@ -24,7 +24,7 @@ public sealed class ModelShadesTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public async Task A_drain_already_enqueued_before_disposal_does_not_publish_a_change()
     {
         using var roots = new ModelsPaletteRoots(); using var fake = new PalettePipelineFixture();

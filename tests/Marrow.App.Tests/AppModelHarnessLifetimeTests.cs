@@ -8,7 +8,7 @@ public sealed class AppModelHarnessLifetimeTests
 {
     [Fact]
     [Trait("Rule", "R-TEST-5")]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public async Task Teardown_stops_palette_lifetimes_of_directly_constructed_models_before_retiring_the_actor()
     {
         using var fake = new Marrow.Services.Tests.Fixtures.PalettePipelineFixture();

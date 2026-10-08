@@ -19,7 +19,7 @@ namespace Marrow.UI.Tests.Port;
 public sealed class ToolTipThemeTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public void A_help_tag_recreates_its_backdrop_blur_when_the_same_popup_changes_DPI() => headless.OnUiThread(() =>
     {
         var owner = HeadlessPopupHost.OverlayWindow(new Border()); owner.Show();
@@ -46,7 +46,7 @@ public sealed class ToolTipThemeTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public void A_failed_partial_help_tag_attachment_releases_its_owned_brush_exactly_once() => headless.OnUiThread(() =>
     {
         var window = new Window();
@@ -63,7 +63,7 @@ public sealed class ToolTipThemeTests(HeadlessSession headless)
     [Theory]
     [InlineData("Dark", 1.0)]
     [InlineData("Light", 0.8)]
-    [Trait("Decision", "ED-NEW-T45")]
+    [Trait("Decision", "ED-NEW-windows-45")]
     public void Help_tag_has_a_separate_45_point_backdrop_blur_under_its_unchanged_fill(string variant, double saturation) => headless.OnUiThread(() =>
     {
         var (window, tip) = Open(variant == "Dark" ? ThemeVariant.Dark : ThemeVariant.Light);
