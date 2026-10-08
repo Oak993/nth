@@ -101,6 +101,7 @@ public sealed class MCPCustomEditorRealPresenterTests(HeadlessSession headless)
         {
             rig.OpenAdd(); var popup = Assert.Single(rig.Presenter.Popups); rig.Do(() => Field(rig.Editor!, "My server").Text = "Draft");
             var outside = new Point(rig.Window.Width - 5, rig.Window.Height - 5);
+            Assert.NotNull(rig.Window.InputHitTest(outside));
             rig.Press(outside);
             Assert.False(popup.IsOpen, "a press outside did not close the editor popover"); Assert.Null(rig.Editor); Assert.Empty(rig.Model.Mcp.Customs);
             rig.OpenAdd(); Assert.Equal("", Field(rig.Editor!, "My server").Text);

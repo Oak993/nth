@@ -308,7 +308,7 @@ public sealed class WindowManager
     // :80-84 private func makeSettingsWindow() -> NSWindow
     private AvaloniaWindow MakeSettingsWindow()
     {
-        var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow()); // :81
+        var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow { AllowsCaptionMaximize = true }); // :81; ED-NEW-T45 owner caption override
         if (settingsView is not null) SettingsShell.Install(window);
         WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
         // DEVIATION OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, every colour in it
@@ -377,7 +377,7 @@ public sealed class WindowManager
         WindowChrome.Configure(window); // :101
         // ED-063: SetNonClientHitTestResult declares the app-drawn caption controls, but Windows does not execute
         // their commands for an Avalonia full-decoration window. Keep the hook with the window for its full lifetime.
-        Win32Properties.AddWndProcHookCallback(window, (nint hWnd, uint message, nint wParam, nint lParam, ref bool handled) =>
+        NativeWindowHooks.Add(window, (nint hWnd, uint message, nint wParam, nint lParam, ref bool handled) =>
             HandleNativeWindowMessage(window, hWnd, message, wParam, lParam, ref handled));
 
         var liveResize = new WindowLiveResize(window); // :103
@@ -385,6 +385,8 @@ public sealed class WindowManager
         // :105 hosting.frame = frame, :106 NSView(frame: frame): the plain container fills the client area and lays
         // its one child out over the whole of it.
         var container = new Panel();
+        container.Track(() => Model.Settings.AppZoom, percent =>
+            WindowChrome.SetCaptionScale(window, AppZoom.Normalized(percent is >= int.MinValue and <= int.MaxValue ? (int)percent : 100) / 100.0));
         container.Children.Add(hosting); // :107
         container.Children.Add(WindowChrome.CaptionLayer(window)); // OD-0044: the caption buttons over the content
         window.Content = container; // :108
@@ -418,8 +420,16 @@ public sealed class WindowManager
             captionStates.Add(window, state);
         }
 
+        if (message == WM_NCLBUTTONDOWN) PopoverHost.DismissOutside(window);
         switch (message)
         {
+            case WM_NCHITTEST:
+            {
+                var point = new PixelPoint(unchecked((short)(lParam.ToInt64() & 0xffff)), unchecked((short)((lParam.ToInt64() >> 16) & 0xffff)));
+                var caption = WindowChrome.CaptionHitTest(window, window.PointToClient(point));
+                if (caption != 0) { handled = true; return caption; }
+                break;
+            }
             // OD-0044: the caption buttons' hover (Turn pulse) follows the non-client pointer: WM_NCMOUSEMOVE names the
             // hit-test value under it, and WM_NCMOUSELEAVE (asked for once per entry with TrackMouseEvent) ends it.
             case WM_NCMOUSEMOVE:
@@ -748,7 +758,7 @@ public sealed class WindowLiveResize : MainActorModel
     public WindowLiveResize(AvaloniaWindow window)
     {
         this.window = window;
-        Win32Properties.AddWndProcHookCallback(window, WndProc);
+        NativeWindowHooks.Add(window, WndProc);
     }
 
     // :133-138 the two observations, on the window's own (main) thread: MainActor.assumeIsolated.
@@ -824,6 +834,18 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
     {
         AppEnvironment.SetAppModel(content, Model); // :171 .environment(model)
         AppEnvironment.SetWindowLiveResize(content, LiveResize); // :172 .environment(liveResize)
+        // ED-NEW-T45: Settings' fixed frame describes the visible card. Its inner layout must fit the zoom proposal.
+        void FitSettings(long percent)
+        {
+            if (!Zooms || content is not SettingsView settings) return;
+            var scale = AppZoom.Normalized(Percent(percent)) / 100.0;
+            settings.UseLayoutRounding = false; // round after scaling, rather than rounding the inverse frame's fractional size
+            var viewport = TopLevel.GetTopLevel(settings)?.Content is SettingsShell shell
+                ? new Avalonia.Size(shell.Client.Width, shell.Client.Height) : new Avalonia.Size(780, 580);
+            settings.Width = viewport.Width / scale;
+            settings.Height = viewport.Height / scale;
+        }
+        FitSettings(Model.Settings.AppZoom);
         // :173-175 The zoom in Settings scales the whole app: every window root and every chat column carries it, so the
         // sidebar, settings and composer move together.
         // Lead (native gallery at 200 %, 2026-10-08): on the Mac a chat column is an NSHostingView of its own, which the window
@@ -833,9 +855,14 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
         var zoomed = Zooms ? new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content) : content;
         Popovers.SetIsCapsuleButtonBorderShape(zoomed, true); // :176 .buttonBorderShape(.capsule)
         var tinted = new ThemeTint(Model.Settings.Theme, Model.Settings.Accent).Body(zoomed); // :177
+        if (Zooms && content is SettingsView) tinted.SizeChanged += (_, _) => FitSettings(Model.Settings.AppZoom);
         // The body reads model.settings.appZoom (:175) and model.settings.theme (:177), so SwiftUI evaluates it again
         // when either changes; AppZoomModifier keeps its layout and ThemeTint its view when they are evaluated again.
-        if (Zooms) tinted.Track(() => Model.Settings.AppZoom, percent => new AppZoomModifier(Percent(percent)).Body(content));
+        if (Zooms) tinted.Track(() => Model.Settings.AppZoom, percent =>
+        {
+            FitSettings(percent);
+            new AppZoomModifier(Percent(percent)).Body(content);
+        });
         tinted.Track(() => (Model.Settings.Theme, Model.Settings.Accent), pair => new ThemeTint(pair.Theme, pair.Accent).Body(zoomed)); // and the accent (OD-0088)
         return tinted;
     }

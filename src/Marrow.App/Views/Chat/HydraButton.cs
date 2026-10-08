@@ -117,13 +117,12 @@ public sealed class HydraButton : Decorator
         // :86-88
         var switchPopover = PlainControls.Popover(button, switching, () =>
             new HydraSwitchPopover(thread, model.HydraIsOn(thread), switching, model));
-        // :89-92 .interactiveDismissDisabled(): a click elsewhere does not dismiss the intro.
+        // ED-NEW-T45, owner override: the intro can dismiss without acknowledging it.
         var intro = PlainControls.Popover(button, introducing, () => new HydraIntroPopover(() =>
         {
             model.Settings.HasSeenHydraIntro = true;
             state.IsIntroShown = false;
         }));
-        intro.IsLightDismissEnabled = false;
 
         // :77-79 .background { HydraRightTap { isHydraSwitchShown.toggle() } }
         var tap = new HydraRightTap(() => state.IsHydraSwitchShown = !state.IsHydraSwitchShown);
@@ -182,8 +181,8 @@ public sealed class HydraButton : Decorator
     // :36-37
     private void OnClick()
     {
-        if (!model.Settings.HasSeenHydraIntro) state.IsIntroShown = true;
-        else if (model.PanelHeads(thread.Id).Count == 0) state.IsExplaining = true;
+        if (!model.Settings.HasSeenHydraIntro) state.IsIntroShown = !state.IsIntroShown;
+        else if (model.PanelHeads(thread.Id).Count == 0) state.IsExplaining = !state.IsExplaining;
         else TogglePanel();
     }
 

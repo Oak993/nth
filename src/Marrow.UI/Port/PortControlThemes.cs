@@ -260,6 +260,11 @@ public static class PortControlThemes
         SoftScroll.Install(); // OD-0071 (ED-246): a ScrollViewer marked SoftScroll.IsEnabled (the chat timeline's, ED-333) scrolls softly
         application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
+        // ED-NEW-T45: every .help site uses a long dwell, including after a previous tag.
+        application.Styles.Add(new Style(selector => selector.Is<Control>())
+        {
+            Setters = { new Setter(ToolTip.ShowDelayProperty, 1500), new Setter(ToolTip.BetweenShowDelayProperty, 0) },
+        });
         application.Resources[typeof(Slider)] = SliderTheme;
         RegisterPrimaryTextDefault(application);
         GreyscaleText.Register(application); // OD-0099 Q-TEXT A: text is greyscale everywhere (GreyscaleText.cs)

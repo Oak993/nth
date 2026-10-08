@@ -59,11 +59,11 @@ public sealed class AttachmentPreviewCoordinator
     {
         popup.IsLightDismissEnabled = false; // :35 popover.behavior = .applicationDefined: no automatic dismissal
         // :151-158 popoverDidClose: a defensive resync for a close this coordinator did not itself drive.
-        // Every close in this port goes through Close() first (IsLightDismissEnabled disables Avalonia's own
-        // light dismiss, matching applicationDefined), so this only guards against a future direct IsOpen=false.
+        // An owner/anchor can disappear without Close(). Read the actual popup state before resyncing the mirror.
         popup.Closed += (_, _) =>
         {
-            if (isShown) return; // :154 guard self.popover.isShown else return... (still considered open: ignore)
+            if (popup.IsOpen) return; // :154 guard self.popover.isShown else return...
+            isShown = false;
             StopMonitors();
             currentID = null;
         };

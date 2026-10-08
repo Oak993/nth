@@ -30,7 +30,7 @@ public sealed class AppShell : ITerminationSender
     /// <summary>PORT-ONLY seam: what puts a window procedure hook on the main window, Avalonia's own (a headless window has no
     /// Win32 window procedure, so a test records the hook and calls it as Windows would, to prove it is installed).</summary>
     internal static Ambient<Action<TopLevel, Win32Properties.CustomWndProcHookCallback>> AddWindowProcedureHook { get; } =
-        new((window, hook) => Win32Properties.AddWndProcHookCallback(window, hook));
+        new((window, hook) => NativeWindowHooks.Add(window, hook));
 
     private readonly Action exit;
     private readonly Action afterWillTerminate;

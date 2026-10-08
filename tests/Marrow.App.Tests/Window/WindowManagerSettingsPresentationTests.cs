@@ -91,7 +91,7 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
             Assert.True(settings.MinHeight <= 580);
             Assert.False(settings.CanResize);
             Assert.True(settings.CanMinimize);
-            Assert.False(settings.CanMaximize);
+            Assert.True(settings.CanMaximize); // T45 owner caption override.
             Assert.True(settings.ExtendClientAreaToDecorationsHint);
             Assert.Equal(WindowDecorations.Full, settings.WindowDecorations);
             Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(settings.Background).Color);

@@ -19,6 +19,36 @@ namespace Marrow.UI.Tests.Common;
 [Collection("Headless")]
 public sealed class AttachmentPreviewPopoverCardTests(HeadlessSession headless)
 {
+    [Theory]
+    [InlineData("hide")]
+    [InlineData("popup")]
+    [Trait("Decision", "ED-107")]
+    public void Hiding_the_owner_releases_preview_monitors_and_the_same_attachment_reopens_in_one_click(string removal) => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var anchor = new Border { Width = 60, Height = 60 };
+        var window = HeadlessPopupHost.OverlayWindow(new Canvas { Children = { anchor } });
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        var coordinator = new AttachmentPreviewCoordinator();
+        var popup = coordinator.PopupForTests; popup.ShouldUseOverlayLayer = true;
+        var attachment = Sample("hidden.txt");
+        try
+        {
+            coordinator.Toggle(attachment, anchor); Dispatcher.UIThread.RunJobs();
+            Assert.True(popup.IsOpen);
+            if (removal == "hide") window.Hide(); else popup.IsOpen = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(popup.IsOpen);
+            Assert.Null(coordinator.CurrentIDForTests);
+            foreach (var field in new[] { "pointerMonitor", "keyMonitor", "monitorWindow" })
+                Assert.Null(typeof(AttachmentPreviewCoordinator).GetField(field, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator));
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            coordinator.Toggle(attachment, anchor); Dispatcher.UIThread.RunJobs();
+            Assert.True(popup.IsOpen);
+        }
+        finally { coordinator.Close(); popup.IsOpen = false; window.Close(); Dispatcher.UIThread.RunJobs(); }
+    });
+
     private static Attachment Sample(string name) => new() { Name = name, Path = "Z:\\does-not-exist\\" + name, MimeType = "text/plain" };
 
     [Fact]

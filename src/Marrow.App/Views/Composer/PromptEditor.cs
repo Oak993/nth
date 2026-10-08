@@ -413,7 +413,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
         if (popup is null)
         {
             popup = new Popup { IsLightDismissEnabled = false };
-            popup.Closed += (_, _) => presented = false;
+            popup.Closed += (_, _) => { presented = false; StopMonitors(); };
             popup.LayoutUpdated += (_, _) =>
             {
                 if (PopoverHost.Content(popup) is { } currentContent) // the hosted view, not the card it hangs on (OD-0095)
@@ -428,7 +428,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
         popup.Child = host;
         ResizeToContent(popup, host, initial: true);
         presented = true;
-        Presentation.Presenter.Current.SetPresented(popup, true);
+        Presentation.SetPresented(popup, true, target, () => { dismiss(); Close(); });
         StartMonitors(target);
     }
 
@@ -488,7 +488,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
 
     private void OnOtherTopLevelKeyDown(TopLevel topLevel, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape || ReferenceEquals(topLevel, monitorWindow)) return; // the window handler owns that one
+        if (e.Handled || e.Key != Key.Escape || ReferenceEquals(topLevel, monitorWindow)) return; // the window handler owns that one
         dismiss();
         e.Handled = true; // :243 return nil: the key is consumed
     }
@@ -514,7 +514,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
     // :240-246 private key-down monitor
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape) return;
+        if (e.Handled || e.Key != Key.Escape) return;
         dismiss();
         e.Handled = true;
     }

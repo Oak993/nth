@@ -140,7 +140,15 @@ public sealed class ThreadWindow : AvaloniaWindow
 public sealed class SecondaryWindow : AvaloniaWindow
 {
     // A class handler, as ThreadWindow's: it runs at the window before any instance handler.
-    static SecondaryWindow() => KeyDownEvent.AddClassHandler<SecondaryWindow>((window, e) => window.Dispatch(e), RoutingStrategies.Tunnel);
+    static SecondaryWindow()
+    {
+        // ED-NEW-T45 owner override: Settings can maximize without introducing a manual resize border.
+        CanMaximizeProperty.OverrideMetadata<SecondaryWindow>(new StyledPropertyMetadata<bool>(
+            coerce: (owner, value) => value && (owner is SecondaryWindow window && (window.CanResize || window.AllowsCaptionMaximize))));
+        KeyDownEvent.AddClassHandler<SecondaryWindow>((window, e) => window.Dispatch(e), RoutingStrategies.Tunnel);
+    }
+
+    internal bool AllowsCaptionMaximize { get; init; }
 
     /// <summary>NSWindow.attachedSheet: the sheet over this window, or null.</summary>
     public Control? AttachedSheet { get; set; }

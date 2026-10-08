@@ -1972,7 +1972,7 @@ internal sealed class ContextMeter : Decorator
                 button.HorizontalAlignment = HorizontalAlignment.Left; // :717-728 the label keeps its padded natural width
                 button.Padding = new Thickness(6, 5); // :726-728 rectangular hit area
                 popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :737
-                popup.Closed += (_, _) => state.IsPresented = false;
+                popup.Closed += (_, _) => { popup.Child = null; state.IsPresented = false; };
             }
             else button.Content = ring;
             if (!inTree)
@@ -1996,9 +1996,8 @@ internal sealed class ContextMeter : Decorator
         {
             if (popup is null || shown == presented) return;
             presented = shown;
-            if (shown) popup.Child = Content(runtime.Usage, AppEnvironment.GetAppModel(this));
+            if (shown && popup.Child is null) popup.Child = Content(runtime.Usage, AppEnvironment.GetAppModel(this));
             Presentation.Presenter.Current.SetPresented(popup, shown);
-            if (!shown) popup.Child = null;
         });
         DetachedFromVisualTree += (_, _) => { if (presented && popup is not null) Presentation.Presenter.Current.SetPresented(popup, false); };
 

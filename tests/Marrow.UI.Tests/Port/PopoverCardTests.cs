@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Marrow.Core.Port;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
 
@@ -550,7 +551,11 @@ public sealed class PopoverCardTests(HeadlessSession headless)
     [InlineData(false)]
     public void A_press_beside_the_tip_is_outside_the_popover(bool lightDismiss) => headless.OnUiThread(() =>
     {
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var manualFrames = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manualFrames);
+        var clock = new Marrow.Testing.ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        void Step(int ms) { clock.Advance(TimeSpan.FromMilliseconds(ms)); manualFrames.Advance(TimeSpan.FromMilliseconds(ms)); }
         var anchor = new Border { Width = 20, Height = 20, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 20) };
         var window = HeadlessPopupHost.OverlayWindow(anchor);
         window.Show();
@@ -560,6 +565,7 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         {
             Presentation.Presenter.Current.SetPresented(popup, true);
             Dispatcher.UIThread.RunJobs();
+            Step(300); // the pointer interacts with the settled panel
             window.UpdateLayout();
             var card = Assert.IsType<PopoverCard>(popup.Child);
             Assert.Equal(PopoverTipEdge.Bottom, card.TipEdge);
@@ -581,6 +587,10 @@ public sealed class PopoverCardTests(HeadlessSession headless)
             Press(card.Child!, inside); // on the card: still open
             Assert.True(popup.IsOpen);
             Press(host, beside); // nothing of the card under it: the press reaches the top-level itself
+            Assert.True(popup.IsOpen); // T45: dismissal preserves the visible close frames
+            Step(80);
+            if (lightDismiss) Assert.InRange(popup.Child!.Opacity, .1, .9);
+            Step(100);
             Assert.Equal(!lightDismiss, popup.IsOpen);
         }
         finally

@@ -203,31 +203,6 @@ public static class PlainControls
             PlacementTarget = anchor,
             IsLightDismissEnabled = true,
         };
-        Action? releaseMotionDismiss = null;
-        void ReleaseMotionDismiss() { releaseMotionDismiss?.Invoke(); releaseMotionDismiss = null; }
-        void ListenForMotionDismiss()
-        {
-            ReleaseMotionDismiss();
-            if (popup.GetValue(Presentation.MotionProperty) is null) return;
-            // Native light-dismiss closes immediately; approved custom motion must instead close through the binding.
-            popup.IsLightDismissEnabled = false;
-            if (WindowTransients.WindowOf(anchor) is not { } owner) return;
-            void Press(object? sender, PointerPressedEventArgs e)
-            {
-                if (e.Source is Visual source && (ReferenceEquals(source, anchor) || source.GetVisualAncestors().Contains(anchor))) return;
-                if (popup.Child is { } child && (ReferenceEquals(e.Source, child) || e.Source is Visual inside && inside.GetVisualAncestors().Contains(child))) return;
-                Presentation.DismissMotion(popup);
-            }
-            void Deactivate(object? sender, EventArgs e) => Presentation.DismissMotion(popup);
-            owner.AddHandler(InputElement.PointerPressedEvent, Press, RoutingStrategies.Tunnel, handledEventsToo: true);
-            if (owner is Window window) window.Deactivated += Deactivate;
-            releaseMotionDismiss = () =>
-            {
-                owner.RemoveHandler(InputElement.PointerPressedEvent, Press);
-                if (owner is Window window) window.Deactivated -= Deactivate;
-            };
-        }
-        popup.DetachedFromVisualTree += (_, _) => ReleaseMotionDismiss();
         popup.Opened += (_, _) =>
         {
             if (PopoverHost.Content(popup) is DeferredPopoverContent) popup.Child = content(); // OD-0095: the presenter may have hung it on its card
@@ -235,7 +210,6 @@ public static class PlainControls
         };
         popup.Closed += (_, _) =>
         {
-            ReleaseMotionDismiss();
             popup.Child = null;
             if (isPresented.Value) isPresented.Value = false;
         };
@@ -246,11 +220,9 @@ public static class PlainControls
             shown = presented;
             if (presented)
             {
-                ListenForMotionDismiss();
                 if (buildBeforeOpen) popup.Child ??= content(); // Build before native Popup.Open captures its child; lazy per presentation.
                 else if (popup.Child is null) popup.Child = new DeferredPopoverContent();
             }
-            else ReleaseMotionDismiss();
             Presentation.SetPresented(popup, presented, anchor, () => isPresented.Value = false);
         });
         return popup;

@@ -9,7 +9,7 @@
 // opacity linear over the first 60 ms. Closing (2-chat-use.mov 42.77-42.94 s, the model list after a choice): the card
 // shrinks back into its arrow while fading, its relative size about 0.62 at 43 ms, 0.33 at 93 ms, 0.15 at 135 ms, gone
 // by about 170 ms; fitted as a decay of time constant 0.08 s to a tenth and a linear fade over 0.17 s (UNVERIFIED fit).
-// A light dismiss is closed by the Popup itself, at once (open item).
+// ED-NEW-T45: light dismissal goes through the same motion; replacing a motion cancels its outstanding frame.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -24,13 +24,24 @@ public static class PopoverAppear
     /// <summary>Opt-in Q-RM A sheet motion. Other popovers keep the measured scale by default.</summary>
     public static readonly AttachedProperty<bool> StillProperty = AvaloniaProperty.RegisterAttached<Control, bool>("Still", typeof(PopoverAppear));
     private static readonly AttachedProperty<int> FadeVersionProperty = AvaloniaProperty.RegisterAttached<Control, int>("FadeVersion", typeof(PopoverAppear));
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Control, Action> running = new();
+
+    private static void Stop(Control content)
+    {
+        if (!running.TryGetValue(content, out var cancel)) return;
+        running.Remove(content);
+        cancel();
+    }
+
+    internal static void Cancel(Control content) => Stop(content);
 
     public static Action Fade(Control content, bool opening, Action? closed = null)
     {
+        Stop(content);
         var version = content.GetValue(FadeVersionProperty) + 1;
         content.SetValue(FadeVersionProperty, version);
         if (!FrameClock.IsBound) { content.Opacity = opening ? 1 : 0; closed?.Invoke(); return () => { }; }
-        var from = opening ? 0 : content.Opacity;
+        var from = opening && content.Opacity >= 1 ? 0 : content.Opacity;
         content.Opacity = from;
         var start = SwiftClock.Now;
         var duration = opening ? FadeSeconds : CloseSeconds;
@@ -40,11 +51,12 @@ public static class PopoverAppear
         {
             if (content.GetValue(FadeVersionProperty) != version) return;
             var fraction = Math.Clamp((SwiftClock.Now - start).TotalSeconds / duration, 0, 1);
-            content.Opacity = opening ? fraction : from * (1 - fraction);
-            if (fraction == 1) { closed?.Invoke(); return; }
+            content.Opacity = opening ? from + (1 - from) * fraction : from * (1 - fraction);
+            if (fraction == 1) { running.Remove(content); closed?.Invoke(); return; }
             frames.RequestFrame(tick!);
         };
         frames.RequestFrame(tick);
+        running.AddOrUpdate(content, () => { content.SetValue(FadeVersionProperty, version + 1); frames.CancelFrame(tick); });
         return () => { content.SetValue(FadeVersionProperty, version + 1); frames.CancelFrame(tick); content.Opacity = 1; };
     }
     internal const double StartScale = 0.1;
@@ -57,28 +69,35 @@ public static class PopoverAppear
     /// </summary>
     public static void Play(Control content, PlacementMode placement)
     {
+        Stop(content);
         if (content.GetValue(StillProperty)) { Fade(content, opening: true); return; }
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) return; // a site's own transform is kept
         content.RenderTransformOrigin = Origin(content, placement);
-        var scale = new ScaleTransform(StartScale, StartScale);
+        var from = content.RenderTransform is ScaleTransform current ? current.ScaleX : StartScale;
+        var fromOpacity = content.RenderTransform is ScaleTransform ? content.Opacity : 0;
+        var scale = new ScaleTransform(from, from);
         content.RenderTransform = scale;
-        content.Opacity = 0;
+        content.Opacity = fromOpacity;
         var start = SwiftClock.Now;
         var frames = FrameClock.Source.Current;
+        var version = content.GetValue(FadeVersionProperty) + 1;
+        content.SetValue(FadeVersionProperty, version);
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
+            if (content.GetValue(FadeVersionProperty) != version) return;
             var seconds = (SwiftClock.Now - start).TotalSeconds;
             var done = seconds >= Grow.Duration;
             var progress = done ? 1 : Grow.Progress(seconds);
-            var size = StartScale + (1 - StartScale) * progress;
+            var size = from + (1 - from) * progress;
             scale.ScaleX = size;
             scale.ScaleY = size;
-            content.Opacity = Math.Clamp(seconds / FadeSeconds, 0, 1);
-            if (done) { content.RenderTransform = null; content.Opacity = 1; return; }
+            content.Opacity = fromOpacity + (1 - fromOpacity) * Math.Clamp(seconds / FadeSeconds, 0, 1);
+            if (done) { running.Remove(content); content.RenderTransform = null; content.Opacity = 1; return; }
             frames.RequestFrame(tick!);
         };
         frames.RequestFrame(tick);
+        running.AddOrUpdate(content, () => { content.SetValue(FadeVersionProperty, version + 1); frames.CancelFrame(tick); });
     }
 
     internal const double CloseSeconds = 0.17;
@@ -90,6 +109,7 @@ public static class PopoverAppear
     /// </summary>
     public static Action Dismiss(Control content, PlacementMode placement, Action closed)
     {
+        Stop(content);
         if (content.GetValue(StillProperty)) return Fade(content, opening: false, closed);
         if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) { closed(); return () => { }; }
         content.RenderTransformOrigin = Origin(content, placement);
@@ -108,6 +128,7 @@ public static class PopoverAppear
             if (seconds >= CloseSeconds)
             {
                 stopped = true;
+                running.Remove(content);
                 content.RenderTransform = null;
                 content.Opacity = 1;
                 closed();
@@ -120,10 +141,12 @@ public static class PopoverAppear
             frames.RequestFrame(tick!);
         };
         frames.RequestFrame(tick);
+        running.AddOrUpdate(content, () => { stopped = true; frames.CancelFrame(tick); });
         return () =>
         {
             if (stopped) return;
             stopped = true;
+            running.Remove(content);
             frames.CancelFrame(tick);
             content.RenderTransform = null;
             content.Opacity = 1;

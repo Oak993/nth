@@ -6,6 +6,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using HostWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Port;
@@ -44,14 +46,17 @@ internal sealed class SettingsShellInput : IDisposable
         catch { DestroyWindow(Handle); UnregisterClass(className, module); throw; }
         window.PositionChanged += OnPosition;
         window.ScalingChanged += OnScaling;
+        window.SizeChanged += OnSize;
         window.PropertyChanged += OnChanged;
         window.Closed += OnClosed;
-        Win32Properties.AddWndProcHookCallback(window, (nint hwnd, uint message, nint wp, nint lp, ref bool handled) =>
+        NativeWindowHooks.AddFirst(window, (nint hwnd, uint message, nint wp, nint lp, ref bool handled) =>
         {
             if (!disposed && message == 0x84)
             {
                 // Without a system caption HitTestNCA returns HTCLIENT before Avalonia visits its controls.
-                var point = new PixelPoint((short)(lp.ToInt64() & 0xffff), (short)((lp.ToInt64() >> 16) & 0xffff));
+                var point = new PixelPoint(unchecked((short)(lp.ToInt64() & 0xffff)), unchecked((short)((lp.ToInt64() >> 16) & 0xffff)));
+                var caption = WindowChrome.CaptionHitTest(window, window.PointToClient(point));
+                if (caption != 0) { handled = true; return caption; }
                 var hit = window.GetVisualAt(window.PointToClient(point), visual =>
                     visual is not IInputElement input || (input.IsHitTestVisible && input.IsEffectivelyVisible));
                 handled = true;
@@ -98,6 +103,7 @@ internal sealed class SettingsShellInput : IDisposable
     }
     private void OnPosition(object? _, PixelPointEventArgs e) => Place();
     private void OnScaling(object? _, EventArgs e) => Place();
+    private void OnSize(object? _, SizeChangedEventArgs e) => Place();
     private void OnChanged(object? _, AvaloniaPropertyChangedEventArgs e)
     {
         if (e.Property == Visual.IsVisibleProperty && !window.IsVisible) Hide();
@@ -134,7 +140,7 @@ internal sealed class SettingsShellInput : IDisposable
             }
             if (clientMouse)
             {
-                var x = (short)(lp.ToInt64() & 0xffff); var y = (short)((lp.ToInt64() >> 16) & 0xffff);
+                var x = unchecked((short)(lp.ToInt64() & 0xffff)); var y = unchecked((short)((lp.ToInt64() >> 16) & 0xffff));
                 var inset = (int)Math.Round(shell.Inset * window.RenderScaling);
                 lp = Pack(x + inset, y + inset);
             }
@@ -151,13 +157,14 @@ internal sealed class SettingsShellInput : IDisposable
             && point.Y < origin.Y + shell.Client.Height * window.RenderScaling;
     }
     private static PixelPoint Cursor() { GetCursorPos(out var point); return point; }
-    private static nint Pack(int x, int y) => (nint)((uint)(ushort)x | ((uint)(ushort)y << 16));
+    private static nint Pack(int x, int y) => unchecked((nint)((uint)(ushort)x | ((uint)(ushort)y << 16)));
 
     public void Dispose()
     {
         if (disposed) return;
         disposed = true;
         window.PositionChanged -= OnPosition; window.ScalingChanged -= OnScaling;
+        window.SizeChanged -= OnSize;
         window.PropertyChanged -= OnChanged; window.Closed -= OnClosed;
         if (dropRegistered) RevokeDragDrop(Handle);
         automation.Release(Handle);
