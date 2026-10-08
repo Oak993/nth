@@ -148,6 +148,7 @@ public sealed class WindowManager
     {
         var window = mainWindow ?? MakeMainWindow(); // :27
         mainWindow = window; // :28
+        if (settingsWindow is SecondaryWindow settings) settings.SetMainOwner(window);
         Present(window); // :29
     }
 
@@ -267,7 +268,17 @@ public sealed class WindowManager
     // :59 the ordering front of makeKeyAndOrderFront, without its activation (Present; the Settings open, ED-249).
     private void ShowRestoring(AvaloniaWindow window)
     {
-        window.Show();
+        if (ReferenceEquals(window, settingsWindow) && window is SecondaryWindow settings)
+        {
+            // Owner instruction, 2026-10-08 (ED-NEW-T45): Settings cannot be lost
+            // behind Main. Show(owner) installs native ownership before display;
+            // reapply after cached Hide, which Avalonia clears. A Settings-first
+            // open gains its owner when ShowMain first realises the main window.
+            if (mainWindow is { IsVisible: true } main) window.Show(main);
+            else window.Show();
+            settings.SetMainOwner(mainWindow);
+        }
+        else window.Show();
         // OD-0038: a minimised window is restored to the state it had before it was minimised (normal or maximised),
         // for the second launch and the reopen alike. Whether makeKeyAndOrderFront alone deminiaturizes is UNVERIFIED
         // (OD-0001); the owner ruled it does here.

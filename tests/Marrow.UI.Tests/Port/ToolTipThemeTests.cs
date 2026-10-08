@@ -18,6 +18,65 @@ namespace Marrow.UI.Tests.Port;
 [Collection("Headless")]
 public sealed class ToolTipThemeTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Decision", "ED-NEW-T45")]
+    public void A_help_tag_recreates_its_backdrop_blur_when_the_same_popup_changes_DPI() => headless.OnUiThread(() =>
+    {
+        var owner = HeadlessPopupHost.OverlayWindow(new Border()); owner.Show();
+        var card = new Border { Width = 120, Height = 19, Margin = new Thickness(8) };
+        var backdrop = new ToolTipBackdrop(card);
+        var panel = new Panel { Children = { backdrop, card } };
+        var popup = new Popup { PlacementTarget = owner, Child = panel };
+        var root = HeadlessPopupHost.Open(popup, owner, panel);
+        try
+        {
+            root.Measure(new Size(160, 60)); root.Arrange(new Rect(0, 0, 160, 60));
+            typeof(ToolTipBackdrop).GetMethod("Synchronize", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(backdrop, null);
+            var field = typeof(ToolTipBackdrop).GetField("glass", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var first = Assert.IsType<PopoverGlass>(field.GetValue(backdrop));
+            var scaling = typeof(AvaloniaHeadlessPlatformOptions).Assembly.GetType("Avalonia.Headless.IHeadlessWindow", true)!;
+            scaling.GetMethod("SetRenderScaling")!.Invoke(root.PlatformImpl, [1.5]);
+            Dispatcher.UIThread.RunJobs(); root.UpdateLayout();
+            typeof(ToolTipBackdrop).GetMethod("Synchronize", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(backdrop, null);
+            var next = Assert.IsType<PopoverGlass>(field.GetValue(backdrop));
+            Assert.NotSame(first, next);
+            Assert.Equal(67.5, typeof(PopoverGlass).GetField("tooltipSigma", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(next));
+        }
+        finally { root.Dispose(); owner.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-T45")]
+    public void A_failed_partial_help_tag_attachment_releases_its_owned_brush_exactly_once() => headless.OnUiThread(() =>
+    {
+        var window = new Window();
+        var glass = PopoverGlass.ForToolTip(window, 45, 1);
+        var brush = new ToolTipBrushLifetime();
+        var field = typeof(PopoverGlass).GetField("ownBrush", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        field.SetValue(glass, brush);
+        glass.Dispose(); glass.Dispose();
+        Assert.Equal(1, brush.Disposals);
+        Assert.Null(field.GetValue(glass));
+        window.Close();
+    });
+
+    [Theory]
+    [InlineData("Dark", 1.0)]
+    [InlineData("Light", 0.8)]
+    [Trait("Decision", "ED-NEW-T45")]
+    public void Help_tag_has_a_separate_45_point_backdrop_blur_under_its_unchanged_fill(string variant, double saturation) => headless.OnUiThread(() =>
+    {
+        var (window, tip) = Open(variant == "Dark" ? ThemeVariant.Dark : ThemeVariant.Light);
+        try
+        {
+            var material = Assert.Single(tip.GetVisualDescendants(), node => node.GetType().Name == "ToolTipBackdrop");
+            Assert.Equal(45.0, material.GetType().GetProperty("Sigma")!.GetValue(material));
+            Assert.Equal(saturation, material.GetType().GetProperty("Saturation")!.GetValue(material));
+            Assert.False(((Control)material).IsHitTestVisible);
+        }
+        finally { window.Close(); }
+    });
+
     private static (Window Window, ToolTip Tip) Open(ThemeVariant theme)
     {
         var target = new Border { Width = 100, Height = 40, Background = Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };

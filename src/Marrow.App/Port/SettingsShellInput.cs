@@ -63,6 +63,16 @@ internal sealed class SettingsShellInput : IDisposable
                 return hit is null ? 1 : (nint)Win32Properties.GetNonClientHitTestResult(hit);
             }
             if (!disposed && message == 0x0a) EnableWindow(Handle, wp != 0); // WM_ENABLE: modal owner state
+            if (!disposed && message == 0x18 && lp is 1 or 3) // WM_SHOWWINDOW: SW_PARENTCLOSING / SW_PARENTOPENING
+            {
+                // Main's minimise hides its directly owned Settings window; that
+                // hide does not automatically hide this second-level owned proxy.
+                // Preserve requestedVisible so an owner restore can bring input
+                // back. An explicit Settings close still clears it through Hide.
+                if (wp == 0) ShowWindow(Handle, 0);
+                else if (requestedVisible && window.IsVisible && window.WindowState != WindowState.Minimized)
+                { Place(); ShowWindow(Handle, 4); }
+            }
             if (!disposed && message is 0x02a3 or 0x02a2 && ContainsCursor())
             {
                 // TrackMouseEvent sees the input HWND instead of the GPU HWND. Keep the managed

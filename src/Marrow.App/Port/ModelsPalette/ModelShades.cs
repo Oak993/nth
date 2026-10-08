@@ -36,7 +36,12 @@ public sealed class ModelShades : IDisposable
     private void Schedule()
     {
         if(queued||disposed)return;queued=true;
-        timer=time.CreateTimer(_=>post(Drain),null,TimeSpan.FromMilliseconds(100),Timeout.InfiniteTimeSpan);
+        timer=time.CreateTimer(_=>
+        {
+            // Dispose cannot recall a callback already queued by TimerQueue. Serialize
+            // its post with disposal, before touching the actor (Drain alone is too late).
+            lock(gate) { if(!disposed) post(Drain); }
+        },null,TimeSpan.FromMilliseconds(100),Timeout.InfiniteTimeSpan);
     }
     private void Drain()
     {

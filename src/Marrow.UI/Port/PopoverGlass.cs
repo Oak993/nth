@@ -59,6 +59,9 @@ internal sealed class PopoverGlass : IDisposable
     private Layer? body;
     private Layer? tip;
     private Shape? last;
+    private double? tooltipSigma;
+    private double tooltipSaturation;
+    private object? ownBrush;
 
     private PopoverGlass(TopLevel window, bool dark)
     {
@@ -82,6 +85,8 @@ internal sealed class PopoverGlass : IDisposable
     /// <summary>A glass for the popup window <paramref name="window"/>; it attaches on the first <see cref="Update"/> after
     /// Avalonia has made the window's composition (on its first frame).</summary>
     internal static PopoverGlass For(TopLevel window, bool dark) => new(window, dark);
+    internal static PopoverGlass ForToolTip(TopLevel window, double sigma, double saturation) =>
+        new(window, false) { tooltipSigma = sigma, tooltipSaturation = saturation };
 
     // One clipped stack: the container (IVisual), its geometric clip's rounded rectangle, and the theme layers in it.
     private sealed record Layer(object Container, object Geometry, object[] DarkLayers);
@@ -126,9 +131,9 @@ internal sealed class PopoverGlass : IDisposable
 
     public void Dispose()
     {
-        if (glass is null || syncRoot is null) return;
         try
         {
+            if (glass is null || syncRoot is null) return;
             lock (syncRoot)
             {
                 Api.Call(collection!, Api.Current!.IVisualCollection, "Remove", glass);
@@ -147,8 +152,15 @@ internal sealed class PopoverGlass : IDisposable
         {
             // the window's composition went with the window: nothing left to take back
         }
-        glass = null;
-        body = tip = null;
+        finally
+        {
+            // A tooltip owns its brush even if attachment failed before there
+            // was a container to remove. Clear ownership before releasing it.
+            var brush = ownBrush; ownBrush = null;
+            try { (brush as IDisposable)?.Dispose(); }
+            catch (Exception error) when (NonFatal(error)) { }
+            glass = null; body = tip = null;
+        }
     }
 
     // Anything a reflected call into Avalonia's internals can raise (a renamed or overloaded member, a COM error, a proxy of the
@@ -192,6 +204,7 @@ internal sealed class PopoverGlass : IDisposable
         var blurBrush = api.BlurBrush.GetValue(shared)!;
         lock (syncRoot)
         {
+            if (tooltipSigma is { } sigma) blurBrush = ownBrush = ToolTipBackdropEffect.Create(compositor, sigma, tooltipSaturation);
             var parent = Api.Get(blur, api.IVisual, "Parent") ?? throw new InvalidOperationException("the Acrylic sprite has no container");
             collection = Api.Get(parent, api.IContainerVisual, "Children")!;
             (parent as IDisposable)?.Dispose();

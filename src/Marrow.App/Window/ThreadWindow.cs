@@ -150,6 +150,10 @@ public sealed class SecondaryWindow : AvaloniaWindow
 
     internal bool AllowsCaptionMaximize { get; init; }
 
+    // ED-NEW-T45: an owned, nonmodal window stays above this app's main window
+    // and follows its native minimise/restore, without becoming globally topmost.
+    internal void SetMainOwner(AvaloniaWindow? owner) => Owner = owner;
+
     /// <summary>NSWindow.attachedSheet: the sheet over this window, or null.</summary>
     public Control? AttachedSheet { get; set; }
 
