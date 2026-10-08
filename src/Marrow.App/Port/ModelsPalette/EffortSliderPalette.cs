@@ -58,6 +58,12 @@ public sealed partial class EffortSlider
             if(sample.Frame.Progress>=1&&palette.TitleStops.Count==1&&paletteTitleBrush is not null){paletteSolidTitle=new(Colour(512));paletteTitleBrush=null;EffortView.SetBrush(paletteTitle,b=>paletteTitle.Foreground=b,paletteSolidTitle);}
         }
     }
+    // Lead (native gallery, 2026-10-08): ApplyPaletteJewel runs on the render thread (JewelKnobOperation.Render -> ResolveJewel);
+    // ActualThemeVariant is an AvaloniaProperty, so reading it there threw every frame. The UI thread keeps this copy.
+    private volatile Avalonia.Styling.ThemeVariant? paletteThemeCopy;
+    private Avalonia.Styling.ThemeVariant PaletteTheme => Avalonia.Threading.Dispatcher.UIThread.CheckAccess()
+        ? paletteThemeCopy = ActualThemeVariant
+        : paletteThemeCopy ?? Avalonia.Styling.ThemeVariant.Dark;
     private void ApplyPaletteJewel(float[] into,DateTimeOffset date)
     {
         if(paletteEffect?.SamplePalette(date) is not {} sample)return;
@@ -68,7 +74,7 @@ public sealed partial class EffortSlider
             for(var i=28;i<76;i++)into[i]=from[i]+(into[i]-from[i])*(float)t;
         }
         // Palette glow uses the same sample as the tube and title; the Jewel's own phase stays intact.
-        var k=sample.GlowRow.Length-4;var glow=fastMode?EffortPalette.Fast.Resolve(ActualThemeVariant):new Color(255,sample.GlowRow[k],sample.GlowRow[k+1],sample.GlowRow[k+2]);
+        var k=sample.GlowRow.Length-4;var glow=fastMode?EffortPalette.Fast.Resolve(PaletteTheme):new Color(255,sample.GlowRow[k],sample.GlowRow[k+1],sample.GlowRow[k+2]);
         into[72]=glow.R/255f;into[73]=glow.G/255f;into[74]=glow.B/255f;
         into[112]=(float)(fastMode?.6:sample.Motion.Get("glow_alpha",.6));into[113]=(float)(fastMode?8:sample.Motion.Get("glow_blur",8));
         for(var i=0;i<5;i++){var n=(int)Math.Round(i*255/4d)*4;into[88+i*4]=sample.Row[n]/255f;into[89+i*4]=sample.Row[n+1]/255f;into[90+i*4]=sample.Row[n+2]/255f;}

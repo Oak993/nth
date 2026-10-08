@@ -1004,6 +1004,7 @@ public sealed partial class EffortSlider : Decorator
             if (currentEffect is not null) currentEffect.Opacity = 1;
         };
         PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) RequestFrame(); };
+        ActualThemeVariantChanged += (_, _) => _ = PaletteTheme; AttachedToVisualTree += (_, _) => _ = PaletteTheme; // the render thread's theme copy (EffortSliderPalette)
         this.Track(() => FrontMonitor.Shared.Current.IsVisible, visible => { if (visible) RequestFrame(); });
         this.Track(() => index.Value, _ => IndexChanged());
     }
