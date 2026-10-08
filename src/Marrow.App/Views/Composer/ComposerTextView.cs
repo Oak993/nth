@@ -181,6 +181,7 @@ public sealed class ComposerNSTextView : TextBox
             if (placeholder == value) return;
             placeholder = value;
             InvalidateVisual();
+            InkMetricsChanged?.Invoke();
         }
     }
 
@@ -222,7 +223,14 @@ public sealed class ComposerNSTextView : TextBox
     private IBrush? hiddenCaret;
     private Avalonia.Controls.Presenters.TextPresenter? hiddenPresenter;
 
-    public string? LiveText { get; set; }
+    private string? liveText;
+    public string? LiveText
+    {
+        get => liveText;
+        set { if (liveText == value) return; liveText = value; InkMetricsChanged?.Invoke(); }
+    }
+
+    internal event Action? InkMetricsChanged;
 
     // V-8.3/V-8.9: measurement, the actual editor and the animated picture use one paragraph factory.
     internal TextLayout CreateComposerLayout(string text, double width, IBrush? foreground = null, IReadOnlyList<Avalonia.Utilities.ValueSpan<TextRunProperties>>? spans = null) =>
@@ -615,6 +623,28 @@ public sealed class ComposerTextView : Decorator
         // PORT-ONLY (voice-SPEC V-8.3, VT-11): the dictation layer lies exactly over the editor, in the same scrolled content
         Dictation = new DictationLayer(textView, scroll);
         scroll.Content = new Grid { Children = { textView, Dictation } };
+        // T46 item 3 / ED-NEW-T46: Windows line boxes have different ink bearings from AppKit. Translate
+        // the actual editor and its dictation twin together; height, paragraph layout and padding stay source-defined.
+        var inkPlace = new TranslateTransform();
+        textView.RenderTransform = Dictation.RenderTransform = inkPlace;
+        var centresInk = false;
+        void PlaceInk()
+        {
+            if (!centresInk) { inkPlace.Y = 0; return; }
+            var empty = string.IsNullOrEmpty(textView.LiveText ?? textView.Text);
+            var displayed = empty ? textView.Placeholder : textView.LiveText ?? textView.Text!;
+            if (displayed.Length == 0 || textView.Bounds.Height <= 0) { inkPlace.Y = 0; return; }
+            // The placeholder is drawn unwrapped by FormattedText; use that same unconstrained single line.
+            using var layout = textView.CreateComposerLayout(displayed, empty ? double.PositiveInfinity : Math.Max(1, textView.Bounds.Width - textView.Padding.Left - textView.Padding.Right));
+            inkPlace.Y = layout.TextLines.Count == 1 && layout.Extent > 0
+                ? textView.Bounds.Height / 2 - (layout.Height + layout.OverhangAfter - layout.Extent / 2) - textView.Padding.Top
+                : 0;
+        }
+        textView.SizeChanged += (_, _) => PlaceInk();
+        textView.TextChanged += (_, _) => PlaceInk();
+        textView.InkMetricsChanged += PlaceInk;
+        AttachedToVisualTree += (_, _) => { centresInk = this.GetVisualAncestors().OfType<ComposerView>().Any(); PlaceInk(); };
+        DetachedFromVisualTree += (_, _) => { centresInk = false; inkPlace.Y = 0; };
         Child = scroll; // :273 scrollView.documentView = textView
 
         controller.TextViewInstance = textView; // :274

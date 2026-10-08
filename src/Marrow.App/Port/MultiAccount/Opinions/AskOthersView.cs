@@ -1,5 +1,6 @@
 // PORT-ONLY: MA-3b-6. Button/list/chips and OD-0120 glass confirmation over the job-0 seam; W owns the send adapter.
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Marrow.App.Port.Skills.Pages;
@@ -24,7 +25,10 @@ internal sealed class AskOthersView : Decorator
     internal AskOthersView(AskOthersModel model)
     {
         this.model = model;
-        Button = PlainControls.Button(new AskOthersGlyph(), () => state.List = !state.List);
+        Button = PlainControls.Button(new Grid { Width = 28, Height = 28, Background = Avalonia.Media.Brushes.Transparent, Children = { new AskOthersGlyph
+        {
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, UseLayoutRounding = false,
+        } } }, () => state.List = !state.List);
         Button.Width = Button.Height = 28; Button.Focusable = true; Button.Named(model.ButtonAria, "ask-others-button"); ToolTip.SetTip(Button, model.ButtonTitle);
         ListPopup = PlainControls.Popover(Button, new Binding<bool>(() => state.List, v => state.List = v), () => List = new(model, () => state.List = false));
         ConfirmPopup = PlainControls.Popover(Button, new Binding<bool>(() => state.Confirm, v => { state.Confirm = v; if (!v && model.Confirmation is not null && !model.Busy) _ = model.ConfirmAsync(false); }), () =>
