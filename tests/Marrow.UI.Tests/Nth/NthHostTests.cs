@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Threading;
 using Marrow.Core.Port;
 using Marrow.Testing;
+using Marrow.UI.Port;
 using Marrow.UI.Port.Nth;
 using Marrow.UI.Tests.Fixtures;
 
@@ -34,19 +35,21 @@ public sealed class NthHostTests(HeadlessSession headless)
             Assert.NotNull(spinner.Frame);
             Assert.Equal(16, spinner.Frame!.Size.Width);
             Assert.True(spinner.FramesDrawn > 0, "the render thread drew it");
+            Assert.True(spinner.IsMoving);
             Assert.True(NthVisualHost.AnyAnimating());
             var pixels = RenderedPixels.Capture(window);
             var ink = 0;
             for (var y = 0; y < pixels.Height; y++) for (var x = 0; x < pixels.Width; x++) if (pixels.Level(x, y) > 40) ink++;
             Assert.True(ink > 20, $"the spinner is in the rendered frame ({ink} px)");
+            // (other tests' windows may hold primitives of their own, so "nothing else moves" is read on this control)
             spinner.IsVisible = false;
-            Assert.False(NthVisualHost.AnyAnimating());
+            Assert.False(spinner.IsMoving);
             spinner.IsVisible = true;
-            Assert.True(NthVisualHost.AnyAnimating());
+            Assert.True(spinner.IsMoving);
             window.Content = null;
             Dispatcher.UIThread.RunJobs();
             Assert.Null(spinner.Frame);
-            Assert.False(NthVisualHost.AnyAnimating());
+            Assert.False(spinner.IsMoving);
         }
         finally { window.Close(); }
     });
@@ -63,16 +66,17 @@ public sealed class NthHostTests(HeadlessSession headless)
         {
             Pump();
             ring.Value = .5;
-            Assert.True(NthVisualHost.AnyAnimating(), "the value springs");
+            Assert.True(ring.IsMoving, "the value springs");
+            Assert.True(NthVisualHost.AnyAnimating());
             time.Advance(TimeSpan.FromSeconds(2));
-            Assert.False(NthVisualHost.AnyAnimating(), "settled");
+            Assert.False(ring.IsMoving, "settled");
             ring.IsDone = true;
-            Assert.True(NthVisualHost.AnyAnimating(), "the disc and tick");
+            Assert.True(ring.IsMoving, "the disc and tick");
             time.Advance(TimeSpan.FromSeconds(3));
-            Assert.False(NthVisualHost.AnyAnimating());
-            for (var i = 0; i < 100; i++) NthVisualHost.AnyAnimating();
+            Assert.False(ring.IsMoving);
+            for (var i = 0; i < 2000; i++) { NthVisualHost.AnyAnimating(); _ = ring.IsMoving; }
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 100; i++) NthVisualHost.AnyAnimating();
+            for (var i = 0; i < 100; i++) { NthVisualHost.AnyAnimating(); _ = ring.IsMoving; }
             Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         }
         finally { window.Close(); }
@@ -97,7 +101,10 @@ public sealed class NthHostTests(HeadlessSession headless)
             var changed = Assert.IsType<NthStatusState>(live.Frame!.State);
             Assert.Equal(NthStatus.Working, changed.Previous);
             Assert.False(double.IsNegativeInfinity(changed.ChangedAt));
-            Assert.True(NthVisualHost.AnyAnimating());
+            Assert.True(live.IsMoving);
+            time.Advance(TimeSpan.FromSeconds(1));
+            Assert.False(live.IsMoving, "the tick has drawn");
+            Assert.False(created.IsMoving);
         }
         finally { window.Close(); }
     });
@@ -116,9 +123,13 @@ public sealed class NthHostTests(HeadlessSession headless)
             var state = Assert.IsType<NthShineState>(label.Frame!.State);
             Assert.NotEmpty(state.Runs);
             Assert.True(state.Box.Width > 40, $"the word's box {state.Box}");
-            Assert.True(NthVisualHost.AnyAnimating());
+            Assert.True(label.IsMoving);
             label.IsShining = false;
-            Assert.False(NthVisualHost.AnyAnimating());
+            Assert.False(label.IsMoving);
+            label.IsShining = true;
+            Assert.True(label.IsMoving);
+            EnvironmentValues.SetAccessibilityReduceMotion(label, true);
+            Assert.False(label.IsMoving, "calm: no light");
         }
         finally { window.Close(); }
     });
