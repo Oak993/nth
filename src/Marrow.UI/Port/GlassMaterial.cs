@@ -112,6 +112,7 @@ internal static class GlassMaterial
             if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top).Pending.Add(this);
             if (queued) return;
             queued = true;
+            InteractionProbe.Count("glass.queue");
             Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
         }
 
@@ -202,6 +203,7 @@ internal static class GlassMaterial
 
         private void Synchronize()
         {
+            using var probe = InteractionProbe.Begin("glass.sync");
             requested = false;
             var spacing = SwiftGlass.GetContainerSpacing(owner);
             var ownEffect = SwiftGlass.GetEffect(owner);
@@ -505,6 +507,7 @@ internal static class GlassMaterial
             if (state is not { Regions.Length: > 0 } s) return;
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (feature is null) return;
+            using var probe = InteractionProbe.Begin("glass.draw");
             using var lease = feature.Lease();
             DrawsForTests++;
             if (DrawsForTests == 1) TraceForTests?.Invoke("first draw (render thread)");
@@ -532,6 +535,16 @@ internal static class GlassMaterial
 
     // Test-only readback (InternalsVisibleTo): how many times any material has drawn, on the render thread.
     internal static int DrawsForTests;
+
+    // ED-NEW-stutterfix-1 (InteractionProbe, diagnostics only; render thread): give the window a handler draws in the reach that reports its frames,
+    // as a material's first draw does, and name that window's tracker.
+    internal static void ObserveFrames(CompositionCustomVisualHandler handler)
+    {
+        if (Frame.Target(handler) is { } target) Frame.ReachOf(target);
+    }
+
+    internal static object? TrackerOf(CompositionCustomVisualHandler handler) =>
+        Frame.Target(handler) is { } target ? Frame.ReachOf(target)?.Tracker : null;
 
     // Test-only (InternalsVisibleTo), ED-356's frame cost: while set, each draw waits for the GPU's work before and after itself and reports its
     // first piece's size and how long the draw took, the GPU's part included. Called on the render thread.
@@ -948,6 +961,17 @@ internal static class GlassMaterial
             catch (Exception e) when (Expected(e)) { return null; }
         }
 
+        // ED-NEW-stutterfix-1 (diagnostics only): the merged rect of a tracker the reach is bound to.
+        public static SKRectI? Combined(object tracker)
+        {
+            try
+            {
+                combined ??= tracker.GetType().GetProperty("CombinedRect", Members);
+                return combined?.GetValue(tracker) is { } rect ? ToRect(rect) : null;
+            }
+            catch (Exception e) when (Expected(e)) { return null; }
+        }
+
         // The window's Reach, made and set as the target's debug events the first time (only when nothing else has set them).
         public static Reach? ReachOf(object target)
         {
@@ -1030,8 +1054,10 @@ internal static class GlassMaterial
         private readonly HashSet<object> grown = new();
         private readonly List<KeyValuePair<object, Spread>> pass = new();
         private int rendered, visited;
+        private object? observed; // the tracker, kept for InteractionProbe's frame report even after the reach gives up
 
-        internal void Bind(object dirtyRects, Action<object, SKRectI> add) => (tracker, addRect) = (dirtyRects, add);
+        internal void Bind(object dirtyRects, Action<object, SKRectI> add) => (tracker, addRect, observed) = (dirtyRects, add, dirtyRects);
+        internal object? Tracker => observed;
         internal void Set(object material, Spread spread) => materials[material] = spread;
         internal void Remove(object material) => materials.Remove(material);
 
@@ -1050,7 +1076,12 @@ internal static class GlassMaterial
                     }
                     return null;
                 case "get_RenderedVisuals": return rendered;
-                case "set_RenderedVisuals" when args is [int count]: rendered = count; return null;
+                case "set_RenderedVisuals" when args is [int count]:
+                    rendered = count;
+                    // ED-NEW-stutterfix-1: set by Avalonia right after the frame is drawn, while its merged dirty rect is still the tracker's.
+                    if (InteractionProbe.On && InteractionProbe.FrameDrawn is { } drawn && observed is { } frameTracker && Frame.Combined(frameTracker) is { } merged)
+                        drawn(frameTracker, (merged.Left, merged.Top, merged.Right, merged.Bottom), count);
+                    return null;
                 case "get_VisitedVisuals": return visited;
                 case "set_VisitedVisuals" when args is [int count]: visited = count; return null;
                 default: return null;

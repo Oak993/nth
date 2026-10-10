@@ -13,6 +13,7 @@ internal static class DesktopPerformanceProbe
     internal static void BeginStartup()
     {
         if (DevDataRoot.PerformanceRoot.Current.Length != 0) AuroraBootTrace.Current = new AuroraBootTrace();
+        InteractionRecorder.BeginStartup(DevDataRoot.PerformanceRoot.Current); // ED-NEW-stutterfix-1
     }
 
     internal static void ObserveWindow(Avalonia.Controls.Window window, string role)
@@ -31,6 +32,7 @@ internal static class DesktopPerformanceProbe
             if (ReferenceEquals(AuroraBootTrace.Current, trace)) trace.RecordExternalWork(name, started, finished, thread, endThread);
         };
         Marrow.Services.Providers.ProviderProbeTrace.Record = providerWork;
+        InteractionRecorder.Start(root); // ED-NEW-stutterfix-1
         _ = Task.Run(async () =>
         {
             var begin = Stopwatch.GetTimestamp();
@@ -56,7 +58,7 @@ internal static class DesktopPerformanceProbe
                 workingSet = process.WorkingSet64, cpuSeconds = process.TotalProcessorTime.TotalSeconds,
                 events = trace.Snapshot(),
             }).ConfigureAwait(false);
-            _ = MeasureQuiet(root);
+            if (!InteractionRecorder.Enabled) _ = MeasureQuiet(root); // ED-NEW-stutterfix-1: the tour would overlap the quiet window
         });
     }
 

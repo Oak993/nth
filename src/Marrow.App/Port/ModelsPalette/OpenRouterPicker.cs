@@ -57,6 +57,7 @@ public sealed class OpenRouterPicker : Decorator
 
     public OpenRouterPicker(IReadOnlyList<PickerModel> models, string selectedId, Action<string> choose, Action back)
     {
+        using var probe = InteractionProbe.Begin("openrouter.build"); // ED-NEW-stutterfix-1
         this.choose = choose; selected = selectedId; shownCount = Count(models.Count);
         Width = 330; AutomationProperties.SetName(this, "Select model");
         var stack = new StackPanel();
