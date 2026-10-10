@@ -18,6 +18,16 @@ public sealed record IgnisDayRow(DateOnly Day, string Label, IReadOnlyList<Ignis
 /// <summary>One month of savings: the days counted (from the first saving, up to today), the total and its sources.</summary>
 public sealed record IgnisMonthSavings(DateOnly Month, bool IsCurrent, IReadOnlyList<IgnisDayTotals> Days, decimal Total, IReadOnlyDictionary<IgnisSource, decimal> BySource)
 {
+    /// <summary>The month's helper cache rebuilds (ED-NEW-ignis-runtime): a cost, never inside <see cref="Total"/>.</summary>
+    public decimal Missed => Days.Sum(day => day.Missed);
+
+    /// <summary>"Helpers rebuilt their quick memory: $0.31"; null when there were none.</summary>
+    public string? MissedLine => Missed > 0m ? IgnisWords.HelpersRebuilt(Missed) : null;
+
+    /// <summary>The legend's sources: the design's four, plus "Longer quick memory" in a month that has some.</summary>
+    public IReadOnlyList<IgnisSource> Shown =>
+        BySource.TryGetValue(IgnisSource.LongerMemory, out var longer) && longer > 0m ? [.. IgnisSavingsHistory.Sources, IgnisSource.LongerMemory] : IgnisSavingsHistory.Sources;
+
     public int DayCount => Days.Count;
 
     /// <summary>The month tile's label: "October so far" or "September".</summary>
@@ -35,6 +45,9 @@ public sealed class IgnisSavingsHistory
 {
     /// <summary>The sources in the design's legend order (cache, warm, rebuild, help).</summary>
     public static IReadOnlyList<IgnisSource> Sources { get; } = [IgnisSource.Reuse, IgnisSource.KeptWarm, IgnisSource.TidyUp, IgnisSource.SmartHelpers];
+
+    /// <summary>Every source a month adds up (ED-NEW-ignis-runtime: "Longer quick memory" after the design's four).</summary>
+    public static IReadOnlyList<IgnisSource> AllSources { get; } = [.. Sources, IgnisSource.LongerMemory];
 
     /// <summary>At most this many months stand in the chart at once; the picker reaches the older ones.</summary>
     public const int ChartMonths = 12;
@@ -79,7 +92,7 @@ public sealed class IgnisSavingsHistory
         for (var month = new DateOnly(since.Year, since.Month, 1); month <= today; month = month.AddMonths(1))
         {
             var inMonth = days.Where(day => day.Day.Year == month.Year && day.Day.Month == month.Month).OrderBy(day => day.Day).ToList();
-            var bySource = Sources.ToDictionary(source => source, source => inMonth.Sum(day => day.SavedFrom(source)));
+            var bySource = AllSources.ToDictionary(source => source, source => inMonth.Sum(day => day.SavedFrom(source)));
             months.Add(new IgnisMonthSavings(month, month.Year == today.Year && month.Month == today.Month, inMonth, inMonth.Sum(day => day.Saved), bySource));
         }
         return new IgnisSavingsHistory(today, since, ledger?.AllTimeSaved ?? 0m, months);

@@ -61,7 +61,9 @@ public sealed class ThreadRuntimePartFourTests
             new ProviderEvent.AgentProgress("agent", "summary", "tool", 1, 1),
             new ProviderEvent.AgentFinished("agent", TurnStatus.Completed, "summary"),
             // DEVIATION OD-0134 / ED-NEW-ignis-contract: the port-only Ignis case (the runtime forwards it in unit U3).
-            new ProviderEvent.CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, null, null)));
+            new ProviderEvent.CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, null, null)),
+            // DEVIATION OD-0134 / ED-NEW-ignis-runtime: the paid-credits hint (forwarded to the controller's CreditsHint).
+            new ProviderEvent.CacheBilling(true));
 
         fixture.Harness.Main.OnMain(() =>
         {

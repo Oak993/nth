@@ -2085,6 +2085,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                         SkillDataRoot = Storage.Root,
                         SkillHome = LoginEnvironment.HomeDirectory,
                         SkillToolOffer = SkillsOffers,
+                        IgnisThreadID = ThreadID, // PORT-ONLY: Ignis (ED-NEW-ignis-runtime)
                     };
 
                     var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
@@ -2182,6 +2183,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                     SkillHome = environment.TryGetValue("HOME", out var skillHome) ? skillHome : LoginEnvironment.HomeDirectory,
                     SkillToolOffer = SkillsOffers,
                     SkillMcpExecutable = thread.Provider == ProviderKind.Cursor ? Path.Combine(AppContext.BaseDirectory, "Marrow.App.exe") : null,
+                    IgnisThreadID = ThreadID, // PORT-ONLY: Ignis (ED-NEW-ignis-runtime)
                 };
 
                 var created = AccountSessionFactory.Create(app.Providers, configuration, account.Id).Session;
@@ -4143,6 +4145,9 @@ public sealed partial class ThreadRuntime : MainActorModel
                 break;
             case ProviderEvent.CacheUsage value:
                 IgnisObserve(value.Value); // Ignis: forwarded to the controller
+                break;
+            case ProviderEvent.CacheBilling value:
+                IgnisAttach()?.CreditsHint(ThreadID, value.OnCredits); // Ignis: paid-credits hint (ED-NEW-ignis-runtime)
                 break;
             case ProviderEvent.UsageLimit value:
                 IgnisUsageLimit(value.ResetsAt);

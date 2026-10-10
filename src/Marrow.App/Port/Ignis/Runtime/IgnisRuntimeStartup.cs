@@ -3,7 +3,8 @@
 // settings key and the unit U1 parts (IgnisRuntimeSeams.Engine / Points / Ledger, bound here to the engine, the points
 // store and the savings ledger under Storage.Root/ignis). It also points the session hooks at unit U2's methods
 // (API keep-warm and tidy-up, Claude's /compact instructions), the Settings "Rebuild points" table at the engine's
-// tidy point, Claude's scout entry at the points' helper model while Smart helpers is on, and the U4 views (Kindle
+// tidy point, Claude's scout entry at the points' helper model while Smart helpers is on, a Claude launch's cache
+// lifetimes and the API sessions' request-level cache levers at the controller (ED-NEW-ignis-runtime), and the U4 views (Kindle
 // capsule, ping filter, event lines) at the controller. A test overrides any
 // seam per async flow, so none of this runs there unless it binds it.
 using Marrow.Core.Models;
@@ -22,6 +23,7 @@ public static class IgnisRuntimeStartup
     private static IgnisController? controller;
     private static readonly Lazy<IgnisPointsStore> points = new(() => new IgnisPointsStore(Storage.Root));
     private static readonly Lazy<IgnisSavingsLedger> ledger = new(() => new IgnisSavingsLedger(Storage.Root));
+    private static readonly Lazy<IgnisGapStore> gapStore = new(() => new IgnisGapStore(Storage.Root));
 
     public static void Bind()
     {
@@ -31,6 +33,8 @@ public static class IgnisRuntimeStartup
         IgnisRebuildPoints.For.SetProcessDefault(IgnisEngine.RebuildPoint);
         BindSessionHooks();
         IgnisSeams.HelperAgents.SetProcessDefault(query => HelperModel(IgnisSeams.Controller.Current(), query));
+        IgnisSeams.CacheLifetimes.SetProcessDefault(query => (IgnisSeams.Controller.Current() as IgnisController)?.ChooseCacheLifetimes(query));
+        IgnisSeams.IsOn.SetProcessDefault((provider, thread) => IsOn(IgnisSeams.Controller.Current(), thread));
         IgnisSeams.Controller.SetProcessDefault(Running);
         Marrow.App.Port.Ignis.Views.IgnisViews.Bind(Running);
     }
@@ -84,6 +88,10 @@ public static class IgnisRuntimeStartup
         return ignis.Points.Find(query.Provider, query.MainModel)?.HelperModel is { Length: > 0 } helper ? helper : null;
     }
 
+    /// <summary>Ignis is on (any mode but Off) for the chat, or by default when the chat is not known (ED-NEW-ignis-runtime).</summary>
+    public static bool IsOn(IIgnisController? ignis, Guid? thread) =>
+        ignis is not null && (thread is { } id ? ignis.Settings.ForChat(id).Mode : ignis.Settings.Value.DefaultMode) != IgnisMode.Off;
+
     private static IIgnisController? Running()
     {
         if (controller is not null) return controller;
@@ -91,7 +99,7 @@ public static class IgnisRuntimeStartup
             || IgnisRuntimeSeams.Points.Current() is not { } points
             || IgnisRuntimeSeams.Ledger.Current() is not { } ledger) return null;
         var app = Marrow.App.Window.WindowManager.Shared.Model;
-        controller = new IgnisController(new IgnisSettings(UserDefaults.Standard.Current), points, ledger, engine, new AppIgnisEnvironment(app));
+        controller = new IgnisController(new IgnisSettings(UserDefaults.Standard.Current), points, ledger, engine, new AppIgnisEnvironment(app), gapStore.Value);
         Marrow.App.Port.Ignis.Views.IgnisViews.Attach(controller);
         return controller;
     }

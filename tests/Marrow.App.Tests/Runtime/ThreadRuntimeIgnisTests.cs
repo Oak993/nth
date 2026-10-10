@@ -139,6 +139,23 @@ public sealed class ThreadRuntimeIgnisTests
     }
 
     [Fact]
+    public void A_paid_credits_hint_reaches_the_controller_and_the_port_knows_when_the_turn_started()
+    {
+        var controller = new RecordingIgnisController();
+        using var bound = IgnisSeams.Controller.Override(() => controller);
+        using var rig = Rig();
+
+        _ = rig.StartTurn("Fix the parser");
+        WaitForSends(rig, 1);
+        var started = rig.H.Main.OnMain(() => Port(rig).TurnStartedAt);
+        rig.H.Main.OnMain(() => rig.Session.Emit(new ProviderEvent.CacheBilling(true)));
+        rig.Complete();
+
+        Assert.Equal([(rig.InitialThread.Id, true)], controller.Credits);
+        Assert.NotNull(started); // ED-NEW-ignis-runtime: the gap Ignis learns ends where the turn started
+    }
+
+    [Fact]
     public void A_tidy_up_compacts_silently_and_its_compacted_notice_ends_it()
     {
         var controller = new RecordingIgnisController();

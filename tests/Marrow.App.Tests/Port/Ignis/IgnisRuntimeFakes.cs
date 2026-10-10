@@ -74,7 +74,13 @@ internal sealed class FakeSavingsLedger : ISavingsLedger
         return new IgnisDayTotals(day, Saved(IgnisSource.Reuse), Saved(IgnisSource.KeptWarm), Saved(IgnisSource.TidyUp), Saved(IgnisSource.SmartHelpers),
             list.Where(e => e.Kind == IgnisLedgerKind.Lost).Sum(e => e.Amount), list.Where(e => e.Kind == IgnisLedgerKind.Spent).Sum(e => e.Amount),
             Count(IgnisLedgerKind.Saved, IgnisSource.Reuse), Count(IgnisLedgerKind.Spent, IgnisSource.KeptWarm), Count(IgnisLedgerKind.Saved, IgnisSource.TidyUp),
-            Count(IgnisLedgerKind.Saved, IgnisSource.SmartHelpers));
+            Count(IgnisLedgerKind.Saved, IgnisSource.SmartHelpers))
+        {
+            // ED-NEW-ignis-runtime: the fifth source, its extra writes and the helpers' missed rebuilds.
+            LongerMemory = Saved(IgnisSource.LongerMemory),
+            LongerMemorySpent = list.Where(e => e.Kind == IgnisLedgerKind.Spent && e.Source == IgnisSource.LongerMemory).Sum(e => e.Amount),
+            Missed = list.Where(e => e.Kind == IgnisLedgerKind.Missed).Sum(e => e.Amount),
+        };
     }
 }
 
@@ -96,6 +102,7 @@ internal sealed class FakeIgnisEngine : IIgnisEngine
     public decimal RebuildPremium(IgnisModelPoints points, long contextTokens) => contextTokens / 1000m * 0.02m;
     public decimal PingCost(IgnisModelPoints points, long contextTokens) => contextTokens / 1000m * 0.001m;
     public decimal TidySaved(IgnisModelPoints points, long beforeTokens, long afterTokens) => (beforeTokens - afterTokens) / 1000m * 0.005m;
+    public decimal LongerMemoryCost(IgnisModelPoints points, long oneHourWrites, long promptTokens) => oneHourWrites / 1000m * 0.003m;
 }
 
 internal sealed class FakeIgnisEnvironment : IIgnisEnvironment
@@ -110,6 +117,11 @@ internal sealed class FakeIgnisEnvironment : IIgnisEnvironment
     public bool HasDraft(Guid thread) => Draft;
     public double? FullestPlanWindow(ProviderKind provider) => PlanPercent;
     public IgnisAccountKind Account(ProviderKind provider) => provider.IsAPIKeyBased ? IgnisAccountKind.ApiKey : IgnisAccountKind.Plan;
+    public string? Version { get; set; } = "2.1.300";
+    public HashSet<string> ClaudeSettings { get; } = [];
+    public int SettingsReads { get; private set; }
+    public string? CliVersion(ProviderKind provider) => provider == ProviderKind.Claude ? Version : null;
+    public IReadOnlySet<string> ClaudeCacheSettings(IReadOnlyDictionary<string, string> environment, string? workingDirectory) { SettingsReads++; return ClaudeSettings; }
 }
 
 /// <summary>A chat runtime that records what Ignis asked of it.</summary>
@@ -120,6 +132,7 @@ internal sealed class FakeIgnisPort : IIgnisRuntimePort, IIgnisRuntimeTimeline
     public string? Model { get; set; } = IgnisSamples.Opus;
     public bool IsBetweenTasks { get; set; } = true;
     public DateTimeOffset? LastRequestAt { get; set; }
+    public DateTimeOffset? TurnStartedAt { get; set; }
     public bool CanKeepWarmSilently { get; set; }
     public bool IsTidying { get; set; }
     public int Pings { get; private set; }
@@ -156,4 +169,6 @@ internal sealed class RecordingIgnisController : IIgnisController
     public void Observe(Guid thread, IgnisTurnUsage usage) => Observed.Add((thread, usage));
     public void TurnFinished(Guid thread) => Finished.Add(thread);
     public void UsageLimitHit(Guid thread, DateTimeOffset? resetsAt) => Limits.Add((thread, resetsAt));
+    public List<(Guid Thread, bool OnCredits)> Credits { get; } = [];
+    public void CreditsHint(Guid thread, bool onCredits) => Credits.Add((thread, onCredits));
 }
