@@ -3,7 +3,7 @@
 //
 // File shape (compact JSON, fixed member order, buckets sorted): {"version":1,"buckets":[{"day":"2026-10-10",
 // "thread":"<guid>","kind":"saved|lost|spent|missed","source":"reuse|keptWarm|tidyUp|smartHelpers|longerMemory"?,"amount":0.42,"count":3}],
-// "events":[{"id","thread","kind","at","amount"?,"amountKind","agent"?,"head"?,"model"?,"atTokens"?}]}.
+// "events":[{"id","thread","kind","at","amount"?,"amountKind","agent"?,"head"?,"model"?,"atTokens"?,"reason"?}]}.
 // Every change is written at once (atomic replace). A file that cannot be read is moved aside (ledger-v1.corrupt-<stamp>.json,
 // never deleted) and the ledger starts empty; an entry with an unknown value is skipped and the rest kept. Events older than
 // EventDays are dropped (the buckets keep their money for ever).
@@ -147,6 +147,8 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
     [
         (IgnisEventKind.KeptWarm, "keptWarm"), (IgnisEventKind.WarmedAgain, "warmedAgain"), (IgnisEventKind.TidiedUp, "tidiedUp"),
         (IgnisEventKind.WentCold, "wentCold"), (IgnisEventKind.HelperRan, "helperRan"), (IgnisEventKind.HeadTidiedAfterSwitch, "headTidiedAfterSwitch"),
+        // ED-NEW-ignis-guards
+        (IgnisEventKind.KeepWarmHeld, "keepWarmHeld"), (IgnisEventKind.LetCool, "letCool"), (IgnisEventKind.SwitchCost, "switchCost"), (IgnisEventKind.CacheNotReused, "cacheNotReused"),
     ];
     private static readonly (IgnisAmountKind Kind, string Raw)[] AmountNames = [(IgnisAmountKind.Cost, "cost"), (IgnisAmountKind.Saved, "saved"), (IgnisAmountKind.Lost, "lost")];
 
@@ -227,7 +229,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
         decimal? amount = row.TryGetProperty("amount", out var a) && a.ValueKind == JsonValueKind.Number && a.TryGetDecimal(out var value) ? value : null;
         var amountKind = From(AmountNames, Text(row, "amountKind")) ?? IgnisAmountKind.Cost;
         long? atTokens = row.TryGetProperty("atTokens", out var t) && t.ValueKind == JsonValueKind.Number && t.TryGetInt64(out var tokens) ? tokens : null;
-        return new IgnisEvent(id, thread, kind, at, amount, amountKind, Text(row, "agent"), Text(row, "head"), Text(row, "model"), atTokens);
+        return new IgnisEvent(id, thread, kind, at, amount, amountKind, Text(row, "agent"), Text(row, "head"), Text(row, "model"), atTokens, Text(row, "reason"));
     }
 
     private static string? Text(JsonElement element, string name) =>
@@ -277,6 +279,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
                 if (e.HeadLabel is { } head) writer.WriteString("head", head);
                 if (e.Model is { } model) writer.WriteString("model", model);
                 if (e.AtTokens is { } tokens) writer.WriteNumber("atTokens", tokens);
+                if (e.Reason is { } reason) writer.WriteString("reason", reason);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
