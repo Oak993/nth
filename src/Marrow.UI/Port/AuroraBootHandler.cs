@@ -17,6 +17,7 @@ internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
     private AuroraBootSnapshot? snapshot;
     private bool stopped, requested, drawn = true;
     private AuroraBootSequence? sequence;
+    private SkiaSharp.GRContext? gpu; // the GPU context the app's hook last saw (AuroraBootGpu)
     public override void OnMessage(object message)
     {
         if (message is AuroraBootSnapshot next)
@@ -53,6 +54,7 @@ internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
         long drawingBytes;
         using (var lease = feature.Lease())
         {
+            AuroraBootGpu.Arrive(ref gpu, lease.GrContext, AuroraBootGpu.ContextReady); // ED-NEW-launch-fix (1): before the first link
             var startBytes = GC.GetAllocatedBytesForCurrentThread();
             painter.Draw(lease.SkCanvas, s.Size, s.Window, frame, elapsed, s.Dark, s.ReduceMotion, lease.CurrentOpacity, lease.GrContext);
             drawingBytes = GC.GetAllocatedBytesForCurrentThread() - startBytes;
