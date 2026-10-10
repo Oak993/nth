@@ -179,7 +179,6 @@ internal sealed partial class ComposerPreview : Grid
         Apply(first: true);
     }
 
-    // ComposerTextView.UpdateHeight (:374): the text view is as tall as its one line, at least 18, with the container inset above and below
     /// <summary>
     /// The real row's column (ComposerView.ShowControls: right-aligned, unrounded) in the preview: the controls keep their fractional width, so the chip's text decides where the chip starts,
     /// while the column is whole pixels and the ring and send sit on the trailing edge to the pixel, as the real ones do. (The Grid rounds a fractional Auto column to the nearest pixel, which
@@ -204,6 +203,7 @@ internal sealed partial class ComposerPreview : Grid
         }
     }
 
+    // ComposerTextView.UpdateHeight (:374): the text view is as tall as its one line, at least 18, with the container inset above and below
     private static double LineHeight(ComposerNSTextView view)
     {
         using var layout = new TextLayout("", new Typeface(view.FontFamily, view.FontStyle, view.FontWeight), view.FontSize, null, textWrapping: TextWrapping.Wrap, maxWidth: 1000);

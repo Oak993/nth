@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Port.Voice;
 using Marrow.App.Runtime;
@@ -155,25 +156,26 @@ internal sealed class VoiceComposerRig : IDisposable
         for (var round = 0; round < 4; round++) Main.OnMain(() => Settle(window));
     }
 
-    /// <summary>The frame a screen delivers while anything animates: 60 Hz.</summary>
+    /// <summary>The frame a screen delivers while a transition runs: 60 Hz.</summary>
     private static readonly TimeSpan FrameStep = TimeSpan.FromSeconds(1.0 / 60);
 
-    /// <summary>
-    /// How long a call steps frame by frame before it jumps over steady time. Every transition of the voice surfaces ends within a second, and the pill's, which keeps its progress
-    /// across a stalled frame (VoicePill, LookMotion.PreserveFrameProgress: it never snaps after a stall), must be delivered the frames a real display would give it.
-    /// </summary>
+    /// <summary>How long one call steps frame by frame at most before it jumps (every transition of the voice surfaces ends within a second).</summary>
     private static readonly TimeSpan SteppedSpan = TimeSpan.FromSeconds(2);
 
+    /// <summary>A pill of the window is in a transition now (its width, opacity or labels move, a relabel is due, or its countdown glides).</summary>
+    private bool PillMoving(AvaloniaWindow window) => Main.OnMain(() => window.GetVisualDescendants().OfType<VoicePill>().Any(pill => pill.IsMoving));
+
     /// <summary>
-    /// Time passes: the manual clock (timers, the session), the frame source (transitions), then layout and the dispatcher. As in a running app, a frame comes every 1/60 s while a
-    /// frame is wanted (a transition runs), for up to <see cref="SteppedSpan"/>; the rest of a long wait, in which nothing is animating, passes in one jump. (A real app never jumps the
-    /// clock and the frame in one step through a running transition: the pill would treat the gap as a stall.)
+    /// Time passes: the manual clock (timers, the session), the frame source (transitions), then layout and the dispatcher. A running app never jumps the clock and delivers one frame
+    /// through a running transition: the pill keeps its progress across a stalled frame (VoicePill, LookMotion.PreserveFrameProgress; it never snaps), so a gap of more than 50 ms is a
+    /// stall to it. So while a pill transition runs, a frame comes every 1/60 s, for up to <see cref="SteppedSpan"/>; the rest of a long wait, in which nothing moves, passes in one jump
+    /// (the exact total, in ticks, is unchanged).
     /// </summary>
     public void Elapse(AvaloniaWindow window, double seconds)
     {
         var remaining = TimeSpan.FromSeconds(seconds);
         var stepped = TimeSpan.Zero;
-        while (remaining >= FrameStep && stepped < SteppedSpan && Frames.Pending > 0)
+        while (remaining >= FrameStep && stepped < SteppedSpan && Frames.Pending > 0 && PillMoving(window))
         {
             Main.Advance(FrameStep);
             Main.OnMain(() => Frames.Advance(FrameStep));
