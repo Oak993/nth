@@ -258,7 +258,10 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var symbol = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.Equal("arrow.clockwise", symbol.SymbolName); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol));
         Assert.Single(Nodes<Border>(refresh), x => x.Padding == new Thickness(3, 2));
         Assert.Single(Nodes<Control>(refresh), x => SwiftGlass.GetEffect(x) is not null); var button = Assert.Single(Nodes<Button>(refresh)); Assert.Equal("Check providers again", ToolTip.GetTip(button)); Assert.True(button.IsEnabled);
-        // Hold RefreshAll's task-group hops so the real click and single-flight guard can be observed.
+        // Hold RefreshAll's task-group hops so the real click and single-flight guard can be observed, and hold the executable lookups (off the main actor
+        // since T44, on the thread pool) at the seam until the refresh in flight has been looked at: however fast the pool is, the refresh cannot finish
+        // inside the pump that delivers the click (ED-NEW-handoverfix-1, as ED-NEW-ignis-integration's amendment does for SettingsViewFinishProvidersTests).
+        var lookups = 0; using var probes = new ManualResetEventSlim(false); using var seam = ProviderRegistry.SetCLIUpdaterExecutableForTesting(_ => { Interlocked.Increment(ref lookups); probes.Wait(TimeSpan.FromSeconds(30)); return null; });
         Task? duplicate = null;
         using (MainActor.Executor.Override(h.Main.Loop))
         {
@@ -268,7 +271,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Assert.True(model.Providers.IsRefreshing); Assert.True(duplicate!.IsCompletedSuccessfully);
         Sync(); button = Assert.Single(Nodes<Button>(refresh)); Assert.False(button.IsEnabled); Assert.Equal("Checking providers…", ToolTip.GetTip(button));
         var disabledIcon = Assert.Single(Nodes<SwiftImage>(refresh)); ColorIs(disabledIcon, disabledIcon.Foreground, SwiftColor.LabelColor.Opacity(0.32)); // Chrome.swift:355
-        Wait(() => { h.Main.RunUntilIdle(); return !model.Providers.IsRefreshing; }); Assert.Equal(16, model.Providers.Statuses.Count); Assert.True(Assert.Single(Nodes<Button>(refresh)).IsEnabled);
+        probes.Set(); Wait(() => { h.Main.RunUntilIdle(); return !model.Providers.IsRefreshing; }); Assert.True(lookups > 0); Assert.Equal(16, model.Providers.Statuses.Count); Assert.True(Assert.Single(Nodes<Button>(refresh)).IsEnabled);
     });
 
     [Theory]
