@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -8,6 +9,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using static Marrow.App.Tests.Fixtures.TimelineMount;
 
 namespace Marrow.App.Tests.Views.Chat;
@@ -46,8 +48,11 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     private static void Click(WorkingIndicator line) => Chevron(line).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
     // The baseline of a header child's first line of text, in the header's coordinates.
+    // OD-0136 amendment 2, step 2 B: the running line's title and clock are letters drawn on the render thread; they say where their first baseline is (IBaselineProvider).
     private static double BaselineY(Control child, Control header) =>
-        child.TranslatePoint(default, header)!.Value.Y + LogicalQuery.SelfAndDescendants<TextBlock>(child).First().TextLayout.TextLines[0].Baseline;
+        LogicalQuery.SelfAndDescendants<IBaselineProvider>(child).FirstOrDefault() is { } provider
+            ? ((Control)provider).TranslatePoint(default, header)!.Value.Y + provider.Baseline
+            : child.TranslatePoint(default, header)!.Value.Y + LogicalQuery.SelfAndDescendants<TextBlock>(child).First().TextLayout.TextLines[0].Baseline;
 
     private static double AngleOf(WorkingIndicator line) =>
         Assert.IsType<Avalonia.Media.RotateTransform>(LogicalQuery.SelfAndDescendants<SwiftImage>(line).Single(image => image.SymbolName == "chevron.right").RenderTransform).Angle;
@@ -125,7 +130,9 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         Assert.InRange(open[13].Angle, 88, 92); Assert.InRange(close[13].Angle, -2, 2);
     });
 
-    private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "").ToArray();
+    // The words on the line: its text blocks and its letters (the running line's word and clock are letters, step 2 B).
+    private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "")
+        .Concat(LogicalQuery.SelfAndDescendants<NthLetters>(control).Select(letters => letters.Text)).ToArray();
 
     private static double DistanceFromEnd(TimelineMount mount) => mount.Scroll.Extent.Height - mount.Scroll.Offset.Y - mount.Scroll.Viewport.Height;
 
@@ -238,9 +245,14 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         var line = Line(mount); var seed = WorkingWords.Seed(SwiftUUID.UuidString(mount.Runtime.ThreadID));
         // Typography (:2123 the title .system(.body, .medium), HydraProgressBar.swift:504; :2125 the time .system(.subheadline), :558; :2131 the chevron).
         var header = Header(line); var theme = line.ActualThemeVariant;
-        var title = LogicalQuery.SelfAndDescendants<TextBlock>(header.Children[0]).Single(text => text.Text is { Length: > 0 }); var time = LogicalQuery.SelfAndDescendants<TextBlock>(header.Children[1]).Single();
-        Assert.Equal(13, title.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, title.FontWeight); Assert.Equal(11, time.FontSize);
-        Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(time.Foreground).Color);
+        // OD-0136 amendment 2, step 2 B: the title is the thinking glyph (14) and the word in breathing letters (the title's type kept, the secondary colour: the page's --text2),
+        // the time rolling digits in the mono face at the subheadline size, quieter than the word (the page's --text3).
+        var titleLine = Assert.IsType<NthWorkingTitle>(Assert.Single(Assert.IsType<Grid>(header.Children[0]).Children)); var title = titleLine.Letters; var time = Assert.IsType<NthElapsedTime>(header.Children[1]).Letters;
+        Assert.Equal(14, titleLine.Glyph.Width); Assert.Equal(14, titleLine.Glyph.Height); Assert.Equal(NthLettersMode.Breathe, title.Mode); Assert.Equal(NthLettersMode.Roll, time.Mode);
+        Assert.Equal(13, TextElement.GetFontSize(title)); Assert.Equal(Avalonia.Media.FontWeight.Medium, TextElement.GetFontWeight(title)); Assert.Equal(11, TextElement.GetFontSize(time));
+        Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Subheadline, SwiftFont.Design.Monospaced, SwiftFont.Weight.Medium).Resolve().FontFamily, TextElement.GetFontFamily(time));
+        Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color);
+        Assert.Equal(Marrow.UI.Chrome.Chrome.PrimaryText.Opacity(0.58).Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(time.Foreground).Color);
         // Colours (:2179-2180 the card's fill is the quaternary at 0.32).
         var shell = LogicalQuery.SelfAndDescendants<Border>(line).First(border => border.CornerRadius.TopLeft == TimelineMetrics.PillRadius);
         Assert.Equal(SwiftColor.Quaternary.Opacity(0.32).Resolve(theme), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(shell.Background).Color);
@@ -251,10 +263,12 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         Assert.NotEqual(WorkingWords.Word(seed, 0), WorkingWords.Word(seed, 7));
         mount.Advance(6500); Assert.Contains(WorkingWords.Word(seed, 6) + "…", Texts(line));
         // The word changes on the clock's tick after its seventh second (not at a time the test can know to the frame): wait for it, and look at the moment it comes.
-        var host = Assert.IsType<Grid>(header.Children[0]);
+        var host = Assert.IsType<Grid>(header.Children[0]); var wordTitle = Assert.IsType<NthWorkingTitle>(Assert.Single(host.Children));
         for (var waited = 0; waited < 2000 && !Texts(line).Contains(WorkingWords.Word(seed, 7) + "…"); waited += 20) mount.Advance(20);
         Assert.Contains(WorkingWords.Word(seed, 7) + "…", Texts(line));
-        Assert.Equal(2, host.Children.Count);
+        // The new word arrives letter by letter inside the one title (it is not swapped for another): the old word is still the state's previous word while its letters leave.
+        Assert.Same(wordTitle, Assert.Single(host.Children));
+        Assert.Equal(WorkingWords.Word(seed, 6) + "…", Assert.IsType<NthLettersState>(wordTitle.Letters.Snapshot().State).Previous!.Text);
         mount.Advance(600); Assert.Single(host.Children);
         Assert.DoesNotContain(WorkingWords.Word(seed, 0) + "…", Texts(line));
         // A tool call is running: the label is the group's summary (:2104), and there is something to open.
@@ -284,24 +298,21 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-CHAT-043")] // Partial proof UI-CHAT-043
-    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 (the label's change, ThreadTimeline.swift:2182 .animation(Self.change, value: label)); capture comparison: 2-chat-use.mov 94.943-95.20, "Dancing..." to "Thinking..." (the weight of the new word, fitted frame by frame to the two clean frames either side, evidence/ThreadTimeline/verb)
-    public void The_word_changes_over_a_cross_dissolve_that_matches_the_reference_runtimes() => ThreadTimelineRig.Run(headless, mount =>
+    [Trait("Rule", "R-TEST-4")] // UI-CHAT-043 (the label's change, ThreadTimeline.swift:2182 .animation(Self.change, value: label)); OD-0136 amendment 2, step 2 B replaces the cross dissolve (capture comparison 2-chat-use.mov 94.943-95.20) with the breathing letters' word change: the old letters leave, the new ones rise in
+    public void The_word_changes_letter_by_letter_inside_the_one_title_instead_of_cross_dissolving_two() => ThreadTimelineRig.Run(headless, mount =>
     {
         mount.Model.Settings.ShowReasoning = false;
         mount.SetEntries(new[] { User("prompt", Turn, "hello") }); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(100);
         var line = Line(mount); var seed = WorkingWords.Seed(SwiftUUID.UuidString(mount.Runtime.ThreadID)); var host = Assert.IsType<Grid>(Header(line).Children[0]);
-        var next = WorkingWords.Word(seed, 7) + "…"; mount.Advance(6700);
+        var title = Assert.IsType<NthWorkingTitle>(Assert.Single(host.Children));
+        var first = WorkingWords.Word(seed, 6) + "…"; var next = WorkingWords.Word(seed, 7) + "…"; mount.Advance(6700);
         while (!Texts(line).Contains(next)) mount.Advance(10);
-        // The new word arrives as the old one goes: the weight of the new one is the capture's (seconds after the first frame with any of it: its weight), within a tenth.
-        var leaving = host.Children[0]; var arriving = host.Children[1];
-        var measured = new (double Seconds, double Weight)[] { (0.034, 0.26), (0.055, 0.41), (0.075, 0.53), (0.097, 0.65), (0.118, 0.74), (0.140, 0.82), (0.162, 0.88) };
-        var elapsed = 0.0;
-        foreach (var (seconds, weight) in measured)
-        {
-            while (elapsed < seconds - 0.0005) { mount.Advance(10); mount.Frames.Advance(TimeSpan.Zero); elapsed += 0.010; }
-            Assert.True(Math.Abs(arriving.Opacity - weight) < 0.11, $"at {seconds}: the new word is at {arriving.Opacity}, the capture's is {weight}");
-            Assert.Equal(1, leaving.Opacity + arriving.Opacity, 2);
-        }
+        // One title throughout (no second one fades in beside it); its letters hold the new word and still know the old one, which leaves up 4 px over 0.24 s while the new rises from 5 px over 0.36 s.
+        Assert.Same(title, Assert.Single(host.Children));
+        var state = Assert.IsType<NthLettersState>(title.Letters.Snapshot().State);
+        Assert.Equal(next, state.Current!.Text); Assert.Equal(first, state.Previous!.Text);
+        Assert.True(state.ChangedAt > double.NegativeInfinity);
+        Assert.Equal(NthLettersMode.Breathe, title.Letters.Mode);
     });
 
     [Fact]

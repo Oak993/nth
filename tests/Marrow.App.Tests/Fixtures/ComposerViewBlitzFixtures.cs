@@ -3,6 +3,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Marrow.App.Views.Composer;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using static Marrow.App.Tests.Views.Composer.ComposerViewTests;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -46,7 +47,8 @@ internal sealed class HostedList : IDisposable
 }
 
 // Moved out of ComposerViewBlitzSendTests (a test class holds no nested type, R-TEST-2).
-internal sealed record SendLook(bool Enabled, string Symbol, string Name, string Tip, Color Fill, Color Ink);
+// OD-0136 amendment 2, step 9: the face (NthSendFace) is what the button shows, so the look is its running flag and how much of itself it keeps (Dim), not a fill and an ink.
+internal sealed record SendLook(bool Enabled, bool Running, string Name, string Tip, double Dim);
 
 // Moved out of ComposerViewBlitzUsageTests (a test class holds no nested type, R-TEST-2).
 // The ring on screen with the presenter recording what it is asked to show, then its popover opened by a click.

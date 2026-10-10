@@ -1678,17 +1678,19 @@ public sealed class WorkingIndicator : Decorator
         var column = new StackPanel(); shell.Child = column; // :2106 VStack(spacing: rowSpacing): the opened body brings that space with it, so it grows and folds with the body
         // The line's own parts live across renders, as SwiftUI keeps the views of a body that runs again: the label and its time go on ticking, the
         // bar keeps its state, and what changes (:2182-2183 the label and whether there is anything to open) changes in place under `change`.
+        // PORT-ONLY (OD-0136 amendment 2, step 2 B): the clock is rolling digits (NthElapsedTime); the Hydra head panels keep HydraElapsedTime.
         var header = new BaselineHeader { FillsTitle = showsCard };
-        var titleHost = new Grid(); header.Children.Add(titleHost);
-        var elapsedView = new HydraElapsedTime(startedAt, finishedAt, running); var glide = new TranslateTransform(); elapsedView.RenderTransform = glide; header.Children.Add(elapsedView);
+        // PORT-ONLY (OD-0136 amendment 2, step 2 B): the header's children keep the fractional places the baselines give them (as TimelineBaselineRow does), so the letters sit on the font's baseline.
+        var titleHost = new Grid { UseLayoutRounding = false }; header.Children.Add(titleHost);
+        var elapsedView = new NthElapsedTime(startedAt, finishedAt, running); var glide = new TranslateTransform(); elapsedView.RenderTransform = glide; elapsedView.UseLayoutRounding = false; header.Children.Add(elapsedView);
         var timeGlide = new AnimatedDouble(x => glide.X = x);
         // :2129-2135 the chevron, only once there is something to open, turning down while the line is open.
-        var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(SwiftColor.Tertiary);
+        var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(SwiftColor.Tertiary); chevron.UseLayoutRounding = false;
         var turn = new AnimatedDouble(angle => chevron.RenderTransform = new RotateTransform(angle)); turn.Set(isExpanded ? 90 : 0, null);
         var chevronFade = new AnimatedDouble(opacity => chevron.Opacity = opacity);
         var inner = new StackPanel { Spacing = 10, Children = { header } };
         var frame = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = Brushes.Transparent, Child = inner, HorizontalAlignment = HorizontalAlignment.Left }.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :2148 .contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))
-        HydraWorkingTitle? title = null; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
+        Control? title = null; NthWorkingTitle? thinking = null; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
         GrowingBody? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
         // PORT-ONLY (UI-THEME-047): every draw builds the thinking markdown again, so the veils of its steps (SwiftUI's @State, kept by the ForEach's
         // offsets, :2158) live here for as long as the steps stay open on screen.
@@ -1713,9 +1715,17 @@ public sealed class WorkingIndicator : Decorator
             // :2182 .animation(Self.change, value: label): a new label takes the place of the old one over the one motion for what changes on the line.
             if (titleText != label || titleRunning != running)
             {
-                var previous = title; title = new HydraWorkingTitle(label, running, TextAlignment.Left); titleText = label; titleRunning = running;
-                if (previous is null) titleHost.Children.Add(title);
-                else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, titleHost.Children.Count, title.Transition(SwiftTransition.Opacity)); });
+                // PORT-ONLY (OD-0136 amendment 2, step 2 B): a running line shows the thinking glyph and its word in breathing letters, one title that stays while the line
+                // runs (a new word arrives letter by letter inside it); a line that is not running shows its label as plain text, as before.
+                if (running && thinking is not null && ReferenceEquals(title, thinking)) thinking.Word = label;
+                else
+                {
+                    var previous = title; thinking = running ? new NthWorkingTitle(label) : null;
+                    Control next = thinking is not null ? thinking : new HydraWorkingTitle(label, false, TextAlignment.Left); title = next; // :2104 the earlier segment's label at rest draws no breathing
+                    if (previous is null) titleHost.Children.Add(next);
+                    else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, titleHost.Children.Count, next.Transition(SwiftTransition.Opacity)); });
+                }
+                titleText = label; titleRunning = running;
             }
             // :2144-2147 the card keeps an even 14 on both sides so its bar sits centred; the badge is a pill like the others in the column.
             frame.Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical);
@@ -1792,7 +1802,7 @@ public sealed class WorkingIndicator : Decorator
                 // its clock and its bar are the views they were (:2125 HydraElapsedTime and :2139 HydraProgressBar stand in the same place of the body, so they keep their
                 // state), handed the new times and status; the clock's words swap over the line's own motion (:2182, OD-0076), and its one-second task follows `running`.
                 startedAt = start; finishedAt = finish; startedAtValue = start; finishedAtValue = finish; running = finish is null; lineState.Running = running;
-                elapsedView.Update(start, finish, running, drawn ? Change : null);
+                elapsedView.Update(start, finish, running);
                 bar?.UpdateTimes(start, finish, running ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Stopped);
             }
             Draw();
@@ -1813,7 +1823,7 @@ public sealed class WorkingIndicator : Decorator
         /// <summary>Children on their way out (:2133 `.transition(.opacity)`): still drawn where they stood, in nobody's layout, so what is left lays out as if they were gone.</summary>
         public HashSet<Control> Leaving { get; } = [];
         private Control[] Present => Children.Where(child => !Leaving.Contains(child)).ToArray();
-        private static double Baseline(Control child) => child switch { TextBlock text => text.TextLayout.TextLines.FirstOrDefault()?.Baseline ?? child.DesiredSize.Height, Decorator { Child: { } content } => Baseline(content), Panel panel when panel.Children.Count > 0 => Baseline(panel.Children[0]), _ => child.DesiredSize.Height };
+        private static double Baseline(Control child) => child switch { TextBlock text => text.TextLayout.TextLines.FirstOrDefault()?.Baseline ?? child.DesiredSize.Height, IBaselineProvider provider => provider.Baseline, Decorator { Child: { } content } => Baseline(content), Panel panel when panel.Children.Count > 0 => Baseline(panel.Children[0]), _ => child.DesiredSize.Height };
         protected override Size MeasureOverride(Size availableSize)
         {
             foreach (var child in Children) child.Measure(new Size(double.PositiveInfinity, availableSize.Height));

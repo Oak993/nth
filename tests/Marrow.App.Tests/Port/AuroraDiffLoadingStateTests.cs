@@ -6,6 +6,7 @@ using Marrow.Services.Git;
 using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Tests.Port;
 
@@ -80,11 +81,11 @@ public sealed class AuroraDiffLoadingStateTests(HeadlessSession headless)
         rig.Store.Main.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
         pending.SetResult(ValueList<DiffFile>.Empty);
         Assert.True(rig.PumpUntil(() => DiffInspectorTree.Text(inspector, "No changes yet") is not null));
-        rig.Store.Main.Advance(TimeSpan.FromMilliseconds(75)); frames.Advance(TimeSpan.FromMilliseconds(75)); Dispatcher.UIThread.RunJobs();
+        rig.Store.Main.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
         Assert.Equal(.5, state.Label.Opacity, 8);
         rig.Store.Main.OnMain(() => rig.Runtime.FollowUpsCollapsed = !rig.Runtime.FollowUpsCollapsed);
         Assert.Same(state, Assert.Single(DiffInspectorTree.Descendants<AuroraDiffLoadingState>(inspector)));
-        rig.Store.Main.Advance(TimeSpan.FromMilliseconds(75)); frames.Advance(TimeSpan.FromMilliseconds(75)); Dispatcher.UIThread.RunJobs();
+        rig.Store.Main.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
         Assert.Empty(DiffInspectorTree.Descendants<AuroraDiffLoadingState>(inspector));
         rig.Store.Main.Advance(TimeSpan.FromMilliseconds(200)); frames.Advance(TimeSpan.FromMilliseconds(200)); Dispatcher.UIThread.RunJobs();
         var root = Assert.IsType<Grid>(inspector.Child);
@@ -93,7 +94,7 @@ public sealed class AuroraDiffLoadingStateTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-097")]
-    public void The_kept_diff_label_waits_four_hundred_ms_fades_with_the_placeholder_and_leaves_after_the_exit_fade() => headless.OnUiThread(() =>
+    public void The_kept_diff_label_waits_four_hundred_ms_fades_with_the_skeleton_and_leaves_after_the_exit_fade() => headless.OnUiThread(() =>
     {
         var time = new ManualTimeProvider(); var frames = new ManualFrameSource();
         using var clock = SwiftClock.Provider.Override(time);
@@ -104,18 +105,25 @@ public sealed class AuroraDiffLoadingStateTests(HeadlessSession headless)
         try
         {
             Assert.Equal("Reading the diff\u2026", state.Label.Text);
-            Assert.Equal(AuroraLoaderKind.AuroraSheen, state.Loader.Kind);
+            // OD-0136 amendment 2, step 5: the diff skeleton stands where the sheen loader stood (88 tall, stretched, 10 in at the sides), the header's words have the light through them
+            Assert.Equal(NthSkeletonKind.Diff, state.Skeleton.Kind);
+            Assert.True(state.Label.IsShining);
             Assert.Equal(0, state.Label.Opacity);
+            var place = Assert.IsType<Avalonia.Controls.Panel>(state.Children[0]);
+            Assert.Equal(88, place.Height); Assert.Equal(new Avalonia.Thickness(10, 0), place.Margin); Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, place.HorizontalAlignment);
             time.Advance(TimeSpan.FromMilliseconds(399)); frames.Advance(TimeSpan.FromMilliseconds(399)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(0, state.Label.Opacity);
+            Assert.Null(state.Skeleton.Parent); // ED-097: nothing is drawn for 400 ms, so a fast load never flashes
             time.Advance(TimeSpan.FromMilliseconds(101)); frames.Advance(TimeSpan.FromMilliseconds(101)); Dispatcher.UIThread.RunJobs();
+            Assert.Same(place, state.Skeleton.Parent); // it comes in then, so its rows fade in from that moment
             Assert.Equal(.5, state.Label.Opacity, 8);
             time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(1, state.Label.Opacity);
             var removed = 0; state.Complete(() => removed++);
-            time.Advance(TimeSpan.FromMilliseconds(75)); frames.Advance(TimeSpan.FromMilliseconds(75)); Dispatcher.UIThread.RunJobs();
+            // the hand-over is the skeleton's own 0.2 s fade (NthSkeleton.Finish); the label goes with it
+            time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(.5, state.Label.Opacity, 8); Assert.Equal(0, removed);
-            time.Advance(TimeSpan.FromMilliseconds(75)); frames.Advance(TimeSpan.FromMilliseconds(75)); Dispatcher.UIThread.RunJobs();
+            time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(0, state.Label.Opacity); Assert.Equal(1, removed); Assert.Equal(0, frames.Pending);
         }
         finally { window.Close(); }

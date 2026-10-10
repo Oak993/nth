@@ -16,6 +16,7 @@ using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -38,15 +39,14 @@ public sealed class ComposerViewBlitzSendTests(HeadlessSession headless)
     {
         var button = One<Button>(send);
         var label = Assert.IsType<Border>(button.Content);
-        var image = LogicalQuery.SelfAndDescendants<SwiftImage>(label).First();
-        return new SendLook(button.IsEnabled, image.SymbolName!, AutomationProperties.GetName(button)!, (string)ToolTip.GetTip(button)!,
-            Assert.IsAssignableFrom<ISolidColorBrush>(label.Background).Color, Assert.IsAssignableFrom<ISolidColorBrush>(image.Foreground).Color);
+        var face = LogicalQuery.SelfAndDescendants<NthSendFace>(label).Single();
+        return new SendLook(button.IsEnabled, face.IsRunning, AutomationProperties.GetName(button)!, (string)ToolTip.GetTip(button)!, face.Dim);
     }
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-016")] // App/Views/Composer/ComposerView.swift:817-866
-    [Trait("Rule", "R-TEST-4")] // The 28 point circle, the 4 point margin, the focus and the first states: B3_send_is_28_circle_..., B3_stop_click_is_plain_interrupt_...; arrow to stop: SendSymbolReplaceTests; stop to arrow, the shrink and the grow from the bottom: CAPTURE-ONLY (the frames C 125.762-126.250 are not compared)
-    public void The_send_button_reads_its_state_from_the_run_the_draft_and_the_revert_in_glyph_fill_ink_name_and_help()
+    [Trait("Rule", "R-TEST-4")] // The 32 point face (OD-0136 amendment 2, step 9; was the 28 point circle), the 4 point margin, the focus and the first states: B3_send_is_32_face_..., B3_stop_click_is_plain_interrupt_...; arrow to stop: SendFaceRunningTests
+    public void The_send_button_reads_its_state_from_the_run_the_draft_and_the_revert_in_face_dim_name_and_help()
     {
         headless.OnUiThread(() =>
         {
@@ -60,49 +60,43 @@ public sealed class ComposerViewBlitzSendTests(HeadlessSession headless)
                 var send = h.Main.OnMain(() => new SendDraftState(runtime, running, heads, goesToHead, queueGoesToHead, () => { }));
                 return (send, h.Main.OnMain(() => Show(send, h.App, 200)));
             }
-            Color Accent(Control control) => (Popovers.GetTint(control) ?? SwiftColor.AccentColor).Resolve(control.ActualThemeVariant);
             var dim = SendDraftState.DisabledLabelOpacity;
             Assert.Equal(0.5, dim);
 
-            // Idle with an empty draft: disabled, the faint quaternary disc, the arrow dimmed with it.
+            // Idle with an empty draft: disabled, the arrow face, half of itself (the old faint quaternary disc and half-white arrow were measured at 0.48 to 0.51; the nth face keeps Dim 0.5).
             var (idle, idleWindow) = Make(running: false, heads: false, goesToHead: false, queueGoesToHead: false);
             Pump(h, idleWindow);
             var look = h.Main.OnMain(() => LookAt(idle));
             Assert.False(look.Enabled);
-            Assert.Equal("arrow.up", look.Symbol);
+            Assert.False(look.Running);
             Assert.Equal("Send", look.Name);
             Assert.Equal("Send (Return)" + QueueTail(" queues while running"), look.Tip);
-            Assert.Equal(SwiftColor.Quaternary.Opacity(dim).Resolve(idle.ActualThemeVariant), look.Fill);
-            Assert.Equal(SwiftColor.White.Opacity(dim).Resolve(idle.ActualThemeVariant), look.Ink);
+            Assert.Equal(dim, look.Dim);
 
-            // The first typed character: enabled, the accent disc and the white arrow, reached over 0.12 s.
+            // The first typed character: enabled, the face whole again, reached over 0.12 s.
             h.Main.OnMain(() => runtime.Draft = new ComposerDraft { Text = "hello" });
             Pump(h, idleWindow);
             Assert.True(h.Main.OnMain(() => LookAt(idle).Enabled));
             h.Main.Advance(TimeSpan.FromSeconds(0.06));
             h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(0.06)));
             var middle = h.Main.OnMain(() => LookAt(idle));
-            var start = SwiftColor.Quaternary.Opacity(dim).Resolve(idle.ActualThemeVariant);
-            var end = h.Main.OnMain(() => Accent(idle));
-            Assert.True(middle.Fill != start && middle.Fill != end, $"mid-way between {start} and {end}: {middle.Fill}");
-            Assert.True(middle.Ink.A > Math.Round(255 * dim) && middle.Ink.A < 255, $"the arrow brightens: {middle.Ink}");
+            Assert.True(middle.Dim > dim && middle.Dim < 1, $"mid-way between {dim} and 1: {middle.Dim}");
             h.Main.Advance(TimeSpan.FromSeconds(1));
             h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(1)));
             look = h.Main.OnMain(() => LookAt(idle));
-            Assert.Equal(end, look.Fill); // .tint
-            Assert.Equal(SwiftColor.White.Resolve(idle.ActualThemeVariant), look.Ink); // .white
+            Assert.Equal(1, look.Dim);
             Close(h, idleWindow);
 
-            // Running: stop.fill, enabled whatever the draft says, named Stop, the help promises what Return and the queue chord do.
+            // Running: the stop square, enabled whatever the draft says, named Stop, the help promises what Return and the queue chord do.
             h.Main.OnMain(() => runtime.Draft = new ComposerDraft());
             var (running, runningWindow) = Make(running: true, heads: false, goesToHead: false, queueGoesToHead: false);
             Pump(h, runningWindow);
             look = h.Main.OnMain(() => LookAt(running));
             Assert.True(look.Enabled);
-            Assert.Equal("stop.fill", look.Symbol);
+            Assert.True(look.Running);
             Assert.Equal("Stop", look.Name);
             Assert.Equal("Stop" + SendShortcutText.Stop + " · Return steers" + QueueTail(" queues"), look.Tip);
-            Assert.Equal(h.Main.OnMain(() => Accent(running)), look.Fill);
+            Assert.Equal(1, look.Dim);
             // A take-back in flight disables it even while it runs, and the dimming goes with it.
             h.Main.OnMain(() => typeof(ThreadRuntime).GetProperty("IsReverting")!.SetValue(runtime, true));
             Pump(h, runningWindow);
@@ -110,8 +104,8 @@ public sealed class ComposerViewBlitzSendTests(HeadlessSession headless)
             h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(1)));
             look = h.Main.OnMain(() => LookAt(running));
             Assert.False(look.Enabled);
-            Assert.Equal("stop.fill", look.Symbol);
-            Assert.Equal(h.Main.OnMain(() => (Popovers.GetTint(running) ?? SwiftColor.AccentColor).Opacity(dim).Resolve(running.ActualThemeVariant)), look.Fill);
+            Assert.True(look.Running);
+            Assert.Equal(dim, look.Dim);
             Close(h, runningWindow);
             h.Main.OnMain(() => typeof(ThreadRuntime).GetProperty("IsReverting")!.SetValue(runtime, false));
 

@@ -93,14 +93,14 @@ public sealed class TimelineRowsFinPlanTests(HeadlessSession headless)
                 Face(caption, 10, FontWeight.Normal, ".chat(.caption)");
                 Paints(caption.Foreground, ChromeTokens.SecondaryText, caption, "caption");
                 // :2272-2277 drafting: the working spinner in a 14-point frame; otherwise the clipboard drawn in the tint.
-                var spinner = Assert.Single(Mounted<WorkingSpinner>(cards[0]));
-                Assert.Equal(14, spinner.Width);
+                var spinner = Assert.Single(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(cards[0])); // OD-0136 amendment 2, step 8: the 14 px spinner of the nth status slot (was the 3-cell working spinner)
+                Assert.Equal(18, Assert.IsType<Border>(spinner.Parent).Width); // ChatBadge gives its glyph an 18 x 18 frame (:26); the spinner inside is 14 Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Working, spinner.Status); Assert.Equal(14, spinner.MarkSize);
                 Assert.DoesNotContain(Mounted<SwiftImage>(cards[0]), image => image.SymbolName == "list.bullet.clipboard");
                 foreach (var card in cards.Skip(1))
                 {
                     var clipboard = Mounted<SwiftImage>(card).Single(image => image.SymbolName == "list.bullet.clipboard");
                     Paints(clipboard.Foreground, ChromeTokens.Accent, clipboard, "clipboard glyph");
-                    Assert.Empty(Mounted<WorkingSpinner>(card));
+                    Assert.Empty(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(card));
                 }
                 // :2335 only a proposed plan draws the accent dot wave, along the top quarter of the badge (ChatBadge :55-61).
                 Assert.Equal([false, true, false, false], cards.Select(card => Mounted<DotFieldControl>(card).Any()));

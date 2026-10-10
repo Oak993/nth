@@ -2140,7 +2140,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 var window = Show(panel);
                 foreach (var icon in new Control[] { running, failed, declined, completed, photo })
                     Assert.Contains(LogicalQuery.SelfAndDescendants<Control>(icon), control => control.Width == TimelineMetrics.IconWidth);
-                Assert.Single(LogicalQuery.SelfAndDescendants<ProgressBar>(running));
+                // OD-0136 amendment 2, step 8: the running icon is the nth status slot's spinner (was the 10 point indeterminate bar)
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ProgressBar>(running));
+                Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Working, Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthStatusMark>(running)).Status);
                 Assert.Empty(Symbols(running));
                 var cross = LogicalQuery.SelfAndDescendants<SwiftImage>(failed).Single();
                 Assert.Equal("xmark.circle.fill", cross.SymbolName);
@@ -2148,9 +2150,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(declined).Single();
                 Assert.Equal("hand.raised.slash", hand.SymbolName);
                 Assert.Equal(Resolved(ChromeTokens.Warning, hand), BrushColor(hand.Foreground));
-                var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(completed).Single();
-                Assert.Equal("doc.text", glyph.SymbolName);
-                Assert.Equal(Resolved(ChromeTokens.SecondaryText, glyph), BrushColor(glyph.Foreground));
+                // the kind's glyph ("doc.text" for a read) was the done look; step 8 draws the tick
+                Assert.Empty(Symbols(completed));
+                var tick = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthStatusMark>(completed));
+                Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Done, tick.Status); Assert.Equal(Marrow.UI.Port.Nth.NthDoneMark.Tick, tick.DoneMark);
                 Assert.Equal("photo", LogicalQuery.SelfAndDescendants<SwiftImage>(photo).Single().SymbolName);
                 Close(window);
             });
@@ -3210,8 +3213,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 // :2335-2337 only a proposed plan draws the attention dots.
                 Assert.Equal([false, true, false, false], cards.Select(card => LogicalQuery.SelfAndDescendants<DotFieldControl>(card).Any()));
                 // :2272-2276 the spinner while drafting, the clipboard in the tint otherwise.
-                var spinner = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingSpinner>(cards[0]));
-                Assert.Equal(14, spinner.Width);
+                var spinner = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthStatusMark>(cards[0])); // OD-0136 amendment 2, step 8: the 14 px spinner of the nth status slot (was the 3-cell working spinner)
+                Assert.Equal(18, Assert.IsType<Border>(spinner.Parent).Width); // ChatBadge gives its glyph an 18 x 18 frame (:26); the spinner inside is 14 Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Working, spinner.Status); Assert.Equal(14, spinner.MarkSize);
                 Assert.DoesNotContain("list.bullet.clipboard", Symbols(cards[0]));
                 var clipboard = LogicalQuery.SelfAndDescendants<SwiftImage>(cards[1]).Single(image => image.SymbolName == "list.bullet.clipboard");
                 Assert.Equal(Resolved(ChromeTokens.Accent, clipboard), BrushColor(clipboard.Foreground));

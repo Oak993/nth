@@ -55,7 +55,7 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-094")] // TimelineRows.swift:2222-2233 ToolPresentation.symbol; :2085 the row's icon; :1481 the group's glyph via :1619; OD-0098
-    public void Each_kind_draws_one_mark_as_its_rows_icon_and_as_its_groups_summary_glyph_in_both_themes_and_the_eight_marks_all_differ() => headless.OnUiThread(() =>
+    public void Each_kind_draws_its_own_mark_as_its_groups_summary_glyph_in_both_themes_and_the_eight_marks_all_differ_while_the_rows_icon_is_the_done_tick() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -66,8 +66,8 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
                 var marks = new List<string>();
                 foreach (var (kind, symbol) in Kinds)
                 {
-                    // The row's own icon is the ToolStatusIcon of a completed call (:2084-2086, :1784); the summary glyph is the first
-                    // image of the header of a group whose calls are all of this kind (:1612-1620).
+                    // The row's own icon is the ToolStatusIcon of a completed call (:2084-2086, :1784), which OD-0136 amendment 2 (step 8) makes the done tick, the same for every kind;
+                    // the summary glyph is the first image of the header of a group whose calls are all of this kind (:1612-1620).
                     var icon = new ToolStatusIcon(Call(kind, "x"));
                     var group = new WorkGroup(new ValueList<TimelineEntry>([Tool(kind), Tool(kind)]), h.Runtime);
                     var panel = new StackPanel { Spacing = 24, Margin = new Thickness(24) };
@@ -75,24 +75,18 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
                     panel.Children.Add(group);
                     BlitzAbRender.Render(panel, theme, backdrop, 320, 200, (window, frame) =>
                     {
-                        var rowGlyph = Assert.Single(Mounted<SwiftImage>(icon));
+                        // The row's icon: the nth status slot, done, drawn as the tick (a composition visual, so its pixels are the primitives' own tests'); no kind glyph.
+                        Assert.Empty(Mounted<SwiftImage>(icon));
+                        var tick = Assert.Single(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(icon));
+                        Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Done, tick.Status);
+                        Assert.Equal(Marrow.UI.Port.Nth.NthDoneMark.Tick, tick.DoneMark);
                         var groupGlyph = Mounted<SwiftImage>(group).First();
-                        Assert.Equal(symbol, rowGlyph.SymbolName);
                         Assert.Equal(symbol, groupGlyph.SymbolName);
-                        var rowArea = BlitzAbRender.BoxIn(rowGlyph, window);
                         var groupArea = BlitzAbRender.BoxIn(groupGlyph, window);
-                        var rowMask = frame.Mask(rowArea, backdrop) ?? throw new Xunit.Sdk.XunitException($"{kind} in {theme}: the row's icon drew nothing");
                         var groupMask = frame.Mask(groupArea, backdrop) ?? throw new Xunit.Sdk.XunitException($"{kind} in {theme}: the group's glyph drew nothing");
-                        // One mark in both places: the same ink box (a pixel of anti-aliasing apart) and ink within a tenth of each other.
-                        Assert.InRange(groupMask.GetLength(0) - rowMask.GetLength(0), -1, 1);
-                        Assert.InRange(groupMask.GetLength(1) - rowMask.GetLength(1), -1, 1);
-                        var rowInk = frame.InkMass(rowArea, backdrop, ChromeTokens.SecondaryText.Resolve(theme));
-                        var groupInk = frame.InkMass(groupArea, backdrop, ChromeTokens.SecondaryText.Resolve(theme));
-                        Assert.True(Math.Abs(rowInk - groupInk) <= rowInk * 0.1, $"{kind} in {theme}: {rowInk:0.0} of ink as the row's icon, {groupInk:0.0} as the group's glyph");
-                        // Chrome.secondaryText (:2086, :1483): the ink is the theme's secondary label colour at any coverage.
-                        BlitzAbRender.InkIsColour(frame, rowArea, backdrop, ChromeTokens.SecondaryText.Resolve(theme), $"{kind} icon in {theme}");
+                        // Chrome.secondaryText (:1483): the ink is the theme's secondary label colour at any coverage.
                         BlitzAbRender.InkIsColour(frame, groupArea, backdrop, ChromeTokens.SecondaryText.Resolve(theme), $"{kind} group glyph in {theme}");
-                        marks.Add(Signature(rowMask));
+                        marks.Add(Signature(groupMask));
                     });
                 }
                 // A kind always draws its own mark: no two of the eight read alike.
@@ -103,7 +97,7 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-094")] // TimelineRows.swift:2222-2233, :1784, :1612-1620: through the real ToolRow, and the group's mixed kinds
-    public void A_tool_row_wears_its_kinds_glyph_whichever_way_the_call_is_made_and_a_group_takes_the_first_kind_of_the_fixed_order() => headless.OnUiThread(() =>
+    public void A_tool_row_wears_the_done_tick_whichever_way_the_call_is_made_and_a_group_takes_the_first_kind_of_the_fixed_order() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -114,7 +108,8 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
             {
                 var row = new ToolRow(ToolEntry(Call(kind, "something")), h.Runtime);
                 var window = Show(row);
-                try { Assert.Equal(symbol, Assert.Single(Mounted<SwiftImage>(Assert.Single(Mounted<ToolStatusIcon>(row)))).SymbolName); }
+                // OD-0136 amendment 2, step 8: the kind's glyph is no longer the row's done look; the tick is, for every kind (the group still names the kind: below).
+                try { Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Done, Assert.Single(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(Assert.Single(Mounted<ToolStatusIcon>(row)))).Status); Assert.Empty(Mounted<SwiftImage>(Assert.Single(Mounted<ToolStatusIcon>(row)))); }
                 finally { Close(window); }
             }
             // :1588 the order: edit, read, command, search, web, mcp, agent, other, whatever the order of the calls.
@@ -196,7 +191,7 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-099")] // TimelineRows.swift:2072-2091 the four states in the theme's own colours; :1784 the photo override; OD-0098 (the spinner's own size is the mini control's, OWNER)
-    public void The_failed_cross_the_raised_hand_and_the_kinds_glyph_are_drawn_in_the_themes_danger_warning_and_secondary_ink_in_a_sixteen_point_column_in_both_themes() => headless.OnUiThread(() =>
+    public void The_failed_cross_and_the_raised_hand_are_drawn_in_the_themes_danger_and_warning_ink_in_a_sixteen_point_column_in_both_themes() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -208,7 +203,6 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
                 {
                     (ToolCall.Status.Failed, ChromeTokens.Danger, "xmark.circle.fill"),
                     (ToolCall.Status.Declined, ChromeTokens.Warning, "hand.raised.slash"),
-                    (ToolCall.Status.Completed, ChromeTokens.SecondaryText, "doc.text"),
                 };
                 var icons = states.Select(state => new ToolStatusIcon(Call(ToolCall.Kind.Read, "x", state.Status))).ToArray();
                 var panel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 24, Margin = new Thickness(24) };
@@ -233,7 +227,7 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-099")] // TimelineRows.swift:2077 ProgressView().controlSize(.mini) in the 16 pt column (:2090); 2-chat-use.mov 145.0-145.6 s, crop 1894,1148,64x64: 10x10 px (the same control, UsageViews.swift:22)
-    public void The_running_icon_is_the_10_point_mini_spinner_with_eight_spokes_centred_in_the_sixteen_point_column_in_both_themes() => headless.OnUiThread(() =>
+    public void The_running_icon_is_the_nth_status_slot_with_its_14_px_spinner_centred_in_the_sixteen_point_column_in_both_themes() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -247,21 +241,18 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
                 BlitzAbRender.Render(panel, theme, backdrop, 120, 80, (window, frame) =>
                 {
                     var column = BlitzAbRender.BoxIn(Assert.IsType<Border>(icon.Child), window);
-                    var bar = Assert.Single(Mounted<ProgressBar>(icon));
-                    var spinner = Assert.Single(Mounted<SystemSpinner>(icon));
-                    var box = BlitzAbRender.BoxIn(spinner, window);
+                    // OD-0136 amendment 2, step 8: the 10 point mini spinner with eight spokes (2-chat-use.mov 145.0-145.6 s) gives way to the nth 16 px status slot, whose spinner is 14 px
+                    // (a composition visual: its pixels are the primitives' own tests').
+                    Assert.Empty(Mounted<ProgressBar>(icon));
+                    var mark = Assert.Single(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(icon));
+                    var box = BlitzAbRender.BoxIn(mark, window);
                     Assert.Equal(16, column.Width); // the fixed icon column (:2090)
-                    Assert.Equal(10, bar.Bounds.Width); // 2-chat-use.mov 145.0-145.6 s: 10x10 px = 10 pt
-                    Assert.Equal(10, bar.Bounds.Height);
-                    Assert.Equal(10, box.Width);
-                    Assert.Equal(10, box.Height);
+                    Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Working, mark.Status);
+                    Assert.Equal(14, mark.MarkSize);
+                    Assert.Equal(16, box.Width);
+                    Assert.Equal(16, box.Height);
                     Assert.Equal(column.Center.X, box.Center.X, 0.5); // centred in the column
                     Assert.Equal(column.Center.Y, box.Center.Y, 0.5);
-                    Assert.Equal(8, SystemSpinner.Spokes);
-                    // The drawn spokes span the 10 pt (the video's thresholded bounding boxes are 11x10, 10x10, 10x10, 10x10).
-                    var ink = frame.Ink(box.Inflate(2), backdrop) ?? throw new Xunit.Sdk.XunitException($"no spinner is drawn in {theme}");
-                    Assert.InRange(ink.Right - ink.Left + 1, 9, 11);
-                    Assert.InRange(ink.Bottom - ink.Top + 1, 9, 11);
                 });
             }
         });
@@ -269,7 +260,7 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-099")] // TimelineRows.swift:2072-2091 and :1658-1660: the status changes while the row is on screen; :1784 the photo override
-    public void A_row_whose_call_changes_status_swaps_its_icon_in_place_from_the_spinner_to_the_cross_the_hand_and_the_kinds_glyph() => headless.OnUiThread(() =>
+    public void A_row_whose_call_changes_status_swaps_its_icon_in_place_from_the_spinner_to_the_cross_the_hand_and_the_tick() => headless.OnUiThread(() =>
     {
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -279,7 +270,8 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
         string Shown()
         {
             var icon = Assert.Single(Mounted<ToolStatusIcon>(row));
-            return Mounted<Avalonia.Controls.ProgressBar>(icon).Any() ? "spinner" : Assert.Single(Mounted<SwiftImage>(icon)).SymbolName ?? "";
+            if (Mounted<Marrow.UI.Port.Nth.NthStatusMark>(icon).SingleOrDefault() is { } mark) return mark.Status == Marrow.UI.Port.Nth.NthStatus.Working ? "spinner" : "tick"; // step 8: the nth status slot
+            return Assert.Single(Mounted<SwiftImage>(icon)).SymbolName ?? "";
         }
         h.Main.OnMain(() =>
         {
@@ -291,7 +283,7 @@ public sealed class TimelineRowsBlitzAbToolTests(HeadlessSession headless)
         try
         {
             foreach (var (status, expected) in new[] { (ToolCall.Status.Failed, "xmark.circle.fill"), (ToolCall.Status.Declined, "hand.raised.slash"),
-                                                       (ToolCall.Status.Running, "spinner"), (ToolCall.Status.Completed, "magnifyingglass") })
+                                                       (ToolCall.Status.Running, "spinner"), (ToolCall.Status.Completed, "tick") })
             {
                 h.Main.OnMain(() => entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Tool(Call(ToolCall.Kind.Search, "grep foo", status)) });
                 h.Main.OnMain(() =>
