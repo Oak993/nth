@@ -356,6 +356,8 @@ public static class IgnisWords
     public const string UpdatesRowDetail = "Context, cache and rebuild points for each model";
     /// <summary>"2026.10.08 → 2026.10.10"</summary>
     public static string UpdatesRowVersions(string installed, string latest) => installed + " → " + latest;
+    /// <summary>"2026.10.10 · prices 2026-10-10": the points version and the day of the price catalogue in use (ED-NEW-ignis-data); the version alone before any catalogue.</summary>
+    public static string UpdatesRowVersion(string version, string? pricesDay) => pricesDay is null ? version : version + " · prices " + pricesDay;
 
     // ---- Save report ----
     /// <summary>The report text (design Stage.report), lines joined with "\n".</summary>
