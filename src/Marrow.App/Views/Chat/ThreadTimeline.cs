@@ -16,6 +16,7 @@ using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 // Source: DroppyCode/App/Views/Chat/ThreadTimeline.swift (B3 52bc792), :1-2327.
 // B3 owned behavior is ported. The one platform gap left (a window uncovered with no event of its own) is documented in ThreadTimelineTests STOP #3.
@@ -82,6 +83,8 @@ public sealed class ThreadTimeline : Decorator
     });
     /// <summary>How many times the body has run (:98 `var body`): the render count PR-CHAT-160's `.equatable()` boundary is proven by (a title, an effort or a mode runs it no more).</summary>
     internal int DrawPasses { get; private set; }
+    /// <summary>The rows of the timeline now (tests: the history hand-over raises them one by one).</summary>
+    internal IReadOnlyList<Control> DrawnRows => drawnRows?.Children ?? (IReadOnlyList<Control>)[];
     private long? seenAutoStartedTurnToken; // :83-85
     private bool? seenRunning;
     private string? seenLastEntryID;
@@ -123,14 +126,15 @@ public sealed class ThreadTimeline : Decorator
         // :134-144 `if runtime.isLoadingHistory { Color.clear } else if blocks.isEmpty && !runtime.isRunning { NewThreadPrompt } else { timeline }`: the branch on show is one child of
         // this host. A swap between the prompt and the timeline crossfades (OD-0076: the Mac swaps them in one frame; ED-255 (3)). The loading mark hands over in about
         // 0.2 s, where the Mac opens a thread in one frame (CATALOGUE.md C 164.452-164.640): it fades out while what the thread shows fades and rises in (OD-0105 (1)).
-        branches = new BranchHost(() => EnvironmentValues.GetAccessibilityReduceMotion(this)); Child = branches;
+        branches = new BranchHost(() => EnvironmentValues.GetAccessibilityReduceMotion(this), () => drawnRows?.Children); Child = branches;
         void Draw()
         {
             DrawPasses++;
             if (runtime.IsLoadingHistory)
             {
-                // :134-135; OD-0113 / ED-097. Curtain Fold owns the 400 ms blank period and 0.2 s fade.
-                if (branches.On is not AuroraLoader) branches.Show(new AuroraLoader(AuroraLoaderKind.CurtainFold) { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, fadesIn: false);
+                // :134-135; OD-0136 amendment 3 (ED-NEW-nth-motion): the thread history loader is the nth "Flick" (B1), 48 px in the middle of the message area,
+                // replacing Curtain Fold (OD-0113). It owns its 400 ms blank period, its entrance and its leave (NthFlick).
+                if (branches.On is not NthFlick) branches.Show(new NthFlick { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, fadesIn: false);
                 return;
             }
             var model = AppEnvironment.GetAppModel(this);
@@ -569,22 +573,27 @@ public sealed class ThreadTimeline : Decorator
     /// prompt and the timeline (the Mac swaps them in one frame, the first message sent and a turn that ends with nothing said alike) fades the branch that leaves out where it stood while the one that
     /// comes in fades in (the prompt's own appear, NewThreadPrompt.swift:50-53, is its fade-in), over 0.3 s on the ease-out of that appear, on the frame clock. A swap turned back part way goes on from
     /// the opacity each layer has. The system's reduce-motion setting stills it. OD-0105 (1), the owner's pick for the loading mark's hand-over (the Mac opens a thread in one frame):
-    /// the mark fades out while the branch that comes in fades and rises in, together, over 0.2 s on the same ease-out (HandOver); the rise is the 4 points of the
-    /// rows' soft appear (Chrome.swift:938-955). The prompt comes in with its own appear and the mark fades out under it. A swap to the loading mark stays a cut (the mark draws
-    /// nothing for its first 400 ms, ED-097; the ruling names the hand-over from it).
+    /// the mark fades out while the branch that comes in fades and rises in; OD-0136 amendment 3 (ED-NEW-nth-motion) makes the mark the nth Flick and the hand-over its spec's:
+    /// the loader leaves on its own in 0.3 s while the messages rise 10 px and fade in, 0.5 s, 150 ms later, 45 ms apart (HandOver). The prompt comes in with its own appear
+    /// and the loader leaves under it. A swap to the loading mark stays a cut (the mark draws nothing for its first 400 ms).
     /// A layer that is leaving takes no input and is taken out of the tree when it is gone.
     /// </summary>
     private sealed class BranchHost : Panel
     {
         private static Animation Fade => Animation.EaseOut(duration: 0.3);
         // OD-0105 (1): "in about 0.2 s"; ENGINEERING DECISION: the ease-out of the other branch swaps, at that length.
-        internal static Animation HandOver => Animation.EaseOut(duration: 0.2);
-        internal const double HandOverRise = 4; // Chrome.swift:938-955 softAppear's offset(y: 4)
+        // OD-0136 amendment 3 (spec "Hand-over"): 0.5 s on cubic-bezier(.2,.8,.2,1), 10 px, 150 ms after the loader starts to leave, 45 ms apart.
+        internal static Animation HandOver => Animation.TimingCurve(.2, .8, .2, 1, duration: 0.5);
+        internal const double HandOverRise = 10, HandOverDelay = .15, HandOverStagger = .045;
+        internal const int HandOverStaggered = 8;
         private readonly Func<bool> stilled;
         private readonly Dictionary<Control, AnimatedDouble> fades = [];
         private readonly HashSet<Control> leaving = [];
 
-        public BranchHost(Func<bool> stilled) => this.stilled = stilled;
+        // OD-0136 amendment 3: the history hand-over raises the messages one by one; the host is told where the rows are.
+        private readonly Func<IReadOnlyList<Control>?> rows;
+
+        public BranchHost(Func<bool> stilled, Func<IReadOnlyList<Control>?> rows) { this.stilled = stilled; this.rows = rows; }
 
         /// <summary>The branch on show.</summary>
         public Control? On { get; private set; }
@@ -597,8 +606,8 @@ public sealed class ThreadTimeline : Decorator
         {
             if (ReferenceEquals(On, next)) return;
             var previous = On; On = next;
-            if (previous is null || next is AuroraLoader || stilled()) { Cut(next); return; }
-            if (previous is AuroraLoader) { HandOverFrom(previous, next, fadesIn); return; }
+            if (previous is NthFlick flick) { HandOverFrom(flick, next, fadesIn); return; }
+            if (previous is null || next is NthFlick || stilled()) { Cut(next); return; }
             var back = Children.Contains(next); // a layer that was leaving, turned back
             Leave(previous);
             if (!back) { next.Opacity = fadesIn ? 0 : 1; Children.Add(next); }
@@ -606,22 +615,37 @@ public sealed class ThreadTimeline : Decorator
             if (fadesIn || back) Animate(next, 1);
         }
 
-        // OD-0105 (1): the mark fades out while `next` fades and rises in (a branch with its own appear, the prompt, comes in with it), together on one curve.
-        private void HandOverFrom(Control mark, Control next, bool fadesIn)
+        // OD-0136 amendment 3 (ED-NEW-nth-motion), the history loader's hand-over: the loader leaves on its own (opacity to 0 in 0.22 s, scale to 0.9 in 0.3 s,
+        // NthFlick.Finish) and is taken out when it has gone; the messages rise 10 to 0 px and fade in, 0.5 s (.2,.8,.2,1), starting 150 ms later, 45 ms apart.
+        // ENGINEERING DECISION: the thread opens at its end, so the stagger runs over the last HandOverStaggered rows (top to bottom); the rows above them, out of
+        // sight, move with the first. Reduce motion: the loader fades, the messages fade in without rising (the spec's "opacity only").
+        private void HandOverFrom(NthFlick mark, Control next, bool fadesIn)
         {
             foreach (var layer in Children.ToArray()) if (!ReferenceEquals(layer, next) && !ReferenceEquals(layer, mark)) Drop(layer);
-            Leave(mark, HandOver);
-            Stop(next); leaving.Remove(next); next.IsHitTestVisible = true;
+            mark.Finish(); mark.IsHitTestVisible = false; leaving.Add(mark);
+            var gone = new AnimatedDouble(progress => { if (progress >= 1 && leaving.Contains(mark)) Drop(mark); });
+            gone.Set(0, null); gone.Set(1, Animation.Linear(NthFlick.LeaveSeconds));
+            Stop(next); leaving.Remove(next); next.IsHitTestVisible = true; next.Opacity = 1;
             if (!Children.Contains(next)) Children.Add(next);
-            if (!fadesIn) { next.Opacity = 1; return; }
-            var rise = new TranslateTransform(0, HandOverRise);
-            next.RenderTransform = rise; next.Opacity = 0;
+            if (!fadesIn) return;
+            var calm = stilled();
+            var all = rows() is { Count: > 0 } list && next is Grid ? list.ToArray() : [next];
+            var first = Math.Max(0, all.Length - HandOverStaggered);
+            for (var i = 0; i < all.Length; i++) Rise(all[i], Math.Max(0, i - first), calm);
+        }
+
+        private static void Rise(Control row, int order, bool calm)
+        {
+            if (row.RenderTransform is not null && row.RenderTransform is not TranslateTransform) { row.Opacity = 1; return; } // a row moving on its own keeps its motion
+            var rise = calm ? null : new TranslateTransform(0, HandOverRise);
+            if (rise is not null) row.RenderTransform = rise;
+            row.Opacity = 0;
             var arrival = new AnimatedDouble(progress =>
             {
-                next.Opacity = progress; rise.Y = HandOverRise * (1 - progress);
-                if (progress >= 1 && ReferenceEquals(next.RenderTransform, rise)) next.RenderTransform = null;
+                row.Opacity = progress;
+                if (rise is not null) { rise.Y = HandOverRise * (1 - progress); if (progress >= 1 && ReferenceEquals(row.RenderTransform, rise)) row.RenderTransform = null; }
             });
-            arrival.Set(0, null); arrival.Set(1, HandOver);
+            arrival.Set(0, null); arrival.Set(1, HandOver.Delay(HandOverDelay + HandOverStagger * order));
         }
 
         private void Cut(Control next)

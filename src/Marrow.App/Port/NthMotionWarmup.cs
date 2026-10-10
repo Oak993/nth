@@ -45,6 +45,7 @@ public static class NthMotionWarmup
             new NthSpinnerPainter(), new NthBarPainter(), new NthBarPainter(), new NthRingPainter(), new NthStatusPainter(),
             new NthSkeletonPainter(), new NthSkeletonPainter(), new NthSkeletonPainter(), new NthSkeletonPainter(),
             new NthSendPainter(), new NthSendPainter(), new NthTubePainter(), new NthLinkPainter(), new NthThinkingGlyphPainter(),
+            new NthFlickPainter(), new NthFlickPainter(),
         ];
         (Size Size, object? State)[] scenes =
         [
@@ -62,6 +63,8 @@ public static class NthMotionWarmup
             (new Size(168, 12), new NthTubeState(null, null)),
             (new Size(120, 16), new NthLinkState(null)),
             (new Size(14, 14), null),
+            (new Size(48, 48), new NthFlickState(null)),
+            (new Size(48, 48), new NthFlickState(null)),
         ];
         try
         {
@@ -71,7 +74,10 @@ public static class NthMotionWarmup
                     {
                         canvas.Clear(SKColors.Transparent);
                         // .3 s in: the spinner, bar light, ring pop and send glyphs are all mid-motion
-                        painters[i].Draw(canvas, new NthFrame(scenes[i].Size, dark, calm, clock, 0, scenes[i].State), .3);
+                        // the two flick scenes 0.7 s and 1.6 s into their loop (after the 0.4 s blank and the 0.3 s start): the tip in
+                        // flight, then the light's SrcATop band with the bead keeping it
+                        var now = painters[i] is NthFlickPainter ? (i == painters.Length - 1 ? 2.3 : 1.4) : .3;
+                        painters[i].Draw(canvas, new NthFrame(scenes[i].Size, dark, calm, clock, 0, scenes[i].State), now);
                     }
             // the text light: a layer kept only through a horizontal ramp (DstIn), as NthShinePainter composites it
             using var ramp = SKShader.CreateLinearGradient(new SKPoint(-30, 0), new SKPoint(30, 0), [SKColors.Transparent, SKColors.White, SKColors.Transparent], [0, .5f, 1], SKShaderTileMode.Clamp);

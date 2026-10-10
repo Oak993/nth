@@ -158,13 +158,16 @@ public sealed class NthPainterTests
         var side = bitmap.GetPixel((int)(8 * Scale), 16 * Scale);
         Assert.Equal(255, side.Alpha);
         Assert.InRange(side.Red, Math.Min(palette.Stop.Red, palette.StopBottom.Red) - 2, Math.Max(palette.Stop.Red, palette.StopBottom.Red) + 2);
-        // the arrow's shaft (x = 8 of the page's 16 box, scaled about the centre): the --on colour, and its tip and tail make
-        // the arrow ArrowHeight tall (tip y 3.5, tail y 13 of the box, plus the round caps)
+        // round 6: the shaft (x = 10 of the 20 px box centred in the circle) in --on, tip y 3.7 and tail y 16.4 of the box,
+        // 15.1 px tall with the round caps; the arms reach x 4.55 and 15.45 at y 9.15
+        Assert.Equal(1, NthSendFace.ArrowScale, 9);
+        Assert.Equal(15.1, 16.4 - 3.7 + NthSendFace.ArrowStroke, 9);
         Near(palette.On, bitmap.GetPixel(16 * Scale, (int)(18 * Scale)), 10);
-        var k = NthSendFace.ArrowScale;
-        Near(palette.On, bitmap.GetPixel(16 * Scale, (int)((16 + (3.5 - 8) * k + .3) * Scale)), 40);
-        Near(palette.On, bitmap.GetPixel(16 * Scale, (int)((16 + (13 - 8) * k - .3) * Scale)), 40);
-        Assert.Equal(16, (13 - 3.5) * k + NthSendFace.ArrowStroke, 9);
+        Near(palette.On, bitmap.GetPixel(16 * Scale, (int)((6 + 3.7 + .4) * Scale)), 40);
+        Near(palette.On, bitmap.GetPixel(16 * Scale, (int)((6 + 16.4 - .4) * Scale)), 40);
+        Near(palette.On, bitmap.GetPixel((int)((6 + 4.55 + .3) * Scale), (int)((6 + 9.15 - .3) * Scale)), 60);
+        Near(palette.On, bitmap.GetPixel((int)((6 + 15.45 - .3) * Scale), (int)((6 + 9.15 - .3) * Scale)), 60);
+        Assert.True(Math.Abs(bitmap.GetPixel(16 * Scale, (int)((6 + 3.7 - 2) * Scale)).Red - palette.On.Red) > 40, "nothing above the tip's cap");
         Assert.Equal(0, bitmap.GetPixel(0, 0).Alpha);
     }
 
@@ -183,7 +186,70 @@ public sealed class NthPainterTests
         Assert.True(Math.Abs(tip.Red - palette.On.Red) > 40, $"arrow tip gone: {tip}");
     }
 
-    public static TheoryData<string> Painters() => ["spinner", "bar", "indeterminate", "ring", "status", "list", "diff", "plate", "send", "tube", "link", "glyph"];
+    // the flick's points at 48 px: icon unit u maps to 24 + (u - 128) * 0.288
+    private static float Icon(double u) => (float)(24 + (u - 128) * .288);
+
+    private static bool Between(SKColor c, SKColor a, SKColor b) =>
+        c.Red >= Math.Min(a.Red, b.Red) - 3 && c.Red <= Math.Max(a.Red, b.Red) + 3 && c.Blue >= Math.Min(a.Blue, b.Blue) - 3 && c.Blue <= Math.Max(a.Blue, b.Blue) + 3;
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void The_flick_is_hidden_for_its_first_four_tenths_then_draws_the_n_and_lands_the_bead(bool dark)
+    {
+        using var painter = new NthFlickPainter();
+        var palette = NthPalette.For(dark);
+        var state = new NthFlickState(null);
+        using (var hidden = Render(painter, Frame(48, 48, dark, state), .39)) Assert.Equal(0, Count(hidden, c => c.Alpha > 0));
+        // 1.9 s: 0.4 s blank + 0.3 s start + 1.2 s into the loop: the n drawn, the bead landed (settling), before the light (1.3 s)
+        using var drawn = Render(painter, Frame(48, 48, dark, state), 1.9);
+        var leg = drawn.GetPixel((int)(Icon(70) * Scale), (int)(Icon(160) * Scale));
+        Assert.Equal(255, leg.Alpha);
+        Assert.True(Between(leg, palette.FillTop, palette.FillBottom) && !Between(leg, palette.Track, palette.Track), $"the line's material: {leg}");
+        var bead = drawn.GetPixel((int)(Icon(186) * Scale), (int)(Icon(74) * Scale));
+        Assert.Equal(255, bead.Alpha);
+        Assert.True(Between(bead, palette.FillTop, palette.FillBottom), $"the bead's material: {bead}");
+        // 4.0 s: 3.3 s into the loop: the n has emptied and the bead has faded with it; only the faint n
+        using var empty = Render(painter, Frame(48, 48, dark, state), 4.0);
+        Near(palette.Track, empty.GetPixel((int)(Icon(70) * Scale), (int)(Icon(160) * Scale)));
+        Assert.Equal(0, empty.GetPixel((int)(Icon(186) * Scale), (int)(Icon(74) * Scale)).Alpha);
+    }
+
+    [Fact]
+    public void The_flick_bead_fades_with_the_emptying_from_the_top_of_the_arch_and_both_end_at_three_point_one_eight()
+    {
+        using var painter = new NthFlickPainter();
+        var state = new NthFlickState(null);
+        double BeadAlpha(double loop)
+        {
+            using var b = Render(painter, Frame(48, 48, false, state), loop + .7);
+            return b.GetPixel((int)(Icon(186) * Scale), (int)(Icon(74) * Scale)).Alpha;
+        }
+        Assert.Equal(255, BeadAlpha(2.5)); // the tail has not passed the arch top (2.64 s)
+        Assert.InRange(BeadAlpha(2.95), 20, 235); // fading
+        Assert.Equal(0, BeadAlpha(3.19));
+    }
+
+    [Fact]
+    public void The_calm_flick_is_the_whole_n_and_bead_standing_still_and_it_leaves_in_three_tenths_once_finished()
+    {
+        using var painter = new NthFlickPainter();
+        var palette = NthPalette.Light;
+        using var calm = Render(painter, Frame(48, 48, false, new NthFlickState(null), calm: true), 1.0);
+        Assert.True(Count(calm, c => c.Alpha > 0) > 400);
+        Assert.True(calm.GetPixel((int)(Icon(186) * Scale), (int)(Icon(74) * Scale)).Alpha > 100);
+        var finished = Frame(48, 48, false, new NthFlickState(2));
+        Assert.True(painter.Moving(finished, 2.2));
+        Assert.False(painter.Moving(finished, 2.31));
+        using (var gone = Render(painter, finished, 2.31)) Assert.Equal(0, Count(gone, c => c.Alpha > 0));
+        // a history that arrives within the blank 0.4 s shows nothing at all
+        var early = Frame(48, 48, false, new NthFlickState(.3));
+        Assert.False(painter.Moving(early, .35));
+        using (var never = Render(painter, early, .5)) Assert.Equal(0, Count(never, c => c.Alpha > 0));
+        Assert.Equal(palette.FillTop, NthPalette.Light.FillTop);
+    }
+
+    public static TheoryData<string> Painters() => ["spinner", "bar", "indeterminate", "ring", "status", "list", "diff", "plate", "send", "tube", "link", "glyph", "flick"];
 
     [Theory]
     [MemberData(nameof(Painters))]
@@ -202,15 +268,18 @@ public sealed class NthPainterTests
             "send" => (new NthSendPainter(), Frame(32, 32, false, new NthSendState(true, 0, false, double.NegativeInfinity, 1))),
             "tube" => (new NthTubePainter(), Frame(168, 12, false, new NthTubeState(null, null))),
             "link" => (new NthLinkPainter(), Frame(120, 16, false, new NthLinkState(null))),
+            "flick" => (new NthFlickPainter(), Frame(48, 48, false, new NthFlickState(null))),
             _ => (new NthThinkingGlyphPainter(), Frame(14, 14, false, null)),
         };
         using (painter)
         {
             using var surface = SKSurface.Create(new SKImageInfo((int)frame.Size.Width * 2, (int)frame.Size.Height * 2));
             var canvas = surface.Canvas;
-            for (var i = 0; i < 120; i++) { canvas.Clear(); painter.Draw(canvas, frame, i / 60.0); }
+            // warm: one whole cycle of the longest loop (the flick: 0.7 s start + 3.6 s), so every code path has run once (its first
+            // native call binds); then a second pass of every phase must not allocate
+            for (var i = 0; i < 300; i++) { canvas.Clear(); painter.Draw(canvas, frame, i / 60.0); }
             var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 120; i < 240; i++) { canvas.Clear(); painter.Draw(canvas, frame, i / 60.0); }
+            for (var i = 300; i < 600; i++) { canvas.Clear(); painter.Draw(canvas, frame, i / 60.0); }
             Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         }
     }
