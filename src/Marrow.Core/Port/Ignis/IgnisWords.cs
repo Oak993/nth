@@ -356,6 +356,18 @@ public static class IgnisWords
     public const string UpdatesRowDetail = "Context, cache and rebuild points for each model";
     /// <summary>"2026.10.08 → 2026.10.10"</summary>
     public static string UpdatesRowVersions(string installed, string latest) => installed + " → " + latest;
+    /// <summary>
+    /// "2026.10.11 · rules 2026.10.10 · prices 2026.10.11": the newer of the two data dates first (the update check compares the
+    /// first dotted number, so a change in either shows), then the points ("rules") version and the price catalogue's day in the
+    /// same dotted form; the version alone before any catalogue (ED-NEW-ignis-data-2). <paramref name="pricesDay"/> is the
+    /// catalogue's "yyyy-MM-dd".
+    /// </summary>
+    public static string UpdatesRowVersion(string version, string? pricesDay)
+    {
+        if (pricesDay is null) return version;
+        var prices = pricesDay.Replace('-', '.');
+        return (string.CompareOrdinal(prices, version) > 0 ? prices : version) + " · rules " + version + " · prices " + prices;
+    }
 
     // ---- Save report ----
     /// <summary>The report text (design Stage.report), lines joined with "\n".</summary>
