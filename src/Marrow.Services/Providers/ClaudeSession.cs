@@ -525,7 +525,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                     ("request_id", requestID),
                     // DEVIATION OD-0012 F1: upstream "Droppy Code does not support this request."; the port
                     // renames the app to "Marrow" here, everywhere else unchanged.
-                    ("error", "Marrow does not support this request.")))));
+                    ("error", "nth does not support this request.")))));
             return;
         }
         var name = request["tool_name"]?.JSONValueString ?? "Tool"; // :618
@@ -954,7 +954,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         if (generation is not null && !await Task.Run(generation.Verify) && !skillWarningShown)
         {
             skillWarningShown = true;
-            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = "A Marrow skill file changed during this chat; new chats are not affected" }));
+            OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = "An nth skill file changed during this chat; new chats are not affected" }));
         }
         if (handshakeAgent is not null) await CheckHandshakePolicyAsync();
         runtimeMode = input.RuntimeMode; // :216
@@ -1075,7 +1075,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     private string? SkillItemId(string skill) => managedSkillItems.GetValueOrDefault(skill);
 
     private string? SkillsMoved() => generation?.PreviousFolder is { } old
-        ? $"Marrow's skills for this chat are now in {generation.Folder}. Paths under {old} earlier in this conversation no longer exist; use the same relative path under the new folder."
+        ? $"nth's skills for this chat are now in {generation.Folder}. Paths under {old} earlier in this conversation no longer exist; use the same relative path under the new folder."
         : null;
 
     private void RetainSkillsUntilExit(IClaudeProcess child)

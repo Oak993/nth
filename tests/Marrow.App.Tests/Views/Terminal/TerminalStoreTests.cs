@@ -497,7 +497,7 @@ public sealed class TerminalStoreTests(HeadlessSession headless)
         Assert.NotNull(info);
         Assert.Equal("xterm-256color", info!.Variable("TERM"));               // :30
         Assert.Equal("truecolor", info.Variable("COLORTERM"));                 // :31
-        Assert.Equal("Marrow", info.Variable("TERM_PROGRAM"));                  // :32 DEVIATION OD-0008 B12
+        Assert.Equal("nth", info.Variable("TERM_PROGRAM"));                  // :32 DEVIATION OD-0008 B12
         Assert.Equal(directory, info.Variable("DROPPY_CODE_PROJECT_ROOT"));      // :33
     }));
 

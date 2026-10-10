@@ -227,14 +227,14 @@ public sealed partial class InjectedStandbySession : IAdoptableStandby
         var texts = new List<string>();
         if (injectedBody is null)
         {
-            texts.Add("[Marrow Handshake] Recorded context of this conversation so far, loaded as history. It needs no reply.\n" + body
+            texts.Add("[nth Handshake] Recorded context of this conversation so far, loaded as history. It needs no reply.\n" + body
                 + (briefing is null ? "" : "\nOutgoing account's briefing:\n" + briefing));
             return texts;
         }
 
         if (body != injectedBody && Changes(injectedBody, body) is { Length: > 0 } changes) texts.Add(changes);
         if (briefing is not null && briefing != injectedBriefing)
-            texts.Add("[Marrow Handshake] Outgoing account's updated briefing. It needs no reply.\n" + briefing);
+            texts.Add("[nth Handshake] Outgoing account's updated briefing. It needs no reply.\n" + briefing);
         return texts;
     }
 
@@ -255,13 +255,13 @@ public sealed partial class InjectedStandbySession : IAdoptableStandby
 
             if (before.Trailer != after.Trailer) parts.Add(after.Trailer.TrimStart('\n'));
             if (parts.Count == 0) return "";
-            return "[Marrow Handshake] Recorded context, newer entries and changes since the last load. It needs no reply."
+            return "[nth Handshake] Recorded context, newer entries and changes since the last load. It needs no reply."
                 + (after.Archive is null ? "" : "\nLatest archive of the full conversation: " + after.Archive) + "\n" + string.Join("\n", parts);
         }
 
         return current.StartsWith(old, StringComparison.Ordinal)
-            ? "[Marrow Handshake] Recorded context, continued. It needs no reply.\n" + current[old.Length..]
-            : "[Marrow Handshake] Updated recorded context; it replaces the earlier recorded context. It needs no reply.\n" + current;
+            ? "[nth Handshake] Recorded context, continued. It needs no reply.\n" + current[old.Length..]
+            : "[nth Handshake] Updated recorded context; it replaces the earlier recorded context. It needs no reply.\n" + current;
     }
 
     private const string ArchivePrefix = "Full conversation, including all shortened output: ";

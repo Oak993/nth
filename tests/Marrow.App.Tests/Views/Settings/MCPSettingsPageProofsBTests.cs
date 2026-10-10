@@ -454,7 +454,7 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
         {
             var stack = Assert.IsType<StackPanel>(page.Child); Assert.Equal(20, stack.Spacing);
             var footer = Assert.IsType<TextBlock>(stack.Children[^1]); TextStyle(footer, 11, FontWeight.Normal, Chrome.SecondaryText);
-            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.", footer.Text);
+            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.", footer.Text);
             var title = TextAt(page, "Connected servers lead"); TextStyle(title, 13, FontWeight.SemiBold, Chrome.PrimaryText);
             var titleRow = Assert.IsType<StackPanel>(title.Parent); Assert.Equal(4, titleRow.Spacing); Assert.Same(title, titleRow.Children[0]); Assert.IsType<MCPHoverInfoButton>(titleRow.Children[1]);
             var sections = Nodes<ChromeSection>(page).Skip(1).ToArray();

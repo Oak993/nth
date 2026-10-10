@@ -93,7 +93,7 @@ public sealed class GettingReadyLookTests
     {
         Assert.Equal("Getting ready", GettingReadyFixture.Title);
         Assert.Equal(GettingReadyLook.Title, GettingReadyFixture.Title);
-        Assert.Equal("Marrow is preparing its graphics and voice for this PC. This happens once.", GettingReadyFixture.Line);
+        Assert.Equal("nth is preparing its graphics and voice for this PC. This happens once.", GettingReadyFixture.Line);
         Assert.Equal(GettingReadyLook.Line, GettingReadyFixture.Line);
         Assert.Equal("Ready", GettingReadyFixture.Done);
         Assert.Equal(GettingReadyLook.Done, GettingReadyFixture.Done);

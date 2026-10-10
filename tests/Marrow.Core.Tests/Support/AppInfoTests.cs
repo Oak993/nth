@@ -7,18 +7,31 @@ namespace Marrow.Core.Tests.Support;
 public sealed class AppInfoTests
 {
     [Theory]
-    [Trait("Req", "PR-STORE-008")] // Core/Support/Text.swift:5-6; DEVIATION OD-0012 F1: ".marrow" / ".marrow-dev", literal, with the dot
-    [InlineData(false, ".marrow")]
-    [InlineData(true, ".marrow-dev")]
+    [Trait("Req", "PR-STORE-008")] // Core/Support/Text.swift:5-6; DEVIATION OD-0012 F1, renamed by OD-0135: ".nth" / ".nth-dev", literal, with the dot
+    [InlineData(false, ".nth")]
+    [InlineData(true, ".nth-dev")]
     public void Packaged_development_flag_selects_the_exact_hidden_state_directory(bool development, string expected)
     {
         var info = AppInfo.Read(new Dictionary<string, object?>(), development);
         Assert.Equal(development, info.IsDevelopment);
         Assert.Equal(expected, info.StateDirectoryName);
+        Assert.Equal(expected, AppInfo.StateDirectoryNameFor(development));
+    }
+
+    [Theory]
+    [Trait("Decision", "OD-0135")] // the folders the one-time copy reads from and writes to
+    [InlineData(false, ".marrow", ".nth")]
+    [InlineData(true, ".marrow-dev", ".nth-dev")]
+    public void The_old_state_folder_names_are_kept_only_for_the_one_time_copy(bool development, string legacy, string current)
+    {
+        Assert.Equal(legacy, AppInfo.LegacyStateDirectoryNameFor(development));
+        Assert.Equal(current, AppInfo.StateDirectoryNameFor(development));
+        Assert.Equal("nth", AppInfo.DataFolderName);
+        Assert.Equal("Marrow Code", AppInfo.LegacyDataFolderName);
     }
 
     [Fact]
-    [Trait("Rule", "R-STR-9")] // No Req: pins the Droppy Code fallback, which PR-STORE-009 changes to Marrow (OD-0012 F1); rework.
+    [Trait("Rule", "R-STR-9")] // OD-0135: the name fallback is the product's own name "nth", never upstream's "Droppy Code".
     public void Missing_and_wrongly_typed_metadata_use_the_three_literal_fallbacks()
     {
         foreach (var metadata in new[]
@@ -33,7 +46,7 @@ public sealed class AppInfoTests
         })
         {
             var info = AppInfo.Read(metadata, false);
-            Assert.Equal("Droppy Code", info.Name);
+            Assert.Equal("nth", info.Name);
             Assert.Equal("1.0.0", info.Version);
             Assert.Equal("1", info.Build);
         }
@@ -45,13 +58,13 @@ public sealed class AppInfoTests
     {
         var metadata = new Dictionary<string, object?>
         {
-            ["CFBundleDisplayName"] = "Marrow",
+            ["CFBundleDisplayName"] = "nth",
             ["CFBundleShortVersionString"] = "",
             ["CFBundleVersion"] = " 19 "
         };
         var info = AppInfo.Read(metadata, false);
         metadata["CFBundleDisplayName"] = "changed";
-        Assert.Equal("Marrow", info.Name);
+        Assert.Equal("nth", info.Name);
         Assert.Equal("", info.Version);
         Assert.Equal(" 19 ", info.Build);
         Assert.Same(AppInfo.Current, AppInfo.Current);
@@ -104,10 +117,10 @@ public sealed class AppInfoTests
         var constructor = typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!;
         foreach (var (key, value) in new[]
         {
-            ("CFBundleDisplayName", "Marrow"), ("CFBundleShortVersionString", "1.6.0"), ("CFBundleVersion", "19")
+            ("CFBundleDisplayName", "nth"), ("CFBundleShortVersionString", "1.6.0"), ("CFBundleVersion", "19")
         }) assembly.SetCustomAttribute(new CustomAttributeBuilder(constructor, [key, value]));
         var info = AppInfo.FromAssembly(assembly, true);
-        Assert.Equal("Marrow", info.Name);
+        Assert.Equal("nth", info.Name);
         Assert.Equal("1.6.0", info.Version);
         Assert.Equal("19", info.Build);
         Assert.True(info.IsDevelopment);
@@ -121,10 +134,10 @@ public sealed class AppInfoTests
         var constructor = typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!;
         foreach (var (key, value) in new[]
         {
-            ("CFBundleDisplayName", "  Marrow  "), ("CFBundleShortVersionString", " 1.6.2"), ("CFBundleVersion", "20 ")
+            ("CFBundleDisplayName", "  nth  "), ("CFBundleShortVersionString", " 1.6.2"), ("CFBundleVersion", "20 ")
         }) assembly.SetCustomAttribute(new CustomAttributeBuilder(constructor, [key, value]));
         var info = AppInfo.FromAssembly(assembly, false);
-        Assert.Equal("  Marrow  ", info.Name);
+        Assert.Equal("  nth  ", info.Name);
         Assert.Equal(" 1.6.2", info.Version);
         Assert.Equal("20 ", info.Build);
     }
@@ -135,7 +148,7 @@ public sealed class AppInfoTests
     {
         var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("MetadataMissingFixture"), AssemblyBuilderAccess.Run);
         var info = AppInfo.FromAssembly(assembly, false);
-        Assert.Equal("Droppy Code", info.Name);
+        Assert.Equal("nth", info.Name);
         Assert.Equal("1.0.0", info.Version);
         Assert.Equal("1", info.Build);
     }

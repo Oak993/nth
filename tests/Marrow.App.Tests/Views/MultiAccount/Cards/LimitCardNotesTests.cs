@@ -32,7 +32,7 @@ public sealed class LimitCardNotesTests(HeadlessSession headless)
         MultiAccountHarness.Run(headless, f.Rig, () => { var body = new StackPanel(); MultiAccountCardRows.Append(body, f.Accounts.ThreadId, f.Cards, () => f.Accounts.Accounts, 12, new MultiAccountCardContext(null, () => { reads++; return record; }, TimeZoneInfo.Utc)); return body; }, h =>
         {
             Assert.True(h.Press("limit-action-switch")); h.Settle();
-            Assert.Contains("Continued on Claude Max 2 · Marrow’s summary", h.Words());
+            Assert.Contains("Continued on Claude Max 2 · nth’s summary", h.Words());
             Assert.True(h.Press("limit-handed-over")); h.Settle(); Assert.Equal(1, reads);
             Assert.Contains("The recorded handoff", h.Words()); Assert.Contains("handoff-actual.md", h.Words()); Assert.DoesNotContain("handoff-thread-0412.md", h.Words());
             Assert.True(h.Press("handed-close")); h.Settle(); Assert.Null(h.TryFind("handed-sheet"));

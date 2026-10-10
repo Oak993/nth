@@ -602,7 +602,7 @@ public static partial class CommandCodeAPI
                   let answer: any = {}
                   try { answer = JSON.parse(raw) } catch {}
                   if (answer.decision === 'allow') return
-                  return {block: true, additionalContext: answer.reason || 'The user declined this in Marrow.'}
+                  return {block: true, additionalContext: answer.reason || 'The user declined this in nth.'}
                 }
                 if (ctx && ctx.signal && ctx.signal.aborted) {
                   try { fs.unlinkSync(request) } catch {}
@@ -610,7 +610,7 @@ public static partial class CommandCodeAPI
                 }
                 if ((() => { try { process.kill(process.ppid, 0); return false } catch (e) { return e.code === 'ESRCH' } })() || Date.now() - started > 6 * 60 * 60 * 1000) {
                   try { fs.unlinkSync(request) } catch {}
-                  return {block: true, additionalContext: 'Marrow did not answer.'}
+                  return {block: true, additionalContext: 'nth did not answer.'}
                 }
                 await sleep(40)
               }
@@ -632,7 +632,7 @@ public static partial class CommandCodeAPI
 
     // :445 base.appendingPathComponent("\(AppInfo.name)/CommandCode", isDirectory: true)
     private static string SupportDirectoryPath(string localApplicationData) =>
-        SwiftPath.AppendingPathComponent(localApplicationData, "Marrow Code/CommandCode");
+        SwiftPath.AppendingPathComponent(localApplicationData, AppInfo.DataFolderName + "/CommandCode"); // OD-0135
 
     // :448-459
     public static SwiftURL InstallMod() => InstallMod(LocalApplicationData());

@@ -153,7 +153,7 @@ public sealed class AboutUpdateViewsSecondTests(HeadlessSession headless)
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var slider = new UpdateProgressSlider(0.554);
             var window = Show(slider);
-            Assert.Equal("Updating Marrow", AutomationProperties.GetName(slider)); // :421 DEVIATION OD-0012 F1
+            Assert.Equal("Updating nth", AutomationProperties.GetName(slider)); // :421 DEVIATION OD-0012 F1
             Assert.Equal("55%", Assert.IsAssignableFrom<IValueProvider>(ControlAutomationPeer.CreatePeerForElement(slider)).Value); // :422 .percent.precision(.fractionLength(0))
             window.Close();
         });
@@ -194,7 +194,7 @@ public sealed class AboutUpdateViewsSecondTests(HeadlessSession headless)
     {
         using var running = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?>
         {
-            ["CFBundleDisplayName"] = "Marrow", ["CFBundleShortVersionString"] = "1.4.2", ["CFBundleVersion"] = "20",
+            ["CFBundleDisplayName"] = "nth", ["CFBundleShortVersionString"] = "1.4.2", ["CFBundleVersion"] = "20",
         }, isDevelopment: false));
         headless.OnUiThread(() =>
         {
@@ -202,7 +202,7 @@ public sealed class AboutUpdateViewsSecondTests(HeadlessSession headless)
             var window = Show(pill);
             var text = window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text!.StartsWith("v", StringComparison.Ordinal));
             Assert.Equal("v1.4.2", text.Text); // :559 Text(verbatim: "v\(AppInfo.version)")
-            Assert.Equal("Marrow 1.4.2", AutomationProperties.GetName(pill)); // :569 DEVIATION OD-0012 F1
+            Assert.Equal("nth 1.4.2", AutomationProperties.GetName(pill)); // :569 DEVIATION OD-0012 F1
             window.Close();
         });
     }

@@ -15,7 +15,7 @@ public sealed class CudaOfferRowTests
     {
         var js = VoiceNotesPage.Script();
         foreach (var piece in new[] { "<b>NVIDIA CUDA</b>", "'Optional, for NVIDIA cards. '", "' from nuget.org and NVIDIA'", "'Downloading from nuget.org and NVIDIA'",
-            "'Installed. Restart Marrow to use it'", "'The download didn’t finish. Nothing was installed'", "title=\"Cancel the download\"", "'<button class=\"czbtn\" data-a=\"dl\">Download</button>'",
+            "'Installed. Restart nth to use it'", "'The download didn’t finish. Nothing was installed'", "title=\"Cancel the download\"", "'<button class=\"czbtn\" data-a=\"dl\">Download</button>'",
             "<span>Installed</span>", "const SIZE = '644 MB'" })
             Assert.Contains(piece, js, StringComparison.Ordinal);
         var row = CudaOfferStates.Offer("644 MB");
@@ -48,7 +48,7 @@ public sealed class CudaOfferRowTests
     public void The_installed_row_says_to_restart_and_the_failed_row_offers_the_download_again()
     {
         var installed = CudaOfferStates.Installed("644 MB");
-        Assert.Equal(("Installed. Restart Marrow to use it", "Installed", CudaOfferAction.None, true), (installed.Detail, installed.StateText, installed.Action, installed.ShowsCheck));
+        Assert.Equal(("Installed. Restart nth to use it", "Installed", CudaOfferAction.None, true), (installed.Detail, installed.StateText, installed.Action, installed.ShowsCheck));
         Assert.False(installed.ShowsBar);
 
         var failed = CudaOfferStates.Failed("644 MB");

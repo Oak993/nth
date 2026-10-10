@@ -29,7 +29,7 @@ internal sealed class CustomOwnDetail : Decorator
             LibraryUi.Text(ProvenanceText, 12, secondary: true, trim: true) } };
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("48,*"), ColumnSpacing = 14, Children = { LibraryUi.Tile(CustomOwnRow.Symbol(kind), 48, 13), words } };
         Grid.SetColumn(words, 1);
-        removeWhy = new CzFoldRow(LibraryUi.Panel(LibraryUi.Text("Removes it from Marrow’s folder. Your original stays where it was.", 12, secondary: true, wrap: true), 10, .06, new Thickness(12, 9)), false);
+        removeWhy = new CzFoldRow(LibraryUi.Panel(LibraryUi.Text("Removes it from nth’s folder. Your original stays where it was.", 12, secondary: true, wrap: true), 10, .06, new Thickness(12, 9)), false);
         var stack = new StackPanel { Spacing = 12, Children = { header, action, removeWhy } };
         if (kind != CustomAddKind.Tools)
         {

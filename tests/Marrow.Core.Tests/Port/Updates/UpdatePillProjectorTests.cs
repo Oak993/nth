@@ -32,7 +32,7 @@ public sealed class UpdatePillProjectorTests
     public void Rows_with_a_newer_version_show_the_count_and_offer_Update_everything()
     {
         var state = Project(
-            Row("m", "Marrow", UpdateRowState.UpdateAvailable, "1.0.0", "1.1.0", kind: UpdateItemKind.Marrow),
+            Row("m", "nth", UpdateRowState.UpdateAvailable, "1.0.0", "1.1.0", kind: UpdateItemKind.Marrow),
             Row("c", "Claude Code", UpdateRowState.UpdateAvailable, "2.1.283", "2.1.290"),
             Row("x", "Codex", UpdateRowState.UpdateAvailable, "0.157.1", "0.160.0"),
             Row("o", "OpenCode", UpdateRowState.UpToDate, "1.4.2", "1.4.2"));
@@ -42,7 +42,7 @@ public sealed class UpdatePillProjectorTests
         Assert.Equal("Update everything", state.ButtonText);
         Assert.Equal(UpdatePillAction.UpdateEverything, state.Action);
         Assert.True(state.ButtonEnabled);
-        Assert.Equal("Marrow 1.1.0, Claude Code 2.1.290 and Codex 0.160.0.", state.Detail);
+        Assert.Equal("nth 1.1.0, Claude Code 2.1.290 and Codex 0.160.0.", state.Detail);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class UpdatePillProjectorTests
         var projector = new UpdatePillProjector();
         var queued = new[]
         {
-            Row("c", "Claude Code", UpdateRowState.Queued), Row("x", "Codex", UpdateRowState.Queued), Row("m", "Marrow", UpdateRowState.Queued, kind: UpdateItemKind.Marrow),
+            Row("c", "Claude Code", UpdateRowState.Queued), Row("x", "Codex", UpdateRowState.Queued), Row("m", "nth", UpdateRowState.Queued, kind: UpdateItemKind.Marrow),
         };
         var first = projector.Project(queued, busy: true);
         Assert.Equal(UpdatePillPhase.Running, first.Phase);
@@ -78,18 +78,18 @@ public sealed class UpdatePillProjectorTests
         [
             Row("c", "Claude Code", UpdateRowState.Updated, "2.1.290", "2.1.290"),
             Row("x", "Codex", UpdateRowState.Updating, "0.157.1", "0.160.0"),
-            Row("m", "Marrow", UpdateRowState.Queued, kind: UpdateItemKind.Marrow),
+            Row("m", "nth", UpdateRowState.Queued, kind: UpdateItemKind.Marrow),
         ], busy: true);
         Assert.Equal("Updating 2 of 3", second.PillText);
         Assert.Equal("Updating Codex… 2 of 3", second.Title);
-        Assert.Equal("Keep working; Marrow restarts only when you say so.", second.Detail);
+        Assert.Equal("Keep working; nth restarts only when you say so.", second.Detail);
         Assert.Equal(1d / 3, second.Fraction, 6);
 
         var third = projector.Project(
         [
             Row("c", "Claude Code", UpdateRowState.Updated, "2.1.290", "2.1.290"),
             Row("x", "Codex", UpdateRowState.UpToDate, "0.160.0", "0.160.0"),
-            Row("m", "Marrow", UpdateRowState.Updating, "1.0.0", "1.1.0", progress: 0.5, kind: UpdateItemKind.Marrow),
+            Row("m", "nth", UpdateRowState.Updating, "1.0.0", "1.1.0", progress: 0.5, kind: UpdateItemKind.Marrow),
         ], busy: true);
         Assert.Equal("Updating 3 of 3", third.PillText);
         Assert.Equal((2 + 0.5) / 3, third.Fraction, 6);
@@ -125,11 +125,11 @@ public sealed class UpdatePillProjectorTests
         var state = Project(
             Row("c", "Claude Code", UpdateRowState.Updated, "2.1.290", "2.1.290"),
             Row("x", "Codex", UpdateRowState.Failed, "0.157.1", "0.160.0", message: "the updater failed or the version could not be read afterwards"),
-            Row("m", "Marrow", UpdateRowState.Updated, "1.1.0", "1.1.0", restart: true, kind: UpdateItemKind.Marrow));
+            Row("m", "nth", UpdateRowState.Updated, "1.1.0", "1.1.0", restart: true, kind: UpdateItemKind.Marrow));
         Assert.Equal(UpdatePillPhase.Failed, state.Phase);
         Assert.Equal("Codex didn’t update", state.PillText);
         Assert.Equal("Codex didn’t update", state.Title);
-        Assert.Equal("Updated Claude Code and Marrow. The fix is below.", state.Detail);
+        Assert.Equal("Updated Claude Code and nth. The fix is below.", state.Detail);
         Assert.Equal("Retry", state.ButtonText);
         Assert.Equal(UpdatePillAction.Retry, state.Action);
         Assert.Equal("Codex didn’t update", state.BannerTitle);
@@ -153,12 +153,12 @@ public sealed class UpdatePillProjectorTests
     {
         var state = Project(
             Row("c", "Claude Code", UpdateRowState.Updated, "2.1.290", "2.1.290"),
-            Row("m", "Marrow", UpdateRowState.Updated, "1.1.0", "1.1.0", restart: true, kind: UpdateItemKind.Marrow));
+            Row("m", "nth", UpdateRowState.Updated, "1.1.0", "1.1.0", restart: true, kind: UpdateItemKind.Marrow));
         Assert.Equal(UpdatePillPhase.Restart, state.Phase);
         Assert.Equal("Restart to finish", state.PillText);
         Assert.Equal("2 updated", state.Title);
-        Assert.Equal("Updated Claude Code and Marrow. Restart Marrow to finish its update.", state.Detail);
-        Assert.Equal("Restart Marrow", state.ButtonText);
+        Assert.Equal("Updated Claude Code and nth. Restart nth to finish its update.", state.Detail);
+        Assert.Equal("Restart nth", state.ButtonText);
         Assert.Equal(UpdatePillAction.RestartMarrow, state.Action);
         Assert.Equal("Restart to finish", state.Rows.Single(r => r.Id == "m").Status);
         Assert.Equal("Updated", state.Rows.Single(r => r.Id == "c").Status);
@@ -213,7 +213,7 @@ public sealed class UpdatePillProjectorTests
         var state = Project(
             Row("c", "Claude Code", UpdateRowState.UpdateAvailable, "2.1.283", "2.1.290"),
             Row("x", "Codex", UpdateRowState.Failed, "0.157.1", "0.160.0", message: "no"),
-            Row("m", "Marrow", UpdateRowState.Updated, "1.1.0", "1.1.0", restart: true, kind: UpdateItemKind.Marrow));
+            Row("m", "nth", UpdateRowState.Updated, "1.1.0", "1.1.0", restart: true, kind: UpdateItemKind.Marrow));
         Assert.Equal(UpdatePillPhase.Failed, state.Phase);
         Assert.Equal(UpdatePillAction.Retry, state.Action);
     }
@@ -225,7 +225,7 @@ public sealed class UpdatePillProjectorTests
     {
         var state = Project(
             Row("cli:claude", "Claude Code", UpdateRowState.UpdateAvailable, "2.1.283", "2.1.290"),
-            Row("marrow", "Marrow", UpdateRowState.UpdateAvailable, "1.0.0", "1.1.0", kind: UpdateItemKind.Marrow));
+            Row("marrow", "nth", UpdateRowState.UpdateAvailable, "1.0.0", "1.1.0", kind: UpdateItemKind.Marrow));
         Assert.Equal(["marrow", "cli:claude"], state.Rows.Select(r => r.Id));
         Assert.Equal(["The app", "claude update"], state.Rows.Select(r => r.Subtitle));
     }
@@ -236,7 +236,7 @@ public sealed class UpdatePillProjectorTests
     public void Marrows_sub_line_reads_the_download_percent_while_it_downloads()
     {
         var projector = new UpdatePillProjector();
-        var state = projector.Project([Row("marrow", "Marrow", UpdateRowState.Updating, "1.0.0", "1.1.0", progress: 0.4, kind: UpdateItemKind.Marrow)], busy: true);
+        var state = projector.Project([Row("marrow", "nth", UpdateRowState.Updating, "1.0.0", "1.1.0", progress: 0.4, kind: UpdateItemKind.Marrow)], busy: true);
         Assert.Equal("Downloading 40%", state.Rows.Single().Subtitle);
     }
 

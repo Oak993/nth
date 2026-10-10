@@ -21,7 +21,7 @@ public sealed class FakeSelfUpdateEngine : ISelfUpdateEngine
     /// <summary>The percent values a download reports, in order, before it returns.</summary>
     public int[] Percents { get; set; } = [0, 25, 100];
 
-    public string PackagePath { get; set; } = Path.Combine(Directory.CreateTempSubdirectory("ue1-engine-").FullName, "MarrowCode-1.3.0-full.nupkg");
+    public string PackagePath { get; set; } = Path.Combine(Directory.CreateTempSubdirectory("ue1-engine-").FullName, "NthApp-1.3.0-full.nupkg");
 
     public bool IsInstalled
     {

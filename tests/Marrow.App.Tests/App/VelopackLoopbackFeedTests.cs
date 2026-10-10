@@ -21,7 +21,7 @@ namespace Marrow.App.Tests.App;
 // between Marrow and the socket. Velopack's own GithubSource and its own HTTP downloader read a GitHub-shaped release list from a server on
 // 127.0.0.1 (a GitHub address on another host than github.com is read at <host>/api/v3/, GitHub Enterprise's layout); the real UpdateChecker
 // finds the offer, the real AppUpdater downloads it with percent progress, the real WindowsUpdateInstallBoundary stages, verifies and reads a
-// real MarrowCode package (a zip with its nuspec), and "Restart Marrow" reaches the engine's apply step, a recorder here (Update.exe never starts).
+// real NthApp package (a zip with its nuspec), and "Restart Marrow" reaches the engine's apply step, a recorder here (Update.exe never starts).
 [Collection("AppSettings")]
 public sealed class VelopackLoopbackFeedTests
 {
@@ -43,14 +43,14 @@ public sealed class VelopackLoopbackFeedTests
     // GitHub's release list and the assets vpk upload github leaves: releases.win.json and the full package
     private static Func<ReceivedRequest, CannedResponse?> GitHub(Func<string, string> url, string version, byte[] package)
     {
-        var file = $"MarrowCode-{version}-full.nupkg";
+        var file = $"NthApp-{version}-full.nupkg";
         var feed = JsonSerializer.Serialize(new
         {
             Assets = new[]
             {
                 new
                 {
-                    PackageId = "MarrowCode", Version = version, Type = "Full", FileName = file,
+                    PackageId = "NthApp", Version = version, Type = "Full", FileName = file,
                     SHA1 = Convert.ToHexString(SHA1.HashData(package)), SHA256 = Convert.ToHexString(SHA256.HashData(package)),
                     Size = package.Length, NotesMarkdown = "## " + version, NotesHTML = "<h2>" + version + "</h2>",
                 },
@@ -92,13 +92,13 @@ public sealed class VelopackLoopbackFeedTests
         var closed = 0;
         manager.MainWindowClose = () => closed++;
 
-        var package = MarrowPackage("MarrowCode", "1.8.0");
+        var package = MarrowPackage("NthApp", "1.8.0");
         LoopbackFeedServer server = null!;
         server = new LoopbackFeedServer(request => GitHub(server.Url, "1.8.0", package)(request));
         using var _ = server;
         var packages = Directory.CreateTempSubdirectory("ue1-loopback-packages-").FullName;
         var root = Directory.CreateTempSubdirectory("ue1-loopback-root-").FullName;
-        var locator = new TestVelopackLocator("MarrowCode", "1.7.0", packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "Marrow.App.exe");
+        var locator = new TestVelopackLocator("NthApp", "1.7.0", packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "Marrow.App.exe");
         var applied = new List<VelopackAsset>();
         // Velopack's own downloader (HttpClientFileDownloader, a real HTTP client) kept on 127.0.0.1 (LoopbackPortDownloader puts back the port GithubSource drops)
         var downloader = new LoopbackPortDownloader(server.Port);
@@ -118,7 +118,7 @@ public sealed class VelopackLoopbackFeedTests
         scope.Runtime.Loop.RunUntilIdle();
         Assert.Equal(UpdateInstallProgress.Phase.Handoff, scope.Runtime.OnMain(() => UpdateInstallProgress.Shared.UpdateInstallProgressPhase));
         var asset = Assert.Single(applied);
-        Assert.Equal("MarrowCode-1.8.0-full.nupkg", asset.FileName);
+        Assert.Equal("NthApp-1.8.0-full.nupkg", asset.FileName);
         Assert.Equal(package, File.ReadAllBytes(Path.Combine(packages, asset.FileName)));
         Assert.NotEmpty(downloader.Percents);                                                  // Velopack's own percent, which the pill takes (SelfUpdateProgress)
         Assert.Equal(100, downloader.Percents[^1]);      // Velopack's package, kept where Update.exe applies it from
@@ -129,7 +129,7 @@ public sealed class VelopackLoopbackFeedTests
         // every request went to the loopback server, to GitHub's API layout and the asset addresses it gave
         var targets = server.Requests.Select(r => r.Target.Split('?')[0]).ToArray();
         Assert.Contains("/api/v3/repos/Oak993/marrow-releases/releases", targets);
-        Assert.Contains(targets, t => t.EndsWith("MarrowCode-1.8.0-full.nupkg", StringComparison.Ordinal) || t == "/api/v3/assets/2");
+        Assert.Contains(targets, t => t.EndsWith("NthApp-1.8.0-full.nupkg", StringComparison.Ordinal) || t == "/api/v3/assets/2");
         Assert.Empty(server.Refused);
     }
 }

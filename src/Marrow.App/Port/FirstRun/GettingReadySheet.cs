@@ -74,7 +74,7 @@ public static class GettingReadyLook
 
     public const string Title = "Getting ready";
 
-    public const string Line = "Marrow is preparing its graphics and voice for this PC. This happens once.";
+    public const string Line = "nth is preparing its graphics and voice for this PC. This happens once.";
 
     /// <summary>The 5 px a swapped word rises (gr_lib.py .stk).</summary>
     public const double WordRise = 5;

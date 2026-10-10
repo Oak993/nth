@@ -65,7 +65,7 @@ public sealed class PublicGitHubSource : ICustomGitHubSource
     private async Task<byte[]> Read(string url, long limit, CancellationToken cancel)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.UserAgent.ParseAdd("Marrow-Custom-Sources/1.0");
+        request.Headers.UserAgent.ParseAdd("nth-Custom-Sources/1.0");
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancel).ConfigureAwait(false);
         // Also reject a redirect followed by an injected transport; production's handler never follows one.
         if (response.RequestMessage?.RequestUri?.AbsoluteUri != url) throw new InvalidDataException("Custom-source redirect refused.");

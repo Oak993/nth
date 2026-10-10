@@ -78,7 +78,7 @@ public sealed class LibraryControllerDownloadAllTests
         await LibraryRig.Within(rig.Install.Started("S1"));
         Assert.Equal(RunPhase.Downloading, rig.Page.Dialog.Phase);
         Assert.Equal("Downloading all skills", rig.Page.Dialog.Title);
-        Assert.Equal("One at a time. Hide it and keep using Marrow.", rig.Page.Dialog.Sub); // exact Sections TX b:sub, independently pinned by LibraryReviewTests
+        Assert.Equal("One at a time. Hide it and keep using nth.", rig.Page.Dialog.Sub); // exact Sections TX b:sub, independently pinned by LibraryReviewTests
         rig.Install.Report("S1", 0.5);
         Assert.Equal(0.5, rig.Row("S1").Progress);
         Assert.Equal(ItemState.Downloading, rig.Row("S1").State);

@@ -12,12 +12,12 @@ namespace Marrow.App.Tests.Port.Ignis;
 // is a fake; nothing reaches a network or a model provider.
 public sealed class IgnisPointsUpdateRowTests
 {
-    private static ScriptedUpdateItem MarrowItem() => new("marrow", "Marrow", UpdateItemKind.Marrow, "1.0.0", "1.0.0");
+    private static ScriptedUpdateItem MarrowItem() => new("marrow", "nth", UpdateItemKind.Marrow, "1.0.0", "1.0.0");
 
     private static ScriptedUpdateItem Claude() => new("cli:claude", "Claude Code", UpdateItemKind.ProviderCli, "2.1.290", "2.1.293");
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // design row: "Ignis model points", "2026.10.08 → 2026.10.10", Update
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // design row: "Ignis model points", "2026.10.08 → 2026.10.10", Update
     public async Task The_row_reads_installed_and_latest_from_the_points_and_the_feed()
     {
         var points = new FakeSettingsPoints("2026.10.08") { Feed = "2026.10.10" };
@@ -37,7 +37,7 @@ public sealed class IgnisPointsUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // "Update automatically" on: the check installs at once and the row says Up to date
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // "Update automatically" on: the check installs at once and the row says Up to date
     public async Task Updating_automatically_installs_on_the_check()
     {
         var points = new FakeSettingsPoints("2026.10.08") { Feed = "2026.10.10" };
@@ -49,7 +49,7 @@ public sealed class IgnisPointsUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // PLAN lead decision: until the feed is published the bundled points are used and the row says Up to date; a feed error is kept
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // PLAN lead decision: until the feed is published the bundled points are used and the row says Up to date; a feed error is kept
     public async Task An_unpublished_feed_is_up_to_date_and_a_failed_one_checks_when_updated()
     {
         var unpublished = new UpdateOrchestrator([new IgnisPointsUpdateItem(new FakeSettingsPoints("2026.10.08"), () => true)]);
@@ -62,7 +62,7 @@ public sealed class IgnisPointsUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // run order: the tools, then the model points, Marrow last
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // run order: the tools, then the model points, Marrow last
     public async Task The_points_run_after_the_tools_and_before_Marrow()
     {
         var order = new List<string>();
@@ -72,7 +72,7 @@ public sealed class IgnisPointsUpdateRowTests
         var claude = Claude();
         claude.OnUpdate = _ => { order.Add("cli:claude"); return Task.FromResult(new UpdateOutcome(true, "2.1.293", true, false, null)); };
         var points = new FakeSettingsPoints("2026.10.08") { Feed = "2026.10.10" };
-        var ignis = new RecordingItem(new IgnisPointsUpdateItem(points, () => false), order);
+        var ignis = new RecordingUpdateItem(new IgnisPointsUpdateItem(points, () => false), order);
         var orchestrator = new UpdateOrchestrator([marrow, ignis, claude]);
         Assert.Equal(["cli:claude", IgnisPointsUpdateItem.ItemId, "marrow"], orchestrator.Rows.Select(row => row.Id));
         await orchestrator.UpdateEverything();
@@ -81,17 +81,17 @@ public sealed class IgnisPointsUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // the page lists the points right after Marrow, in Marrow's section, with the design's line under the name
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // the page lists the points right after Marrow, in Marrow's section, with the design's line under the name
     public void The_page_lists_the_points_row_right_after_Marrow()
     {
         IReadOnlyList<UpdateRow> rows =
         [
             new("cli:claude", "Claude Code", UpdateItemKind.ProviderCli, UpdateRowState.UpToDate, "2.1.293", "2.1.293", null, null, false),
             new(IgnisPointsUpdateItem.ItemId, IgnisWords.UpdatesRowTitle, UpdateItemKind.ModelPoints, UpdateRowState.UpdateAvailable, "2026.10.08", "2026.10.10", null, null, false),
-            new("marrow", "Marrow", UpdateItemKind.Marrow, UpdateRowState.UpToDate, "1.0.0", "1.0.0", null, null, false),
+            new("marrow", "nth", UpdateItemKind.Marrow, UpdateRowState.UpToDate, "1.0.0", "1.0.0", null, null, false),
         ];
         var page = UpdatesProjector.Project(rows, new UpdatesFlags(false, false, false, false, null, null));
-        Assert.Equal(["Marrow", "Provider tools"], page.Sections.Select(section => section.Title));
+        Assert.Equal(["nth", "Provider tools"], page.Sections.Select(section => section.Title));
         Assert.Equal(["marrow", IgnisPointsUpdateItem.ItemId], page.Sections[0].Rows.Select(row => row.Id));
         var points = page.Sections[0].Rows[1];
         Assert.Equal((IgnisWords.UpdatesRowTitle, IgnisWords.UpdatesRowDetail, "2026.10.08", "2026.10.10", "Update available", true),
@@ -105,46 +105,17 @@ public sealed class IgnisPointsUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // the production inventory appends the points beside the skills rows while Ignis runs, and has none without it
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // the production inventory appends the points beside the skills rows while Ignis runs, and has none without it
     public void The_inventory_appends_the_points_item_only_while_Ignis_is_bound()
     {
         Assert.Empty(UpdateEverythingProduction.IgnisItems());
         using var store = UserDefaults.Standard.Override(new Marrow.Testing.InMemorySettingsStore());
-        var controller = new FakeController(new IgnisSettings(UserDefaults.Standard.Current), new FakeSettingsPoints("2026.10.08"));
+        var controller = new PointsRowFakeController(new IgnisSettings(UserDefaults.Standard.Current), new FakeSettingsPoints("2026.10.08"));
         using (IgnisSeams.Controller.Override(() => controller))
         {
             var item = Assert.IsType<IgnisPointsUpdateItem>(Assert.Single(UpdateEverythingProduction.IgnisItems()));
             Assert.Equal(UpdateItemKind.ModelPoints, item.Kind);
         }
         Assert.Empty(UpdateEverythingProduction.IgnisItems());
-    }
-
-    private sealed class RecordingItem(IUpdateItem inner, List<string> order) : IUpdateItem
-    {
-        public string Id => inner.Id;
-        public string Title => inner.Title;
-        public UpdateItemKind Kind => inner.Kind;
-        public Task<string?> InstalledVersion(CancellationToken cancellation) => inner.InstalledVersion(cancellation);
-        public Task<string?> LatestVersion(CancellationToken cancellation) => inner.LatestVersion(cancellation);
-        public Task<UpdateOutcome> Update(IProgress<double?> progress, CancellationToken cancellation) { order.Add(Id); return inner.Update(progress, cancellation); }
-    }
-
-    private sealed class FakeController(IgnisSettings settings, IIgnisPoints points) : IIgnisController
-    {
-        public event Action<Guid>? Changed { add { } remove { } }
-        public IgnisSettings Settings => settings;
-        public IIgnisPoints Points => points;
-        public ISavingsLedger Ledger { get; } = new FakeSettingsLedger([]);
-        public IgnisChatStatus Status(Guid thread) => IgnisChatStatus.Unknown(thread, IgnisMode.WarmAndTidy, true);
-        public void SetMode(Guid thread, IgnisMode mode) { }
-        public void SetAuto(Guid thread, bool auto) { }
-        public void KeepWarmNow(Guid thread) { }
-        public void TidyUpNow(Guid thread) { }
-        public string Report(Guid thread) => "";
-        public void Attach(IIgnisRuntimePort port) { }
-        public void Detach(Guid thread) { }
-        public void Observe(Guid thread, IgnisTurnUsage usage) { }
-        public void TurnFinished(Guid thread) { }
-        public void UsageLimitHit(Guid thread, DateTimeOffset? resetsAt) { }
     }
 }

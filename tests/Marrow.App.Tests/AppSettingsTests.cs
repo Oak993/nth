@@ -41,6 +41,10 @@ public sealed class AppSettingsTests
 
     private static string CredentialTarget(string account) => SecretStore.TargetName(AppInfo.Current.Name, account);
 
+    // OD-0135: an account with no key under "nth" is looked up once more: its carry-over marker, then the earlier name ("Marrow").
+    private static IEnumerable<string> CarryOverTargets(string account) =>
+        [CredentialTarget(account) + SecretStore.CarriedMarkerSuffix, SecretStore.TargetName(AppInfo.LegacyNameFor(AppInfo.Current.IsDevelopment), account)];
+
     // Provider.swift:133-141 apiKeyEnvVar, read at AppSettings.swift:915 from the captured login environment, trimmed.
     private static string EnvironmentKey(string name) =>
         LoginEnvironment.Current.TryGetValue(name, out var value) ? value.Trimmed() : "";
@@ -794,7 +798,9 @@ public sealed class AppSettingsTests
             Assert.All(operations, o => Assert.Equal("read", o.Op));      // the fill never writes a key back
             Assert.All(operations, o => Assert.False(o.OnMain));          // detached, off the main loop
             Assert.Equal(
-                new[] { "DeepSeek API Key", "Meta API Key", "Z.ai API Key", "Command Code API Key", "OpenRouter API Key" /* ED-234 */ }.Select(CredentialTarget).Order(StringComparer.Ordinal),
+                new[] { "DeepSeek API Key", "Meta API Key", "Z.ai API Key", "Command Code API Key", "OpenRouter API Key" /* ED-234 */ }.Select(CredentialTarget)
+                    .Concat(CarryOverTargets("OpenRouter API Key")) // the one account with no stored key (OD-0135)
+                    .Order(StringComparer.Ordinal),
                 operations.Select(o => o.Target).Order(StringComparer.Ordinal));
             Assert.DoesNotContain(scope.Defaults.Writes, w => w.Op == "set");
 
@@ -819,7 +825,10 @@ public sealed class AppSettingsTests
             var settings = new AppSettings();
             Assert.Equal("stored-DeepSeek API Key", settings.ApiKey(ProviderKind.Deepseek));
             var reads = scope.Credentials.Operations.Count;
-            Assert.Equal(5, scope.Credentials.Operations.Select(o => o.Target).Distinct().Count()); // one batch, four accounts and OpenRouter's (ED-234)
+            Assert.Equal( // one batch, four accounts and OpenRouter's (ED-234), each read once; the three with no stored key also look up the earlier name once (OD-0135)
+                new[] { "DeepSeek API Key", "Meta API Key", "Z.ai API Key", "Command Code API Key", "OpenRouter API Key" }.Select(CredentialTarget)
+                    .Concat(new[] { "Meta API Key", "Z.ai API Key", "OpenRouter API Key" }.SelectMany(CarryOverTargets)).Order(StringComparer.Ordinal),
+                scope.Credentials.Operations.Select(o => o.Target).Distinct().Order(StringComparer.Ordinal));
             Assert.All(scope.Credentials.Operations, o => Assert.Equal("read", o.Op));
             Assert.Equal("stored-Command Code API Key", settings.ApiKeyInput(ProviderKind.Commandcode));
             _ = settings.ApiKey(ProviderKind.Commandcode);

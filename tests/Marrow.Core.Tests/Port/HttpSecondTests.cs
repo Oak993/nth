@@ -33,7 +33,7 @@ public sealed class HttpSecondTests
         // "Marrow/<version>"; UpdateChecker's own unit writes it, this unit only carries whatever it is given.
         configuration.HttpAdditionalHeaders = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["User-Agent"] = "Marrow/" + AppInfo.Current.Version,
+            ["User-Agent"] = "nth/" + AppInfo.Current.Version,
             ["Accept"] = "application/json",
         };
         return new URLSession(configuration);
@@ -105,7 +105,7 @@ public sealed class HttpSecondTests
         var exchange = await server.NextExchange();
         var lines = RawHeaderLines(exchange.RawHead)
             .Where(line => line.StartsWith("user-agent:", StringComparison.OrdinalIgnoreCase)).ToList();
-        Assert.Equal(["User-Agent: Marrow/7.6.5"], lines);
+        Assert.Equal(["User-Agent: nth/7.6.5"], lines);
         await exchange.Respond(204, "No Content", []);
         await pending.WaitAsync(Guard);
     }
@@ -122,7 +122,7 @@ public sealed class HttpSecondTests
         var session = UpdateCheckerSession();
         var pending = session.Data(server.Url("/api/v4/projects/86415974/releases?per_page=20"));
         var exchange = await server.NextExchange();
-        Assert.Equal(["Marrow/" + AppInfo.Current.Version], exchange.HeaderValues("User-Agent"));
+        Assert.Equal(["nth/" + AppInfo.Current.Version], exchange.HeaderValues("User-Agent"));
         Assert.Equal(["application/json"], exchange.HeaderValues("Accept"));
         await exchange.Respond(200, "OK", Ascii("[]"));
         await pending.WaitAsync(Guard);
@@ -130,7 +130,7 @@ public sealed class HttpSecondTests
         var own = session.Data(new URLRequest(server.Url("/other")).SetValue("text/html", forHTTPHeaderField: "Accept"));
         var second = await server.NextExchange();
         Assert.Equal(["text/html"], second.HeaderValues("Accept"));
-        Assert.Equal(["Marrow/" + AppInfo.Current.Version], second.HeaderValues("User-Agent"));
+        Assert.Equal(["nth/" + AppInfo.Current.Version], second.HeaderValues("User-Agent"));
         await second.Respond(200, "OK", []);
         await own.WaitAsync(Guard);
     }

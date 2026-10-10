@@ -750,7 +750,7 @@ public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
             }
             // UI-MCP-089: the last element, 20 below the final section, even with nothing connected.
             var footer = Assert.IsType<TextBlock>(stack.Children[^1]); TextStyle(footer, 11, FontWeight.Normal, Chrome.SecondaryText);
-            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.", footer.Text);
+            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.", footer.Text);
             Assert.Equal(At(sections[^1], page).Bottom + 20, At(footer, page).Top, 6); Assert.Equal(At(sections[^1], page).Left, At(footer, page).Left);
             // A category whose entries are all connected, or all filtered out, is omitted, header and all.
             foreach (var entry in MCPCatalog.ByCategory.Single(g => g.Category == MCPCategory.Developer).Entries) State(model, entry.Id, new MCPConnectionState.Connected(1));

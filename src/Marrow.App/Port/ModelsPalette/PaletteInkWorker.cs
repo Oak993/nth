@@ -16,7 +16,7 @@ internal sealed class PaletteInkWorker : IDisposable
     private double time,acc,last=double.NaN,done=double.NaN;private volatile bool finished;
     public bool Finished=>finished;
     internal PaletteInkWorker(SKColor[] row)
-    {colours=row;thread=new Thread(Run){IsBackground=true,Name="Marrow palette ink",Priority=ThreadPriority.BelowNormal};thread.Start();}
+    {colours=row;thread=new Thread(Run){IsBackground=true,Name="nth palette ink",Priority=ThreadPriority.BelowNormal};thread.Start();}
     internal void Advance(double at)
     {
         lock(gate)

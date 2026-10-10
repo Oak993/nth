@@ -69,7 +69,7 @@ public static class Program
             var root = Path.GetFullPath(profile);
             var live = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
             if (string.Equals(root.TrimEnd(Path.DirectorySeparatorChar), live.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
-                || root.StartsWith(Path.Combine(live, "Marrow Code"), StringComparison.OrdinalIgnoreCase)) return 2;
+                || root.StartsWith(Path.Combine(live, AppInfo.DataFolderName), StringComparison.OrdinalIgnoreCase) || root.StartsWith(Path.Combine(live, AppInfo.LegacyDataFolderName), StringComparison.OrdinalIgnoreCase)) return 2;
             DevDataRoot.PerformanceRoot.SetProcessDefault(root);
         }
         // ED-NEW-models-palette-11: offline, owner-local pack generator. It runs right after the Velopack hook (ED-235: nothing
@@ -103,6 +103,9 @@ public static class Program
             return 0;
         }
         using var instanceLock = singleInstanceLock;
+        // OD-0135: the product is named nth. Once, before anything reads settings, logs, the library or the GPU program cache, the
+        // old "Marrow Code" data folder and .marrow state folder are COPIED to their new names (never moved; the old app may still run).
+        LegacyDataCopy.CopyProductFolders(DevDataRoot.LocalApplicationData(), DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory, AppInfo.Current.IsDevelopment);
         DesktopPerformanceProbe.BeginStartup();
         var bindingWork = AuroraBootTrace.Begin("Startup: desktop bindings");
         Marrow.App.Port.ModelsPalette.PaletteStartup.Begin(); // ED-622: overlap verified pack loading with desktop bindings.

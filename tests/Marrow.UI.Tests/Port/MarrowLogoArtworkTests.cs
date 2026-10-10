@@ -12,6 +12,8 @@ namespace Marrow.UI.Tests.Port;
 // Image("droppy-logo") lookup key stays (the view code keeps the Swift name), but what it loads is the Marrow icon
 // (locked Aurora Canvas source, cropped to IconKit.box(size) by generate_app_icon_d.py; ED-402), as the full-bleed Droppy file
 // did), never DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/*.png.
+// OD-0136: the artwork is now the nth icon B (assets-src/brand/nth-icon-b.svg, rendered by scripts/brand/NthIcon at 256 and 512 px).
+// Each sample's expected colour is worked out from the master's own gradients at that point, as MarrowLogoCheck's are.
 [Collection("Headless")]
 public sealed class MarrowLogoArtworkTests(HeadlessSession headless)
 {
@@ -22,8 +24,8 @@ public sealed class MarrowLogoArtworkTests(HeadlessSession headless)
         "467897a05e5b29238ee4df44e38eb130fb7bdf93a9d0acec38f342afdf1c242c",
     ];
 
-    /// <summary>OD-0112 samples from the checked-in Aurora renders: curtain glint, night glass, teal curtain and emerald foot.
-    /// The fixed fractional grid, comparison methods, brightness bounds and 6/10 tolerances are unchanged.</summary>
+    /// <summary>OD-0136 samples of the nth icon B in the master's 256-unit symbol box: the n's stem, the bead, the glass light,
+    /// the silver pool and the graphite inside the arch. The comparison methods and the 6/10 tolerances are unchanged.</summary>
     private static void AssertIsTheMarrowIcon(Bitmap bitmap, int tolerance)
     {
         var size = bitmap.PixelSize;
@@ -39,27 +41,28 @@ public sealed class MarrowLogoArtworkTests(HeadlessSession headless)
             var i = (y * size.Width + x) * 4;
             return bgra ? (bytes[i + 2], bytes[i + 1], bytes[i], bytes[i + 3]) : (bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]);
         }
-        static double U(double v) => (v - 72) / 880;
+        static double U(double v) => v / 256; // the master's 256-unit symbol box
         void Near(string what, (int R, int G, int B, int A) p, int r, int g, int b)
         {
             Assert.True(p.A >= 250 && Math.Abs(p.R - r) <= tolerance && Math.Abs(p.G - g) <= tolerance && Math.Abs(p.B - b) <= tolerance,
                 $"{what}: got ({p.R},{p.G},{p.B},{p.A}), expected about ({r},{g},{b}) in a {size.Width}px image");
         }
 
-        // Round-tile corners are transparent and the tile reaches the frame edge (the Droppy file is full-bleed too).
+        // The rounded tile (rect 8,8 240 rx 52) leaves the corners and the 8-unit margin clear and fills from its edge inward.
         Assert.Equal(0, At(0.0, 0.0).A);
-        Assert.True(At(0.5, 0.015).A >= 250);
-        Assert.True(At(0.015, 0.5).A >= 250);
-        // OD-0112: the Aurora curtain glint replaces the old white-core sample; same brightness bounds.
-        var core = At(0.88, 0.67); // OD-0112: Aurora curtain glint; brightness bounds unchanged.
-        Assert.True(core.A >= 250 && core.R >= 214 && core.G >= 220 && core.B >= 240, $"core: got ({core.R},{core.G},{core.B})");
-        // OD-0112: night glass, teal curtain and emerald foot; locked 512 px render RGB, same tolerances.
-        Near("night glass", At(U(688), U(248)), 0x0B, 0x10, 0x27);
-        Near("teal curtain", At(U(336), U(486.48)), 0x55, 0xE3, 0xC4);
-        Near("emerald foot", At(U(293.76), U(441.6)), 0x52, 0xFF, 0xDB);
-        // The dark navy tile near its bottom-right (#0A0C18 end of the gradient); the Droppy logo is blue-violet there.
-        var navy = At(U(828), U(828));
-        Assert.True(navy.A >= 250 && navy.R < 40 && navy.G < 40 && navy.B < 64, $"navy tile: got ({navy.R},{navy.G},{navy.B})");
+        Assert.Equal(0, At(0.5, U(4)).A);
+        Assert.True(At(0.5, U(10)).A >= 250);
+        Assert.True(At(U(10), 0.5).A >= 250);
+        // the n's left stem at 70,130: gGlyph over y 80..196 is .43, white to --s100 #e8ebf0 (.55) at .78
+        Near("n stem", At(U(70), U(130)), 237, 239, 243);
+        // the bead's centre 186,74: gBead centred 182.08,68.4 r 22.4 is .31 out, white to --s200 #d6dae2 (.5) at .61
+        Near("bead", At(U(186), U(74)), 230, 232, 237);
+        // 40,40: gTile .13 (--g800 #14161c to --g600 #3b414f at .24) under gHi's white .46 (.55 to .08 at .2 of .42)
+        Near("glass light", At(U(40), U(40)), 133, 134, 138);
+        // 228,228: gTile .92 (--g600 to --s400 #9aa3b5 at .82) under gPool's --pool rgba(214,218,226) .46 (.17 of r 144)
+        Near("silver pool", At(U(228), U(228)), 172, 178, 191);
+        var graphite = At(U(114), U(150)); // inside the n's arch: dark graphite tile
+        Assert.True(graphite.A >= 250 && graphite.R < 90 && graphite.G < 96 && graphite.B < 110, $"graphite tile: got ({graphite.R},{graphite.G},{graphite.B})");
     }
 
     [Fact]

@@ -842,7 +842,7 @@ public sealed partial record Git
         {
             // DEVIATION OD-0012 F1: the message is "Marrow checkpoint" (upstream "Droppy Code checkpoint"), in the
             // Marrow identity. No -p anywhere: the commit is parentless (porting/port_impacts.md entry 233).
-            var result = await Run(["commit-tree", tree, "-m", "Marrow checkpoint"], environment: Identity);
+            var result = await Run(["commit-tree", tree, "-m", "nth checkpoint"], environment: Identity);
             Check(result);
             commit = result.TrimmedOutput;
             watch?.Remember(commit, tree);
@@ -1277,8 +1277,8 @@ public sealed partial record Git
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> Identity = new Dictionary<string, string>
     {
-        ["GIT_AUTHOR_NAME"] = "Marrow", ["GIT_AUTHOR_EMAIL"] = "marrow@localhost",
-        ["GIT_COMMITTER_NAME"] = "Marrow", ["GIT_COMMITTER_EMAIL"] = "marrow@localhost",
+        ["GIT_AUTHOR_NAME"] = "nth", ["GIT_AUTHOR_EMAIL"] = "nth@localhost",
+        ["GIT_COMMITTER_NAME"] = "nth", ["GIT_COMMITTER_EMAIL"] = "nth@localhost",
     };
 
     /// <summary>

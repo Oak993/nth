@@ -140,7 +140,7 @@
     gh: ['gh_2.102.0_windows_amd64.zip', 'github.com/cli/cli/releases'], uv: ['uv-x86_64-pc-windows-msvc.zip', 'github.com/astral-sh/uv/releases'],
     chr: ['chrome-win64.zip and chrome-headless-shell-win64.zip', 'cdn.playwright.dev/builds/cft/153.0.8010.12/win64/'],
   };
-  const MANUAL = '%LOCALAPPDATA%\\Marrow Code\\addons\\downloads\\manual\\';
+  const MANUAL = '%LOCALAPPDATA%\\nth\\addons\\downloads\\manual\\';
 
   // ------------------------------------------------------------------ your own skills, plugins and tools (the Custom question)
   // what the add sheet finds, per page (illustrative): a GitHub repo of six skills (one invalid), a repo of three plugins
@@ -158,7 +158,7 @@
     if (f[2]) return;
     const it = { id, sec, own: true, name: sec === 'tool' ? 'ImageMagick' : f[0], sum: f[1], gl: sec === 'tool' ? 'img' : sec === 'plug' ? 'plug' : 'spark', mb: 0.02, ver: sec === 'tool' ? 'provides magick' : sec === 'plug' ? 'your plugin' : '1 skill',
       src: sec === 'tool' ? 'C:\\Tools\\ImageMagick' : sec === 'plug' ? 'github.com/northwind/agent-plugins' : 'github.com/northwind/team-skills', lic: 'Yours', srcFull: '', needs: 'Whatever its own files say' };
-    it.srcFull = it.src + (sec === 'tool' ? ', magick.exe' : ', copied into Marrow’s folder');
+    it.srcFull = it.src + (sec === 'tool' ? ', magick.exe' : ', copied into nth’s folder');
     if (sec === 'skill') it.sk = [{ n: f[0], on: true, t: tok(f[0]) }];
     if (sec === 'plug') it.sk = PL(f[0] + ':' + (f[0] === 'northwind-agents' ? 3 : 2));
     OWN.push(it);
@@ -255,7 +255,7 @@
       const T = totals(), what = 'all ' + SECL[bulk.scope];
       const F = fails(), doneN = want().filter((id) => inl(id)).length;
       if (b === 'title') return { confirm: 'Download ' + what + '?', dl: 'Downloading ' + what, paused: 'Paused', done: 'Downloaded', partial: doneN + ' of ' + want().length + ' downloaded', none: '' }[bulk.ph];
-      if (b === 'sub') return { confirm: T.ids.length + (T.ids.length === 1 ? ' item' : ' items') + ' from ' + list(T.hosts.length > 3 ? T.hosts.slice(0, 3).concat([(T.hosts.length - 3) + ' more']) : T.hosts) + '.', dl: 'One at a time. Hide it and keep using Marrow.', paused: 'Nothing is downloading. Resume carries on where it stopped.', done: 'All ' + want().length + ' are on this PC: ' + fmtDisk(T.disk) + '.', partial: F.length + ' didn’t download. The rest are on this PC.', none: '' }[bulk.ph];
+      if (b === 'sub') return { confirm: T.ids.length + (T.ids.length === 1 ? ' item' : ' items') + ' from ' + list(T.hosts.length > 3 ? T.hosts.slice(0, 3).concat([(T.hosts.length - 3) + ' more']) : T.hosts) + '.', dl: 'One at a time. Hide it and keep using nth.', paused: 'Nothing is downloading. Resume carries on where it stopped.', done: 'All ' + want().length + ' are on this PC: ' + fmtDisk(T.disk) + '.', partial: F.length + ' didn’t download. The rest are on this PC.', none: '' }[bulk.ph];
       if (b === 'disc') return 'This can be a large download: ' + fmtExact(T.mb) + ', and it takes ' + fmtDisk(T.disk) + ' of disk space once installed.';
       if (b === 'small') return T.ids.length ? 'About ' + fmtMb(T.mb) + ' to download, ' + fmtDisk(T.disk) + ' on disk.' : 'Everything on this page is already here.';
       if (b === 'foot') return { confirm: 'Nothing downloads until you press Continue.', dl: 'Cancel stops the rest. What has already downloaded stays.', paused: 'Cancel stops the rest. What has already downloaded stays.', done: bulk.scope === 'tool' ? 'Tools are used when a step needs them.' : 'New skills start as listed in each detail; switch them there.', partial: 'Retry tries the failed ones again. Or download them yourself.', none: '' }[bulk.ph];
@@ -403,11 +403,11 @@
     return '<div class="fb"><div class="fbh">Download it yourself</div>' +
       '<div class="fbs"><span class="n">1</span><span class="t">Get <code>' + esc(f[0]) + '</code><i>' + esc(f[1]) + '</i></span><span class="gbtn" data-act="fb:page:' + id + '">Open download page ↗</span></div>' +
       '<div class="fbs"><span class="n">2</span><span class="t">Put it in <code>' + esc(MANUAL) + '</code><span class="tag">ED</span></span><span class="gbtn" data-act="fb:folder:' + id + '">Open folder</span></div>' +
-      '<div class="fbs"><span class="n">3</span><span class="t">' + (it.sec === 'tool' ? 'Marrow checks its SHA-256 against the pinned one and installs it.' : 'Marrow checks every file against its pinned hash and installs it.') + '</span>' +
+      '<div class="fbs"><span class="n">3</span><span class="t">' + (it.sec === 'tool' ? 'nth checks its SHA-256 against the pinned one and installs it.' : 'nth checks every file against its pinned hash and installs it.') + '</span>' +
       '<span class="acs" data-it="' + id + '"><span data-s="fail av q"><span class="gbtn acc" data-act="fb:check:' + id + '">Check again</span></span><span data-s="ck dl">' + SPN + '<span class="sm">Checking…</span></span><span data-s="in">' + OKC + '<span class="sm">Installed</span></span></span></div></div>';
   }
   const whyFail = (id) => '<div class="fold" data-f="fail:' + id + '"><div><div class="why w">' + WRN + '<span class="ft">' + (IT[id].fw === 'sum' ? 'The file didn’t match its checksum. Retry downloads it again.' : 'Couldn’t reach ' + esc(IT[id].host) + '. Retry picks up where it stopped.') + '</span></div>' + fbBlock(id) + '</div></div>';
-  const whyRm = (id) => '<div class="fold" data-f="rm:' + id + '"><div><div class="why r"><span class="ft">' + (IT[id].own ? 'Removes it from Marrow’s folder. Your original stays where it was.' : IT[id].sec === 'tool' ? 'Skills that run it will ask for it again in a chat.' : 'Its skills stop being listed in new chats.') + '</span></div></div></div>';
+  const whyRm = (id) => '<div class="fold" data-f="rm:' + id + '"><div><div class="why r"><span class="ft">' + (IT[id].own ? 'Removes it from nth’s folder. Your original stays where it was.' : IT[id].sec === 'tool' ? 'Skills that run it will ask for it again in a chat.' : 'Its skills stop being listed in new chats.') + '</span></div></div></div>';
   function dpane(it) {
     const k1 = it.sec === 'tool' ? (it.own ? 'Provides' : 'Used by') : 'Needs', v1 = it.own && it.sec === 'tool' ? 'magick' : it.sec === 'tool' ? USED[it.id] : (it.needs || 'Varies per plugin; connectors are named in the text');
     return '<div class="dp" data-dp="' + it.id + '"><div data-it="' + it.id + '" class="dpi">' +

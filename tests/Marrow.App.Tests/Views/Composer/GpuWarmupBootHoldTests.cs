@@ -18,7 +18,7 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class GpuWarmupBootHoldTests(HeadlessSession headless)
 {
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void A_hold_keeps_the_idle_warm_up_from_stepping_past_its_cap_until_it_lets_go() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -44,7 +44,7 @@ public sealed class GpuWarmupBootHoldTests(HeadlessSession headless)
         finally { hold.Dispose(); GpuWarmup.IdleCap = cap; window.Close(); }
     });
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void A_hold_that_answers_false_holds_nothing_and_letting_go_twice_is_harmless() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -69,7 +69,7 @@ public sealed class GpuWarmupBootHoldTests(HeadlessSession headless)
         finally { hold.Dispose(); GpuWarmup.IdleCap = cap; window.Close(); }
     });
 
-    [Theory, Trait("Decision", "ED-NEW-launch-fix")]
+    [Theory, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     [InlineData(false)]
     [InlineData(true)]
     public void Boot_B_holds_the_idle_warm_ups_from_its_start_until_it_finishes(bool reduceMotion) => headless.OnUiThread(() =>
@@ -103,7 +103,7 @@ public sealed class GpuWarmupBootHoldTests(HeadlessSession headless)
         Assert.False(GpuWarmup.Held());
     });
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void A_stage_closed_before_it_finished_lets_go() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

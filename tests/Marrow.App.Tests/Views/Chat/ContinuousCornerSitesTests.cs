@@ -53,6 +53,19 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.App/Port/ChatDialogControls.cs", "6", 1, Fit),
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.BarHeight / 2", 2, Capsule), // GR-2 (ED-306): the progress bar's track and fill, 4 pt bars with r = h / 2
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
+        ("Marrow.App/Port/Ignis/Settings/IgnisSavingsHistoryView.cs", "5, 5, 3, 3", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): a month bar, design-page layout (work/design/phoenix/phoenix-designs.html .mchart .mb, CSS border-radius 5px 5px 3px 3px), not a Swift shape
+        ("Marrow.App/Port/Ignis/Settings/IgnisSavingsHistoryView.cs", "8", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): a month column's transparent face, design-page layout (.mchart button, CSS border-radius 8px)
+        ("Marrow.App/Port/Ignis/Settings/IgnisSavingsHistoryView.cs", "size / 2", 1, Circle), // Ignis (OD-0134, ED-NEW-handoverfix-3): a source dot, size x size with r = size / 2, a circle by construction
+        ("Marrow.App/Port/Ignis/Settings/IgnisSavingsHistoryView.cs", "13", 1, Circle), // Ignis (OD-0134, ED-NEW-handoverfix-3): the month picker's 26 x 26 button with r = 13 (.mpick button, CSS border-radius 13px), a circle by construction
+        ("Marrow.App/Port/Ignis/Settings/IgnisSettingsPage.cs", "5", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): the "in use" chip, design-page layout (tr.now td::after, CSS border-radius 5px)
+        ("Marrow.App/Port/Ignis/Views/IgnisEventLine.cs", "16", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): the event notice card, design-page layout (.notice, CSS border-radius 16px)
+        ("Marrow.App/Port/Ignis/Views/KindleCapsule.cs", "14", 1, Capsule), // Ignis (OD-0134, ED-NEW-handoverfix-3): the Kindle capsule's glow, 28 pt tall with r = 14 = h / 2 (.kindle, CSS border-radius 14px)
+        ("Marrow.App/Port/Ignis/Views/KindlePopover.cs", "i == 0 ? 3 : 0, i == sources.Length - 1 ? 3 : 0, i == sources.Length - 1 ? 3 : 0, i == 0 ? 3 : 0", 1, Tiny), // Ignis (OD-0134, ED-NEW-handoverfix-3): the end segments of the 6 pt sources bar, r 3 (.sbar, CSS border-radius 3px)
+        ("Marrow.App/Port/Ignis/Views/KindlePopover.cs", "4, 4, 2, 2", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): a day bar of the week chart, design-page layout (CSS border-radius 4px 4px 2px 2px)
+        ("Marrow.App/Port/Ignis/Views/KindlePopover.cs", "10", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): the report text, design-page layout (.rep textarea, CSS border-radius 10px)
+        ("Marrow.App/Port/Ignis/Views/KindlePopover.cs", "2", 2, Tiny), // Ignis (OD-0134, ED-NEW-handoverfix-3): the 4 pt context bar's track and fill, r 2 (.bp-bar and .bp-bar i, CSS border-radius 2px)
+        ("Marrow.App/Port/Ignis/Views/KindlePopover.cs", "12", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): the suggestion box, design-page layout (.sug, CSS border-radius 12px)
+        ("Marrow.App/Port/Ignis/Views/KindleUi.cs", "height / 2", 1, Capsule), // Ignis (OD-0134, ED-NEW-handoverfix-3): the design's .btn pill, r = h / 2
         ("Marrow.App/Port/LookCard.cs", "10", 1, Circular),
         ("Marrow.App/Port/LookCard.cs", "12", 1, Circular),
         ("Marrow.App/Port/ModelsPalette/OpenRouterPicker.cs", "999", 1, Capsule), // RR-19 (ED-636): the 28 pt search field, openrouter-picker/Main.dc.html .field (CSS border-radius 999), r far past h / 2

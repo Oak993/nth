@@ -45,7 +45,7 @@ public sealed class CapturePipeline : IDisposable
         ring = new SampleRing(format.SampleRate * format.Channels * RingSeconds);
         scratch = new float[Math.Max(1, format.SampleRate / 2) * format.Channels]; // half a second of whole frames: a device buffer is 100 ms or less
         if (!runThread) return;
-        thread = new Thread(Run) { IsBackground = true, Name = "Marrow voice processing" };
+        thread = new Thread(Run) { IsBackground = true, Name = "nth voice processing" };
         thread.Start();
     }
 

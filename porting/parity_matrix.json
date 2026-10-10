@@ -15798,7 +15798,7 @@
       ],
       "preconditions": "Any Hydra prompt is assembled.",
       "action": "AntiSlopPolicy.instructions(enabled:) is joined into the agent prompt or the appended system prompt.",
-      "expected_result": "With anti-slop on, the text begins [Marrow anti-slop guidance] and runs over four further lines, containing the RIGHT SINGLE QUOTATION MARK U+2019 in \"product’s\" and the US spelling \"colors\". With anti-slop off, the text is exactly:\n[Marrow anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.\nThe function never returns an empty string, so the runtime's !instructions.isEmpty guard is always true.",
+      "expected_result": "With anti-slop on, the text begins [nth anti-slop guidance] and runs over four further lines, containing the RIGHT SINGLE QUOTATION MARK U+2019 in \"product’s\" and the US spelling \"colors\". With anti-slop off, the text is exactly:\n[nth anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.\nThe function never returns an empty string, so the runtime's !instructions.isEmpty guard is always true.",
       "side_effects": [],
       "persistence": "Driven by AppSettings.antiSlopEnabled, which HydraLaunch copies into antiSlopEnabled.",
       "failure_cases": [],
@@ -15813,7 +15813,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 \"[Droppy Code anti-slop guidance]\" and :12 \"[Droppy Code anti-slop guidance: off]\"",
-        "port": "The first lines read \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"; every other line, the U+2019 in \"product’s\" and the US spelling \"colors\" are unchanged."
+        "port": "The first lines read \"[nth anti-slop guidance]\" and \"[nth anti-slop guidance: off]\"; every other line, the U+2019 in \"product’s\" and the US spelling \"colors\" are unchanged."
       },
       "spec_fix": "expected_result said the enabled text contains U+2019 in \"product's\" but wrote the word with an ASCII apostrophe (U+0027), so a worker copying it produced the wrong byte -> DroppyCode/Core/Models/AntiSlopPolicy.swift:6 \"For UI work, follow the product’s components, typography and colors.\" has RIGHT SINGLE QUOTATION MARK U+2019 (bytes E2 80 99); expected_result now carries that character."
     },
@@ -21959,7 +21959,7 @@
       ],
       "preconditions": "A merge request is about to be opened.",
       "action": "mergeRequestBody runs.",
-      "expected_result": "Line 1 is exactly \"Opened by Marrow once its Hydra team finished.\" (owner ruling OD-0008 B10) followed by a blank line. If any team head has a non-empty task, \"## Heads\" is added, then one line per such head: \"- **<persona name>**: <task as one line, limit 120>\" with \" (1 file)\" or \" (<N> files)\" appended when that head has a landing with files, then a blank line. If the last assistant entry belonging to one of this group's turns has non-empty trimmed text, \"## The lead's summary\" is added, then that text, truncated to the first 2000 characters with a single U+2026 HORIZONTAL ELLIPSIS appended when it was longer, then a blank line. Finally \"## Files\" and one line per parsed file: \"- `<path>` (+<additions> −<deletions>)\" using U+2212 MINUS SIGN, not an ASCII hyphen. Lines are joined with \"\\n\".",
+      "expected_result": "Line 1 is exactly \"Opened by nth once its Hydra team finished.\" (owner ruling OD-0008 B10) followed by a blank line. If any team head has a non-empty task, \"## Heads\" is added, then one line per such head: \"- **<persona name>**: <task as one line, limit 120>\" with \" (1 file)\" or \" (<N> files)\" appended when that head has a landing with files, then a blank line. If the last assistant entry belonging to one of this group's turns has non-empty trimmed text, \"## The lead's summary\" is added, then that text, truncated to the first 2000 characters with a single U+2026 HORIZONTAL ELLIPSIS appended when it was longer, then a blank line. Finally \"## Files\" and one line per parsed file: \"- `<path>` (+<additions> −<deletions>)\" using U+2212 MINUS SIGN, not an ASCII hyphen. Lines are joined with \"\\n\".",
       "side_effects": [
         "Sent to the forge as the request description"
       ],
@@ -21968,7 +21968,7 @@
         "No files parsed leaves \"## Files\" as the last line with nothing under it."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim except the opening line, which is \"Opened by Marrow once its Hydra team finished.\" by owner ruling OD-0008 B10. Keep the U+2212 minus and the U+2026 ellipsis.",
+      "windows_path": "Verbatim except the opening line, which is \"Opened by nth once its Hydra team finished.\" by owner ruling OD-0008 B10. Keep the U+2212 minus and the U+2026 ellipsis.",
       "verification_method": "contract fixture comparing the body byte for byte, with the ruled opening line",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -21977,7 +21977,7 @@
       "deviation": {
         "decision": "OD-0008 B10",
         "upstream": "The body opens with \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:845 `var lines = [\"Opened by Droppy Code once its Hydra team finished.\", \"\"]`).",
-        "port": "The body opens with \"Opened by Marrow once its Hydra team finished.\"; the rest of the body is as upstream."
+        "port": "The body opens with \"Opened by nth once its Hydra team finished.\"; the rest of the body is as upstream."
       },
       "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798; the summary trim changed from `.trimmingCharacters(in: .whitespacesAndNewlines)` to the equivalent `.trimmed` (Text.swift:132). Status DISCOVERED -> SPECIFIED because the owner question it waited on (OD-PENDING-18) is resolved by OD-0008 B10."
     },
@@ -24841,7 +24841,7 @@
         "The write uses try? - a write failure is silent, and the 'Hang report written to' log line is emitted anyway."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0005, closed by engineering_decisions.md ED-003) and OD-0008 C7: the folder is %LOCALAPPDATA%\\Marrow Code\\Logs in place of ~/Library/Logs/Droppy Code. ED-003 places it at %LOCALAPPDATA%\\<AppInfo.name>\\Logs, but under OD-0002 AppInfo.name is \"Marrow\" and %LOCALAPPDATA%\\Marrow belongs to the owner's Electron Marrow, which C7 rules the port never touches; the port's data identity \"Marrow Code\" therefore names the folder. The file-name pattern, the timestamp sanitisation (a Windows filename cannot contain ':' either, so the same replacement is required), the three header lines and the blank separator line are all reproduced. Under OD-0012 F1 line 1 reads exactly \"Marrow main thread unresponsive for <x.x>s\", with exactly one fractional digit; lines 2 and 3 are unchanged.",
+      "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0005, closed by engineering_decisions.md ED-003) and OD-0008 C7: the folder is %LOCALAPPDATA%\\nth\\Logs in place of ~/Library/Logs/Droppy Code. ED-003 places it at %LOCALAPPDATA%\\<AppInfo.name>\\Logs, but under OD-0002 AppInfo.name is \"Marrow\" and %LOCALAPPDATA%\\Marrow belongs to the owner's Electron Marrow, which C7 rules the port never touches; the port's data identity \"Marrow Code\" therefore names the folder. The file-name pattern, the timestamp sanitisation (a Windows filename cannot contain ':' either, so the same replacement is required), the three header lines and the blank separator line are all reproduced. Under OD-0012 F1 line 1 reads exactly \"nth main thread unresponsive for <x.x>s\", with exactly one fractional digit; lines 2 and 3 are unchanged.",
       "verification_method": "integration test on the written file's name and first four lines",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -24851,7 +24851,7 @@
       "deviation": {
         "decision": "OD-0008 C7; OD-0012 F1",
         "upstream": "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - 'FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSHomeDirectory() + \"/Library\")' then 'library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)'; DroppyCode/Core/Support/HangWatchdog.swift:91 - 'var header = \"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\"'",
-        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other; OD-0012 F1: line 1 of the report reads \"Marrow main thread unresponsive for <x.x>s\""
+        "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other; OD-0012 F1: line 1 of the report reads \"nth main thread unresponsive for <x.x>s\""
       }
     },
     {
@@ -25255,17 +25255,17 @@
       ],
       "preconditions": "First read of the library at startup.",
       "action": "AppModel() is constructed.",
-      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'). The error is shown in the main window at launch with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4); upstream both cases silently open an empty library (Storage.swift:50 for the read, :51 for the decode) and the first save overwrites the file.",
+      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'). The error is shown in the main window at launch with the exact text \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4); upstream both cases silently open an empty library (Storage.swift:50 for the read, :51 for the decode) and the first save overwrites the file.",
       "side_effects": [
         "Reads library.json; creates the store root directory if missing (StoragePaths.swift:6-12, which Storage.swift:19 forwards to)"
       ],
       "persistence": "Reads <store root>/library.json. After a failed read or decode, no save writes over that file.",
       "failure_cases": [
         "File missing: empty library, no message",
-        "File unreadable, corrupt or schema-incompatible: the main window shows at launch \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4) and library.json is left as it is on disk by every later save (OD-0008 A10)"
+        "File unreadable, corrupt or schema-incompatible: the main window shows at launch \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4) and library.json is left as it is on disk by every later save (OD-0008 A10)"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Direct port of the construction order, the file name and the missing-file fallback. The unreadable-file path follows OD-0008 A10: show the error, do not overwrite; the error text is exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\", shown in the main window at launch (OD-0012 E4). The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7, see PR-LAUNCH-070).",
+      "windows_path": "Direct port of the construction order, the file name and the missing-file fallback. The unreadable-file path follows OD-0008 A10: show the error, do not overwrite; the error text is exactly \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\", shown in the main window at launch (OD-0012 E4). The store root is %LOCALAPPDATA%\\Marrow Code (OD-0008 C7, see PR-LAUNCH-070).",
       "verification_method": "integration test with a missing file (empty library, no message) and with a truncated file (the error is surfaced with the exact OD-0012 E4 text, and after a mutation that schedules a save the file on disk is byte-identical to the truncated original)",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -25274,7 +25274,7 @@
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
         "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next save writes the empty library over it; upstream has no text for this error because it never shows one",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       }
     },
     {
@@ -26198,7 +26198,7 @@
       ],
       "preconditions": "Any launch, including one where the library is corrupt, the migration failed, or the store root could not be created.",
       "action": "The app launches.",
-      "expected_result": "The user sees the main window with a chat selected. No splash screen, no progress indicator and no migration dialog is shown by the launch path. Failures are silent, the only diagnostic surfaces being log lines, with one exception made by owner ruling: a library.json that exists but cannot be read or decoded is surfaced to the user as an error (OD-0008 A10, see PR-LAUNCH-034), shown in the main window with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4). Upstream that case is silent too.",
+      "expected_result": "The user sees the main window with a chat selected. No splash screen, no progress indicator and no migration dialog is shown by the launch path. Failures are silent, the only diagnostic surfaces being log lines, with one exception made by owner ruling: a library.json that exists but cannot be read or decoded is surfaced to the user as an error (OD-0008 A10, see PR-LAUNCH-034), shown in the main window with the exact text \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4). Upstream that case is silent too.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -26213,7 +26213,7 @@
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
         "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 - a failed library load falls back to an empty library with no message; upstream has no text for this error because it never shows one",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       }
     },
     {
@@ -29642,7 +29642,7 @@
       ],
       "preconditions": "none",
       "action": "An initialize request is built by the probe or the in-app hub.",
-      "expected_result": "params = {\"protocolVersion\": \"2025-06-18\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"Marrow\", \"version\": \"1.0\"}} exactly, with capabilities an empty object. The same version string is also sent as the MCP-Protocol-Version HTTP header on every remote POST from these two clients.",
+      "expected_result": "params = {\"protocolVersion\": \"2025-06-18\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"nth\", \"version\": \"1.0\"}} exactly, with capabilities an empty object. The same version string is also sent as the MCP-Protocol-Version HTTP header on every remote POST from these two clients.",
       "side_effects": [
         "none"
       ],
@@ -29651,7 +29651,7 @@
         "a server that rejects the version answers an error, which surfaces through checkReply"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same three params verbatim. The clientInfo name is \"Marrow\" (OD-0012 F1); the version \"1.0\" is a literal unrelated to the app version and stays \"1.0\". The installed JavaScript bridge deliberately sends no version and no protocol header (PR-MCP-196) - do not normalize the three clients.",
+      "windows_path": "Same three params verbatim. The clientInfo name is \"nth\" (OD-0012 F1); the version \"1.0\" is a literal unrelated to the app version and stays \"1.0\". The installed JavaScript bridge deliberately sends no version and no protocol header (PR-MCP-196) - do not normalize the three clients.",
       "verification_method": "contract fixture capturing the initialize payload from all three clients",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -29660,7 +29660,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream identifies both Swift clients as \"Droppy Code\" through the one builder they share: DroppyCode/Services/MCP/MCPWire.swift:13 - :13 \"clientInfo\": .object([\"name\": .string(\"Droppy Code\"), \"version\": .string(\"1.0\")]),",
-        "port": "Marrow sends clientInfo {\"name\": \"Marrow\", \"version\": \"1.0\"} from the probe and the hub."
+        "port": "Marrow sends clientInfo {\"name\": \"nth\", \"version\": \"1.0\"} from the probe and the hub."
       }
     },
     {
@@ -32344,7 +32344,7 @@
       ],
       "preconditions": "The bridge is connecting a server.",
       "action": "It sends and receives messages.",
-      "expected_result": "initialize params are {protocolVersion: \"2025-06-18\", capabilities: {}, clientInfo: {name: \"Marrow\"}} - NO version field. Remote requests send the entry's headers plus Content-Type: application/json and Accept: application/json, text/event-stream, and NO MCP-Protocol-Version header at all; the session header is the lowercase \"mcp-session-id\" on both send and read. An SSE frame is accepted when its data parses to an object having \"result\" OR \"error\" - not, as in the Swift clients, an \"id\" - and a data payload of \"[DONE]\" is skipped. A tool's description falls back to its own name when absent or empty, and its schema falls back to the literal {type: \"object\"} with no properties key. Result content maps a text item to its text and EVERY other item to the literal \"[image]\", joined with newlines; an isError result is returned as \"Error: \" plus that text or, when empty, \"Error: tool failed\"; a thrown error is returned as \"Error: \" plus its message rather than rejecting.",
+      "expected_result": "initialize params are {protocolVersion: \"2025-06-18\", capabilities: {}, clientInfo: {name: \"nth\"}} - NO version field. Remote requests send the entry's headers plus Content-Type: application/json and Accept: application/json, text/event-stream, and NO MCP-Protocol-Version header at all; the session header is the lowercase \"mcp-session-id\" on both send and read. An SSE frame is accepted when its data parses to an object having \"result\" OR \"error\" - not, as in the Swift clients, an \"id\" - and a data payload of \"[DONE]\" is skipped. A tool's description falls back to its own name when absent or empty, and its schema falls back to the literal {type: \"object\"} with no properties key. Result content maps a text item to its text and EVERY other item to the literal \"[image]\", joined with newlines; an isError result is returned as \"Error: \" plus that text or, when empty, \"Error: tool failed\"; a thrown error is returned as \"Error: \" plus its message rather than rejecting.",
       "side_effects": [
         "none beyond the requests themselves"
       ],
@@ -32353,7 +32353,7 @@
         "a tool failure is returned as an \"Error: …\" string, so the host sees a successful call with error text"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Copy the bridge text character for character, except that the clientInfo name is \"Marrow\" (OD-0012 F1), including the missing header, the version-less clientInfo, the lowercase session header, the result-or-error SSE rule and the \"[image]\" catch-all. Normalizing the three clients would change what remote servers see from Pi and Command Code.",
+      "windows_path": "Copy the bridge text character for character, except that the clientInfo name is \"nth\" (OD-0012 F1), including the missing header, the version-less clientInfo, the lowercase session header, the result-or-error SSE rule and the \"[image]\" catch-all. Normalizing the three clients would change what remote servers see from Pi and Command Code.",
       "verification_method": "contract fixture capturing the bridge's wire traffic against a stub server",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -32362,7 +32362,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "The bridge identifies itself as \"Droppy Code\": DroppyCode/Services/MCP/MCPBridgeSource.swift:138 and :203 - await request(\"initialize\", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: \"Droppy Code\" } });",
-        "port": "The bridge sends clientInfo { name: \"Marrow\" } at both initialize sites, still with no version field."
+        "port": "The bridge sends clientInfo { name: \"nth\" } at both initialize sites, still with no version field."
       }
     },
     {
@@ -32426,7 +32426,7 @@
       ],
       "preconditions": "Settings is open on the MCP page.",
       "action": "The page renders.",
-      "expected_result": "A leading-aligned vertical stack with 20 points between sections, in this order: the lead card; the Connected section, present only when at least one catalog server is connected and not currently celebrating; the Custom section; one section per non-empty visible category, each a two-column grid; and the footer line \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.\" in the .subheadline text style (11 points nominal) in Chrome.secondaryText, which at B2 is Chrome.primaryText at opacity 0.7 (ED-062). The grid columns are two flexible items with 10 points between them and 10 points between rows.",
+      "expected_result": "A leading-aligned vertical stack with 20 points between sections, in this order: the lead card; the Connected section, present only when at least one catalog server is connected and not currently celebrating; the Custom section; one section per non-empty visible category, each a two-column grid; and the footer line \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.\" in the .subheadline text style (11 points nominal) in Chrome.secondaryText, which at B2 is Chrome.primaryText at opacity 0.7 (ED-062). The grid columns are two flexible items with 10 points between them and 10 points between rows.",
       "side_effects": [
         "none"
       ],
@@ -32444,7 +32444,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream footer: DroppyCode/App/Views/Settings/MCPSettingsPage.swift:60 - :60 Text(\"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Droppy Code itself.\")",
-        "port": "Marrow footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.\""
+        "port": "Marrow footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.\""
       },
       "b2_change": "Footer font B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)) (same 11 nominal). Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7), i.e. Chrome.primaryText (labelColor) at opacity 0.7 instead of secondaryLabelColor. Order, spacing 20 and the grid are unchanged. Size per ED-059: .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), fixed per style and scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001."
     },
@@ -33830,7 +33830,7 @@
       ],
       "preconditions": "Connection started.",
       "action": "ACPSession sends the first request on the connection.",
-      "expected_result": "Method name is exactly \"initialize\". protocolVersion is the JSON integer 1, not a string, not 0.1. clientInfo.name is exactly \"marrow\" (lowercase), clientInfo.title is exactly \"Marrow\" (capital M), clientInfo.version is the app's short version string. The request id is the integer 1 on a fresh connection. Deviation OD-0008 B11: upstream sends name \"droppy-code\" and title \"Droppy Code\".",
+      "expected_result": "Method name is exactly \"initialize\". protocolVersion is the JSON integer 1, not a string, not 0.1. clientInfo.name is exactly \"nth\", clientInfo.title is exactly \"nth\", clientInfo.version is the app's short version string. The request id is the integer 1 on a fresh connection. Deviation OD-0008 B11: upstream sends name \"droppy-code\" and title \"Droppy Code\".",
       "side_effects": [
         "One JSON line written to the child's stdin."
       ],
@@ -33839,8 +33839,8 @@
         "An RPC error or a closed process rejects the request and start() throws; the thread reports the RPCError message."
       ],
       "cancellation": "Cancelling the awaiting task removes the pending continuation and resumes it with CancellationError (JSONRPC.swift:82-86).",
-      "windows_path": "Same payload with the ruled client identity: `\"clientInfo\": {\"name\": \"marrow\", \"title\": \"Marrow\", \"version\": <app version>}`. Every other field is identical to upstream.",
-      "verification_method": "contract fixture (golden initialize frame asserting protocolVersion 1, clientInfo.name \"marrow\", clientInfo.title \"Marrow\" and request id 1)",
+      "windows_path": "Same payload with the ruled client identity: `\"clientInfo\": {\"name\": \"nth\", \"title\": \"nth\", \"version\": <app version>}`. Every other field is identical to upstream.",
+      "verification_method": "contract fixture (golden initialize frame asserting protocolVersion 1, clientInfo.name \"nth\", clientInfo.title \"nth\" and request id 1)",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -33848,7 +33848,7 @@
       "deviation": {
         "decision": "OD-0008 B11",
         "upstream": "DroppyCode/Services/Providers/ACPSession.swift:124-128 sends `\"clientInfo\": [\"name\": \"droppy-code\", \"title\": \"Droppy Code\", \"version\": .string(AppInfo.version)]`",
-        "port": "Marrow sends clientInfo name \"marrow\" and title \"Marrow\"; the method, protocolVersion, clientCapabilities and the version field are unchanged."
+        "port": "Marrow sends clientInfo name \"nth\" and title \"nth\"; the method, protocolVersion, clientCapabilities and the version field are unchanged."
       }
     },
     {
@@ -43466,7 +43466,7 @@
       ],
       "preconditions": "An inbound control_request.",
       "action": "The CLI asks the app for something.",
-      "expected_result": "A request without a string request_id or without a request object is ignored entirely. Any subtype other than the literal \"can_use_tool\" is answered with {\"type\":\"control_response\",\"response\":{\"subtype\":\"error\",\"request_id\":\"<id>\",\"error\":\"Marrow does not support this request.\"}} - verbatim under OD-0012 F1 (upstream says \"Droppy Code does not support this request.\"), and DIFFERENT from the JSON-RPC -32601 messages Codex and Copilot use. The four refusal strings must not be unified into one helper.",
+      "expected_result": "A request without a string request_id or without a request object is ignored entirely. Any subtype other than the literal \"can_use_tool\" is answered with {\"type\":\"control_response\",\"response\":{\"subtype\":\"error\",\"request_id\":\"<id>\",\"error\":\"nth does not support this request.\"}} - verbatim under OD-0012 F1 (upstream says \"Droppy Code does not support this request.\"), and DIFFERENT from the JSON-RPC -32601 messages Codex and Copilot use. The four refusal strings must not be unified into one helper.",
       "side_effects": [
         "One stdin line"
       ],
@@ -43475,7 +43475,7 @@
         "This IS the refusal path."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The product name is on the wire here. OD-0012 F1 renames it: the string is \"Marrow does not support this request.\"",
+      "windows_path": "The product name is on the wire here. OD-0012 F1 renames it: the string is \"nth does not support this request.\"",
       "verification_method": "contract fixture with an unsupported subtype",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -43484,7 +43484,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "ClaudeSession.swift:614 answers with \"error\": \"Droppy Code does not support this request.\"",
-        "port": "The error string is \"Marrow does not support this request.\"; the envelope, the can_use_tool exception and the separate emission point are unchanged."
+        "port": "The error string is \"nth does not support this request.\"; the envelope, the can_use_tool exception and the separate emission point are unchanged."
       }
     },
     {
@@ -43749,7 +43749,7 @@
       ],
       "preconditions": "Connection started.",
       "action": "connect performs the handshake.",
-      "expected_result": "One request with method \"initialize\" and params {\"clientInfo\":{\"name\":\"marrow\",\"title\":\"Marrow\",\"version\":\"<AppInfo.version>\"},\"capabilities\":{\"experimentalApi\":true}}. The name is the literal \"marrow\", the title the literal \"Marrow\" (owner-ruled deviation OD-0008 B11; upstream sends \"droppy-code\" / \"Droppy Code\"). On a throw the connection is CLOSED and the error rethrown. On success one notification with method \"initialized\" and NO params is sent, and the connection is returned.",
+      "expected_result": "One request with method \"initialize\" and params {\"clientInfo\":{\"name\":\"nth\",\"title\":\"nth\",\"version\":\"<AppInfo.version>\"},\"capabilities\":{\"experimentalApi\":true}}. The name is the literal \"nth\", the title the literal \"nth\" (owner-ruled deviation OD-0008 B11; upstream sends \"droppy-code\" / \"Droppy Code\"). On a throw the connection is CLOSED and the error rethrown. On success one notification with method \"initialized\" and NO params is sent, and the connection is returned.",
       "side_effects": [
         "Two outbound frames"
       ],
@@ -43767,7 +43767,7 @@
       "deviation": {
         "decision": "OD-0008 B11",
         "upstream": "CodexSession.swift:522 sends \"clientInfo\": [\"name\": \"droppy-code\", \"title\": \"Droppy Code\", \"version\": .string(AppInfo.version)].",
-        "port": "Marrow sends \"clientInfo\": {\"name\": \"marrow\", \"title\": \"Marrow\", \"version\": <AppInfo.version>}; the capabilities object, the close-and-rethrow on failure and the \"initialized\" notification are unchanged."
+        "port": "Marrow sends \"clientInfo\": {\"name\": \"nth\", \"title\": \"nth\", \"version\": <AppInfo.version>}; the capabilities object, the close-and-rethrow on failure and the \"initialized\" notification are unchanged."
       }
     },
     {
@@ -45252,7 +45252,7 @@
       ],
       "preconditions": "An inbound mcpServer/elicitation/request.",
       "action": "handleRequest runs.",
-      "expected_result": "The request is answered IMMEDIATELY with {\"action\":\"decline\"} - the user is never asked. A WARNING notice is emitted reading \"<server> asked for input, which Marrow cannot show yet.\" (OD-0012 F1; upstream \"which Droppy Code cannot show yet.\") where server is params.serverName or the literal fallback \"An MCP server\". No pending entry is stored.",
+      "expected_result": "The request is answered IMMEDIATELY with {\"action\":\"decline\"} - the user is never asked. A WARNING notice is emitted reading \"<server> asked for input, which nth cannot show yet.\" (OD-0012 F1; upstream \"which Droppy Code cannot show yet.\") where server is params.serverName or the literal fallback \"An MCP server\". No pending entry is stored.",
       "side_effects": [
         "One RPC response; one notice"
       ],
@@ -45270,7 +45270,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "CodexSession.swift:992 emits the warning \"\\(server) asked for input, which Droppy Code cannot show yet.\"",
-        "port": "The warning reads \"<server> asked for input, which Marrow cannot show yet.\"; the decline, the \"An MCP server\" fallback and the warning level are unchanged."
+        "port": "The warning reads \"<server> asked for input, which nth cannot show yet.\"; the decline, the \"An MCP server\" fallback and the warning level are unchanged."
       }
     },
     {
@@ -48350,7 +48350,7 @@
       ],
       "preconditions": "A pending approval keyed by requestID.",
       "action": "The user answers.",
-      "expected_result": "An unknown id does nothing. For \"allow\" or \"always\" the request is allowed; \"always\" ALSO inserts the row's grant key into the session grants, so every later request of that kind is auto-allowed for the rest of the session. Anything else denies. .requestResolved is emitted. The reply payload is verbatim: {\"decision\":\"allow\"} to allow, and {\"decision\":\"deny\",\"reason\":\"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"} to deny (OD-0012 F1; upstream \"The user declined this in Droppy Code. ...\"). It is written to \"<id>.reply.json\" by writing \"<id>.reply.json.tmp\" atomically and then replacing the target; if that fails, it falls back to writing the target directly and atomically, with any failure ignored.",
+      "expected_result": "An unknown id does nothing. For \"allow\" or \"always\" the request is allowed; \"always\" ALSO inserts the row's grant key into the session grants, so every later request of that kind is auto-allowed for the rest of the session. Anything else denies. .requestResolved is emitted. The reply payload is verbatim: {\"decision\":\"allow\"} to allow, and {\"decision\":\"deny\",\"reason\":\"The user declined this in nth. Do not retry it; take another approach or explain what you would need.\"} to deny (OD-0012 F1; upstream \"The user declined this in Droppy Code. ...\"). It is written to \"<id>.reply.json\" by writing \"<id>.reply.json.tmp\" atomically and then replacing the target; if that fails, it falls back to writing the target directly and atomically, with any failure ignored.",
       "side_effects": [
         "One or two files written; one provider event"
       ],
@@ -48368,7 +48368,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "CommandCodeSession.swift:704 writes the deny reason \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"",
-        "port": "The deny reason is \"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"; the allow payload, the file names and the atomic write are unchanged."
+        "port": "The deny reason is \"The user declined this in nth. Do not retry it; take another approach or explain what you would need.\"; the allow payload, the file names and the atomic write are unchanged."
       }
     },
     {
@@ -48460,7 +48460,7 @@
       ],
       "preconditions": "A non-read-only tool call with DROPPY_CODE_APPROVALS set.",
       "action": "The hook runs.",
-      "expected_result": "With no approvals directory the hook registers NOTHING at all and every tool passes. Otherwise: the id is the toolCallId, or, when absent, `${Date.now()}-${Math.random().toString(36).slice(2)}`, with every character outside A-Z, a-z, 0-9, underscore, period and hyphen replaced by an underscore. Any stale reply file is unlinked. The request is written to \"<id>.request.json.tmp\" and RENAMED onto \"<id>.request.json\", carrying {toolCallId: <the sanitized id>, toolName, input}. Then the hook polls: it reads the reply file; when present it unlinks it, parses it (a parse failure yields an empty object), and returns nothing when answer.decision is exactly 'allow', otherwise {block: true, additionalContext: answer.reason || 'The user declined this in Marrow.'} (OD-0012 F1; upstream 'The user declined this in Droppy Code.'). Between polls it sleeps 40 milliseconds.",
+      "expected_result": "With no approvals directory the hook registers NOTHING at all and every tool passes. Otherwise: the id is the toolCallId, or, when absent, `${Date.now()}-${Math.random().toString(36).slice(2)}`, with every character outside A-Z, a-z, 0-9, underscore, period and hyphen replaced by an underscore. Any stale reply file is unlinked. The request is written to \"<id>.request.json.tmp\" and RENAMED onto \"<id>.request.json\", carrying {toolCallId: <the sanitized id>, toolName, input}. Then the hook polls: it reads the reply file; when present it unlinks it, parses it (a parse failure yields an empty object), and returns nothing when answer.decision is exactly 'allow', otherwise {block: true, additionalContext: answer.reason || 'The user declined this in nth.'} (OD-0012 F1; upstream 'The user declined this in Droppy Code.'). Between polls it sleeps 40 milliseconds.",
       "side_effects": [
         "Files written, renamed and deleted; a busy-ish poll loop for the life of the prompt"
       ],
@@ -48478,7 +48478,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "CommandCodeAPI.swift:424 returns {block: true, additionalContext: answer.reason || 'The user declined this in Droppy Code.'}",
-        "port": "The mod text returns {block: true, additionalContext: answer.reason || 'The user declined this in Marrow.'}; the rest of the hook body is unchanged."
+        "port": "The mod text returns {block: true, additionalContext: answer.reason || 'The user declined this in nth.'}; the rest of the hook body is unchanged."
       }
     },
     {
@@ -48492,7 +48492,7 @@
       ],
       "preconditions": "The hook is polling for a reply.",
       "action": "One of the three exit conditions is met.",
-      "expected_result": "When ctx.signal.aborted becomes true, the request file is unlinked and the hook returns {block: true, additionalContext: 'The turn was stopped.'} When process.ppid is exactly 1, OR more than 6 * 60 * 60 * 1000 milliseconds have passed since the request was written, the request file is unlinked and the hook returns {block: true, additionalContext: 'Marrow did not answer.'} All three messages are verbatim; the last is the OD-0012 F1 wording (upstream 'Droppy Code did not answer.').",
+      "expected_result": "When ctx.signal.aborted becomes true, the request file is unlinked and the hook returns {block: true, additionalContext: 'The turn was stopped.'} When process.ppid is exactly 1, OR more than 6 * 60 * 60 * 1000 milliseconds have passed since the request was written, the request file is unlinked and the hook returns {block: true, additionalContext: 'nth did not answer.'} All three messages are verbatim; the last is the OD-0012 F1 wording (upstream 'Droppy Code did not answer.').",
       "side_effects": [
         "The request file deleted"
       ],
@@ -48511,7 +48511,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "CommandCodeAPI.swift:432 returns {block: true, additionalContext: 'Droppy Code did not answer.'}",
-        "port": "The mod text returns {block: true, additionalContext: 'Marrow did not answer.'}; 'The turn was stopped.', the unlink and the six-hour deadline are unchanged."
+        "port": "The mod text returns {block: true, additionalContext: 'nth did not answer.'}; 'The turn was stopped.', the unlink and the six-hour deadline are unchanged."
       }
     },
     {
@@ -71654,7 +71654,7 @@
     {
       "area": "SETTINGS",
       "id": "PR-SETTINGS-210",
-      "title": "Shortcut \"Show Droppy Code\" (\"Show Marrow\" in the port) is recordable, sits in the Window and panels section, and ships with no default chord in the port (upstream Command-0)",
+      "title": "Shortcut \"Show Droppy Code\" (\"Show nth\" in the port) is recordable, sits in the Window and panels section, and ships with no default chord in the port (upstream Command-0)",
       "source_evidence": [
         "DroppyCode/Core/Models/Shortcuts.swift:185 title - \"Show Droppy Code\"",
         "DroppyCode/Core/Models/Shortcuts.swift:209 detail - \"Brings the main window to the front.\"",
@@ -71667,7 +71667,7 @@
       ],
       "preconditions": "The Shortcuts page is showing.",
       "action": "The user reads or re-records the \"Show Droppy Code\" row.",
-      "expected_result": "A row in the \"Window and panels\" card whose left side is the title \"Show Marrow\" (upstream the verbatim \"Show Droppy Code\"; its product name is the OD-0002 rename point) on one line, truncated at the tail, with the verbatim sentence \"Brings the main window to the front.\" as its tooltip rather than as a visible second line. In Marrow the command ships with no default chord (OD-0012 G6), so its recorder shows the words \"Record shortcut\" at its default and after it has been cleared, and the recorded chord in Windows notation once one has been recorded; upstream it ships with ⌘0, stored as key code 29 with modifiers .command. The persisted override key is the raw value \"showMainWindow\". Ctrl+0 is the hard-coded \"Actual Size\" zoom command added at 1fbf81e6 (AppCommands.swift:57-58). Upstream both answer Command-0 while this command keeps its default; OD-0012 G6 settles that overlap for the default by giving this command none.",
+      "expected_result": "A row in the \"Window and panels\" card whose left side is the title \"Show nth\" (upstream the verbatim \"Show Droppy Code\"; its product name is the OD-0002 rename point) on one line, truncated at the tail, with the verbatim sentence \"Brings the main window to the front.\" as its tooltip rather than as a visible second line. In Marrow the command ships with no default chord (OD-0012 G6), so its recorder shows the words \"Record shortcut\" at its default and after it has been cleared, and the recorded chord in Windows notation once one has been recorded; upstream it ships with ⌘0, stored as key code 29 with modifiers .command. The persisted override key is the raw value \"showMainWindow\". Ctrl+0 is the hard-coded \"Actual Size\" zoom command added at 1fbf81e6 (AppCommands.swift:57-58). Upstream both answer Command-0 while this command keeps its default; OD-0012 G6 settles that overlap for the default by giving this command none.",
       "side_effects": [],
       "persistence": "An override is stored under the key \"showMainWindow\" inside the \"keyboardShortcuts\" JSON blob. Because the default is no chord (OD-0012 G6), clearing the shortcut equals the default and removes the override instead of storing it, and any recorded chord is stored (Shortcuts.swift:300-301 `overrides[shortcut.rawValue] = chord == shortcut.defaultChord ? nil : Override(chord: chord)`, with defaultChord optional at :214).",
       "failure_cases": [
@@ -71676,8 +71676,8 @@
         "Upstream, while the default is kept, Command-0 is held both by this command and by the hard-coded \"Actual Size\" zoom command. In Marrow this command has no default chord (OD-0012 G6), so by default Ctrl+0 is Actual Size alone. A user who records Ctrl+0 for this command recreates the overlap; which of the two then fires is not expressed in source and stays UNRESOLVED with the window area (PR-WIN-224, PR-WIN-226); the port must not pick one silently."
       ],
       "cancellation": "Escape with no modifiers held cancels the recording without changing anything.",
-      "windows_path": "The command and its tooltip carry over verbatim; the title carries over except for the product name (OD-0002). The chord does NOT: by owner ruling OD-0012 G6 the command ships with no default chord, because Ctrl+0 is Actual Size and the window can no longer hide (OD-0008 C1). A chord the user records is defined over Windows virtual-key codes and the port's own modifier set (key code 29 is a macOS virtual key code and the modifier bits are AppKit's); port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. The title contains the product name, which the approved rename (OD-0002) changes, so it reads \"Show Marrow\" (OD-0002; OD-0012 F1); every other title is fixed product text. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore shows \"Record shortcut\" until one is recorded. The hard-coded zoom command \"Actual Size\" keeps Ctrl+0 (PR-WIN-224; OD-0012 G6).",
-      "verification_method": "unit test on the shortcut table asserting the title \"Show Marrow\", tooltip, raw value, section and the absence of a default chord (the recorder reads \"Record shortcut\"); interaction test recording and resetting the row",
+      "windows_path": "The command and its tooltip carry over verbatim; the title carries over except for the product name (OD-0002). The chord does NOT: by owner ruling OD-0012 G6 the command ships with no default chord, because Ctrl+0 is Actual Size and the window can no longer hide (OD-0008 C1). A chord the user records is defined over Windows virtual-key codes and the port's own modifier set (key code 29 is a macOS virtual key code and the modifier bits are AppKit's); port_impacts.md:228 entry 110 requires the persisted blob to be re-defined and the defaults re-derived rather than migrated. The title contains the product name, which the approved rename (OD-0002) changes, so it reads \"Show nth\" (OD-0002; OD-0012 F1); every other title is fixed product text. Chords render in Windows notation (OD-0008 B7): modifiers as Ctrl, Alt and Shift joined with \"+\" before the key label, with the ED-050 mapping Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl; key labels keep upstream's US-position table (OD-0008 B9). This shortcut therefore shows \"Record shortcut\" until one is recorded. The hard-coded zoom command \"Actual Size\" keeps Ctrl+0 (PR-WIN-224; OD-0012 G6).",
+      "verification_method": "unit test on the shortcut table asserting the title \"Show nth\", tooltip, raw value, section and the absence of a default chord (the recorder reads \"Record shortcut\"); interaction test recording and resetting the row",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -71685,7 +71685,7 @@
       "deviation": {
         "decision": "OD-0008 B7; OD-0002; OD-0012 F1; OD-0012 G6",
         "upstream": "The recorder and every hint render the shipped chord as the glyph string ⌘0 (KeyChord.description, Core/Models/Shortcuts.swift:32-34, with the modifier glyphs of :43-50 concatenated with no separator). The title is the verbatim \"Show Droppy Code\" (Core/Models/Shortcuts.swift:185). It ships with the chord ⌘0 (Core/Models/Shortcuts.swift:233), which the hard-coded \"Actual Size\" command (App/AppCommands.swift:57-58) also answers.",
-        "port": "The command ships with no default chord, so its recorder reads \"Record shortcut\" until one is recorded; Ctrl+0 is Actual Size (OD-0012 G6). A recorded chord renders in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping). The title reads \"Show Marrow\" (OD-0002; OD-0012 F1). The command, tooltip, section and raw value are unchanged."
+        "port": "The command ships with no default chord, so its recorder reads \"Record shortcut\" until one is recorded; Ctrl+0 is Actual Size (OD-0012 G6). A recorded chord renders in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping). The title reads \"Show nth\" (OD-0002; OD-0012 F1). The command, tooltip, section and raw value are unchanged."
       },
       "b2_change": "B1 had no zoom commands. 1fbf81e6 DroppyCode/App/AppCommands.swift:53-62 adds Zoom In, Zoom Out, Actual Size and a hidden Zoom In; Actual Size (:57-58) uses Command-0, the same chord as this command's unchanged default (Shortcuts.swift:233). Shortcuts.swift is unchanged between the baselines."
     },
@@ -72606,7 +72606,7 @@
       ],
       "preconditions": "The About page is selected.",
       "action": "The pill renders in each state; the user clicks it while ready.",
-      "expected_result": "While an install is showing progress, the pill is a 104-point-wide progress slider inside a glass capsule. Otherwise it is a capsule-shaped plain button that only takes clicks while an update is genuinely ready, which means an update is available, a release object exists and no install progress is showing. While ready it shows an \"arrow.down.circle.fill\" and the verbatim \"Update & restart\", both in the fixed blue rgb(0.040, 0.478, 1.000), over a blue wash at 20% opacity, with the tooltip the verbatim form \"Installs Marrow <version> and relaunches\" (OD-0012 F1) and the accessibility label the verbatim \"Update & restart\" plus the button trait. Clicking it installs the update. Otherwise it shows one of three standings, chosen in this order: an error from the last check gives \"exclamationmark.triangle.fill\" in the warning colour with the verbatim title \"Check failed\" and the error itself as the tooltip, falling back to the verbatim \"The last check did not reach GitLab\"; no check ever having run gives \"clock\" in the secondary colour with the verbatim title \"Not checked yet\" and the tooltip upstream's \"Droppy Code has not asked GitLab for a release yet\" with the product name as \"Marrow\" (OD-0012 F1); otherwise \"checkmark.seal.fill\" in the success colour with the verbatim title \"Up to date\" and the tooltip the verbatim form \"Marrow <version> is the latest version\" (OD-0012 F1). A standing's title is drawn in the primary colour even though its symbol takes the standing tint, and no wash is drawn. The standing's accessibility label is the product name, the version, a comma and the standing title lower-cased, for example \"Marrow 1.4.2, up to date\". While the update feed is empty, which is its default (OD-0012 I1), a check makes no network request and its error is \"No update feed is set.\", so the pill shows the \"Check failed\" standing with \"No update feed is set.\" as its tooltip.",
+      "expected_result": "While an install is showing progress, the pill is a 104-point-wide progress slider inside a glass capsule. Otherwise it is a capsule-shaped plain button that only takes clicks while an update is genuinely ready, which means an update is available, a release object exists and no install progress is showing. While ready it shows an \"arrow.down.circle.fill\" and the verbatim \"Update & restart\", both in the fixed blue rgb(0.040, 0.478, 1.000), over a blue wash at 20% opacity, with the tooltip the verbatim form \"Installs nth <version> and relaunches\" (OD-0012 F1) and the accessibility label the verbatim \"Update & restart\" plus the button trait. Clicking it installs the update. Otherwise it shows one of three standings, chosen in this order: an error from the last check gives \"exclamationmark.triangle.fill\" in the warning colour with the verbatim title \"Check failed\" and the error itself as the tooltip, falling back to the verbatim \"The last check did not reach GitLab\"; no check ever having run gives \"clock\" in the secondary colour with the verbatim title \"Not checked yet\" and the tooltip upstream's \"Droppy Code has not asked GitLab for a release yet\" with the product name as \"Marrow\" (OD-0012 F1); otherwise \"checkmark.seal.fill\" in the success colour with the verbatim title \"Up to date\" and the tooltip the verbatim form \"Marrow <version> is the latest version\" (OD-0012 F1). A standing's title is drawn in the primary colour even though its symbol takes the standing tint, and no wash is drawn. The standing's accessibility label is the product name, the version, a comma and the standing title lower-cased, for example \"Marrow 1.4.2, up to date\". While the update feed is empty, which is its default (OD-0012 I1), a check makes no network request and its error is \"No update feed is set.\", so the pill shows the \"Check failed\" standing with \"No update feed is set.\" as its tooltip.",
       "side_effects": [
         "Clicking while ready starts an in-place install and a relaunch"
       ],
@@ -78083,7 +78083,7 @@
       "id": "PR-STORE-013",
       "preconditions": "library.json exists but cannot be read or is not decodable as a Library (truncated write, not valid JSON, or a non-object at the top level).",
       "action": "App launch, and every write of library.json that follows in the same run: the debounced save, the immediate saves on settle, reopen and thread delete, and the quit-time save.",
-      "expected_result": "Deviation, OD-0008 A10 (BLK-0010 FIX): the failed load is not swallowed. It is surfaced to the user, and library.json is not overwritten after the failed load: no writer of library.json writes over it in that run. That covers the 400 ms debounced save after a mutation (AppModel.swift:1304-1314), the immediate saveLibrary() calls on settle (AppModel.swift:814-815), reopen (:834) and thread delete (:965), and the synchronous quit-time save (:1335). The thread JSON files under threads/ are not touched by the failed load. Consequence of the ruling: every project or thread change made in that run is never written to library.json, while thread histories are still written to threads/ as usual, so those library changes are gone at the next launch. Upstream instead starts with no projects and no threads, reports nothing, and the first save of any kind writes the empty library over library.json. Place and wording, OD-0012 E4: the failure is shown in the main window at launch with exactly this text: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
+      "expected_result": "Deviation, OD-0008 A10 (BLK-0010 FIX): the failed load is not swallowed. It is surfaced to the user, and library.json is not overwritten after the failed load: no writer of library.json writes over it in that run. That covers the 400 ms debounced save after a mutation (AppModel.swift:1304-1314), the immediate saveLibrary() calls on settle (AppModel.swift:814-815), reopen (:834) and thread delete (:965), and the synchronous quit-time save (:1335). The thread JSON files under threads/ are not touched by the failed load. Consequence of the ruling: every project or thread change made in that run is never written to library.json, while thread histories are still written to threads/ as usual, so those library changes are gone at the next launch. Upstream instead starts with no projects and no threads, reports nothing, and the first save of any kind writes the empty library over library.json. Place and wording, OD-0012 E4: the failure is shown in the main window at launch with exactly this text: \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
       "side_effects": [
         "The load failure is shown in the main window at launch with the OD-0012 E4 text",
         "library.json keeps its bytes on disk; no write in that run replaces it, so project and thread changes made in that run are not persisted to it"
@@ -78094,8 +78094,8 @@
         "A library.json that does not exist is not a failed load: PR-STORE-012 applies, the app starts empty and ordinary saves create the file."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Storage.LoadLibrary tells a missing file (empty library, ordinary saves, PR-STORE-012) apart from one that exists but cannot be read or decoded. The latter reports the failure to the user and stops every write of library.json for that run: the debounced save, the immediate saves from settle, reopen and delete, and the quit-time synchronous save. Thread file saves are not affected. Named deviation. The report is shown in the main window at launch with the OD-0012 E4 text, byte for byte: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
-      "verification_method": "contract fixture: launch against a deliberately corrupted library.json (truncated, not JSON, a top-level array) and assert the main window shows, at launch, exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"; then create a thread, wait past the 400 ms debounce, settle it, reopen it, delete it, and quit, asserting after each step that library.json is byte-identical to the corrupted input, and at the end that every threads/ file present before launch is unchanged",
+      "windows_path": "Storage.LoadLibrary tells a missing file (empty library, ordinary saves, PR-STORE-012) apart from one that exists but cannot be read or decoded. The latter reports the failure to the user and stops every write of library.json for that run: the debounced save, the immediate saves from settle, reopen and delete, and the quit-time synchronous save. Thread file saves are not affected. Named deviation. The report is shown in the main window at launch with the OD-0012 E4 text, byte for byte: \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
+      "verification_method": "contract fixture: launch against a deliberately corrupted library.json (truncated, not JSON, a top-level array) and assert the main window shows, at launch, exactly \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"; then create a thread, wait past the 400 ms debounce, settle it, reopen it, delete it, and quit, asserting after each step that library.json is byte-identical to the corrupted input, and at the end that every threads/ file present before launch is unchanged",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
@@ -78112,13 +78112,13 @@
         "DroppyCode/Core/Models/Library.swift:273-277 - per-element leniency means only a top-level structural failure reaches this path",
         "porting/blocked_requirements.json BLK-0010 owner_ruling - \"FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. Named deviation.\"",
         "porting/decision_batch_20260922.md A10 (BLK-0010), accepted by OD-0008 - \"Do not overwrite after a failed load; show the error\"",
-        "porting/decision_batch_20260922b.md E4 (A10), accepted by OD-0012 - Shown in the main window at launch: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
+        "porting/decision_batch_20260922b.md E4 (A10), accepted by OD-0012 - Shown in the main window at launch: \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       ],
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
         "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1304-1314) or called directly on settle (:815), reopen (:834) and thread delete (:965), or the synchronous write in saveBeforeQuit (:1335). Upstream has no text for this error, because it never shows one.",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       },
       "resolved_unknown": "UNK-0020 resolved by OD-0008 A10 (BLK-0010): an undecodable library.json is surfaced and never overwritten. Its place and wording are given by OD-0012 E4."
     },
@@ -80938,15 +80938,15 @@
       "id": "PR-STORE-129",
       "preconditions": "The anti-slop setting is on.",
       "action": "A provider session is launched, or, for a provider that keeps no session-level instructions, the first ordinary message of a session epoch is sent; the anti-slop setting is on.",
-      "expected_result": "This exact text is delivered, five lines joined by single newlines, with no leading or trailing blank line:\n[Marrow anti-slop guidance]\nGive the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation.\nMake focused edits using existing patterns. Add comments only for non-obvious reasons, constraints or pitfalls; omit banners, obvious narration and speculative TODOs. Preserve useful documentation. Avoid unrelated cleanup, dependencies and abstractions.\nFor UI work, follow the product’s components, typography and colors. Prefer purposeful structure and real content; preserve accessibility, responsive layouts and visible loading, empty and error states.\nReuse evidence, read relevant sections and batch independent lookups. Avoid repeated scans, polling and echoed logs. Perform required checks; brevity never excuses incomplete work. Apply this guidance to delegated work too. Report changes, affected files and material limits once. User requests and project requirements take precedence.\nNote the apostrophe in \"product’s\" is U+2019 RIGHT SINGLE QUOTATION MARK, not an ASCII apostrophe, and \"colors\" is the American spelling. Delivery at B2, the same for both texts: for Claude, Codex and Copilot (AppModel.hydraIsNative, AppModel+Hydra.swift:141-143) and every API-key provider (keepsHydraPolicyInSystemPrompt, ThreadRuntime.swift:1388-1390) the text goes into the session-level instructions when the session is launched, after any Hydra policy and joined to it by a blank line: Claude as the single --append-system-prompt segment (ClaudeSession.swift:121-128), Codex appended to developerInstructions (CodexSession.swift:251-259), Copilot in the appended systemMessage (CopilotSession.swift:147-156), OpenAI-compatible sessions in the system prompt (OpenAICompatibleSession.swift:1186-1193). Every other provider gets it as a prefix of the user prompt, text + \"\\n\\n\" + prompt (ThreadRuntime.swift:1322-1333), once per session epoch: never on a message that starts with a slash command, marked sent only after a successful send in the same epoch (:1364-1366), and sent again after a compaction (:1751) or with a new session (:2090). The flag read is the session signature's antiSlopEnabled, falling back to the app setting (:1328). Claude's --agents head prompts and Copilot's customAgents end with the same text after a blank line (Hydra.swift:808-816, :843). Deviation, OD-0012 F1: the first line is \"[Marrow anti-slop guidance]\"; upstream writes \"[Droppy Code anti-slop guidance]\".",
+      "expected_result": "This exact text is delivered, five lines joined by single newlines, with no leading or trailing blank line:\n[nth anti-slop guidance]\nGive the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation.\nMake focused edits using existing patterns. Add comments only for non-obvious reasons, constraints or pitfalls; omit banners, obvious narration and speculative TODOs. Preserve useful documentation. Avoid unrelated cleanup, dependencies and abstractions.\nFor UI work, follow the product’s components, typography and colors. Prefer purposeful structure and real content; preserve accessibility, responsive layouts and visible loading, empty and error states.\nReuse evidence, read relevant sections and batch independent lookups. Avoid repeated scans, polling and echoed logs. Perform required checks; brevity never excuses incomplete work. Apply this guidance to delegated work too. Report changes, affected files and material limits once. User requests and project requirements take precedence.\nNote the apostrophe in \"product’s\" is U+2019 RIGHT SINGLE QUOTATION MARK, not an ASCII apostrophe, and \"colors\" is the American spelling. Delivery at B2, the same for both texts: for Claude, Codex and Copilot (AppModel.hydraIsNative, AppModel+Hydra.swift:141-143) and every API-key provider (keepsHydraPolicyInSystemPrompt, ThreadRuntime.swift:1388-1390) the text goes into the session-level instructions when the session is launched, after any Hydra policy and joined to it by a blank line: Claude as the single --append-system-prompt segment (ClaudeSession.swift:121-128), Codex appended to developerInstructions (CodexSession.swift:251-259), Copilot in the appended systemMessage (CopilotSession.swift:147-156), OpenAI-compatible sessions in the system prompt (OpenAICompatibleSession.swift:1186-1193). Every other provider gets it as a prefix of the user prompt, text + \"\\n\\n\" + prompt (ThreadRuntime.swift:1322-1333), once per session epoch: never on a message that starts with a slash command, marked sent only after a successful send in the same epoch (:1364-1366), and sent again after a compaction (:1751) or with a new session (:2090). The flag read is the session signature's antiSlopEnabled, falling back to the app setting (:1328). Claude's --agents head prompts and Copilot's customAgents end with the same text after a blank line (Hydra.swift:808-816, :843). Deviation, OD-0012 F1: the first line is \"[nth anti-slop guidance]\"; upstream writes \"[Droppy Code anti-slop guidance]\".",
       "side_effects": [
         "The text is sent to the provider as part of the prompt"
       ],
       "persistence": "Not persisted here; the toggle lives in settings.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings, with the OD-0012 F1 first line \"[Marrow anti-slop guidance]\". Do not reflow, re-wrap, spell-check or localise it. Deliver it at exactly the points and with exactly the once-per-epoch rule the expected result names.",
-      "verification_method": "contract fixture: byte-compare the delivered text against the source literal with its first line replaced by \"[Marrow anti-slop guidance]\" (OD-0012 F1), at each delivery point: Claude --append-system-prompt, Codex developerInstructions, Copilot systemMessage, the OpenAI-compatible system prompt, and the user-prompt prefix of another CLI provider (once per session epoch, absent on a slash command)",
+      "windows_path": "Store as an exact string resource, byte for byte, including U+2019 and the American spellings, with the OD-0012 F1 first line \"[nth anti-slop guidance]\". Do not reflow, re-wrap, spell-check or localise it. Deliver it at exactly the points and with exactly the once-per-epoch rule the expected result names.",
+      "verification_method": "contract fixture: byte-compare the delivered text against the source literal with its first line replaced by \"[nth anti-slop guidance]\" (OD-0012 F1), at each delivery point: Claude --append-system-prompt, Codex developerInstructions, Copilot systemMessage, the OpenAI-compatible system prompt, and the user-prompt prefix of another CLI provider (once per session epoch, absent on a slash command)",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -80963,7 +80963,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:3 - first line \"[Droppy Code anti-slop guidance]\"",
-        "port": "First line \"[Marrow anti-slop guidance]\"; the four guidance lines, including the U+2019 in \"product’s\", are unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
+        "port": "First line \"[nth anti-slop guidance]\"; the four guidance lines, including the U+2019 in \"product’s\", are unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
       "spec_fix": "Action and expected result said the text is injected into the system prompt when a turn starts -> it goes into the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers (ClaudeSession.swift:121-128, CodexSession.swift:251-259, CopilotSession.swift:147-156, OpenAICompatibleSession.swift:1186-1193), and for every other provider it is prefixed to the user prompt once per session epoch, never on a slash command (ThreadRuntime.swift:1322-1333, :1365-1367, :1751, :2090)"
     },
@@ -80972,7 +80972,7 @@
       "id": "PR-STORE-130",
       "preconditions": "The anti-slop setting is off, possibly in a conversation resumed from a session that had it on.",
       "action": "A provider session is launched, or, for a provider that keeps no session-level instructions, the first ordinary message of a session epoch is sent; the anti-slop setting is off.",
-      "expected_result": "This exact two-line text is delivered instead of nothing:\n[Marrow anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.\nThe reason is stated in the source comment: a resumed conversation may still contain the enabled guidance in its history, so the off state must actively cancel it. It is delivered at exactly the points PR-STORE-129 names, under the same once-per-epoch rule. Deviation, OD-0012 F1: the first line is \"[Marrow anti-slop guidance: off]\"; upstream writes \"[Droppy Code anti-slop guidance: off]\".",
+      "expected_result": "This exact two-line text is delivered instead of nothing:\n[nth anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.\nThe reason is stated in the source comment: a resumed conversation may still contain the enabled guidance in its history, so the off state must actively cancel it. It is delivered at exactly the points PR-STORE-129 names, under the same once-per-epoch rule. Deviation, OD-0012 F1: the first line is \"[nth anti-slop guidance: off]\"; upstream writes \"[Droppy Code anti-slop guidance: off]\".",
       "side_effects": [
         "The text is sent to the provider as part of the prompt"
       ],
@@ -80981,8 +80981,8 @@
         "A port that simply omits the block when the setting is off leaves a resumed conversation still following the guidance."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Byte-exact string with the OD-0012 F1 first line \"[Marrow anti-slop guidance: off]\", and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
-      "verification_method": "contract fixture over both branches, at each delivery point PR-STORE-129 names, with the first lines \"[Marrow anti-slop guidance]\" and \"[Marrow anti-slop guidance: off]\"",
+      "windows_path": "Byte-exact string with the OD-0012 F1 first line \"[nth anti-slop guidance: off]\", and the same always-inject-one-of-two selector. The selector takes a Bool and returns one of the two constants; there is no third state.",
+      "verification_method": "contract fixture over both branches, at each delivery point PR-STORE-129 names, with the first lines \"[nth anti-slop guidance]\" and \"[nth anti-slop guidance: off]\"",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -80997,7 +80997,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/Core/Models/AntiSlopPolicy.swift:12 - first line \"[Droppy Code anti-slop guidance: off]\"",
-        "port": "First line \"[Marrow anti-slop guidance: off]\"; the second line is unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
+        "port": "First line \"[nth anti-slop guidance: off]\"; the second line is unchanged. OD-0012 F1 names the \"[Marrow]\" notes sent to models."
       },
       "spec_fix": "Action said the text is injected when a turn starts -> it is delivered where PR-STORE-129 now says: in the session-level instructions at launch for Claude, Codex, Copilot and the API-key providers, otherwise as a user-prompt prefix once per session epoch, never on a slash command (ThreadRuntime.swift:1322-1333, :1365-1367)"
     },
@@ -92346,7 +92346,7 @@
       ],
       "preconditions": "The pill is not showing the slider.",
       "action": "The user hovers, or a screen reader reads the pill.",
-      "expected_result": "Ready: tooltip \"Installs Marrow <version> and relaunches\" (no full stop), accessibility label \"Update & restart\", and the button trait added. Up to date: tooltip \"Marrow <running version> is the latest version\". Check failed: tooltip is the checker's lastError, or \"The last check did not reach GitLab\" when it is somehow nil; while the feed value is empty the lastError is \"No update feed is set.\" (OD-0012 I1, PR-UPDATE-005). Not checked: \"Marrow has not asked GitLab for a release yet\". Non-ready accessibility label is \"Marrow <version>, up to date\" / \", check failed\" / \", not checked yet\" with the standing title lowercased. Upstream every \"Marrow\" here reads \"Droppy Code\" (AboutUpdateViews.swift:679, :695, :697, :702); the port's strings follow OD-0012 F1.",
+      "expected_result": "Ready: tooltip \"Installs nth <version> and relaunches\" (no full stop), accessibility label \"Update & restart\", and the button trait added. Up to date: tooltip \"Marrow <running version> is the latest version\". Check failed: tooltip is the checker's lastError, or \"The last check did not reach GitLab\" when it is somehow nil; while the feed value is empty the lastError is \"No update feed is set.\" (OD-0012 I1, PR-UPDATE-005). Not checked: \"Marrow has not asked GitLab for a release yet\". Non-ready accessibility label is \"Marrow <version>, up to date\" / \", check failed\" / \", not checked yet\" with the standing title lowercased. Upstream every \"Marrow\" here reads \"Droppy Code\" (AboutUpdateViews.swift:679, :695, :697, :702); the port's strings follow OD-0012 F1.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -92362,7 +92362,7 @@
       "deviation": {
         "decision": "OD-0012 F1; OD-0012 I1",
         "upstream": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:679 '\"Installs Droppy Code \\(checker.update?.version ?? \"\") and relaunches\"', :695 '\"Droppy Code \\(AppInfo.version) is the latest version\"', :696 'checker.lastError ?? \"The last check did not reach GitLab\"', :697 '\"Droppy Code has not asked GitLab for a release yet\"', :702 '\"Droppy Code \\(AppInfo.version), \\(standing.title.lowercased())\"'",
-        "port": "OD-0012 F1 (porting/decision_batch_20260922b.md:22-36): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT. The tooltips read \"Installs Marrow <version> and relaunches\", \"Marrow <version> is the latest version\" (named in the sheet) and \"Marrow has not asked GitLab for a release yet\", and the accessibility label \"Marrow <version>, <standing>\". OD-0012 I1 (porting/decision_batch_20260922b.md:66): the update feed is an internal value, empty by default, with no settings UI until the owner has a feed; while it is empty no network request is made and the About pill shows upstream's \"Check failed\" with the note \"No update feed is set.\""
+        "port": "OD-0012 F1 (porting/decision_batch_20260922b.md:22-36): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT. The tooltips read \"Installs nth <version> and relaunches\", \"Marrow <version> is the latest version\" (named in the sheet) and \"Marrow has not asked GitLab for a release yet\", and the accessibility label \"Marrow <version>, <standing>\". OD-0012 I1 (porting/decision_batch_20260922b.md:66): the update feed is an internal value, empty by default, with no settings UI until the owner has a feed; while it is empty no network request is made and the About pill shows upstream's \"Check failed\" with the note \"No update feed is set.\""
       }
     },
     {
@@ -98616,7 +98616,7 @@
       "deviation": {
         "decision": "OD-0008 C3, C1, B7; OD-0012 G6",
         "upstream": "DroppyCode/App/AppCommands.swift:21-25 - 'CommandGroup(before: .windowArrangement) { Button(AppInfo.name) { WindowManager.shared.showMain() }' with the .showMainWindow shortcut. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
-        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: \"Show Marrow\" keeps no default chord; Ctrl+0 is Actual Size."
+        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: \"Show nth\" keeps no default chord; Ctrl+0 is Actual Size."
       }
     },
     {
@@ -100160,13 +100160,13 @@
       ],
       "preconditions": "The shortcut store has no override for this command.",
       "action": "The command's chord is looked up, for a menu item, for a help label, or for the palette's shortcut column.",
-      "expected_result": "The chord is Command-0. The command's title in the shortcut settings list is exactly \"Show Droppy Code\" and its help line is exactly \"Brings the main window to the front.\". It appears in the Window and panels section. Any override the user records is stored under the exact key \"showMainWindow\". DEVIATION (OD-0002, OD-0012 F1): the title carries the product name, a rename point, so in the port it reads exactly \"Show Marrow\". DEVIATION (OD-0012 G6): in the port the command has no default chord (its default chord is nil, so with no override it answers to no chord), because Ctrl+0 is Actual Size (PR-WIN-224); the user can still record a chord for it. The help line, section and stored key are unchanged.",
-      "windows_path": "No default chord in the port (OD-0012 G6): Ctrl+0 is Actual Size (PR-WIN-224), and \"Show Marrow\" answers only to a chord the user records. Chords are matched by key position: the macOS key code 29 of upstream's default is a US key POSITION, not a character, so its Windows equivalent would be the virtual-key code VK_0 with Ctrl. The persisted macOS blob is unreadable on Windows: the port defines its own chord format and starts from these defaults (port_impacts.md entry 110, CC1).",
+      "expected_result": "The chord is Command-0. The command's title in the shortcut settings list is exactly \"Show Droppy Code\" and its help line is exactly \"Brings the main window to the front.\". It appears in the Window and panels section. Any override the user records is stored under the exact key \"showMainWindow\". DEVIATION (OD-0002, OD-0012 F1): the title carries the product name, a rename point, so in the port it reads exactly \"Show nth\". DEVIATION (OD-0012 G6): in the port the command has no default chord (its default chord is nil, so with no override it answers to no chord), because Ctrl+0 is Actual Size (PR-WIN-224); the user can still record a chord for it. The help line, section and stored key are unchanged.",
+      "windows_path": "No default chord in the port (OD-0012 G6): Ctrl+0 is Actual Size (PR-WIN-224), and \"Show nth\" answers only to a chord the user records. Chords are matched by key position: the macOS key code 29 of upstream's default is a US key POSITION, not a character, so its Windows equivalent would be the virtual-key code VK_0 with Ctrl. The persisted macOS blob is unreadable on Windows: the port defines its own chord format and starts from these defaults (port_impacts.md entry 110, CC1).",
       "verification_method": "contract fixture over all nineteen commands: case, stored key, title, detail, section and default chord; the port fixture expects no default chord for showMainWindow (OD-0012 G6)",
       "deviation": {
         "decision": "OD-0002; OD-0012 F1, G6",
         "upstream": "`case .showMainWindow: \"Show Droppy Code\"` (DroppyCode/Core/Models/Shortcuts.swift:185) and `case .showMainWindow: KeyChord(keyCode: 29, modifiers: .command)` (DroppyCode/Core/Models/Shortcuts.swift:233), the same Command-0 that Actual Size carries (DroppyCode/App/AppCommands.swift:57-58)",
-        "port": "The Windows build ships as Marrow: the title reads exactly \"Show Marrow\" (OD-0002, OD-0012 F1). OD-0012 G6: Ctrl+0 is Actual Size and \"Show Marrow\" keeps no default chord."
+        "port": "The Windows build ships as Marrow: the title reads exactly \"Show nth\" (OD-0002, OD-0012 F1). OD-0012 G6: Ctrl+0 is Actual Size and \"Show nth\" keeps no default chord."
       }
     },
     {
@@ -101889,7 +101889,7 @@
       ],
       "persistence": "Assigns appZoom = 100, whose didSet writes the key \"appZoom\" (AppSettings.swift:253-254).",
       "failure_cases": [
-        "Upstream, while showMainWindow keeps its default, two menu items carry Command-0 at 1fbf81e: \"Actual Size\" and the Window-menu item titled with the app's name. Which one the frameworks dispatch is not expressed in source (UNRESOLVED; nothing was run on a Mac; tracked under UNK-0003, the macOS reference runtime). The port does not depend on it: under OD-0012 G6 Ctrl+0 is Actual Size and \"Show Marrow\" has no default chord, so by default only this command holds Ctrl+0."
+        "Upstream, while showMainWindow keeps its default, two menu items carry Command-0 at 1fbf81e: \"Actual Size\" and the Window-menu item titled with the app's name. Which one the frameworks dispatch is not expressed in source (UNRESOLVED; nothing was run on a Mac; tracked under UNK-0003, the macOS reference runtime). The port does not depend on it: under OD-0012 G6 Ctrl+0 is Actual Size and \"Show nth\" has no default chord, so by default only this command holds Ctrl+0."
       ],
       "cancellation": "not cancellable",
       "status": "IMPLEMENTED",
@@ -101910,7 +101910,7 @@
       "deviation": {
         "decision": "OD-0008 C3, B7; OD-0012 G6",
         "upstream": "DroppyCode/App/AppCommands.swift:57-58 - 'Button(\"Actual Size\") { model.settings.appZoom = 100 }' with `.keyboardShortcut(\"0\", modifiers: .command)`, an item of the macOS menu bar's View group (CommandGroup(after: .sidebar)) installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\"). The same Command-0 is showMainWindow's default chord (DroppyCode/Core/Models/Shortcuts.swift:233).",
-        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: Ctrl+0 is Actual Size; \"Show Marrow\" keeps no default chord."
+        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: Ctrl+0 is Actual Size; \"Show nth\" keeps no default chord."
       }
     },
     {
@@ -101964,13 +101964,13 @@
       ],
       "preconditions": "The user records a chord for a rebindable command.",
       "action": "The chord is Command-minus or Command-=, or Command-0.",
-      "expected_result": "The four zoom items have no AppShortcut case, so they have no row in the shortcut settings, no override and no default in the store. Recording Command-minus or Command-= for a rebindable command is accepted with no refusal, because neither the reserved list nor the conflict check knows the zoom chords. Recording Command-0 is refused with \"Show Droppy Code already uses this chord.\" only while showMainWindow holds it, because that check sees the showMainWindow command, not \"Actual Size\". DEVIATION (OD-0002, OD-0012 F1): the owner's title carries the product name, so in the port the refusal reads exactly \"Show Marrow already uses this chord.\" (PR-WIN-152) under the same condition. DEVIATION (OD-0012 G6): showMainWindow has no default chord in the port, so recording Ctrl+0 is refused that way only after the user has recorded Ctrl+0 for showMainWindow; otherwise, like Ctrl+- and Ctrl+=, it is accepted with no refusal.",
-      "windows_path": "Same: the port's four zoom chords (Ctrl with +, -, 0 and =) are fixed, outside the shortcut store. Reproduce the absence of a guard rather than adding the zoom chords to the reserved list. The conflict refusal names the owner by its port title, so the showMainWindow case reads \"Show Marrow already uses this chord.\" (OD-0002, OD-0012 F1); under OD-0012 G6 that case arises only once the user has given showMainWindow Ctrl+0, because it has no default chord. Which command fires when a recorded chord shares Ctrl+-, Ctrl+= or Ctrl+0 with a zoom chord depends on macOS menu dispatch upstream and is tracked under UNK-0003.",
+      "expected_result": "The four zoom items have no AppShortcut case, so they have no row in the shortcut settings, no override and no default in the store. Recording Command-minus or Command-= for a rebindable command is accepted with no refusal, because neither the reserved list nor the conflict check knows the zoom chords. Recording Command-0 is refused with \"Show Droppy Code already uses this chord.\" only while showMainWindow holds it, because that check sees the showMainWindow command, not \"Actual Size\". DEVIATION (OD-0002, OD-0012 F1): the owner's title carries the product name, so in the port the refusal reads exactly \"Show nth already uses this chord.\" (PR-WIN-152) under the same condition. DEVIATION (OD-0012 G6): showMainWindow has no default chord in the port, so recording Ctrl+0 is refused that way only after the user has recorded Ctrl+0 for showMainWindow; otherwise, like Ctrl+- and Ctrl+=, it is accepted with no refusal.",
+      "windows_path": "Same: the port's four zoom chords (Ctrl with +, -, 0 and =) are fixed, outside the shortcut store. Reproduce the absence of a guard rather than adding the zoom chords to the reserved list. The conflict refusal names the owner by its port title, so the showMainWindow case reads \"Show nth already uses this chord.\" (OD-0002, OD-0012 F1); under OD-0012 G6 that case arises only once the user has given showMainWindow Ctrl+0, because it has no default chord. Which command fires when a recorded chord shares Ctrl+-, Ctrl+= or Ctrl+0 with a zoom chord depends on macOS menu dispatch upstream and is tracked under UNK-0003.",
       "verification_method": "unit: the refusal check accepts Ctrl+- for a rebindable command; contract fixture: the shortcut settings list has no zoom rows; unit: with no overrides, recording Ctrl+0 for a rebindable command is accepted (OD-0012 G6)",
       "deviation": {
         "decision": "OD-0002; OD-0008 B7; OD-0012 F1, G6",
         "upstream": "`return \"\\(owner.title) already uses this chord.\"` (DroppyCode/Core/Models/Shortcuts.swift:331) with `case .showMainWindow: \"Show Droppy Code\"` (:185); chords written in macOS glyphs (Shortcuts.swift:43-50); showMainWindow's default chord Command-0 (DroppyCode/Core/Models/Shortcuts.swift:233)",
-        "port": "The Windows build ships as Marrow: the showMainWindow refusal reads exactly \"Show Marrow already uses this chord.\". Chords are named in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl). OD-0012 G6: showMainWindow has no default chord, so Ctrl+0 is refused as \"Show Marrow already uses this chord.\" only while the user has recorded Ctrl+0 for it."
+        "port": "The Windows build ships as Marrow: the showMainWindow refusal reads exactly \"Show nth already uses this chord.\". Chords are named in Windows notation (Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl). OD-0012 G6: showMainWindow has no default chord, so Ctrl+0 is refused as \"Show nth already uses this chord.\" only while the user has recorded Ctrl+0 for it."
       }
     },
     {

@@ -44,7 +44,7 @@ public sealed class SettingsRestControlsTests(HeadlessSession headless) : Settin
         With(() => new SourceControlSettingsPage(), (view, _, h, w) =>
         {
             var section = Nodes<ChromeSection>(view).Single(s => Text(s).First() == "Worktrees and pull requests"); var row = Row(section, "Worktrees");
-            var path = System.IO.Path.Combine(h.Home, ".marrow", "worktrees"); Assert.Equal(path, Storage.WorktreesDirectory); CheckRow(row, "Worktrees", path);
+            var path = System.IO.Path.Combine(h.Home, ".nth", "worktrees"); Assert.Equal(path, Storage.WorktreesDirectory); CheckRow(row, "Worktrees", path);
             Assert.Equal(new[] { "Worktrees", "Pull requests" }, Nodes<ChromeRow>(section).Select(r => Text(r).First())); var divider = Assert.Single(Nodes<ChromeRowDivider>(section)); Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin);
             var button = Assert.Single(Nodes<Button>(row)); Assert.Equal("Reveal", Text(button).Single()); Assert.True(button.IsEffectivelyEnabled); Assert.Single(button.GetVisualDescendants().OfType<Border>(), b => b.Height == 22 && SwiftGlass.GetEffect(b) is not null); /* the accent glass pill is the button itself (ED-280) */
             string? opened = null; using var platform = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend { Reveal = p => opened = p }); Click(w, button); Assert.Equal(path, opened);
@@ -64,7 +64,7 @@ public sealed class SettingsRestControlsTests(HeadlessSession headless) : Settin
                 var card = Assert.IsType<ChromeCard>(Assert.IsType<StackPanel>(((AboutSettingsPage)view).Child).Children[1]); var rows = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(card.Child).Child).Children[0]);
                 var header = Assert.IsType<StackPanel>(rows.Children[0]); Assert.Equal(14, header.Spacing); Assert.Equal(new Thickness(16), header.Margin); Assert.Equal(Avalonia.Layout.Orientation.Horizontal, header.Orientation); Assert.Equal(2, header.Children.Count);
                 var icon = Assert.IsType<Image>(header.Children[0]); Assert.Equal(56, icon.Width); Assert.Equal(56, icon.Height); Assert.NotNull(icon.Source);
-                var labels = Assert.IsType<StackPanel>(header.Children[1]); Assert.Equal(3, labels.Spacing); var name = Assert.IsType<TextBlock>(labels.Children[0]); Assert.Equal("Marrow", name.Text); Font(name, 15, FontWeight.SemiBold);
+                var labels = Assert.IsType<StackPanel>(header.Children[1]); Assert.Equal(3, labels.Spacing); var name = Assert.IsType<TextBlock>(labels.Children[0]); Assert.Equal("nth", name.Text); Font(name, 15, FontWeight.SemiBold);
                 var version = Assert.IsType<TextBlock>(labels.Children[1]); Assert.Equal(pair.Text, version.Text); Font(version, 12); Ink(version, version.Foreground, Chrome.SecondaryText);
             });
         }

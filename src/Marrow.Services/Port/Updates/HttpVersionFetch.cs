@@ -3,7 +3,7 @@ namespace Marrow.Services.Port.Updates;
 
 public static class HttpVersionFetch
 {
-    private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(10), DefaultRequestHeaders = { { "User-Agent", "marrow-update-check" } } };
+    private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(10), DefaultRequestHeaders = { { "User-Agent", "nth-update-check" } } };
 
     /// <summary>An https GET with a ten second limit; any other scheme is refused. Tests supply an offline HttpClient handler.</summary>
     public static Task<string> Get(Uri uri, CancellationToken cancellation) => Get(uri, cancellation, Client);

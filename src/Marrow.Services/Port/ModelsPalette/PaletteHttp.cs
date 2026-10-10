@@ -25,7 +25,7 @@ internal sealed class PaletteHttp : IDisposable
             for(var redirects=0;redirects<=3;redirects++)
             {
                 using var request=new HttpRequestMessage(HttpMethod.Get,url);
-                request.Headers.UserAgent.ParseAdd("MarrowColourEngine/AC-3");
+                request.Headers.UserAgent.ParseAdd("NthColourEngine/AC-3");
                 request.Headers.Accept.ParseAdd(original.Host=="openrouter.ai"||original.AbsolutePath.EndsWith("/overview",StringComparison.Ordinal)?"application/json":original.Host=="huggingface.co"&&!original.AbsolutePath.StartsWith("/api/",StringComparison.Ordinal)&&!original.AbsolutePath.Contains('.',StringComparison.Ordinal)?"text/html":"image/png,image/*;q=0.5");
                 if(refresh)request.Headers.CacheControl=new(){NoCache=true};
                 using var response=await client.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,cancelled.Token);

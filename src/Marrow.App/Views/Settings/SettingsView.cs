@@ -1091,7 +1091,7 @@ internal sealed class AboutSettingsPage : Decorator
         {
             new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), new ChromeRowDivider(),
             new ChromeRow("Working indicators", () => new CreditLink("zeronsh/zeron", SwiftURL.Create("https://github.com/zeronsh/zeron")!), "Ported from Zeron by Wing, MIT License."), new ChromeRowDivider(),
-            new ChromeRow("Terminal", () => new Panel(), "Marrow's own terminal, built on Windows ConPTY."), new ChromeRowDivider(), // :953-956. OD-0012 H, OD-0072: no repository link; the terminal is Marrow's own.
+            new ChromeRow("Terminal", () => new Panel(), "nth's own terminal, built on Windows ConPTY."), new ChromeRowDivider(), // :953-956. OD-0012 H, OD-0072: no repository link; the terminal is Marrow's own.
             new ChromeRow("Welcome tour", () => new CreditLink("rampatra/TourKit", SwiftURL.Create("https://github.com/rampatra/TourKit")!), "Ported from TourKit by Ram Patra, MIT License."), new ChromeRowDivider(), new LicensesRow(),
         } }));
         Child = new StackPanel { Spacing = Chrome.SectionSpacing, Children = { new AboutSoftwareUpdateSection(), card, credits } }; // :942-965 UPSTREAM DEFECT: empty update slot still reserves the gap.
@@ -1100,14 +1100,14 @@ internal sealed class AboutSettingsPage : Decorator
     private Control AppCard()
     {
         var icon = new Image { Source = Marrow.App.Views.AppIconImage.Bitmap, Width = 56, Height = 56 };
-        var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.Callout) } }; // :976-979 .system(.title3, weight: .semibold) and .system(.callout) (ED-290 (1): text styles)
+        var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "nth" }.Font(SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.Callout) } }; // :976-979 .system(.title3, weight: .semibold) and .system(.callout) (ED-290 (1): text styles)
         return new StackPanel { Children =
         {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),
             new ChromeRow("Welcome tour", () => SmallAccentGlassButton.Create("Show", () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this)), true), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
             new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Body), // :991-995 .system(.body), its 18-point line (ED-290 (1))
             new ChromeRowDivider(), // :996
-            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout), // .system(.callout), its 17-point line (ED-290 (1)); :997-1002, OD-0012 F1, H (OD-0072).
+            new TextBlock { Text = "nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is nth's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout), // .system(.callout), its 17-point line (ED-290 (1)); :997-1002, OD-0012 F1, H (OD-0072).
         } };
     }
 }
@@ -1116,7 +1116,7 @@ internal sealed class AboutSettingsPage : Decorator
 internal sealed class LicensesRow : Decorator
 {
     // :1041-1067 body
-    private static readonly (string Title, string Resource)[] files = [("Marrow", "LICENSE"), ("Third-party notices", "THIRD_PARTY_NOTICES"), ("Trademarks", "TRADEMARK")]; // :1013-1017
+    private static readonly (string Title, string Resource)[] files = [("nth", "LICENSE"), ("Third-party notices", "THIRD_PARTY_NOTICES"), ("Trademarks", "TRADEMARK")]; // :1013-1017
     private static readonly Lazy<Dictionary<string, string>> texts = new(() => files.ToDictionary(file => file.Resource, file => Read(file.Resource))); // :1046-1056
     public LicensesRow()
     {
@@ -1158,12 +1158,11 @@ internal sealed class MadeByDroppyRow : Decorator
     // :1084 let url: URL; :1087-1124 body
     public MadeByDroppyRow(SwiftURL url)
     {
-        var logo = SwiftImage.Named("droppy-logo").Resizable().AspectRatio(ContentMode.Fit); logo.Width = 40; logo.Height = 40; AutomationProperties.SetAccessibilityView(logo, AccessibilityView.Raw); // :1070-1073
-        var labels = new StackPanel { Spacing = 2, Children = { new TextBlock { Text = "Made by Droppy", Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)), new TextBlock { Text = "Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Subheadline) } }; // :1074-1080 OD-0012 F3; .body semibold and .subheadline text styles (ED-290 (1))
+        var labels = new StackPanel { Spacing = 2, Children = { new TextBlock { Text = "Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Subheadline) } }; // :1074-1080 OD-0012 F3; OD-0135: one quiet credit line, no "Made by Droppy" headline and no logo; .subheadline text style (ED-290 (1))
         var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Opacity = 0.9, Children = { new TextBlock { Text = "getdroppy.app", Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium)), SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } };
-        var row = new Grid { Background = Brushes.Transparent, ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; labels.VerticalAlignment = VerticalAlignment.Center; trailing.VerticalAlignment = VerticalAlignment.Center; /* :1066 HStack(spacing: 12): each child on the logo's centre line */ Grid.SetColumn(labels, 1); Grid.SetColumn(trailing, 2); row.Children.Add(logo); row.Children.Add(labels); row.Children.Add(trailing); // :1093 .contentShape(.rect): the whole row, including its gaps, is one hit target.
+        var row = new Grid { Background = Brushes.Transparent, ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; labels.VerticalAlignment = VerticalAlignment.Center; trailing.VerticalAlignment = VerticalAlignment.Center; /* :1066 HStack(spacing: 12): each child on the logo's centre line */ Grid.SetColumn(trailing, 1); row.Children.Add(labels); row.Children.Add(trailing); // :1093 .contentShape(.rect): the whole row, including its gaps, is one hit target.
         var hover = new SettingsScalarAnimation(trailing, 0.9, value => trailing.Opacity = value); // :1094-1096
-        var button = PlainControls.Button(row, () => Marrow.Services.Port.Workspace.Open.Current(url)); button.OnHover(hovering => hover.Set(hovering ? 1 : 0.9, Chrome.Hover)); ToolTip.SetTip(button, "Open getdroppy.app"); AutomationProperties.SetName(button, "Made by Droppy. Open getdroppy.app"); Child = button; // :1081-1101
+        var button = PlainControls.Button(row, () => Marrow.Services.Port.Workspace.Open.Current(url)); button.OnHover(hovering => hover.Set(hovering ? 1 : 0.9, Chrome.Hover)); ToolTip.SetTip(button, "Open getdroppy.app"); AutomationProperties.SetName(button, "Based on Droppy Code by Jordy Spruit (Droppy). Open getdroppy.app"); Child = button; // :1081-1101
     }
 }
 

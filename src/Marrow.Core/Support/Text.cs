@@ -20,11 +20,31 @@ public sealed record AppInfo
     public string Version { get; }
     public string Build { get; }
     public bool IsDevelopment { get; }
-    // Text.swift:6. DEVIATION OD-0012 F1 (ED scope: the state folder is user-visible): ".marrow" / ".marrow-dev".
+    // Text.swift:6. DEVIATION OD-0012 F1 (ED scope: the state folder is user-visible): ".marrow" / ".marrow-dev";
+    // OD-0135 renames it ".nth" / ".nth-dev" (LegacyDataCopy copies the old folder once).
     public string StateDirectoryName => StateDirectoryNameFor(IsDevelopment);
 
     /// <summary>The home state folder's name for a build channel (Storage reads it for the worktrees and patches).</summary>
-    public static string StateDirectoryNameFor(bool isDevelopment) => isDevelopment ? ".marrow-dev" : ".marrow";
+    public static string StateDirectoryNameFor(bool isDevelopment) => isDevelopment ? ".nth-dev" : ".nth";
+
+    /// <summary>The state folder's name before OD-0135, read only by the one-time copy (LegacyDataCopy).</summary>
+    public static string LegacyStateDirectoryNameFor(bool isDevelopment) => isDevelopment ? ".marrow-dev" : ".marrow";
+
+    /// <summary>
+    /// The data folder's name under %LOCALAPPDATA% (OD-0135; "Marrow Code" before it, OD-0008 C7): a fixed literal rather
+    /// than <see cref="Name"/>, the same for both build channels. Never the owner's separate Electron app's "Marrow" folder,
+    /// and never the installer's package folder (Velopack's %LOCALAPPDATA%\NthApp, which uninstall deletes whole).
+    /// </summary>
+    public const string DataFolderName = "nth";
+
+    /// <summary>The data folder's name before OD-0135, read only by the one-time copy (LegacyDataCopy).</summary>
+    public const string LegacyDataFolderName = "Marrow Code";
+
+    /// <summary>
+    /// The display name a build channel had before OD-0135 ("Marrow" / "Marrow Dev"), which was also the Credential Manager
+    /// service of the provider keys and MCP values: read only to carry an item over to the new name once.
+    /// </summary>
+    public static string LegacyNameFor(bool isDevelopment) => isDevelopment ? "Marrow Dev" : "Marrow";
 
     private AppInfo(string name, string version, string build, bool isDevelopment) =>
         (Name, Version, Build, IsDevelopment) = (name, version, build, isDevelopment);
@@ -33,7 +53,7 @@ public sealed record AppInfo
     {
         string Value(string key, string fallback) =>
             metadata.TryGetValue(key, out var value) && value is string text ? text : fallback;
-        return new(Value("CFBundleDisplayName", "Droppy Code"),
+        return new(Value("CFBundleDisplayName", "nth"), // OD-0135: the product's own name, not upstream's "Droppy Code"
             Value("CFBundleShortVersionString", "1.0.0"), Value("CFBundleVersion", "1"), isDevelopment);
     }
 

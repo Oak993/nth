@@ -216,7 +216,7 @@ public sealed class ProjectGuidance
         }
         if (sections.Count == 0) return null; // :98
         // :99-102
-        return $"Project guidelines from {directory}. They supplement the rules above; where they conflict, the Marrow rules take priority.\n" +
+        return $"Project guidelines from {directory}. They supplement the rules above; where they conflict, the nth rules take priority.\n" +
             // DEVIATION OD-0012 F1: "Marrow" replaces "Droppy Code" in the sentence above.
             string.Join("\n\n", sections);
     }

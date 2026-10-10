@@ -101,7 +101,7 @@ public sealed class DownloaderVerifyTests
     public void The_messages_are_the_words_of_section_3_9()
     {
         Assert.Equal("The file didn't match its checksum.", DownloadMessages.Mismatch);
-        Assert.Equal("The file is no longer at its source. A Marrow update will fix this.", DownloadMessages.NotFound);
+        Assert.Equal("The file is no longer at its source. An nth update will fix this.", DownloadMessages.NotFound);
         Assert.Equal("Couldn't reach libreoffice.org.", DownloadMessages.Unreachable("libreoffice.org"));
     }
 }

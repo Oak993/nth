@@ -26,7 +26,7 @@ public static class AntiSlopPolicy
     // DEVIATION OD-0012 F1: the first line (:3) is "[Marrow anti-slop guidance]"; upstream writes
     // "[Droppy Code anti-slop guidance]". Every other line is unchanged.
     public const string EnabledInstructions =
-        "[Marrow anti-slop guidance]\n" + // :3
+        "[nth anti-slop guidance]\n" + // :3
         "Give the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation.\n" + // :4
         "Make focused edits using existing patterns. Add comments only for non-obvious reasons, constraints or pitfalls; omit banners, obvious narration and speculative TODOs. Preserve useful documentation. Avoid unrelated cleanup, dependencies and abstractions.\n" + // :5
         "For UI work, follow the product\U00002019s components, typography and colors. Prefer purposeful structure and real content; preserve accessibility, responsive layouts and visible loading, empty and error states.\n" + // :6, U+2019 RIGHT SINGLE QUOTATION MARK; US spelling "colors" as upstream
@@ -37,7 +37,7 @@ public static class AntiSlopPolicy
     // DEVIATION OD-0012 F1: the first line (:12) is "[Marrow anti-slop guidance: off]"; upstream writes
     // "[Droppy Code anti-slop guidance: off]". The second line is unchanged.
     public const string DisabledInstructions =
-        "[Marrow anti-slop guidance: off]\n" + // :12
+        "[nth anti-slop guidance: off]\n" + // :12
         "Disregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements."; // :13
 
     // :16-18 static func instructions(enabled: Bool) -> String. Always one of the two texts, never empty.

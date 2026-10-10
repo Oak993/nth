@@ -60,7 +60,7 @@ public sealed class MCPWireTests
         Assert.Equal("2025-06-18", MCPWire.ProtocolVersion);
         Assert.Equal(MCPWire.ProtocolVersion, init["protocolVersion"]?.JSONValueString);
         Assert.Empty(init["capabilities"]!.JSONValueObject!);
-        Assert.Equal("Marrow", init["clientInfo"]?["name"]?.JSONValueString);
+        Assert.Equal("nth", init["clientInfo"]?["name"]?.JSONValueString);
         Assert.Equal("1.0", init["clientInfo"]?["version"]?.JSONValueString);
     }
 

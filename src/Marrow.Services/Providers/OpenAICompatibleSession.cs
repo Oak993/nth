@@ -615,7 +615,7 @@ public class OpenAICompatibleSession : ProviderSession
     }
 
     internal const string IgnisTidySummaryRequest =
-        "[Nth Ignis] Automatic tidy-up, not from the user. Use no tools. Summarize the conversation so far for your own later use: the task, the decisions made, the files and paths involved, the state of the work and anything still open. Reply with the summary only.";
+        "[nth Ignis] Automatic tidy-up, not from the user. Use no tools. Summarize the conversation so far for your own later use: the task, the decisions made, the files and paths involved, the state of the work and anything still open. Reply with the summary only.";
     internal const string IgnisTidySummaryHeader = "[Summary of the earlier conversation]\n";
     internal const string IgnisTidySummaryAcknowledgement = "Understood. I will continue from this summary and the messages after it.";
 
@@ -1839,7 +1839,7 @@ public class OpenAICompatibleSession : ProviderSession
     private const int CondenseKeepsRecent = 10;
     // DEVIATION OD-0012 F1 (PR-PROVAPI-138): upstream :80 reads
     // `"…[Droppy Code condensed this output"`; the product name in the marker becomes Marrow.
-    private const string CondensedMarker = "\U00002026[Marrow condensed this output"; // U+2026 HORIZONTAL ELLIPSIS
+    private const string CondensedMarker = "\U00002026[nth condensed this output"; // U+2026 HORIZONTAL ELLIPSIS
 
     private void CondenseHistory()
     {
@@ -2040,11 +2040,11 @@ public class OpenAICompatibleSession : ProviderSession
             // DEVIATION OD-0012 F1 (PR-PROVAPI-143): upstream :1180 reads
             // `"...the user approves each one in Droppy Code."`; the product name becomes Marrow.
             (InteractionMode.Build, RuntimeMode.Supervised) =>
-                "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow.", // :1180
+                "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in nth.", // :1180
             // DEVIATION OD-0012 F1 (PR-PROVAPI-144): upstream :1182 reads
             // `"...the user approves shell commands in Droppy Code."`; the product name becomes Marrow.
             (InteractionMode.Build, RuntimeMode.AutoAcceptEdits) or (InteractionMode.Build, RuntimeMode.Auto) =>
-                "You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow.", // :1182
+                "You are in BUILD mode: read and edit files freely; the user approves shell commands in nth.", // :1182
             (InteractionMode.Build, RuntimeMode.FullAccess) =>
                 "You are in BUILD mode with full access: use tools freely without asking.", // :1184 PR-PROVAPI-145
             _ => throw new UnreachableException(),
@@ -2069,7 +2069,7 @@ public class OpenAICompatibleSession : ProviderSession
         // `"You are Droppy Code's \(config.agentIdentity(currentModel)), working inside \(workingDirectory) on macOS."`;
         // the product name becomes Marrow and the platform word becomes Windows.
         return
-            $"You are Marrow's {OpenAICompatibleSessionConfig.AgentIdentity(currentModel)}, working inside {WorkingDirectory} on Windows.\n" +
+            $"You are nth's {OpenAICompatibleSessionConfig.AgentIdentity(currentModel)}, working inside {WorkingDirectory} on Windows.\n" +
             $"{modeLine}\n" +
             "Rules:\n" +
             "- Prefer the provided tools over asking the user to run things. Read files before editing them.\n" +

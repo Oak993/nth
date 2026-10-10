@@ -128,7 +128,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
         using var rig = new CustomizationPageRig(reduceMotion: true);
         var beam = rig.Page.Beam!;
         Assert.Equal("Defaults", beam.Defaults.Title.Text);
-        Assert.Equal("Border beam as Marrow ships it", beam.Defaults.Detail.Text);
+        Assert.Equal("Border beam as nth ships it", beam.Defaults.Detail.Text);
         Assert.False(beam.ResetButton.IsEnabled);
         Assert.False(beam.ResetButton.Focusable);
         Assert.Equal(.42, beam.ResetButton.Opacity);
@@ -144,7 +144,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
         rig.Do(beam.ResetButton.Activate);
         Assert.Equal(BorderBeamOptions.Default, rig.Light.Beam);
         Assert.False(beam.ResetButton.IsEnabled);
-        Assert.Equal("Border beam as Marrow ships it", beam.Defaults.Detail.Text);
+        Assert.Equal("Border beam as nth ships it", beam.Defaults.Detail.Text);
     });
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class CustomizationSectionsTests(HeadlessSession headless)
         Assert.Equal("#FF5500FF", aura.FirstWell.Hex);
         rig.Do(aura.ResetButton.Activate);
         Assert.Equal(UiverseAuraOptions.Default, rig.Light.Aura);
-        Assert.Equal("The Uiverse light as Marrow ships it", aura.Defaults.Detail.Text);
+        Assert.Equal("The Uiverse light as nth ships it", aura.Defaults.Detail.Text);
         Assert.False(aura.ResetButton.IsEnabled);
         Assert.False(aura.YourColoursSlot.Open);
         // the wells were folded shut when the colours came back, and still show them

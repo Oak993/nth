@@ -1683,7 +1683,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             // OD-0012 G6: showMainWindow has no default chord, so Ctrl+0 is refused only once it is recorded for it.
             Assert.Null(store.Refusal(ctrlZero, AppShortcut.NewThread));
             store.Set(ctrlZero, AppShortcut.ShowMainWindow);
-            Assert.Equal("Show Marrow already uses this chord.", store.Refusal(ctrlZero, AppShortcut.NewThread));
+            Assert.Equal("Show nth already uses this chord.", store.Refusal(ctrlZero, AppShortcut.NewThread));
             // The show-main entry now exists. Restore the fixture's default before testing the fixed zoom chords;
             // its recorded chord is exercised separately above, rather than assuming that entry is absent.
             store.Reset(AppShortcut.ShowMainWindow);
@@ -2280,7 +2280,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             // (:329, in the OD-0008 B8 wording). ED-099 (2): the number row 1 to 9 is scan codes 0x02 to 0x0A.
             foreach (var code in new long[] { 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A })
                 foreach (var shortcut in SwiftEnum<AppShortcut>.AllCases)
-                    Assert.Equal("Windows or Marrow already uses this chord.", store.Refusal(new KeyChord(code, ChordModifiers.Control), shortcut));
+                    Assert.Equal("Windows or nth already uses this chord.", store.Refusal(new KeyChord(code, ChordModifiers.Control), shortcut));
         });
     }
 

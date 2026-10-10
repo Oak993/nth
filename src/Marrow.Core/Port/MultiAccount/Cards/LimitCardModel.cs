@@ -46,7 +46,7 @@ public sealed class LimitCardModel
     private string ResetSuffix=>reset.Length>0?" · resets "+reset:"";
     public string Title=>Kind switch
     {
-        CardKind.FirstTime=>outgoing.Name+" ran out. How should Marrow handle this?",
+        CardKind.FirstTime=>outgoing.Name+" ran out. How should nth handle this?",
         CardKind.OtherService=>"All your "+Service+" accounts are out."+(reset.Length>0?" The first is back at "+reset+".":""),
         CardKind.MidReply=>outgoing.Name+" reached its 5-hour limit while writing this reply"+ResetSuffix,
         CardKind.EarlierAccount=>Next+" has reset · you are on "+outgoing.Name,
@@ -76,7 +76,7 @@ public sealed class LimitCardModel
     private IReadOnlyList<CardButton> Options(DecisionKind kind)=>DecisionValues.Allowed(kind).Where(v=>v!=DecisionValues.Ask).Select(v=>new CardButton(v,OptionLabel(kind,v),false,selections.GetValueOrDefault(kind)==v)).ToArray();
     private static string OptionLabel(DecisionKind kind,string value)=>(kind,value) switch
     {
-        (DecisionKind.Bring,DecisionValues.Full)=>"Full conversation",(DecisionKind.Bring,DecisionValues.MarrowSummary)=>"Marrow’s summary",(DecisionKind.Bring,DecisionValues.AiSummary)=>"AI summary",
+        (DecisionKind.Bring,DecisionValues.Full)=>"Full conversation",(DecisionKind.Bring,DecisionValues.MarrowSummary)=>"nth’s summary",(DecisionKind.Bring,DecisionValues.AiSummary)=>"AI summary",
         (DecisionKind.MidReply,DecisionValues.Finish)=>"Finish the reply on the next account",(DecisionKind.MidReply,DecisionValues.Stop)=>"Stop, use the next one from my next message",
         (DecisionKind.OtherService,DecisionValues.Switch)=>"Switch to another service",(DecisionKind.EarlierAccount,DecisionValues.GoBack)=>"Go back to it",(DecisionKind.EarlierAccount,DecisionValues.Stay)=>"Stay until this one runs out",
         (_,DecisionValues.Wait)=>"Wait",(_,DecisionValues.Switch)=>"Switch automatically",_=>throw new ArgumentException("Invalid choice."),

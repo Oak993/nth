@@ -128,7 +128,7 @@ public sealed class IgnisContractTests
         Assert.Equal(
             "To keep this chat's cache warm, Ignis sends Codex a tiny message now and then. You'll see a short line here instead.",
             IgnisWords.NoticeBody("Codex"));
-        Assert.Equal("[Nth Ignis] Automatic keep-alive, not from the user. Use no tools or agents and change nothing. Reply exactly: ok", IgnisWords.PingText);
+        Assert.Equal("[nth Ignis] Automatic keep-alive, not from the user. Use no tools or agents and change nothing. Reply exactly: ok", IgnisWords.PingText);
     }
 
     [Fact]

@@ -24,7 +24,7 @@ public static class MCPWire
         ("protocolVersion", new JSONValue.String(ProtocolVersion)),
         ("capabilities", JSONValue.FromDictionaryLiteral()),
         ("clientInfo", JSONValue.FromDictionaryLiteral(
-            ("name", new JSONValue.String("Marrow")), // DEVIATION OD-0012 F1: Swift literal is "Droppy Code".
+            ("name", new JSONValue.String("nth")), // DEVIATION OD-0012 F1: Swift literal is "Droppy Code".
             ("version", new JSONValue.String("1.0")))));
 
     // :17-25. params is added only when non-null (a present JSON null is never sent here: the Swift `if let

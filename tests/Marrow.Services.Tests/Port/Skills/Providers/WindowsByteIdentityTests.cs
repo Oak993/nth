@@ -28,7 +28,7 @@ public sealed class WindowsByteIdentityTests
             var parameters = new BaselineWire(configuration).CopilotParameters();
             parameters["sessionId"] = id; // Compare the source's generated ID without normalizing any transmitted bytes.
             byte[][] expected = [
-                RPC(1, "ping", JSONValue.FromDictionaryLiteral(("message", "marrow"))),
+                RPC(1, "ping", JSONValue.FromDictionaryLiteral(("message", "nth"))),
                 RPC(2, resume ? "session.resume" : "session.create", new JSONValue.Object(new ValueMap<string, JSONValue>(parameters, SwiftStringComparer.Instance))),
                 RPC(3, "session.commands.list", JSONValue.FromDictionaryLiteral(("sessionId", id)))
             ];

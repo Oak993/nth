@@ -77,12 +77,12 @@ public sealed class ThreadRuntimeHydraPromptDeliveryTests
             // turn for a provider that does not keep the Hydra policy in its system prompt (Cursor), after
             // the delegation request at :1319-1321 was prepended.
             Assert.StartsWith(provider == ProviderKind.Cursor
-                ? "[Marrow anti-slop guidance: off]"
+                ? "[nth anti-slop guidance: off]"
                 : "[Hydra setting: enabled]", prompt, StringComparison.Ordinal);
             Assert.Contains("[Hydra setting: enabled]", prompt, StringComparison.Ordinal);
             Assert.Contains(provider == ProviderKind.Codex
                 ? "Use the configured Hydra agent tools and head profiles."
-                : "Delegate through the final hydra block so Marrow runs the selected heads; do not use native agent tools.",
+                : "Delegate through the final hydra block so nth runs the selected heads; do not use native agent tools.",
                 prompt, StringComparison.Ordinal);
             Assert.EndsWith("Do a broad multi-file change.", prompt, StringComparison.Ordinal);
         }

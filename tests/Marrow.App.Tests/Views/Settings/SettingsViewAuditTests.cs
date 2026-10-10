@@ -76,7 +76,7 @@ public sealed class SettingsViewAuditTests(HeadlessSession headless) : SettingsR
     public void The_about_label_block_is_centred_beside_the_icon() => With(() => new AboutSettingsPage(), (view, _, _, _) =>
     {
         var icon = Nodes<Image>(view).First(i => i.Width == 56);
-        var name = Nodes<TextBlock>(view).First(t => t.Text == "Marrow");
+        var name = Nodes<TextBlock>(view).First(t => t.Text == "nth");
         var version = Nodes<TextBlock>(view).First(t => t.Text?.StartsWith("Version ", StringComparison.Ordinal) == true);
         var iconCentre = icon.TranslatePoint(new Point(0, icon.Bounds.Height / 2), view)!.Value.Y;
         var top = name.TranslatePoint(default, view)!.Value.Y;

@@ -225,7 +225,7 @@ public sealed class ProjectGuidanceTests
         var block = guidance.SystemPromptBlock();
 
         Assert.Equal(
-            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the Marrow rules take priority.\n" +
+            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the nth rules take priority.\n" +
             "AGENTS.md is too large to include here (50000 bytes). Read AGENTS.md with the read_file tool; it may contain rules the project expects you to follow.",
             block);
     }
@@ -244,7 +244,7 @@ public sealed class ProjectGuidanceTests
         var block = guidance.SystemPromptBlock();
 
         Assert.Equal(
-            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the Marrow rules take priority.\n" +
+            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the nth rules take priority.\n" +
             "Could not load AGENTS.md. Read it with the read_file tool before changing the project.",
             block);
     }
@@ -263,7 +263,7 @@ public sealed class ProjectGuidanceTests
         var block = guidance.SystemPromptBlock();
 
         var expected =
-            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the Marrow rules take priority.\n" +
+            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the nth rules take priority.\n" +
             "--- AGENTS.md ---\nagents text\n\n--- CLAUDE.md ---\nclaude text";
         Assert.Equal(expected, block);
     }
@@ -278,7 +278,7 @@ public sealed class ProjectGuidanceTests
 
         var block = guidance.SystemPromptBlock();
 
-        Assert.Contains("where they conflict, the Marrow rules take priority.", block, StringComparison.Ordinal);
+        Assert.Contains("where they conflict, the nth rules take priority.", block, StringComparison.Ordinal);
         Assert.DoesNotContain("Droppy Code", block, StringComparison.Ordinal);
     }
 
@@ -373,7 +373,7 @@ public sealed class ProjectGuidanceTests
         var block = guidance.SystemPromptBlock();
 
         var expected =
-            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the Marrow rules take priority.\n" +
+            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the nth rules take priority.\n" +
             "--- AGENTS.md ---\nFollow the style guide.\n\n--- CLAUDE.md ---\nRun tests before committing.";
         Assert.Equal(expected, block);
     }
@@ -389,7 +389,7 @@ public sealed class ProjectGuidanceTests
         var block = guidance.SystemPromptBlock();
 
         var expected =
-            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the Marrow rules take priority.\n" +
+            "Project guidelines from " + scratch.FullPath + ". They supplement the rules above; where they conflict, the nth rules take priority.\n" +
             "--- CLAUDE.md ---\nsolo rules";
         Assert.Equal(expected, block);
     }

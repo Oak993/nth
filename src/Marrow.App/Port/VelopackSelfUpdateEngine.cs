@@ -54,7 +54,7 @@ public sealed class VelopackSelfUpdateEngine : ISelfUpdateEngine
         var info = latest is not null && VersionText(latest.TargetFullRelease) == version ? latest : await manager.Value.CheckForUpdatesAsync();
         if (info is null) throw new UpdateError(new UpdateError.Case.NoRelease());
         if (!string.Equals(VersionText(info.TargetFullRelease), version, StringComparison.Ordinal))
-            throw new InvalidOperationException($"The offered Marrow version {version} is no longer available. Check for updates again.");
+            throw new InvalidOperationException($"The offered nth version {version} is no longer available. Check for updates again.");
         await manager.Value.DownloadUpdatesAsync(info, percent, cancellationToken);
         downloaded = info.TargetFullRelease;
         return Path.Combine(locator.Value.PackagesDir!, downloaded.FileName);

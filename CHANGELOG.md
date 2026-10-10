@@ -15,5 +15,6 @@ Marrow Windows release notes. Each packaged version needs its own `## [version]`
 
 ### Refinements
 
+- Rename the app to nth, copying the earlier name's data, settings and saved keys on first launch and leaving the originals in place.
 - Keep the installed version's release notes readable in About after restarting and checking for updates.
 - Derive release notes from the exact version's changelog entry by default.

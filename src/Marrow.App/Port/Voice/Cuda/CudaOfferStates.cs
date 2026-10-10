@@ -29,7 +29,7 @@ public static class CudaOfferStates
     public static CudaOfferRow Installed(string size)
     {
         _ = size;
-        return new CudaOfferRow(true, CudaOfferState.Installed, Title, "Installed. Restart Marrow to use it", "Installed", 0, CudaOfferAction.None, "", "", true, false);
+        return new CudaOfferRow(true, CudaOfferState.Installed, Title, "Installed. Restart nth to use it", "Installed", 0, CudaOfferAction.None, "", "", true, false);
     }
 
     public static CudaOfferRow Failed(string size)

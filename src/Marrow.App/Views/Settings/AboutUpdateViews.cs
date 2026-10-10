@@ -522,7 +522,7 @@ public sealed class UpdateProgressSlider : Decorator
         capsule.Jump(fraction); // shown part way (the celebration after a relaunch), it is there at once
         if (fraction >= 1) capsule.ShowDone();
         Child = capsule;
-        AutomationProperties.SetName(this, "Updating Marrow");
+        AutomationProperties.SetName(this, "Updating nth");
     }
 
     internal void SetFraction(double value)
@@ -632,7 +632,7 @@ internal sealed class AboutIdentityPill : Decorator
             Child = content,
         };
         Child = padded.ChromeGlassCapsule();
-        AutomationProperties.SetName(this, $"Marrow {version}");
+        AutomationProperties.SetName(this, $"nth {version}");
     }
 }
 
@@ -806,7 +806,7 @@ internal sealed class AboutVersionPill : Decorator
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
         AutomationProperties.SetName(button, isReady
             ? "Update & restart"
-            : $"Marrow {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
+            : $"nth {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
         // STOP opencode-proofs-aboutupdate #3 UI-UPDATE-005 - RESOLVED 2026-10-04: F.GlassMaterial renders the interactive response
         // (Marrow.UI.Tests GlassMaterialTests.InteractiveGlassRespondsToHoverAndPress) and the press reaches this glass's host
         // (AboutUpdateViewsPillGlassTests).
@@ -816,7 +816,7 @@ internal sealed class AboutVersionPill : Decorator
         // the button takes no hits. It does nothing with a press, so a standing stays inert.
         var tipHost = new Border { Background = Brushes.Transparent, Child = glass };
         ToolTip.SetTip(tipHost, isReady
-            ? $"Installs Marrow {snapshot.Update?.Version ?? string.Empty} and relaunches"
+            ? $"Installs nth {snapshot.Update?.Version ?? string.Empty} and relaunches"
             : StandingHelp(snapshot, standing));
         return tipHost;
     }
@@ -868,9 +868,9 @@ internal sealed class AboutVersionPill : Decorator
 
     private static string StandingHelp(Snapshot snapshot, Standing standing) => standing switch
     {
-        Standing.UpToDate => $"Marrow {AppInfo.Current.Version} is the latest version",
+        Standing.UpToDate => $"nth {AppInfo.Current.Version} is the latest version",
         Standing.Failed => snapshot.LastError ?? "The last check did not reach GitHub",
-        Standing.Unchecked => "Marrow has not asked GitHub for a release yet",
+        Standing.Unchecked => "nth has not asked GitHub for a release yet",
         _ => string.Empty,
     };
 }
@@ -952,7 +952,7 @@ public sealed class AboutSoftwareUpdateSection : Decorator
         };
 
         if (!offered)
-            content.Children.Add(new TextBlock { Text = $"What's new in Marrow {update.Version}", TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout));
+            content.Children.Add(new TextBlock { Text = $"What's new in nth {update.Version}", TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout));
 
         if (UpdateReleaseNotesContent.Create(digest, update.Version, update.Notes) is { } notes)
             content.Children.Add(notes);
@@ -1162,8 +1162,8 @@ public sealed class AboutUpdateCheckRow : Decorator
         if (snapshot.LastError is { } error)
             return $"{error} {checkedText}";
         if (snapshot.UpdateAvailable && snapshot.Version is { } version)
-            return $"Marrow {version} is ready to install. {checkedText}";
-        return $"Marrow checks GitHub for new versions a few times a day. {checkedText}";
+            return $"nth {version} is ready to install. {checkedText}";
+        return $"nth checks GitHub for new versions a few times a day. {checkedText}";
     }
 }
 

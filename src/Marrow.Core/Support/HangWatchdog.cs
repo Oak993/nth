@@ -179,7 +179,7 @@ public static class HangWatchdog
     // :118-121. DEVIATION OD-0008 C7: upstream ~/Library/Logs/Droppy Code; the port's data identity "Marrow Code"
     // names the folder under the per-user application data folder (ED-163).
     internal static string ReportsFolder(string localAppData) =>
-        SwiftPath.AppendingPathComponent(SwiftPath.AppendingPathComponent(localAppData, "Marrow Code"), "Logs");
+        SwiftPath.AppendingPathComponent(SwiftPath.AppendingPathComponent(localAppData, AppInfo.DataFolderName), "Logs"); // OD-0135
 
     // :91-93, :113. DEVIATION OD-0012 F1: line 1 names "Marrow" where upstream reads "Droppy Code". "\(Date())" is
     // Date.description: UTC, "yyyy-MM-dd HH:mm:ss +0000".
@@ -188,7 +188,7 @@ public static class HangWatchdog
     {
         var utc = sampledAt.ToUniversalTime();
         var description = utc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " +0000";
-        return "Marrow main thread unresponsive for " + SwiftNumber.Fixed(stalledFor, 1) + "s\n"
+        return "nth main thread unresponsive for " + SwiftNumber.Fixed(stalledFor, 1) + "s\n"
             + "Version " + (shortVersion ?? "?") + " (" + (build ?? "?") + ")\n"
             + "Sampled at " + description + "\n\n" + body;
     }

@@ -82,7 +82,7 @@ public sealed class UpdatePillProjector
             var due = rows.Any(r => r.State is UpdateRowState.UpdateAvailable or UpdateRowState.ChecksWhenUpdated);
             return new(UpdatePillPhase.Running, "Updating in the background", "Updating in the background",
                 NameList(rows.Where(r => r.State == UpdateRowState.UpdatingInBackground).Select(r => r.Title).ToList()) + ".",
-                restart ? "Restart Marrow" : due ? "Update everything" : "Check now", restart ? UpdatePillAction.RestartMarrow : due ? UpdatePillAction.UpdateEverything : UpdatePillAction.CheckNow,
+                restart ? "Restart nth" : due ? "Update everything" : "Check now", restart ? UpdatePillAction.RestartMarrow : due ? UpdatePillAction.UpdateEverything : UpdatePillAction.CheckNow,
                 true, 0, null, null, list);
         }
         var available = rows.Where(r => r.State == UpdateRowState.UpdateAvailable).ToList();
@@ -101,7 +101,7 @@ public sealed class UpdatePillProjector
         var index = Math.Min(done + 1, n);
         var fraction = Math.Clamp((done + (current?.State == UpdateRowState.Updating ? current.Progress ?? 0 : 0)) / n, 0, 1);
         return new UpdatePillState(UpdatePillPhase.Running, $"Updating {index} of {n}", $"Updating {current?.Title}… {index} of {n}",
-            "Keep working; Marrow restarts only when you say so.", "Updating…", UpdatePillAction.None, false, fraction, null, null, list);
+            "Keep working; nth restarts only when you say so.", "Updating…", UpdatePillAction.None, false, fraction, null, null, list);
     }
 
     private static UpdatePillState Failed(IReadOnlyList<UpdateRow> rows, List<UpdatePillRow> list, UpdateRow failed)
@@ -126,8 +126,8 @@ public sealed class UpdatePillProjector
     {
         var updated = rows.Where(r => r.State == UpdateRowState.Updated).Select(r => r.Title).ToList();
         if (updated.Count == 0) updated = rows.Where(r => r.RestartRequired).Select(r => r.Title).ToList();
-        return new UpdatePillState(UpdatePillPhase.Restart, "Restart to finish", $"{updated.Count} updated", $"Updated {NameList(updated)}. Restart Marrow to finish its update.",
-            "Restart Marrow", UpdatePillAction.RestartMarrow, true, 1, null, null, list);
+        return new UpdatePillState(UpdatePillPhase.Restart, "Restart to finish", $"{updated.Count} updated", $"Updated {NameList(updated)}. Restart nth to finish its update.",
+            "Restart nth", UpdatePillAction.RestartMarrow, true, 1, null, null, list);
     }
 
     private static UpdatePillState Done(IReadOnlyList<UpdateRow> rows, List<UpdatePillRow> list)

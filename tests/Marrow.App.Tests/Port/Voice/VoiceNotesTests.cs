@@ -36,7 +36,7 @@ public sealed class VoiceNotesTests
     public void Blocked_names_Privacy_and_security_Microphone_as_its_one_link_to_the_Windows_page_for_5_2_s_with_the_warning_mark()
     {
         var note = VoiceNotes.For(VoiceNoteKind.Blocked)!;
-        Assert.Equal("Microphone blocked. Allow Marrow in ", note.Text);
+        Assert.Equal("Microphone blocked. Allow nth in ", note.Text);
         Assert.Equal("Privacy & security > Microphone", note.LinkText);
         Assert.Equal("ms-settings:privacy-microphone", note.LinkTarget);
         Assert.Equal("ms-settings:privacy-microphone", VoiceNotes.BlockedDestination);
@@ -76,7 +76,7 @@ public sealed class VoiceNotesTests
         Assert.Equal("Listening. Your words are written into the composer as you speak. Click the orb again to finish, or press Escape to cancel.", VoiceAnnouncements.Listening);
         Assert.Equal("Finishing the text.", VoiceAnnouncements.Finishing);
         Assert.Equal("Voice input cancelled; the words were removed.", VoiceAnnouncements.Cancelled);
-        Assert.Equal("The microphone is blocked. Allow Marrow in Windows Settings, Privacy and security, Microphone.", VoiceAnnouncements.Blocked);
+        Assert.Equal("The microphone is blocked. Allow nth in Windows Settings, Privacy and security, Microphone.", VoiceAnnouncements.Blocked);
         Assert.Equal("Done: switch the theme. The text is in the composer; send it when you are ready.", VoiceAnnouncements.Done("switch the theme.", sending: false));
         Assert.Equal("Done: switch the theme. Sending.", VoiceAnnouncements.Done("switch the theme.", sending: true));
     }

@@ -6,7 +6,7 @@ public sealed class StorePaths
     public StorePaths(string dataRoot)
     {
         if (string.IsNullOrWhiteSpace(dataRoot) || !Path.IsPathFullyQualified(dataRoot))
-            throw new ArgumentException("An absolute Marrow Code data root is required.", nameof(dataRoot));
+            throw new ArgumentException("An absolute nth data root is required.", nameof(dataRoot));
         Root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(dataRoot));
         if (Root == Path.GetPathRoot(Root)) throw new ArgumentException("A filesystem root is not a data root.", nameof(dataRoot));
         Addons = Path.Combine(Root, "addons");

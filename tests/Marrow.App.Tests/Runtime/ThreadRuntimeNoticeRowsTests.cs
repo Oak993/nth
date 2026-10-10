@@ -88,6 +88,11 @@ public sealed class ThreadRuntimeNoticeRowsTests
             var notice = Assert.Single(Notices(rig));
             Assert.Equal(Notice.Level.Warning, notice.NoticeLevel);
             Assert.Equal("Command Code no longer has this conversation. It starts a new one here, without the messages above.", notice.Message);
+
+            // R-TEST-9: the new session installed its mod under the harness's scratch folder, not the real %LOCALAPPDATA%.
+            var appData = CommandCodeSession.LocalApplicationDataForTesting.Current;
+            Assert.StartsWith(Path.GetFullPath(Marrow.Testing.TestDataDirectory.Read()!), Path.GetFullPath(appData), StringComparison.OrdinalIgnoreCase);
+            Assert.True(File.Exists(Path.Combine(appData, Marrow.Core.Support.AppInfo.DataFolderName, "CommandCode", "marrow-approvals.ts")));
         }
         finally
         {

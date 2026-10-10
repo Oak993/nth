@@ -1,10 +1,10 @@
 using System.Reflection;
 
-// Pinned project.yml:13-14,44,56; OD-0002 authorizes the product identity rename.
+// Pinned project.yml:13-14,44,56; OD-0002 authorizes the product identity rename; OD-0135 names the product nth.
 #if DEBUG
-[assembly: AssemblyMetadata("CFBundleDisplayName", "Marrow Dev")]
+[assembly: AssemblyMetadata("CFBundleDisplayName", "nth Dev")]
 #else
-[assembly: AssemblyMetadata("CFBundleDisplayName", "Marrow")]
+[assembly: AssemblyMetadata("CFBundleDisplayName", "nth")]
 #endif
 [assembly: AssemblyMetadata("CFBundleShortVersionString", "1.0.0")]
 [assembly: AssemblyMetadata("CFBundleVersion", "1")]

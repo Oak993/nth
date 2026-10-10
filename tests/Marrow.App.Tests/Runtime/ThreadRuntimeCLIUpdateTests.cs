@@ -69,7 +69,7 @@ public sealed class ThreadRuntimeCLIUpdateTests
             // The raw error is never posted unwrapped: only the CLI-update path's own notices appear.
             Assert.DoesNotContain(notices, n => n.NoticeLevel == Notice.Level.Error && n.Message == error);
             var failure = Assert.Single(notices, n => n.NoticeLevel == Notice.Level.Error);
-            Assert.Equal(error + "\n\nMarrow could not bring Claude up to date. Run `claude update` in Terminal, then send the message again.",
+            Assert.Equal(error + "\n\nnth could not bring Claude up to date. Run `claude update` in Terminal, then send the message again.",
                 failure.Message);
             Assert.Equal(RuntimePhase.Idle, runtime.Phase);
             // The info notice is part of the failing turn (:2263 comment: "so the resend's rewind takes it
@@ -185,7 +185,7 @@ public sealed class ThreadRuntimeCLIUpdateTests
             var notice = Assert.IsType<TimelineItem.Content.Notice>(Assert.Single(runtime.Entries,
                 entry => entry.TimelineEntryKind == TimelineEntry.Kind.Notice).Item.TimelineItemContent).Value;
             Assert.Equal(Notice.Level.Error, notice.NoticeLevel);
-            Assert.Equal("boom\n\nMarrow could not bring Claude up to date. Run `claude update` in Terminal, then send the message again.",
+            Assert.Equal("boom\n\nnth could not bring Claude up to date. Run `claude update` in Terminal, then send the message again.",
                 notice.Message);
         });
     }
@@ -236,7 +236,7 @@ public sealed class ThreadRuntimeCLIUpdateTests
             var notice = Assert.IsType<TimelineItem.Content.Notice>(Assert.Single(runtime.Entries,
                 entry => entry.TimelineEntryKind == TimelineEntry.Kind.Notice).Item.TimelineItemContent).Value;
             Assert.Equal(Notice.Level.Error, notice.NoticeLevel);
-            Assert.Equal("boom2\n\nMarrow could not bring Codex up to date. Run `codex update` in Terminal, then send the message again.",
+            Assert.Equal("boom2\n\nnth could not bring Codex up to date. Run `codex update` in Terminal, then send the message again.",
                 notice.Message);
         });
     }

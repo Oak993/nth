@@ -171,7 +171,7 @@
       "deviation": {
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:21 - :21 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
-        "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
+        "port": "nth message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
       }
     },
     {
@@ -245,7 +245,7 @@
       "deviation": {
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:21 - :21 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
-        "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
+        "port": "nth message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
       }
     },
     {
@@ -768,7 +768,7 @@
       "deviation": {
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:21 - :21 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
-        "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
+        "port": "nth message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
       }
     },
     {
@@ -875,7 +875,7 @@
       "deviation": {
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:21 - :21 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
-        "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
+        "port": "nth message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
       }
     },
     {
@@ -1513,7 +1513,7 @@
       "persistence": "the connection row leaves mcp.json; secrets leave protected storage",
       "failure_cases": [
         "a field the entry no longer declares keeps an orphaned protected-storage item",
-        "a store that refuses a deletion: upstream reports success anyway; Marrow reports the failure (OD-0008 A12, PR-MCP-228)"
+        "a store that refuses a deletion: upstream reports success anyway; nth reports the failure (OD-0008 A12, PR-MCP-228)"
       ],
       "cancellation": "not cancellable once started",
       "windows_path": "Same order. A stored secret that fails to delete is reported to the user instead of a silent success, and the rest of the sequence still runs, an ENGINEERING DECISION recorded in the deviation (OD-0008 A12, PR-MCP-228). Disconnect is reached from the connected row menu, the custom row menu and a confirmed custom-server Delete (PR-MCP-073). Secrets live in Windows Credential Manager (OD-0008 B3).",
@@ -1522,7 +1522,7 @@
       "deviation": {
         "decision": "OD-0008 A12, B3; OD-0012 E6",
         "upstream": "Upstream discards every deletion result and disconnect carries on as a success: DroppyCode/Services/MCP/MCPKeychain.swift:21-23 - :22 APIKeychain.delete(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:76-83 - :82 SecItemDelete(query as CFDictionary); DroppyCode/Services/MCP/MCPStore.swift:118-120 - :118 MCPKeychain.deleteAll(server: entry) | :119 if entry.isOAuth { | :120 MCPOAuth.signOut(serverID: entry.id); DroppyCode/Services/MCP/MCPOAuth.swift:189-191 - :190 MCPKeychain.delete(server: serverID, field: \"oauth\") | :191 MCPKeychain.delete(server: serverID, field: \"oauth-client\"); Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:3-12 - :3 /// Stores MCP secret field values in the macOS Keychain so they never sit | :7 \"MCP \" + server + \" \" + field | :12 return APIKeychain.read(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:60-64 - :60 static func read(_ account: String, service: String = AppInfo.name) -> String? { | :63 kSecAttrService as String: service, | :64 kSecAttrAccount as String: account,; upstream reports nothing, so it has no wording for the report",
-        "port": "Marrow checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
+        "port": "nth checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
       },
       "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long."
     },
@@ -1537,14 +1537,14 @@
       ],
       "preconditions": "A catalog entry or custom-server entry with zero or more declared fields.",
       "action": "Its stored secrets are destroyed.",
-      "expected_result": "One delete per field the ENTRY object declares, iterated in the entry's own field order. The account string is the literal \"MCP \", the server id, a single space, and the field's key - three parts joined by single spaces, with no separator characters of any other kind. The service is AppInfo.name, one service for the whole app. Upstream discards the delete result, so a missing item, a locked store and a refusal are indistinguishable and none is reported. Marrow checks it (OD-0008 A12): a failed deletion is reported to the user instead of a silent success. Two details are ENGINEERING DECISIONS, not ruling text (see the deviation): an item that did not exist is not a failure, and the rest of disconnect still runs (PR-MCP-061). The report reads exactly \"Disconnected, but Credential Manager did not remove this server’s stored values.\" (OD-0012 E6); where it is shown is not given by the source or by the ruling (open_question). Crucially the fields come from the ENTRY, not from a catalog lookup by id: a custom server is not in the catalog, so looking it up there would iterate an empty field list and silently delete nothing. An entry with no declared fields deletes nothing and is not an error. A field the entry NO LONGER declares keeps an orphaned item forever, because nothing enumerates the store.",
+      "expected_result": "One delete per field the ENTRY object declares, iterated in the entry's own field order. The account string is the literal \"MCP \", the server id, a single space, and the field's key - three parts joined by single spaces, with no separator characters of any other kind. The service is AppInfo.name, one service for the whole app. Upstream discards the delete result, so a missing item, a locked store and a refusal are indistinguishable and none is reported. nth checks it (OD-0008 A12): a failed deletion is reported to the user instead of a silent success. Two details are ENGINEERING DECISIONS, not ruling text (see the deviation): an item that did not exist is not a failure, and the rest of disconnect still runs (PR-MCP-061). The report reads exactly \"Disconnected, but Credential Manager did not remove this server’s stored values.\" (OD-0012 E6); where it is shown is not given by the source or by the ruling (open_question). Crucially the fields come from the ENTRY, not from a catalog lookup by id: a custom server is not in the catalog, so looking it up there would iterate an empty field list and silently delete nothing. An entry with no declared fields deletes nothing and is not an error. A field the entry NO LONGER declares keeps an orphaned item forever, because nothing enumerates the store.",
       "side_effects": [
         "One stored secret destroyed per declared field, unrecoverably",
         "a failed deletion is reported to the user"
       ],
       "persistence": "The secrets leave Windows Credential Manager (OD-0008 B3) permanently; they must be re-obtained from the provider.",
       "failure_cases": [
-        "A locked or unavailable store: upstream deletes nothing and disconnect still reports success; Marrow reports the failed deletion",
+        "A locked or unavailable store: upstream deletes nothing and disconnect still reports success; nth reports the failed deletion",
         "An entry whose declared fields changed since the values were written leaves orphans"
       ],
       "cancellation": "not cancellable once started",
@@ -1554,7 +1554,7 @@
       "deviation": {
         "decision": "OD-0008 A12, B3; OD-0012 E6",
         "upstream": "Upstream discards every deletion result and disconnect carries on as a success: DroppyCode/Services/MCP/MCPKeychain.swift:21-23 - :22 APIKeychain.delete(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:76-83 - :82 SecItemDelete(query as CFDictionary); DroppyCode/Services/MCP/MCPStore.swift:118-120 - :118 MCPKeychain.deleteAll(server: entry) | :119 if entry.isOAuth { | :120 MCPOAuth.signOut(serverID: entry.id); DroppyCode/Services/MCP/MCPOAuth.swift:189-191 - :190 MCPKeychain.delete(server: serverID, field: \"oauth\") | :191 MCPKeychain.delete(server: serverID, field: \"oauth-client\"); Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:3-12 - :3 /// Stores MCP secret field values in the macOS Keychain so they never sit | :7 \"MCP \" + server + \" \" + field | :12 return APIKeychain.read(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:60-64 - :60 static func read(_ account: String, service: String = AppInfo.name) -> String? { | :63 kSecAttrService as String: service, | :64 kSecAttrAccount as String: account,; upstream reports nothing, so it has no wording for the report",
-        "port": "Marrow checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
+        "port": "nth checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
       },
       "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long."
     },
@@ -1857,7 +1857,7 @@
       "deviation": {
         "decision": "OD-0008 A1, B3; OD-0012 E1",
         "upstream": "Upstream deletes on one click with no confirmation and never consults confirmBeforeDeleting: DroppyCode/App/Views/Settings/MCPSettingsPage.swift:564-566 - :564 PopoverItem(\"Delete\", symbol: \"trash\", isDestructive: true) { | :565 model.mcp.deleteCustom(server), while the sibling delete paths check it first: DroppyCode/App/Views/Settings/SettingsView.swift:867 - :867 if model.settings.confirmBeforeDeleting {; DroppyCode/App/Views/Settings/SettingsView.swift:908 - :908 if model.settings.confirmBeforeDeleting {; DroppyCode/App/Views/Sidebar/SidebarView.swift:193 - :193 if model.settings.confirmBeforeDeleting {; DroppyCode/App/Views/Sidebar/SidebarView.swift:361 - :361 if model.settings.confirmBeforeDeleting {; DroppyCode/App/Views/Sidebar/SidebarView.swift:890 - :890 if model.settings.confirmBeforeDeleting {; Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:3-12 - :3 /// Stores MCP secret field values in the macOS Keychain so they never sit | :7 \"MCP \" + server + \" \" + field | :12 return APIKeychain.read(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:60-64 - :60 static func read(_ account: String, service: String = AppInfo.name) -> String? { | :63 kSecAttrService as String: service, | :64 kSecAttrAccount as String: account,; upstream has no wording for this confirmation because it never asks",
-        "port": "Marrow asks for confirmation before deleteCustom when confirmBeforeDeleting is on, and deletes on one click when it is off. Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\". The confirmation reads, per OD-0012 E1: question \"Delete this server?\", note \"“<name>” and the values it keeps in Credential Manager will be removed.\", red button \"Delete server\"."
+        "port": "nth asks for confirmation before deleteCustom when confirmBeforeDeleting is on, and deletes on one click when it is off. Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\". The confirmation reads, per OD-0012 E1: question \"Delete this server?\", note \"“<name>” and the values it keeps in Credential Manager will be removed.\", red button \"Delete server\"."
       }
     },
     {
@@ -1909,7 +1909,7 @@
       "deviation": {
         "decision": "OD-0008 B3",
         "upstream": "Upstream shows \"The Keychain could not save a value. Keep this editor open and try again.\" DroppyCode/App/Views/Settings/MCPSettingsPage.swift:880 - :880 error = \"The Keychain could not save a value. Keep this editor open and try again.\"; Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:3-12 - :3 /// Stores MCP secret field values in the macOS Keychain so they never sit | :7 \"MCP \" + server + \" \" + field | :12 return APIKeychain.read(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:60-64 - :60 static func read(_ account: String, service: String = AppInfo.name) -> String? { | :63 kSecAttrService as String: service, | :64 kSecAttrAccount as String: account,",
-        "port": "Marrow shows \"The Credential Manager could not save a value. Keep this editor open and try again.\" and writes to Windows Credential Manager."
+        "port": "nth shows \"The Credential Manager could not save a value. Keep this editor open and try again.\" and writes to Windows Credential Manager."
       }
     },
     {
@@ -1999,7 +1999,7 @@
       ],
       "persistence": "read only",
       "failure_cases": [
-        "a malformed custom-mcp.json: upstream silently loses EVERY custom server; Marrow reports the failed load and never overwrites the file after it (OD-0008 A2, PR-MCP-089)",
+        "a malformed custom-mcp.json: upstream silently loses EVERY custom server; nth reports the failed load and never overwrites the file after it (OD-0008 A2, PR-MCP-089)",
         "a malformed mcp.json silently loses every connection and the page shows nothing connected; this half is NOT quarantined"
       ],
       "cancellation": "not cancellable",
@@ -2009,7 +2009,7 @@
       "deviation": {
         "decision": "OD-0008 A2; OD-0012 E3",
         "upstream": "Upstream swallows any read or decode failure of custom-mcp.json, leaving customs empty with no message: DroppyCode/Services/MCP/MCPStore.swift:239-243 - :240 if let data = try? Data(contentsOf: MCPPaths.customsURL), | :241 let list = try? JSONDecoder().decode([MCPCustomServer].self, from: data) { | :242 customs = list; and saveCustoms then writes that empty list over the file: DroppyCode/Services/MCP/MCPStore.swift:265-270 - :268 guard let data = try? encoder.encode(customs) else { return } | :269 try? data.write(to: MCPPaths.customsURL, options: .atomic); upstream shows no message, so it has no wording for one",
-        "port": "Marrow tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
+        "port": "nth tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
       }
     },
     {
@@ -2056,7 +2056,7 @@
       "deviation": {
         "decision": "OD-0008 A2; OD-0012 E3",
         "upstream": "Upstream swallows any read or decode failure of custom-mcp.json, leaving customs empty with no message: DroppyCode/Services/MCP/MCPStore.swift:239-243 - :240 if let data = try? Data(contentsOf: MCPPaths.customsURL), | :241 let list = try? JSONDecoder().decode([MCPCustomServer].self, from: data) { | :242 customs = list; and saveCustoms then writes that empty list over the file: DroppyCode/Services/MCP/MCPStore.swift:265-270 - :268 guard let data = try? encoder.encode(customs) else { return } | :269 try? data.write(to: MCPPaths.customsURL, options: .atomic); upstream shows no message, so it has no wording for one",
-        "port": "Marrow tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
+        "port": "nth tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
       }
     },
     {
@@ -2179,7 +2179,7 @@
       "deviation": {
         "decision": "OD-0008 B4",
         "upstream": "Upstream stdio summary \"Runs on this Mac: <line>.\": DroppyCode/Core/Models/MCPCustom.swift:83 - :83 return \"Runs on this Mac: \\(line).\"",
-        "port": "Marrow stdio summary \"Runs on this PC: <line>.\""
+        "port": "nth stdio summary \"Runs on this PC: <line>.\""
       }
     },
     {
@@ -2217,7 +2217,7 @@
       ],
       "persistence": "read path of custom-mcp.json",
       "failure_cases": [
-        "a record missing id, name or kind throws; upstream then loses EVERY custom server silently because the whole array decode is wrapped in try?, while Marrow reports the failed load and leaves the file untouched (OD-0008 A2, PR-MCP-089)"
+        "a record missing id, name or kind throws; upstream then loses EVERY custom server silently because the whole array decode is wrapped in try?, while nth reports the failed load and leaves the file untouched (OD-0008 A2, PR-MCP-089)"
       ],
       "cancellation": "not cancellable",
       "windows_path": "Same field names and same tolerance at this level exactly.",
@@ -2226,7 +2226,7 @@
       "deviation": {
         "decision": "OD-0008 A2; OD-0012 E3",
         "upstream": "Upstream swallows any read or decode failure of custom-mcp.json, leaving customs empty with no message: DroppyCode/Services/MCP/MCPStore.swift:239-243 - :240 if let data = try? Data(contentsOf: MCPPaths.customsURL), | :241 let list = try? JSONDecoder().decode([MCPCustomServer].self, from: data) { | :242 customs = list; and saveCustoms then writes that empty list over the file: DroppyCode/Services/MCP/MCPStore.swift:265-270 - :268 guard let data = try? encoder.encode(customs) else { return } | :269 try? data.write(to: MCPPaths.customsURL, options: .atomic); upstream shows no message, so it has no wording for one",
-        "port": "Marrow tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
+        "port": "nth tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
       }
     },
     {
@@ -2242,7 +2242,7 @@
       ],
       "preconditions": "custom-mcp.json exists but cannot be read or decoded, for example because a variable object has no isSecret key.",
       "action": "The app starts and loads customs; later the user adds, edits or deletes a custom server.",
-      "expected_result": "Decoding follows upstream (PR-MCP-088): Variable uses the synthesized Decodable, which requires isSecret despite the property default, so a variable object without that key throws keyNotFound, and the throw escapes decodeIfPresent on env or headers. Upstream swallows that in load() and later overwrites the file with the empty list. Marrow instead reports to the user that custom-mcp.json could not be loaded, and no save path writes custom-mcp.json while that failed load stands, so every custom server definition in the file survives. A missing custom-mcp.json is not a failed load: upstream reads it as no custom servers (MCPStore.swift:240) and so does Marrow. The failure is shown in place of the custom server list with exactly the OD-0012 E3 text \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\"",
+      "expected_result": "Decoding follows upstream (PR-MCP-088): Variable uses the synthesized Decodable, which requires isSecret despite the property default, so a variable object without that key throws keyNotFound, and the throw escapes decodeIfPresent on env or headers. Upstream swallows that in load() and later overwrites the file with the empty list. nth instead reports to the user that custom-mcp.json could not be loaded, and no save path writes custom-mcp.json while that failed load stands, so every custom server definition in the file survives. A missing custom-mcp.json is not a failed load: upstream reads it as no custom servers (MCPStore.swift:240) and so does nth. The failure is shown in place of the custom server list with exactly the OD-0012 E3 text \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\"",
       "side_effects": [
         "the OD-0012 E3 message is shown in place of the custom server list",
         "custom-mcp.json is not written while the failed load stands"
@@ -2260,7 +2260,7 @@
       "deviation": {
         "decision": "OD-0008 A2; OD-0012 E3",
         "upstream": "Upstream swallows any read or decode failure of custom-mcp.json, leaving customs empty with no message: DroppyCode/Services/MCP/MCPStore.swift:239-243 - :240 if let data = try? Data(contentsOf: MCPPaths.customsURL), | :241 let list = try? JSONDecoder().decode([MCPCustomServer].self, from: data) { | :242 customs = list; and saveCustoms then writes that empty list over the file: DroppyCode/Services/MCP/MCPStore.swift:265-270 - :268 guard let data = try? encoder.encode(customs) else { return } | :269 try? data.write(to: MCPPaths.customsURL, options: .atomic); upstream shows no message, so it has no wording for one",
-        "port": "Marrow tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
+        "port": "nth tells the user that custom-mcp.json failed to load and never writes custom-mcp.json after a failed load. A missing file is not a failed load and starts empty, as upstream. The BLK-0002 ruling text names \"mcp-customs.json\", a file that does not exist in the source; the custom-server file is custom-mcp.json (DroppyCode/Services/MCP/MCPPaths.swift:15 static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")), so the ruling is applied to custom-mcp.json, the custom-MCP store its description identifies. ENGINEERING DECISION; the misnaming is escalated so the owner record can be corrected. OD-0012 E3 gives the message and names custom-mcp.json itself: shown in place of the custom server list, \"custom-mcp.json could not be read, so your custom servers are hidden. The file will not be changed until it can be read.\""
       },
       "open_question": "OD-0012 E3 gives the text and says it replaces the custom server list; neither it nor the source says whether the Custom section's \"Add server\" row and empty-state line stay beside the message, or which text style and colour the message uses."
     },
@@ -2486,14 +2486,14 @@
       ],
       "preconditions": "A disconnect is running.",
       "action": "deleteAll(server: entry) is called.",
-      "expected_result": "For each field of the entry, in field order, delete (entry.id, field.key). The function takes the ENTRY, not an id, precisely so a custom server - which is not in the catalog - has its variables deleted rather than silently nothing. The two OAuth field names are not entry fields and are deleted separately by MCPOAuth.signOut. Upstream discards each deletion's result; on disconnect Marrow checks it and reports a failed deletion other than a missing item (OD-0008 A12, PR-MCP-228).",
+      "expected_result": "For each field of the entry, in field order, delete (entry.id, field.key). The function takes the ENTRY, not an id, precisely so a custom server - which is not in the catalog - has its variables deleted rather than silently nothing. The two OAuth field names are not entry fields and are deleted separately by MCPOAuth.signOut. Upstream discards each deletion's result; on disconnect nth checks it and reports a failed deletion other than a missing item (OD-0008 A12, PR-MCP-228).",
       "side_effects": [
         "one deletion per declared field"
       ],
       "persistence": "those items are removed",
       "failure_cases": [
         "a field the entry no longer declares is left orphaned in the store",
-        "a store that refuses a deletion: upstream reports nothing; Marrow reports it (OD-0008 A12)"
+        "a store that refuses a deletion: upstream reports nothing; nth reports it (OD-0008 A12)"
       ],
       "cancellation": "not cancellable",
       "windows_path": "Same signature: pass the entry, never look the id up in the catalog. The items live in Windows Credential Manager (OD-0008 B3); each deletion is checked (OD-0008 A12).",
@@ -2502,7 +2502,7 @@
       "deviation": {
         "decision": "OD-0008 A12, B3; OD-0012 E6",
         "upstream": "Upstream discards every deletion result and disconnect carries on as a success: DroppyCode/Services/MCP/MCPKeychain.swift:21-23 - :22 APIKeychain.delete(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:76-83 - :82 SecItemDelete(query as CFDictionary); DroppyCode/Services/MCP/MCPStore.swift:118-120 - :118 MCPKeychain.deleteAll(server: entry) | :119 if entry.isOAuth { | :120 MCPOAuth.signOut(serverID: entry.id); DroppyCode/Services/MCP/MCPOAuth.swift:189-191 - :190 MCPKeychain.delete(server: serverID, field: \"oauth\") | :191 MCPKeychain.delete(server: serverID, field: \"oauth-client\"); Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:3-12 - :3 /// Stores MCP secret field values in the macOS Keychain so they never sit | :7 \"MCP \" + server + \" \" + field | :12 return APIKeychain.read(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:60-64 - :60 static func read(_ account: String, service: String = AppInfo.name) -> String? { | :63 kSecAttrService as String: service, | :64 kSecAttrAccount as String: account,; upstream reports nothing, so it has no wording for the report",
-        "port": "Marrow checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
+        "port": "nth checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
       },
       "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long."
     },
@@ -2529,7 +2529,7 @@
     },
     {
       "id": "PR-MCP-101",
-      "title": "Every MCP client sends protocol version 2025-06-18 and identifies itself as Marrow 1.0",
+      "title": "Every MCP client sends protocol version 2025-06-18 and identifies itself as nth 1.0",
       "source_evidence": [
         "DroppyCode/Services/MCP/MCPWire.swift:7-15 protocolVersion and initializeParams, one builder shared by the probe and the hub",
         "DroppyCode/Services/MCP/MCPProbe.swift:116 and :183 the probe's stdio and remote initialize requests",
@@ -2538,7 +2538,7 @@
       ],
       "preconditions": "none",
       "action": "An initialize request is built by the probe or the in-app hub.",
-      "expected_result": "params = {\"protocolVersion\": \"2025-06-18\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"Marrow\", \"version\": \"1.0\"}} exactly, with capabilities an empty object. The same version string is also sent as the MCP-Protocol-Version HTTP header on every remote POST from these two clients.",
+      "expected_result": "params = {\"protocolVersion\": \"2025-06-18\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"nth\", \"version\": \"1.0\"}} exactly, with capabilities an empty object. The same version string is also sent as the MCP-Protocol-Version HTTP header on every remote POST from these two clients.",
       "side_effects": [
         "none"
       ],
@@ -2547,13 +2547,13 @@
         "a server that rejects the version answers an error, which surfaces through checkReply"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same three params verbatim. The clientInfo name is \"Marrow\" (OD-0012 F1); the version \"1.0\" is a literal unrelated to the app version and stays \"1.0\". The installed JavaScript bridge deliberately sends no version and no protocol header (PR-MCP-196) - do not normalize the three clients.",
+      "windows_path": "Same three params verbatim. The clientInfo name is \"nth\" (OD-0012 F1); the version \"1.0\" is a literal unrelated to the app version and stays \"1.0\". The installed JavaScript bridge deliberately sends no version and no protocol header (PR-MCP-196) - do not normalize the three clients.",
       "verification_method": "contract fixture capturing the initialize payload from all three clients",
       "upstream_defect": null,
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream identifies both Swift clients as \"Droppy Code\" through the one builder they share: DroppyCode/Services/MCP/MCPWire.swift:13 - :13 \"clientInfo\": .object([\"name\": .string(\"Droppy Code\"), \"version\": .string(\"1.0\")]),",
-        "port": "Marrow sends clientInfo {\"name\": \"Marrow\", \"version\": \"1.0\"} from the probe and the hub."
+        "port": "nth sends clientInfo {\"name\": \"nth\", \"version\": \"1.0\"} from the probe and the hub."
       }
     },
     {
@@ -2651,7 +2651,7 @@
       "deviation": {
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:21 - :21 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
-        "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
+        "port": "nth message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
       }
     },
     {
@@ -2920,7 +2920,7 @@
       "deviation": {
         "decision": "OD-0022",
         "upstream": "Upstream sets the server's headers on the request and leaves redirects to URLSession, with no redirect delegate anywhere in the tree: DroppyCode/Services/MCP/MCPWire.swift:66-72 - :66 for (field, value) in headers { request.setValue(value, forHTTPHeaderField: field) } | :72 let (bytes, response) = try await URLSession.shared.bytes(for: request)",
-        "port": "Marrow sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops them, and a same-server redirect keeps them. Authorization follows the same rule (ED-152)."
+        "port": "nth sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops them, and a same-server redirect keeps them. Authorization follows the same rule (ED-152)."
       },
       "b3_note": "1.7.0 moved the POST into MCPWire.post, which streams the response and cuts a non-2xx body at 2000 bytes where B2 kept 2000 characters of the fully downloaded body."
     },
@@ -3015,7 +3015,7 @@
       "deviation": {
         "decision": "OD-0008 B5",
         "upstream": "Upstream message \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\": DroppyCode/Services/MCP/MCPProbe.swift:21 - :21 case \"uvx\": return \"uvx isn't installed. Run `brew install uv` in Terminal, then try again.\"",
-        "port": "Marrow message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
+        "port": "nth message \"uvx isn't installed. Run `winget install astral-sh.uv` in Terminal, then try again.\" (Windows 11's terminal app is also called Terminal). The apostrophe in \"isn't\" is U+0027, as in the source (B1 MCPProbe.swift:21, B2 :22 and B3 :21 all have byte 0x27). The OD-PENDING-19 resolution note in porting/owner_decisions_pending.md quotes the sentence with U+2019 and says U+2019 is \"kept\", on the pending question's premise that the source uses U+2019, which the source contradicts; the recommendation the owner accepted (decision_batch_20260922.md B5) replaces only the command. ENGINEERING DECISION: keep U+0027; the conflict is escalated so the owner record can be corrected."
       }
     },
     {
@@ -3557,7 +3557,7 @@
       ],
       "preconditions": "No reusable stored client.",
       "action": "clientRegistration registers.",
-      "expected_result": "A missing or empty registration_endpoint throws registrationUnsupported -> \"This server doesn't let apps sign in on their own.\". Otherwise POST JSON with exactly these members: client_name \"Marrow\"; redirect_uris a one-element array holding the loopback redirect URI; grant_types [\"authorization_code\", \"refresh_token\"]; response_types [\"code\"]; token_endpoint_auth_method \"none\"; and scope, joined with single spaces, only when the discovered resource scopes are non-empty. A non-2xx status, an unparseable body, or a missing or empty client_id throws registrationFailed with the server's own error_description or error when present, else \"The server only signs in apps it has approved (403), so this one can't yet.\" for status 403 and \"The server refused to set things up (<status>).\" otherwise. On success the client is stored under \"MCP <id> oauth-client\" as JSON with sorted keys holding client_id, issuer, and client_secret only when non-empty.",
+      "expected_result": "A missing or empty registration_endpoint throws registrationUnsupported -> \"This server doesn't let apps sign in on their own.\". Otherwise POST JSON with exactly these members: client_name \"nth\"; redirect_uris a one-element array holding the loopback redirect URI; grant_types [\"authorization_code\", \"refresh_token\"]; response_types [\"code\"]; token_endpoint_auth_method \"none\"; and scope, joined with single spaces, only when the discovered resource scopes are non-empty. A non-2xx status, an unparseable body, or a missing or empty client_id throws registrationFailed with the server's own error_description or error when present, else \"The server only signs in apps it has approved (403), so this one can't yet.\" for status 403 and \"The server refused to set things up (<status>).\" otherwise. On success the client is stored under \"MCP <id> oauth-client\" as JSON with sorted keys holding client_id, issuer, and client_secret only when non-empty.",
       "side_effects": [
         "one registration POST",
         "one protected-storage write"
@@ -3567,13 +3567,13 @@
         "the three registrationFailed renderings above, each prefixed \"Sign-in setup failed. \""
       ],
       "cancellation": "the POST is a cancellation point",
-      "windows_path": "Same body members in the same JSON shape. client_name is \"Marrow\" (OD-0012 F1). Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
+      "windows_path": "Same body members in the same JSON shape. client_name is \"nth\" (OD-0012 F1). Protected storage is Windows Credential Manager (OD-0008 B3), under the same account strings.",
       "verification_method": "contract fixture asserting the exact registration body and the stored client JSON",
       "upstream_defect": null,
       "deviation": {
         "decision": "OD-0008 B3; OD-0012 F1",
         "upstream": "Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:3-12 - :3 /// Stores MCP secret field values in the macOS Keychain so they never sit | :7 \"MCP \" + server + \" \" + field | :12 return APIKeychain.read(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:60-64 - :60 static func read(_ account: String, service: String = AppInfo.name) -> String? { | :63 kSecAttrService as String: service, | :64 kSecAttrAccount as String: account,; upstream registers as \"Droppy Code\": DroppyCode/Services/MCP/MCPOAuth.swift:369 - :369 \"client_name\": \"Droppy Code\",",
-        "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\". The registration body's client_name is \"Marrow\" (OD-0012 F1)."
+        "port": "Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\". The registration body's client_name is \"nth\" (OD-0012 F1)."
       }
     },
     {
@@ -3898,13 +3898,13 @@
       ],
       "preconditions": "none",
       "action": "An address change, a failed retry, a 401 retry, or a disconnect signs the server out.",
-      "expected_result": "Delete protected-storage accounts \"MCP <id> oauth\" and \"MCP <id> oauth-client\". Nothing is revoked at the provider: there is no revocation request anywhere in the source, so the token remains valid remotely until it expires. Upstream reports no error and deleting absent items is a no-op. When signOut runs inside disconnect (PR-MCP-061), Marrow reports a failed deletion of either item other than a missing item (OD-0008 A12); on the other three callers (an address change, a failed retry, a 401 retry) nothing is reported, as upstream, because the ruling covers only disconnect.",
+      "expected_result": "Delete protected-storage accounts \"MCP <id> oauth\" and \"MCP <id> oauth-client\". Nothing is revoked at the provider: there is no revocation request anywhere in the source, so the token remains valid remotely until it expires. Upstream reports no error and deleting absent items is a no-op. When signOut runs inside disconnect (PR-MCP-061), nth reports a failed deletion of either item other than a missing item (OD-0008 A12); on the other three callers (an address change, a failed retry, a 401 retry) nothing is reported, as upstream, because the ruling covers only disconnect.",
       "side_effects": [
         "two protected-storage deletions"
       ],
       "persistence": "both items are removed",
       "failure_cases": [
-        "a store that refuses a deletion: upstream reports nothing; inside disconnect Marrow reports it (OD-0008 A12, PR-MCP-061); on the other callers nothing is reported, as upstream"
+        "a store that refuses a deletion: upstream reports nothing; inside disconnect nth reports it (OD-0008 A12, PR-MCP-061); on the other callers nothing is reported, as upstream"
       ],
       "cancellation": "not cancellable",
       "windows_path": "Same two deletions and the same absence of a revocation call - adding one would send a request the source never sends. Both items live in Windows Credential Manager (OD-0008 B3). Inside disconnect each deletion is checked and a failure other than a missing item is reported (OD-0008 A12).",
@@ -3913,7 +3913,7 @@
       "deviation": {
         "decision": "OD-0008 A12, B3; OD-0012 E6",
         "upstream": "Upstream discards every deletion result and disconnect carries on as a success: DroppyCode/Services/MCP/MCPKeychain.swift:21-23 - :22 APIKeychain.delete(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:76-83 - :82 SecItemDelete(query as CFDictionary); DroppyCode/Services/MCP/MCPStore.swift:118-120 - :118 MCPKeychain.deleteAll(server: entry) | :119 if entry.isOAuth { | :120 MCPOAuth.signOut(serverID: entry.id); DroppyCode/Services/MCP/MCPOAuth.swift:189-191 - :190 MCPKeychain.delete(server: serverID, field: \"oauth\") | :191 MCPKeychain.delete(server: serverID, field: \"oauth-client\"); Secrets live in the macOS Keychain as generic passwords with service AppInfo.name and account \"MCP <server> <field>\": DroppyCode/Services/MCP/MCPKeychain.swift:3-12 - :3 /// Stores MCP secret field values in the macOS Keychain so they never sit | :7 \"MCP \" + server + \" \" + field | :12 return APIKeychain.read(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:60-64 - :60 static func read(_ account: String, service: String = AppInfo.name) -> String? { | :63 kSecAttrService as String: service, | :64 kSecAttrAccount as String: account,; upstream reports nothing, so it has no wording for the report",
-        "port": "Marrow checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
+        "port": "nth checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question). Secrets live in Windows Credential Manager under the same account strings, one item per \"MCP <server> <field>\"."
       },
       "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long."
     },
@@ -3994,7 +3994,7 @@
       ],
       "preconditions": "A callback outcome was decided.",
       "action": "The page is built.",
-      "expected_result": "Success: head title and heading are both \"Signed in to <HTML-escaped server name>\", and the body text is \"You can close this tab and head back to Marrow.\". Failure: the head title is \"Sign-in didn't finish \\u2014 <HTML-escaped server name>\" with an em dash surrounded by single spaces, the heading is \"Sign-in didn't finish\" with no server name, and the body text is the HTML-escaped message. The server name is the catalog entry's display name as passed by probeOnce.",
+      "expected_result": "Success: head title and heading are both \"Signed in to <HTML-escaped server name>\", and the body text is \"You can close this tab and head back to nth.\". Failure: the head title is \"Sign-in didn't finish \\u2014 <HTML-escaped server name>\" with an em dash surrounded by single spaces, the heading is \"Sign-in didn't finish\" with no server name, and the body text is the HTML-escaped message. The server name is the catalog entry's display name as passed by probeOnce.",
       "side_effects": [
         "none"
       ],
@@ -4003,13 +4003,13 @@
         "none"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Verbatim text. The em dash in the failure title is upstream product text, not repository prose, and the repository's no-em-dash rule does not reach it. \"Droppy Code\" in the success sentence becomes \"Marrow\" (OD-0012 F1).",
+      "windows_path": "Verbatim text. The em dash in the failure title is upstream product text, not repository prose, and the repository's no-em-dash rule does not reach it. \"Droppy Code\" in the success sentence becomes \"nth\" (OD-0012 F1).",
       "verification_method": "contract fixture comparing both pages byte for byte",
       "upstream_defect": null,
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream success text: DroppyCode/Services/MCP/MCPOAuth.swift:845 - :845 message: \"You can close this tab and head back to Droppy Code.\"",
-        "port": "Marrow success text: \"You can close this tab and head back to Marrow.\""
+        "port": "nth success text: \"You can close this tab and head back to nth.\""
       }
     },
     {
@@ -4024,7 +4024,7 @@
       ],
       "preconditions": "A page is being built.",
       "action": "The HTML is produced.",
-      "expected_result": "A complete document with lang=\"en\", charset utf-8, the viewport meta \"width=device-width, initial-scale=1\" and color-scheme meta \"dark\". The inline stylesheet is exact: universal box-sizing border-box; html and body margin 0 padding 0; body background #0B0B0F, colour #F5F5F7, font-family -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif, min-height 100vh, flex centred both axes. .card width 420px, max-width calc(100vw - 48px), padding 40px, border-radius 22px, background rgba(255, 255, 255, 0.06), text-align center. h1 font-size 22px, weight 600, colour #F5F5F7, margin 20px 0 8px. p font-size 14px, colour rgba(255, 255, 255, 0.62), line-height 1.5, margin 0 0 24px. .wordmark font-size 12px, colour rgba(255, 255, 255, 0.4), letter-spacing 0.04em. The body holds a div.card containing the logo, then the h1, then the p, then a div.wordmark reading \"Marrow\", followed by the script setTimeout(() => window.close(), 1500). The logo is this one line, verbatim, and is the whole of it - one <svg> element on one line with a single <path> and no whitespace between the tags:\n<svg width=\"56\" height=\"56\" viewBox=\"0 0 100 100\" opacity=\"0.9\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FFFFFF\" fill-rule=\"nonzero\" d=\"M16.00 94.00 C16.00 94.00 16.17 80.33 17.00 74.00 C17.83 67.67 19.50 61.00 21.00 56.00 C22.50 51.00 25.50 47.33 26.00 44.00 C26.50 40.67 26.17 38.83 24.00 36.00 C21.83 33.17 15.83 30.17 13.00 27.00 C10.17 23.83 7.00 17.00 7.00 17.00 C7.00 17.00 16.50 24.50 20.00 27.00 C23.50 29.50 27.50 33.17 28.00 32.00 C28.50 30.83 24.33 24.50 23.00 20.00 C21.67 15.50 20.00 5.00 20.00 5.00 C20.00 5.00 27.50 12.67 31.00 16.00 C34.50 19.33 37.17 23.67 41.00 25.00 C44.83 26.33 50.17 23.33 54.00 24.00 C57.83 24.67 61.00 26.67 64.00 29.00 C67.00 31.33 68.67 34.50 72.00 38.00 C75.33 41.50 80.33 46.33 84.00 50.00 C87.67 53.67 92.17 57.33 94.00 60.00 C95.83 62.67 95.33 64.33 95.00 66.00 C94.67 67.67 93.83 69.00 92.00 70.00 C90.17 71.00 87.33 71.67 84.00 72.00 C80.67 72.33 75.33 71.50 72.00 72.00 C68.67 72.50 67.33 72.67 64.00 75.00 C60.67 77.33 55.33 83.17 52.00 86.00 C48.67 88.83 46.00 90.67 44.00 92.00 C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z M63.00 38.00 C60.24 38.00 58.00 40.24 58.00 43.00 C58.00 45.76 60.24 48.00 63.00 48.00 C65.76 48.00 68.00 45.76 68.00 43.00 C68.00 40.24 65.76 38.00 63.00 38.00 Z M86.00 61.20 C85.01 61.20 84.20 62.01 84.20 63.00 C84.20 63.99 85.01 64.80 86.00 64.80 C86.99 64.80 87.80 63.99 87.80 63.00 C87.80 62.01 86.99 61.20 86.00 61.20 Z\"/></svg>\nThe d attribute is 1,000-odd characters of two-decimal cubic segments in three closed subpaths: the body starting M16.00 94.00, the eye starting M63.00 38.00, and the small dot starting M86.00 61.20 and ending ... 87.80 62.01 86.99 61.20 86.00 61.20 Z. Every coordinate carries exactly two decimal places. fill=\"#FFFFFF\" and fill-rule=\"nonzero\" are attributes on the path, not CSS.",
+      "expected_result": "A complete document with lang=\"en\", charset utf-8, the viewport meta \"width=device-width, initial-scale=1\" and color-scheme meta \"dark\". The inline stylesheet is exact: universal box-sizing border-box; html and body margin 0 padding 0; body background #0B0B0F, colour #F5F5F7, font-family -apple-system, \"SF Pro Text\", \"Helvetica Neue\", Helvetica, sans-serif, min-height 100vh, flex centred both axes. .card width 420px, max-width calc(100vw - 48px), padding 40px, border-radius 22px, background rgba(255, 255, 255, 0.06), text-align center. h1 font-size 22px, weight 600, colour #F5F5F7, margin 20px 0 8px. p font-size 14px, colour rgba(255, 255, 255, 0.62), line-height 1.5, margin 0 0 24px. .wordmark font-size 12px, colour rgba(255, 255, 255, 0.4), letter-spacing 0.04em. The body holds a div.card containing the logo, then the h1, then the p, then a div.wordmark reading \"nth\", followed by the script setTimeout(() => window.close(), 1500). The logo is this one line, verbatim, and is the whole of it - one <svg> element on one line with a single <path> and no whitespace between the tags:\n<svg width=\"56\" height=\"56\" viewBox=\"0 0 100 100\" opacity=\"0.9\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"#FFFFFF\" fill-rule=\"nonzero\" d=\"M16.00 94.00 C16.00 94.00 16.17 80.33 17.00 74.00 C17.83 67.67 19.50 61.00 21.00 56.00 C22.50 51.00 25.50 47.33 26.00 44.00 C26.50 40.67 26.17 38.83 24.00 36.00 C21.83 33.17 15.83 30.17 13.00 27.00 C10.17 23.83 7.00 17.00 7.00 17.00 C7.00 17.00 16.50 24.50 20.00 27.00 C23.50 29.50 27.50 33.17 28.00 32.00 C28.50 30.83 24.33 24.50 23.00 20.00 C21.67 15.50 20.00 5.00 20.00 5.00 C20.00 5.00 27.50 12.67 31.00 16.00 C34.50 19.33 37.17 23.67 41.00 25.00 C44.83 26.33 50.17 23.33 54.00 24.00 C57.83 24.67 61.00 26.67 64.00 29.00 C67.00 31.33 68.67 34.50 72.00 38.00 C75.33 41.50 80.33 46.33 84.00 50.00 C87.67 53.67 92.17 57.33 94.00 60.00 C95.83 62.67 95.33 64.33 95.00 66.00 C94.67 67.67 93.83 69.00 92.00 70.00 C90.17 71.00 87.33 71.67 84.00 72.00 C80.67 72.33 75.33 71.50 72.00 72.00 C68.67 72.50 67.33 72.67 64.00 75.00 C60.67 77.33 55.33 83.17 52.00 86.00 C48.67 88.83 46.00 90.67 44.00 92.00 C42.00 93.33 40.00 94.00 40.00 94.00 C40.00 94.00 16.00 94.00 16.00 94.00 Z M63.00 38.00 C60.24 38.00 58.00 40.24 58.00 43.00 C58.00 45.76 60.24 48.00 63.00 48.00 C65.76 48.00 68.00 45.76 68.00 43.00 C68.00 40.24 65.76 38.00 63.00 38.00 Z M86.00 61.20 C85.01 61.20 84.20 62.01 84.20 63.00 C84.20 63.99 85.01 64.80 86.00 64.80 C86.99 64.80 87.80 63.99 87.80 63.00 C87.80 62.01 86.99 61.20 86.00 61.20 Z\"/></svg>\nThe d attribute is 1,000-odd characters of two-decimal cubic segments in three closed subpaths: the body starting M16.00 94.00, the eye starting M63.00 38.00, and the small dot starting M86.00 61.20 and ending ... 87.80 62.01 86.99 61.20 86.00 61.20 Z. Every coordinate carries exactly two decimal places. fill=\"#FFFFFF\" and fill-rule=\"nonzero\" are attributes on the path, not CSS.",
       "side_effects": [
         "the browser tab closes itself 1.5 seconds after the page loads, when the browser permits it"
       ],
@@ -4033,13 +4033,13 @@
         "a browser that refuses window.close leaves the tab open, which the success text already tells the user to close"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Ship the document byte for byte: the inline path data exactly as given above, the dark color-scheme meta, the 1500 ms close and the exact CSS. The -apple-system and SF Pro Text font names do not resolve on Windows and fall through to the generic sans-serif; that is the upstream stack rendered on a different platform, not a change to make. The wordmark reads \"Marrow\" (OD-0012 F1). The logo path is Droppy's mark and product identity under OD-0002, but no ruling names what replaces it (open_question); everything else in the document is not identity and must not be touched.",
-      "verification_method": "contract fixture comparing the generated HTML byte for byte against the frozen copy in porting/extracts/mcp-protocol-and-oauth.md:839-896 (section 4), which is the named frozen copy this requirement is tested against, except that the wordmark reads \"Marrow\" where the frozen copy reads \"Droppy Code\" (OD-0012 F1)",
+      "windows_path": "Ship the document byte for byte: the inline path data exactly as given above, the dark color-scheme meta, the 1500 ms close and the exact CSS. The -apple-system and SF Pro Text font names do not resolve on Windows and fall through to the generic sans-serif; that is the upstream stack rendered on a different platform, not a change to make. The wordmark reads \"nth\" (OD-0012 F1). The logo path is Droppy's mark and product identity under OD-0002, but no ruling names what replaces it (open_question); everything else in the document is not identity and must not be touched.",
+      "verification_method": "contract fixture comparing the generated HTML byte for byte against the frozen copy in porting/extracts/mcp-protocol-and-oauth.md:839-896 (section 4), which is the named frozen copy this requirement is tested against, except that the wordmark reads \"nth\" where the frozen copy reads \"Droppy Code\" (OD-0012 F1)",
       "upstream_defect": null,
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream wordmark: DroppyCode/Services/MCP/MCPOAuth.swift:910 - :910 <div class=\"wordmark\">Droppy Code</div>",
-        "port": "Marrow wordmark: <div class=\"wordmark\">Marrow</div>."
+        "port": "nth wordmark: <div class=\"wordmark\">nth</div>."
       },
       "open_question": "The callback page's logo (MCPOAuth.swift:907) is Droppy's mark. OD-0012 F1 rules the product name only, and no ruling names the artwork, if any, that replaces this logo on the Windows page."
     },
@@ -4606,7 +4606,7 @@
       "deviation": {
         "decision": "OD-0022",
         "upstream": "Upstream sets the server's headers on the request and leaves redirects to URLSession, with no redirect delegate anywhere in the tree: DroppyCode/Services/MCP/MCPWire.swift:66-72 - :66 for (field, value) in headers { request.setValue(value, forHTTPHeaderField: field) } | :72 let (bytes, response) = try await URLSession.shared.bytes(for: request)",
-        "port": "Marrow sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops them, and a same-server redirect keeps them. Authorization follows the same rule (ED-152)."
+        "port": "nth sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops them, and a same-server redirect keeps them. Authorization follows the same rule (ED-152)."
       },
       "b3_note": "1.7.0 made the hub's post a wrapper over MCPWire.post, which streams event-stream replies, matches the request id, and returns nil for a notification without reading."
     },
@@ -4848,7 +4848,7 @@
       ],
       "preconditions": "The bridge is connecting a server.",
       "action": "It sends and receives messages.",
-      "expected_result": "initialize params are {protocolVersion: \"2025-06-18\", capabilities: {}, clientInfo: {name: \"Marrow\"}} - NO version field. Remote requests send the entry's headers plus Content-Type: application/json and Accept: application/json, text/event-stream, and NO MCP-Protocol-Version header at all; the session header is the lowercase \"mcp-session-id\" on both send and read. An SSE frame is accepted when its data parses to an object having \"result\" OR \"error\" - not, as in the Swift clients, an \"id\" - and a data payload of \"[DONE]\" is skipped. A tool's description falls back to its own name when absent or empty, and its schema falls back to the literal {type: \"object\"} with no properties key. Result content maps a text item to its text and EVERY other item to the literal \"[image]\", joined with newlines; an isError result is returned as \"Error: \" plus that text or, when empty, \"Error: tool failed\"; a thrown error is returned as \"Error: \" plus its message rather than rejecting.",
+      "expected_result": "initialize params are {protocolVersion: \"2025-06-18\", capabilities: {}, clientInfo: {name: \"nth\"}} - NO version field. Remote requests send the entry's headers plus Content-Type: application/json and Accept: application/json, text/event-stream, and NO MCP-Protocol-Version header at all; the session header is the lowercase \"mcp-session-id\" on both send and read. An SSE frame is accepted when its data parses to an object having \"result\" OR \"error\" - not, as in the Swift clients, an \"id\" - and a data payload of \"[DONE]\" is skipped. A tool's description falls back to its own name when absent or empty, and its schema falls back to the literal {type: \"object\"} with no properties key. Result content maps a text item to its text and EVERY other item to the literal \"[image]\", joined with newlines; an isError result is returned as \"Error: \" plus that text or, when empty, \"Error: tool failed\"; a thrown error is returned as \"Error: \" plus its message rather than rejecting.",
       "side_effects": [
         "none beyond the requests themselves"
       ],
@@ -4857,13 +4857,13 @@
         "a tool failure is returned as an \"Error: …\" string, so the host sees a successful call with error text"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Copy the bridge text character for character, except that the clientInfo name is \"Marrow\" (OD-0012 F1), including the missing header, the version-less clientInfo, the lowercase session header, the result-or-error SSE rule and the \"[image]\" catch-all. Normalizing the three clients would change what remote servers see from Pi and Command Code.",
+      "windows_path": "Copy the bridge text character for character, except that the clientInfo name is \"nth\" (OD-0012 F1), including the missing header, the version-less clientInfo, the lowercase session header, the result-or-error SSE rule and the \"[image]\" catch-all. Normalizing the three clients would change what remote servers see from Pi and Command Code.",
       "verification_method": "contract fixture capturing the bridge's wire traffic against a stub server",
       "upstream_defect": null,
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "The bridge identifies itself as \"Droppy Code\": DroppyCode/Services/MCP/MCPBridgeSource.swift:138 and :203 - await request(\"initialize\", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: \"Droppy Code\" } });",
-        "port": "The bridge sends clientInfo { name: \"Marrow\" } at both initialize sites, still with no version field."
+        "port": "The bridge sends clientInfo { name: \"nth\" } at both initialize sites, still with no version field."
       }
     },
     {
@@ -4918,7 +4918,7 @@
       ],
       "preconditions": "Settings is open on the MCP page.",
       "action": "The page renders.",
-      "expected_result": "A leading-aligned vertical stack with 20 points between sections, in this order: the lead card; the Connected section, present only when at least one catalog server is connected and not currently celebrating; the Custom section; one section per non-empty visible category, each a two-column grid; and the footer line \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.\" in the .subheadline text style (11 points nominal) in Chrome.secondaryText, which at B2 is Chrome.primaryText at opacity 0.7 (ED-062). The grid columns are two flexible items with 10 points between them and 10 points between rows.",
+      "expected_result": "A leading-aligned vertical stack with 20 points between sections, in this order: the lead card; the Connected section, present only when at least one catalog server is connected and not currently celebrating; the Custom section; one section per non-empty visible category, each a two-column grid; and the footer line \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.\" in the .subheadline text style (11 points nominal) in Chrome.secondaryText, which at B2 is Chrome.primaryText at opacity 0.7 (ED-062). The grid columns are two flexible items with 10 points between them and 10 points between rows.",
       "side_effects": [
         "none"
       ],
@@ -4927,13 +4927,13 @@
         "a search that matches nothing leaves only the lead card, the Custom section when it is not searching, and the footer"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same order and the same literal spacings. The footer's product name is \"Marrow\" (OD-0012 F1).",
+      "windows_path": "Same order and the same literal spacings. The footer's product name is \"nth\" (OD-0012 F1).",
       "verification_method": "capture comparison against a rendered page plus an interaction test on the section order",
       "upstream_defect": null,
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream footer: DroppyCode/App/Views/Settings/MCPSettingsPage.swift:60 - :60 Text(\"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Droppy Code itself.\")",
-        "port": "Marrow footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.\""
+        "port": "nth footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.\""
       },
       "b2_change": "Footer font B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)) (same 11 nominal). Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7), i.e. Chrome.primaryText (labelColor) at opacity 0.7 instead of secondaryLabelColor. Order, spacing 20 and the grid are unchanged. Size per ED-059: .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), fixed per style and scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001."
     },
@@ -5095,7 +5095,7 @@
       "deviation": {
         "decision": "OD-0008 B4",
         "upstream": "Upstream empty-state line says \"a command that runs on this Mac\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:397 - :397 Text(\"Servers of your own: a command that runs on this Mac, or a remote address, with the variables they need.\")",
-        "port": "Marrow says \"a command that runs on this PC\"; the rest of the sentence is verbatim."
+        "port": "nth says \"a command that runs on this PC\"; the rest of the sentence is verbatim."
       }
     },
     {
@@ -5145,7 +5145,7 @@
       "deviation": {
         "decision": "OD-0008 B3",
         "upstream": "Upstream shows \"The Keychain could not save a value. Keep this editor open and try again.\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:880 - :880 error = \"The Keychain could not save a value. Keep this editor open and try again.\"",
-        "port": "Marrow shows \"The Credential Manager could not save a value. Keep this editor open and try again.\""
+        "port": "nth shows \"The Credential Manager could not save a value. Keep this editor open and try again.\""
       }
     },
     {
@@ -5199,7 +5199,7 @@
       "deviation": {
         "decision": "OD-0008 B3",
         "upstream": "Upstream tooltips \"Kept in the Keychain\" and \"Stored in mcp.json; click to keep it in the Keychain instead\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:814 - :814 .help(variable.isSecret ? \"Kept in the Keychain\" : \"Stored in mcp.json; click to keep it in the Keychain instead\")",
-        "port": "Marrow tooltips \"Kept in the Credential Manager\" and \"Stored in mcp.json; click to keep it in the Credential Manager instead\"."
+        "port": "nth tooltips \"Kept in the Credential Manager\" and \"Stored in mcp.json; click to keep it in the Credential Manager instead\"."
       }
     },
     {
@@ -5247,7 +5247,7 @@
       "deviation": {
         "decision": "OD-0008 B4",
         "upstream": "Upstream Connects line \"Runs on this Mac through <command> (<package>).\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:1043 - :1043 return \"Runs on this Mac through \\(command) (\\(package)).\"",
-        "port": "Marrow Connects line \"Runs on this PC through <command> (<package>).\""
+        "port": "nth Connects line \"Runs on this PC through <command> (<package>).\""
       }
     },
     {
@@ -5858,7 +5858,7 @@
       "deviation": {
         "decision": "OD-0008 B3",
         "upstream": "Upstream row text \"Keys stay in your Keychain\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:103 - :103 fact(symbol: \"lock.fill\", text: \"Keys stay in your Keychain\")",
-        "port": "Marrow shows \"Keys stay in your Credential Manager\" and stores the keys in Windows Credential Manager."
+        "port": "nth shows \"Keys stay in your Credential Manager\" and stores the keys in Windows Credential Manager."
       }
     },
     {
@@ -6045,17 +6045,17 @@
       ],
       "interactions": [
         "click disconnects immediately, with no confirmation: it deletes the server's stored secrets, clears the connection and rewrites the provider configs",
-        "Marrow: a stored secret that fails to delete is reported instead of a silent success (OD-0008 A12), with the text \"Disconnected, but Credential Manager did not remove this server’s stored values.\" (OD-0012 E6)"
+        "nth: a stored secret that fails to delete is reported instead of a silent success (OD-0008 A12), with the text \"Disconnected, but Credential Manager did not remove this server’s stored values.\" (OD-0012 E6)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:190-192",
         "DroppyCode/Services/MCP/MCPStore.swift:115-128"
       ],
-      "notes": "Symbol xmark.circle, marked destructive. Unconfirmed upstream and in Marrow: no ruling adds a confirmation to Disconnect. OD-0008 A12 makes a failed secret deletion visible (PR-MCP-228).",
+      "notes": "Symbol xmark.circle, marked destructive. Unconfirmed upstream and in nth: no ruling adds a confirmation to Disconnect. OD-0008 A12 makes a failed secret deletion visible (PR-MCP-228).",
       "deviation": {
         "decision": "OD-0008 A12; OD-0012 E6",
         "upstream": "Upstream discards every deletion result and disconnect carries on as a success: DroppyCode/Services/MCP/MCPKeychain.swift:21-23 - :22 APIKeychain.delete(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:76-83 - :82 SecItemDelete(query as CFDictionary); DroppyCode/Services/MCP/MCPStore.swift:118-120 - :118 MCPKeychain.deleteAll(server: entry) | :119 if entry.isOAuth { | :120 MCPOAuth.signOut(serverID: entry.id); DroppyCode/Services/MCP/MCPOAuth.swift:189-191 - :190 MCPKeychain.delete(server: serverID, field: \"oauth\") | :191 MCPKeychain.delete(server: serverID, field: \"oauth-client\"); upstream reports nothing, so it has no wording for the report",
-        "port": "Marrow checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question)."
+        "port": "nth checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question)."
       },
       "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long."
     },
@@ -6485,7 +6485,7 @@
       "deviation": {
         "decision": "OD-0008 B4",
         "upstream": "Upstream line \"Servers of your own: a command that runs on this Mac, or a remote address, with the variables they need.\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:397 - :397 Text(\"Servers of your own: a command that runs on this Mac, or a remote address, with the variables they need.\")",
-        "port": "Marrow line \"Servers of your own: a command that runs on this PC, or a remote address, with the variables they need.\""
+        "port": "nth line \"Servers of your own: a command that runs on this PC, or a remote address, with the variables they need.\""
       }
     },
     {
@@ -6690,7 +6690,7 @@
       ],
       "interactions": [
         "click disconnects immediately, deleting the server's stored variable values",
-        "Marrow: a stored secret that fails to delete is reported instead of a silent success (OD-0008 A12), with the text \"Disconnected, but Credential Manager did not remove this server’s stored values.\" (OD-0012 E6)"
+        "nth: a stored secret that fails to delete is reported instead of a silent success (OD-0008 A12), with the text \"Disconnected, but Credential Manager did not remove this server’s stored values.\" (OD-0012 E6)"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:560-562 - :560 PopoverItem(\"Disconnect\", symbol: \"xmark.circle\", isEnabled: state.isConnected, isDestructive: true) { | :561 model.mcp.disconnect(entry)",
@@ -6700,7 +6700,7 @@
       "deviation": {
         "decision": "OD-0008 A12; OD-0012 E6",
         "upstream": "Upstream discards every deletion result and disconnect carries on as a success: DroppyCode/Services/MCP/MCPKeychain.swift:21-23 - :22 APIKeychain.delete(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:76-83 - :82 SecItemDelete(query as CFDictionary); DroppyCode/Services/MCP/MCPStore.swift:118-120 - :118 MCPKeychain.deleteAll(server: entry) | :119 if entry.isOAuth { | :120 MCPOAuth.signOut(serverID: entry.id); DroppyCode/Services/MCP/MCPOAuth.swift:189-191 - :190 MCPKeychain.delete(server: serverID, field: \"oauth\") | :191 MCPKeychain.delete(server: serverID, field: \"oauth-client\"); upstream reports nothing, so it has no wording for the report",
-        "port": "Marrow checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question)."
+        "port": "nth checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question)."
       },
       "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long."
     },
@@ -6744,11 +6744,11 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:564-566",
         "DroppyCode/Services/MCP/MCPStore.swift:187-193"
       ],
-      "notes": "Symbol trash, destructive. Upstream deletes on one click and ignores confirmBeforeDeleting; Marrow asks first when the setting is on (OD-0008 A1, BLK-0001 resolved). The confirmation follows OD-0012 E1 in the form of upstream's DeleteThreadPopover (SidebarView.swift:967-981): question \"Delete this server?\", note \"“<name>” and the values it keeps in Credential Manager will be removed.\", red button \"Delete server\". See PR-MCP-073.",
+      "notes": "Symbol trash, destructive. Upstream deletes on one click and ignores confirmBeforeDeleting; nth asks first when the setting is on (OD-0008 A1, BLK-0001 resolved). The confirmation follows OD-0012 E1 in the form of upstream's DeleteThreadPopover (SidebarView.swift:967-981): question \"Delete this server?\", note \"“<name>” and the values it keeps in Credential Manager will be removed.\", red button \"Delete server\". See PR-MCP-073.",
       "deviation": {
         "decision": "OD-0008 A1; OD-0012 E1",
         "upstream": "Upstream: one click deletes, no confirmation: DroppyCode/App/Views/Settings/MCPSettingsPage.swift:564-566 - :564 PopoverItem(\"Delete\", symbol: \"trash\", isDestructive: true) { | :565 model.mcp.deleteCustom(server); upstream has no wording for this confirmation because it never asks",
-        "port": "Marrow: asks for confirmation first when confirmBeforeDeleting is on. The confirmation reads, per OD-0012 E1: question \"Delete this server?\", note \"“<name>” and the values it keeps in Credential Manager will be removed.\", red button \"Delete server\"."
+        "port": "nth: asks for confirmation first when confirmBeforeDeleting is on. The confirmation reads, per OD-0012 E1: question \"Delete this server?\", note \"“<name>” and the values it keeps in Credential Manager will be removed.\", red button \"Delete server\"."
       }
     },
     {
@@ -6865,7 +6865,7 @@
       "deviation": {
         "decision": "OD-0008 B4",
         "upstream": "Upstream option \"stdio — a command on this Mac\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:637 - :637 options: [(MCPCustomServer.Kind.stdio, \"stdio — a command on this Mac\"), (.http, \"http — a remote server\")],",
-        "port": "Marrow option \"stdio — a command on this PC\"; the em dash stays (OD-0008 B14)."
+        "port": "nth option \"stdio — a command on this PC\"; the em dash stays (OD-0008 B14)."
       }
     },
     {
@@ -7023,12 +7023,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:804-814 - :805 variable.isSecret.toggle() | :807 Image(systemName: variable.isSecret ? \"lock.fill\" : \"lock.open\") | :808 .font(.system(.callout, weight: .medium)) | :809 .foregroundStyle(variable.isSecret ? Chrome.accent : Chrome.secondaryText) | :810 .frame(width: 24, height: 24) | :811 .contentShape(.rect) | :814 .help(variable.isSecret ? \"Kept in the Keychain\" : \"Stored in mcp.json; click to keep it in the Keychain instead\")"
       ],
-      "notes": "Both tooltips are the OD-0008 B3 wording; upstream says \"Keychain\" where Marrow says \"Credential Manager\". mcp.json is named verbatim.",
+      "notes": "Both tooltips are the OD-0008 B3 wording; upstream says \"Keychain\" where nth says \"Credential Manager\". mcp.json is named verbatim.",
       "b2_change": "Moved: B1 :781-791 -> B2 :804-814. B1 :785 .font(.system(size: 12, weight: .medium)) -> B2 :808 .font(.system(.callout, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
       "deviation": {
         "decision": "OD-0008 B3",
         "upstream": "Upstream tooltips \"Kept in the Keychain\" and \"Stored in mcp.json; click to keep it in the Keychain instead\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:814 - :814 .help(variable.isSecret ? \"Kept in the Keychain\" : \"Stored in mcp.json; click to keep it in the Keychain instead\")",
-        "port": "Marrow tooltips \"Kept in the Credential Manager\" and \"Stored in mcp.json; click to keep it in the Credential Manager instead\"."
+        "port": "nth tooltips \"Kept in the Credential Manager\" and \"Stored in mcp.json; click to keep it in the Credential Manager instead\"."
       }
     },
     {
@@ -7097,7 +7097,7 @@
       "deviation": {
         "decision": "OD-0008 B3",
         "upstream": "Upstream hint \"Locked values are kept in the Keychain.\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:836 - :836 Text(\"Locked values are kept in the Keychain.\")",
-        "port": "Marrow hint \"Locked values are kept in the Credential Manager.\""
+        "port": "nth hint \"Locked values are kept in the Credential Manager.\""
       }
     },
     {
@@ -7123,7 +7123,7 @@
       "deviation": {
         "decision": "OD-0008 B3",
         "upstream": "Upstream error \"The Keychain could not save a value. Keep this editor open and try again.\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:880 - :880 error = \"The Keychain could not save a value. Keep this editor open and try again.\"",
-        "port": "Marrow error \"The Credential Manager could not save a value. Keep this editor open and try again.\""
+        "port": "nth error \"The Credential Manager could not save a value. Keep this editor open and try again.\""
       }
     },
     {
@@ -7698,7 +7698,7 @@
       "screen": "Settings > MCP page",
       "element": "Footer line",
       "role": "label",
-      "exact_text": "Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.",
+      "exact_text": "Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.",
       "geometry": "the last element of the page stack, 20 below the final section",
       "typography": ".system(.subheadline) (11 nominal)",
       "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, B2 DroppyCode/UI/Chrome/Chrome.swift:79)",
@@ -7711,11 +7711,11 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:60-62 - :60 Text(\"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Droppy Code itself.\") | :61 .font(.system(.subheadline)) | :62 .foregroundStyle(Chrome.secondaryText)"
       ],
-      "notes": "Product text naming the app; OD-0012 F1 makes the name \"Marrow\" and nothing else about it changes.",
+      "notes": "Product text naming the app; OD-0012 F1 makes the name \"nth\" and nothing else about it changes.",
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream footer: DroppyCode/App/Views/Settings/MCPSettingsPage.swift:60 - :60 Text(\"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Droppy Code itself.\")",
-        "port": "Marrow footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.\""
+        "port": "nth footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.\""
       },
       "b2_change": "No shift. B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)). The string is unchanged. Its colour token Chrome.secondaryText changed value (primaryText at 0.7). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
     },

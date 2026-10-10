@@ -8,7 +8,7 @@ namespace Marrow.App.Tests.Views.Composer;
 // REVIEW (adversarial, unit jewel-knob, review round 6 on ebb2bfc58): each test states what the unit's code must do and
 // failed on the head reviewed; they pass from 111a8a675 (round 6 answered), kept under plain names. The frame gate: ED-252 says the knob's frame gate is the locked page's frameGate, "every refresh at 60 to 75
 // Hz, every 4th at 240 Hz" (strike-engine.js:56-66, OD-0090's locked page). The page's gate measures the refresh r (the
-// smallest recent frame gap), draws every Nth refresh with N = max(1, floor(1000 / 60 / r + 0.05)), and so paces its
+// smallest recent frame gap), draws every nth refresh with N = max(1, floor(1000 / 60 / r + 0.05)), and so paces its
 // frames evenly on the display's refresh: at 75 Hz every refresh (75 a second), at 144 Hz every 2nd (72 a second), at
 // 239 Hz every 4th. The port's gate is a fixed 1/60 s due time with 1 ms slack (EffortSlider.cs OnFrame), which caps the
 // knob at 60 a second and paces it unevenly whenever the refresh is not a divisor of 60 Hz.

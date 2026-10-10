@@ -52,7 +52,7 @@ public sealed class AppUpdaterFailureAlertTests
         await using var server = new LoopbackHttpServer();
         var fake = new FakeUpdateInstallBoundary
         {
-            VerifyThrows = new UpdateInstallError("The downloaded app is not signed by Marrow. reason"),
+            VerifyThrows = new UpdateInstallError("The downloaded app is not signed by nth. reason"),
         };
         var updater = new AppUpdater(fake);
         var reply = Respond(server, 200, [1, 2, 3]);
@@ -63,7 +63,7 @@ public sealed class AppUpdaterFailureAlertTests
 
         var alert = Assert.Single(presenter.Shown);
         Assert.Equal("Update Failed", alert.Title); // :276, title case, no full stop, byte for byte
-        Assert.Equal("The downloaded app is not signed by Marrow. reason", alert.InformativeText); // :277
+        Assert.Equal("The downloaded app is not signed by nth. reason", alert.InformativeText); // :277
         Assert.Equal(AlertStyle.Warning, alert.Style); // :278
         Assert.Single(alert.Buttons); // :279, the single default dismiss button; no retry affordance
     }

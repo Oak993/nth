@@ -321,7 +321,7 @@
         if (nv && look === 'C' && i === 3) {
           extra = s === 'offer' ? '<button class="czbtn sm" data-a="dl" title="NVIDIA CUDA, ' + SIZE + ' from nuget.org and NVIDIA">Get CUDA, ' + SIZE + '</button>'
             : s === 'dl' ? '<span class="dt">CUDA <span class="pct">' + p + '%</span></span>' + MX
-              : s === 'done' ? '<span class="dt">CUDA installed, restart Marrow to use it</span>'
+              : s === 'done' ? '<span class="dt">CUDA installed, restart nth to use it</span>'
                 : '<span class="dt">CUDA didn’t download</span><button class="czbtn sm" data-a="dl">Try again</button>';
         }
         return '<div class="hwi"><span>' + CK + '</span><span class="hwk">' + k + '</span><span class="hwv"><span>' + esc(v) + '</span>' + extra + '</span></div>';
@@ -330,7 +330,7 @@
       if (nv && look === 'B') {
         const t = s === 'offer' ? 'Your RTX 4080 can also run it on NVIDIA CUDA, a separate ' + SIZE + ' download.'
           : s === 'dl' ? 'Downloading NVIDIA CUDA: <span class="pct">' + p + '%</span>'
-            : s === 'done' ? 'NVIDIA CUDA is installed. Restart Marrow to use it.'
+            : s === 'done' ? 'NVIDIA CUDA is installed. Restart nth to use it.'
               : 'NVIDIA CUDA didn’t download. Nothing was installed.';
         const b = s === 'offer' ? '<button class="czbtn" data-a="dl">Download CUDA</button>' : s === 'dl' ? MX : s === 'fail' ? '<button class="czbtn" data-a="dl">Try again</button>' : '';
         inBox = '<div class="cudal"><span class="dt">' + t + '</span>' + b + '</div>' + (s === 'dl' ? '<div class="mbar on" style="margin:0;--p:' + p + '%"><i></i></div>' : '');
@@ -338,7 +338,7 @@
       if (nv && look === 'A') {
         const d = s === 'offer' ? 'Optional, for NVIDIA cards. ' + SIZE + ' from nuget.org and NVIDIA'
           : s === 'dl' ? 'Downloading from nuget.org and NVIDIA'
-            : s === 'done' ? 'Installed. Restart Marrow to use it'
+            : s === 'done' ? 'Installed. Restart nth to use it'
               : 'The download didn’t finish. Nothing was installed';
         const m = s === 'offer' || s === 'fail' ? '<button class="czbtn" data-a="dl">Download</button>'
           : s === 'dl' ? '<span class="pct">' + p + '%</span>' + MX : CK + '<span>Installed</span>';
@@ -348,7 +348,7 @@
       if (nv && look === 'D') {
         const t = s === 'offer' ? 'NVIDIA cards can also run voice typing on CUDA, NVIDIA’s own runtime: a separate ' + SIZE + ' download from nuget.org and NVIDIA. <button class="lk" data-a="dl">Download CUDA</button>'
           : s === 'dl' ? 'Downloading NVIDIA CUDA, <span class="pct">' + p + '%</span>. <button class="lk">Cancel</button>'
-            : s === 'done' ? 'NVIDIA CUDA is installed. Restart Marrow to use it.'
+            : s === 'done' ? 'NVIDIA CUDA is installed. Restart nth to use it.'
               : 'NVIDIA CUDA didn’t download, and nothing was installed. <button class="lk" data-a="dl">Try again</button>';
         foot = '<div class="hwnote">' + t + '</div>';
       }

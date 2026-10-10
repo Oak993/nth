@@ -47,7 +47,7 @@ public sealed class AboutUpdateViewsProofSliderTests(HeadlessSession headless)
         Assert.Equal(shown, capsule.Shown, 12);
         Assert.False(capsule.IsHitTestVisible); // not a button: the install runs by itself
         Assert.Equal(fraction >= 1, capsule.IsDone);
-        Assert.Equal("Updating Marrow", AutomationProperties.GetName(slider));
+        Assert.Equal("Updating nth", AutomationProperties.GetName(slider));
         var peer = ControlAutomationPeer.CreatePeerForElement(slider)!; Assert.Equal(AutomationControlType.ProgressBar, peer.GetAutomationControlType());
         Assert.True(Assert.IsAssignableFrom<IValueProvider>(peer).IsReadOnly); Assert.IsNotType<Button>(slider);
         Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(capsule)); // the control's own name and value say it

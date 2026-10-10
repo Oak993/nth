@@ -20,10 +20,11 @@ namespace Marrow.App.Tests.Views.Settings;
 
 // B3 52bc792: AboutUpdateViews.swift:553-558 draws NSApp.applicationIconImage at 20 pt, high interpolation.
 // OD-0112 / OD-0033: the approved Aurora bitmap from generate_app_icon_d.py; ED-402 pins the replacement hash.
+// OD-0136: the approved bitmap is now the nth icon B, scripts/brand/NthIcon's icon.png (512 px); its hash is pinned here.
 [Collection("Headless")]
 public sealed class AboutIdentityIconTests(HeadlessSession headless)
 {
-    private const string ApprovedSha256 = "2833C700A1BEC5DB954FD0EDC3045708BC1A821E0F8D4CB47958036408097008";
+    private const string ApprovedSha256 = "37013DCFD529A2565D715CE1E19D836C587B9C044A13819FB97EECFF9FF9C613";
 
     private static byte[] Draw(Control image)
     {

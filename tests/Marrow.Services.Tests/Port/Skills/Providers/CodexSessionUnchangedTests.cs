@@ -31,11 +31,11 @@ public sealed class CodexSessionUnchangedTests
     public void The_initialize_message_is_the_one_the_Mac_source_builds_with_the_Marrow_identity()
     {
         var parameters = (JSONValue)CodexWiringFixture.CallStatic("InitializeParameters")!;
-        var expected = "{\"clientInfo\":{\"name\":\"marrow\",\"title\":\"Marrow\",\"version\":" +
+        var expected = "{\"clientInfo\":{\"name\":\"nth\",\"title\":\"nth\",\"version\":" +
             System.Text.Json.JsonSerializer.Serialize(AppInfo.Current.Version) + "},\"capabilities\":{\"experimentalApi\":true}}";
         Assert.Equal(CodexWiringFixture.Bytes(CodexWiringFixture.Json(expected)), CodexWiringFixture.Bytes(parameters));
-        Assert.Equal("marrow", parameters["clientInfo"]!["name"]!.JSONValueString);
-        Assert.Equal("Marrow", parameters["clientInfo"]!["title"]!.JSONValueString);
+        Assert.Equal("nth", parameters["clientInfo"]!["name"]!.JSONValueString);
+        Assert.Equal("nth", parameters["clientInfo"]!["title"]!.JSONValueString);
         Assert.True(parameters["capabilities"]!["experimentalApi"]!.JSONValueBool);
         Assert.Null(parameters["capabilities"]!["skills"]);
     }
@@ -106,7 +106,7 @@ public sealed class CodexSessionUnchangedTests
         var wiring = new CodexSkillWiring(moved, f.Paths);
         var bare = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(resumeId: "r1"), "ResumeParameters", Params(), "r1")!;
         var withNote = (Dictionary<string, JSONValue>)CodexWiringFixture.Call(CodexWiringFixture.Session(wiring, resumeId: "r1"), "ResumeParameters", Params(), "r1")!;
-        var line = "Marrow's skills for this chat are now in " + moved.Folder + ". Paths under " + original + " earlier in this conversation no longer exist; use the same relative path under the new folder.";
+        var line = "nth's skills for this chat are now in " + moved.Folder + ". Paths under " + original + " earlier in this conversation no longer exist; use the same relative path under the new folder.";
         Assert.Equal(line, wiring.MovedNote);
         Assert.Equal(bare["developerInstructions"].JSONValueString + "\n\n" + line, withNote["developerInstructions"].JSONValueString);
         Assert.Equal(bare.Keys.Order(), withNote.Keys.Order());
@@ -120,7 +120,7 @@ public sealed class CodexSessionUnchangedTests
     public void The_skills_moved_line_is_exact_for_a_generation_that_moved()
     {
         var line = CodexSkillWiring.MovedLine("/new/chat-a-0123456789abcdef", "/old/chat-a");
-        Assert.Equal("Marrow's skills for this chat are now in /new/chat-a-0123456789abcdef. Paths under /old/chat-a earlier in this conversation no longer exist; use the same relative path under the new folder.", line);
+        Assert.Equal("nth's skills for this chat are now in /new/chat-a-0123456789abcdef. Paths under /old/chat-a earlier in this conversation no longer exist; use the same relative path under the new folder.", line);
     }
 
     [Fact]

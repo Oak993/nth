@@ -10,7 +10,7 @@ namespace Marrow.App.Port.Voice.Cuda;
 /// The CUDA offer of Settings &gt; Voice typing &gt; Speech model (OD-0106 CUDA A, OD-0099 Q-V-9 C): shown only on a PC with an NVIDIA graphics card whose hardware probe finished,
 /// while CUDA is not already the working backend and while an installer for NVIDIA's libraries is bound; one Download starts the pack through VT-7's installer (on the shared
 /// downloader) and then the libraries; progress counts both by their bytes; the x cancels and keeps the partial; the end states are Installed (the next start uses it: the page's
-/// "Restart Marrow to use it", ED-351) or Failed (Download again). <see cref="Changed"/> may be raised from a download thread: the view marshals it. The row's drawing in
+/// "Restart nth to use it", ED-351) or Failed (Download again). <see cref="Changed"/> may be raised from a download thread: the view marshals it. The row's drawing in
 /// the hardware card is mounted by CudaOfferComposition and VoiceHardwareCard.
 /// </summary>
 public sealed class CudaOffer : IDisposable

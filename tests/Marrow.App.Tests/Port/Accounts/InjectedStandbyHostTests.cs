@@ -50,7 +50,7 @@ public sealed class InjectedStandbyHostTests
         rig.Send("the next message");
         var turn = Assert.Single(fake.Inputs);
         Assert.Equal("the next message", turn.Text);
-        Assert.DoesNotContain("[Marrow Handshake]", turn.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[nth Handshake]", turn.Text, StringComparison.Ordinal);
         Assert.Equal(["start-standby", "inject", "end-standby", "turn"], fake.Log);
         // The handover turn carries the user's own settings.
         Assert.Equal((thread.RuntimeMode, thread.InteractionMode), (turn.RuntimeMode, turn.InteractionMode));
@@ -82,7 +82,7 @@ public sealed class InjectedStandbyHostTests
         rig.Send("the next message");
         var first = Assert.Single(incoming.Inputs).Text;
         Assert.Contains("the next message", first, StringComparison.Ordinal);
-        Assert.Contains("[Marrow Handshake]", first, StringComparison.Ordinal);
+        Assert.Contains("[nth Handshake]", first, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class InjectedStandbyHostTests
         Assert.Equal(1, fake.DiscardCalls);
         rig.Install(incoming);
         rig.Send("next");
-        Assert.Contains("[Marrow Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
+        Assert.Contains("[nth Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -158,6 +158,6 @@ public sealed class InjectedStandbyHostTests
         }, AppModelHarness.Bound);
         rig.Install(incoming);
         rig.Send("next");
-        Assert.Contains("[Marrow Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
+        Assert.Contains("[nth Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
     }
 }

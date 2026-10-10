@@ -30,12 +30,15 @@ public static class MCPKeychain
     // :15, :39, :55 kSecAttrService as String: AppInfo.name
     private static string Service => DevDataRoot.CredentialService(AppInfo.Current.Name); // ED-212
 
+    // OD-0135: the service before the product was named nth ("Marrow" / "Marrow Dev"), read only to carry a value over once.
+    private static string LegacyService => DevDataRoot.CredentialService(AppInfo.LegacyNameFor(AppInfo.Current.IsDevelopment));
+
     // :11-26
     public static string? Value(string server, string field)
     {
         // :12 not ported: CaptureRun.isEnabled is always false (ED-001, dead_code.md entry 44).
         // :13-24 SecItemCopyMatching with kSecReturnData and kSecMatchLimitOne; String(data:encoding: .utf8).
-        if (SecretStore.Shared.Current.CopyMatching(Service, Account(server, field), out var data)
+        if (SecretStore.Shared.Current.CopyMatchingCarryingOver(Service, LegacyService, Account(server, field), out var data) // OD-0135
                 != SecretStoreStatus.Success
             || data is null
             || SwiftText.DecodeUtf8OrNil(data) is not { } value
@@ -52,6 +55,7 @@ public static class MCPKeychain
     public static bool Set(string value, string server, string field)
     {
         var store = SecretStore.Shared.Current;
+        store.SupersedeLegacy(Service, LegacyService, Account(server, field)); // OD-0135
         // :31-35
         var trimmed = value.Trimmed();
         if (trimmed.Length == 0)
@@ -76,6 +80,7 @@ public static class MCPKeychain
     // (ENGINEERING DECISION in the records' deviation), so Success and ItemNotFound both return true.
     public static bool Delete(string server, string field)
     {
+        SecretStore.Shared.Current.SupersedeLegacy(Service, LegacyService, Account(server, field)); // OD-0135
         var status = SecretStore.Shared.Current.Delete(Service, Account(server, field));
         return status == SecretStoreStatus.Success || status == SecretStoreStatus.ItemNotFound;
     }

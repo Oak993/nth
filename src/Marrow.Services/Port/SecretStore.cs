@@ -170,12 +170,18 @@ public sealed class SecretStore
     /// APIKeychain.read and MCPKeychain.value: the stored bytes decoded as UTF-8, trimmed; null when nothing is stored,
     /// the bytes are not UTF-8, or the value trims to empty.
     /// </summary>
-    public string? Read(string service, string account)
+    public string? Read(string service, string account) => ReadCarryingOver(service, null, account);
+
+    /// <summary>
+    /// <see cref="Read"/> over <see cref="CopyMatchingCarryingOver"/>: an item still kept under the product's old service
+    /// name is carried over once (OD-0135).
+    /// </summary>
+    public string? ReadCarryingOver(string service, string? legacyService, string account)
     {
         lock (Gate)
         {
             // APIKeychain.swift:51-55; MCPKeychain.swift:21-25
-            if (CopyMatching(service, account, out var data) != SecretStoreStatus.Success || data is null) return null;
+            if (CopyMatchingCarryingOver(service, legacyService, account, out var data) != SecretStoreStatus.Success || data is null) return null;
             string key;
             try
             {
@@ -188,6 +194,55 @@ public sealed class SecretStore
             }
             var trimmed = Trimmed(key);
             return trimmed.Length == 0 ? null : trimmed;
+        }
+    }
+
+    // ---- OD-0135: items kept under the product's old name ----
+
+    /// <summary>The suffix of the marker that records an item carried over from its old service (OD-0135).</summary>
+    public const string CarriedMarkerSuffix = "#carried";
+
+    /// <summary>
+    /// OD-0135: <see cref="CopyMatching"/> under <paramref name="service"/>. When that item is missing and the same account
+    /// has an item under <paramref name="legacyService"/> (the service name before the product was named nth) that was never
+    /// carried over, its bytes are added under the new service, a marker (the new item's target name plus
+    /// <see cref="CarriedMarkerSuffix"/>, no value) records that, and the bytes are returned. The old item is never changed
+    /// or removed: an older copy of the app may still read it. The marker keeps an item the user later removes under the new
+    /// service from coming back. A refused add still returns the old bytes and leaves no marker, so a later read tries
+    /// again. A null legacy service, or one equal to the service, is a plain <see cref="CopyMatching"/>.
+    /// </summary>
+    public SecretStoreStatus CopyMatchingCarryingOver(string service, string? legacyService, string account, out byte[]? data)
+    {
+        lock (Gate)
+        {
+            var status = CopyMatching(service, account, out data);
+            if (status != SecretStoreStatus.ItemNotFound || legacyService is null
+                || string.Equals(service, legacyService, StringComparison.OrdinalIgnoreCase)) return status;
+            var marker = TargetName(service, account) + CarriedMarkerSuffix;
+            // Carried before, or a marker that cannot be read: never carried again.
+            if (Backend.Read(marker, out _) != ErrorNotFound) return status;
+            if (CopyMatching(legacyService, account, out var old) != SecretStoreStatus.Success || old is null) return status;
+            if (Add(service, account, old) == SecretStoreStatus.Success)
+                Backend.Write(Credential(marker, account, [], []));
+            data = old;
+            return SecretStoreStatus.Success;
+        }
+    }
+
+    /// <summary>
+    /// OD-0135: called before a helper stores or removes an item under <paramref name="service"/>. When the same account
+    /// still has an item under <paramref name="legacyService"/>, the carried marker is written, so a value the user set
+    /// or removed under the new name is never replaced by the old one at a later read. The old item is not touched.
+    /// </summary>
+    public void SupersedeLegacy(string service, string? legacyService, string account)
+    {
+        if (legacyService is null || string.Equals(service, legacyService, StringComparison.OrdinalIgnoreCase)) return;
+        lock (Gate)
+        {
+            var marker = TargetName(service, account) + CarriedMarkerSuffix;
+            if (Backend.Read(marker, out _) != ErrorNotFound) return;
+            if (CopyMatching(legacyService, account, out _) != SecretStoreStatus.Success) return;
+            Backend.Write(Credential(marker, account, [], []));
         }
     }
 

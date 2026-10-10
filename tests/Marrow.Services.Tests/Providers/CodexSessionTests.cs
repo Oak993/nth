@@ -232,8 +232,8 @@ public sealed class CodexSessionTests
 
         var initialize = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, 0)))!;
         var clientInfo = initialize["params"]!["clientInfo"]!;
-        Assert.Equal("marrow", clientInfo["name"]!.JSONValueString); // DEVIATION OD-0008 B11
-        Assert.Equal("Marrow", clientInfo["title"]!.JSONValueString); // DEVIATION OD-0008 B11
+        Assert.Equal("nth", clientInfo["name"]!.JSONValueString); // DEVIATION OD-0008 B11
+        Assert.Equal("nth", clientInfo["title"]!.JSONValueString); // DEVIATION OD-0008 B11
         Assert.Equal(AppInfo.Current.Version, clientInfo["version"]!.JSONValueString);
         Assert.True(initialize["params"]!["capabilities"]!["experimentalApi"]!.JSONValueBool);
 
@@ -2977,7 +2977,7 @@ public sealed class CodexSessionTests
 
         var notice = Assert.Single(events.OfType<ProviderEvent.Notice>()).Value;
         Assert.Equal(Notice.Level.Warning, notice.NoticeLevel);
-        Assert.Equal("files-mcp asked for input, which Marrow cannot show yet.", notice.Message);
+        Assert.Equal("files-mcp asked for input, which nth cannot show yet.", notice.Message);
         Assert.False(HasPending(session, "9"));
         var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, before)))!;
         Assert.Equal("decline", response["result"]!["action"]!.JSONValueString);
@@ -2996,7 +2996,7 @@ public sealed class CodexSessionTests
 
         InvokePrivate(session, "HandleRequest", new RPCID.Int(10), "mcpServer/elicitation/request", JSONValue.FromDictionaryLiteral());
 
-        Assert.Equal("An MCP server asked for input, which Marrow cannot show yet.", Assert.Single(events.OfType<ProviderEvent.Notice>()).Value.Message);
+        Assert.Equal("An MCP server asked for input, which nth cannot show yet.", Assert.Single(events.OfType<ProviderEvent.Notice>()).Value.Message);
     }
 
     [Fact]
@@ -3013,7 +3013,7 @@ public sealed class CodexSessionTests
 
         var response = JSONValue.Parse(System.Text.Encoding.UTF8.GetBytes(script.CapturedLine(0, before)))!;
         Assert.Equal(-32601, response["error"]!["code"]!.JSONValueInt);
-        Assert.Equal("Marrow does not support some/unknownMethod.", response["error"]!["message"]!.JSONValueString);
+        Assert.Equal("nth does not support some/unknownMethod.", response["error"]!["message"]!.JSONValueString);
     }
 
     // ---- PR-PROVCLI-131 ----

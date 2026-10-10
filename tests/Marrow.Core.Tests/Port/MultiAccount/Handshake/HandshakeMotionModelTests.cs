@@ -25,7 +25,7 @@ public sealed class HandshakeMotionModelTests
         port.Raise(Ev(HandshakePhase.InSync,HandshakeEventKind.InSyncReady));port.Raise(Ev(HandshakePhase.Switch));
         clock.Advance(TimeSpan.FromMilliseconds(999));Assert.Equal(HandshakePhase.Linking,model.Plan(420,160,true).Phase);
         clock.Advance(TimeSpan.FromMilliseconds(1));Assert.Equal(HandshakePhase.InSync,model.Plan(420,160,true).Phase);
-        Assert.Equal("In sync · Claude Max 2 read the plan back; Marrow checked it",model.Plan(420,160,true).Status);
+        Assert.Equal("In sync · Claude Max 2 read the plan back; nth checked it",model.Plan(420,160,true).Status);
         clock.Advance(TimeSpan.FromMilliseconds(800));
         // Retired the 800ms Assert.Equal(HandshakePhase.Switch,model.Plan(420,160,true).Phase): ED-512.
         // HTML3039 / MAUI-052 keeps In sync for 1400ms. Check the old following behavior at the actual boundary.

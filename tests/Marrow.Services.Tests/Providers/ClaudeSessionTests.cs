@@ -2080,7 +2080,7 @@ public sealed class ClaudeSessionTests
         Assert.Contains("\"subtype\":\"error\"", line, StringComparison.Ordinal);
         Assert.Contains("\"request_id\":\"req-x\"", line, StringComparison.Ordinal);
         // DEVIATION OD-0012 F1: upstream sends "Droppy Code does not support this request."
-        Assert.Contains("\"error\":\"Marrow does not support this request.\"", line, StringComparison.Ordinal);
+        Assert.Contains("\"error\":\"nth does not support this request.\"", line, StringComparison.Ordinal);
 
         // A request without a string request_id, or without a request object, is ignored entirely.
         var countAfterRefusal = script.MessageCount(1);

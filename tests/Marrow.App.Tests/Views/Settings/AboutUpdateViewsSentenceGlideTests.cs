@@ -27,7 +27,7 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class AboutUpdateViewsSentenceGlideTests(HeadlessSession headless)
 {
-    private const string Rest = "Marrow checks GitHub for new versions a few times a day. Not checked yet.";
+    private const string Rest = "nth checks GitHub for new versions a few times a day. Not checked yet.";
     private const string Asking = "Asking GitHub for the latest release…";
     private const double Line = 16; // one subheadline line (ED-290 (1); S 212.0 to S 213.0)
 

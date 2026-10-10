@@ -184,7 +184,7 @@ public sealed class StorageSecondTests
 
         var line = Assert.Single(logged);
         Assert.Equal("iordv.marrow/storage", line.Channel);
-        Assert.Equal($"Marrow could not save denied.json: {osError.Message}", line.Message);
+        Assert.Equal($"nth could not save denied.json: {osError.Message}", line.Message);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public sealed class StorageSecondTests
 
         var line = Assert.Single(logged);
         Assert.Equal("iordv.marrow/storage", line.Channel);
-        var prefix = $"Marrow could not save {Path.GetFileName(failedURL)}: ";
+        var prefix = $"nth could not save {Path.GetFileName(failedURL)}: ";
         Assert.StartsWith(prefix, line.Message, StringComparison.Ordinal);
         // FileOps picks a fresh staging filename per attempt; the rest of the OS message must match exactly.
         Assert.Equal(NormalizeTemporaryName(finalError.Message), NormalizeTemporaryName(line.Message[prefix.Length..]));

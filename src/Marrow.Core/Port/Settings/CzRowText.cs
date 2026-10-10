@@ -86,9 +86,9 @@ public static class CzRowText
 
     public static bool AuraIsDefault(UiverseAuraOptions a) => a == UiverseAuraOptions.Default;
 
-    public static string BeamResetDetail(bool isDefault) => isDefault ? "Border beam as Marrow ships it" : "Return every Border beam setting to how it ships";
+    public static string BeamResetDetail(bool isDefault) => isDefault ? "Border beam as nth ships it" : "Return every Border beam setting to how it ships";
 
-    public static string AuraResetDetail(bool isDefault) => isDefault ? "The Uiverse light as Marrow ships it" : "Return every Uiverse light setting to how it ships";
+    public static string AuraResetDetail(bool isDefault) => isDefault ? "The Uiverse light as nth ships it" : "Return every Uiverse light setting to how it ships";
 
     // ---------- Uiverse details (cz.js:560-568) ----------
 

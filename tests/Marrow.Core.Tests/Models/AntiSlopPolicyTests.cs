@@ -15,10 +15,10 @@ namespace Marrow.Core.Tests.Models;
 //   stripped from each line and there is no trailing newline (Swift's rules for a multi-line literal). Enabled: 1077
 //   bytes, SHA-256 2ad357d1...5a30. Disabled: 147 bytes, SHA-256 7dfa24d8...7a1c.
 // - The port's expected text is that source text with only its first line replaced, as the records' deviation
-//   (OD-0012 F1) says: "[Droppy Code anti-slop guidance]" (:3) becomes "[Marrow anti-slop guidance]" and
-//   "[Droppy Code anti-slop guidance: off]" (:12) becomes "[Marrow anti-slop guidance: off]"; every other line,
+//   (OD-0012 F1; OD-0135 names the product nth) says: "[Droppy Code anti-slop guidance]" (:3) becomes "[nth anti-slop guidance]" and
+//   "[Droppy Code anti-slop guidance: off]" (:12) becomes "[nth anti-slop guidance: off]"; every other line,
 //   the U+2019 RIGHT SINGLE QUOTATION MARK after "product" (bytes E2 80 99) and the US spelling "colors" are unchanged. Result: enabled
-//   1072 bytes (1070 UTF-16 units), disabled 142 bytes. The digests below were computed from those bytes.
+//   1069 bytes (1067 UTF-16 units), disabled 139 bytes. The digests below were computed from those bytes.
 // - The readable per-line literals repeat the same text a second, independent way (transcribed from :4-7 and :13),
 //   so a wrong fixture and a wrong literal would both have to agree to hide an error.
 //
@@ -40,9 +40,9 @@ public sealed class AntiSlopPolicyTests
 
     // The first lines the Swift writes (:3, :12) and the ones the port writes (deviation OD-0012 F1).
     private const string SwiftEnabledHeader = "[Droppy Code anti-slop guidance]";
-    private const string PortEnabledHeader = "[Marrow anti-slop guidance]";
+    private const string PortEnabledHeader = "[nth anti-slop guidance]";
     private const string SwiftDisabledHeader = "[Droppy Code anti-slop guidance: off]";
-    private const string PortDisabledHeader = "[Marrow anti-slop guidance: off]";
+    private const string PortDisabledHeader = "[nth anti-slop guidance: off]";
 
     // The unchanged lines, transcribed from the Swift literal a second way.
     private const string EnabledLine2 = "Give the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation."; // :4
@@ -99,7 +99,7 @@ public sealed class AntiSlopPolicyTests
     {
         byte[] actual = Utf8(AntiSlopPolicy.EnabledInstructions);
 
-        Assert.Equal(1072, ExpectedEnabled.Length);
+        Assert.Equal(1069, ExpectedEnabled.Length);
         Assert.Equal(ExpectedEnabled.Length, actual.Length);
         Assert.Equal(ExpectedEnabled, actual);
     }
@@ -108,7 +108,7 @@ public sealed class AntiSlopPolicyTests
     [Trait("Req", "PR-STORE-129")] // Core/Models/AntiSlopPolicy.swift:2-8, deviation OD-0012 F1
     public void Enabled_instructions_digest_is_the_digest_of_the_renamed_Swift_literal()
     {
-        const string expected = "6813476ab9016049929584576b6b494eb9d7d4c025ead6db96f18493ee1d278a";
+        const string expected = "727f2d32c8ddd26aa11b16fe8a0d7c361f0512300f7714cb40977731491ac4e3";
 
         Assert.Equal(expected, Sha256Hex(ExpectedEnabled));
         Assert.Equal(expected, Sha256Hex(Utf8(AntiSlopPolicy.EnabledInstructions)));
@@ -121,7 +121,7 @@ public sealed class AntiSlopPolicyTests
     {
         string text = AntiSlopPolicy.EnabledInstructions;
 
-        Assert.Equal(1070, text.Length);
+        Assert.Equal(1067, text.Length);
         Assert.False(text.StartsWith('\n'));
         Assert.False(text.EndsWith('\n'));
         Assert.DoesNotContain('\r', text);
@@ -134,7 +134,7 @@ public sealed class AntiSlopPolicyTests
         Assert.Equal(EnabledLine3, lines[2]);
         Assert.Equal(EnabledLine4, lines[3]);
         Assert.Equal(EnabledLine5, lines[4]);
-        Assert.StartsWith("[Marrow anti-slop guidance]\n", text, StringComparison.Ordinal);
+        Assert.StartsWith("[nth anti-slop guidance]\n", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -145,10 +145,10 @@ public sealed class AntiSlopPolicyTests
         string text = AntiSlopPolicy.EnabledInstructions;
         byte[] bytes = Utf8(text);
 
-        // The one non-ASCII character is U+2019, at UTF-16 offset 562 and byte offset 562 (all ASCII before it).
-        Assert.Equal(562, text.IndexOf('\U00002019', StringComparison.Ordinal));
+        // The one non-ASCII character is U+2019, at UTF-16 offset 559 and byte offset 559 (all ASCII before it).
+        Assert.Equal(559, text.IndexOf('\U00002019', StringComparison.Ordinal));
         Assert.Equal(1, text.Count(c => c > 0x7F));
-        Assert.Equal(RightSingleQuotationMarkUtf8, bytes[562..565]);
+        Assert.Equal(RightSingleQuotationMarkUtf8, bytes[559..562]);
         Assert.Contains("product\U00002019s components", text, StringComparison.Ordinal);
 
         // No ASCII apostrophe anywhere in the literal.
@@ -175,7 +175,7 @@ public sealed class AntiSlopPolicyTests
     {
         byte[] actual = Utf8(AntiSlopPolicy.DisabledInstructions);
 
-        Assert.Equal(142, ExpectedDisabled.Length);
+        Assert.Equal(139, ExpectedDisabled.Length);
         Assert.Equal(ExpectedDisabled.Length, actual.Length);
         Assert.Equal(ExpectedDisabled, actual);
     }
@@ -184,7 +184,7 @@ public sealed class AntiSlopPolicyTests
     [Trait("Req", "PR-STORE-130")] // Core/Models/AntiSlopPolicy.swift:11-14, deviation OD-0012 F1
     public void Disabled_instructions_digest_is_the_digest_of_the_renamed_Swift_literal()
     {
-        const string expected = "72f7dd7f35144bc3b43c0803359f470106c5beda4158b3bddad1782e921336d1";
+        const string expected = "c2499da336efef5d2480c9d77cf8bec1a87dc6a22cc74ac62d6173461694e2c9";
 
         Assert.Equal(expected, Sha256Hex(ExpectedDisabled));
         Assert.Equal(expected, Sha256Hex(Utf8(AntiSlopPolicy.DisabledInstructions)));
@@ -198,7 +198,7 @@ public sealed class AntiSlopPolicyTests
         string text = AntiSlopPolicy.DisabledInstructions;
 
         Assert.Equal(
-            "[Marrow anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.",
+            "[nth anti-slop guidance: off]\nDisregard earlier app-provided anti-slop guidance. Continue following user requests and project requirements.",
             text);
         Assert.DoesNotContain('\r', text);
 

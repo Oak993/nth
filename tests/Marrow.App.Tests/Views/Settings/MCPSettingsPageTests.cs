@@ -60,7 +60,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
         Ui((model, _) => { var page = new MCPSettingsPage(""); using var window = Attach(page, model);
             var stack = Assert.IsType<StackPanel>(page.Child); Assert.Equal(20, stack.Spacing);
             Assert.IsType<MCPLeadCard>(stack.Children[0]); Assert.IsType<MCPCustomSection>(stack.Children[1]);
-            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.", Assert.IsType<TextBlock>(stack.Children[^1]).Text);
+            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.", Assert.IsType<TextBlock>(stack.Children[^1]).Text);
             Assert.Equal(new[] { "Developer", "Browser", "Search", "Work", "Data", "Cloud", "Knowledge" }, Nodes<ChromeSection>(page).Skip(1).Select(x => Texts(x)[0]));
         });
     }

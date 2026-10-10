@@ -107,10 +107,10 @@ public sealed class SpeechModelListTests
     [Trait("Decision", "ED-267")] // V-16.3.4 and V-9.2: `Installed: {size}, in Marrow Code’s models folder` with the sizes formatted as V-9.2 does
     public void The_footer_totals_the_installed_bytes_with_the_sizes_of_V_9_2()
     {
-        Assert.Equal("Installed: 0 MB, in Marrow Code’s models folder", SpeechModelList.Footer(0));
-        Assert.Equal("Installed: 574 MB, in Marrow Code’s models folder", SpeechModelList.Footer(574041195));
-        Assert.Equal("Installed: 1.45 GB, in Marrow Code’s models folder", SpeechModelList.Footer(574041195 + 874188075));
-        Assert.Equal("Installed: 3.1 GB, in Marrow Code’s models folder", SpeechModelList.Footer(3095033483));
+        Assert.Equal("Installed: 0 MB, in nth’s models folder", SpeechModelList.Footer(0));
+        Assert.Equal("Installed: 574 MB, in nth’s models folder", SpeechModelList.Footer(574041195));
+        Assert.Equal("Installed: 1.45 GB, in nth’s models folder", SpeechModelList.Footer(574041195 + 874188075));
+        Assert.Equal("Installed: 3.1 GB, in nth’s models folder", SpeechModelList.Footer(3095033483));
     }
 
     [Fact]

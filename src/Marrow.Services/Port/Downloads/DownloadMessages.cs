@@ -8,7 +8,7 @@ namespace Marrow.Services.Port.Downloads;
 public static partial class DownloadMessages
 {
     /// <summary>"The file is no longer at its source. A Marrow update will fix this." (3.9, 404 or 410).</summary>
-    public const string NotFound = "The file is no longer at its source. A Marrow update will fix this.";
+    public const string NotFound = "The file is no longer at its source. An nth update will fix this.";
 
     /// <summary>"The file didn't match its checksum." (3.9).</summary>
     public const string Mismatch = "The file didn't match its checksum.";

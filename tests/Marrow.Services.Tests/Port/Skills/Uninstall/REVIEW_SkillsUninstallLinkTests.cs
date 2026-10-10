@@ -93,7 +93,7 @@ public sealed class REVIEW_SkillsUninstallLinkTests
             File.WriteAllText(Path.Combine(victim, "addons", "mine.txt"), "x");
             var linkedRoot = Path.Combine(parent, "review-linkroot-" + Guid.NewGuid().ToString("N"));
             TestLinks.Directory(parent, linkedRoot, victim);
-            try { SkillsUninstall.BeforeUninstall(Path.Combine(linkedRoot, "Marrow Code")); } catch (Exception e) when (e is ArgumentException or IOException) { }
+            try { SkillsUninstall.BeforeUninstall(Path.Combine(linkedRoot, "nth")); } catch (Exception e) when (e is ArgumentException or IOException) { }
             AssertIntact(victim);
         }
         finally { try { Directory.Delete(victim, true); } catch (IOException) { } }

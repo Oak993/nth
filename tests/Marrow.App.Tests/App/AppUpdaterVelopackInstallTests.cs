@@ -110,7 +110,7 @@ public sealed class AppUpdaterVelopackInstallTests
         var engine = new FakeSelfUpdateEngine();
         var missing = Path.Combine(Path.GetTempPath(), "ue1-missing-" + Guid.NewGuid().ToString("N"), "app");
         var error = Assert.Throws<UpdateInstallError>(() => new AppUpdater(new FakeUpdateInstallBoundary(), engine).HandOffToVelopack("1.3.0", missing));
-        Assert.StartsWith("Marrow cannot replace itself in ", error.ErrorDescription, StringComparison.Ordinal);   // :377-379
+        Assert.StartsWith("nth cannot replace itself in ", error.ErrorDescription, StringComparison.Ordinal);   // :377-379
         Assert.EndsWith(" Reinstall it with the installer and try again.", error.ErrorDescription, StringComparison.Ordinal);
         Assert.DoesNotContain("Apply", engine.Calls);
     }

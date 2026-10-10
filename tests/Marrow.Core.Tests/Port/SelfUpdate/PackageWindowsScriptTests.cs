@@ -57,8 +57,8 @@ public sealed class PackageWindowsScriptTests
         Assert.Contains(Executable(), l => l.Contains("$releasesDir = Join-Path $root 'artifacts/releases'", StringComparison.Ordinal));
         Assert.Contains(Executable(), l => l.Contains("--outputDir $releasesDir `", StringComparison.Ordinal));
         Assert.Contains(Executable(), l => l.Contains("--packId $PackId `", StringComparison.Ordinal));
-        Assert.Contains(Executable(), l => l.Contains("[string]$PackId = 'MarrowCode'", StringComparison.Ordinal));
-        Assert.Equal("MarrowCode", MarrowReleaseFeed.PackageId);
+        Assert.Contains(Executable(), l => l.Contains("[string]$PackId = 'NthApp'", StringComparison.Ordinal));
+        Assert.Equal("NthApp", MarrowReleaseFeed.PackageId);
     }
 
     // OD-0111 supersedes UE-1's optional-notes expectation. The App tests exercise this preflight in temp repositories.

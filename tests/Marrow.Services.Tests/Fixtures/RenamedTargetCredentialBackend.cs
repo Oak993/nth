@@ -4,19 +4,24 @@ namespace Marrow.Services.Tests.Fixtures;
 
 /// <summary>
 /// The real Windows Credential Manager (<see cref="CredentialManagerBackend"/>) with the service part of every target name swapped for a unique test-only one, so a test drives the
-/// real Win32 calls without ever reading, writing or deleting the user's own "Marrow Code" credentials. A target outside the swapped service is refused, never forwarded.
+/// real Win32 calls without ever reading, writing or deleting the user's own "nth" or (OD-0135) earlier-name "Marrow Code" credentials. Each real service given is swapped for its
+/// own test service; a target outside every swapped service is refused, never forwarded.
 /// </summary>
-internal sealed class RenamedTargetCredentialBackend(string realService, string testService) : ICredentialBackend
+internal sealed class RenamedTargetCredentialBackend(params (string Real, string Test)[] services) : ICredentialBackend
 {
+    public RenamedTargetCredentialBackend(string realService, string testService) : this((realService, testService)) { }
+
     private readonly CredentialManagerBackend real = new();
 
     /// <summary>The target names that reached the real Credential Manager.</summary>
     public List<string> Touched { get; } = [];
 
-    public string Map(string target) =>
-        target.StartsWith(realService + ":", StringComparison.Ordinal)
-            ? testService + target[realService.Length..]
-            : throw new InvalidOperationException("A target outside " + realService + " reached the real Credential Manager: " + target);
+    public string Map(string target)
+    {
+        foreach (var (real, test) in services)
+            if (target.StartsWith(real + ":", StringComparison.Ordinal)) return test + target[real.Length..];
+        throw new InvalidOperationException("A target outside " + string.Join(", ", services.Select(s => s.Real)) + " reached the real Credential Manager: " + target);
+    }
 
     public int Write(GenericCredential credential)
     {

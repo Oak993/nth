@@ -89,8 +89,11 @@ public static class APIKeychain
     // :36-58. SetUpdating is the transcription of this body over the secret store: trim (Text.swift:132); an empty
     // trimmed value deletes (:39-43) and returns true; otherwise the UTF-8 bytes (:44) update the item in place
     // (:50-52), and only when no item exists (errSecItemNotFound, :52) is one added (:53-57).
-    public static bool Set(string key, string account, string? service = null) =>
-        SecretStore.Shared.Current.SetUpdating(service ?? DevDataRoot.CredentialService(AppInfo.Current.Name), account, key);
+    public static bool Set(string key, string account, string? service = null)
+    {
+        if (service is null) SecretStore.Shared.Current.SupersedeLegacy(Service, LegacyService, account); // OD-0135
+        return SecretStore.Shared.Current.SetUpdating(service ?? Service, account, key);
+    }
 
     /// <summary>
     /// SecItemCopyMatching with kSecReturnData and kSecMatchLimitOne; nil unless the status is success, the bytes
@@ -98,10 +101,20 @@ public static class APIKeychain
     /// </summary>
     // :60-74
     public static string? Read(string account, string? service = null) =>
-        SecretStore.Shared.Current.Read(service ?? DevDataRoot.CredentialService(AppInfo.Current.Name), account);
+        service is null
+            ? SecretStore.Shared.Current.ReadCarryingOver(Service, LegacyService, account) // OD-0135: a key kept under "Marrow" is carried over once
+            : SecretStore.Shared.Current.Read(service, account);
 
     /// <summary>SecItemDelete; the status is ignored, as upstream ignores it.</summary>
     // :76-83
-    public static void Delete(string account, string? service = null) =>
-        SecretStore.Shared.Current.Delete(service ?? DevDataRoot.CredentialService(AppInfo.Current.Name), account);
+    public static void Delete(string account, string? service = null)
+    {
+        if (service is null) SecretStore.Shared.Current.SupersedeLegacy(Service, LegacyService, account); // OD-0135
+        SecretStore.Shared.Current.Delete(service ?? Service, account);
+    }
+
+    // The service is AppInfo.name ("nth" / "nth Dev" under OD-0135); LegacyService is the name before it ("Marrow" /
+    // "Marrow Dev"), read only to carry a key over once (SecretStore.CopyMatchingCarryingOver). ED-212 applies to both.
+    private static string Service => DevDataRoot.CredentialService(AppInfo.Current.Name);
+    private static string LegacyService => DevDataRoot.CredentialService(AppInfo.LegacyNameFor(AppInfo.Current.IsDevelopment));
 }

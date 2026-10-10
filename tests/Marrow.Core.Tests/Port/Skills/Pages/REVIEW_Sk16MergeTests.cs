@@ -22,7 +22,7 @@ public sealed class REVIEW_Sk16MergeTests
     }
 
     [Theory]
-    [InlineData("running", "One at a time. Hide it and keep using Marrow.")]
+    [InlineData("running", "One at a time. Hide it and keep using nth.")]
     [InlineData("partial", "Retry tries the failed ones again. Or download them yourself.")]
     public void REVIEW_Reviewed_SK15_dialog_words_are_preserved(string phase, string expected)
     {

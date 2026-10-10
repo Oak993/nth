@@ -360,7 +360,7 @@ public static class AppShortcutExtensions
         AppShortcut.ToggleChanges => "Toggle changes", // :183
         AppShortcut.ToggleActivityView => "Activity view", // :184
         // :185 DEVIATION OD-0002, OD-0012 F1 (PR-SETTINGS-210): upstream reads "Show Droppy Code".
-        AppShortcut.ShowMainWindow => "Show Marrow",
+        AppShortcut.ShowMainWindow => "Show nth",
         AppShortcut.OpenSettings => "Settings", // :186
     };
 
@@ -585,7 +585,7 @@ public sealed class ShortcutStore : MainActorModel
             return "Add Ctrl or Alt so typing still works.";
         if (chord.KeyboardShortcut is null) return "Menus cannot use this key."; // :328
         // :329 DEVIATION OD-0008 B8 (ED-099 (4)): upstream reads "macOS or Droppy Code already uses this chord."
-        if (Reserved.Contains(chord)) return "Windows or Marrow already uses this chord.";
+        if (Reserved.Contains(chord)) return "Windows or nth already uses this chord.";
         // :330-332 the first other command, in declaration order, whose current chord is this one
         foreach (var owner in SwiftEnum<AppShortcut>.AllCases)
         {

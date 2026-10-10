@@ -535,7 +535,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.About; Sync(); Assert.Single(Nodes<AboutUpdateChromeAccessory>(view)); var about = Assert.Single(Nodes<AboutSettingsPage>(view));
         var root = Assert.IsType<StackPanel>(about.Child); Assert.Equal(20, root.Spacing); Assert.Equal(0, root.Children[0].DesiredSize.Height);
-        var name = Nodes<TextBlock>(root.Children[1]).Single(x => x.Text == "Marrow"); Assert.Equal(15, name.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, name.FontWeight);
+        var name = Nodes<TextBlock>(root.Children[1]).Single(x => x.Text == "nth"); Assert.Equal(15, name.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, name.FontWeight);
         Assert.Contains($"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Text(root.Children[1])); var description = Nodes<TextBlock>(about).Single(x => x.Text == "A native home for your coding agents, built in C# with Avalonia."); Assert.Equal(13, description.FontSize); Assert.Equal(new Thickness(16, 11, 10, 11), description.Margin);
         SettingsNavigation.Shared.RequestedPage = SettingsPage.General; Sync(); Assert.Empty(Nodes<AboutUpdateChromeAccessory>(view));
     });
@@ -559,10 +559,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-059")] // App/Views/Settings/SettingsView.swift:1060-1102
     public void Droppy_attribution_link_and_legal_document_titles_are_exact() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
     {
-        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var button = Assert.Single(Nodes<Button>(droppy)); Assert.Equal("Open getdroppy.app", ToolTip.GetTip(button)); Assert.Equal("Made by Droppy. Open getdroppy.app", AutomationProperties.GetName(button));
+        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var button = Assert.Single(Nodes<Button>(droppy)); Assert.Equal("Open getdroppy.app", ToolTip.GetTip(button)); Assert.Equal("Based on Droppy Code by Jordy Spruit (Droppy). Open getdroppy.app", AutomationProperties.GetName(button));
         SwiftURL? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened = url; return true; }); Click(button); Assert.Equal("https://getdroppy.app", opened!.AbsoluteString);
         Assert.Contains("Ported from Zeron by Wing, MIT License.", Text(view)); Assert.Contains("Ported from TourKit by Ram Patra, MIT License.", Text(view));
-        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(Assert.Single(Nodes<LicensesRow>(view)), "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup); Assert.Equal(3, Nodes<MarkdownView>(content).Length); Assert.Contains("Marrow", Text(content)); Assert.Contains("Third-party notices", Text(content)); Assert.Contains("Trademarks", Text(content));
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(Assert.Single(Nodes<LicensesRow>(view)), "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup); Assert.Equal(3, Nodes<MarkdownView>(content).Length); Assert.Contains("nth", Text(content)); Assert.Contains("Third-party notices", Text(content)); Assert.Contains("Trademarks", Text(content));
     });
 
     // Resolved STOP App.Views.Settings.SettingsView #4 (the terminal credit; owner ruling OD-0012 H, OD-0072, engineering decision ED-272): SettingsView.swift:954-955 credits SwiftTerm
@@ -734,16 +734,16 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void About_keeps_the_empty_update_slot_and_truthful_product_and_attribution_content() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
     {
         var stack = Assert.IsType<StackPanel>(Assert.IsType<AboutSettingsPage>(view).Child); Assert.Equal(20, stack.Spacing); Assert.Equal(3, stack.Children.Count); Assert.IsType<AboutSoftwareUpdateSection>(stack.Children[0]);
-        Assert.Contains("Marrow", Text(view)); Assert.Contains("A native home for your coding agents, built in C# with Avalonia.", Text(view));
-        var licence = Assert.Single(Nodes<TextBlock>(stack.Children[1]), text => text.Text == "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY."); // :996-1002, OD-0012 F1, H (OD-0072)
+        Assert.Contains("nth", Text(view)); Assert.Contains("A native home for your coding agents, built in C# with Avalonia.", Text(view));
+        var licence = Assert.Single(Nodes<TextBlock>(stack.Children[1]), text => text.Text == "nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is nth's own, built on Windows ConPTY."); // :996-1002, OD-0012 F1, H (OD-0072)
         Assert.Equal(12, licence.FontSize); Assert.Equal(new Thickness(16, 11, 10, 11), licence.Margin);
         var appRows = Assert.Single(Nodes<StackPanel>(stack.Children[1]), panel => panel.Children.Contains(licence)); Assert.IsType<ChromeRowDivider>(appRows.Children[appRows.Children.IndexOf(licence) - 1]);
-        var terminal = Row(stack.Children[2], "Terminal"); Assert.Empty(Nodes<CreditLink>(terminal)); Assert.Contains("Marrow's own terminal, built on Windows ConPTY.", Text(terminal)); // :953-956; OD-0072: Marrow's own terminal, no repository link.
+        var terminal = Row(stack.Children[2], "Terminal"); Assert.Empty(Nodes<CreditLink>(terminal)); Assert.Contains("nth's own terminal, built on Windows ConPTY.", Text(terminal)); // :953-956; OD-0072: Marrow's own terminal, no repository link.
         var creditRows = Assert.Single(Nodes<StackPanel>(stack.Children[2]), panel => panel.Children.Contains(terminal)); Assert.IsType<ChromeRowDivider>(creditRows.Children[creditRows.Children.IndexOf(terminal) + 1]);
         Assert.Contains("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Text(view));
         Assert.Contains("The slideshow from the first launch: Hydra, the effort slider, panels and themes.", Text(view));
         Assert.Equal(56, Assert.Single(Nodes<Image>(stack.Children[1])).Width);
-        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); Assert.Equal("droppy-logo", mark.AssetName); MarrowLogoCheck.AssertIsTheMarrowIcon(mark); /* OD-0015: the Swift key, the Marrow artwork */ Assert.Equal(40, mark.Width); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
+        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); Assert.DoesNotContain(Nodes<SwiftImage>(droppy), image => image.AssetName is not null); /* OD-0135: the credit row has no Droppy logo */ Assert.DoesNotContain(Text(view), line => line.Contains("Made by Droppy", StringComparison.Ordinal)); Assert.Single(Nodes<SwiftImage>(droppy), image => image.SymbolName == "arrow.up.right");
     });
 
     // PR-SETTINGS-249: the read-once clause (SettingsView.swift:1046-1056); the package that ships the documents is LicensesPackTests (STOP #5 above).
@@ -758,7 +758,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(view, "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup);
         var scroll = Assert.Single(Nodes<ScrollViewer>(content), x => x.Width == 480); Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height); /* the real documents carry code blocks that scroll on their own, so the popover's is the one 480 wide */
         var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18); Assert.Equal(new Thickness(18), blocks.Margin); Assert.Equal(3, blocks.Children.Count);
-        Assert.Equal(new[] { "Marrow", "Third-party notices", "Trademarks" }, blocks.Children.Select(x => Text(x).First()));
+        Assert.Equal(new[] { "nth", "Third-party notices", "Trademarks" }, blocks.Children.Select(x => Text(x).First()));
         foreach (var markdown in Nodes<MarkdownView>(content)) Assert.Equal(12, MarkdownView.GetMarkdownPointSize(markdown)); Assert.Equal(3, Nodes<MarkdownView>(content).Length);
         var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; var notices = (string)reader.Invoke(null, ["THIRD_PARTY_NOTICES"])!; Assert.Same(notices, reader.Invoke(null, ["THIRD_PARTY_NOTICES"])); /* read once (:1046-1056): the same string instance every time */
         Assert.Equal(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "THIRD_PARTY_NOTICES.md")), notices); Assert.NotEqual("The THIRD_PARTY_NOTICES file is missing from this copy of the app.", notices); /* shipped (Marrow.App.csproj, LicensesShippingTests) */

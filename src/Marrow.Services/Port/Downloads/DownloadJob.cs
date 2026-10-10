@@ -186,9 +186,9 @@ public sealed partial class DownloadJob
     private DownloadFailure? Refusal(DownloadRequest file)
     {
         if (!file.Url.IsAbsoluteUri || file.Url.Scheme != Uri.UriSchemeHttps)
-            return Refused(file, DownloadCause.NotHttps, "Marrow only downloads over https.");
+            return Refused(file, DownloadCause.NotHttps, "nth only downloads over https.");
         if (!policy.AllowsFirstUrl(file.Url))
-            return Refused(file, DownloadCause.HostNotAllowed, $"Marrow won't download from {file.Url.Host}.");
+            return Refused(file, DownloadCause.HostNotAllowed, $"nth won't download from {file.Url.Host}.");
         return null;
     }
 

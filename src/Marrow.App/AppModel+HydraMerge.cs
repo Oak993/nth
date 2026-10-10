@@ -875,7 +875,7 @@ public sealed partial class AppModel
     // :844-869
     private string MergeRequestBody(ChatThread lead, IReadOnlyList<DiffFile> files, IReadOnlySet<Guid> through, ThreadRuntime runtime)
     {
-        var lines = new List<string> { "Opened by Marrow once its Hydra team finished.", "" }; // :845; DEVIATION OD-0008: the owner names Marrow as the opener.
+        var lines = new List<string> { "Opened by nth once its Hydra team finished.", "" }; // :845; DEVIATION OD-0008: the owner names Marrow as the opener.
         var heads = HydraTeam(lead.Id).Select(head => head.Hydra).Where(info => info is not null && info.Task.Length > 0).Cast<HydraHeadInfo>().ToArray(); // :846
         if (heads.Length > 0) // :847
         {

@@ -36,7 +36,7 @@ public sealed class AboutCardCaptureTests(HeadlessSession headless) : SettingsFi
             // :991-995 `.font(.system(.body))` (13) in the default foreground, :997-1002 `.font(.system(.callout))` (12) in Chrome.secondaryText; each with
             // leading 16, trailing Chrome.rowControlTrailingPadding and vertical 11; both are plain text.
             Assert.Equal("A native home for your coding agents, built in C# with Avalonia.", what.Text); // OD-0012 H: the owner's sentence
-            Assert.Equal("Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", licence.Text); // OD-0072
+            Assert.Equal("nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is nth's own, built on Windows ConPTY.", licence.Text); // OD-0072
             Assert.Equal(13, what.FontSize); Assert.Equal(12, licence.FontSize); Assert.Equal(FontWeight.Normal, what.FontWeight); Assert.Equal(FontWeight.Normal, licence.FontWeight);
             Assert.False(what.IsSet(TextBlock.ForegroundProperty)); // no colour of its own: the default, primary, text colour
             Assert.Equal(Chrome.PrimaryText.Resolve(what.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(what.Foreground).Color);

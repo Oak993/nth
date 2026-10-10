@@ -11,6 +11,7 @@ namespace Marrow.App.Tests.Runtime;
 // PORT-ONLY: Ignis (ED-NEW-ignis-runtime; PLAN unit U3). The ThreadRuntime and AppModel hooks: the hidden keep-warm ping
 // turn, CacheUsage and usage-limit forwarding, the silent tidy-up. Turns run through the real StartTurn over the offline
 // scripted session (Fixtures/ThreadRuntimeScriptedSession.cs); the controller is a recorder; no provider is ever reached.
+[Trait("Decision", "OD-0134")]
 public sealed class ThreadRuntimeIgnisTests
 {
     // The finish chime is off: FinishChime caches its sound on first play, which belongs to the chime tests' collection.

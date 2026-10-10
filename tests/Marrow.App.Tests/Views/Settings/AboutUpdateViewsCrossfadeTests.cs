@@ -72,7 +72,7 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
         using var runtime = new TestRuntime(); using var stage = new AboutStage(runtime);
         var row = new AboutUpdateCheckRow(); EnvironmentValues.SetAccessibilityReduceMotion(row, reduced); stage.Window = Show(row);
         var slot = Assert.Single(row.GetVisualDescendants().OfType<CrossfadeSlot>());
-        const string rest = "Marrow checks GitHub for new versions a few times a day. Not checked yet.";
+        const string rest = "nth checks GitHub for new versions a few times a day. Not checked yet.";
         const string asking = "Asking GitHub for the latest release…";
         var restWidth = slot.Bounds.Width; Assert.True(restWidth > 0);
         Assert.Equal(1, Shown(row, rest));

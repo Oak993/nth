@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    OD-0136: the nth app icon generator. It compiles the app's own renderer (src/Marrow.UI/Port/NthMark.cs) and writes
+    icon.ico / icon.png (src/Marrow.App/Assets) and marrow-icon.png / @2x (src/Marrow.UI/Assets/Images).
+    Run it from the repository root with dotnet run, Release configuration, the project option set to scripts/brand/NthIcon, and
+    two program arguments after the separator: the repository root, then an optional folder for review PNGs (nth-SIZE.png).
+    Point BaseOutputPath and BaseIntermediateOutputPath at a scratch folder to keep bin/obj out of the tree. Not part of Marrow.sln.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <RestoreLockedMode>false</RestoreLockedMode>
+    <RuntimeIdentifiers></RuntimeIdentifiers>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../src/Marrow.UI/Port/NthMark.cs" Link="NthMark.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.4" />
+  </ItemGroup>
+</Project>

@@ -34,7 +34,7 @@ public static class PiCLI
 
     // :17 base.appendingPathComponent("Droppy Code/pi", isDirectory: true), under OD-0008 C7.
     private static string SupportDirectoryPath(string localApplicationData) =>
-        SwiftPath.AppendingPathComponent(localApplicationData, "Marrow Code/pi");
+        SwiftPath.AppendingPathComponent(localApplicationData, AppInfo.DataFolderName + "/pi"); // OD-0135
 
     private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-212
 
@@ -246,7 +246,7 @@ public static class PiCLI
         "",
         "export default async function (pi) {",
         "  pi.registerCommand(\"droppy-load\", {",
-        "    description: \"Marrow: load a recorded context file into the history without starting a turn\",",
+        "    description: \"nth: load a recorded context file into the history without starting a turn\",",
         "    handler: async (args) => {",
         "      const text = fs.readFileSync(String(args ?? \"\").trim(), \"utf8\");",
         "      pi.sendMessage({ customType: \"droppy-handoff\", content: text, display: false }, { triggerTurn: false });",

@@ -168,7 +168,7 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
     // :103-112 the part of start() after its guards.
     private string Launch()
     {
-        var mod = CommandCodeAPI.InstallMod(); // :103
+        var mod = CommandCodeAPI.InstallMod(LocalApplicationData()); // :103
         modURL = mod;
         // ENGINEERING DECISION, matching ProviderRegistry.FileUrl's own comment: CommandCodeAPI.SupportDirectory
         // is a "file://" URL, whose .Path forces the POSIX FileSystemPath() branch that prepends a slash before
@@ -1009,7 +1009,7 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
             : JSONValue.FromDictionaryLiteral(
                 ("decision", "deny"),
                 // DEVIATION OD-0012 F1: upstream reads "The user declined this in Droppy Code. ...".
-                ("reason", "The user declined this in Marrow. Do not retry it; take another approach or explain what you would need."));
+                ("reason", "The user declined this in nth. Do not retry it; take another approach or explain what you would need."));
         var file = SwiftPath.AppendingPathComponent(directory.Path, $"{id}.reply.json");
         var temporary = SwiftPath.AppendingPathComponent(directory.Path, $"{id}.reply.json.tmp");
         try
@@ -1058,7 +1058,16 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
     /// <summary>CommandCodeAPI.SupportDirectoryPath's own literal (:443, DEVIATION OD-0008 C7), duplicated
     /// here as a plain string because that helper is private. PORT-ONLY test seam.</summary>
     internal static string ApprovalDirectoryRoot() =>
-        SwiftPath.AppendingPathComponent(DevDataRoot.LocalApplicationData(), "Marrow Code/CommandCode"); // ED-212
+        SwiftPath.AppendingPathComponent(LocalApplicationData(), AppInfo.DataFolderName + "/CommandCode"); // ED-212; OD-0135
+
+    /// <summary>PORT-ONLY test seam (R-TEST-9): the OS app-data folder the mod and the approval folders go under. Empty
+    /// (always, outside tests) is DevDataRoot's own answer. App tests start Command Code sessions through ThreadRuntime,
+    /// where MARROW_DEV_DATA_ROOT is not set, so AppModelHarness points this at its scratch folder; without it a test
+    /// wrote %LOCALAPPDATA%\nth\CommandCode on the developer's PC.</summary>
+    internal static Ambient<string> LocalApplicationDataForTesting { get; } = new(string.Empty);
+
+    private static string LocalApplicationData() =>
+        LocalApplicationDataForTesting.Current is { Length: > 0 } root ? root : DevDataRoot.LocalApplicationData();
 
     /// <summary>A SwiftURL that round trips a real Windows path through .Path unchanged (ProviderRegistry's
     /// own FileUrl, same reasoning): a "file://" URL's .Path takes swift-foundation's POSIX branch, which

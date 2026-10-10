@@ -47,11 +47,11 @@ public sealed class HangWatchdogTests
         using var scratch = new ScratchFolder();
         var date = new DateTimeOffset(2026, 9, 23, 10, 20, 30, TimeSpan.Zero);
         var folder = HangWatchdog.ReportsFolder(scratch.FullPath);
-        Assert.Equal(Path.Combine(scratch.FullPath, "Marrow Code", "Logs"), folder);
+        Assert.Equal(Path.Combine(scratch.FullPath, "nth", "Logs"), folder);
         Assert.Equal("hang-2026-09-23T10-20-30Z.txt", HangWatchdog.ReportFileName(date));
         var report = HangWatchdog.ReportText(4.26, "1.6.2", "37", date, "thread 1\n");
         var expected =
-            "Marrow main thread unresponsive for 4.3s\n" +
+            "nth main thread unresponsive for 4.3s\n" +
             "Version 1.6.2 (37)\n" +
             "Sampled at 2026-09-23 10:20:30 +0000\n\n" +
             "thread 1\n";
@@ -147,13 +147,13 @@ public sealed class HangWatchdogTests
         Poll.Until(() => lines.Count == 2);
         Poll.Until(() => runtime.Time.ActiveTimers == 1);
 
-        var logs = Path.Combine(scratch.FullPath, "Marrow Code", "Logs");
+        var logs = Path.Combine(scratch.FullPath, "nth", "Logs");
         var first = Path.Combine(logs, "hang-2026-09-22T12-00-04Z.txt");
         Assert.Equal(
             new (string, string)[] { ("Main thread unresponsive for 4.0s, sampling", "iordv.marrow/hang"), ("Hang report written to " + first, "iordv.marrow/hang") },
             lines.ToArray());
         Assert.Equal(Encoding.UTF8.GetBytes(
-            "Marrow main thread unresponsive for 4.0s\n" +
+            "nth main thread unresponsive for 4.0s\n" +
             "Version 1.6.2 (20)\n" +
             "Sampled at 2026-09-22 12:00:04 +0000\n" +
             "\n" +
@@ -176,7 +176,7 @@ public sealed class HangWatchdogTests
         var second = Path.Combine(logs, "hang-2026-09-22T12-00-09Z.txt");
         Assert.Equal(("Hang report written to " + second, "iordv.marrow/hang"), lines.ToArray()[3]);
         Assert.Equal("Main thread unresponsive for 4.0s, sampling", lines.ToArray()[2].Message);
-        Assert.StartsWith("Marrow main thread unresponsive for 4.0s\nVersion 1.6.2 (20)\nSampled at 2026-09-22 12:00:09 +0000\n\n",
+        Assert.StartsWith("nth main thread unresponsive for 4.0s\nVersion 1.6.2 (20)\nSampled at 2026-09-22 12:00:09 +0000\n\n",
             Encoding.UTF8.GetString(File.ReadAllBytes(second)), StringComparison.Ordinal);
         Assert.Equal(StackSampler.CurrentOsThreadId(), calls.ToArray()[1].Main);
         Assert.Equal(2, Directory.GetFiles(logs).Length);
@@ -188,8 +188,8 @@ public sealed class HangWatchdogTests
     {
         using var runtime = new TestRuntime();
         using var scratch = new ScratchFolder();
-        Directory.CreateDirectory(Path.Combine(scratch.FullPath, "Marrow Code"));
-        File.WriteAllBytes(Path.Combine(scratch.FullPath, "Marrow Code", "Logs"), [1]);
+        Directory.CreateDirectory(Path.Combine(scratch.FullPath, "nth"));
+        File.WriteAllBytes(Path.Combine(scratch.FullPath, "nth", "Logs"), [1]);
         var lines = new ConcurrentQueue<(string Message, string Channel)>();
         using var sink = Logger.Sink.Override((message, channel) => lines.Enqueue((message, channel)));
         var runner = NewRunner(scratch, (window, main) => "STACKS\n");
@@ -198,7 +198,7 @@ public sealed class HangWatchdogTests
         for (var tick = 1; tick <= 8; tick++) Step(runtime);
         Poll.Until(() => lines.Count == 2);
         Poll.Until(() => runtime.Time.ActiveTimers == 1);
-        var file = Path.Combine(scratch.FullPath, "Marrow Code", "Logs", "hang-2026-09-22T12-00-04Z.txt");
+        var file = Path.Combine(scratch.FullPath, "nth", "Logs", "hang-2026-09-22T12-00-04Z.txt");
         Assert.Equal(("Hang report written to " + file, "iordv.marrow/hang"), lines.ToArray()[1]);
         Assert.False(File.Exists(file));
         Assert.True(runner.Thread!.IsAlive);
@@ -210,7 +210,7 @@ public sealed class HangWatchdogTests
     {
         using var runtime = new TestRuntime();
         using var scratch = new ScratchFolder();
-        var logs = Path.Combine(scratch.FullPath, "Marrow Code", "Logs");
+        var logs = Path.Combine(scratch.FullPath, "nth", "Logs");
         Directory.CreateDirectory(logs);
         for (var i = 0; i < 10; i++) File.WriteAllText(Path.Combine(logs, $"hang-2026-09-22T11-00-{i:00}Z.txt"), "old");
         File.WriteAllText(Path.Combine(logs, "notes.txt"), "keep");
@@ -243,15 +243,15 @@ public sealed class HangWatchdogTests
 
         for (var tick = 1; tick <= 8; tick++) Step(runtime);
         Poll.Until(() => lines.Count == 2);
-        var file = Path.Combine(scratch.FullPath, "Marrow Code", "Logs", "hang-2026-09-22T12-00-04Z.txt");
+        var file = Path.Combine(scratch.FullPath, "nth", "Logs", "hang-2026-09-22T12-00-04Z.txt");
         Assert.Equal(Encoding.UTF8.GetBytes(
-            "Marrow main thread unresponsive for 4.0s\nVersion ? (?)\nSampled at 2026-09-22 12:00:04 +0000\n\n" + failure),
+            "nth main thread unresponsive for 4.0s\nVersion ? (?)\nSampled at 2026-09-22 12:00:04 +0000\n\n" + failure),
             File.ReadAllBytes(file));
 
         var date = new DateTimeOffset(2026, 9, 23, 10, 20, 30, TimeSpan.Zero);
         var ended = "stack capture ended early: no end of trace within 10 s\n\nThread 7:\n  1 samples\n    [Native Frames]\n";
         Assert.Equal(
-            "Marrow main thread unresponsive for 5.0s\nVersion 1.6.2 (20)\nSampled at 2026-09-23 10:20:30 +0000\n\n" + ended,
+            "nth main thread unresponsive for 5.0s\nVersion 1.6.2 (20)\nSampled at 2026-09-23 10:20:30 +0000\n\n" + ended,
             HangWatchdog.ReportText(4.96, "1.6.2", "20", date, ended));
     }
 

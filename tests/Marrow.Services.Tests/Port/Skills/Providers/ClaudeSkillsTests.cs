@@ -202,7 +202,7 @@ public sealed class ClaudeSkillsTests
         var resumed = new ClaudeSession(Config(), () => next); runtime.Loop.Run(() => resumed.Start(), TimeSpan.FromSeconds(5));
         Assert.Contains(next.Folder, PluginArgs(call!.Arguments));
         var prompt = call.Arguments[Array.IndexOf(call.Arguments, "--append-system-prompt") + 1];
-        Assert.Contains($"Marrow's skills for this chat are now in {next.Folder}. Paths under {path} earlier in this conversation no longer exist; use the same relative path under the new folder.", prompt, StringComparison.Ordinal);
+        Assert.Contains($"nth's skills for this chat are now in {next.Folder}. Paths under {path} earlier in this conversation no longer exist; use the same relative path under the new folder.", prompt, StringComparison.Ordinal);
         resumed.Stop(); Drain(runtime, next); f.Deletion.Held.Clear();
     }
 
@@ -319,7 +319,7 @@ public sealed class ClaudeSkillsTests
         var input = new TurnInput { Text = "fixture", Images = ValueList<Attachment>.Empty, RuntimeMode = RuntimeMode.Supervised, InteractionMode = InteractionMode.Build };
         runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5)); runtime.Loop.Run(() => s.Send(input), TimeSpan.FromSeconds(5));
         var notices = events.OfType<ProviderEvent.Notice>().ToArray();
-        Assert.Single(notices); Assert.Equal("A Marrow skill file changed during this chat; new chats are not affected", notices[0].Value.Message);
+        Assert.Single(notices); Assert.Equal("An nth skill file changed during this chat; new chats are not affected", notices[0].Value.Message);
         var released = false; var disposed = gen.OnDisposed;
         gen.OnDisposed = () => { disposed?.Invoke(); released = true; };
         service.Collect(); Assert.True(Directory.Exists(gen.Folder)); s.Stop();

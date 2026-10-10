@@ -14,25 +14,25 @@ namespace Marrow.App.Tests.Window;
 public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
 {
     // RESOLVED (RECORD != SWIFT, Swift wins): WIN.json PR-WIN-009's windows_path says absent metadata becomes "Marrow", but
-    // Text.swift:4 falls back to "Droppy Code" and Core/Support/Text.cs:31-32 keeps it. The fallback is unreachable in a build,
+    // Text.swift:4 falls back to "Droppy Code" and Core/Support/Text.cs:31-32 kept it; OD-0135 makes the fallback "nth". The fallback is unreachable in a build,
     // because the shipped assembly always carries its display name (AssemblyInfo.cs:4-8: "Marrow", OD-0002); the test below reads
     // that metadata, and the two tests under it protect the fallback through the real factory and the managed peer.
     [Fact]
     [Trait("Req", "PR-WIN-009")] // WindowManager.swift:63,97; preserve the existing Core fallback through the real factory.
-    public void Missing_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Droppy_Code() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    public void Missing_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Nth() => WindowManagerMutationScope.Run(headless, (_, manager) =>
     {
         using var info = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?>(), isDevelopment: true));
         manager.ShowMain();
         var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
-        Assert.Equal("Droppy Code", window.Title);
+        Assert.Equal("nth", window.Title);
         var peer = ControlAutomationPeer.CreatePeerForElement(window);
         Assert.NotNull(peer);
-        Assert.Equal("Droppy Code", peer.GetName());
+        Assert.Equal("nth", peer.GetName());
     });
 
     [Fact]
     [Trait("Req", "PR-WIN-009")] // WindowManager.swift:63,97; a non-string is not a usable display name.
-    public void Wrong_type_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Droppy_Code() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    public void Wrong_type_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Nth() => WindowManagerMutationScope.Run(headless, (_, manager) =>
     {
         using var info = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?>
         {
@@ -40,10 +40,10 @@ public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
         }, isDevelopment: true));
         manager.ShowMain();
         var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
-        Assert.Equal("Droppy Code", window.Title);
+        Assert.Equal("nth", window.Title);
         var peer = ControlAutomationPeer.CreatePeerForElement(window);
         Assert.NotNull(peer);
-        Assert.Equal("Droppy Code", peer.GetName());
+        Assert.Equal("nth", peer.GetName());
     });
 
     // OD-0002 (the deviation of PR-WIN-009): the window text of the build that ships is the product's name, read from the
@@ -54,9 +54,9 @@ public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
     {
         var shipped = AppInfo.FromAssembly(typeof(Marrow.App.AppDelegate).Assembly, isDevelopment: true);
 #if DEBUG
-        const string product = "Marrow Dev"; // AssemblyInfo.cs:4-5, the development channel's display name
+        const string product = "nth Dev"; // AssemblyInfo.cs:4-5, the development channel's display name (OD-0135)
 #else
-        const string product = "Marrow"; // AssemblyInfo.cs:7, OD-0002
+        const string product = "nth"; // AssemblyInfo.cs:7, OD-0002, OD-0135
 #endif
         Assert.Equal(product, shipped.Name);
         using var info = AppInfo.Running.Override(shipped);

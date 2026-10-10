@@ -26,7 +26,7 @@
     <TieredPGO>true</TieredPGO>
     <!-- OD-0112: icon D Aurora, generated from the locked Canvas source by porting/tools/generate_app_icon_d.py. -->
     <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
-    <AssemblyTitle>Marrow</AssemblyTitle>
+    <AssemblyTitle>nth</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>

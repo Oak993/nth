@@ -378,10 +378,10 @@ public sealed class CzControlsTests(HeadlessSession headless)
     [Trait("Spec", "CZ-T43")]
     public void Capsule_and_swatch_peers_expose_invoke_and_required_single_selection() => headless.OnUiThread(() =>
     {
-        var capsule = new CzCapsuleButton("Reset to defaults", detail: "Border beam as Marrow ships it");
+        var capsule = new CzCapsuleButton("Reset to defaults", detail: "Border beam as nth ships it");
         var invoked = false; capsule.Invoked += () => invoked = true;
         var peer = ControlAutomationPeer.CreatePeerForElement(capsule)!;
-        Assert.Equal("Reset to defaults", peer.GetName()); Assert.Equal("Border beam as Marrow ships it", peer.GetHelpText());
+        Assert.Equal("Reset to defaults", peer.GetName()); Assert.Equal("Border beam as nth ships it", peer.GetHelpText());
         Assert.IsAssignableFrom<IInvokeProvider>(peer).Invoke(); Assert.True(invoked);
         capsule.SetAtDefaults(true); invoked = false;
         Assert.IsAssignableFrom<IInvokeProvider>(peer).Invoke(); Assert.False(invoked); Assert.False(capsule.Focusable); Assert.Equal(.42, capsule.Opacity);

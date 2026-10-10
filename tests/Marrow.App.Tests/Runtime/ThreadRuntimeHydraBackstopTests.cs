@@ -11,7 +11,7 @@ namespace Marrow.App.Tests.Runtime;
 // (a report turn does not) and interrupts. Turns run through the real StartTurn over an offline scripted session.
 public sealed class ThreadRuntimeHydraBackstopTests
 {
-    private const string FinalNote = "[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.";
+    private const string FinalNote = "[nth] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.";
 
     private static ChatThread AsHead(ChatThread thread) =>
         thread with

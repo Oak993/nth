@@ -11,7 +11,7 @@ internal sealed class PaletteExecutor : IExecutor,IDisposable
     {
         thread=new Thread(()=>
         {Thread.CurrentThread.CurrentCulture=CultureInfo.InvariantCulture;Thread.CurrentThread.CurrentUICulture=CultureInfo.InvariantCulture;
-            foreach(var work in jobs.GetConsumingEnumerable())work();}){Name="Marrow palette engine",IsBackground=true,Priority=ThreadPriority.BelowNormal};thread.Start();
+            foreach(var work in jobs.GetConsumingEnumerable())work();}){Name="nth palette engine",IsBackground=true,Priority=ThreadPriority.BelowNormal};thread.Start();
     }
     public void Enqueue(Action work){if(!jobs.IsAddingCompleted)try{jobs.Add(work);}catch(InvalidOperationException){}}
     public void Dispose(){jobs.CompleteAdding();if(Thread.CurrentThread!=thread)thread.Join(TimeSpan.FromSeconds(2));}

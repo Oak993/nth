@@ -19,16 +19,14 @@ namespace Marrow.App.Tests.Views.Composer;
 /// single-line outline (ED-NEW-T46-centre) must ride the same transition instead of stepping when the state flips.
 /// </summary>
 [Collection("Headless")]
-[Trait("Decision", "ED-NEW-gate-fixes-6")]
+[Trait("Decision", "ED-NEW-gatefixes-6")] // traceability alias of ED-NEW-gate-fixes-6
 public sealed class ComposerWrapTransitionT46Tests(HeadlessSession headless)
 {
     private const string Short = "Single line with a descender: gyp";
     private const string Wrapped = "A long first line of words that has to wrap onto a second line because it is much wider than the composer text column, "
         + "so the composer grows by one line and the outline follows it. A long first line of words that has to wrap onto a second line.";
 
-    private sealed record Sample(double Top, double Bottom, double Left, double Right, double Orb, double Height, double Text, double Send, double Attach, double Chip);
-
-    private static Sample Read(ComposerView view, Avalonia.Controls.Window window)
+    private static ComposerWrapSample Read(ComposerView view, Avalonia.Controls.Window window)
     {
         // The outline is the plate the composer draws (its glass shape), which is what glides; the view itself only carries the contents' place.
         var rect = Frame(view.Child!, window);
@@ -39,10 +37,10 @@ public sealed class ComposerWrapTransitionT46Tests(HeadlessSession headless)
         var chip = Frame(controls.OfType<ModelEffortSlot>().Single(), window).Center.Y;
         var attach = Frame(LogicalQuery.SelfAndDescendants<ComposerAttachButton>(view).Single(a => a.Place == ComposerAttachPlace.Inside), window).Center.Y;
         var text = Frame(DictationProbe.Box(view), window).Top;
-        return new Sample(rect.Top, rect.Bottom, rect.Left, rect.Right, orb, rect.Height, text, send, attach, chip);
+        return new ComposerWrapSample(rect.Top, rect.Bottom, rect.Left, rect.Right, orb, rect.Height, text, send, attach, chip);
     }
 
-    private static List<Sample> Transition(VoiceComposerRig rig, ComposerView view, Avalonia.Controls.Window window, string from, string to, out Sample before, out Sample after)
+    private static List<ComposerWrapSample> Transition(VoiceComposerRig rig, ComposerView view, Avalonia.Controls.Window window, string from, string to, out ComposerWrapSample before, out ComposerWrapSample after)
     {
         rig.Main.OnMain(() => rig.Runtime.Draft = rig.Runtime.Draft with { Text = from });
         Run(rig, window, .6);
@@ -90,7 +88,7 @@ public sealed class ComposerWrapTransitionT46Tests(HeadlessSession headless)
                     if (edgeSteps.Max() > .2) errors.Add($"{scale} dark={dark} {name}: the outline's top edge stepped {edgeSteps.Max():0.###} pt beyond its height in one frame");
                     // The controls keep their approved window places through the whole transition (the outline alone glides): no control steps by more
                     // than half a device pixel (the layout rounding of its centre-to-bottom alignment), and each ends where it began.
-                    foreach (var (control, read) in new (string, Func<Sample, double>)[] { ("orb", s => s.Orb), ("send", s => s.Send), ("attach", s => s.Attach), ("model chip", s => s.Chip) })
+                    foreach (var (control, read) in new (string, Func<ComposerWrapSample, double>)[] { ("orb", s => s.Orb), ("send", s => s.Send), ("attach", s => s.Attach), ("model chip", s => s.Chip) })
                     {
                         var steps = samples.Zip(samples.Skip(1), (a, b) => Math.Abs(read(b) - read(a))).Max();
                         if (steps > .5 / scale + .01) errors.Add($"{scale} dark={dark} {name}: the {control} stepped {steps:0.###} pt in one frame");

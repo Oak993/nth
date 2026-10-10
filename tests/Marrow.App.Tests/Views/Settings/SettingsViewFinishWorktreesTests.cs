@@ -33,7 +33,7 @@ public sealed class SettingsViewFinishWorktreesTests(HeadlessSession headless) :
             var rows = Nodes<ChromeRow>(card); Assert.Equal(new[] { "Worktrees", "Pull requests" }, rows.Select(r => Text(r).First())); var divider = Assert.Single(Nodes<ChromeRowDivider>(card));
             Assert.True(TopLeft(divider, card).Y >= TopLeft(rows[0], card).Y + rows[0].Bounds.Height - 0.01); Assert.True(TopLeft(rows[1], card).Y >= TopLeft(divider, card).Y + divider.Bounds.Height - 0.01); Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin);
             // Row 1: the title "Worktrees", the resolved worktrees directory as its detail (Storage.swift:30 worktreesDirectory), and one button labelled "Reveal" at the trailing edge.
-            var folder = System.IO.Path.Combine(h.Home, ".marrow", "worktrees"); Assert.Equal(folder, Storage.WorktreesDirectory); CheckRow(rows[0], "Worktrees", folder);
+            var folder = System.IO.Path.Combine(h.Home, ".nth", "worktrees"); Assert.Equal(folder, Storage.WorktreesDirectory); CheckRow(rows[0], "Worktrees", folder);
             var reveal = Assert.Single(Nodes<Button>(rows[0])); Assert.Equal(new[] { "Reveal" }, Text(reveal)); Assert.Equal(TopLeft(rows[0], card).X + rows[0].Bounds.Width - 10, TopLeft(reveal, card).X + reveal.Bounds.Width, 3); // 10pt rowControlTrailingPadding
             // :840 .buttonStyle(.glass): a regular continuous capsule of glass that answers presses.
             var effect = SwiftGlass.GetEffect(Assert.Single(reveal.GetVisualDescendants().OfType<Control>(), c => SwiftGlass.GetEffect(c) is not null))!; Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive);

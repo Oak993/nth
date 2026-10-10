@@ -20,12 +20,12 @@
       {
         "filename": "marrow-icon.png",
         "scale": "1x",
-        "sha256": "9596225755ADC853EEDEBF423BC8B815F474BCAF278ECFF9A1F7877E3F4011E9"
+        "sha256": "1C61156A5988DB6DF33DEC6CC11E37322D738AB7428D74F17FC0C10699873D94"
       },
       {
         "filename": "marrow-icon@2x.png",
         "scale": "2x",
-        "sha256": "3AAE230159F6C67ECDF4A1D17396DD013810F2DBCA0CCF6AD7F1833A3ECA3CCF"
+        "sha256": "37013DCFD529A2565D715CE1E19D836C587B9C044A13819FB97EECFF9FF9C613"
       }
     ],
     "upstreamFiles": [

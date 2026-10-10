@@ -17,7 +17,7 @@ public sealed class BaselineWire(SessionConfiguration configuration)
     {
         var parameters = new Dictionary<string, JSONValue>(SwiftStringComparer.Instance) // :122-131
         {
-            ["clientName"] = "marrow", // DEVIATION OD-0012 F1: upstream sends "droppy-code" (:123).
+            ["clientName"] = "nth", // DEVIATION OD-0012 F1: upstream sends "droppy-code" (:123).
             ["workingDirectory"] = WorkingDirectory,
             ["streaming"] = true,
             ["requestPermission"] = true,
@@ -87,8 +87,8 @@ public sealed class BaselineWire(SessionConfiguration configuration)
         ("protocolVersion", 1L),
         ("clientCapabilities", ClientCapabilities),
         ("clientInfo", JSONValue.FromDictionaryLiteral(
-            ("name", "marrow"),
-            ("title", "Marrow"),
+            ("name", "nth"),
+            ("title", "nth"),
             ("version", AppInfo.Current.Version))));
 
     public JSONValue ClientCapabilities // :156-165

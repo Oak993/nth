@@ -14,10 +14,10 @@ public sealed class InstallerGateTests
         <?xml version="1.0" encoding="utf-8"?>
         <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
         <metadata>
-        <id>MarrowCode</id>
-        <title>Marrow</title>
-        <description>Marrow</description>
-        <authors>Marrow Code</authors>
+        <id>NthApp</id>
+        <title>nth</title>
+        <description>nth</description>
+        <authors>nth</authors>
         <version>{0}</version>
         <channel>win</channel>
         <mainExe>Marrow.App.exe</mainExe>
@@ -87,9 +87,9 @@ public sealed class InstallerGateTests
     [Trait("Decision", "ED-247")]
     public void The_messages_are_the_owners_words()
     {
-        Assert.Equal("A newer version of Marrow (1.8.0) is already installed.", InstallerGate.NewerInstalledMessage("Marrow", "1.8.0"));
-        Assert.Equal("Marrow 1.7.0 is already installed and up to date.", InstallerGate.UpToDateMessage("Marrow", "1.7.0"));
-        Assert.Equal("Marrow Setup", InstallerGate.Caption("Marrow")); // Velopack's own title-setup, en-US.ftl
+        Assert.Equal("A newer version of nth (1.8.0) is already installed.", InstallerGate.NewerInstalledMessage("nth", "1.8.0"));
+        Assert.Equal("nth 1.7.0 is already installed and up to date.", InstallerGate.UpToDateMessage("nth", "1.7.0"));
+        Assert.Equal("nth Setup", InstallerGate.Caption("nth")); // Velopack's own title-setup, en-US.ftl
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public sealed class InstallerGateTests
 
             Assert.Equal(0, InstallerGate.Run(host, Identity(root, "1.7.0"), []));
 
-            Assert.Equal([("Marrow Setup", "Marrow 1.7.0 is already installed and up to date.", false)], host.Messages);
+            Assert.Equal([("nth Setup", "nth 1.7.0 is already installed and up to date.", false)], host.Messages);
             Assert.Empty(host.SetupRuns);
             Assert.Equal(before, Snapshot(root));
         }
@@ -193,7 +193,7 @@ public sealed class InstallerGateTests
 
             Assert.Equal(InstallerGate.RefusedExitCode, exit);
             Assert.NotEqual(0, exit);
-            Assert.Equal([("Marrow Setup", "A newer version of Marrow (1.8.0) is already installed.", true)], host.Messages);
+            Assert.Equal([("nth Setup", "A newer version of nth (1.8.0) is already installed.", true)], host.Messages);
             Assert.Empty(host.SetupRuns);
             Assert.Equal(before, Snapshot(root));
         }
@@ -282,7 +282,7 @@ public sealed class InstallerGateTests
 
             // the default folder is empty; the folder Setup would install to holds a newer version
             Assert.Equal(InstallerGate.RefusedExitCode, InstallerGate.Run(host, Identity(NewRoot(), "1.7.0"), args));
-            Assert.Equal("A newer version of Marrow (1.8.0) is already installed.", Assert.Single(host.Messages).Text);
+            Assert.Equal("A newer version of nth (1.8.0) is already installed.", Assert.Single(host.Messages).Text);
         }
         finally { Remove(parent); }
     }
@@ -345,17 +345,22 @@ public sealed class InstallerGateTests
 
     [Fact]
     [Trait("Decision", "ED-247")]
-    public void The_package_script_ships_the_gate_named_Marrow_beside_the_Electron_app()
+    public void The_package_script_ships_the_gate_named_Nth_beside_the_Electron_app()
     {
         var repository = new DirectoryInfo(AppContext.BaseDirectory);
         while (!File.Exists(Path.Combine(repository.FullName, "Marrow.sln"))) repository = repository.Parent!;
         var script = File.ReadAllText(Path.Combine(repository.FullName, "scripts", "package-windows.ps1"));
         var project = File.ReadAllText(Path.Combine(repository.FullName, "src", "Marrow.Setup", "Marrow.Setup.csproj"));
 
-        // OD-0072: the app is "Marrow"; the install identity stays MarrowCode (ED-235), never the Electron app's
-        Assert.Contains("[string]$PackTitle = 'Marrow',", script, StringComparison.Ordinal);
-        Assert.Contains("[string]$PackId = 'MarrowCode',", script, StringComparison.Ordinal);
-        Assert.Contains("[string]$PackAuthors = 'Marrow Code',", script, StringComparison.Ordinal);
+        // OD-0135: the app is "nth" and installs fresh as NthApp, never the Electron app's "Marrow" and never the data
+        // folder's own name "nth" (Velopack deletes its install folder on uninstall)
+        Assert.Contains("[string]$PackTitle = 'nth',", script, StringComparison.Ordinal);
+        Assert.Contains("[string]$PackId = 'NthApp',", script, StringComparison.Ordinal);
+        Assert.Contains("[string]$PackAuthors = 'nth',", script, StringComparison.Ordinal);
+        Assert.Contains("<InstallerTitle Condition=\"'$(InstallerTitle)' == ''\">nth</InstallerTitle>", project, StringComparison.Ordinal);
+        Assert.Contains("<InstallerAppId Condition=\"'$(InstallerAppId)' == ''\">NthApp</InstallerAppId>", project, StringComparison.Ordinal);
+        Assert.Equal("NthApp", Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.PackageId);
+        Assert.NotEqual(AppInfo.DataFolderName, Marrow.Core.Port.SelfUpdate.MarrowReleaseFeed.PackageId, StringComparer.OrdinalIgnoreCase);
         // Programs\Marrow.lnk is the Electron app's: the shortcut goes in the authors' folder, never the Start menu root
         Assert.Contains("--shortcuts StartMenu `", script, StringComparison.Ordinal);
         Assert.DoesNotContain("StartMenuRoot `", script, StringComparison.Ordinal);
@@ -375,7 +380,7 @@ public sealed class InstallerGateTests
     }
 
     private static InstallerIdentity Identity(string root, string version) =>
-        new("Marrow", version, root, Path.GetTempPath());
+        new("nth", version, root, Path.GetTempPath());
 
     private static string NewRoot() => Path.Combine(Path.GetTempPath(), "marrow-gate-" + Guid.NewGuid().ToString("N"));
 

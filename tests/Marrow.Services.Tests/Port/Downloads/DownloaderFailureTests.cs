@@ -25,7 +25,7 @@ public sealed class DownloaderFailureTests
 
         Assert.Equal(DownloadStatus.Failed, outcome.Status);
         Assert.Equal((DownloadFailureKind.NotFound, status), (outcome.Failure!.Kind, outcome.Failure.HttpStatus));
-        Assert.Equal("The file is no longer at its source. A Marrow update will fix this.", outcome.Failure.Message);
+        Assert.Equal("The file is no longer at its source. An nth update will fix this.", outcome.Failure.Message);
         Assert.False(File.Exists(rig.Dest("a.bin")));
     }
 
