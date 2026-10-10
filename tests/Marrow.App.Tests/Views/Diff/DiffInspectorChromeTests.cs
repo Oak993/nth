@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
@@ -13,6 +14,7 @@ using Marrow.Services.Git;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Xunit;
 using static Marrow.App.Tests.Fixtures.DiffInspectorTree;
 
@@ -302,13 +304,15 @@ public sealed class DiffInspectorChromeTests(HeadlessSession headless)
         var state = Assert.IsType<Border>(Root(inspector).Children[1]);
         Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, state.HorizontalAlignment);
         Assert.Equal(Avalonia.Layout.VerticalAlignment.Stretch, state.VerticalAlignment);
-        var label = Assert.IsType<TextBlock>(Text(state, "Reading the diff…"));
+        var label = Assert.IsAssignableFrom<NthShineText>(Text(state, "Reading the diff…")); // the light passes through it (step 5)
         Assert.Equal(Avalonia.Layout.HorizontalAlignment.Center, label.HorizontalAlignment);
-        // OD-0113 supersedes OD-0016: loader 5 is the stretchable 88 DIP glass placeholder.
-        var mark = Assert.Single(Descendants<AuroraLoader>(state));
-        Assert.Equal(AuroraLoaderKind.AuroraSheen, mark.Kind);
-        Assert.Equal(88, mark.Height);
-        Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, mark.HorizontalAlignment);
+        // OD-0113 supersedes OD-0016: loader 5 is the stretchable 88 DIP placeholder; OD-0136 amendment 2 (step 5) makes it the diff skeleton, which comes in after the 400 ms wait.
+        var loading = Assert.Single(Descendants<AuroraDiffLoadingState>(state));
+        Assert.True(loading.Label.IsShining);
+        var place = Assert.IsType<Panel>(loading.Children[0]);
+        Assert.Equal(88, place.Height);
+        Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, place.HorizontalAlignment);
+        Assert.Equal(NthSkeletonKind.Diff, loading.Skeleton.Kind);
         Assert.Null(Text(state, "No changes yet"));
 
         pending.SetResult(ValueList<DiffFile>.Empty);
@@ -331,7 +335,7 @@ public sealed class DiffInspectorChromeTests(HeadlessSession headless)
         rig.Store.Main.Loop.RunUntilIdle();
 
         Assert.Null(Text(inspector, "Reading the diff…"));
-        Assert.Empty(Descendants<AuroraLoader>(inspector));
+        Assert.Empty(Descendants<AuroraDiffLoadingState>(inspector));
         Assert.NotEmpty(Descendants<DiffFileCard>(inspector)); // the previous list stays until the new one arrives
         pending.SetResult(ValueList<DiffFile>.Empty);
         rig.PumpUntil(() => Text(Root(inspector), "No changes yet") is not null);
