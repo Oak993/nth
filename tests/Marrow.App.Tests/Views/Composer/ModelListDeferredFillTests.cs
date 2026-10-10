@@ -23,19 +23,11 @@ public sealed class ModelListDeferredFillTests(HeadlessSession headless)
 
     private static ScrollViewer Scroll(Control list) => Assert.Single(list.GetVisualDescendants().OfType<ScrollViewer>());
 
-    private sealed record Shape(IReadOnlyList<ModelCatalog.Entry> Entries, double Height)
-    {
-        public int Count => Entries.Count;
-        public double Pitch => Height + 1; // rows 1 apart
-        public double Extent => Count * Pitch - 1;
-        public IEnumerable<string> Names(int start, int count) => Entries.Skip(start).Take(count).Select(e => e.Option.ShortName);
-    }
-
-    private static Shape ShapeOf(EffortListEnv env, Control list)
+    private static ModelListShape ShapeOf(EffortListEnv env, Control list)
     {
         var entries = ModelCatalog.Entries(env.Model, env.Thread);
         Assert.True(entries.Count >= 486, $"{entries.Count} entries");
-        return new Shape(entries, Models(list)[0].Bounds.Height);
+        return new ModelListShape(entries, Models(list)[0].Bounds.Height);
     }
 
     [Fact]

@@ -19,37 +19,13 @@ namespace Marrow.App.Tests.Port.ModelsPalette;
 [Trait("Decision", "ED-NEW-stutterfix-2")]
 public sealed class OpenRouterPickerDeferredFillTests(HeadlessSession headless)
 {
-    private const int Count = 486;
-    private static readonly string[] Makers = ["Acme", "Bolt", "Cirrus", "Delta", "Echo", "Fable"];
+    private const int Count = OpenRouterDeferredRig.Count;
     private const double Extent = Count * 47 + 6 * 24 + 2; // rows 46 + 1, maker headers 24, the list's 2 below
-
-    private sealed class Rig : IDisposable
-    {
-        private readonly TestRuntime runtime = new();
-        private readonly ManualFrameSource frames = new();
-        private readonly IDisposable source;
-        public readonly OpenRouterPicker Picker;
-        public readonly Avalonia.Controls.Window Window;
-        public string? Picked;
-        public Rig()
-        {
-            source = FrameClock.Source.Override(frames);
-            Picker = new OpenRouterPicker(Enumerable.Range(0, Count).Select(i => new PickerModel($"{Makers[i * 6 / Count].ToLowerInvariant()}/m{i}", "Model " + i, Makers[i * 6 / Count], "#10AA60")).ToArray(),
-                "acme/m0", id => Picked = id, () => { });
-            Window = new Avalonia.Controls.Window { Content = Picker, Height = 800 };
-            Window.Show(); Dispatcher.UIThread.RunJobs(); Window.UpdateLayout();
-        }
-        public void Step(int ms) { runtime.Advance(TimeSpan.FromMilliseconds(ms)); frames.Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); Window.UpdateLayout(); }
-        public ScrollViewer Scroll => Assert.Single(Picker.GetVisualDescendants().OfType<ScrollViewer>());
-        public PickerRow[] Shown => Picker.GetVisualDescendants().OfType<PickerRow>().ToArray();
-        public void Key(Key key) => Picker.Search.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key });
-        public void Dispose() { Window.Close(); source.Dispose(); runtime.Dispose(); }
-    }
 
     [Fact]
     public void A_long_picker_opens_with_its_first_screens_and_fills_in_over_frames_at_the_same_extent() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new OpenRouterDeferredRig();
         Assert.Equal(Count, rig.Picker.Rows.Count); // every row is made with the picker
         var first = rig.Shown;
         Assert.InRange(first.Length, 9, Count - 1);
@@ -64,7 +40,7 @@ public sealed class OpenRouterPickerDeferredFillTests(HeadlessSession headless)
     [Fact]
     public void A_search_and_its_keys_reach_rows_not_yet_in_the_list() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new OpenRouterDeferredRig();
         Assert.True(rig.Shown.Length < 60);
         rig.Picker.Search.Text = "model"; Dispatcher.UIThread.RunJobs();
         Assert.Equal(Count, rig.Shown.Length);
@@ -84,7 +60,7 @@ public sealed class OpenRouterPickerDeferredFillTests(HeadlessSession headless)
     [Fact]
     public void Scrolling_past_the_rows_in_the_list_puts_in_the_rows_it_reaches() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new OpenRouterDeferredRig();
         var scroll = rig.Scroll;
         scroll.Offset = new Vector(0, 6000); rig.Window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); rig.Step(16);
         Assert.Equal(6000, scroll.Offset.Y, 0.5);
@@ -97,7 +73,7 @@ public sealed class OpenRouterPickerDeferredFillTests(HeadlessSession headless)
     [Fact]
     public void Count_labels_are_made_as_a_count_is_first_shown_and_keep_their_order() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new OpenRouterDeferredRig();
         var grid = (Grid)Assert.Single(rig.Picker.GetVisualDescendants().OfType<PickerCount>()).Parent!;
         var width = grid.Bounds.Width;
         Assert.Equal(1, rig.Picker.CountOpacity("486 models"));
