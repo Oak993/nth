@@ -56,9 +56,10 @@ public sealed class NewThreadPromptGeometryTests(HeadlessSession headless)
     private static Color Fill(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
 
     [Fact]
-    [Trait("Req", "UI-CHAT-045")] // NewThreadPrompt.swift:16-48: a centred stack of spacing 26, the 72 by 72 icon hidden from assistive technology, 40 points of horizontal padding, filling the pane; 28 regular, one line, primary text
+    [Trait("Req", "UI-CHAT-045")] // NewThreadPrompt.swift:16-48: a centred stack, the icon hidden from assistive technology, 40 points of horizontal padding, filling the pane; 28 regular, one line, primary text
+    [Trait("Decision", "OD-0136")] // the icon is the 44 point nth tile, 14 points above the line (nth-brand.html .hero: .mk 44 px, gap 14 px)
     [Trait("Rule", "R-TEST-4")] // partial proof of UI-CHAT-045: geometry, type and colour; the fade, the underline and the picker edge are the tests below
-    public void The_prompt_fills_the_pane_with_a_centred_26_point_stack_the_72_point_icon_and_28_point_regular_primary_text() => headless.OnUiThread(() =>
+    public void The_prompt_fills_the_pane_with_a_centred_14_point_stack_the_44_point_nth_tile_and_28_point_regular_primary_text() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
         var model = harness.MakeModel();
@@ -80,7 +81,7 @@ public sealed class NewThreadPromptGeometryTests(HeadlessSession headless)
             Assert.Equal(new Thickness(40, 0), content.Padding);
             var column = Assert.IsType<StackPanel>(content.Child);
             Assert.Equal(Orientation.Vertical, column.Orientation);
-            Assert.Equal(26, column.Spacing);
+            Assert.Equal(14, column.Spacing);
             Assert.Equal(HorizontalAlignment.Center, column.HorizontalAlignment);
             Assert.Equal(VerticalAlignment.Center, column.VerticalAlignment);
             // centred in the pane, both ways
@@ -88,9 +89,9 @@ public sealed class NewThreadPromptGeometryTests(HeadlessSession headless)
             Assert.InRange(column.TranslatePoint(default, window)!.Value.Y, (600 - column.Bounds.Height) / 2 - 0.51, (600 - column.Bounds.Height) / 2 + 0.51);
 
             var icon = column.Children[0];
-            MarrowLogoCheck.AssertIsTheAppIconImage(icon, 72); // :17 Image(nsImage: NSApp.applicationIconImage); OD-0015, ED-276: the packaged app icon
-            Assert.Equal(72, icon.Bounds.Width);
-            Assert.Equal(72, icon.Bounds.Height);
+            MarrowLogoCheck.AssertIsTheNthTile(icon); // :17 Image(nsImage: NSApp.applicationIconImage); OD-0136: the nth tile B
+            Assert.Equal(44, icon.Bounds.Width);
+            Assert.Equal(44, icon.Bounds.Height);
             Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(icon)); // :21 accessibilityHidden(true)
 
             var texts = LogicalQuery.SelfAndDescendants<TextBlock>(prompt).Where(block => !string.IsNullOrEmpty(block.Text)).ToArray();

@@ -44,7 +44,8 @@ public sealed class MarrowLogoPlacesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-215")] // OD-0015: the owner-ruled Marrow icon replaces the Droppy logo
-    public void The_new_thread_prompt_icon_is_the_packaged_app_icon_at_72_points() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0136")] // the empty chat's icon is the 44 point nth tile B
+    public void The_new_thread_prompt_icon_is_the_nth_tile_at_44_points() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
         var model = harness.MakeModel();
@@ -57,8 +58,9 @@ public sealed class MarrowLogoPlacesTests(HeadlessSession headless)
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             window.Show();
             Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<SwiftImage>(host), image => image.AssetName == "droppy-logo");
-            var icon = Assert.Single(LogicalQuery.SelfAndDescendants<Image>(host));
-            MarrowLogoCheck.AssertIsTheAppIconImage(icon, 72);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Image>(host));
+            var icon = Assert.Single(LogicalQuery.SelfAndDescendants<NthTile>(host));
+            MarrowLogoCheck.AssertIsTheNthTile(icon);
             Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(icon));
         });
     });

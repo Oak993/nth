@@ -22,8 +22,10 @@ public static class AuroraBootPreparation
         foreach (var dark in new[] { false, true })
         {
             var sequence = new AuroraBootSequence(window, reduce);
-            foreach (var seconds in new[] { .1, .8, 1.3, 1.9, 2.2, 2.8, 3.8 })
+            // OD-0136: the nth gather (.1), draw (.8), drop and sweep (1.3), breath (1.5), the grow and glow, and the hold's slow sweep.
+            foreach (var seconds in new[] { .1, .8, 1.3, 1.5, 1.9, 2.2, 2.8, 3.8 })
                 painter.Draw(surface.Canvas, new Size(64, 64), window, sequence.At(seconds, 0), seconds, dark, reduce);
+            painter.Draw(surface.Canvas, new Size(64, 64), window, sequence.At(4.6, null), 4.6, dark, reduce);
         }
         return true;
     });

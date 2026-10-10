@@ -304,11 +304,11 @@ public sealed class SwiftImageTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Decision", "ED-179")] // OD-0015: the owner-ruled Marrow icon replaces the Droppy logo
-    [InlineData("Images/marrow-icon.png", "9596225755adc853eedebf423bc8b815f474bcaf278ecff9a1f7877e3f4011e9")]
-    [InlineData("Images/marrow-icon@2x.png", "3aae230159f6c67ecdf4a1d17396dd013810f2dbca0ccf6ad7f1833a3eca3ccf")]
+    [InlineData("Images/marrow-icon.png", "1c61156a5988db6df33dec6cc11e37322d738ab7428d74f17fc0c10699873d94")]
+    [InlineData("Images/marrow-icon@2x.png", "37013dcfd529a2565d715ce1e19d836c587b9c044a13819fb97eecff9ff9c613")]
     public void The_logo_images_are_the_Marrow_icon_renders_not_the_upstream_catalogue_files(string path, string sha256) => headless.OnUiThread(() =>
     {
-        // OD-0112: locked Aurora generator outputs, IconKit.box(size) filling 256/512 px; hashes recorded in ED-402. The upstream
+        // OD-0136: scripts/brand/NthIcon's marrow-icon.png / @2x (the nth icon B at 256/512 px; earlier OD-0112 / ED-402 Aurora renders). The upstream
         // droppy-logo PNG hashes (307aca65..., 467897a0...) are asserted absent in MarrowLogoArtworkTests.
         Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData(Asset(path))));
     });
