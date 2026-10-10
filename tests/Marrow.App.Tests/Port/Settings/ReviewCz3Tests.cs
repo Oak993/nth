@@ -25,7 +25,8 @@ public sealed class ReviewCz3Tests(HeadlessSession headless)
         PreviewHost.Show(new Border { Width = 496, Height = 212, Child = preview }, (window, _) =>
         {
             window.UpdateLayout();
-            double Ink() => ((preview.Send.GetVisualDescendants().OfType<SwiftImage>().First().Foreground as ISolidColorBrush)!.Color.A) / 255.0;
+            // OD-0136 amendment 3 (nth step 9): the arrow is drawn by the nth send face, which draws its disc and glyph through one layer at the face's Dim alpha
+            double Ink() => preview.Send.GetVisualDescendants().OfType<Marrow.UI.Port.Nth.NthSendFace>().First().Dim;
             var rest = Ink();
             session.Pick(PreviewState.Typing);
             runtime.AdvanceMilliseconds(300); frames.Advance(TimeSpan.FromMilliseconds(300)); // the ink moves with the disc's fill, 0.12 s
