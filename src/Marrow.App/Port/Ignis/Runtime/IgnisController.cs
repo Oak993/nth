@@ -191,6 +191,14 @@ public sealed class IgnisController : IIgnisController
             return;
         }
 
+        // The tidy-up's own request (the API summary, Claude's /compact): not a user turn and not the chat's size after
+        // it; the next real request reports the shorter chat (and the tidy-up's saving against TidyFrom).
+        if (chat.Tidying)
+        {
+            Changed?.Invoke(thread);
+            return;
+        }
+
         if (chat.IdleSince is { } idle)
         {
             chat.Gaps.Add(now - idle);
@@ -276,7 +284,11 @@ public sealed class IgnisController : IIgnisController
         var chat = Get(thread);
         var now = SwiftDate.Now;
         var runtime = chat.Runtime;
-        if (chat.Tidying && runtime is IIgnisRuntimeTimeline { IsTidying: false })
+        if (chat.Tidying && runtime is IIgnisRuntimeTimeline { IsTidying: false, LastTidyFailed: true })
+        {
+            chat.Tidying = false; // nothing was tidied: no line, no ledger entry; TidyFrom stays, so no retry before the next request
+        }
+        else if (chat.Tidying && runtime is IIgnisRuntimeTimeline { IsTidying: false })
         {
             chat.Tidying = false;
             chat.JustTidiedUntil = now + JustTidiedFor;

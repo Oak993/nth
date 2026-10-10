@@ -17,6 +17,7 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
     private IIgnisController? ignisAttachedTo;
     private DateTimeOffset? ignisLastRequestAt;
     private bool ignisSilentCompact;
+    private bool ignisTidyFailed;
 
     Guid IIgnisRuntimePort.ThreadID => ThreadID;
 
@@ -100,6 +101,8 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
 
     bool IIgnisRuntimeTimeline.IsTidying => ignisSilentCompact;
 
+    bool IIgnisRuntimeTimeline.LastTidyFailed => ignisTidyFailed;
+
     void IIgnisRuntimeTimeline.AppendEvent(IgnisEvent @event)
     {
         if (entryIndex.ContainsKey(@event.TimelineItemID)) return;
@@ -155,16 +158,19 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
     private void IgnisTidyStarted()
     {
         ignisSilentCompact = true;
+        ignisTidyFailed = false;
         ignisTidyEpoch++;
     }
 
     // The compact request returned. Claude and Codex compact after it returns and say so with "Context compacted." (the
-    // swallowed notice ends the tidy-up); the API path says it before. A failure, or no notice in time, ends it too.
+    // swallowed notice ends the tidy-up); the API tidy-up is silent and done when it returns. A failure ends it too
+    // (marked failed, so the controller writes no "Tidied up" line), and so does no notice in time.
     private void IgnisTidyFinished(bool succeeded)
     {
         if (!ignisSilentCompact) return;
-        if (!succeeded)
+        if (!succeeded || (session is { } live && IgnisSessionHooks.TidyEndsOnReturn.Current(live)))
         {
+            ignisTidyFailed = !succeeded;
             IgnisTidyEnded();
             return;
         }

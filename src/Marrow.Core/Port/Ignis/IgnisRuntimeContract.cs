@@ -56,6 +56,9 @@ public interface IIgnisRuntimeTimeline
     /// <summary>A silent tidy-up was asked for and has not ended yet.</summary>
     bool IsTidying { get; }
 
+    /// <summary>The last silent tidy-up ended without tidying anything (failed, or nothing to tidy): no "Tidied up" line.</summary>
+    bool LastTidyFailed => false;
+
     /// <summary>Appends the event's quiet line: an info notice whose item id is <see cref="IgnisEvent.TimelineItemID"/>.</summary>
     void AppendEvent(IgnisEvent @event);
 }
