@@ -161,6 +161,8 @@ public sealed class IgnisController : IIgnisController
         public DateTimeOffset? LastUsedAt;
         /// <summary>The user put the flame out; the next real turn relights it.</summary>
         public bool Cooled;
+        /// <summary>The user turned keep-warm back on ("Turn on") while the cache was cold: lit until the next message warms it.</summary>
+        public bool Armed;
         /// <summary>Ignis has kept this chat warm (its sidebar flame shows, lit or cooled).</summary>
         public bool EverLit;
         /// <summary>The hold already written to History in this idle stretch.</summary>
@@ -287,6 +289,7 @@ public sealed class IgnisController : IIgnisController
         chat.PingSinceUserTurn = false;
         // ED-NEW-ignis-guards: a real turn relights the flame, starts a new idle stretch and ends a switch notice.
         chat.Cooled = false;
+        chat.Armed = false;
         chat.LoggedHold = IgnisKeepWarmHold.None;
         chat.LastUsedAt = now;
         chat.NoticeFor = null;
@@ -567,6 +570,9 @@ public sealed class IgnisController : IIgnisController
 
         void WakeBy(DateTimeOffset at) => wake = wake is { } current && current <= at ? current : at;
 
+        // turned back on while cold: the flame dims at its new idle limit
+        if (chat.Armed && IdleLimitAt(thread, chat) is { } armedUntil && armedUntil > now) WakeBy(armedUntil);
+
         if (preference.Auto && !blocked && !chat.PingInFlight)
         {
             if (preference.Mode == IgnisMode.WarmAndTidy && NeedsTidy(chat))
@@ -716,7 +722,8 @@ public sealed class IgnisController : IIgnisController
     public IgnisEmberState Ember(Guid thread)
     {
         if (!chats.TryGetValue(thread, out var chat) || Settings.ForChat(thread).Mode == IgnisMode.Off) return IgnisEmberState.None;
-        if (Lit(thread, chat, SwiftDate.Now))
+        var now = SwiftDate.Now;
+        if (Lit(thread, chat, now) || Armed(thread, chat, now))
         {
             chat.EverLit = true;
             return new IgnisEmberState(IgnisEmber.Lit, chat.ExpiresAt);
@@ -731,6 +738,34 @@ public sealed class IgnisController : IIgnisController
         chat.LoggedHold = IgnisKeepWarmHold.LetCool;
         Ledger.Record(new IgnisEvent(NewEventID(), thread, IgnisEventKind.LetCool, SwiftDate.Now));
         Everything(); // another chat may take the freed place among the three
+    }
+
+    /// <summary>
+    /// "Turn on" on a cooled chat (owner 2026-10-10: "the pill must then change to turn on, to provide the user an option to turn
+    /// Ignis back on for that chat"): keep-warm resumes as if the chat had just been used (its idle limit starts again and it
+    /// ranks first among the three). A warm cache is kept warm from here; a cold one is never rebuilt by this (that would spend
+    /// a cache write the user did not ask for): the flame stays lit and keep-warm starts with the next message.
+    /// </summary>
+    public void KeepWarmAgain(Guid thread)
+    {
+        if (!chats.TryGetValue(thread, out var chat) || Ember(thread).Ember != IgnisEmber.Cooled) return;
+        var now = SwiftDate.Now;
+        chat.Cooled = false;
+        chat.Armed = true;
+        chat.LoggedHold = IgnisKeepWarmHold.None;
+        chat.LastUsedAt = now;
+        if (chat.IdleSince is not null) chat.IdleSince = now;
+        Ledger.Record(new IgnisEvent(NewEventID(), thread, IgnisEventKind.KeepWarmOn, now));
+        Everything();
+    }
+
+    // Turned back on while cold: lit while Ignis is on for it and its new idle limit has not passed.
+    private bool Armed(Guid thread, Chat chat, DateTimeOffset now)
+    {
+        if (!chat.Armed || chat.Cooled || chat.Runtime is null) return false;
+        var preference = Settings.ForChat(thread);
+        return preference.Mode != IgnisMode.Off && preference.Auto && Pause(thread, chat) == IgnisPause.None
+            && !(IdleLimitAt(thread, chat) is { } limit && now >= limit);
     }
 
     public void ModelChanged(Guid thread, ProviderKind provider, string? model)

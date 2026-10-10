@@ -148,7 +148,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
         (IgnisEventKind.KeptWarm, "keptWarm"), (IgnisEventKind.WarmedAgain, "warmedAgain"), (IgnisEventKind.TidiedUp, "tidiedUp"),
         (IgnisEventKind.WentCold, "wentCold"), (IgnisEventKind.HelperRan, "helperRan"), (IgnisEventKind.HeadTidiedAfterSwitch, "headTidiedAfterSwitch"),
         // ED-NEW-ignis-guards
-        (IgnisEventKind.KeepWarmHeld, "keepWarmHeld"), (IgnisEventKind.LetCool, "letCool"), (IgnisEventKind.SwitchCost, "switchCost"), (IgnisEventKind.CacheNotReused, "cacheNotReused"),
+        (IgnisEventKind.KeepWarmHeld, "keepWarmHeld"), (IgnisEventKind.LetCool, "letCool"), (IgnisEventKind.KeepWarmOn, "keepWarmOn"), (IgnisEventKind.SwitchCost, "switchCost"), (IgnisEventKind.CacheNotReused, "cacheNotReused"),
     ];
     private static readonly (IgnisAmountKind Kind, string Raw)[] AmountNames = [(IgnisAmountKind.Cost, "cost"), (IgnisAmountKind.Saved, "saved"), (IgnisAmountKind.Lost, "lost")];
 

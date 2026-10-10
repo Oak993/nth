@@ -147,6 +147,8 @@ public enum IgnisEventKind
     KeepWarmHeld,
     /// <summary>ED-NEW-ignis-guards: the user put the chat's flame out in the sidebar ("Let it cool"). History only.</summary>
     LetCool,
+    /// <summary>ED-NEW-ignis-guards: the user turned keep-warm back on for a cooled chat (the sidebar's "Turn on"). History only.</summary>
+    KeepWarmOn,
     /// <summary>
     /// ED-NEW-ignis-guards: the chat's model changed while a big cache was warm; <see cref="IgnisEvent.Amount"/> is what the new
     /// model's first message writes again (a notice, not money spent), <see cref="IgnisEvent.AtTokens"/> the prefix.
@@ -601,6 +603,9 @@ public interface IIgnisController
 
     /// <summary>ED-NEW-ignis-guards: the user put the chat's flame out; keep-warm stops until the user's next message. Ignored unless lit.</summary>
     void LetItCool(Guid thread) { }
+
+    /// <summary>The sidebar's "Turn on" on a cooled chat: Ignis keeps it warm again (ED-NEW-ignis-guards).</summary>
+    void KeepWarmAgain(Guid thread) { }
 
     /// <summary>ED-NEW-ignis-guards: the chat's model (or provider) changed; a warm, big cache gets the switch-cost notice.</summary>
     void ModelChanged(Guid thread, ProviderKind provider, string? model) { }

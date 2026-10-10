@@ -264,22 +264,25 @@ public static class IgnisWords
         IgnisEventKind.HeadTidiedAfterSwitch => HeadRebuilt(e),
         IgnisEventKind.KeepWarmHeld => HoldRow(HoldFrom(e.Reason)),
         IgnisEventKind.LetCool => LetCoolRow,
+        IgnisEventKind.KeepWarmOn => KeepWarmOnRow,
         IgnisEventKind.SwitchCost => SwitchCostLine(e.Model, e.AtTokens ?? 0, e.Amount ?? 0m),
         IgnisEventKind.CacheNotReused => NotReusedLine(CauseFrom(e.Reason)),
     };
 
     // ---- keep-warm guards (ED-NEW-ignis-guards; the fire words: lit, cool, rest) ----
 
-    /// <summary>The sidebar flame's pill and the row menu's item: puts the flame out until the next message.</summary>
+    /// <summary>The sidebar pill and the row menu's item on a lit chat: Ignis stops keeping it warm until the next message.</summary>
     public const string TurnOff = "Turn off";
-    /// <summary>The lit flame's tooltip: "Kept warm · 42 min left".</summary>
-    public static string EmberLitTip(TimeSpan? left) => "Kept warm" + (left is { } time && time > TimeSpan.Zero ? " · " + TimeLeft(IgnisCacheState.Warm, time).ToLowerInvariant() : "");
-    /// <summary>The dimmed flame's tooltip.</summary>
-    public const string EmberCooled = "Cooled";
-    /// <summary>The lit flame's accessible name.</summary>
+    /// <summary>The sidebar mark's accessible name while lit (the owner: no tooltip).</summary>
     public const string EmberLitAccessibleName = "Ignis keeps this chat warm";
+    /// <summary>The sidebar mark's accessible name once cooled.</summary>
+    public const string EmberCooledAccessibleName = "Ignis let this chat cool";
     /// <summary>The History row when the user put the flame out.</summary>
     public const string LetCoolRow = "You let the quick memory cool";
+    /// <summary>The sidebar pill and the row menu's item on a cooled chat: Ignis keeps it warm again.</summary>
+    public const string TurnOn = "Turn on";
+    /// <summary>The History row when the user turned keep-warm back on.</summary>
+    public const string KeepWarmOnRow = "You turned keep-warm back on";
 
     /// <summary>The History row when a guard held a keep-warm that was due.</summary>
     public static string HoldRow(IgnisKeepWarmHold hold) => hold switch
@@ -335,6 +338,7 @@ public static class IgnisWords
         IgnisEventKind.HeadTidiedAfterSwitch => HeadRebuilt(e),
         IgnisEventKind.KeepWarmHeld => HoldRow(HoldFrom(e.Reason)),
         IgnisEventKind.LetCool => LetCoolRow,
+        IgnisEventKind.KeepWarmOn => KeepWarmOnRow,
         IgnisEventKind.SwitchCost => "Switch to " + (e.Model ?? "another model") + " rebuilds " + Tokens(e.AtTokens ?? 0),
         IgnisEventKind.CacheNotReused => NotReusedLine(CauseFrom(e.Reason)),
     };

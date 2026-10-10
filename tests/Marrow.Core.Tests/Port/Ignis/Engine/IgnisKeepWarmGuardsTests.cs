@@ -147,10 +147,9 @@ public sealed class IgnisKeepWarmGuardsTests
     public void The_guard_words_and_their_stored_names()
     {
         Assert.Equal("Turn off", IgnisWords.TurnOff);
-        Assert.Equal("Cooled", IgnisWords.EmberCooled);
-        Assert.Equal("Kept warm · 42 min left", IgnisWords.EmberLitTip(M(41.5)));
-        Assert.Equal("Kept warm · under a minute left", IgnisWords.EmberLitTip(TimeSpan.FromSeconds(20)));
-        Assert.Equal("Kept warm", IgnisWords.EmberLitTip(null));
+        Assert.Equal("Turn on", IgnisWords.TurnOn);
+        Assert.Equal("You turned keep-warm back on", IgnisWords.KeepWarmOnRow);
+        Assert.Equal(IgnisWords.KeepWarmOnRow, IgnisWords.HistoryRow(new IgnisEvent("on", Guid.Empty, IgnisEventKind.KeepWarmOn, DateTimeOffset.UnixEpoch)));
         Assert.Equal("12 hours", IgnisSettingsWords.CoolAfter(12));
         Assert.Equal("1 hour", IgnisSettingsWords.CoolAfter(1));
         Assert.Equal("Never", IgnisSettingsWords.CoolAfter(null));

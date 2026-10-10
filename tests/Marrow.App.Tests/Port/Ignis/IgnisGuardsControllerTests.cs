@@ -279,6 +279,67 @@ public sealed class IgnisGuardsControllerTests : IDisposable
         Assert.Equal(IgnisEmber.None, Ember());
     }
 
+    // ---- Turn on (owner: "the pill must then change to turn on, to provide the user an option to turn Ignis back on for that chat")
+
+    [Fact]
+    public void Turn_on_relights_a_cooled_warm_chat_and_keep_warm_resumes_with_one_history_row()
+    {
+        Start();
+        main.Advance(TimeSpan.FromMinutes(10));
+        main.OnMain(() => controller.LetItCool(Thread));
+        Assert.Equal(IgnisEmber.Cooled, Ember());
+        main.OnMain(() => controller.KeepWarmAgain(Thread));
+        Assert.Equal(IgnisEmber.Lit, Ember());
+        Assert.Equal(IgnisKeepWarmHold.None, Status.Hold);
+        var on = Assert.Single(ledger.Recorded, e => e.Kind == IgnisEventKind.KeepWarmOn);
+        Assert.Equal(IgnisWords.KeepWarmOnRow, IgnisWords.HistoryRow(on));
+        Assert.DoesNotContain(port.Lines, line => line.Kind == IgnisEventKind.KeepWarmOn); // History only
+        main.Advance(TimeSpan.FromMinutes(45)); // 55 minutes after the turn: the keep-warm is due again
+        Assert.Equal(1, port.Pings);
+    }
+
+    [Fact]
+    public void Turn_on_a_cold_chat_lights_it_without_rebuilding_and_the_next_message_keeps_it_warm()
+    {
+        Start();
+        main.OnMain(() => controller.LetItCool(Thread));
+        main.Advance(TimeSpan.FromMinutes(61)); // cold
+        main.OnMain(() => controller.KeepWarmAgain(Thread));
+        Assert.Equal(IgnisEmber.Lit, Ember());
+        main.Advance(TimeSpan.FromHours(2));
+        Assert.Equal(0, port.Pings); // a cold cache is never rebuilt by Turn on
+        Assert.Equal(IgnisEmber.Lit, Ember()); // its new idle limit (3 hours) has not passed
+        main.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(IgnisEmber.Cooled, Ember()); // past it
+        main.OnMain(() => controller.KeepWarmAgain(Thread));
+        UserTurn();
+        main.Advance(TimeSpan.FromMinutes(55));
+        Assert.Equal(1, port.Pings);
+    }
+
+    [Fact]
+    public void Turn_on_after_the_idle_limit_starts_the_limit_again()
+    {
+        settings.Update(p => p with { CoolAfterHours = 1, LearnCooling = false });
+        Start();
+        Run(TimeSpan.FromMinutes(70), TimeSpan.FromMinutes(5)); // the ping at 55 min, the limit at 60
+        Assert.Equal(IgnisEmber.Cooled, Ember());
+        Assert.Equal(IgnisCacheState.Warm, Status.Cache);
+        main.OnMain(() => controller.KeepWarmAgain(Thread));
+        Assert.Equal(IgnisEmber.Lit, Ember());
+        Assert.Equal(Now + TimeSpan.FromHours(1), Status.IdleLimitAt);
+    }
+
+    [Fact]
+    public void Turn_on_is_ignored_unless_cooled()
+    {
+        main.OnMain(() => controller.KeepWarmAgain(Thread));
+        Start();
+        main.OnMain(() => controller.KeepWarmAgain(Thread)); // lit already
+        Assert.DoesNotContain(ledger.Recorded, e => e.Kind == IgnisEventKind.KeepWarmOn);
+        Assert.Equal(IgnisEmber.Lit, Ember());
+    }
+
     // ---- the switch-cost notice
 
     [Fact]
