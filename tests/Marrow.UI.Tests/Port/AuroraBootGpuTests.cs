@@ -13,7 +13,7 @@ namespace Marrow.UI.Tests.Port;
 public sealed class AuroraBootGpuTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-launch-fix")]
+    [Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void The_hook_runs_once_for_each_new_context_and_never_for_none()
     {
         var seen = (object?)null;
@@ -28,7 +28,7 @@ public sealed class AuroraBootGpuTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-launch-fix")]
+    [Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void A_failing_hook_never_stops_the_draw_and_is_not_retried_for_that_context()
     {
         var seen = (object?)null;
@@ -41,7 +41,7 @@ public sealed class AuroraBootGpuTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-launch-fix")]
+    [Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void Without_a_GPU_context_Boot_B_draws_and_the_hook_is_not_called() => headless.OnUiThread(() =>
     {
         var saved = AuroraBootGpu.ContextReady;

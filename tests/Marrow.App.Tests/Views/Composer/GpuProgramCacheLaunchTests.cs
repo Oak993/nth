@@ -14,7 +14,7 @@ public sealed class GpuProgramCacheLaunchTests
     // the entry GpuBlobNativeCall's key (bytes 1..8) names
     private static readonly string Entry = Convert.ToHexString(SHA256.HashData(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 })).ToLowerInvariant()[..40] + ".bin";
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void A_store_not_yet_read_finds_an_entry_in_its_file()
     {
         using var cache = new GpuProgramCacheFolder();
@@ -26,7 +26,7 @@ public sealed class GpuProgramCacheLaunchTests
         Assert.Equal(new byte[] { 7, 8, 9 }, GpuBlobNativeCall.Take(store)); // read once, then from memory
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void Once_read_a_store_never_goes_to_the_disk_for_a_miss()
     {
         using var cache = new GpuProgramCacheFolder();
@@ -39,7 +39,7 @@ public sealed class GpuProgramCacheLaunchTests
         Assert.True(GpuProgramCache.Misses > misses);
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void A_missing_entry_in_a_store_not_yet_read_is_a_miss()
     {
         using var cache = new GpuProgramCacheFolder();
@@ -47,7 +47,7 @@ public sealed class GpuProgramCacheLaunchTests
         Assert.Empty(GpuBlobNativeCall.Take(store));
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void The_folder_is_named_for_the_GPU_its_driver_and_ANGLE_and_not_for_the_build()
     {
         const string renderer = "ANGLE (NVIDIA, NVIDIA GeForce RTX 4080 (0x00002704) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1692)";
@@ -60,7 +60,7 @@ public sealed class GpuProgramCacheLaunchTests
         Assert.NotEqual(name, GpuProgramCache.KeyFolderName(renderer.Replace("RTX 4080", "RTX 4090", StringComparison.Ordinal), version));          // another GPU
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public async Task A_new_build_reads_the_programs_the_last_build_kept_and_still_runs_its_own_warm_up()
     {
         var root = Path.Combine(Path.GetTempPath(), "jewel-build-" + Guid.NewGuid().ToString("N"));
@@ -100,7 +100,7 @@ public sealed class GpuProgramCacheLaunchTests
         }
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void The_size_cap_removes_the_entries_used_longest_ago_and_keeps_keys_and_markers()
     {
         var root = Path.Combine(Path.GetTempPath(), "jewel-cap-" + Guid.NewGuid().ToString("N"));
@@ -139,7 +139,7 @@ public sealed class GpuProgramCacheLaunchTests
         finally { Directory.Delete(root, recursive: true); }
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public async Task An_entry_read_from_its_file_and_found_is_touched_so_the_cap_keeps_it()
     {
         using var cache = new GpuProgramCacheFolder();
@@ -154,7 +154,7 @@ public sealed class GpuProgramCacheLaunchTests
         Assert.True(File.GetLastWriteTimeUtc(file) > old.AddYears(1), "a found entry was not touched");
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public async Task Preparing_keeps_the_cache_under_its_cap_before_it_reads_it()
     {
         var root = Path.Combine(Path.GetTempPath(), "jewel-prepcap-" + Guid.NewGuid().ToString("N"));

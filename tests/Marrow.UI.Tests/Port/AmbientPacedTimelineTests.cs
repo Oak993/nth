@@ -12,7 +12,7 @@ namespace Marrow.UI.Tests.Port;
 // ED-NEW-frame-pacing: two ambient render timelines of one window (the effort track and its knob) draw once per 60 Hz
 // slot, on the same refreshes, evenly, at 60/120/144/165/240 Hz, through the real compositor ticks; no timer.
 [Collection("Headless")]
-[Trait("Decision", "ED-NEW-frame-pacing")]
+[Trait("Decision", "ED-NEW-framepacing-1")] // traceability alias of ED-NEW-frame-pacing
 public sealed class AmbientPacedTimelineTests(HeadlessSession headless)
 {
     [Theory]

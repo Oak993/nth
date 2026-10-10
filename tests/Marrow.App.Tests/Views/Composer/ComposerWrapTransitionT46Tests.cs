@@ -19,7 +19,7 @@ namespace Marrow.App.Tests.Views.Composer;
 /// single-line outline (ED-NEW-T46-centre) must ride the same transition instead of stepping when the state flips.
 /// </summary>
 [Collection("Headless")]
-[Trait("Decision", "ED-NEW-gate-fixes-6")]
+[Trait("Decision", "ED-NEW-gatefixes-6")] // traceability alias of ED-NEW-gate-fixes-6
 public sealed class ComposerWrapTransitionT46Tests(HeadlessSession headless)
 {
     private const string Short = "Single line with a descender: gyp";
