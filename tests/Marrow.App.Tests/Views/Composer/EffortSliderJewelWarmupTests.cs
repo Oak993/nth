@@ -371,6 +371,8 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
         var cap = GpuWarmup.IdleCap;
         GpuWarmup.IdleCap = TimeSpan.FromMilliseconds(500);
         GpuWarmup.PretendGpu = true;
@@ -381,13 +383,13 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         {
             frames.RequestFrame(_ => { }); // animating throughout
             var done = GpuWarmup.StepsDone;
-            var asked = new List<DateTime>();
-            var since = DateTime.UtcNow;
-            GpuWarmup.WhenIdle(host);
+            var asked = new List<TimeSpan>();
+            var since = clock.Elapsed;
+            GpuWarmup.WhenIdle(host); // its cap read on the manual clock (ED-NEW-handoverfix-4): a frame is 16 ms of it, however long the machine takes
             var seen = GpuWarmup.StepsAsked;
-            FramesFor(TimeSpan.FromSeconds(10), () =>
+            ClockedFrames(clock, TimeSpan.FromSeconds(10), () =>
             {
-                for (; seen < GpuWarmup.StepsAsked; seen++) asked.Add(DateTime.UtcNow);
+                for (; seen < GpuWarmup.StepsAsked; seen++) asked.Add(clock.Elapsed);
                 return GpuWarmup.StepsDone - done == GpuWarmup.Steps;
             });
             Assert.Equal(GpuWarmup.Steps, GpuWarmup.StepsDone - done);
@@ -1152,6 +1154,21 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             Thread.Sleep(10);
             Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    // a frame every 16 ms of the manual clock (about 10 ms of the machine's, for the warm-up's timer turn between frames) until
+    // done or the manual time is up: what is measured is the manual clock, never the machine's (ED-NEW-handoverfix-4)
+    private static void ClockedFrames(ManualTimeProvider clock, TimeSpan span, Func<bool> done)
+    {
+        var until = clock.Elapsed + span;
+        while (!done() && clock.Elapsed < until)
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(10);
+            Dispatcher.UIThread.RunJobs();
+            clock.Advance(TimeSpan.FromMilliseconds(16));
         }
     }
 

@@ -9,6 +9,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.App.Port.FirstRun;
 using Marrow.Core.Models.ComposerLights;
+using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.UI.Port;
 using Marrow.UI.Port.ComposerLights;
@@ -398,7 +399,7 @@ public static class GpuWarmup
     public static Task WarmAsync(TopLevel window, IProgress<GpuWarmupStep>? progress = null, CancellationToken cancellation = default)
     {
         Dispatcher.UIThread.VerifyAccess();
-        var driver = drivers.GetValue(window, _ => new Driver(window, FrameClock.Source.Current));
+        var driver = drivers.GetValue(window, _ => new Driver(window, FrameClock.Source.Current, SwiftClock.Provider.Current));
         foreach (var (host, other) in drivers)
             if (other != driver && TopLevel.GetTopLevel(host) == window) other.Hurry();
         return driver.Run(idle: false, progress, cancellation);
@@ -409,7 +410,7 @@ public static class GpuWarmup
     public static void WhenIdle(Control host)
     {
         if (drivers.TryGetValue(host, out _)) return;
-        var driver = new Driver(host, FrameClock.Source.Current); // the views' frame source, taken here (the steps run in other flows)
+        var driver = new Driver(host, FrameClock.Source.Current, SwiftClock.Provider.Current); // the views' frame source and clock, taken here (the steps run in other flows)
         drivers.Add(host, driver);
         host.AttachedToVisualTree += (_, _) => driver.Attached();
         host.DetachedFromVisualTree += (_, _) => driver.Detached();
@@ -420,7 +421,8 @@ public static class GpuWarmup
     internal static bool IsScheduled(Control host) => drivers.TryGetValue(host, out _);
 
     // UI thread: asks the render thread for one step at a time, waits for each, decides the next
-    private sealed class Driver(Visual host, IFrameSource frames)
+    // the idle cap is read on the port's one clock (ED-068): TimeProvider.System in the app, a test's manual clock in a test
+    private sealed class Driver(Visual host, IFrameSource frames, TimeProvider clock)
     {
         private CompositionCustomVisual? visual;
         private TopLevel? watched; // the window whose scaling it follows: its host's, while the host is in it
@@ -533,7 +535,7 @@ public static class GpuWarmup
                 if (!idle && top is Avalonia.Controls.Window { Content: AuroraBootStage })
                     await GpuBootPreparation.Run(items, scaling, cancellation);
                 var entries = GpuProgramCache.Entries;
-                var since = DateTime.UtcNow; // the cap counts from the warm-up's start: once it ran out, one step a frame
+                var since = clock.GetTimestamp(); // the cap counts from the warm-up's start: once it ran out, one step a frame
                 var restarted = false;
                 var gpuLess = false;
                 string? passFolder = null;
@@ -623,17 +625,17 @@ public static class GpuWarmup
             abandoned.ContinueWith(static task => _ = task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
         // waits for two frames in a row with nothing animating; true when the cap (since the warm-up began) ran out first
-        private async Task<bool> CapRanOut(TopLevel top, DateTime since, CancellationToken cancellation)
+        private async Task<bool> CapRanOut(TopLevel top, long since, CancellationToken cancellation)
         {
             var calm = 0;
             while (calm < 2)
             {
                 if (hurry) return false; // WarmAsync joined: step now
                 var held = Held(); // Boot B draws (ED-NEW-launch-fix (6)): no step, not even at the cap
-                if (!held && DateTime.UtcNow - since >= IdleCap) return true;
+                if (!held && clock.GetElapsedTime(since) >= IdleCap) return true;
                 var frame = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 top.RequestAnimationFrame(_ => frame.TrySetResult());
-                try { await frame.Task.WaitAsync(IdleCap, cancellation); }
+                try { await frame.Task.WaitAsync(IdleCap, clock, cancellation); }
                 catch (TimeoutException) { if (Held()) continue; return true; } // no frame at all (a closed or hidden window): the cap
                 calm = held || Animating(frames) ? 0 : calm + 1;
                 // a timer's turn between checks: where frames come back at once (nothing drawn, a headless test's job queue)
