@@ -179,6 +179,12 @@ public abstract record ProviderEvent
 
     /// <summary>A head finished, with the provider's summary of its result when it has one.</summary>
     public sealed record AgentFinished(string AgentID, TurnStatus Status, string? Summary) : ProviderEvent; // :122-123
+
+    // DEVIATION OD-0134 / ED-NEW-ignis-contract: no Swift case. Ignis (port-only) needs one request's cache-aware usage
+    // (uncached input, cache read, 5-minute / 1-hour / unknown-TTL writes, output); TokenSpend has no cache-write field
+    // and is dropped when Claude reports iterations. Appended after the 31 Swift cases so their order is untouched.
+    /// <summary>One request's or turn's cache usage, for Ignis (AgentID set: a head's).</summary>
+    public sealed record CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage Value) : ProviderEvent;
 }
 
 // :126-134. Every field is independently optional; an absent field means "unchanged" at the application site
