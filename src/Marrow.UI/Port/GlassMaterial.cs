@@ -888,7 +888,7 @@ internal static class GlassMaterial
         {
             var info = new SKImageInfo(Math.Max(1, width), Math.Max(1, height), SKColorType.Rgba8888, SKAlphaType.Premul);
             // Keep native rendering on the lease's GPU; the software path also runs in headless tests (P1).
-            return lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
+            return lease.GrContext is { } gpu ? SKSurface.Create(gpu, true, info) : SKSurface.Create(info); // ED-NEW-stutterfix-3: budgeted, so a released texture goes back to Skia's scratch pool for the next one
         }
 
         // The surface the blur is drawn into, the crop's size, kept from frame to frame (what it held is drawn over where it is read).
