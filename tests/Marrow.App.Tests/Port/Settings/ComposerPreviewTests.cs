@@ -126,7 +126,7 @@ public sealed class ComposerPreviewTests(HeadlessSession headless)
             var ring = One<PreviewRing>(row);
             var send = One<PreviewSendButton>(row);
             Assert.DoesNotContain(attach, LogicalQuery.SelfAndDescendants<Button>(row));
-            Assert.Equal(new Rect(8, pill.Bounds.Height - 36, 34, 28), Rel(attach));
+            Assert.Equal(new Rect(8, (pill.Bounds.Height - 28) / 2, 34, 28), Rel(attach)); // ED-NEW-gate-fixes-2 (OD-0132): centred on the composer, as the real inside button is, not 8 above its foot
             Assert.Equal(attachR.Size.Width, Rel(attach).Width, .5);
             Assert.Equal(attachR.Size.Height, Rel(attach).Height, .5);
             Assert.Equal(attachR.X, Rel(attach).X);
