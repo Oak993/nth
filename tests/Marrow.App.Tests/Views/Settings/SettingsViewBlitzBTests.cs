@@ -81,7 +81,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             var sidebar = Field<Control>(view, "sidebar"); var field = Assert.Single(Nodes<TextBox>(sidebar));
             var about = Nodes<SidebarRow>(view).Single(row => Text(row).Contains("About"));
             Assert.Equal(Marrow.App.Port.Settings.SettingsSidebar.Pages("").Count, Nodes<SidebarRow>(view).Length); // CZ-4: Customization is listed
-            Click(w, about); Drain(w);
+            Reveal(w, h, about); Click(w, about); Drain(w);
             Assert.Single(Nodes<AboutSettingsPage>(view)); Assert.Empty(Nodes<GeneralSettingsPage>(view)); // the click selects the page
             for (var i = 0; i < 50 && checker.LastError is null; i++) Drain(w);
             Assert.Equal("No update feed is set.", checker.LastError); // ... and the page's section checked for updates (the feed is empty, so no request is made)
