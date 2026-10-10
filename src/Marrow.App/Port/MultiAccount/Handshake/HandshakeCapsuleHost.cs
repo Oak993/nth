@@ -39,6 +39,9 @@ internal sealed class HandshakeCapsuleHost : Panel
     private bool requested, attached, running, wasRunning;
     private Guid? incoming, shownGhost, setStandby;
     private string? shownStatus;
+    // ED-NEW-stutterfix-5: the slot's capsule style the ghost was made beside, and whether what it shows may have changed since.
+    private string? ghostBeside;
+    private bool ghostStale;
     private bool shownTick;
     private DateTimeOffset last;
     private Point canvasOrigin;
@@ -70,7 +73,7 @@ internal sealed class HandshakeCapsuleHost : Panel
         if (state.ThreadId != thread) return;
         if (Dispatcher.UIThread.CheckAccess()) UpdateAccounts(); else Dispatcher.UIThread.Post(UpdateAccounts);
     }
-    private void UpdateAccounts() { snapshot = accounts(); motion?.RefreshAccounts(); }
+    private void UpdateAccounts() { snapshot = accounts(); ghostStale = true; motion?.RefreshAccounts(); }
     private void AccountsChanged()
     {
         void Apply() { UpdateAccounts(); if (incoming is { } id && Ghost is { } ghost && ghostContent(id) is { } content) ghost.Apply(content); Advance(); }
@@ -86,12 +89,19 @@ internal sealed class HandshakeCapsuleHost : Panel
         incoming = Guid.TryParse(port.State(thread)?.IncomingAccountId, out var id) ? id : null;
         if (running != wasRunning || incoming != setStandby) { slot.SetHandshake(running, running ? incoming : null); wasRunning = running; setStandby = incoming; }
         Canvas.IsVisible = liveFrame is not null; if (liveFrame is not null) Canvas.Apply(plan, dark);
-        if (incoming != shownGhost || Ghost?.Style != slot.Capsule?.Style)
+        // ED-NEW-stutterfix-5: the ghost is made again when the incoming account or the slot's style changes, or when the accounts changed and
+        // the content would now be drawn in another style (or there is content where there was none). It was compared with the slot's own style,
+        // which a plain account's ghost beside a pill (or a pill's ghost beside a plain capsule) never has, and so was remade on every Advance.
+        var beside = slot.Capsule?.Style;
+        var stale = ghostStale; ghostStale = false;
+        CapsuleContent? fresh = null;
+        if (incoming != shownGhost || beside != ghostBeside
+            || stale && incoming is { } current && (fresh = ghostContent(current)) is { } now && (Ghost is null || GhostStyle(now) != Ghost.Style))
         {
-            if (Ghost is not null) Children.Remove(Ghost); Ghost = null; shownGhost = incoming;
-            if (incoming is { } next && ghostContent(next) is { } content)
+            if (Ghost is not null) Children.Remove(Ghost); Ghost = null; shownGhost = incoming; ghostBeside = beside;
+            if (incoming is { } next && (fresh ?? ghostContent(next)) is { } content)
             {
-                Ghost = new AccountCapsule(content.Pill is null ? "plain" : slot.Capsule?.Style ?? "1") { IsHitTestVisible = false, RenderTransform = ghostTransform, RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Absolute) };
+                Ghost = new AccountCapsule(GhostStyle(content)) { IsHitTestVisible = false, RenderTransform = ghostTransform, RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Absolute) };
                 Ghost.Face.Focusable = false; Ghost.Apply(content, animate: false); Children.Add(Ghost);
             }
         }
@@ -105,6 +115,7 @@ internal sealed class HandshakeCapsuleHost : Panel
         if (motion.SoundEnabled) { var tones = motion.TakeSounds(); if (tones.Count > 0) (context.Play ?? HandshakeSound.Play)(tones); }
         InvalidateArrange(); Request();
     }
+    private string GhostStyle(CapsuleContent content) => content.Pill is null ? "plain" : slot.Capsule?.Style ?? "1";
     private Animation? Fade() => FrameClock.IsBound ? Animation.EaseOut(duration: CapsuleMotion.Reduce(this) ? .22 : .25) : null;
     private void PlaceGhost()
     {
