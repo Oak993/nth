@@ -1150,7 +1150,7 @@
       "screen": "Chat, empty thread",
       "element": "New thread prompt",
       "role": "label",
-      "exact_text": "What should we build in Marrow?",
+      "exact_text": "What should we build in nth?",
       "geometry": "A centred stack of spacing 26; the app icon at 72 by 72; 40 points of horizontal padding; filling the pane",
       "typography": "System size 28 regular, one line, minimum scale factor 0.6",
       "colors": "Chrome.primaryText; the project name's dotted underline is Chrome.secondaryText, rising to Chrome.primaryText on hover; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
@@ -8374,7 +8374,7 @@
       "screen": "Merge request page on the forge",
       "element": "Merge request title and description",
       "role": "label",
-      "exact_text": "title: <commit message, single-lined, limit 72>; description begins \"Opened by Marrow once its Hydra team finished.\"",
+      "exact_text": "title: <commit message, single-lined, limit 72>; description begins \"Opened by nth once its Hydra team finished.\"",
       "geometry": "n/a (forge-rendered markdown)",
       "typography": "forge",
       "colors": "forge",
@@ -8391,11 +8391,11 @@
         "DroppyCode/App/AppModel+HydraMerge.swift:334",
         "DroppyCode/App/AppModel+HydraMerge.swift:845-868"
       ],
-      "notes": "The description is user-visible outside the app. Its opening line is \"Opened by Marrow once its Hydra team finished.\" by owner ruling OD-0008 B10 (upstream names \"Droppy Code\", AppModel+HydraMerge.swift:845). The file lines use U+2212 before the deletion count. Head lines are \"- **<Name>**: <task>\" with an optional \" (N files)\" suffix.",
+      "notes": "The description is user-visible outside the app. Its opening line is \"Opened by nth once its Hydra team finished.\" by owner ruling OD-0008 B10 (upstream names \"Droppy Code\", AppModel+HydraMerge.swift:845). The file lines use U+2212 before the deletion count. Head lines are \"- **<Name>**: <task>\" with an optional \" (N files)\" suffix.",
       "deviation": {
         "decision": "OD-0008 B10",
         "upstream": "The description begins \"Opened by Droppy Code once its Hydra team finished.\" (DroppyCode/App/AppModel+HydraMerge.swift:845).",
-        "port": "The description begins \"Opened by Marrow once its Hydra team finished.\""
+        "port": "The description begins \"Opened by nth once its Hydra team finished.\""
       },
       "b2_change": "Citation re-anchored, behaviour unchanged at B2: B1 AppModel+HydraMerge.swift:626-650 -> B2 :775-798.",
       "status": "IMPLEMENTED",
@@ -8466,7 +8466,7 @@
       "screen": "Main window, shown by launch",
       "element": "The application's main window, created on first use and restored to its last frame",
       "role": "window",
-      "exact_text": "Marrow",
+      "exact_text": "nth",
       "geometry": "Content size 1320 x 860 points on a first ever launch; content minimum size 860 x 560; afterwards the frame saved under the autosave name \"DroppyCodeMainWindow\"; centered on screen when no saved frame exists",
       "typography": "Title bar type is system-provided; the window is created titled with a transparent title bar, specified by the shell and chrome area",
       "colors": "Clear window background with a SwiftUI glass pane over it (WindowManager.swift:4-8); resolved per theme by the shell and chrome area. OD-0014 keeps upstream's clear window by default (parity): over the desktop the material is Acrylic plus the app-drawn scrim (OD-0005), and the drawn material appears once the user sets a wallpaper",
@@ -8479,7 +8479,7 @@
       "interactions": [
         "Shown automatically at launch",
         "A second launch of the app shows and activates it through the applicationShouldHandleReopen path (PR-LAUNCH-048); upstream this is the Dock reopen when no window is visible",
-        "The .showMainWindow action, titled \"Show Marrow\" (upstream \"Show Droppy Code\", Shortcuts.swift:185; OD-0012 F1), shows it again; upstream its default chord is Cmd+0 (Shortcuts.swift:233 KeyChord(keyCode: 29, modifiers: .command)), and under OD-0012 G6 it keeps no default chord in the port because Ctrl+0 is Actual Size; upstream it is also the Window menu item labelled with AppInfo.name (AppCommands.swift:21-25), which the port does not add (OD-0008 C3, no menu bar)"
+        "The .showMainWindow action, titled \"Show nth\" (upstream \"Show Droppy Code\", Shortcuts.swift:185; OD-0012 F1), shows it again; upstream its default chord is Cmd+0 (Shortcuts.swift:233 KeyChord(keyCode: 29, modifiers: .command)), and under OD-0012 G6 it keeps no default chord in the port because Ctrl+0 is Actual Size; upstream it is also the Window menu item labelled with AppInfo.name (AppCommands.swift:21-25), which the port does not add (OD-0008 C3, no menu bar)"
       ],
       "source_evidence": [
         "DroppyCode/App/AppDelegate.swift:22",
@@ -8488,11 +8488,11 @@
         "DroppyCode/App/Window/WindowManager.swift:62-69",
         "DroppyCode/Core/Support/Text.swift:4"
       ],
-      "notes": "The title is AppInfo.name, which reads CFBundleDisplayName and falls back to the literal \"Droppy Code\"; under OD-0002 and OD-0012 F1 the port's title is exactly \"Marrow\". The window is an AppKit window owned by WindowManager, not a SwiftUI WindowGroup, so no scene background draws a second corner. Its contents and chrome belong to the shell and chrome area; this record covers only what launch does to it. Window chrome follows ED-063: WindowDecorations.Full with ExtendClientAreaToDecorationsHint and the 44 px source title bar, leading-edge caption controls declared through SetNonClientHitTestResult, and a WndProc hook that performs minimise, maximise, restore and close and shows the system menu. Under OD-0013 the main window chrome is not accepted while live resize shows the one-frame edge strip measured by probe P4; if no remedy removes it, it returns to the owner and is not downgraded to a deviation.",
+      "notes": "The title is AppInfo.name, which reads CFBundleDisplayName and falls back to the literal \"Droppy Code\"; under OD-0002 and OD-0012 F1 the port's title is exactly \"nth\" (OD-0135 amendment 1). The window is an AppKit window owned by WindowManager, not a SwiftUI WindowGroup, so no scene background draws a second corner. Its contents and chrome belong to the shell and chrome area; this record covers only what launch does to it. Window chrome follows ED-063: WindowDecorations.Full with ExtendClientAreaToDecorationsHint and the 44 px source title bar, leading-edge caption controls declared through SetNonClientHitTestResult, and a WndProc hook that performs minimise, maximise, restore and close and shows the system menu. Under OD-0013 the main window chrome is not accepted while live resize shows the one-frame edge strip measured by probe P4; if no remedy removes it, it returns to the owner and is not downgraded to a deviation.",
       "deviation": {
         "decision": "OD-0008 C1, C3; OD-0012 F1, G6",
         "upstream": "DroppyCode/App/AppDelegate.swift:36-39 - closing the window leaves the app running and the Dock reopens it; DroppyCode/App/AppCommands.swift:21-25 - 'CommandGroup(before: .windowArrangement) { Button(AppInfo.name) { WindowManager.shared.showMain() }' with the .showMainWindow shortcut; DroppyCode/Core/Support/Text.swift:4 - AppInfo.name falls back to \"Droppy Code\", the window title (WindowManager.swift:62-69); DroppyCode/Core/Models/Shortcuts.swift:185 - 'case .showMainWindow: \"Show Droppy Code\"' and :233 - 'case .showMainWindow: KeyChord(keyCode: 29, modifiers: .command)' (Cmd+0)",
-        "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A; OD-0012 F1: the window title is \"Marrow\" and the action is \"Show Marrow\"; OD-0012 G6: Ctrl+0 is Actual Size and \"Show Marrow\" keeps no default chord"
+        "port": "Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A; OD-0012 F1: the window title is \"Marrow\" and the action is \"Show nth\"; OD-0012 G6: Ctrl+0 is Actual Size and \"Show nth\" keeps no default chord"
       },
       "status": "IMPLEMENTED"
     },
@@ -8685,7 +8685,7 @@
       "screen": "No UI surface",
       "element": "Hang report file",
       "role": "file artifact",
-      "exact_text": "Line 1: \"Marrow main thread unresponsive for <x.x>s\" (upstream \"Droppy Code main thread unresponsive for <x.x>s\", OD-0012 F1). Line 2: \"Version <short version> (<build>)\", with \"?\" for either value when the bundle key is missing. Line 3: \"Sampled at <date>\". Line 4: empty. Then the captured stacks. A failed sample gives the body \"sample could not run: <error>\" and a non-zero exit prefixes the body with \"sample exited with status <n>\" followed by a blank line.",
+      "exact_text": "Line 1: \"nth main thread unresponsive for <x.x>s\" (upstream \"Droppy Code main thread unresponsive for <x.x>s\", OD-0012 F1). Line 2: \"Version <short version> (<build>)\", with \"?\" for either value when the bundle key is missing. Line 3: \"Sampled at <date>\". Line 4: empty. Then the captured stacks. A failed sample gives the body \"sample could not run: <error>\" and a non-zero exit prefixes the body with \"sample exited with status <n>\" followed by a blank line.",
       "geometry": "Not applicable; plain UTF-8 text",
       "typography": "Not applicable",
       "colors": "Not applicable",
@@ -8702,11 +8702,11 @@
         "DroppyCode/Core/Support/HangWatchdog.swift:118-121",
         "DroppyCode/Core/Support/HangWatchdog.swift:123-130"
       ],
-      "notes": "This is a user-reachable artifact with no user-visible control anywhere in the app. The file name is hang-<ISO8601 with ':' replaced by '-'>.txt under ~/Library/Logs/Droppy Code upstream and under %LOCALAPPDATA%\\Marrow Code\\Logs in the port (OD-0008 C7, see PR-LAUNCH-018). A porter must not add a notification, a dialog or a settings toggle for it: nothing in the source surfaces it.",
+      "notes": "This is a user-reachable artifact with no user-visible control anywhere in the app. The file name is hang-<ISO8601 with ':' replaced by '-'>.txt under ~/Library/Logs/Droppy Code upstream and under %LOCALAPPDATA%\\nth\\Logs in the port (OD-0008 C7, see PR-LAUNCH-018). A porter must not add a notification, a dialog or a settings toggle for it: nothing in the source surfaces it.",
       "deviation": {
         "decision": "OD-0008 C7; OD-0012 F1",
         "upstream": "DroppyCode/Core/Support/HangWatchdog.swift:118-121 reportsFolder() - 'library.appendingPathComponent(\"Logs/Droppy Code\", isDirectory: true)'; HangWatchdog.swift:91 - 'var header = \"Droppy Code main thread unresponsive for \\(String(format: \"%.1f\", stalledFor))s\\n\"'",
-        "port": "The report folder is %LOCALAPPDATA%\\Marrow Code\\Logs (OD-0008 C7); OD-0012 F1: line 1 reads \"Marrow main thread unresponsive for <x.x>s\""
+        "port": "The report folder is %LOCALAPPDATA%\\nth\\Logs (OD-0008 C7); OD-0012 F1: line 1 reads \"nth main thread unresponsive for <x.x>s\""
       },
       "status": "IMPLEMENTED"
     },
@@ -8721,7 +8721,7 @@
       "typography": "Not applicable",
       "colors": "Not applicable",
       "states": [
-        "Corrupt or unreadable library: upstream opens empty with no message; the port surfaces the load error in the main window as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4) and never overwrites the file (OD-0008 A10, see PR-LAUNCH-034)",
+        "Corrupt or unreadable library: upstream opens empty with no message; the port surfaces the load error in the main window as \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4) and never overwrites the file (OD-0008 A10, see PR-LAUNCH-034)",
         "Failed legacy folder move: upstream opens without the old data and with no message; the port has no legacy migration (BLK-0005, OD-0008 A5)",
         "Failed store-root creation: the app opens and later writes fail silently",
         "Slow bootstrap: the window is already usable; there is no blocking indicator"
@@ -8736,11 +8736,11 @@
         "DroppyCode/Services/Store/Storage.swift:49-52",
         "DroppyCode/App/AppModel.swift:106"
       ],
-      "notes": "Recorded as UI because the temptation to add a splash screen, a 'restoring your data' step or a friendly error dialog on Windows is strong and would be an invention. Launch shows the main window with a chat in it, and nothing else. The single exception is the failed-library-load error (an unreadable or undecodable library.json) ruled by OD-0008 A10, whose text is exactly \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4).",
+      "notes": "Recorded as UI because the temptation to add a splash screen, a 'restoring your data' step or a friendly error dialog on Windows is strong and would be an invention. Launch shows the main window with a chat in it, and nothing else. The single exception is the failed-library-load error (an unreadable or undecodable library.json) ruled by OD-0008 A10, whose text is exactly \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4).",
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
         "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 - a corrupt library opens empty with no message; upstream has no text for this error because it never shows one",
-        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
+        "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       },
       "status": "IMPLEMENTED"
     },
@@ -10888,7 +10888,7 @@
       "screen": "Settings > MCP page",
       "element": "Footer line",
       "role": "label",
-      "exact_text": "Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.",
+      "exact_text": "Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.",
       "geometry": "the last element of the page stack, 20 below the final section",
       "typography": ".system(.subheadline) (11 nominal)",
       "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, B2 DroppyCode/UI/Chrome/Chrome.swift:79)",
@@ -10905,7 +10905,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream footer: DroppyCode/App/Views/Settings/MCPSettingsPage.swift:60 - :60 Text(\"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Droppy Code itself.\")",
-        "port": "Marrow footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.\""
+        "port": "Marrow footer: \"Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.\""
       },
       "b2_change": "No shift. B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)). The string is unchanged. Its colour token Chrome.secondaryText changed value (primaryText at 0.7). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
       "status": "IMPLEMENTED"
@@ -13360,7 +13360,7 @@
         "Claude usage limit: \"Claude hit a usage limit.\" plus, when a reset time is known, \" It resets at <formatted time>.\"",
         "Codex MCP refusal: \"Codex refused the MCP server configuration, so this session runs without MCP servers. Check MCP in Settings.\"",
         "Codex retry: the error message, a space, then \"Retrying.\"",
-        "Codex elicitation: \"<server> asked for input, which Marrow cannot show yet.\" with the server defaulting to \"An MCP server\" (OD-0012 F1)",
+        "Codex elicitation: \"<server> asked for input, which nth cannot show yet.\" with the server defaulting to \"An MCP server\" (OD-0012 F1)",
         "Copilot unsupported command: \"/<name> opens a dialog that only Copilot's own terminal UI can show.\"",
         "Command Code turn cap: \"Command Code stopped at its cap of 400 round trips for one message. Send another to carry on.\"",
         "Antigravity denied actions: \"Antigravity held back <names> without prompting. Use Full access or add an allow rule in the CLI's settings.\"",
@@ -13384,7 +13384,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "CodexSession.swift:992: \"\\(server) asked for input, which Droppy Code cannot show yet.\"",
-        "port": "\"<server> asked for input, which Marrow cannot show yet.\"; every other notice in this record is unchanged."
+        "port": "\"<server> asked for input, which nth cannot show yet.\"; every other notice in this record is unchanged."
       },
       "status": "IMPLEMENTED"
     },
@@ -13491,9 +13491,9 @@
       "typography": "Not defined in this area.",
       "colors": "Not defined in this area; the status .declined is what the row uses to pick its treatment.",
       "states": [
-        "Command Code decline, written into the reply file and echoed back by the CLI: \"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\" (OD-0012 F1)",
-        "Command Code mod default, when the reply carries no reason: \"The user declined this in Marrow.\" (OD-0012 F1)",
-        "Command Code mod on an abort: \"The turn was stopped.\"; on an orphan or the six-hour deadline: \"Marrow did not answer.\" (OD-0012 F1)",
+        "Command Code decline, written into the reply file and echoed back by the CLI: \"The user declined this in nth. Do not retry it; take another approach or explain what you would need.\" (OD-0012 F1)",
+        "Command Code mod default, when the reply carries no reason: \"The user declined this in nth.\" (OD-0012 F1)",
+        "Command Code mod on an abort: \"The turn was stopped.\"; on an orphan or the six-hour deadline: \"nth did not answer.\" (OD-0012 F1)",
         "Pi extension block reasons: \"Final report: no tools\", \"Plan mode is read-only\", and \"The user declined this command\" / \"The user declined this file change\" / \"The user declined this tool call\"",
         "Command Code blocked-hook fallback: \"Declined.\"; failed-tool fallback: \"The tool failed.\"",
         "Antigravity failed-tool fallback: \"The tool failed.\""
@@ -13512,7 +13512,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "CommandCodeSession.swift:704 \"The user declined this in Droppy Code. Do not retry it; take another approach or explain what you would need.\"; CommandCodeAPI.swift:424 \"The user declined this in Droppy Code.\"; CommandCodeAPI.swift:432 \"Droppy Code did not answer.\"",
-        "port": "\"The user declined this in Marrow. Do not retry it; take another approach or explain what you would need.\"; \"The user declined this in Marrow.\"; \"Marrow did not answer.\"; the Pi, Antigravity and other fallbacks are unchanged."
+        "port": "\"The user declined this in nth. Do not retry it; take another approach or explain what you would need.\"; \"The user declined this in nth.\"; \"nth did not answer.\"; the Pi, Antigravity and other fallbacks are unchanged."
       },
       "status": "IMPLEMENTED"
     },
@@ -25167,7 +25167,7 @@
       "deviation": {
         "decision": "OD-0008 C3, C1, B7; OD-0012 G6",
         "upstream": "DroppyCode/App/AppCommands.swift:21-25 - an item of the macOS menu bar installed by DroppyCode/App/DroppyCodeApp.swift:21-25. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
-        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: \"Show Marrow\" keeps no default chord; Ctrl+0 is Actual Size."
+        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Closing the main window quits the app, keeping the upstream wait while a Hydra merge is running. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: \"Show nth\" keeps no default chord; Ctrl+0 is Actual Size."
       },
       "status": "IMPLEMENTED"
     },
@@ -27038,7 +27038,7 @@
       "deviation": {
         "decision": "OD-0008 C3, B7; OD-0012 G6",
         "upstream": "DroppyCode/App/AppCommands.swift:57-58 - 'Button(\"Actual Size\") { model.settings.appZoom = 100 }' with `.keyboardShortcut(\"0\", modifiers: .command)`. Upstream chords are written in macOS modifier glyphs (DroppyCode/Core/Models/Shortcuts.swift:43-50 modifierSymbols: \"⌃\", \"⌥\", \"⇧\", \"⌘\").",
-        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: Ctrl+0 is Actual Size; \"Show Marrow\" keeps no default chord."
+        "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A. Read as the ruling's resolution note records it (porting/owner_decisions_pending.md:57: \"Every source command keeps its shortcut and command-palette entry\"): a command keeps the palette row the source gives it and gains none; at B2 the palette's only actions are New thread, New thread in worktree, Add project, Toggle terminal, Toggle changes, the finish action and Settings (DroppyCode/App/Views/Palette/CommandPalette.swift:153-178), so this command has no palette row in the port. Chords are named in Windows notation (OD-0008 B7: Ctrl+Alt+Shift+key, ED-050 mapping: Command->Ctrl, Option->Alt, Shift->Shift, Control->Ctrl); key labels stay the US-position table (OD-0008 B9). OD-0012 G6: Ctrl+0 is Actual Size; \"Show nth\" keeps no default chord."
       },
       "status": "IMPLEMENTED"
     },
