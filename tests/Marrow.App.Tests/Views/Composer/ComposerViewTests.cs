@@ -3397,14 +3397,14 @@ public sealed partial class ComposerViewTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-096")] // App/Views/Composer/ComposerView.swift:825-841
     [Trait("Req", "PR-COMPOSER-100")] // App/Views/Composer/ComposerView.swift:843
     [Trait("Req", "UI-COMPOSER-016")] // App/Views/Composer/ComposerView.swift:825-843
-    public void B3_send_is_28_circle_4_leading_and_disabled_until_draft_then_named_Send_to_a_head()
+    public void B3_send_is_32_face_4_leading_and_disabled_until_draft_then_named_Send_to_a_head()
     {
         headless.OnUiThread(() =>
         {
             var frames=new ManualFrameSource(); using var frameScope=FrameClock.Source.Override(frames); // the disc's fill eases on the frame clock (UI-COMPOSER-016)
             using var h=RuntimeHarness(); var send=h.Main.OnMain(() => new SendDraftState(h.Runtime,false,false,true,false,()=>{})); var window=h.Main.OnMain(() => Show(send,h.App,200)); Pump(h,window);
-            var button=One<Button>(send); Assert.False(button.IsEnabled); Assert.False(button.Focusable); Assert.Equal("Send to a head",AutomationProperties.GetName(button)); Assert.Equal(new Thickness(4,0,0,0),button.Margin);
-            h.Main.OnMain(() => h.Runtime.Draft=new ComposerDraft{Text="message"}); Pump(h,window); Assert.True(button.IsEnabled); var label=Assert.IsType<Border>(button.Content); Assert.Equal(28,label.Width); Assert.Equal(28,label.Height); Assert.Equal("arrow.up",One<SwiftImage>(label).SymbolName); Close(h,window);
+            var button=One<Button>(send); Assert.False(button.IsEnabled); Assert.False(button.Focusable); Assert.Equal("Send to a head",AutomationProperties.GetName(button)); Assert.Equal(new Thickness(4,-2,0,-2),button.Margin); // the 4 leading; -2 above and below lays the 32 face out 28 tall, so the controls row and the 46 pill are unchanged (OD-0136 amendment 2, step 9)
+            h.Main.OnMain(() => h.Runtime.Draft=new ComposerDraft{Text="message"}); Pump(h,window); Assert.True(button.IsEnabled); var label=Assert.IsType<Border>(button.Content); Assert.Equal(32,label.Width); Assert.Equal(32,label.Height); var face=One<Marrow.UI.Port.Nth.NthSendFace>(label); Assert.Equal(32,face.Width); Assert.Equal(32,face.Height); Assert.False(face.IsRunning); Close(h,window); // OD-0136 amendment 2, step 9: the 32 px face (was the 28 point circle with the arrow.up symbol)
         });
     }
 

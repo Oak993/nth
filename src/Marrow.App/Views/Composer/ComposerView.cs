@@ -33,6 +33,7 @@ using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Views.Composer;
 
@@ -2164,14 +2165,11 @@ internal sealed class SendRunState : Decorator
     public SendRunState(ThreadRuntime runtime, bool goesToHead, bool queueGoesToHead, Action send)
     {
         inputs.Value = (goesToHead, queueGoesToHead);
-        bool? shown = null;
+        // PORT-ONLY (OD-0136 amendment 2, step 9): one face for every button this state makes, so the arrow flying out and the stop square popping in (and back)
+        // play on the face the person is looking at when running flips, instead of a new face being shown already changed.
+        var face = new NthSendFace();
         this.Track(() => (Running: runtime.IsRunning, Heads: runtime.IsRunning && runtime.HasWorkingHeads, ToHead: inputs.Value), input =>
-        {
-            // :834 the symbol's replace transition plays when the symbol itself changes (running flipped).
-            var previous = shown is { } was && was != input.Running ? SendDraftState.Symbol(was) : null;
-            shown = input.Running;
-            Child = new SendDraftState(runtime, input.Running, input.Heads, input.ToHead.GoesToHead, input.ToHead.QueueGoesToHead, send, previous); // :807-811
-        });
+            Child = new SendDraftState(runtime, input.Running, input.Heads, input.ToHead.GoesToHead, input.ToHead.QueueGoesToHead, send, face)); // :807-811
     }
 }
 
@@ -2186,38 +2184,33 @@ internal sealed class SendDraftState : Decorator
         bool goesToHead,
         bool queueGoesToHead,
         Action send,
-        string? previousSymbol = null)
+        NthSendFace? shared = null)
     {
-        var image = SwiftImage.SystemName(Symbol(isRunning)).Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White); // :831-833
-        image.ContentTransitionSymbolEffect(SymbolEffectKind.Replace); // :834
-        Control face = image;
-        if (previousSymbol is not null && previousSymbol != Symbol(isRunning))
-        {
-            // :834 .contentTransition(.symbolEffect(.replace)): the old symbol goes, then the new one grows in (SymbolReplace).
-            var old = SwiftImage.SystemName(previousSymbol).Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White);
-            var both = new Panel { Children = { image, old } };
-            SymbolReplace.Play(old, image, () => both.Children.Remove(old));
-            face = both;
-        }
-        var label = new Border { Width = 28, Height = 28, Child = face }.Capsule(RoundedCornerStyle.Circular); // :835-836 circle
+        // PORT-ONLY (OD-0136 amendment 2, step 9): the 32 px disc (was 28) is the nth send face: it draws the graphite (silver in the dark) gradient disc, its rim and
+        // shadow, and the arrow or the stop square (:831-833, :835-836 were the accent disc with the arrow.up / stop.fill symbol). Running is set while the face is still in the
+        // button it was last in, so the change animates; then the face is taken out for this button.
+        var face = shared ?? new NthSendFace();
+        face.IsRunning = isRunning;
+        face.IsPressed = false;
+        switch (face.Parent) { case Decorator held: held.Child = null; break; case Panel held: held.Children.Remove(face); break; }
+        var label = new Border { Width = NthSendFace.Size, Height = NthSendFace.Size, Child = face }; // :835-836 circle
         var button = PlainControls.Button(label, () => { if (isRunning) runtime.Interrupt(); else send(); }); // :828-829,838
         button.Focusable = false; // :839
-        button.Margin = new Thickness(4,0,0,0); // :841
+        // :841 the 4 point leading margin. PORT-ONLY (OD-0136 amendment 2, step 9): the face is 32 tall (was 28). The controls row, and the pill built round it (46), were laid out with a 28 tall
+        // button, and the composer's centring (T46) rests on that height; so the button takes 2 points back above and below: it is laid out 28 tall and draws 32, centred on the same line,
+        // and nothing else in the composer moves.
+        button.Margin = new Thickness(4, -2, 0, -2);
         ToolTip.SetTip(button, HelpText(isRunning, headsWorking, goesToHead, queueGoesToHead)); // :842
         AutomationProperties.SetName(button, isRunning ? "Stop" : goesToHead ? "Send to a head" : "Send"); // :843
-        var fill = new AnimatedColor(label); // the disc's fill and the glyph's ink follow the state along a transition (OD-0076)
-        label.Background = fill.Brush;
-        var ink = new AnimatedColor(image);
-        image.Foreground = ink.Brush;
+        button.PropertyChanged += (_, change) => { if (change.Property == Button.IsPressedProperty) face.IsPressed = button.IsPressed; }; // the face scales to 0.9 while held
+        var dimmed = new AnimatedScalar(label, face.Dim, value => face.Dim = value); // the face dims and returns along a transition (OD-0076)
         void Apply(bool empty, bool reverting, Animation? animation)
         {
             var enabled = isRunning || !empty; // :826-827
             button.IsEnabled = enabled && !reverting; // :840
-            // A disabled plain button dims its label: VIDEO content.composer-send-states (C 81.640, C 90.5): the empty composer's disc is
-            // a faint grey and its arrow about half white, measured on the extracted frames as 0.48 to 0.51 of the white over the disc.
-            var dim = button.IsEnabled ? 1 : DisabledLabelOpacity;
-            fill.Set((enabled ? Popovers.GetTint(this) ?? SwiftColor.AccentColor : SwiftColor.Quaternary).Opacity(dim), animation); // :836
-            ink.Set(SwiftColor.White.Opacity(dim), animation); // :833
+            // A disabled plain button dims its label: VIDEO content.composer-send-states (C 81.640, C 90.5): the empty composer's disc was a faint grey and its
+            // arrow about half white, measured on the extracted frames as 0.48 to 0.51 of the white over the disc. The nth face keeps what it has at half: Dim 0.5.
+            dimmed.Set(button.IsEnabled ? 1 : DisabledLabelOpacity, animation); // :836
         }
         Apply(runtime.Draft.IsEmpty, runtime.IsReverting, null);
         // The Mac changes the fill in one frame; the owner's OD-0076 has every change transitioned, in the Mac's motion language
@@ -2230,7 +2223,7 @@ internal sealed class SendDraftState : Decorator
     /// <summary>PORT-ONLY: how much of itself a disabled send button's label keeps (VIDEO, see <c>Apply</c>).</summary>
     internal const double DisabledLabelOpacity = 0.5;
 
-    /// <summary>:831 the button's symbol: stop.fill while running, else arrow.up.</summary>
+    /// <summary>:831 the button's symbol: stop.fill while running, else arrow.up. The Settings preview of the composer still draws this symbol (PreviewSendButton).</summary>
     internal static string Symbol(bool isRunning) => isRunning ? "stop.fill" : "arrow.up";
 
     // :848-865 The shortcuts are read from the launch-wide cache, not looked up per keystroke.

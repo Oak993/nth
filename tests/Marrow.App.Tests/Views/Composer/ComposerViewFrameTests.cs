@@ -43,17 +43,19 @@ public sealed class ComposerViewFrameTests(HeadlessSession headless)
                 for (var index = 1; index < row.Children.Count; index++)
                     Assert.Equal(2, Frame(row.Children[index], row).X - Frame(row.Children[index - 1], row).Right, 0.5);
                 // On the frame: the disc 8 from the pill's right edge, 28 across; the ring 17.5 across with its centre 55.5 from the edge.
+                // OD-0136 amendment 2, step 9: the disc is the 32 px nth send face (the page's .sb.new, 32 across, the pill staying 46). It grows to the left, the 8 from the edge kept, so the
+                // ring's centre is 8 + 32 + 4 + 2 + 13.5 = 59.5 from the edge.
                 var pill = Frame(view, window);
                 Assert.Equal(46, pill.Height, 0.5); // the pill with its controls is 46 from rim to rim on the frame (rows 1298-1343), not the record's 44
                 var send = Frame(row.Children[2], window);
-                var disc = Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[2]).First(button => button.Bounds.Width >= 27), window);
+                var disc = Frame(LogicalQuery.SelfAndDescendants<Button>(row.Children[2]).First(button => button.Bounds.Width >= 31), window);
                 Assert.Equal(pill.Right - 8, disc.Right, 1);
-                Assert.Equal(28, disc.Width, 0.5);
-                Assert.Equal(28, disc.Height, 0.5);
+                Assert.Equal(32, disc.Width, 0.5);
+                Assert.Equal(32, disc.Height, 0.5);
                 Assert.Equal(4, disc.X - send.X, 0.5); // the send button's leading padding
                 var meter = Frame(row.Children[1], window);
                 Assert.Equal(15 + 12, meter.Width, 0.5); // the ring button: 15 across and 6 either side
-                Assert.Equal(pill.Right - 55.5, meter.X + meter.Width / 2, 1.5);
+                Assert.Equal(pill.Right - 59.5, meter.X + meter.Width / 2, 1.5);
             });
             // :655 .fixedSize(): never compressed. Given less room than they ask for, the row still wants its full width.
             var wide = h.Main.OnMain(() => One<ComposerControls>(view).Child!.DesiredSize.Width);
