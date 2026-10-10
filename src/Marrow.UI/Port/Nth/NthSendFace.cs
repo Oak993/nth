@@ -1,7 +1,8 @@
 // PORT-ONLY: OD-0136 amendment 2, step 9 "Send button" (ED-NEW-nth-motion), with the owner's answer: "the stop and arrow inside
 // the circle needs to be enlarged". The 32 px disc (was 28): a soft vertical gradient --stop to --sbot, a 1 px inner top rim
-// (--prim), a hairline edge (--edge) and a small shadow (0 2 6 -2 --pshadow). Its glyph, in --on, is drawn in a 20 px box (the
-// page's 16 scaled 1.25 for the owner's "enlarge", the page's own paths, so the optical centring is the page's). Send: the arrow
+// (--prim), a hairline edge (--edge) and a small shadow (0 2 6 -2 --pshadow). Its glyph, in --on, is the page's own arrow path
+// scaled about the page's 16 px box (so the optical centring is the page's) to the owner's larger sizes: see ArrowHeight and
+// StopSize (round 5 sets the final numbers; these are the coordinator's interim values, arrow about 16 px tall, stop about 12). Send: the arrow
 // flies up and out (clipped by the circle) and the stop square pops in; while working the square breathes; stop: the square
 // shrinks and the arrow drops back. Press: scale 0.9. Nothing else moves (no ring, no glow, no shine on the disc).
 using Avalonia;
@@ -17,8 +18,21 @@ public sealed class NthSendFace : NthMotionControl
     /// <summary>The disc's diameter (step 9: 32, was 28).</summary>
     public const double Size = 32;
 
-    /// <summary>The glyph's box: the page's 16 px enlarged 1.25 times at the owner's request.</summary>
-    public const double GlyphBox = 20;
+    /// <summary>The arrow's height, tip to tail including its round caps (the page: 9.5 + 1.9 in 16; the owner asked for larger:
+    /// interim 16, round 5 sets the final number).</summary>
+    public const double ArrowHeight = 16;
+
+    /// <summary>The arrow's stroke (the page: 1.9 in its 16 px box).</summary>
+    public const double ArrowStroke = 2.4;
+
+    /// <summary>The stop square's side (the page: 7; interim 12, round 5 sets the final number). Its corner keeps the page's 1.8 / 7.</summary>
+    public const double StopSize = 12;
+
+    /// <summary>The arrow path's own height in the page's 16 px box (tip y 3.5 to tail y 13).</summary>
+    internal const double ArrowPathHeight = 9.5;
+
+    /// <summary>The scale from the page's 16 px glyph box to the drawn arrow.</summary>
+    public static double ArrowScale => (ArrowHeight - ArrowStroke) / ArrowPathHeight;
 
     private bool running, pressed;
     private double changedAt = double.NegativeInfinity, pressedAt = double.NegativeInfinity, dim = 1;
@@ -56,9 +70,6 @@ public sealed class NthSendPainter : NthSkiaPainter
     private readonly SKMaskFilter shadowBlur = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 3);
     private SKShader? fill;
     private (double Size, bool Dark) fillFor = (-1, false);
-
-    /// <summary>The arrow's stroke in the 20 px box (the page's 1.9 in 16, kept a little lighter than a straight 1.25 scale).</summary>
-    public const float ArrowStroke = 2.2f;
 
     public override bool Moving(NthFrame frame, double now) =>
         frame.State is NthSendState s && (s.Running && !frame.Calm || now - s.ChangedAt < .7 || now - s.PressedAt < .2);
@@ -115,7 +126,7 @@ public sealed class NthSendPainter : NthSkiaPainter
         // a face shown already working breathes from when it was shown, its square already in
         var shownWorking = double.IsNegativeInfinity(s.ChangedAt);
         var since = shownWorking ? now - started + .62 : now - s.ChangedAt;
-        var k = (float)(NthSendFace.GlyphBox / 16);
+        var k = (float)NthSendFace.ArrowScale;
         // the arrow: still, launching (running) or dropping back (stopped)
         var (ay, aa) = s.Running ? NthMotion.ArrowLaunch(since, calm) : shownWorking ? (0, 1) : NthMotion.ArrowDrop(since, calm);
         if (aa > 0)
@@ -124,7 +135,7 @@ public sealed class NthSendPainter : NthSkiaPainter
             canvas.Translate(0, (float)ay);
             canvas.Scale(k);
             canvas.Translate(-8, -8);
-            paint.Style = SKPaintStyle.Stroke; paint.StrokeWidth = ArrowStroke / k; paint.StrokeCap = SKStrokeCap.Round; paint.StrokeJoin = SKStrokeJoin.Round;
+            paint.Style = SKPaintStyle.Stroke; paint.StrokeWidth = (float)NthSendFace.ArrowStroke / k; paint.StrokeCap = SKStrokeCap.Round; paint.StrokeJoin = SKStrokeJoin.Round;
             paint.Color = on.WithAlpha((byte)Math.Round(255 * NthEase.Clamp01(aa)));
             canvas.DrawPath(arrow, paint);
             canvas.Restore();
@@ -132,10 +143,10 @@ public sealed class NthSendPainter : NthSkiaPainter
         // the stop square: popping in and breathing (running) or shrinking away (stopped)
         var (sc, sa) = s.Running ? NthMotion.StopIn(since, calm) : shownWorking ? (1, 0) : NthMotion.StopOut(since, calm);
         if (sa <= 0) return;
-        var half = 3.5f * k * (float)sc;
+        var half = (float)(NthSendFace.StopSize / 2 * sc);
         paint.Style = SKPaintStyle.Fill;
         paint.Color = on.WithAlpha((byte)Math.Round(255 * NthEase.Clamp01(sa)));
-        var corner = 1.8f * k * (float)sc;
+        var corner = (float)(NthSendFace.StopSize * 1.8 / 7 * sc);
         canvas.DrawRoundRect(new SKRect(-half, -half, half, half), corner, corner, paint);
     }
 
