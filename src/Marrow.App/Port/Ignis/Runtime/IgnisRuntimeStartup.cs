@@ -3,7 +3,8 @@
 // settings key and the unit U1 parts (IgnisRuntimeSeams.Engine / Points / Ledger, bound here to the engine, the points
 // store and the savings ledger under Storage.Root/ignis). It also points the session hooks at unit U2's methods
 // (API keep-warm and tidy-up, Claude's /compact instructions), the Settings "Rebuild points" table at the engine's
-// tidy point, and Claude's scout entry at the points' helper model while Smart helpers is on. A test overrides any
+// tidy point, Claude's scout entry at the points' helper model while Smart helpers is on, and the U4 views (Kindle
+// capsule, ping filter, event lines) at the controller. A test overrides any
 // seam per async flow, so none of this runs there unless it binds it.
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -31,6 +32,7 @@ public static class IgnisRuntimeStartup
         BindSessionHooks();
         IgnisSeams.HelperAgents.SetProcessDefault(query => HelperModel(IgnisSeams.Controller.Current(), query));
         IgnisSeams.Controller.SetProcessDefault(Running);
+        Marrow.App.Port.Ignis.Views.IgnisViews.Bind(Running);
     }
 
     /// <summary>Points IgnisSessionHooks at the U2 session methods (process-wide).</summary>
@@ -90,6 +92,7 @@ public static class IgnisRuntimeStartup
             || IgnisRuntimeSeams.Ledger.Current() is not { } ledger) return null;
         var app = Marrow.App.Window.WindowManager.Shared.Model;
         controller = new IgnisController(new IgnisSettings(UserDefaults.Standard.Current), points, ledger, engine, new AppIgnisEnvironment(app));
+        Marrow.App.Port.Ignis.Views.IgnisViews.Attach(controller);
         return controller;
     }
 }

@@ -52,6 +52,21 @@ public static class IgnisViews
         controller.Settings.Changed += BumpPings;
     }
 
+    /// <summary>
+    /// The production binding (IgnisRuntimeStartup): the view seams ask <paramref name="running"/> for the controller each
+    /// time, since it is made on first use once the app model exists; until then every hook keeps its fallback. The
+    /// controller calls <see cref="Attach"/> once it is made, so Show pings reaches the timeline.
+    /// </summary>
+    public static void Bind(Func<IIgnisController?> running)
+    {
+        IgnisSeams.ComposerSlot.SetProcessDefault(thread => running() is { } controller ? new KindleCapsule(controller, thread) : null);
+        IgnisSeams.TimelineFilter.SetProcessDefault(item => running() is not { } controller || IgnisSeams.ShowsItem(item, controller.Settings.Value.ShowPings));
+        IgnisSeams.EventLine.SetProcessDefault(item => running() is { } controller ? IgnisEventLine.For(controller, item) : null);
+    }
+
+    /// <summary>The running controller's settings changes re-run the timeline's ping filter.</summary>
+    public static void Attach(IIgnisController controller) => controller.Settings.Changed += BumpPings;
+
     /// <summary>The same binding for one async flow (tests); disposing it restores what was there.</summary>
     public static IDisposable Override(IIgnisController controller)
     {
@@ -85,17 +100,28 @@ public static class IgnisViews
         Supports(provider) ? IgnisSeams.ComposerSlot.Current(thread) as Control : null;
 
     /// <summary>
-    /// ThreadTimeline's hook: the entries the timeline shows. Hidden keep-warm pings are left out unless "Show keep-warm pings" is on; the
-    /// list itself is returned (no copy) when nothing is left out, so the block cache sees the same entries.
+    /// ThreadTimeline's hook: the entries the timeline shows. Hidden keep-warm pings are left out unless "Show keep-warm pings" is on: the
+    /// ping's own item and the rest of its turn (the reply, its spend and work rows, by TurnID; the ping item's id carries the turn id),
+    /// but never a quiet event line. The list itself is returned (no copy) when nothing is left out, so the block cache sees the same entries.
     /// </summary>
     internal static IReadOnlyList<TimelineEntry> Visible(IReadOnlyList<TimelineEntry> entries)
     {
         _ = IgnisViewState.Shared.PingsRevision; // observed: Show pings re-runs the pass
         var filter = IgnisSeams.TimelineFilter.Current;
+        HashSet<Guid>? hiddenTurns = null;
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var item = entries[i].Item;
+            if (!IgnisEvent.IsPingItem(item.Id) || filter(item)) continue;
+            if (PingTurn(item) is { } turn) (hiddenTurns ??= []).Add(turn);
+        }
         List<TimelineEntry>? kept = null;
         for (var i = 0; i < entries.Count; i++)
         {
-            var shows = !IgnisEvent.IsPingItem(entries[i].Item.Id) || filter(entries[i].Item);
+            var item = entries[i].Item;
+            var shows = IgnisEvent.IsPingItem(item.Id)
+                ? filter(item)
+                : IgnisEvent.IsEventItem(item.Id) || hiddenTurns is null || item.TurnID is not { } turn || !hiddenTurns.Contains(turn);
             if (shows) kept?.Add(entries[i]);
             else if (kept is null)
             {
@@ -105,6 +131,10 @@ public static class IgnisViews
         }
         return kept is null ? entries : kept;
     }
+
+    /// <summary>The turn a ping item belongs to: its TurnID, else the turn id its id carries ("ignis:ping:" + turn id).</summary>
+    private static Guid? PingTurn(TimelineItem item) =>
+        item.TurnID ?? (Guid.TryParse(item.Id.AsSpan(IgnisEvent.PingPrefix.Length), out var turn) ? turn : null);
 
     /// <summary>NoticeRow's hook: the quiet event line for an "ignis:event:" notice; null keeps the plain notice.</summary>
     internal static Control? EventLineFor(TimelineItem item) =>
