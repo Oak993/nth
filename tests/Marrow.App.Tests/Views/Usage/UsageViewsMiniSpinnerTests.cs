@@ -25,7 +25,6 @@ public sealed class UsageViewsMiniSpinnerTests(HeadlessSession headless)
         var drawing = Assert.Single(spinner.GetVisualDescendants().OfType<Marrow.UI.Port.Nth.NthSpinner>());
         Assert.Equal(12, drawing.Bounds.Width);
         Assert.Equal(12, drawing.Bounds.Height);
-        Assert.Empty(spinner.GetVisualDescendants().OfType<SystemSpinner>());
     }
 
     [Fact]

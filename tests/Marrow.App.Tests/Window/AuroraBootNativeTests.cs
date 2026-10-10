@@ -45,7 +45,7 @@ public sealed class AuroraBootNativeTests(WindowManagerNativeSession native)
                         using var clock = SwiftClock.Provider.Override(TimeProvider.System);
                         var stage = BootStageWindow.Start(main, reduce, () => { reveals++; manager.ShowMain(); });
                         native.Register(stage.Window); stage.Stage.Telemetry = capture;
-                        AuroraLoaderWarmup.Register(); AuroraBootWarmup.Register();
+                        NthMotionWarmup.Register(); AuroraBootWarmup.Register(); // as Program.cs: the nth motion programs (ED-NEW-nth-motion) replaced the Aurora loaders
                         warm = GpuWarmup.WarmAsync(stage.Window);
                         return (main, stage);
                     });
@@ -112,7 +112,7 @@ public sealed class AuroraBootNativeTests(WindowManagerNativeSession native)
                     finally
                     {
                         AuroraBootTrace.Current = null;
-                        native.OnUi(() => { boot.Window.Close(); window.Close(); AuroraBootWarmup.Unregister(); AuroraLoaderWarmup.Unregister(); });
+                        native.OnUi(() => { boot.Window.Close(); window.Close(); AuroraBootWarmup.Unregister(); NthMotionWarmup.Unregister(); });
                     }
                 }
                 GpuProgramCache.FolderOverride = null;

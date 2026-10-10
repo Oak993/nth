@@ -141,7 +141,6 @@ public static class Program
         };
         bindingWork.Dispose();
         AuroraBootWarmup.Register(); // OD-0113: the imported renderer joins the same awaited preparation
-        AuroraLoaderWarmup.Register(); // OD-0113 / OD-0108: before the first preparation plan or GPU warm-up
         NthMotionWarmup.Register(); // OD-0136 amendment 2 (ED-NEW-nth-motion): the nth motion pack's programs, same step
         Marrow.App.Port.MultiAccount.Handshake.HandshakeGpuProgram.EnsureRegistered(); // MA-4-2: prime the filament gradient and bloom before a live Handshake.
         using (AuroraBootTrace.Begin("Startup: Avalonia setup"))
