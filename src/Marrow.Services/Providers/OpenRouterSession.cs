@@ -39,7 +39,17 @@ public sealed class OpenRouterSession : OpenAICompatibleSession
     {
         payload["stream_options"] = JSONValue.FromDictionaryLiteral(("include_usage", true));
         if (ReasoningEffort(effort) is { } mapped) payload["reasoning"] = JSONValue.FromDictionaryLiteral(("effort", mapped));
+        if (IgnisCacheBreakpoint(model, global::Marrow.Core.Port.Ignis.IgnisSeams.IsOn.Current(ProviderKind.OpenRouter, Configuration.IgnisThreadID)))
+            payload["cache_control"] = JSONValue.FromDictionaryLiteral(("type", "ephemeral"));
     }
+
+    // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. Anthropic models behind OpenRouter cache only
+    // where the request marks it ("cache_control"; top-level automatic caching or per-block breakpoints, max four:
+    // openrouter.ai/docs/guides/best-practices/prompt-caching, read 2026-10-10). While Ignis is on for the chat, an
+    // "anthropic/..." model gets the top-level marker (5-minute lifetime, writes 1.25x, reads 0.1x); every other
+    // upstream caches on its own and gets nothing. It changes no message, tool or instruction the model reads.
+    internal static bool IgnisCacheBreakpoint(string model, bool ignisOn) =>
+        ignisOn && model.StartsWith("anthropic/", StringComparison.OrdinalIgnoreCase);
 
     // The scale of OpenRouterAPI.ReasoningEfforts; the words the other providers' sliders add map to the nearest of them.
     public static string? ReasoningEffort(string? effort)

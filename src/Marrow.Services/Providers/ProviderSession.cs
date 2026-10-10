@@ -78,6 +78,9 @@ public sealed record SessionConfiguration
     public string? SkillDataRoot { get; init; }
     public string? SkillHome { get; init; }
     public Marrow.Services.Port.Skills.Providers.IToolRequestOffer? SkillToolOffer { get; init; }
+    // PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): the chat this session serves, so Ignis can answer per chat (cache
+    // lifetimes at a Claude launch, request-level cache levers). Null: legacy call sites and test fixtures.
+    public Guid? IgnisThreadID { get; init; }
 }
 
 // :50-58. One exchange of a conversation, for replaying it into a session that starts over.
@@ -185,6 +188,8 @@ public abstract record ProviderEvent
     // and is dropped when Claude reports iterations. Appended after the 31 Swift cases so their order is untouched.
     /// <summary>One request's or turn's cache usage, for Ignis (AgentID set: a head's).</summary>
     public sealed record CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage Value) : ProviderEvent;
+    /// <summary>PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): the provider hinted the chat now runs on (or off) paid usage credits.</summary>
+    public sealed record CacheBilling(bool OnCredits) : ProviderEvent;
 }
 
 // :126-134. Every field is independently optional; an absent field means "unchanged" at the application site
