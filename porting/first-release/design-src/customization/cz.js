@@ -577,7 +577,7 @@ class CzComponent extends Component {
   resetRow(style) {
     const def = this.isDefault(style);
     return this.row('Reset', {
-      t: 'Defaults', d: this.dx('d-reset-' + style, def ? (style === 'beam' ? 'Border beam as Marrow ships it' : 'The Uiverse light as Marrow ships it') : 'Return every ' + CZ_STYLE[style] + ' setting to how it ships'),
+      t: 'Defaults', d: this.dx('d-reset-' + style, def ? (style === 'beam' ? 'Border beam as Nth ships it' : 'The Uiverse light as Nth ships it') : 'Return every ' + CZ_STYLE[style] + ' setting to how it ships'),
       rc: 'czbtn' + (def ? ' idle' : ''), dis: def ? 'true' : 'false', tab: def ? '-1' : '0',
       go: () => { if (style === 'beam') this.setOpts('beam', Object.assign({}, BEAM_DEFAULTS)); else this.setOpts('aura', Object.assign({}, AURA_DEFAULTS)); },
     });
@@ -632,7 +632,7 @@ class CzComponent extends Component {
     const S = this.state, dark = this.dark(), M = this.maker();
     const g = this.seg('Dot colour', [{ id: 'accent', t: 'Accent' }, { id: 'model', t: 'Model colour' }, { id: 'custom', t: 'Custom' }], S.wd, (id) => this.touchDots({ wd: id }), { sm: true });
     const cur = CZ_ACC.find((x) => x[0] === S.wdc) || CZ_ACC[1];
-    const d = S.wd === 'accent' ? 'Your accent colour, as the rest of Marrow' : S.wd === 'model' ? 'The colour of the model in use: ' + M[1] : cur[1];
+    const d = S.wd === 'accent' ? 'Your accent colour, as the rest of Nth' : S.wd === 'model' ? 'The colour of the model in use: ' + M[1] : cur[1];
     const line = (grp) => CZ_ACC.filter((x) => x[2] === grp).map((x) => ({ name: x[1], on: S.wdc === x[0] ? 'true' : 'false', cls: 'czsw' + (S.wdc === x[0] ? ' sel' : ''), bg: dark ? x[3] : x[4], pick: () => this.touchDots({ wdc: x[0] }) }));
     const seg = this.row('Seg', { t: 'Dot colour', d: this.dx('d-wd', d), segs: [{ cls: 'czsgw on', g }] });
     const sw = this.row('AccSw', { t: 'Custom dot colour', fold: S.wd !== 'custom', classic: line('classic'), sig: line('signature') });

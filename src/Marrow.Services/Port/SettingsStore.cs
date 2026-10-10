@@ -73,7 +73,7 @@ public sealed class SettingsStore : ISettingsStore
     public static string ProductionPath(string localAppData)
     {
         ArgumentException.ThrowIfNullOrEmpty(localAppData);
-        return Path.Join(localAppData, "Marrow Code", "UserDefaults.json");
+        return Path.Join(localAppData, Marrow.Core.Support.AppInfo.DataFolderName, "UserDefaults.json"); // OD-0135
     }
 
     /// <summary>The error of the most recent write that failed, or null once a write succeeds.</summary>

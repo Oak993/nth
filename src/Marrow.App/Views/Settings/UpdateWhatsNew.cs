@@ -76,9 +76,9 @@ internal sealed class UpdateWhatsNew : Decorator
         if (version is null) return;
         content.Children.Add(new TextBlock
         {
-            Text = $"What's new in Marrow {version}", TextWrapping = TextWrapping.Wrap,
+            Text = $"What's new in Nth {version}", TextWrapping = TextWrapping.Wrap,
         }.Font(SwiftFont.Callout));
         content.Children.Add(UpdateReleaseNotesContent.Create(UpdateReleaseNotesDigest.Parse(release?.Notes), version, release?.Notes) ??
-            new TextBlock { Text = $"Release notes are unavailable for Marrow {version}.", TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout));
+            new TextBlock { Text = $"Release notes are unavailable for Nth {version}.", TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.Callout));
     }
 }

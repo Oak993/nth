@@ -417,7 +417,7 @@ card folds in with:
 "Shown only" rows fold open and shut (CZ-12.8); a caption is followed by no divider (cz.js:608-610).
 
 ### CZ-6.5 Reset card
-Row `Defaults`, detail `Border beam as Marrow ships it` when every beam key equals `BorderBeamOptions.Default` (keys:
+Row `Defaults`, detail `Border beam as Nth ships it` when every beam key equals `BorderBeamOptions.Default` (keys:
 all except `fit`, `faithful`, `active`; DESIGN cz.js:38, 571-575), else `Return every Border beam setting to how it ships`.
 Capsule button `Reset to defaults`, dimmed to 0.42 opacity and inert (not focusable) when already default. It sets
 `Beam = BorderBeamOptions.Default` (family, shape and palette included).
@@ -466,7 +466,7 @@ Detail `Halo, rim and dot sizes`. Nested rows:
 | `Dot strength` | `dotStr` | 0..100 / 1 | `pc` | Halftone off | on: `How visible the dots are`; off: `Turn on Halftone to use it` |
 
 ### CZ-7.5 Reset card
-Detail `The Uiverse light as Marrow ships it` when default (every `UiverseAuraOptions` key equal to `Default`), else
+Detail `The Uiverse light as Nth ships it` when default (every `UiverseAuraOptions` key equal to `Default`), else
 `Return every Uiverse light setting to how it ships`; button `Reset to defaults` sets `Aura = UiverseAuraOptions.Default`.
 
 ---
@@ -573,7 +573,7 @@ Voice typing page (OWNER OD-0097, SPEC 2 V-16.3.1); the Speech section summarise
 
 CZ-10.1 Section heading `Working dots`. Rows:
 1. `Dot colour`: segmented sm `Accent` | `Model colour` | `Custom`; detail: Accent `Your accent colour, as the rest of
-   Marrow`; Model colour `The colour of the model in use: {maker name}`; Custom: the picked swatch's name.
+   Nth`; Model colour `The colour of the model in use: {maker name}`; Custom: the picked swatch's name.
 2. `Custom dot colour` (folds open only for Custom; no visible title, the accessible names below): two labelled swatch
    lines, label column 62 px (11.5, secondary): `Classic` (the 10 Classic accents) and `Signature` (the 12 Signature
    accents), each a radio group (`Classic dot colours`, `Signature dot colours`), swatches drawn in the theme's hex

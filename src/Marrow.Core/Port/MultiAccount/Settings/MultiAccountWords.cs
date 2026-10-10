@@ -7,7 +7,7 @@ public static class MultiAccountWords
 {
     // ---- Models: Accounts
     public const string AccountsHeading = "Accounts";
-    public const string AccountsFoot = "Marrow uses your accounts from the top down. Drag to change the order. Each account’s ⋯ menu has its own options.";
+    public const string AccountsFoot = "Nth uses your accounts from the top down. Drag to change the order. Each account’s ⋯ menu has its own options.";
     public const string AddAnother = "Add another account";
     public const string UsageDetails = "Usage details";
     public const string SignOut = "Sign out";
@@ -51,16 +51,16 @@ public static class MultiAccountWords
 
     // ---- Models: "Show an example" (the page's sheet, in its words)
     public const string HandedFullIntro = "The full conversation, word for word.";
-    public static string HandedSummaryIntro(string to) => "Marrow\u2019s summary, made without AI. Nothing is deleted: the full conversation is saved as a handoff file, and the summary tells " + to + " where it is.";
-    public const string HandedAiNote = "AI summary \u00b7 written by the outgoing account during the Handshake: the goal, why things were decided, what is next. Marrow\u2019s summary and the full conversation file come with it.";
+    public static string HandedSummaryIntro(string to) => "Nth\u2019s summary, made without AI. Nothing is deleted: the full conversation is saved as a handoff file, and the summary tells " + to + " where it is.";
+    public const string HandedAiNote = "AI summary \u00b7 written by the outgoing account during the Handshake: the goal, why things were decided, what is next. Nth\u2019s summary and the full conversation file come with it.";
     public const string HandedFileLine = "the full conversation, for any detail";
-    public static string HandedHandshakeLine(string to) => "Handshake \u00b7 a briefing from the last account, read back by " + to + " and checked by Marrow";
+    public static string HandedHandshakeLine(string to) => "Handshake \u00b7 a briefing from the last account, read back by " + to + " and checked by Nth";
     public const string HandedClose = "Close";
     public const string HandedNext = "your next account";
 
     // ---- Models: When an account runs out
     public const string RunHeading = "When an account runs out";
-    public const string RunFoot = "Your conversation goes with you: when Marrow moves you to another account, that account’s service can see it. Marrow never moves you to another service unless you say so, or a pill does.";
+    public const string RunFoot = "Your conversation goes with you: when Nth moves you to another account, that account’s service can see it. Nth never moves you to another service unless you say so, or a pill does.";
     public const string RunTitle = "When an account runs out";
     public const string RunNone = "Ask me the first time";
     public const string MidTitle = "If a reply is still being written";
@@ -69,7 +69,7 @@ public static class MultiAccountWords
     public const string BringTitle = "What the next account gets";
     public const string HandedTitle = "What was handed over";
     public const string HandedButton = "Show an example";
-    public const string HandedDescription = "Each time Marrow moves you, the chat shows what the next account got.";
+    public const string HandedDescription = "Each time Nth moves you, the chat shows what the next account got.";
     public const string Recommended = "Recommended";
 
     public const string RunGo = "Keep me going";
@@ -82,22 +82,22 @@ public static class MultiAccountWords
     public const string OtherAsk = "Ask me";
     public const string OtherSwitch = "Use my next service";
     public const string OtherWait = "Wait";
-    public const string BringCompact = "Marrow’s summary";
+    public const string BringCompact = "Nth’s summary";
     public const string BringFull = "The whole conversation";
     public const string BringAi = "A summary by AI";
 
-    public const string RunNoneDescription = "You haven’t chosen yet. Marrow will ask you the first time it happens.";
-    public const string RunGoDescription = "Marrow moves you to your next account, and the work carries on.";
-    public const string RunAskDescription = "Marrow stops and asks you what to do.";
-    public const string RunWaitDescription = "Marrow waits until the account is back.";
+    public const string RunNoneDescription = "You haven’t chosen yet. Nth will ask you the first time it happens.";
+    public const string RunGoDescription = "Nth moves you to your next account, and the work carries on.";
+    public const string RunAskDescription = "Nth stops and asks you what to do.";
+    public const string RunWaitDescription = "Nth waits until the account is back.";
     public const string MidFinishDescription = "Your next account finishes the reply. A step that was half done may run again.";
     public const string MidStopDescription = "The reply stops where it is. Your next message goes to the next account.";
-    public const string BackGoDescription = "When an account you were using earlier is back, Marrow returns to it.";
-    public const string BackStayDescription = "Marrow stays on the account it moved to, until that one runs out too.";
-    public const string OtherAskDescription = "Marrow asks before it uses another service, such as Codex instead of Claude.";
-    public const string OtherSwitchDescription = "Marrow goes on with your next service. That service can see the conversation.";
-    public const string OtherWaitDescription = "Marrow waits until one of these accounts is back.";
-    public const string BringCompactDescription = "Marrow writes it right away on your PC. Your messages and every reply stay word for word, and the full conversation goes with it.";
+    public const string BackGoDescription = "When an account you were using earlier is back, Nth returns to it.";
+    public const string BackStayDescription = "Nth stays on the account it moved to, until that one runs out too.";
+    public const string OtherAskDescription = "Nth asks before it uses another service, such as Codex instead of Claude.";
+    public const string OtherSwitchDescription = "Nth goes on with your next service. That service can see the conversation.";
+    public const string OtherWaitDescription = "Nth waits until one of these accounts is back.";
+    public const string BringCompactDescription = "Nth writes it right away on your PC. Your messages and every reply stay word for word, and the full conversation goes with it.";
     public const string BringFullDescription = "Everything, word for word. It uses more of the next account’s limit.";
     public const string BringAiDescription = "The account that is running out writes a short summary during the Handshake.";
 
@@ -106,10 +106,10 @@ public static class MultiAccountWords
     public const string HandshakeFoot = "Each account can have its own moment: open its ⋯ menu and choose Handshake at.";
     public const string UseHandshake = "Use the Handshake";
     public const string UseHandshakeOn = "Shortly before an account runs out, it briefs the next one, so the work carries on without a gap.";
-    public const string UseHandshakeOff = "Off. The next account starts from Marrow’s summary alone.";
+    public const string UseHandshakeOff = "Off. The next account starts from Nth’s summary alone.";
     public const string WhenToStart = "When to start";
     public const string WhenSmart = "Automatically";
-    public const string WhenSmartDescription = "Marrow picks the right moment for each plan.";
+    public const string WhenSmartDescription = "Nth picks the right moment for each plan.";
     public static string WhenAt(int percent) => "At " + percent + "%";
     public static string WhenAtDescription(int percent) => "When an account has used " + percent + "% of its limit.";
     public static string LikeAllAccounts(string defaultLabel) => "Like all accounts (" + defaultLabel + ")";
@@ -136,7 +136,7 @@ public static class MultiAccountWords
     public static string PillSteps(int steps, int services) => steps + " steps · " + services + (services > 1 ? " services" : " service");
 
     // ---- Pills when fewer than two accounts or services are connected (OD-0117; ENGINEERING DECISION wording)
-    public const string DisabledWhat = "A pill is a chain of accounts and models that Marrow moves through when one runs out.";
+    public const string DisabledWhat = "A pill is a chain of accounts and models that Nth moves through when one runs out.";
     public const string DisabledNeed = "Pills turn on once a second account or service is connected.";
     public const string DisabledButton = "Models";
 

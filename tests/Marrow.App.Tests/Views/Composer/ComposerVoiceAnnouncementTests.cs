@@ -115,7 +115,7 @@ public sealed class ComposerVoiceAnnouncementTests(HeadlessSession headless)
             var (view, window) = rig.Open();
             rig.Main.OnMain(() => Click(Slot(view).HitTarget));
             rig.Elapse(window, 0.1);
-            Assert.Equal("The microphone is blocked. Allow Marrow in Windows Settings, Privacy and security, Microphone.",
+            Assert.Equal("The microphone is blocked. Allow Nth in Windows Settings, Privacy and security, Microphone.",
                 rig.Main.OnMain(() => LogicalQuery.SelfAndDescendants<VoiceAnnouncer>(view).Single().Text));
             rig.Close(window);
         });

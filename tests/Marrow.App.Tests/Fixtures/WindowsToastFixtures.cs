@@ -19,6 +19,14 @@ public sealed class RecordingToastPlatform : IWindowsToastPlatform
         Writes.Add((key, name, value));
         Registry[(key, name)] = value;
     }
+    public List<string> DeletedTrees { get; } = [];
+    public void DeleteRegistryTree(string key)
+    {
+        DeletedTrees.Add(key);
+        foreach (var entry in Registry.Keys.Where(entry => entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase)
+                     || entry.Key.StartsWith(key + "\\", StringComparison.OrdinalIgnoreCase)).ToList())
+            Registry.Remove(entry);
+    }
     public void Show(string appId, string tag, string xml)
     {
         BeforeShow?.Invoke();

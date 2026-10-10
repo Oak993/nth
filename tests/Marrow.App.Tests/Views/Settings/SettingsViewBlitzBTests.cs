@@ -61,7 +61,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             var root = Assert.IsType<StackPanel>(((AboutSettingsPage)view).Child);
             var card = Assert.IsType<ChromeCard>(root.Children[1]); var rows = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(card.Child).Child).Children[0]);
             var licence = Assert.IsType<TextBlock>(rows.Children[^1]); // the last entry of the app card
-            Assert.Equal("Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", licence.Text); // OD-0072 for the clause after the semicolon
+            Assert.Equal("Nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Nth's own, built on Windows ConPTY.", licence.Text); // OD-0072 for the clause after the semicolon
             Font(licence, 12); // .system(.callout) = 12 point (:1001)
             Ink(licence, licence.Foreground, Chrome.SecondaryText); // Chrome.secondaryText (:1002)
             Assert.Equal(new Thickness(16, 11, 10, 11), licence.Margin); // .padding(.leading, 16) .padding(.trailing, 10) .padding(.vertical, 11)
@@ -310,7 +310,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             Click(w, show); Assert.True(popup.IsOpen); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.Same(show.Parent, popup.PlacementTarget); // arrowEdge .bottom; the anchor is the SmallAccentGlassButton pill, its material and its button (ED-266)
             var content = PopoverHost.Content(popup)!; var scroll = Assert.Single(Nodes<ScrollViewer>(content), s => s.Width == 480); Assert.Equal(440, scroll.Height);
             var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18 && x.Children.Count == 3);
-            foreach (var (block, title) in blocks.Children.Zip(new[] { "Marrow", "Third-party notices", "Trademarks" }))
+            foreach (var (block, title) in blocks.Children.Zip(new[] { "Nth", "Third-party notices", "Trademarks" }))
             {
                 var inner = Assert.IsType<StackPanel>(block); Assert.Equal(8, inner.Spacing); var heading = Assert.IsType<TextBlock>(inner.Children[0]); Assert.Equal(title, heading.Text); Font(heading, 13, FontWeight.SemiBold);
                 var markdown = Assert.IsType<Marrow.UI.Markdown.MarkdownView>(inner.Children[1]); Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.GetMarkdownPointSize(markdown)); Assert.True(Marrow.UI.Markdown.MarkdownView.GetMarkdownBlockSelection(markdown));

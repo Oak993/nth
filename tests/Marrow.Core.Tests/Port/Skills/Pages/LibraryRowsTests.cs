@@ -30,7 +30,7 @@ public sealed class LibraryRowsTests
     {
         var row = PageFixtures.Rows(LibrarySection.Skills).Single(r => r.Id == "SA");
         Assert.Equal("Fixture skills A", row.Title);
-        Assert.Equal("Marrow-made summary of Fixture skills A", row.Summary);
+        Assert.Equal("Nth-made summary of Fixture skills A", row.Summary);
         Assert.Equal(3.5, row.SizeMb);
         Assert.Equal("2 skills \u00B7 3.5 MB \u00B7 example/sa \u00B7 Apache-2.0", row.Meta);
         Assert.Equal("github.com/example/sa at 0123456", row.Source);

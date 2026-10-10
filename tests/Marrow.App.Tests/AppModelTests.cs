@@ -21,7 +21,7 @@ public sealed class AppModelTests
 {
     // OD-0012 E4, byte for byte (ASCII only).
     private const string LibraryLoadMessage =
-        "Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.";
+        "Nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.";
 
     // ===== PR-LAUNCH-035 / PR-LAUNCH-036: the load-time repairs =====
 

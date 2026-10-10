@@ -13,9 +13,9 @@ namespace Marrow.Services.Tests.Providers;
 public sealed class CodexDesktopStandbyGateTests
 {
     [Theory]
-    [InlineData("Codex Desktop/0.159.3 (Windows 10.0.26300; x86_64) dumb (marrow; 1.7.0)", true)]
-    [InlineData("Codex Desktop/0.159.2 (Windows 10.0.26300; x86_64) dumb (marrow; 1.7.0)", false)]
-    [InlineData("Codex Desktop/no-version (marrow; 1.7.0)", false)]
+    [InlineData("Codex Desktop/0.159.3 (Windows 10.0.26300; x86_64) dumb (nth; 1.7.0)", true)]
+    [InlineData("Codex Desktop/0.159.2 (Windows 10.0.26300; x86_64) dumb (nth; 1.7.0)", false)]
+    [InlineData("Codex Desktop/no-version (nth; 1.7.0)", false)]
     public void The_desktop_originator_with_a_space_uses_the_CLI_version_not_the_client_version(string userAgent, bool expected) =>
         Assert.Equal(expected, CodexHistoryInjection.VersionSupportsInjection(userAgent));
 
@@ -38,7 +38,7 @@ public sealed class CodexDesktopStandbyGateTests
         using var runtime = new TestRuntime();
         using var probe = CodexHistoryInjection.SchemaProbe.Override((_, _) => Task.FromResult(true));
         var script = new CodexScript("t28-desktop-initialize");
-        script.SetResponse("initialize", "{\"userAgent\":\"Codex Desktop/0.159.3 (Windows 10.0.26300; x86_64) dumb (marrow; 1.7.0)\",\"platformFamily\":\"windows\",\"platformOs\":\"windows\"}");
+        script.SetResponse("initialize", "{\"userAgent\":\"Codex Desktop/0.159.3 (Windows 10.0.26300; x86_64) dumb (nth; 1.7.0)\",\"platformFamily\":\"windows\",\"platformOs\":\"windows\"}");
         var configuration = new SessionConfiguration
         {
             Provider = ProviderKind.Codex,

@@ -27,7 +27,7 @@ public sealed class FirstTimeCardTests(HeadlessSession headless)
         var f = Make(); var model = new LimitCardModel(f.State, f.Accounts.Accounts, f.Cards, TimeZoneInfo.Utc); LimitCardView? view = null;
         MultiAccountHarness.Run(headless, f.Rig, () => view = new LimitCardView(model), h =>
         {
-            Assert.Contains("Claude Max 1 ran out. How should Marrow handle this?", h.Words());
+            Assert.Contains("Claude Max 1 ran out. How should Nth handle this?", h.Words());
             Assert.Equal(new[] { "Keep me going", "Ask me each time", "Just wait" }, view!.Actions.Select(b => ((TextBlock)b.Content!).Text));
             Assert.All(view.Actions, b => Assert.DoesNotContain("primary", b.Classes));
             Assert.Equal(3, view.Actions.Count); Assert.Equal(RememberScope.JustThisTime, model.Scope);

@@ -2124,7 +2124,7 @@ internal sealed class GitActionsMenu : Decorator
             var body = await TryOutput(repository, ["log", "-1", "--pretty=%b"]); // :1513-1514
             url = await repository.CreatePullRequest(
                 title: subject.Length == 0 ? "Update" : subject,
-                body: body.Length == 0 ? "Opened from Marrow." : body); // :1515-1518 deviation OD-0012 F1
+                body: body.Length == 0 ? "Opened from Nth." : body); // :1515-1518 deviation OD-0012 F1
         });
         if (error is not null) model.Alert = new AppAlert { Title = "Could not open a pull request", Message = SwiftErrors.LocalizedDescription(error) }; // :1520-1521
         else if (url is not null) InlineText.OpenUrl?.Invoke(url); // :1522-1523
@@ -2393,7 +2393,7 @@ internal sealed class ScriptsEditor : Decorator
         var explanation = new TextBlock
         {
             // :1663 DEVIATION OD-0012 F1: "Droppy Code" -> "Marrow"; "droppy-code.json" kept verbatim (OD-0008 B13).
-            Text = "Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.",
+            Text = "Scripts run in a terminal at the project root. Nth also picks up scripts from droppy-code.json.",
         };
         SwiftFont.Callout.Apply(explanation); // :1664
         explanation.Foreground = Chrome.SecondaryText.Brush(explanation); // :1665

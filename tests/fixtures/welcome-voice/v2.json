@@ -7,7 +7,7 @@
     "line": "Friendlier, a little longer; names Hindi and Urdu.",
     "ask": {
       "t": "Talk instead of type?",
-      "b": "Marrow can turn your voice into text, right here on your PC. It needs a one-time {mb} download.",
+      "b": "Nth can turn your voice into text, right here on your PC. It needs a one-time {mb} download.",
       "yes": "Yes, set it up",
       "no": "Maybe later"
     },

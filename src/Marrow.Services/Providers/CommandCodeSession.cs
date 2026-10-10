@@ -1009,7 +1009,7 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
             : JSONValue.FromDictionaryLiteral(
                 ("decision", "deny"),
                 // DEVIATION OD-0012 F1: upstream reads "The user declined this in Droppy Code. ...".
-                ("reason", "The user declined this in Marrow. Do not retry it; take another approach or explain what you would need."));
+                ("reason", "The user declined this in Nth. Do not retry it; take another approach or explain what you would need."));
         var file = SwiftPath.AppendingPathComponent(directory.Path, $"{id}.reply.json");
         var temporary = SwiftPath.AppendingPathComponent(directory.Path, $"{id}.reply.json.tmp");
         try
@@ -1058,7 +1058,7 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
     /// <summary>CommandCodeAPI.SupportDirectoryPath's own literal (:443, DEVIATION OD-0008 C7), duplicated
     /// here as a plain string because that helper is private. PORT-ONLY test seam.</summary>
     internal static string ApprovalDirectoryRoot() =>
-        SwiftPath.AppendingPathComponent(DevDataRoot.LocalApplicationData(), "Marrow Code/CommandCode"); // ED-212
+        SwiftPath.AppendingPathComponent(DevDataRoot.LocalApplicationData(), AppInfo.DataFolderName + "/CommandCode"); // ED-212; OD-0135
 
     /// <summary>A SwiftURL that round trips a real Windows path through .Path unchanged (ProviderRegistry's
     /// own FileUrl, same reasoning): a "file://" URL's .Path takes swift-foundation's POSIX branch, which

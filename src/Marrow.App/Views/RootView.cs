@@ -974,7 +974,7 @@ public sealed class WelcomeView : Decorator
         // the literal "Droppy Code"; the tagline reads "A calm, native home for your coding agents."
         var icon = AppIconImage.Make(104); // :307-309 NSApp.applicationIconImage; OD-0015: the packaged Marrow app icon, as the About pill draws it
 
-        var title = new TextBlock { Text = "Marrow" }; // :310-311, OD-0002
+        var title = new TextBlock { Text = "Nth" }; // :310-311, OD-0002
         SwiftFont.System(34, SwiftFont.Weight.Semibold).Apply(title);
 
         var tagline = new TextBlock { Text = "A calm, native home for your coding agents." }; // :312-313, OD-0012 F2

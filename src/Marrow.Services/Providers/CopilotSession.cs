@@ -144,7 +144,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
     {
         var parameters = new Dictionary<string, JSONValue>(SwiftStringComparer.Instance) // :122-131
         {
-            ["clientName"] = "marrow", // DEVIATION OD-0012 F1: upstream sends "droppy-code" (:123).
+            ["clientName"] = "nth", // DEVIATION OD-0012 F1: upstream sends "droppy-code" (:123).
             ["workingDirectory"] = WorkingDirectory,
             ["streaming"] = true,
             ["requestPermission"] = true,
@@ -641,7 +641,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
         configure(connection); // :492
         connection.Start(); // :493
         // DEVIATION OD-0012 F1: upstream pings with the message "droppy-code" (:494).
-        var pong = await connection.Request("ping", JSONValue.FromDictionaryLiteral(("message", "marrow"))); // :494
+        var pong = await connection.Request("ping", JSONValue.FromDictionaryLiteral(("message", "nth"))); // :494
         if (pong["protocolVersion"]?.JSONValueInt is null) // :495-498
         {
             connection.Close();
@@ -1028,7 +1028,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
                 break;
             default: // :771-772
                 // DEVIATION OD-0012 F1: upstream says "Droppy Code does not support <method>."
-                connection?.Respond(id, errorCode: -32601, message: "Marrow does not support " + method + ".");
+                connection?.Respond(id, errorCode: -32601, message: "Nth does not support " + method + ".");
                 break;
         }
     }

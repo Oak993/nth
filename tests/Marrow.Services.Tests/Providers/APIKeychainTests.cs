@@ -30,7 +30,7 @@ namespace Marrow.Services.Tests.Providers;
 // instead of leaving the account empty.
 public sealed class APIKeychainTests
 {
-    private const string Service = "Marrow";
+    private const string Service = "Nth"; // OD-0135: AppInfo.name, the service of every provider key
 
     // The four account strings of APIKeychain.account(for:) (:25-34, PR-PROVREG-088).
     private const string DeepSeekAccount = "DeepSeek API Key";        // APIKeychain.swift:28

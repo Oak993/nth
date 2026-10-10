@@ -51,7 +51,7 @@ public sealed class WindowsUpdateInstallBoundaryTests
     public async Task Stage_hands_back_the_velopack_package_where_it_is_and_does_not_delete_it()
     {
         var folder = Directory.CreateTempSubdirectory("aut-pkg-").FullName;
-        var package = Path.Combine(folder, "MarrowCode-1.0.0-full.nupkg");
+        var package = Path.Combine(folder, "NthApp-1.0.0-full.nupkg");
         await File.WriteAllBytesAsync(package, [1, 2, 3]);
         try
         {
@@ -71,7 +71,7 @@ public sealed class WindowsUpdateInstallBoundaryTests
     public async Task Stage_no_longer_throws_the_UNK_0009_blocker()
     {
         var folder = Directory.CreateTempSubdirectory("aut-pkg-").FullName;
-        var package = Path.Combine(folder, "MarrowCode-1.0.0-full.nupkg");
+        var package = Path.Combine(folder, "NthApp-1.0.0-full.nupkg");
         await File.WriteAllBytesAsync(package, [1]);
         try
         {
@@ -103,7 +103,7 @@ public sealed class WindowsUpdateInstallBoundaryTests
         try
         {
             var error = Assert.Throws<UpdateInstallError>(() => new WindowsUpdateInstallBoundary().Verify(path));
-            Assert.StartsWith("The downloaded app is not signed by Marrow. ", error.ErrorDescription, StringComparison.Ordinal);
+            Assert.StartsWith("The downloaded app is not signed by Nth. ", error.ErrorDescription, StringComparison.Ordinal);
         }
         finally
         {

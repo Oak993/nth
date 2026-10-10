@@ -46,7 +46,7 @@ public sealed class RunningAccountStepTests
             privateSession.SendScript = input =>
             {
                 if (revoke && id == target && privateSession.Inputs.Count > 1
-                    && input.Text.StartsWith("[Marrow Handshake] Read this recorded context", StringComparison.Ordinal)) rig.App.Settings.AccountHandshakeEnabled = false;
+                    && input.Text.StartsWith("[Nth Handshake] Read this recorded context", StringComparison.Ordinal)) rig.App.Settings.AccountHandshakeEnabled = false;
                 privateSession.Emit(new ProviderEvent.MessageCompleted("ack", input.IsFinalReport ? "Ready: finished-step.txt; continue the original task." : "Destination tail."));
                 privateSession.Emit(new ProviderEvent.TurnCompleted(TurnStatus.Completed, null));
                 return Task.CompletedTask;
@@ -125,7 +125,7 @@ public sealed class RunningAccountStepTests
             privateSession.SendScript = async input =>
             {
                 if (id == target && privateSession.Inputs.Count > 1
-                    && input.Text.StartsWith("[Marrow Handshake] Read this recorded context", StringComparison.Ordinal))
+                    && input.Text.StartsWith("[Nth Handshake] Read this recorded context", StringComparison.Ordinal))
                 {
                     waitingForFinal = true;
                     await finalAcknowledgement.Task.WaitAsync(Marrow.Core.Port.SwiftTask.CancellationToken);

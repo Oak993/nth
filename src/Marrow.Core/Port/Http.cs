@@ -807,7 +807,7 @@ public sealed class URLSession
         foreach (var (name, value) in hop.Fields) Put(name, value);
         // DEVIATION OD-0012|ED-088: the default User-Agent is "Marrow/<AppInfo.version>", not the source's
         // "Droppy%20Code/<build> CFNetwork/<v> Darwin/<v>" (ED-118 item 1); one set by the configuration or the request replaces it.
-        if (!Has("User-Agent")) Put("User-Agent", "Marrow/" + app.Version);
+        if (!Has("User-Agent")) Put("User-Agent", "Nth/" + app.Version);
         // UNVERIFIED O-27: the fields CFNetwork adds when none is set (ED-118 item 2).
         if (!Has("Accept")) Put("Accept", "*/*");
         if (!Has("Accept-Language")) Put("Accept-Language", AcceptLanguage);

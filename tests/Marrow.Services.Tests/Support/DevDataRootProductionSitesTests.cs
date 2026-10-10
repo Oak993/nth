@@ -98,7 +98,7 @@ public sealed class DevDataRootProductionSitesTests
         WithRedirect(root, () =>
         {
             CommandCodeAPI.InstallMod();
-            Assert.True(File.Exists(Path.Combine(root, "Marrow Code", "CommandCode", "marrow-approvals.ts")));
+            Assert.True(File.Exists(Path.Combine(root, "Nth", "CommandCode", "marrow-approvals.ts")));
         });
     }
 #endif
@@ -152,7 +152,7 @@ public sealed class DevDataRootProductionSitesTests
         var root = ScratchRoot("commandcode-approvals");
         WithRedirect(root, () =>
         {
-            Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(root, "Marrow Code/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
+            Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(root, "Nth/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
         });
     }
 #endif
@@ -164,7 +164,7 @@ public sealed class DevDataRootProductionSitesTests
         WithoutRedirect(() =>
         {
             var real = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(real, "Marrow Code/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
+            Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(real, "Nth/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
         });
     }
 
@@ -180,7 +180,7 @@ public sealed class DevDataRootProductionSitesTests
         {
             var url = MCPBridge.InstallBridge();
             Assert.Equal(MCPBridge.InstallBridge(root), url);
-            Assert.True(File.Exists(Path.Combine(root, "Marrow Code", "mcp", "droppy-mcp-bridge.mjs")));
+            Assert.True(File.Exists(Path.Combine(root, "Nth", "mcp", "droppy-mcp-bridge.mjs")));
         });
     }
 #endif
@@ -196,10 +196,10 @@ public sealed class DevDataRootProductionSitesTests
         WithRedirect(root, () =>
         {
             var locations = StorageLocations.CreateProduction();
-            Assert.Equal(Path.Combine(root, "Marrow Code"), locations.Root);
+            Assert.Equal(Path.Combine(root, "Nth"), locations.Root);
             Assert.True(Directory.Exists(locations.ThreadsDirectory));
             Assert.StartsWith(root, locations.WorktreesDirectory, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(".marrow-dev", locations.WorktreesDirectory, StringComparison.Ordinal);
+            Assert.Contains(".nth-dev", locations.WorktreesDirectory, StringComparison.Ordinal);
             Assert.True(Directory.Exists(locations.WorktreesDirectory));
             Assert.True(Directory.Exists(locations.PatchesDirectory));
         });
@@ -209,7 +209,7 @@ public sealed class DevDataRootProductionSitesTests
     // ---- APIKeychain / MCPKeychain credential service name (Providers/APIKeychain.swift:45-49/:60-67/:77-81,
     // MCP/MCPKeychain.swift:15/:39/:55): AppInfo.Current.Name goes through DevDataRoot.CredentialService, so two
     // dev launches on different roots never read or overwrite each other's stored keys, and a redirected launch
-    // never touches the real "Marrow" / "Marrow Dev" Credential Manager entries. ----
+    // never touches the real "Nth" / "Nth Dev" Credential Manager entries. ----
 
     private static IDisposable UseApp(string name) =>
         AppInfo.Running.Override(AppInfo.Read(
@@ -222,18 +222,18 @@ public sealed class DevDataRootProductionSitesTests
     {
         var root = ScratchRoot("apikeychain");
         var backend = new InMemoryCredentialBackend();
-        using var app = UseApp("Marrow Dev");
+        using var app = UseApp("Nth Dev");
         using var store = SecretStore.Shared.Override(new SecretStore(backend));
         WithRedirect(root, () =>
         {
             Assert.True(APIKeychain.SetKey("sk-dev-secret", ProviderKind.Deepseek));
 
-            var taggedService = DevDataRoot.CredentialService("Marrow Dev");
-            Assert.NotEqual("Marrow Dev", taggedService);
+            var taggedService = DevDataRoot.CredentialService("Nth Dev");
+            Assert.NotEqual("Nth Dev", taggedService);
             Assert.Equal("sk-dev-secret", APIKeychain.Read("DeepSeek API Key", service: taggedService));
-            // The plain, untagged "Marrow Dev" service (what a non-redirected launch or another dev root would
+            // The plain, untagged "Nth Dev" service (what a non-redirected launch or another dev root would
             // read) sees nothing: the write never touched it.
-            Assert.Null(APIKeychain.Read("DeepSeek API Key", service: "Marrow Dev"));
+            Assert.Null(APIKeychain.Read("DeepSeek API Key", service: "Nth Dev"));
         });
     }
 #endif
@@ -243,12 +243,12 @@ public sealed class DevDataRootProductionSitesTests
     public void APIKeychain_service_is_the_plain_AppInfo_name_when_not_redirected()
     {
         var backend = new InMemoryCredentialBackend();
-        using var app = UseApp("Marrow Dev");
+        using var app = UseApp("Nth Dev");
         using var store = SecretStore.Shared.Override(new SecretStore(backend));
         WithoutRedirect(() =>
         {
             Assert.True(APIKeychain.SetKey("sk-plain-secret", ProviderKind.Deepseek));
-            Assert.Equal("sk-plain-secret", APIKeychain.Read("DeepSeek API Key", service: "Marrow Dev"));
+            Assert.Equal("sk-plain-secret", APIKeychain.Read("DeepSeek API Key", service: "Nth Dev"));
         });
     }
 
@@ -259,20 +259,20 @@ public sealed class DevDataRootProductionSitesTests
     {
         var root = ScratchRoot("mcpkeychain");
         var backend = new InMemoryCredentialBackend();
-        using var app = UseApp("Marrow Dev");
+        using var app = UseApp("Nth Dev");
         using var store = SecretStore.Shared.Override(new SecretStore(backend));
         WithRedirect(root, () =>
         {
             Assert.True(MCPKeychain.Set("dev-token", server: "example", field: "token"));
 
-            var taggedService = DevDataRoot.CredentialService("Marrow Dev");
-            Assert.NotEqual("Marrow Dev", taggedService);
+            var taggedService = DevDataRoot.CredentialService("Nth Dev");
+            Assert.NotEqual("Nth Dev", taggedService);
             var target = SecretStore.TargetName(taggedService, "MCP example token");
             Assert.NotNull(backend.Peek(target));
             Assert.Equal("dev-token", MCPKeychain.Value("example", "token"));
             // The plain, untagged target (what a non-redirected launch or another dev root would read) sees
             // nothing: the write never touched it.
-            Assert.Null(backend.Peek(SecretStore.TargetName("Marrow Dev", "MCP example token")));
+            Assert.Null(backend.Peek(SecretStore.TargetName("Nth Dev", "MCP example token")));
         });
     }
 #else
@@ -286,7 +286,7 @@ public sealed class DevDataRootProductionSitesTests
     {
         var root = ScratchRoot("release-inert");
         var backend = new InMemoryCredentialBackend();
-        using var app = UseApp("Marrow Dev");
+        using var app = UseApp("Nth Dev");
         using var store = SecretStore.Shared.Override(new SecretStore(backend));
         var previous = Environment.GetEnvironmentVariable(DevDataRoot.VariableName);
         try
@@ -297,9 +297,9 @@ public sealed class DevDataRootProductionSitesTests
             var real = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             Assert.Equal(CommandCodeAPI.SupportDirectoryUnder(real), CommandCodeAPI.SupportDirectory);
             Assert.Equal(PiCLI.SupportDirectoryUnder(real), PiCLI.SupportDirectory);
-            Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(real, "Marrow Code/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
-            Assert.Equal(Path.Combine(real, "Marrow Code"), StorageLocations.CreateProduction().Root);
-            Assert.Equal("Marrow Dev", DevDataRoot.CredentialService("Marrow Dev"));
+            Assert.Equal(Marrow.Core.Port.SwiftPath.AppendingPathComponent(real, "Nth/CommandCode"), CommandCodeSession.ApprovalDirectoryRoot());
+            Assert.Equal(Path.Combine(real, "Nth"), StorageLocations.CreateProduction().Root);
+            Assert.Equal("Nth Dev", DevDataRoot.CredentialService("Nth Dev"));
         }
         finally
         {

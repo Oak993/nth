@@ -2516,7 +2516,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                         {
                             await EnsureLoaded();
                             await StartTurn(
-                                "[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.",
+                                "[Nth] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.",
                                 Array.Empty<Attachment>());
                         });
                         continues = true;
@@ -2773,7 +2773,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         {
             // UI-RUNTIME-040. ED-193: OD-0012 F1 renames "Droppy Code" to "Marrow"; OD-0008 B6 keeps "in Terminal".
             AppendNotice(Notice.Level.Error,
-                $"{error}\n\nMarrow could not bring {provider.DisplayName} up to date. Run `{command}` in Terminal, then send the message again.");
+                $"{error}\n\nNth could not bring {provider.DisplayName} up to date. Run `{command}` in Terminal, then send the message again.");
             return;
         }
         cliResendVersions[provider] = version;

@@ -22,7 +22,7 @@ public sealed class DroppyCodeLaunchSurfaceTests(HeadlessSession headless)
 {
     // OD-0012 E4, byte for byte.
     private const string LibraryUnreadableMessage =
-        "Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.";
+        "Nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.";
 
     private static readonly string[] OnlyTheMainWindow = ["main window built", "bootstrap"];
 

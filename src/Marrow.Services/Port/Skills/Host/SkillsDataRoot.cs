@@ -9,7 +9,7 @@ namespace Marrow.Services.Port.Skills.Host;
 /// </summary>
 public static class SkillsDataRoot
 {
-    public const string FolderName = "Marrow Code";
+    public const string FolderName = AppInfo.DataFolderName; // OD-0135: "Nth"
 
     public static string Resolve() => Path.Combine(DevDataRoot.LocalApplicationData(), FolderName);
 }

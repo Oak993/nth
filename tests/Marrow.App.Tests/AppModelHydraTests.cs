@@ -850,7 +850,7 @@ public sealed class AppModelHydraTests
         var personaSlug = firstCopy.Hydra.Persona.Name.Replace(' ', '-').ToLowerInvariant();
         var expectedDirectory = $"project-name-{personaSlug}-{SwiftString.Lowercased(SwiftUUID.UuidString(first.Id))[..8]}";
         Assert.Equal(expectedDirectory, Path.GetFileName(firstCopy.WorktreePath));
-        Assert.Equal("Marrow: a Hydra head's starting point", AppModelGitRepo.At(firstCopy.WorktreePath!).Git("log", "-1", "--format=%s").Trim());
+        Assert.Equal("Nth: a Hydra head's starting point", AppModelGitRepo.At(firstCopy.WorktreePath!).Git("log", "-1", "--format=%s").Trim());
 
         File.WriteAllText(Path.Combine(repository.Root, "a.txt"), "changed\n");
         repository.Git("add", "a.txt");
@@ -1915,7 +1915,7 @@ public sealed class AppModelHydraTests
         h.Main.OnMain(() => model.FinishHydraHead(head.Id, TurnStatus.Interrupted, "second report"));
 
         Assert.Equal(
-            "Stalled: no edits for 10 minutes; stopped by Marrow. Resend with a sharper brief.\n\npartial report", // Swift :126; OD-0012 F1 branding.
+            "Stalled: no edits for 10 minutes; stopped by Nth. Resend with a sharper brief.\n\npartial report", // Swift :126; OD-0012 F1 branding.
             model.Thread(head.Id)!.Hydra!.Summary);
         Assert.DoesNotContain(head.Id, stalled);
         ResetWatchdog();

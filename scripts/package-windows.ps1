@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-  Builds the Velopack per-user installer for the Marrow Windows port, LOCALLY (OD-0062, ED-235).
+  Builds the Velopack per-user installer for Nth, the Windows port, LOCALLY (OD-0062, ED-235).
 
 .DESCRIPTION
   1. dotnet publish src/Marrow.App, Release, self-contained win-x64, into artifacts/publish.
   2. vpk pack that folder into artifacts/releases: Setup.exe, the full nupkg, RELEASES and releases.win.json
      (plus a delta nupkg when an earlier release is already in that folder).
   3. dotnet publish src/Marrow.Setup (OD-0072, ED-247) with that Setup.exe embedded, into
-     artifacts/installer/Marrow-<version>-Setup.exe: THE file to share. It checks what is installed before Velopack's
+     artifacts/installer/Nth-<version>-Setup.exe: THE file to share. It checks what is installed before Velopack's
      Setup.exe runs: an older version is upgraded in place, the same version says it is already up to date and runs
-     nothing, a newer version refuses ("A newer version of Marrow (x.y.z) is already installed.") and changes nothing,
+     nothing, a newer version refuses ("A newer version of Nth (x.y.z) is already installed.") and changes nothing,
      otherwise it installs. The bare Setup.exe in artifacts/releases is only its payload: shared on its own it would
      offer Repair and Downgrade (Velopack's own dialog).
 
@@ -34,6 +34,12 @@
   Start Menu\Programs\Marrow.lnk, which StartMenuRoot with the title "Marrow" would overwrite and later delete. Neither app
   can replace the other.
 
+  OD-0135 renames the product to Nth: the installed app is called "Nth" (installer title, Start menu entry, Apps list)
+  and installs fresh under the package id NthApp, to %LOCALAPPDATA%\NthApp; an earlier MarrowCode install is left alone.
+  The id is NthApp and not Nth because Velopack deletes its whole install folder on uninstall and the data folder is
+  %LOCALAPPDATA%\Nth: the two must never be one folder. The shortcut is Start Menu\Programs\Nth\Nth.lnk (--packAuthors
+  Nth). The executable keeps its name Marrow.App.exe for now (AssemblyName unchanged).
+
   Release notes (OD-0111 / UE-6): a ## [version] entry in CHANGELOG.md with populated ### New features, ### Bug fixes or
   ### Refinements. -ReleaseNotesFile can override it with a file containing only that exact version. Missing, empty,
   mismatched or unrecognised notes fail before any commands or outputs. -ValidateReleaseNotesOnly checks this without
@@ -50,9 +56,9 @@
 param(
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
-    [string]$PackId = 'MarrowCode',
-    [string]$PackTitle = 'Marrow',
-    [string]$PackAuthors = 'Marrow Code',
+    [string]$PackId = 'NthApp',
+    [string]$PackTitle = 'Nth',
+    [string]$PackAuthors = 'Nth',
     [string]$MainExe = 'Marrow.App.exe',
     [string]$ReleaseNotesFile = '',
     [switch]$ValidateReleaseNotesOnly
@@ -88,7 +94,7 @@ $build = if ($buildMatch.Success) { $buildMatch.Groups[1].Value } else { '?' }
 . (Join-Path $PSScriptRoot 'release-notes.ps1')
 $releaseNotes = Get-ReleaseNotes -Version $version -ChangelogFile (Join-Path $root 'CHANGELOG.md') -ReleaseNotesFile $ReleaseNotesFile
 if ($ValidateReleaseNotesOnly) {
-    Write-Host "Release notes validated for Marrow $version. No artifacts produced."
+    Write-Host "Release notes validated for Nth $version. No artifacts produced."
     return
 }
 
@@ -110,7 +116,7 @@ if ($toolVersion -notmatch [regex]::Escape($libraryVersion)) {
     throw "vpk does not report version $libraryVersion (it says: $toolVersion). Restore the pinned local tool."
 }
 
-Write-Host "Marrow $version (build $build) -> Velopack package $PackId, local only."
+Write-Host "Nth $version (build $build) -> Velopack package $PackId, local only."
 
 if (Test-Path -LiteralPath $publishDir) { Remove-Item -LiteralPath $publishDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $releasesDir | Out-Null
@@ -125,7 +131,7 @@ Invoke-Native 'dotnet publish' {
 if (-not (Test-Path -LiteralPath (Join-Path $publishDir $MainExe))) { throw "$MainExe was not published to $publishDir." }
 
 # No --signParams (nothing is signed), no vpk upload/publish. --shortcuts: the Start menu entry only, in the
-# "Marrow Code" folder (ED-247: never Programs\Marrow.lnk, the Electron app's).
+# "Nth" folder, named after --packAuthors (ED-247: never Programs\Marrow.lnk, the Electron app's).
 # OD-0111: every package carries its validated markdown notes in releases.win.json.
 Invoke-Native 'vpk pack' {
     vpk pack `
@@ -190,4 +196,4 @@ Write-Host "The installer to share (checks the installed version first; never ru
 Get-ChildItem -LiteralPath $installer | ForEach-Object { '{0,14:N0}  {1}' -f $_.Length, $_.FullName }
 Write-Host ''
 Write-Host "The feed folder is $releasesDir. NOTHING WAS UPLOADED. When the owner says to publish this version, he runs (not this script):"
-Write-Host "  vpk upload github --outputDir `"$releasesDir`" --repoUrl $feedRepoUrl --releaseName `"Marrow $version`" --tag v$version --publish --token <a GitHub token for $feedRepoUrl>"
+Write-Host "  vpk upload github --outputDir `"$releasesDir`" --repoUrl $feedRepoUrl --releaseName `"Nth $version`" --tag v$version --publish --token <a GitHub token for $feedRepoUrl>"

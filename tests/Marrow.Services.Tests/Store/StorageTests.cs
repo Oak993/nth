@@ -105,7 +105,7 @@ public sealed class StorageTests
     {
         using var scratch = new StorageScratchFolder();
         var directory = Storage.WorktreesDirectory;
-        Assert.Equal(Path.Combine(scratch.Home, ".marrow", "worktrees"), directory);
+        Assert.Equal(Path.Combine(scratch.Home, ".nth", "worktrees"), directory);
         Assert.True(Directory.Exists(directory));
         Assert.DoesNotContain(scratch.Root, directory, StringComparison.OrdinalIgnoreCase);
     }
@@ -115,7 +115,7 @@ public sealed class StorageTests
     public void WorktreesDirectory_UsesTheDevelopmentSuffixInADevelopmentBuild()
     {
         using var scratch = new StorageScratchFolder(isDevelopment: true);
-        Assert.Equal(Path.Combine(scratch.Home, ".marrow-dev", "worktrees"), Storage.WorktreesDirectory);
+        Assert.Equal(Path.Combine(scratch.Home, ".nth-dev", "worktrees"), Storage.WorktreesDirectory);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public sealed class StorageTests
     {
         using var scratch = new StorageScratchFolder();
         var directory = Storage.PatchesDirectory;
-        Assert.Equal(Path.Combine(scratch.Home, ".marrow", "patches"), directory);
+        Assert.Equal(Path.Combine(scratch.Home, ".nth", "patches"), directory);
         Assert.True(Directory.Exists(directory));
     }
 
@@ -133,7 +133,7 @@ public sealed class StorageTests
     public void The_store_root_and_the_home_state_directory_are_two_roots_each_made_on_first_use_and_then_kept()
     {
         using var scratch = new StorageScratchFolder();
-        var state = Path.Combine(scratch.Home, ".marrow");
+        var state = Path.Combine(scratch.Home, ".nth");
         Assert.False(Directory.Exists(scratch.Root));
         Assert.False(Directory.Exists(state));
 

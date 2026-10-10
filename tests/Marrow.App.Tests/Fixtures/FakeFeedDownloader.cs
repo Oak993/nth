@@ -31,7 +31,7 @@ public sealed class FakeFeedDownloader : IFileDownloader
     /// </summary>
     public FakeFeedDownloader ServeRelease(string apiListUrl, string version, byte[] packageBytes, string? notes = "Notes for the release.", byte[]? checksumOf = null)
     {
-        var file = $"MarrowCode-{version}-full.nupkg";
+        var file = $"NthApp-{version}-full.nupkg";
         var hashed = checksumOf ?? packageBytes;
         var feed = JsonSerializer.Serialize(new
         {
@@ -39,7 +39,7 @@ public sealed class FakeFeedDownloader : IFileDownloader
             {
                 new
                 {
-                    PackageId = "MarrowCode", Version = version, Type = "Full", FileName = file,
+                    PackageId = "NthApp", Version = version, Type = "Full", FileName = file,
                     SHA1 = Convert.ToHexString(SHA1.HashData(hashed)), SHA256 = Convert.ToHexString(SHA256.HashData(hashed)),
                     Size = hashed.Length, NotesMarkdown = notes, NotesHTML = notes is null ? null : "<p>" + notes + "</p>",
                 },

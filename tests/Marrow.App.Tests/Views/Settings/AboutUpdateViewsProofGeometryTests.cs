@@ -90,7 +90,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             var padded = Assert.Single(identity.GetVisualDescendants().OfType<Border>(), b => b.Child is StackPanel);
             Assert.Equal(new Thickness(8, 2, 12, 2), padded.Padding); Assert.Equal(32, padded.Height);
             Assert.Equal(6, Assert.IsType<StackPanel>(padded.Child).Spacing);
-            Assert.Equal("Marrow 1.4.2", AutomationProperties.GetName(identity));
+            Assert.Equal("Nth 1.4.2", AutomationProperties.GetName(identity));
             Assert.Empty(identity.GetVisualDescendants().OfType<Button>()); Assert.False(identity.Focusable);
             Assert.Equal(32, identity.Bounds.Height); Glass(identity); window.Close();
         });
@@ -106,11 +106,11 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-004")] // App/Views/Settings/AboutUpdateViews.swift:587-621,693-703
     [Trait("Req", "PR-UPDATE-072")] // App/Views/Settings/AboutUpdateViews.swift:587-621: standing order error, then never checked, then up to date; labels, symbols, tints
     [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:638-682: the ready face (symbol, text, blue, 0.2 wash, tooltip, accessibility)
-    [InlineData(false, null, false, "Not checked yet", "clock", "Marrow has not asked GitHub for a release yet")]
-    [InlineData(true, null, false, "Up to date", "checkmark.seal.fill", "Marrow 1.7.0 is the latest version")]
+    [InlineData(false, null, false, "Not checked yet", "clock", "Nth has not asked GitHub for a release yet")]
+    [InlineData(true, null, false, "Up to date", "checkmark.seal.fill", "Nth 1.7.0 is the latest version")]
     [InlineData(false, "GitHub answered with HTTP 503.", false, "Check failed", "exclamationmark.triangle.fill", "GitHub answered with HTTP 503.")]
     [InlineData(true, "GitHub answered with HTTP 503.", false, "Check failed", "exclamationmark.triangle.fill", "GitHub answered with HTTP 503.")]
-    [InlineData(true, null, true, "Update & restart", "arrow.down.circle.fill", "Installs Marrow 9.0.0 and relaunches")]
+    [InlineData(true, null, true, "Update & restart", "arrow.down.circle.fill", "Installs Nth 9.0.0 and relaunches")]
     public void Pill_faces_have_exact_metrics_tints_glass_help_and_only_ready_has_the_button_role(bool checkedBefore, string? error, bool ready, string text, string symbol, string help) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -144,7 +144,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             Assert.Equal(new SwiftColor(0.040, 0.478, 1.000).Opacity(ready ? 0.2 : 0).Resolve(face.ActualThemeVariant), ColorOf(face.Background));
             Assert.Equal(ready, button.IsHitTestVisible); Assert.Equal(ready, button.Focusable);
             Assert.Equal(help, ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680 .help outside .allowsHitTesting: the capsule owns the tip
-            Assert.Equal(ready ? "Update & restart" : "Marrow 1.7.0, " + text.ToLowerInvariant(), AutomationProperties.GetName(button));
+            Assert.Equal(ready ? "Update & restart" : "Nth 1.7.0, " + text.ToLowerInvariant(), AutomationProperties.GetName(button));
             var peer = ControlAutomationPeer.CreatePeerForElement(button)!;
             Assert.Equal(ready ? AutomationControlType.Button : AutomationControlType.Text, peer.GetAutomationControlType());
             Assert.Equal(ready, peer is IInvokeProvider);

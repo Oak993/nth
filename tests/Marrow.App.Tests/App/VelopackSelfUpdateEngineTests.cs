@@ -25,7 +25,7 @@ public sealed class VelopackSelfUpdateEngineTests
         var applied = new List<VelopackAsset>();
         // channel "win": the feed file is releases.win.json, whatever system the test runs on (Velopack's default channel is the system's own)
         var root = Directory.CreateTempSubdirectory("ue1-root-").FullName;
-        var locator = new TestVelopackLocator("MarrowCode", installed, packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "Marrow.App.exe");
+        var locator = new TestVelopackLocator("NthApp", installed, packages, root, root, Path.Combine(root, "Update.exe"), "win", null, null, "Marrow.App.exe");
         var engine = VelopackSelfUpdateEngine.ForRepository(MarrowReleaseFeed.Url, feed, locator, (_, asset) => applied.Add(asset));
         return new VelopackEngineRig(engine, feed, applied, packages);
     }
@@ -87,7 +87,7 @@ public sealed class VelopackSelfUpdateEngineTests
         await rig.Engine.CheckAsync(CancellationToken.None);
         var percents = new List<int>();
         var path = await rig.Engine.DownloadAsync("1.8.0", percents.Add, CancellationToken.None);
-        Assert.Equal(Path.Combine(rig.PackagesDir, "MarrowCode-1.8.0-full.nupkg"), path);
+        Assert.Equal(Path.Combine(rig.PackagesDir, "NthApp-1.8.0-full.nupkg"), path);
         Assert.Equal(Package, await File.ReadAllBytesAsync(path));
         Assert.NotEmpty(percents);
         Assert.Equal(percents.Order().ToList(), percents);                                         // never backwards
@@ -116,7 +116,7 @@ public sealed class VelopackSelfUpdateEngineTests
         await rig.Engine.DownloadAsync("1.8.0", _ => { }, CancellationToken.None);
         rig.Engine.WaitExitThenApplyAndRestart();
         var asset = Assert.Single(rig.Applied);
-        Assert.Equal("MarrowCode-1.8.0-full.nupkg", asset.FileName);
+        Assert.Equal("NthApp-1.8.0-full.nupkg", asset.FileName);
         Assert.Equal("1.8.0", asset.Version.ToNormalizedString());
     }
 

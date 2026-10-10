@@ -29,7 +29,7 @@ internal static class UpdatesProjector
         var header = HeaderOf(phase, listed, ordered, flags, restart, banner);
         var bannerView = restart is null
             ? new UpdatesBannerView(false, "", "")
-            : new UpdatesBannerView(banner, $"{restart.Title} {VersionOf(restart.Latest ?? restart.Installed)} is ready.", "Restart Marrow to finish its update.");
+            : new UpdatesBannerView(banner, $"{restart.Title} {VersionOf(restart.Latest ?? restart.Installed)} is ready.", "Restart Nth to finish its update.");
         var idle = !flags.Busy && !flags.Checking && !flags.Restarting;
         var sections = PageOrder.Where(kind => SectionOf(kind) == kind)
             .Select(kind => new UpdatesSectionView(SectionTitle(kind), ordered.Where(r => SectionOf(r.Kind) == kind).Select(r => RowOf(r, flags, idle)).ToList()))
@@ -58,14 +58,14 @@ internal static class UpdatesProjector
         switch (phase)
         {
             case UpdatesPhase.Restarting:
-                (title, detail) = ($"Restarting Marrow{Ellipsis}", "");
+                (title, detail) = ($"Restarting Nth{Ellipsis}", "");
                 break;
             case UpdatesPhase.Checking:
                 (title, detail) = ($"Checking for updates{Ellipsis}", "Asking each tool for its latest version.");
                 break;
             case UpdatesPhase.Running:
                 (title, detail) = background ? ("Updating in the background", NameList(ordered.Where(r => r.State == UpdateRowState.UpdatingInBackground).Select(r => r.Title).ToList()) + ".")
-                    : (RunningTitle(listed, flags), "Keep working; Marrow restarts only when you say so.");
+                    : (RunningTitle(listed, flags), "Keep working; Nth restarts only when you say so.");
                 break;
             case UpdatesPhase.Failed:
             {
@@ -79,7 +79,7 @@ internal static class UpdatesProjector
             {
                 var done = ordered.Where(r => r.State == UpdateRowState.Updated || r.RestartRequired).Select(r => r.Title).ToList();
                 title = $"{done.Count} updated";
-                detail = $"Updated {NameList(done)}." + (restart is not null && !bannerShown ? " Restart Marrow to finish its update." : "");
+                detail = $"Updated {NameList(done)}." + (restart is not null && !bannerShown ? " Restart Nth to finish its update." : "");
                 break;
             }
             case UpdatesPhase.Available:
@@ -99,7 +99,7 @@ internal static class UpdatesProjector
                 var sentences = new List<string>();
                 if (flags.CheckedAgo is { Length: > 0 } ago) sentences.Add($"Checked {ago}.");
                 var providers = ordered.Where(r => r.Kind == UpdateItemKind.ProviderCli).Select(r => r.Title).ToList();
-                if (providers.Count > 0) sentences.Add($"Marrow also keeps {NameList(providers)} current in the background.");
+                if (providers.Count > 0) sentences.Add($"Nth also keeps {NameList(providers)} current in the background.");
                 detail = string.Join(" ", sentences);
                 break;
             }
@@ -108,12 +108,12 @@ internal static class UpdatesProjector
         {
             UpdatesPhase.Restarting => ($"Restarting{Ellipsis}", UpdatesAction.None, true, false),
             UpdatesPhase.Checking => ($"Checking{Ellipsis}", UpdatesAction.None, true, false),
-            UpdatesPhase.Running when background && restart is not null => ("Restart Marrow", UpdatesAction.Restart, false, false),
+            UpdatesPhase.Running when background && restart is not null => ("Restart Nth", UpdatesAction.Restart, false, false),
             UpdatesPhase.Running when background && listed.Any(r => r.State is UpdateRowState.UpdateAvailable or UpdateRowState.ChecksWhenUpdated) => ("Update everything", UpdatesAction.UpdateAll, false, false),
             UpdatesPhase.Running when background => ("Check now", UpdatesAction.Check, false, true),
             UpdatesPhase.Running => ($"Updating{Ellipsis}", UpdatesAction.None, true, false),
             UpdatesPhase.Failed => ("Retry", UpdatesAction.Retry, false, false),
-            UpdatesPhase.Done when restart is not null => ("Restart Marrow", UpdatesAction.Restart, false, false),
+            UpdatesPhase.Done when restart is not null => ("Restart Nth", UpdatesAction.Restart, false, false),
             UpdatesPhase.Done => ("Check now", UpdatesAction.Check, false, true),
             UpdatesPhase.Available or UpdatesPhase.Unsure => ("Update everything", UpdatesAction.UpdateAll, false, false),
             _ => ("Check now", UpdatesAction.Check, false, true),
@@ -181,7 +181,7 @@ internal static class UpdatesProjector
 
     private static string SectionTitle(UpdateItemKind kind) => kind switch
     {
-        UpdateItemKind.Marrow => "Marrow",
+        UpdateItemKind.Marrow => "Nth",
         UpdateItemKind.ProviderCli => "Provider tools",
         UpdateItemKind.DevTool => "Developer tools",
         _ => "Skills and tools",

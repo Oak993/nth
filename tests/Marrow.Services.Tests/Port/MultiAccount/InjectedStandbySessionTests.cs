@@ -22,7 +22,7 @@ public sealed class InjectedStandbySessionTests
         Assert.Null(await standby.ReceiveAsync(Package(), true, CancellationToken.None));
         var injected = Assert.Single(session.Injected);
         Assert.Contains("Exact context", injected, StringComparison.Ordinal);
-        Assert.Contains("[Marrow Handshake]", injected, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", injected, StringComparison.Ordinal);
         Assert.Empty(session.Inputs);
         Assert.False(standby.ReadBackRequested);
         Assert.Equal(Package().Summary.Text, standby.ReceivedPackage!.Summary.Text);
@@ -94,7 +94,7 @@ public sealed class InjectedStandbySessionTests
 
     // The summary Marrow writes carries a header (with a new archive path every build), one block per item, and a trailer; later builds add items and change the trailer.
     private static string Summary(string archive, string files, string[] items, string error) =>
-        "Marrow handoff: recorded context for continuing this task.\nFull conversation, including all shortened output: " + archive + "\nTask:\nBuild it\nChanged files:\n" + files
+        "Nth handoff: recorded context for continuing this task.\nFull conversation, including all shortened output: " + archive + "\nTask:\nBuild it\nChanged files:\n" + files
         + "\nConversation and tool history (chronological):\n" + string.Concat(items.Select((text, index) => "\n[item-" + index + "; turn t1]\n" + text + "\n"))
         + "\nLast error:\n" + error + "\nQueued user instructions:\n";
 

@@ -277,7 +277,7 @@ public sealed class MaUiReviewTests(HeadlessSession headless)
         var model = new LimitCardModel(f.State, f.Accounts.Accounts, f.Cards, TimeZoneInfo.Utc);
         LimitCardView? view = null;
         MultiAccountHarness.Run(headless, f.Rig, () => finding == "MAUI-038"
-            ? new LimitCardNote("Continued on Claude Max 2 · Marrow’s summary · What was handed over", null)
+            ? new LimitCardNote("Continued on Claude Max 2 · Nth’s summary · What was handed over", null)
             : view = new LimitCardView(model, ["Claude Max 1", "Claude Max 2"]), h =>
         {
             switch (finding)

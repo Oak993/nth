@@ -9,7 +9,7 @@ namespace Marrow.Core.Port.SelfUpdate;
 public static class MarrowReleaseFeed
 {
     /// <summary>The Velopack package id scripts/package-windows.ps1 packs under (ED-235): the id of every package the feed holds.</summary>
-    public const string PackageId = "MarrowCode";
+    public const string PackageId = "NthApp";
 
     /// <summary>The repository, owner and name.</summary>
     public const string Repository = "Oak993/marrow-releases";

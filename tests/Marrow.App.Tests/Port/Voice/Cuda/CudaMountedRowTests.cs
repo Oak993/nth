@@ -25,7 +25,7 @@ public sealed class CudaMountedRowTests(HeadlessSession headless)
             Assert.True(row.Cancel.IsVisible);
             Assert.Equal("Cancel the download", Avalonia.Automation.AutomationProperties.GetName(row.Cancel));
             row.Apply(CudaOfferStates.Installed("644 MB"));
-            Assert.Equal("Installed. Restart Marrow to use it", row.Detail);
+            Assert.Equal("Installed. Restart Nth to use it", row.Detail);
             Assert.True(row.Installed.IsVisible);
             Assert.False(row.Download.IsVisible);
             row.Apply(CudaOfferStates.Failed("644 MB"));

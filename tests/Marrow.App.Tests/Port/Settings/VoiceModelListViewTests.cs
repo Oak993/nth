@@ -251,10 +251,10 @@ public sealed class VoiceModelListViewTests(HeadlessSession headless)
     public void The_footer_totals_the_installed_models_and_follows_them() => VoiceTypingPageRig.Run(headless, scene =>
     {
         var backend = (ScriptedSpeechModelBackend)scene.Backend;
-        Assert.Equal("Installed: 0 MB, in Marrow Code’s models folder", List(scene).Footer.Text);
+        Assert.Equal("Installed: 0 MB, in Nth’s models folder", List(scene).Footer.Text);
         Row(scene, "Tiny").StateColumn.DownloadButton.Activate();
         backend.Finish("tiny-q5_1");
-        scene.Until(() => List(scene).Footer.Text == "Installed: 32 MB, in Marrow Code’s models folder");
+        scene.Until(() => List(scene).Footer.Text == "Installed: 32 MB, in Nth’s models folder");
         Assert.Equal(0, List(scene).Footer.IncomingOpacity);
         scene.Advance(400);
         Assert.Equal(1, List(scene).Footer.IncomingOpacity);
@@ -265,7 +265,7 @@ public sealed class VoiceModelListViewTests(HeadlessSession headless)
     [Trait("Decision", "ED-267")] // V-16.3.4 / V-9.2: sizes as the design formats them
     public void The_footer_uses_gigabytes_from_a_thousand_megabytes() => VoiceTypingPageRig.Run(headless, scene =>
     {
-        Assert.Equal("Installed: 3.1 GB, in Marrow Code’s models folder", List(scene).Footer.Text);
+        Assert.Equal("Installed: 3.1 GB, in Nth’s models folder", List(scene).Footer.Text);
     }, backend: Installed("large-v3"));
 
     // ---- Remove (OD-0099 Q-V-13 B) -------------------------------------------------------------------------------------------------------------------------
@@ -297,7 +297,7 @@ public sealed class VoiceModelListViewTests(HeadlessSession headless)
         Assert.Equal(["base-q5_1"], backend.Removed);
         VoiceTypingScene.Sync();
         Assert.Equal(VoiceModelState.NotInstalled, base_.StateColumn.State);
-        Assert.Equal("Installed: 32 MB, in Marrow Code’s models folder", List(scene).Footer.Text);
+        Assert.Equal("Installed: 32 MB, in Nth’s models folder", List(scene).Footer.Text);
     }, arrange: model => WithModel(model, "tiny-q5_1"), backend: Installed("tiny-q5_1", "base-q5_1"));
 
     [Fact]

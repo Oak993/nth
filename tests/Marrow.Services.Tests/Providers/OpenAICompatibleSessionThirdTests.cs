@@ -186,7 +186,7 @@ public sealed class OpenAICompatibleSessionThirdTests
         var result = session.Messages;
         var condensed0 = result[0]["content"]!.JSONValueString!;
         Assert.StartsWith(big[..400], condensed0, StringComparison.Ordinal);
-        Assert.Contains("\u2026[Marrow condensed this output (15000 bytes); call the tool again if you need it]", condensed0, StringComparison.Ordinal);
+        Assert.Contains("\u2026[Nth condensed this output (15000 bytes); call the tool again if you need it]", condensed0, StringComparison.Ordinal);
         // The 10 most recent (indices 2..11) are never condensed.
         for (var i = 2; i < 12; i++) Assert.Equal(big, result[i]["content"]!.JSONValueString);
     }
@@ -210,7 +210,7 @@ public sealed class OpenAICompatibleSessionThirdTests
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
         var big = new string('z', 15_000);
-        var already = new string('a', 300) + "\n\u2026[Marrow condensed this output (99999 bytes); call the tool again if you need it]";
+        var already = new string('a', 300) + "\n\u2026[Nth condensed this output (99999 bytes); call the tool again if you need it]";
         var messages = new List<JSONValue> { Msg("tool", already), Msg("tool", "short") };
         messages.AddRange(Enumerable.Range(0, 11).Select(_ => Msg("tool", big))); // pushes total > 160000
         session.SetMessagesForTests(messages);
@@ -377,7 +377,7 @@ public sealed class OpenAICompatibleSessionThirdTests
         // WorkingDirectory is SwiftURL.Create("file:///C:/work")!.Path, which (SwiftURL.cs:121-130,
         // 151-155, citing URL_Swift.swift:616, 621-624 - posix style, compatibility false) is the
         // decoded absolute path with no drive-letter translation: "/C:/work".
-        Assert.StartsWith("You are Marrow's agent (deepseek-chat), working inside /C:/work on Windows.\n", prompt, StringComparison.Ordinal);
+        Assert.StartsWith("You are Nth's agent (deepseek-chat), working inside /C:/work on Windows.\n", prompt, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -402,7 +402,7 @@ public sealed class OpenAICompatibleSessionThirdTests
         var prompt = session.SystemPromptForTests();
 
         Assert.Contains(
-            "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Marrow.\n",
+            "You are in BUILD mode with supervised permissions: use tools freely but the user approves each one in Nth.\n",
             prompt, StringComparison.Ordinal);
     }
 
@@ -417,7 +417,7 @@ public sealed class OpenAICompatibleSessionThirdTests
         var prompt = session.SystemPromptForTests();
 
         Assert.Contains(
-            "You are in BUILD mode: read and edit files freely; the user approves shell commands in Marrow.\n",
+            "You are in BUILD mode: read and edit files freely; the user approves shell commands in Nth.\n",
             prompt, StringComparison.Ordinal);
     }
 

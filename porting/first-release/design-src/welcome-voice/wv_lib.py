@@ -61,7 +61,7 @@ WORDS = {
                slowacc=dict(t='After you stop', b='Voice typing uses the accurate model and writes your text when you stop speaking. To change this later, go to {path}.'),
                done='Done'),
     'V2': dict(name='Warm', line='Friendlier, a little longer; names Hindi and Urdu.',
-               ask=dict(t='Talk instead of type?', b='Marrow can turn your voice into text, right here on your PC. It needs a one-time {mb} download.', yes='Yes, set it up', no='Maybe later'),
+               ask=dict(t='Talk instead of type?', b='Nth can turn your voice into text, right here on your PC. It needs a one-time {mb} download.', yes='Yes, set it up', no='Maybe later'),
                yes=dict(t='Setting up voice typing', b='It will be ready as soon as the download finishes. Click the voice orb in the composer any time to see how it’s going. Want a different model? It’s in {path}.'),
                ready=dict(t='Voice typing is ready', b='Click the voice orb in the composer and start talking. Want a different model? It’s in {path}.'),
                no=dict(t='No problem', b='Nothing was downloaded. Whenever you’d like voice typing, click the voice orb in the composer and the download starts. You can pick the model in {path}.'),

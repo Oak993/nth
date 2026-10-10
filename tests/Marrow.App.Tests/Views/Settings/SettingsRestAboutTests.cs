@@ -34,7 +34,7 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
             Assert.IsType<StackPanel>(rows.Children[0]); Assert.Equal("Welcome tour", Text(Assert.IsType<ChromeRow>(rows.Children[2])).First()); Assert.IsType<AboutUpdateCheckRow>(rows.Children[4]);
             foreach (var index in new[] { 1, 3, 5, 7 }) { var divider = Assert.IsType<ChromeRowDivider>(rows.Children[index]); Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); }
             var description = Assert.IsType<TextBlock>(rows.Children[6]); Assert.Equal("A native home for your coding agents, built in C# with Avalonia.", description.Text); Font(description, 13); Assert.Equal(new Thickness(16, 11, 10, 11), description.Margin); Assert.Equal(TextWrapping.Wrap, description.TextWrapping);
-            var licence = Assert.IsType<TextBlock>(rows.Children[8]); Assert.Equal("Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", licence.Text);
+            var licence = Assert.IsType<TextBlock>(rows.Children[8]); Assert.Equal("Nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Nth's own, built on Windows ConPTY.", licence.Text);
         });
     }
 
@@ -54,21 +54,19 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-059")] // App/Views/Settings/SettingsView.swift:1066 HStack(spacing: 12), centre alignment by default
-    public void Attribution_row_centres_the_two_line_labels_and_the_link_on_the_40_point_logos_line()
+    public void Attribution_row_centres_the_credit_line_and_the_link_on_the_row()
     {
         With(() => new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), (view, _, h, w) =>
         {
             var grid = Assert.IsType<Grid>(Assert.Single(Nodes<Button>(view)).Content);
-            var logo = Assert.IsType<SwiftImage>(grid.Children[0]);
-            var centre = logo.Bounds.Center.Y;
-            // An HStack centres each child vertically: the two-line labels (about 31 points) and the link line (about 15) sit at
-            // their own height on the 40-point logo's centre line, not at the top of the row.
-            foreach (var child in new Control[] { grid.Children[1], grid.Children[2] })
+            var centre = grid.Bounds.Height / 2;
+            // OD-0135: the row has no logo any more; each child sits at its own height on the row's centre line, not at the top of the row.
+            foreach (var child in new Control[] { grid.Children[0], grid.Children[1] })
             {
                 Assert.Equal(child.DesiredSize.Height - child.Margin.Top - child.Margin.Bottom, child.Bounds.Height, 0.5);
                 Assert.Equal(centre, child.Bounds.Center.Y, 0.5);
             }
-            Assert.Equal(40, logo.Bounds.Height, 0.5);
+            Assert.DoesNotContain(Nodes<SwiftImage>(view), image => image.AssetName is not null); // no logo
         }, height: 220);
     }
 
@@ -82,13 +80,12 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
         With(() => new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), (view, _, h, w) =>
         {
             var button = Assert.Single(Nodes<Button>(view)); var grid = Assert.IsType<Grid>(button.Content); Assert.Equal(12, grid.ColumnSpacing); Assert.Equal(new Thickness(16, 12, 14, 12), grid.Margin);
-            var logo = Assert.IsType<SwiftImage>(grid.Children[0]); Assert.Equal("droppy-logo", logo.AssetName); MarrowLogoCheck.AssertIsTheMarrowIcon(logo); /* OD-0015: the Swift key, the Marrow artwork */ Assert.Equal(40, logo.Width); Assert.Equal(40, logo.Height); Assert.Equal(ContentMode.Fit, logo.AspectContentMode); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(logo));
-            var labels = Assert.IsType<StackPanel>(grid.Children[1]); Assert.Equal(2, labels.Spacing); var title = Assert.IsType<TextBlock>(labels.Children[0]); var subtitle = Assert.IsType<TextBlock>(labels.Children[1]);
-            Assert.Equal("Made by Droppy", title.Text); Font(title, 13, FontWeight.SemiBold); Ink(title, title.Foreground, Chrome.PrimaryText);
+            Assert.Equal(2, grid.Children.Count); Assert.DoesNotContain(Nodes<SwiftImage>(view), image => image.AssetName is not null); /* OD-0135: no Droppy logo */ Assert.DoesNotContain(Text(view), line => line.Contains("Made by Droppy", StringComparison.Ordinal));
+            var labels = Assert.IsType<StackPanel>(grid.Children[0]); Assert.Equal(2, labels.Spacing); var subtitle = Assert.IsType<TextBlock>(Assert.Single(labels.Children));
             Assert.Equal("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", subtitle.Text); Font(subtitle, 11); Ink(subtitle, subtitle.Foreground, Chrome.SecondaryText);
-            var trailing = Assert.IsType<StackPanel>(grid.Children[2]); Assert.Equal(4, trailing.Spacing); var url = Assert.IsType<TextBlock>(trailing.Children[0]); Assert.Equal("getdroppy.app", url.Text); Font(url, 12, FontWeight.Medium); Ink(url, url.Foreground, Chrome.Accent);
+            var trailing = Assert.IsType<StackPanel>(grid.Children[1]); Assert.Equal(4, trailing.Spacing); var url = Assert.IsType<TextBlock>(trailing.Children[0]); Assert.Equal("getdroppy.app", url.Text); Font(url, 12, FontWeight.Medium); Ink(url, url.Foreground, Chrome.Accent);
             var arrow = Assert.IsType<SwiftImage>(trailing.Children[1]); Assert.Equal("arrow.up.right", arrow.SymbolName); Assert.Equal(SwiftFont.System(10, SwiftFont.Weight.Semibold), SwiftImage.GetFont(arrow)); Ink(arrow, arrow.Foreground, Chrome.Accent);
-            Assert.Equal("Open getdroppy.app", ToolTip.GetTip(button)); Assert.Equal("Made by Droppy. Open getdroppy.app", AutomationProperties.GetName(button)); Assert.Equal(0.9, trailing.Opacity);
+            Assert.Equal("Open getdroppy.app", ToolTip.GetTip(button)); Assert.Equal("Based on Droppy Code by Jordy Spruit (Droppy). Open getdroppy.app", AutomationProperties.GetName(button)); Assert.Equal(0.9, trailing.Opacity);
             var middle = new Point(grid.Bounds.Width / 2, grid.Bounds.Height / 2); Hover(w, grid, middle);
             Assert.Equal(0.9, trailing.Opacity); Tick(h, 50); Assert.Equal(0.9 + 0.1 * Animation.EaseOut(0.1).Progress(0.05), trailing.Opacity, 5); Tick(h, 50); Assert.Equal(1, trailing.Opacity);
             SwiftURL? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(u => { opened = u; return true; }); Click(w, grid, middle); Assert.Equal("https://getdroppy.app", opened?.AbsoluteString);
@@ -102,8 +99,8 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
     {
         With(() => new AboutSettingsPage(), (view, _, _, _) =>
         {
-            var row = Assert.Single(Nodes<ChromeRow>(view), r => Text(r).Contains("Marrow's own terminal, built on Windows ConPTY."));
-            CheckRow(row, "Terminal", "Marrow's own terminal, built on Windows ConPTY."); Assert.Empty(Nodes<CreditLink>(row));
+            var row = Assert.Single(Nodes<ChromeRow>(view), r => Text(r).Contains("Nth's own terminal, built on Windows ConPTY."));
+            CheckRow(row, "Terminal", "Nth's own terminal, built on Windows ConPTY."); Assert.Empty(Nodes<CreditLink>(row));
         });
     }
 

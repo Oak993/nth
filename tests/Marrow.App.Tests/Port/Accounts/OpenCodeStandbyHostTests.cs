@@ -45,7 +45,7 @@ public sealed class OpenCodeStandbyHostTests
         rig.Send("the next message");
         var turn = Assert.Single(acp.Inputs).Text;
         Assert.EndsWith("the next message", turn, StringComparison.Ordinal);
-        Assert.DoesNotContain("[Marrow Handshake]", turn, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Nth Handshake]", turn, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -71,6 +71,6 @@ public sealed class OpenCodeStandbyHostTests
         }, AppModelHarness.Bound);
         Assert.Empty(server.Stored);
         rig.Send("next");
-        Assert.Contains("[Marrow Handshake]", Assert.Single(warm.Inputs).Text, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", Assert.Single(warm.Inputs).Text, StringComparison.Ordinal);
     }
 }

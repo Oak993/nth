@@ -124,7 +124,7 @@ public sealed partial class ThreadRuntime
                 if (epoch != sessionEpoch || currentTurnID != turn.Id || !ReferenceEquals(session, candidate)) return;
                 await candidate.Send(new TurnInput
                 {
-                    Text = "[Marrow] Continue the interrupted reply from the last completed step. Preserve completed work; do not repeat it.",
+                    Text = "[Nth] Continue the interrupted reply from the last completed step. Preserve completed work; do not repeat it.",
                     Images = ValueList<Attachment>.Empty, Model = configuration.Model, Effort = configuration.Effort, FastMode = configuration.FastMode,
                     ServiceTier = Thread is { } thread ? ServiceTier(thread) : null,
                     RuntimeMode = configuration.RuntimeMode, InteractionMode = configuration.InteractionMode,

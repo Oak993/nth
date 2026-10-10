@@ -22,8 +22,20 @@ public sealed record ToastBuildIdentity(string AppId, string Scheme)
         return arguments.Any(argument => ToastActivation.Decode(protocolIdentity, argument) is not null) ? protocolIdentity : identity;
     }
     public static ToastBuildIdentity ForBuild(bool debug, bool dev) => debug || dev
-        ? new("MarrowCode.Marrow.Dev", "marrow-code-dev")
-        : new("MarrowCode.Marrow", "marrow-code-release"); // ED-220 (2), (6)
+        ? new("Nth.App.Dev", "nth-dev")
+        : new("Nth.App", "nth-release"); // ED-220 (2), (6); OD-0135 renames both from MarrowCode.Marrow / marrow-code-*
+
+    /// <summary>
+    /// OD-0135: the AppUserModelID and URL scheme keys this app registered under its old name (HKCU\Software\Classes\...),
+    /// removed at registration. Only these exact keys, which no other app writes.
+    /// </summary>
+    public static IReadOnlyList<string> LegacyRegistryKeys { get; } =
+    [
+        @"Software\Classes\AppUserModelId\MarrowCode.Marrow",
+        @"Software\Classes\AppUserModelId\MarrowCode.Marrow.Dev",
+        @"Software\Classes\marrow-code-release",
+        @"Software\Classes\marrow-code-dev",
+    ];
 }
 
 public interface IWindowsToastPlatform
@@ -31,6 +43,8 @@ public interface IWindowsToastPlatform
     void SetProcessAppId(string appId);
     string? ReadRegistry(string key, string name);
     void WriteRegistry(string key, string name, string value);
+    /// <summary>OD-0135: deletes the HKCU key and everything under it; nothing when it is not there; never throws.</summary>
+    void DeleteRegistryTree(string key);
     void Show(string appId, string tag, string xml);
 }
 
@@ -41,14 +55,16 @@ public static class WindowsToastRegistration
         // ED-220 (2): set before any top level is constructed. Only our own keys are read.
         platform.SetProcessAppId(identity.AppId);
         var appKey = "Software\\Classes\\AppUserModelId\\" + identity.AppId;
-        WriteIfDifferent(appKey, "DisplayName", "Marrow");
+        WriteIfDifferent(appKey, "DisplayName", "Nth"); // OD-0135
         WriteIfDifferent(appKey, "IconUri", icon);
         var schemeKey = "Software\\Classes\\" + identity.Scheme;
-        WriteIfDifferent(schemeKey, "", "URL:Marrow");
+        WriteIfDifferent(schemeKey, "", "URL:Nth"); // OD-0135
         WriteIfDifferent(schemeKey, "URL Protocol", "");
         // Explorer's second launch must retain ED-212's root, hence its instance lock and payload pipe.
         var rootArgument = devRoot is null ? "" : " --notification-data-root " + Quote(devRoot);
         WriteIfDifferent(schemeKey + "\\shell\\open\\command", "", Quote(executable) + rootArgument + " \"%1\"");
+        // OD-0135: best effort, the keys of the old name go (a toast posted under the old name no longer opens this app).
+        foreach (var legacy in ToastBuildIdentity.LegacyRegistryKeys) platform.DeleteRegistryTree(legacy);
 
         void WriteIfDifferent(string key, string name, string value)
         {

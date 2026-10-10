@@ -56,12 +56,12 @@ public sealed class DeferredHandoffPersistenceTests
         rig.Install(incoming);
         rig.Send("the first message after the restart");
         var first = Assert.Single(incoming.Inputs).Text;
-        Assert.Contains("[Marrow Handshake]", first, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", first, StringComparison.Ordinal);
         Assert.Contains("the first message after the restart", first, StringComparison.Ordinal);
         Assert.False(File.Exists(path));
         rig.Complete();
         rig.Send("second");
-        Assert.DoesNotContain("[Marrow Handshake]", incoming.Inputs[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Nth Handshake]", incoming.Inputs[1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class DeferredHandoffPersistenceTests
         Assert.True(File.Exists(FilePath(rig)));
         Restart(rig);
         rig.Send("next");
-        Assert.Contains("[Marrow Handshake]", Assert.Single(warm.Inputs).Text, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", Assert.Single(warm.Inputs).Text, StringComparison.Ordinal);
         Assert.False(File.Exists(FilePath(rig)));
     }
 

@@ -183,7 +183,7 @@ public sealed class AppUpdaterInstallTests
     public void The_download_request_carries_the_Marrow_slash_version_User_Agent()
     {
         var request = Downloader.BuildRequest(SwiftURL.Create("http://127.0.0.1:1/x")!);
-        Assert.Equal($"Marrow/{AppInfo.Current.Version}", request.Value(forHTTPHeaderField: "User-Agent"));
+        Assert.Equal($"Nth/{AppInfo.Current.Version}", request.Value(forHTTPHeaderField: "User-Agent"));
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class AppUpdaterInstallTests
         var reply = Task.Run(async () =>
         {
             var exchange = await server.NextExchange();
-            Assert.Equal([$"Marrow/{AppInfo.Current.Version}"], exchange.HeaderValues("User-Agent"));
+            Assert.Equal([$"Nth/{AppInfo.Current.Version}"], exchange.HeaderValues("User-Agent"));
             await exchange.Respond(200, "OK", [1, 2, 3]);
         });
         var destination = Path.Combine(Path.GetTempPath(), $"aut-{Guid.NewGuid():N}");
@@ -354,7 +354,7 @@ public sealed class AppUpdaterInstallTests
         await using var server = new LoopbackHttpServer();
         var fake = new FakeUpdateInstallBoundary
         {
-            VerifyThrows = new UpdateInstallError("The downloaded app is not signed by Marrow. reason"),
+            VerifyThrows = new UpdateInstallError("The downloaded app is not signed by Nth. reason"),
         };
         var updater = new AppUpdater(fake);
         var update = MakeUpdate(server.Url("/artifact"));
@@ -383,7 +383,7 @@ public sealed class AppUpdaterInstallTests
         await using var server = new LoopbackHttpServer();
         var fake = new FakeUpdateInstallBoundary
         {
-            VerifyThrows = new UpdateInstallError("The downloaded app is not signed by Marrow. The certificate is not trusted."),
+            VerifyThrows = new UpdateInstallError("The downloaded app is not signed by Nth. The certificate is not trusted."),
         };
         var updater = new AppUpdater(fake);
         var reply = Respond(server, 200, [1, 2, 3]);
@@ -393,7 +393,7 @@ public sealed class AppUpdaterInstallTests
 
         Assert.Equal(UpdateInstallProgress.Phase.Failed, Phase(runtime));
         var alert = Assert.Single(presenter.Shown);
-        Assert.Equal("The downloaded app is not signed by Marrow. The certificate is not trusted.", alert.InformativeText);
+        Assert.Equal("The downloaded app is not signed by Nth. The certificate is not trusted.", alert.InformativeText);
         // The gate ran on the staged copy, once, and nothing after it did: not even the version read.
         Assert.Equal(["Stage(", "Verify("], fake.Calls.Select(c => c[..(c.IndexOf('(', StringComparison.Ordinal) + 1)]).ToArray());
         Assert.Equal(fake.Calls[1], $"Verify({fake.StagedPathToReturn})");
@@ -494,7 +494,7 @@ public sealed class AppUpdaterInstallTests
             var error = Assert.Throws<UpdateInstallError>(() =>
                 runtime.OnMain(() => new AppUpdater(new FakeUpdateInstallBoundary()).HandOff("staged", "1.3.0", appDir)));
             Assert.Equal(
-                $"Marrow cannot replace itself in {readonlyRoot}. Reinstall it with the installer and try again.",
+                $"Nth cannot replace itself in {readonlyRoot}. Reinstall it with the installer and try again.",
                 error.ErrorDescription);
         }
         finally

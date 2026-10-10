@@ -72,7 +72,7 @@ public sealed class NativeSkillCatalogueTests
         Assert.Equal(generation.Skills.Count, lines.Length);
         Assert.InRange(lines.Length, 1, 49);
         Assert.NotEmpty(generation.LeftOut);
-        Assert.True(lines.Sum(l => l.Length + 1) <= room, "the listed lines must fit the room the budget leaves Marrow");
+        Assert.True(lines.Sum(l => l.Length + 1) <= room, "the listed lines must fit the room the budget leaves Nth");
         Assert.Equal(50, generation.Skills.Count + generation.LeftOut.Count);
     }
 }
