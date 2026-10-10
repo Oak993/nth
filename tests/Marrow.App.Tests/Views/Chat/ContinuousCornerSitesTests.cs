@@ -51,7 +51,6 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
     private static readonly (string File, string Radius, int Count, string Kind)[] Sites =
     [
         ("Marrow.App/Port/ChatDialogControls.cs", "6", 1, Fit),
-        ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.BarHeight / 2", 2, Capsule), // GR-2 (ED-306): the progress bar's track and fill, 4 pt bars with r = h / 2
         ("Marrow.App/Port/FirstRun/GettingReadySheet.cs", "GettingReadyLook.CornerRadius", 1, Circular), // GR-2 (ED-306): the sheet card, a design-page layout (getting-ready variant I, CSS border-radius 18), not a Swift shape
         ("Marrow.App/Port/Ignis/Settings/IgnisSavingsHistoryView.cs", "5, 5, 3, 3", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): a month bar, design-page layout (work/design/phoenix/phoenix-designs.html .mchart .mb, CSS border-radius 5px 5px 3px 3px), not a Swift shape
         ("Marrow.App/Port/Ignis/Settings/IgnisSavingsHistoryView.cs", "8", 1, Circular), // Ignis (OD-0134, ED-NEW-handoverfix-3): a month column's transparent face, design-page layout (.mchart button, CSS border-radius 8px)
