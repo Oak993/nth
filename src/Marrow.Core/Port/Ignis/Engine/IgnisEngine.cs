@@ -16,7 +16,7 @@ public sealed class IgnisEngine : IIgnisEngine
     public bool ShouldKeepWarm(IgnisKeepWarmQuestion question)
     {
         if (!question.Points.Cache.KeepWarm || question.Ttl <= TimeSpan.Zero || question.TimeLeft <= TimeSpan.Zero) return false;
-        var odds = IgnisKeepWarm.ReturnOdds(question.IdleGaps, [], question.IdleFor, question.Ttl, question.HasDraft, question.OnScreen);
+        var odds = IgnisKeepWarm.ReturnOdds(question.IdleGaps, question.GlobalGaps, question.IdleFor, question.Ttl, question.HasDraft, question.OnScreen);
         var (benefit, cost) = IgnisKeepWarm.Worth(question.Points, question.ContextTokens > 0 ? question.ContextTokens : null, question.Ttl, odds);
         return benefit > cost;
     }

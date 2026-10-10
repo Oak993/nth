@@ -2,8 +2,9 @@
 // in, 13 pt between blocks. From the top: the head (Ignis, Auto), the Details drawer (collapsed by default; Savings, History,
 // Each message), the Quick memory track with its countdown and ticks, the Chat size track with the tidy-up notch, the one
 // summary sentence, the quiet usage line with Open usage, the mode control (Off / Keep warm / Warm + tidy up), Keep warm now
-// and Tidy up now, and the model points row (Details, the points' age, (i), Update). Every word is IgnisWords'. The (i)
-// buttons follow Settings › Ignis "Show (i) explanations". No keyboard shortcuts (owner); Escape is the popover host's.
+// and Tidy up now, the idle-limit pair (Cool idle chats after, Learn when to cool; ED-NEW-ignis-guards), and the model points
+// row (Details, the points' age, (i), Update). Every word is IgnisWords'. The (i) buttons follow Settings › Ignis "Show (i)
+// explanations". No keyboard shortcuts (owner); Escape is the popover host's.
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -13,6 +14,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Marrow.App.Port.Ignis.Settings;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Ignis;
@@ -158,6 +160,17 @@ public sealed class KindlePopover : Decorator
         foot.Children.Add(KeepWarmButton); foot.Children.Add(TidyButton);
         stack.Children.Add(foot);
 
+        // ---- the idle limit (ED-NEW-ignis-guards): Settings › Ignis's two controls, compact, over the same settings
+        stack.Children.Add(KindleUi.Divider());
+        CoolAfterMenu = IgnisCoolingControls.Menu(controller.Settings, Preferences);
+        CoolAfterMenu.Height = CompactRowHeight;
+        LearnCoolingSwitch = IgnisCoolingControls.Switch(controller.Settings, Preferences);
+        stack.Children.Add(new StackPanel
+        {
+            Spacing = 6,
+            Children = { CompactRow(IgnisSettingsWords.RowCoolAfter, CoolAfterMenu), CompactRow(IgnisSettingsWords.RowLearnCooling, LearnCoolingSwitch) },
+        });
+
         // ---- the model points row
         stack.Children.Add(KindleUi.Divider());
         var chevron = new ChevronUp { Width = 9, Height = 9, Margin = new Thickness(0, 0, 5, 0) };
@@ -275,6 +288,30 @@ public sealed class KindlePopover : Decorator
 
     /// <summary>"Open Tools settings": Settings › MCP, where each server has its own switch.</summary>
     internal static Action OpenTools { get; set; } = () => Marrow.App.Window.WindowManager.Shared.ShowSettings(SettingsPage.Mcp);
+
+    /// <summary>The compact settings rows' height: the 22 pt pills' rhythm plus the menu's own inset.</summary>
+    internal const double CompactRowHeight = 24;
+
+    internal CzMenuButton CoolAfterMenu { get; }
+    internal SettingsSwitch LearnCoolingSwitch { get; }
+
+    // The preferences as this popover observes them (bumped by IgnisSettings.Changed), so both views show one value.
+    private IgnisPreferences Preferences()
+    {
+        _ = view.Prefs;
+        return controller.Settings.Value;
+    }
+
+    private static Grid CompactRow(string label, Control control)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), MinHeight = CompactRowHeight };
+        var words = KindleUi.Text(label, 12, KindleTone.Primary);
+        words.VerticalAlignment = VerticalAlignment.Center;
+        control.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(control, 1);
+        row.Children.Add(words); row.Children.Add(control);
+        return row;
+    }
 
     private Grid LabelRow(Control left, Control right)
     {

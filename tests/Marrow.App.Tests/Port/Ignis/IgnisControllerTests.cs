@@ -206,8 +206,9 @@ public sealed class IgnisControllerTests : IDisposable
         Assert.Equal([12], port.Tidies);
     }
 
+    // ED-NEW-ignis-guards: the "locked" row moved to A_locked_pc_is_still_kept_warm (owner 2026-10-10: he often starts work
+    // and locks the PC, so a lock no longer pauses).
     [Theory]
-    [InlineData("locked", IgnisPause.Locked)]
     [InlineData("archived", IgnisPause.Archived)]
     [InlineData("plan", IgnisPause.PlanNearlyFull)]
     public void A_paused_chat_is_not_kept_warm_and_goes_cold(string reason, IgnisPause pause)
@@ -215,7 +216,6 @@ public sealed class IgnisControllerTests : IDisposable
         Start();
         switch (reason)
         {
-            case "locked": environment.IsLocked = true; break;
             case "archived": environment.Archived.Add(Thread); break;
             case "plan": environment.PlanPercent = 95; break;
         }
@@ -334,21 +334,39 @@ public sealed class IgnisControllerTests : IDisposable
     }
 
     [Fact]
-    public void Pings_stop_after_the_idle_stretch_limit()
+    public void A_locked_pc_is_still_kept_warm()
+    {
+        environment.IsLocked = true;
+        Start();
+        Advance(TimeSpan.FromMinutes(55));
+        Assert.Equal(1, port.Pings);
+        Assert.Equal(IgnisPause.None, Status.Pause);
+    }
+
+    // ED-NEW-ignis-guards: the owner replaced "at most 6 pings per idle stretch" with the idle limit (learned return time
+    // and "Cool idle chats after"); with no history the learned time is 3 hours, so pings stop there, never after it.
+    [Fact]
+    public void Pings_stop_at_the_idle_limit()
     {
         Start(IgnisSamples.Usage(read: 1_000, write5m: 500)); // a 5-minute cache: pinged 30 s before it goes cold
-        for (var round = 0; round < IgnisController.MaxPingsPerIdle + 2; round++)
+        var finishedAt = main.OnMain(() => SwiftDate.Now);
+        DateTimeOffset? lastPing = null;
+        for (var round = 0; round < 48; round++) // 4 hours of 5-minute rounds
         {
             var before = port.Pings;
             Advance(TimeSpan.FromMinutes(5));
             if (port.Pings == before) continue;
+            lastPing = main.OnMain(() => SwiftDate.Now);
             main.OnMain(() =>
             {
                 controller.Observe(Thread, IgnisSamples.Usage(read: 1_500, write5m: 10, uncached: 1));
                 controller.TurnFinished(Thread);
             });
         }
-        Assert.Equal(IgnisController.MaxPingsPerIdle, port.Pings);
+        Assert.True(port.Pings > 6, "the old six-ping cap is gone");
+        Assert.NotNull(lastPing);
+        Assert.True(lastPing!.Value - finishedAt <= TimeSpan.FromHours(3), "no ping after the idle limit");
+        Assert.True(lastPing.Value - finishedAt > TimeSpan.FromHours(2.8), "kept warm up to the idle limit");
         Assert.Equal(IgnisCacheState.Cold, Status.Cache);
     }
 

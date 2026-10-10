@@ -50,6 +50,10 @@ public static class IgnisReportText
             lines.Add(IgnisWords.LifetimeLine(choice.Main));
             lines.Add(IgnisWords.LifetimeLine(choice.Helpers));
         }
+        // ED-NEW-ignis-guards: what keep-warm spent today, why it rests, and a cache that is never read back.
+        if (status.PingsToday > 0) lines.Add(IgnisWords.PingsReportLine(status.PingsToday, status.PingSpentToday));
+        if (status.Hold != IgnisKeepWarmHold.None) lines.Add(IgnisWords.HoldReportLine(status.Hold));
+        if (status.CacheNotReused is { } cause) lines.Add(IgnisWords.NotReusedLine(cause));
         return lines;
     }
 

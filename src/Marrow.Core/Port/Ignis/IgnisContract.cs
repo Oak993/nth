@@ -55,7 +55,7 @@ public enum IgnisAccountKind
 public enum IgnisPause
 {
     None,
-    /// <summary>The PC is locked.</summary>
+    /// <summary>The PC is locked. ED-NEW-ignis-guards: no longer used (owner 2026-10-10: he often starts work and locks the PC).</summary>
     Locked,
     /// <summary>The chat is archived.</summary>
     Archived,
@@ -140,6 +140,71 @@ public enum IgnisEventKind
     HelperRan,
     /// <summary>"Head {n} rebuilt at {point} after switching to {model}" (a head moved its tidy-up point).</summary>
     HeadTidiedAfterSwitch,
+    /// <summary>
+    /// ED-NEW-ignis-guards: a keep-warm that was due did not run because a guard held it (<see cref="IgnisEvent.Reason"/> is
+    /// the <see cref="IgnisKeepWarmHold"/> raw name). History only, never a timeline line.
+    /// </summary>
+    KeepWarmHeld,
+    /// <summary>ED-NEW-ignis-guards: the user put the chat's flame out in the sidebar ("Let it cool"). History only.</summary>
+    LetCool,
+    /// <summary>ED-NEW-ignis-guards: the user turned keep-warm back on for a cooled chat (the sidebar's "Turn on"). History only.</summary>
+    KeepWarmOn,
+    /// <summary>
+    /// ED-NEW-ignis-guards: the chat's model changed while a big cache was warm; <see cref="IgnisEvent.Amount"/> is what the new
+    /// model's first message writes again (a notice, not money spent), <see cref="IgnisEvent.AtTokens"/> the prefix.
+    /// </summary>
+    SwitchCost,
+    /// <summary>ED-NEW-ignis-guards: the chat's last turns read nothing from the cache (<see cref="IgnisEvent.Reason"/>: the likely cause). History only.</summary>
+    CacheNotReused,
+}
+
+/// <summary>
+/// ED-NEW-ignis-guards: why a chat whose cache is warm is not kept warm any longer (the first that applies). Owner
+/// 2026-10-10: "Not every chat stays active; I have lots of old chats."
+/// </summary>
+public enum IgnisKeepWarmHold
+{
+    None,
+    /// <summary>The user clicked the chat's flame in the sidebar; the next message relights it.</summary>
+    LetCool,
+    /// <summary>The chat has been idle longer than its idle limit (learned return time and/or "Cool idle chats after").</summary>
+    IdleLimit,
+    /// <summary>Today's pings reached today's keep-warm allowance (what keep-warm saved this week plus a small daily start).</summary>
+    DailyLimit,
+    /// <summary>Three chats used more recently are being kept warm.</summary>
+    OtherChats,
+}
+
+/// <summary>ED-NEW-ignis-guards: the sidebar flame of a chat row.</summary>
+public enum IgnisEmber
+{
+    /// <summary>Ignis never kept this chat warm (nothing is drawn).</summary>
+    None,
+    /// <summary>Ignis is keeping the chat's cache warm now.</summary>
+    Lit,
+    /// <summary>Ignis kept it warm and has stopped (the user let it cool, an idle limit, a guard, or the cache went cold).</summary>
+    Cooled,
+}
+
+/// <summary>ED-NEW-ignis-guards: the sidebar flame's state and, while lit, when the cache would go cold.</summary>
+public sealed record IgnisEmberState(IgnisEmber Ember, DateTimeOffset? ExpiresAt)
+{
+    public static IgnisEmberState None { get; } = new(IgnisEmber.None, null);
+}
+
+/// <summary>ED-NEW-ignis-guards: the likely reason a chat's cache is never read back.</summary>
+public enum IgnisCacheMissCause
+{
+    /// <summary>Not detectable from what the provider reports.</summary>
+    Unknown,
+    /// <summary>The model changed between the turns.</summary>
+    ModelSwitches,
+    /// <summary>The effort (thinking) level changed between the turns.</summary>
+    EffortSwitches,
+    /// <summary>Each turn wrote the cache again and read none of it: something near the start of the chat changes every turn (tools, instructions).</summary>
+    PrefixChanges,
+    /// <summary>Nothing was written or read: the provider is not caching this chat.</summary>
+    NoCaching,
 }
 
 /// <summary>How an event's amount reads: a cost ("$0.02"), a saving ("saved $0.42") or a loss ("lost $0.21").</summary>
@@ -164,7 +229,8 @@ public sealed record IgnisEvent(
     string? AgentID = null,
     string? HeadLabel = null,
     string? Model = null,
-    long? AtTokens = null)
+    long? AtTokens = null,
+    string? Reason = null)
 {
     /// <summary>The timeline notice id prefix of an event line ("ignis:event:").</summary>
     public const string TimelinePrefix = "ignis:event:";
@@ -293,6 +359,18 @@ public sealed record IgnisChatStatus
     public Engine.IgnisLifetimeChoice? CacheLifetimes { get; init; }
     /// <summary>Today's helper cache rebuilds in this chat (gaps longer than a helper's lifetime).</summary>
     public decimal MissedToday { get; init; }
+
+    // ---- keep-warm guards (ED-NEW-ignis-guards) ----
+    /// <summary>Why keep-warm has stopped for this warm chat; None while it keeps it warm (or nothing applies).</summary>
+    public IgnisKeepWarmHold Hold { get; init; }
+    /// <summary>The sidebar flame: lit while Ignis keeps the cache warm, cooled once it stopped.</summary>
+    public IgnisEmber Ember { get; init; }
+    /// <summary>When the chat's idle limit cools it; null when no limit applies or the chat is not idle.</summary>
+    public DateTimeOffset? IdleLimitAt { get; init; }
+    /// <summary>What today's keep-warm pings in this chat cost.</summary>
+    public decimal PingSpentToday { get; init; }
+    /// <summary>The chat's last turns read nothing from a cacheable prompt: the likely cause; null when the cache is reused.</summary>
+    public IgnisCacheMissCause? CacheNotReused { get; init; }
 
     /// <summary>The all-sources zero map, for building a status before any saving.</summary>
     public static IReadOnlyDictionary<IgnisSource, decimal> NoSavings { get; } = new Dictionary<IgnisSource, decimal>
@@ -455,6 +533,9 @@ public interface IIgnisRuntimePort
     /// <summary>When the chat last sent a request to the model (the cache's clock starts here); null when never.</summary>
     DateTimeOffset? LastRequestAt { get; }
 
+    /// <summary>The chat's effort (thinking) level now; null: none or unknown (ED-NEW-ignis-guards, the never-reused check).</summary>
+    string? Effort => null;
+
     /// <summary>When the running (or just finished) turn started; the gap Ignis learns ends here (ED-NEW-ignis-runtime). Null: unknown.</summary>
     DateTimeOffset? TurnStartedAt => null;
 
@@ -516,4 +597,16 @@ public interface IIgnisController
 
     /// <summary>The provider said the chat now runs on (or off) paid usage credits (ED-NEW-ignis-runtime); the observed writes still win.</summary>
     void CreditsHint(Guid thread, bool onCredits) { }
+
+    /// <summary>ED-NEW-ignis-guards: the sidebar flame of a chat (cheap: read by every row).</summary>
+    IgnisEmberState Ember(Guid thread) => Status(thread) is var status ? new IgnisEmberState(status.Ember, status.Ember == IgnisEmber.Lit ? status.ExpiresAt : null) : IgnisEmberState.None;
+
+    /// <summary>ED-NEW-ignis-guards: the user put the chat's flame out; keep-warm stops until the user's next message. Ignored unless lit.</summary>
+    void LetItCool(Guid thread) { }
+
+    /// <summary>The sidebar's "Turn on" on a cooled chat: Ignis keeps it warm again (ED-NEW-ignis-guards).</summary>
+    void KeepWarmAgain(Guid thread) { }
+
+    /// <summary>ED-NEW-ignis-guards: the chat's model (or provider) changed; a warm, big cache gets the switch-cost notice.</summary>
+    void ModelChanged(Guid thread, ProviderKind provider, string? model) { }
 }

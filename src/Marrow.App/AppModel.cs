@@ -849,8 +849,10 @@ public sealed partial class AppModel : MainActorModel
         // PORT-ONLY: OD-0114 / ED-404. Account bindings belong to one service.
         if (changed.Provider != threads[index].Provider && !accountSwitch) changed = changed with { ProviderAccountID = null };
         if (changed == threads[index]) return; // AppModel.swift:711: nothing changed, nothing assigned or saved
+        var before = threads[index];
         Threads = threads.SetItem(index, changed); // AppModel.swift:712
         ScheduleSave(); // AppModel.swift:713
+        IgnisThreadChanged(before, changed); // PORT-ONLY ED-NEW-ignis-guards: a model switch's cost notice
     }
 
     // AppModel.swift:723-741. Swift: moveThread(_:toProject:). Moves a thread to another project's folder: what the old folder's

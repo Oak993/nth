@@ -14,7 +14,7 @@ namespace Marrow.App.Port.Ignis.Runtime;
 /// <summary>What the controller reads from the app (AppIgnisEnvironment in production, a fake in tests).</summary>
 public interface IIgnisEnvironment
 {
-    /// <summary>The PC is locked (automatic keep-warm and tidy-up pause).</summary>
+    /// <summary>The PC is locked. ED-NEW-ignis-guards: read no longer (owner 2026-10-10: he often starts work and locks the PC).</summary>
     bool IsLocked { get; }
 
     bool IsArchived(Guid thread);
@@ -48,9 +48,6 @@ public sealed class IgnisController : IIgnisController
     /// <summary>ENGINEERING DECISION: "Tidied up" shows this long after a tidy-up ends.</summary>
     public static readonly TimeSpan JustTidiedFor = TimeSpan.FromSeconds(4);
 
-    /// <summary>ENGINEERING DECISION: at most this many keep-warms in one idle stretch, whatever the engine says.</summary>
-    public const int MaxPingsPerIdle = 6;
-
     /// <summary>ENGINEERING DECISION: the chat's own idle-gap history keeps this many gaps.</summary>
     public const int MaxGaps = 20;
 
@@ -60,6 +57,8 @@ public sealed class IgnisController : IIgnisController
     private readonly IIgnisEnvironment environment;
     private readonly IIgnisGapHistory gaps;
     private readonly Dictionary<Guid, Chat> chats = [];
+    private int ledgerRevision;
+    private (DateOnly Day, int Revision, bool Over)? dailyLimit;
 
     public IgnisController(IgnisSettings settings, IIgnisPoints points, ISavingsLedger ledger, IIgnisEngine engine, IIgnisEnvironment environment, IIgnisGapHistory? gaps = null)
     {
@@ -71,7 +70,7 @@ public sealed class IgnisController : IIgnisController
         this.gaps = gaps ?? new IgnisGapMemory();
         settings.Changed += () => Everything();
         points.Changed += () => Everything();
-        ledger.Changed += () => Changed?.Invoke(Guid.Empty);
+        ledger.Changed += () => { ledgerRevision++; Changed?.Invoke(Guid.Empty); };
     }
 
     public event Action<Guid>? Changed;
@@ -138,7 +137,6 @@ public sealed class IgnisController : IIgnisController
         public bool PingInFlight;
         public IgnisTurnUsage? PingUsage;
         public bool PingSinceUserTurn;
-        public int PingsThisIdle;
         public bool Tidying;
         public long? TidyFrom;
         public DateTimeOffset? JustTidiedUntil;
@@ -158,6 +156,22 @@ public sealed class IgnisController : IIgnisController
         public bool ShortByEnvironment;
         /// <summary>What nth chose for the two cache buckets at the chat's last Claude launch.</summary>
         public IgnisLifetimeChoice? Lifetimes;
+        // ---- ED-NEW-ignis-guards ----
+        /// <summary>The user's last real turn (its end, or its first usage); ranks the three chats kept warm.</summary>
+        public DateTimeOffset? LastUsedAt;
+        /// <summary>The user put the flame out; the next real turn relights it.</summary>
+        public bool Cooled;
+        /// <summary>The user turned keep-warm back on ("Turn on") while the cache was cold: lit until the next message warms it.</summary>
+        public bool Armed;
+        /// <summary>Ignis has kept this chat warm (its sidebar flame shows, lit or cooled).</summary>
+        public bool EverLit;
+        /// <summary>The hold already written to History in this idle stretch.</summary>
+        public IgnisKeepWarmHold LoggedHold;
+        /// <summary>The main chat's last turns' cache numbers (the never-reused check).</summary>
+        public readonly List<IgnisCacheTurn> CacheTurns = [];
+        public IgnisCacheMissCause? NotReused;
+        /// <summary>The model a switch-cost notice was shown for, until the next real turn.</summary>
+        public (ProviderKind Provider, string? Model)? NoticeFor;
 
         public IIgnisRuntimePort? Runtime => Port is { } weak && weak.TryGetTarget(out var port) ? port : null;
 
@@ -181,6 +195,7 @@ public sealed class IgnisController : IIgnisController
         chat.Provider = port.Provider;
         chat.Model ??= port.Model;
         if (port.LastRequestAt is { } last && chat.WarmAt is null) chat.WarmAt = last;
+        chat.LastUsedAt ??= port.LastRequestAt;
         Plan(port.ThreadID);
     }
 
@@ -272,11 +287,17 @@ public sealed class IgnisController : IIgnisController
         }
         chat.TidyFrom = null;
         chat.PingSinceUserTurn = false;
-        chat.PingsThisIdle = 0;
+        // ED-NEW-ignis-guards: a real turn relights the flame, starts a new idle stretch and ends a switch notice.
+        chat.Cooled = false;
+        chat.Armed = false;
+        chat.LoggedHold = IgnisKeepWarmHold.None;
+        chat.LastUsedAt = now;
+        chat.NoticeFor = null;
         if (usage.Reported)
         {
             chat.ReadTotal += usage.CacheRead;
             chat.InputTotal += usage.TotalInput;
+            CheckReuse(thread, chat, usage, now, mode);
         }
         Warm(chat, usage, now);
         Changed?.Invoke(thread);
@@ -470,7 +491,7 @@ public sealed class IgnisController : IIgnisController
         else if (!chat.Tidying)
         {
             chat.IdleSince = now;
-            chat.PingsThisIdle = 0;
+            chat.LastUsedAt = now;
         }
         Plan(thread);
         Changed?.Invoke(thread);
@@ -526,10 +547,13 @@ public sealed class IgnisController : IIgnisController
     /// </summary>
     public static bool KeepWarmAllowed(ProviderKind provider) => provider is ProviderKind.Claude or ProviderKind.OpenRouter or ProviderKind.Opencode;
 
-    /// <summary>Why automatic work is paused (the first that applies), NotSupported when only keep-warm is off for the model.</summary>
+    /// <summary>
+    /// Why automatic work is paused (the first that applies), NotSupported when only keep-warm is off for the model.
+    /// ED-NEW-ignis-guards: a locked PC no longer pauses (owner 2026-10-10: he often starts work and locks the PC; a PC that
+    /// is asleep runs no timer, and nothing here ever wakes it).
+    /// </summary>
     private IgnisPause Pause(Guid thread, Chat chat)
     {
-        if (environment.IsLocked) return IgnisPause.Locked;
         if (environment.IsArchived(thread)) return IgnisPause.Archived;
         if (chat.UsageLimited)
         {
@@ -561,11 +585,15 @@ public sealed class IgnisController : IIgnisController
         var now = SwiftDate.Now;
         var pause = Pause(thread, chat);
         var blocked = pause is not (IgnisPause.None or IgnisPause.NotSupported);
+        if (Lit(thread, chat, now)) chat.EverLit = true; // the sidebar flame shows from here on (lit, later cooled)
         var expires = chat.ExpiresAt;
         DateTimeOffset? wake = expires is { } cold && cold > now ? cold : null;
         if (expires is { } passed && passed <= now) WentCold(thread, chat, passed);
 
         void WakeBy(DateTimeOffset at) => wake = wake is { } current && current <= at ? current : at;
+
+        // turned back on while cold: the flame dims at its new idle limit
+        if (chat.Armed && IdleLimitAt(thread, chat) is { } armedUntil && armedUntil > now) WakeBy(armedUntil);
 
         if (preference.Auto && !blocked && !chat.PingInFlight)
         {
@@ -574,11 +602,14 @@ public sealed class IgnisController : IIgnisController
                 if (runtime.IsBetweenTasks) { Tidy(chat, runtime); return; }
                 WakeBy(now + BusyRetry);
             }
-            else if (pause == IgnisPause.None && expires is { } exp && exp > now && chat.Ttl is { } ttl
-                && chat.PingsThisIdle < MaxPingsPerIdle && !chat.Tidying)
+            else if (pause == IgnisPause.None && expires is { } exp && exp > now && chat.Ttl is { } ttl && !chat.Tidying)
             {
                 var due = exp - Lead(ttl);
+                var hold = Hold(thread, chat, now);
+                // the flame dims at the idle limit even when no keep-warm is due then
+                if (hold == IgnisKeepWarmHold.None && IdleLimitAt(thread, chat) is { } limit && limit > now) WakeBy(limit);
                 if (due > now) WakeBy(due);
+                else if (hold != IgnisKeepWarmHold.None) LogHold(thread, chat, hold, now);
                 else if (!runtime.IsBetweenTasks) WakeBy(now + BusyRetry < exp ? now + BusyRetry : exp);
                 else if (ShouldKeepWarm(thread, chat, runtime, exp, ttl, now)) { KeepWarm(chat, runtime); return; }
             }
@@ -602,7 +633,7 @@ public sealed class IgnisController : IIgnisController
         var question = new IgnisKeepWarmQuestion(
             thread, runtime.Provider, points, chat.ContextUsed ?? 0, ttl,
             chat.IdleSince is { } idle ? now - idle : TimeSpan.Zero, expires - now, chat.Gaps.ToArray(),
-            environment.HasDraft(thread), environment.IsOnScreen(thread));
+            environment.HasDraft(thread), environment.IsOnScreen(thread)) { GlobalGaps = GlobalGaps(chat.Provider) };
         return engine.ShouldKeepWarm(question);
     }
 
@@ -613,7 +644,6 @@ public sealed class IgnisController : IIgnisController
         chat.PingInFlight = true;
         chat.PingUsage = null;
         chat.PingSinceUserTurn = true;
-        chat.PingsThisIdle++;
         return true;
     }
 
@@ -633,12 +663,147 @@ public sealed class IgnisController : IIgnisController
         chat.ColdSeen = true;
         if (environment.IsArchived(thread)) return;
         decimal? lost = null;
-        if (chat.CacheReported && chat.ContextUsed is { } context && context > 0 && PointsOf(chat) is { } points)
+        // ED-NEW-ignis-guards: a chat the user let cool is no loss; they said they were done with it.
+        if (!chat.Cooled && chat.CacheReported && chat.ContextUsed is { } context && context > 0 && PointsOf(chat) is { } points)
         {
             lost = engine.RebuildPremium(points, context, chat.Ttl);
             if (lost > 0m) Ledger.Record(new IgnisLedgerEntry(at, thread, IgnisLedgerKind.Lost, null, lost.Value));
         }
         Record(thread, chat, new IgnisEvent(NewEventID(), thread, IgnisEventKind.WentCold, at, lost, IgnisAmountKind.Lost));
+    }
+
+    // ---- keep-warm guards (ED-NEW-ignis-guards) ----
+
+    private IReadOnlyList<TimeSpan> GlobalGaps(ProviderKind? provider) => provider is { } kind
+        ? [.. gaps.Samples(kind, IgnisCacheBucket.Main).Where(sample => sample.GapSeconds is > 0).Select(sample => TimeSpan.FromSeconds(sample.GapSeconds!.Value))]
+        : [];
+
+    /// <summary>When the chat's idle limit cools it (Settings › Ignis "Cool idle chats after" and "Learn when to cool"); null: no limit or not idle.</summary>
+    private DateTimeOffset? IdleLimitAt(Guid thread, Chat chat)
+    {
+        if ((chat.IdleSince ?? chat.LastUsedAt) is not { } since) return null;
+        var preferences = Settings.Value;
+        var learned = IgnisKeepWarmGuards.LearnedReturn(chat.Gaps, preferences.LearnCooling ? GlobalGaps(chat.Provider) : [], chat.Ttl);
+        return IgnisKeepWarmGuards.IdleLimit(preferences.CoolAfterHours, preferences.LearnCooling, learned, environment.HasDraft(thread)) is { } limit ? since + limit : null;
+    }
+
+    /// <summary>Today's pings reached today's allowance (read again only when the day or the ledger changed).</summary>
+    private bool OverDailyLimit()
+    {
+        var today = Today;
+        if (dailyLimit is { } known && known.Day == today && known.Revision == ledgerRevision) return known.Over;
+        var over = IgnisKeepWarmGuards.OverDailyLimit(Ledger.Days(today.AddDays(-6), today));
+        dailyLimit = (today, ledgerRevision, over);
+        return over;
+    }
+
+    /// <summary>A chat Ignis would keep warm but for the daily allowance and the three-chat limit.</summary>
+    private bool Candidate(Guid thread, Chat chat, DateTimeOffset now)
+    {
+        var preference = Settings.ForChat(thread);
+        return preference.Mode != IgnisMode.Off && preference.Auto && chat.Runtime is not null && !chat.Cooled
+            && chat.ExpiresAt is { } expires && expires > now && Pause(thread, chat) == IgnisPause.None
+            && !(IdleLimitAt(thread, chat) is { } limit && now >= limit);
+    }
+
+    private IReadOnlySet<Guid> WarmSlots(DateTimeOffset now) => IgnisKeepWarmGuards.WarmSlots(chats
+        .Where(pair => Candidate(pair.Key, pair.Value, now))
+        .Select(pair => (pair.Key, pair.Value.LastUsedAt ?? DateTimeOffset.MinValue, environment.IsOnScreen(pair.Key) || environment.HasDraft(pair.Key))));
+
+    /// <summary>Why a warm chat is not kept warm (the first that applies): the user's cool, the idle limit, the daily allowance, three newer chats.</summary>
+    private IgnisKeepWarmHold Hold(Guid thread, Chat chat, DateTimeOffset now)
+    {
+        if (chat.Cooled) return IgnisKeepWarmHold.LetCool;
+        if (IdleLimitAt(thread, chat) is { } limit && now >= limit) return IgnisKeepWarmHold.IdleLimit;
+        if (OverDailyLimit()) return IgnisKeepWarmHold.DailyLimit;
+        return WarmSlots(now).Contains(thread) ? IgnisKeepWarmHold.None : IgnisKeepWarmHold.OtherChats;
+    }
+
+    private bool Lit(Guid thread, Chat chat, DateTimeOffset now) => Candidate(thread, chat, now) && !OverDailyLimit() && WarmSlots(now).Contains(thread);
+
+    // A keep-warm was due and a guard held it: one History row per reason and idle stretch (never a timeline line).
+    private void LogHold(Guid thread, Chat chat, IgnisKeepWarmHold hold, DateTimeOffset now)
+    {
+        if (chat.LoggedHold == hold) return;
+        chat.LoggedHold = hold;
+        Log.Info("keep-warm held for " + thread.ToString("D") + ": " + hold);
+        Ledger.Record(new IgnisEvent(NewEventID(), thread, IgnisEventKind.KeepWarmHeld, now, Reason: IgnisWords.RawName(hold)));
+    }
+
+    // The never-reused check: the main chat's last turns; flagged once per streak in History.
+    private void CheckReuse(Guid thread, Chat chat, IgnisTurnUsage usage, DateTimeOffset now, IgnisMode mode)
+    {
+        chat.CacheTurns.Add(new IgnisCacheTurn(usage.TotalInput, usage.CacheRead, usage.CacheWrite, usage.Model ?? chat.Model, chat.Runtime?.Effort));
+        if (chat.CacheTurns.Count > 8) chat.CacheTurns.RemoveAt(0);
+        var cause = IgnisKeepWarmGuards.NotReused(chat.CacheTurns);
+        if (cause is { } found && chat.NotReused is null && mode != IgnisMode.Off)
+            Ledger.Record(new IgnisEvent(NewEventID(), thread, IgnisEventKind.CacheNotReused, now, Reason: IgnisWords.RawName(found)));
+        chat.NotReused = cause;
+    }
+
+    public IgnisEmberState Ember(Guid thread)
+    {
+        if (!chats.TryGetValue(thread, out var chat) || Settings.ForChat(thread).Mode == IgnisMode.Off) return IgnisEmberState.None;
+        var now = SwiftDate.Now;
+        if (Lit(thread, chat, now) || Armed(thread, chat, now))
+        {
+            chat.EverLit = true;
+            return new IgnisEmberState(IgnisEmber.Lit, chat.ExpiresAt);
+        }
+        return chat.EverLit ? new IgnisEmberState(IgnisEmber.Cooled, null) : IgnisEmberState.None;
+    }
+
+    public void LetItCool(Guid thread)
+    {
+        if (!chats.TryGetValue(thread, out var chat) || Ember(thread).Ember != IgnisEmber.Lit) return;
+        chat.Cooled = true;
+        chat.LoggedHold = IgnisKeepWarmHold.LetCool;
+        Ledger.Record(new IgnisEvent(NewEventID(), thread, IgnisEventKind.LetCool, SwiftDate.Now));
+        Everything(); // another chat may take the freed place among the three
+    }
+
+    /// <summary>
+    /// "Turn on" on a cooled chat (owner 2026-10-10: "the pill must then change to turn on, to provide the user an option to turn
+    /// Ignis back on for that chat"): keep-warm resumes as if the chat had just been used (its idle limit starts again and it
+    /// ranks first among the three). A warm cache is kept warm from here; a cold one is never rebuilt by this (that would spend
+    /// a cache write the user did not ask for): the flame stays lit and keep-warm starts with the next message.
+    /// </summary>
+    public void KeepWarmAgain(Guid thread)
+    {
+        if (!chats.TryGetValue(thread, out var chat) || Ember(thread).Ember != IgnisEmber.Cooled) return;
+        var now = SwiftDate.Now;
+        chat.Cooled = false;
+        chat.Armed = true;
+        chat.LoggedHold = IgnisKeepWarmHold.None;
+        chat.LastUsedAt = now;
+        if (chat.IdleSince is not null) chat.IdleSince = now;
+        Ledger.Record(new IgnisEvent(NewEventID(), thread, IgnisEventKind.KeepWarmOn, now));
+        Everything();
+    }
+
+    // Turned back on while cold: lit while Ignis is on for it and its new idle limit has not passed.
+    private bool Armed(Guid thread, Chat chat, DateTimeOffset now)
+    {
+        if (!chat.Armed || chat.Cooled || chat.Runtime is null) return false;
+        var preference = Settings.ForChat(thread);
+        return preference.Mode != IgnisMode.Off && preference.Auto && Pause(thread, chat) == IgnisPause.None
+            && !(IdleLimitAt(thread, chat) is { } limit && now >= limit);
+    }
+
+    public void ModelChanged(Guid thread, ProviderKind provider, string? model)
+    {
+        if (!chats.TryGetValue(thread, out var chat) || Settings.ForChat(thread).Mode == IgnisMode.Off) return;
+        // back to the model the cache was written with: nothing to rebuild
+        if (provider == chat.Provider && string.Equals(model, chat.Model, StringComparison.OrdinalIgnoreCase)) { chat.NoticeFor = null; return; }
+        var now = SwiftDate.Now;
+        if (!IgnisKeepWarmGuards.ShowsSwitchNotice(chat.ExpiresAt is { } expires && expires > now, chat.ContextUsed)) return;
+        if (chat.NoticeFor is { } shown && shown.Provider == provider && string.Equals(shown.Model, model, StringComparison.OrdinalIgnoreCase)) return;
+        if (Points.Find(provider, model) is not { } next) return;
+        var prefix = chat.ContextUsed!.Value;
+        var cost = IgnisKeepWarmGuards.SwitchCost(next, prefix, provider == chat.Provider ? chat.Ttl : null);
+        chat.NoticeFor = (provider, model);
+        Record(thread, chat, new IgnisEvent(NewEventID(), thread, IgnisEventKind.SwitchCost, now, cost, IgnisAmountKind.Cost, Model: next.DisplayName, AtTokens: prefix));
+        Changed?.Invoke(thread);
     }
 
     private void ArmJustTidied(Guid thread, Chat chat)
@@ -724,6 +889,11 @@ public sealed class IgnisController : IIgnisController
             PaidCredits = !off && OnPaidCredits(chat),
             CacheLifetimes = chat.Lifetimes,
             MissedToday = day.Missed,
+            Hold = !off && preference.Auto && cache == IgnisCacheState.Warm && pause == IgnisPause.None ? Hold(thread, chat, now) : IgnisKeepWarmHold.None,
+            Ember = Ember(thread).Ember,
+            IdleLimitAt = off ? null : IdleLimitAt(thread, chat),
+            PingSpentToday = IgnisKeepWarmGuards.PingSpent(day),
+            CacheNotReused = off ? null : chat.NotReused,
             ReuseRate = chat.CacheReported && chat.InputTotal > 0 ? (double)chat.ReadTotal / chat.InputTotal : null,
             Next = next,
             Pause = off ? IgnisPause.None : pause,

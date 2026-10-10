@@ -1,11 +1,12 @@
 // PORT-ONLY: Ignis (OD-0134, ED-NEW-ignis-settings; PLAN unit U5). Settings › Ignis, the locked design's section
 // (phoenix-designs.html "Settings › Ignis"): the lead sentence; one card of rows (Ignis default mode, Automatic, Include
-// Hydra heads, Smart helpers, Show (i) explanations, Show keep-warm pings, Keep word for word); "Savings history"; and
-// "Rebuild points" (Model points with Update now, Update automatically, the table of model / cheapest point / why, and
-// the hint). Built from the Settings pages' own parts (ChromeSection, ChromeCard, ChromeRow, ChromeSegmentedPicker,
-// SettingsSwitch, CzMenuButton, CzCapsuleButton), as Hydra's page is. Every word is IgnisWords'; every setting is
-// IgnisSettings' (the one "ignis" key); the history reads ISavingsLedger and the table IIgnisPoints, through the bound
-// Ignis controller (IgnisSeams.Controller). No keyboard shortcuts (owner).
+// Hydra heads, Smart helpers, Show (i) explanations, Show keep-warm pings, Cool idle chats after, Learn when to cool, Keep
+// word for word); "Savings history"; and "Rebuild points" (Model points with Update now, Update automatically, the table
+// of model / cheapest point / why, and the hint). Built from the Settings pages' own parts (ChromeSection, ChromeCard,
+// ChromeRow, ChromeSegmentedPicker, SettingsSwitch, CzMenuButton, CzCapsuleButton), as Hydra's page is. Every word is
+// IgnisWords' (the idle-limit pair's IgnisSettingsWords'); every setting is IgnisSettings' (the one "ignis" key); the
+// history reads ISavingsLedger and the table IIgnisPoints, through the bound Ignis controller (IgnisSeams.Controller).
+// No keyboard shortcuts (owner).
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -86,6 +87,13 @@ public sealed class IgnisSettingsPage : Decorator
         rows.Children.Add(Toggle(IgnisWords.RowExplanations, IgnisWords.RowExplanationsDetail, IgnisWords.RowExplanations, p => p.ShowExplanations, (p, on) => p with { ShowExplanations = on }));
         rows.Children.Add(new ChromeRowDivider());
         rows.Children.Add(Toggle(IgnisWords.RowShowPings, IgnisWords.RowShowPingsDetail, IgnisWords.RowShowPings, p => p.ShowPings, (p, on) => p with { ShowPings = on }));
+        // The idle limit (ED-NEW-ignis-guards): the same two controls as the Kindle popover's, over the same settings.
+        CoolAfterMenu = IgnisCoolingControls.Menu(settings, () => state.Value);
+        LearnCoolingSwitch = IgnisCoolingControls.Switch(settings, () => state.Value);
+        rows.Children.Add(new ChromeRowDivider());
+        rows.Children.Add(new ChromeRow(IgnisSettingsWords.RowCoolAfter, () => CoolAfterMenu, IgnisSettingsWords.RowCoolAfterDetail));
+        rows.Children.Add(new ChromeRowDivider());
+        rows.Children.Add(new ChromeRow(IgnisSettingsWords.RowLearnCooling, () => LearnCoolingSwitch, IgnisSettingsWords.RowLearnCoolingDetail));
         rows.Children.Add(new ChromeRowDivider());
         rows.Children.Add(new ChromeRow(IgnisWords.RowKeepWordForWord, () => KeepTurnsMenu, IgnisWords.RowKeepWordForWordDetail));
 
@@ -147,6 +155,12 @@ public sealed class IgnisSettingsPage : Decorator
     public ChromeSegmentedPicker<IgnisMode> ModePicker { get; }
 
     public CzMenuButton KeepTurnsMenu { get; }
+
+    /// <summary>"Cool idle chats after" (ED-NEW-ignis-guards).</summary>
+    public CzMenuButton CoolAfterMenu { get; }
+
+    /// <summary>"Learn when to cool" (ED-NEW-ignis-guards).</summary>
+    public SettingsSwitch LearnCoolingSwitch { get; }
 
     public CzCapsuleButton UpdateNowButton { get; }
 

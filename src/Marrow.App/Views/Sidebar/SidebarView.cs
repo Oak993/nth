@@ -3415,6 +3415,10 @@ internal sealed class SidebarThreadRow : Decorator
         };
         selectButton.Click += (_, _) => SelectThread(Model, Thread()); // :1736-1738
         overlays.Children.Add(selectButton);
+        // PORT-ONLY (ED-NEW-ignis-guards): the Ignis keep-warm mark (its ember line at the leading edge, its hover zone just
+        // before the trailing content), over the face and under the trailing buttons; null (unbound) keeps the row as it was.
+        Ember = Marrow.App.Port.Ignis.Views.IgnisSidebar.MarkFor(snapshot.Id, () => SelectThread(Model, Thread()));
+        if (Ember is not null) overlays.Children.Add(Ember);
         Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
         var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         Control? check = null, trailing = null, fold = null;
@@ -3447,6 +3451,14 @@ internal sealed class SidebarThreadRow : Decorator
             {
                 face = new ThreadRowFace(thread, projectName, selected, clearance, () => new ThreadBadge(shown), projectIcon, mergeStage);
                 shape.Child = face;
+                if (Ember is { } ember)
+                {
+                    var built = face;
+                    built.ClearanceApplied = value => PlaceEmber(ember, built, value);
+                    ember.TitleFadeChanged += () => FadeTitle(ember, built);
+                    built.SizeChanged += (_, _) => FadeTitle(ember, built);
+                    PlaceEmber(ember, built, clearance);
+                }
             }
             else
             {
@@ -3524,10 +3536,44 @@ internal sealed class SidebarThreadRow : Decorator
             var threadSnapshot = Thread(); // :1852, :1689
             var settleFirstSnapshot = !threadSnapshot.IsHelper && Model.Settings.ThreadFinishAction == ThreadFinishAction.Settle; // :1855
             contextMenu.Items.Clear();
-            foreach (var item in new RowActionMenuButtons(ThreadActions.MakeContextMenu(Model, threadSnapshot, settleFirstSnapshot, menuRequests)).Items)
+            foreach (var item in new RowActionMenuButtons(WithIgnis(ThreadActions.MakeContextMenu(Model, threadSnapshot, settleFirstSnapshot, menuRequests))).Items)
                 contextMenu.Items.Add(item);
         };
         ContextMenu = contextMenu; // :1851 .contextMenu { ... }; PR-SIDEBAR-098 through -103's live-menu half
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-ignis-guards): the row's Ignis keep-warm mark; null when Ignis is not bound.</summary>
+    internal Marrow.App.Port.Ignis.Views.IgnisSidebarMark? Ember { get; }
+
+    /// <summary>PORT-ONLY (ED-NEW-ignis-guards): the context menu's "Turn off" (lit) or "Turn on" (cooled), last: the mark's pill by keyboard.</summary>
+    internal IReadOnlyList<RowAction> WithIgnis(IReadOnlyList<RowAction> actions)
+    {
+        if (Ember is not { } ember || ember.ActionTitle is not { } title) return actions;
+        return [.. actions, new RowAction { Title = title, StartsGroup = actions.Count > 0, Action = ember.Act }];
+    }
+
+    // The mark's zone ends where the title's room ends: the row's trailing clearance as it glides (the hover's buttons widen it).
+    private static void PlaceEmber(Marrow.App.Port.Ignis.Views.IgnisSidebarMark ember, ThreadRowFace face, double clearance)
+    {
+        ember.Place(Chrome.RowHorizontalPadding + clearance);
+        FadeTitle(ember, face);
+    }
+
+    // The title's end is masked under the pill and the flame as they come in (the mock's mask), and comes back as they go.
+    private static void FadeTitle(Marrow.App.Port.Ignis.Views.IgnisSidebarMark ember, ThreadRowFace face)
+    {
+        var (from, to, amount) = ember.TitleFade;
+        var width = face.Bounds.Width;
+        if (amount <= 0 || width <= 0) { face.OpacityMask = null; return; }
+        var start = Math.Clamp((width - from) / width, 0, 1);
+        var end = Math.Clamp((width - to) / width, start, 1);
+        var faded = Color.FromArgb((byte)Math.Round(255 * (1 - Math.Clamp(amount, 0, 1))), 0, 0, 0);
+        face.OpacityMask = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Colors.Black, 0), new GradientStop(Colors.Black, start), new GradientStop(faded, end), new GradientStop(faded, 1) },
+        };
     }
 
     // :1834-1838 Instant hide; reveal eases over the same 0.12s handover as the covering ghost.
@@ -4059,8 +4105,14 @@ internal sealed class ThreadRowFace : Decorator
         frame.MinHeight = isSettled ? ThreadRowMetrics.SettledHeight : Chrome.RowHeight; // :2070
     }
 
-    private void ApplyPadding(double value) =>
+    private void ApplyPadding(double value)
+    {
         frame.Padding = new Thickness(leftPadding, vertical, Chrome.RowHorizontalPadding + value, vertical); // :2066-2069
+        ClearanceApplied?.Invoke(value);
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-ignis-guards): told each drawn trailing clearance, so the row's Ignis mark glides with the title's room.</summary>
+    internal Action<double>? ClearanceApplied { get; set; }
 
     /// <summary>
     /// :2041/:2048 the title's weight, 400 (.regular) to 500 (.medium), as the value of the animation. The title NEVER asks for

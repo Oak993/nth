@@ -23,7 +23,11 @@ public sealed record IgnisKeepWarmQuestion(
     TimeSpan TimeLeft,
     IReadOnlyList<TimeSpan> IdleGaps,
     bool HasDraft,
-    bool OnScreen);
+    bool OnScreen)
+{
+    /// <summary>Every chat's past idle gaps for the provider (ED-NEW-ignis-guards): the odds lean on them where the chat has few.</summary>
+    public IReadOnlyList<TimeSpan> GlobalGaps { get; init; } = [];
+}
 
 /// <summary>The engine's maths and decisions the controller needs (unit U1). Pure: no I/O, no clock reads.</summary>
 public interface IIgnisEngine

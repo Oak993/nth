@@ -127,6 +127,11 @@ internal sealed class FakeIgnisEnvironment : IIgnisEnvironment
 /// <summary>A chat runtime that records what Ignis asked of it.</summary>
 internal sealed class FakeIgnisPort : IIgnisRuntimePort, IIgnisRuntimeTimeline
 {
+    public FakeIgnisPort() { }
+
+    /// <summary>A runtime for a given chat (a sidebar row's).</summary>
+    public FakeIgnisPort(Guid thread) => ThreadID = thread;
+
     public Guid ThreadID { get; } = Guid.NewGuid();
     public ProviderKind Provider { get; set; } = ProviderKind.Claude;
     public string? Model { get; set; } = IgnisSamples.Opus;
