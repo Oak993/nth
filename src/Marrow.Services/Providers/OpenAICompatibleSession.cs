@@ -615,7 +615,7 @@ public class OpenAICompatibleSession : ProviderSession
     }
 
     internal const string IgnisTidySummaryRequest =
-        "[Marrow Ignis] Automatic tidy-up, not from the user. Use no tools. Summarize the conversation so far for your own later use: the task, the decisions made, the files and paths involved, the state of the work and anything still open. Reply with the summary only.";
+        "[Nth Ignis] Automatic tidy-up, not from the user. Use no tools. Summarize the conversation so far for your own later use: the task, the decisions made, the files and paths involved, the state of the work and anything still open. Reply with the summary only.";
     internal const string IgnisTidySummaryHeader = "[Summary of the earlier conversation]\n";
     internal const string IgnisTidySummaryAcknowledgement = "Understood. I will continue from this summary and the messages after it.";
 

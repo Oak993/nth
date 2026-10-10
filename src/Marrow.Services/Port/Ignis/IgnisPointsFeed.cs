@@ -45,7 +45,7 @@ public static class IgnisPointsFeed
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, address);
-            request.Headers.TryAddWithoutValidation("User-Agent", "marrow-ignis-points");
+            request.Headers.TryAddWithoutValidation("User-Agent", "nth-ignis-points");
             request.Headers.TryAddWithoutValidation("Accept", "application/json");
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, limit.Token).ConfigureAwait(false);
             if (response.StatusCode == HttpStatusCode.NotFound) return new IgnisFeedResult(null, true, null);
