@@ -147,7 +147,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-078")] // App/Views/Settings/SettingsView.swift:22,37,148-157
     public void Remaining_sidebar_symbols_keep_source_sizes_order_and_selection() => WithSettings((view, _, _) =>
     {
-        var rows = Nodes<SidebarRow>(view); Assert.Equal("Appearance", Text(rows[2]).Single()); foreach (var (title, symbol) in new[] { ("Source control", "arrow.triangle.branch"), ("Shortcuts", "command"), ("Archive", "archivebox"), ("Appearance", "paintpalette") }) { var row = rows.Single(row => Text(row).Contains(title)); var image = Assert.Single(Nodes<SwiftImage>(row)); Assert.Equal(symbol, image.SymbolName); Assert.Equal(14, image.Width); Assert.Equal(14, image.Height); Assert.Empty(Nodes<UpdateAvailableDot>(row)); }
+        var rows = Nodes<SidebarRow>(view); Assert.Equal("Appearance", Text(rows[3]).Single()); /* [2] is Ignis, directly below Hydra (OD-0134) */ foreach (var (title, symbol) in new[] { ("Source control", "arrow.triangle.branch"), ("Shortcuts", "command"), ("Archive", "archivebox"), ("Appearance", "paintpalette") }) { var row = rows.Single(row => Text(row).Contains(title)); var image = Assert.Single(Nodes<SwiftImage>(row)); Assert.Equal(symbol, image.SymbolName); Assert.Equal(14, image.Width); Assert.Equal(14, image.Height); Assert.Empty(Nodes<UpdateAvailableDot>(row)); }
         Click(Button(rows.Single(row => Text(row).Contains("Source control")), "Source control")); Sync(); Assert.Single(Nodes<SourceControlSettingsPage>(view));
     });
 

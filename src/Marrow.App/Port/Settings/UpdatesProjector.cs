@@ -10,8 +10,11 @@ namespace Marrow.App.Port.Settings;
 
 internal static class UpdatesProjector
 {
-    // The page lists Marrow first, as the design does; the orchestrator's run order puts it last.
-    private static readonly UpdateItemKind[] PageOrder = [UpdateItemKind.Marrow, UpdateItemKind.ProviderCli, UpdateItemKind.DevTool, UpdateItemKind.SkillsAndTools];
+    // The page lists Marrow first, as the design does; the orchestrator's run order puts it last. PORT-ONLY (OD-0134, ED-NEW-ignis-settings): Ignis's model points sit right after Marrow, in its section
+    // (design Settings › Updates), though they run before it.
+    private static readonly UpdateItemKind[] PageOrder = [UpdateItemKind.Marrow, UpdateItemKind.ModelPoints, UpdateItemKind.ProviderCli, UpdateItemKind.DevTool, UpdateItemKind.SkillsAndTools];
+
+    private static UpdateItemKind SectionOf(UpdateItemKind kind) => kind == UpdateItemKind.ModelPoints ? UpdateItemKind.Marrow : kind;
 
     private const string Ellipsis = "\u2026";
     private const string DidNot = "didn\u2019t update";
@@ -28,8 +31,8 @@ internal static class UpdatesProjector
             ? new UpdatesBannerView(false, "", "")
             : new UpdatesBannerView(banner, $"{restart.Title} {VersionOf(restart.Latest ?? restart.Installed)} is ready.", "Restart Marrow to finish its update.");
         var idle = !flags.Busy && !flags.Checking && !flags.Restarting;
-        var sections = PageOrder
-            .Select(kind => new UpdatesSectionView(SectionTitle(kind), ordered.Where(r => r.Kind == kind).Select(r => RowOf(r, flags, idle)).ToList()))
+        var sections = PageOrder.Where(kind => SectionOf(kind) == kind)
+            .Select(kind => new UpdatesSectionView(SectionTitle(kind), ordered.Where(r => SectionOf(r.Kind) == kind).Select(r => RowOf(r, flags, idle)).ToList()))
             .Where(s => s.Rows.Count > 0).ToList();
         return new UpdatesPageView(header, bannerView, sections);
     }
@@ -171,6 +174,7 @@ internal static class UpdatesProjector
     private static string SubOf(UpdateRow r) => r.Kind switch
     {
         UpdateItemKind.Marrow => "The app",
+        UpdateItemKind.ModelPoints => Marrow.Core.Port.Ignis.IgnisWords.UpdatesRowDetail,
         UpdateItemKind.ProviderCli => UpdateRowCommand.For(r) ?? "Updates through its own installer",
         _ => "",
     };

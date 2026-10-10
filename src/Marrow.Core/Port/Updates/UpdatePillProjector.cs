@@ -50,7 +50,7 @@ public sealed record UpdatePillState(
 /// Reads the orchestrator's rows into the pill's state. The words are the design page's U1 "Plain" set (OD-0100 pick). It keeps one thing between calls: which items the run in hand has (the
 /// ones it queued), so "Updating 2 of 3" and the ring count that run, and a Retry counts only the item it runs (ENGINEERING DECISION ED-344). ENGINEERING DECISIONS: "1 update" in the
 /// singular (the page prints "1 updates"); a failure outranks everything else until it is retried; a finished run that updated something and needs no restart stays as the design's done phase
-/// ("N updated", button "Check now") until <see cref="Acknowledge"/> (the popover was closed after it) or the next check or run (lead decision on the UE-5 review, following ue-page.js apply() for D); the popover lists Marrow first, as the page does.
+/// ("N updated", button "Check now") until <see cref="Acknowledge"/> (the popover was closed after it) or the next check or run (lead decision on the UE-5 review, following ue-page.js apply() for D); the popover lists Marrow first, as the page does, and Ignis's model points right after it (ED-NEW-ignis-settings).
 /// </summary>
 public sealed class UpdatePillProjector
 {
@@ -72,7 +72,7 @@ public sealed class UpdatePillProjector
             foreach (var row in rows.Where(r => r.State is UpdateRowState.Queued or UpdateRowState.Updating)) targets.Add(row.Id);
         }
         else runOver = true;
-        var list = rows.Where(r => r.State is not (UpdateRowState.Unchecked or UpdateRowState.NotInstalled)).OrderBy(r => r.Kind == UpdateItemKind.Marrow ? 0 : 1).Select(ToRow).ToList();
+        var list = rows.Where(r => r.State is not (UpdateRowState.Unchecked or UpdateRowState.NotInstalled)).OrderBy(r => r.Kind == UpdateItemKind.Marrow ? 0 : r.Kind == UpdateItemKind.ModelPoints ? 1 : 2).Select(ToRow).ToList();
         if (running) return Running(rows, list);
         var failed = rows.FirstOrDefault(r => r.State == UpdateRowState.Failed);
         if (failed is not null) return Failed(rows, list, failed);
@@ -156,6 +156,7 @@ public sealed class UpdatePillProjector
         {
             UpdateItemKind.Marrow when r.State == UpdateRowState.Updating && r.Progress is { } done => $"Downloading {(int)Math.Round(done * 100)}%",
             UpdateItemKind.Marrow => "The app",
+            UpdateItemKind.ModelPoints => Ignis.IgnisWords.UpdatesRowDetail, // PORT-ONLY (OD-0134, ED-NEW-ignis-settings): listed right after Marrow
             UpdateItemKind.ProviderCli when r.Id.StartsWith("cli:", StringComparison.Ordinal) => r.Id[4..] + " update",
             _ => null,
         };
