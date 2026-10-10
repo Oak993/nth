@@ -122,38 +122,3 @@ public sealed class SystemSpinner : Control
         }
     }
 }
-
-/// <summary>PORT-ONLY. A determinate ProgressBar's track and fill (see SystemSpinner's file note).</summary>
-public sealed class SystemProgressTrack : Control
-{
-    private readonly RangeBase owner;
-    private readonly IBrush wash; // made once (see SystemSpinner's stroke)
-    private readonly IBrush fill;
-
-    public SystemProgressTrack(RangeBase owner)
-    {
-        this.owner = owner;
-        wash = Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(this);
-        fill = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
-        // Subscribed only while on screen, so a track the template swapped out does not stay hooked to its bar.
-        AttachedToVisualTree += (_, _) => owner.PropertyChanged += OnOwnerChanged;
-        DetachedFromVisualTree += (_, _) => owner.PropertyChanged -= OnOwnerChanged;
-    }
-
-    private void OnOwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
-    {
-        if (e.Property == RangeBase.ValueProperty || e.Property == RangeBase.MinimumProperty || e.Property == RangeBase.MaximumProperty) InvalidateVisual();
-    }
-
-    public override void Render(DrawingContext context)
-    {
-        base.Render(context);
-        var height = Math.Min(Bounds.Height, 4);
-        var top = (Bounds.Height - height) / 2;
-        var span = owner.Maximum - owner.Minimum;
-        var fraction = span <= 0 ? 0 : Math.Clamp((owner.Value - owner.Minimum) / span, 0, 1);
-        context.DrawRectangle(wash, null, new RoundedRect(new Rect(0, top, Bounds.Width, height), height / 2));
-        if (fraction > 0)
-            context.DrawRectangle(fill, null, new RoundedRect(new Rect(0, top, Bounds.Width * fraction, height), height / 2));
-    }
-}

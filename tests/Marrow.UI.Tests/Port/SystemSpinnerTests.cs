@@ -138,7 +138,6 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
             bar.Maximum = 15;
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(.5, fill.Value, 6);
-            Assert.Empty(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
         }
         finally { window.Close(); }
     });
