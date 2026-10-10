@@ -30,7 +30,7 @@ public sealed class NthSitesCTests(HeadlessSession headless)
     private static TimelineEntry Running() => ToolEntry(Call(ToolCall.Kind.Search, "grep auth", ToolCall.Status.Running));
 
     [Fact]
-    [Trait("Req", "OD-0136")] // step 8: running = the spinner in the status slot and the light through the label
+    [Trait("Decision", "OD-0136")] // step 8: running = the spinner in the status slot and the light through the label
     public void A_running_tool_row_has_the_working_mark_and_a_shining_label() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -56,7 +56,7 @@ public sealed class NthSitesCTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "OD-0136")] // step 8: done = the spinner fades, the tick draws, the label steps to --text2 over 0.25 s, the light stops
+    [Trait("Decision", "OD-0136")] // step 8: done = the spinner fades, the tick draws, the label steps to --text2 over 0.25 s, the light stops
     public void A_tool_row_that_completes_while_shown_draws_its_tick_and_stops_the_light() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -94,7 +94,7 @@ public sealed class NthSitesCTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "OD-0136")] // step 8: a row that is already done shows its tick in place (scrolling, recycling) and no light at all
+    [Trait("Decision", "OD-0136")] // step 8: a row that is already done shows its tick in place (scrolling, recycling) and no light at all
     public void A_tool_row_made_already_done_shows_the_tick_in_place_with_a_plain_label() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -116,7 +116,7 @@ public sealed class NthSitesCTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "OD-0136")] // step 8: a failed or declined call keeps its own glyph
+    [Trait("Decision", "OD-0136")] // step 8: a failed or declined call keeps its own glyph
     public void A_failed_or_declined_tool_row_keeps_its_glyph_and_has_no_mark() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -131,7 +131,7 @@ public sealed class NthSitesCTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "OD-0136")] // step 9: the send button is the 32 px face; running follows the state, the face survives the run flipping
+    [Trait("Decision", "OD-0136")] // step 9: the send button is the 32 px face; running follows the state, the face survives the run flipping
     public void The_send_button_is_the_32_px_face_whose_running_state_follows_the_run_on_the_same_face() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -165,7 +165,7 @@ public sealed class NthSitesCTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "OD-0136")] // step 9: a button built running (a thread opened mid-run) shows the stop square in place
+    [Trait("Decision", "OD-0136")] // step 9: a button built running (a thread opened mid-run) shows the stop square in place
     public void A_send_button_built_running_shows_the_stop_square_without_animating() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -179,7 +179,7 @@ public sealed class NthSitesCTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "OD-0136")] // step 9: disabled = the face at half (the site's DisabledLabelOpacity), enabled = whole
+    [Trait("Decision", "OD-0136")] // step 9: disabled = the face at half (the site's DisabledLabelOpacity), enabled = whole
     public void The_send_face_dims_to_half_while_the_button_is_disabled() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();

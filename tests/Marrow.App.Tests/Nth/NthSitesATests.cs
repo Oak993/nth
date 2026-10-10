@@ -24,6 +24,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_working_mark_is_a_12_point_nth_spinner_named_Working() => headless.OnUiThread(() =>
     {
         var mark = NthWorkingMarks.Working();
@@ -38,6 +39,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_still_mark_is_a_12_point_plain_drawing_with_no_moving_visual() => headless.OnUiThread(() =>
     {
         var mark = NthWorkingMarks.Still();
@@ -55,6 +57,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     private static double Dist(Point a, Point b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_still_trace_is_a_third_of_the_tile_from_twelve_o_clock()
     {
         var track = NthStillSpinner.Track(12);
@@ -71,6 +74,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_helper_working_box_carries_a_12_point_nth_spinner() => headless.OnUiThread(() =>
     {
         var box = new SubagentWorkingBox("Helper", true);

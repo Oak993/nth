@@ -42,6 +42,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     private const double Rest = 2.0, Travel = .8;
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void Without_a_thumbnail_the_backdrop_is_the_skeleton_plate_and_the_light_crosses_it_at_35_percent()
     {
         using var painter = new PreviewBackdropPainter();
@@ -58,6 +59,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_light_runs_by_the_clock_and_a_calm_backdrop_has_none()
     {
         using var painter = new PreviewBackdropPainter();
@@ -72,6 +74,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void With_a_thumbnail_the_backdrop_shows_it_blurred_once_and_zoomed()
     {
         using var painter = new PreviewBackdropPainter();
@@ -107,6 +110,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void Arrival_takes_the_light_away_in_0_2_seconds_and_leaves_the_plate()
     {
         using var painter = new PreviewBackdropPainter();
@@ -119,6 +123,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_control_hosts_the_painter_and_arrives_once() => headless.OnUiThread(() =>
     {
         var backdrop = new NthPreviewBackdrop(Solid(10, 20, 30));
@@ -130,6 +135,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_puck_is_44_points_of_glass_holding_the_white_spinner_or_the_ring() => headless.OnUiThread(() =>
     {
         var puck = new PreviewPuck();
@@ -154,6 +160,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_puck_leaves_with_opacity_and_a_scale_of_0_9_over_0_24_seconds() => headless.OnUiThread(() =>
     {
         var puck = new PreviewPuck();
@@ -180,6 +187,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_picture_that_does_not_load_keeps_the_backdrop_and_the_puck() => headless.OnUiThread(() =>
     {
         var attachment = new Attachment { Name = "gone.png", Path = Path.Combine(Path.GetTempPath(), "gone-" + Guid.NewGuid().ToString("N") + ".png"), MimeType = "image/png" };
@@ -195,6 +203,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_video_thumbnail_waits_on_the_step_6_plate_under_its_badge() => headless.OnUiThread(() =>
     {
         var attachment = new Attachment { Name = "clip.mp4", Path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mp4"), MimeType = "video/mp4" };
@@ -206,6 +215,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_large_preview_blurs_the_thumbnail_the_strip_already_decoded() => headless.OnUiThread(() =>
     {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
@@ -219,6 +229,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_tool_image_preview_waits_on_the_16_point_spinner() => headless.OnUiThread(() =>
     {
         var preview = new ToolImagePreview(Path.Combine(Path.GetTempPath(), "missing-" + Guid.NewGuid().ToString("N") + ".png"));

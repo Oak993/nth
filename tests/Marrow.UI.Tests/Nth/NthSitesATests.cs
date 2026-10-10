@@ -22,6 +22,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_check_buttons_spinner_is_the_nth_spinner_at_the_designs_11_points() => headless.OnUiThread(() =>
     {
         var button = new VoiceCheckButton("Check my hardware");
@@ -36,6 +37,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_probe_rows_spinner_is_the_nth_spinner_at_12_points_hidden_until_the_probe_runs() => headless.OnUiThread(() =>
     {
         var row = new VoiceProbeRow("Processor");
@@ -50,6 +52,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     });
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(3.0, 3.0)]
     [InlineData(4.0, 4.0)]
     [InlineData(6.0, 4.0)]
@@ -68,6 +71,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_wide_unknown_length_bar_is_a_strip_and_a_square_one_is_a_spinner() => headless.OnUiThread(() =>
     {
         var wide = new ProgressBar { IsIndeterminate = true, Width = 120, Height = 16 };
@@ -83,6 +87,7 @@ public sealed class NthSitesATests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_known_length_bar_jumps_on_first_show_then_springs_to_its_value() => headless.OnUiThread(() =>
     {
         var bar = new ProgressBar { Minimum = 0, Maximum = 100, Value = 25, Width = 200, Height = 4 };

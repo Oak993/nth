@@ -21,7 +21,7 @@ public sealed class NthHostTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-nth-motion")]
+    [Trait("Decision", "OD-0136")]
     public void A_shown_spinner_draws_through_its_composition_visual_and_stops_when_hidden_or_removed() => headless.OnUiThread(() =>
     {
         var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);
@@ -55,7 +55,7 @@ public sealed class NthHostTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-nth-motion")]
+    [Trait("Decision", "OD-0136")]
     public void A_finished_ring_stops_moving_and_the_activity_check_allocates_nothing() => headless.OnUiThread(() =>
     {
         var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);
@@ -83,7 +83,7 @@ public sealed class NthHostTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-nth-motion")]
+    [Trait("Decision", "OD-0136")]
     public void A_status_slot_created_done_shows_its_tick_in_place_and_a_live_change_animates() => headless.OnUiThread(() =>
     {
         var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);
@@ -110,7 +110,7 @@ public sealed class NthHostTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-nth-motion")]
+    [Trait("Decision", "OD-0136")]
     public void The_shine_text_captures_its_own_glyphs_and_the_light_stops_when_calm_or_done() => headless.OnUiThread(() =>
     {
         var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);

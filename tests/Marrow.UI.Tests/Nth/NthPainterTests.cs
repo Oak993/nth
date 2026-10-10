@@ -42,6 +42,7 @@ public sealed class NthPainterTests
     }
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(false)]
     [InlineData(true)]
     public void The_spinner_draws_its_track_and_its_line_in_the_theme_tokens(bool dark)
@@ -61,6 +62,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_spinner_starts_invisible_and_fades_in_over_three_tenths_of_a_second()
     {
         using var painter = new NthSpinnerPainter();
@@ -71,6 +73,7 @@ public sealed class NthPainterTests
     }
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(false)]
     [InlineData(true)]
     public void The_known_bar_draws_fill_over_track_and_clips_to_its_capsule(bool dark)
@@ -92,6 +95,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_unknown_bar_calm_stands_in_the_middle_third()
     {
         using var painter = new NthBarPainter();
@@ -103,6 +107,7 @@ public sealed class NthPainterTests
     }
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(false)]
     [InlineData(true)]
     public void The_ring_done_ends_on_a_strong_disc_with_an_on_colour_tick(bool dark)
@@ -118,6 +123,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_ring_in_progress_draws_its_arc_clockwise_from_twelve_o_clock()
     {
         using var painter = new NthRingPainter();
@@ -134,6 +140,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_status_slot_waits_with_a_hollow_ring_and_ends_on_the_row_tick()
     {
         using var painter = new NthStatusPainter();
@@ -147,6 +154,7 @@ public sealed class NthPainterTests
     }
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(false)]
     [InlineData(true)]
     public void The_send_face_is_a_graphite_or_silver_disc_with_an_on_colour_arrow(bool dark)
@@ -172,6 +180,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_running_send_face_shows_the_stop_square_in_place_of_the_arrow()
     {
         using var painter = new NthSendPainter();
@@ -193,6 +202,7 @@ public sealed class NthPainterTests
         c.Red >= Math.Min(a.Red, b.Red) - 3 && c.Red <= Math.Max(a.Red, b.Red) + 3 && c.Blue >= Math.Min(a.Blue, b.Blue) - 3 && c.Blue <= Math.Max(a.Blue, b.Blue) + 3;
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(false)]
     [InlineData(true)]
     public void The_flick_is_hidden_for_its_first_four_tenths_then_draws_the_n_and_lands_the_bead(bool dark)
@@ -216,6 +226,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_flick_bead_fades_with_the_emptying_from_the_top_of_the_arch_and_both_end_at_three_point_one_eight()
     {
         using var painter = new NthFlickPainter();
@@ -231,6 +242,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_calm_flick_is_the_whole_n_and_bead_standing_still_and_it_leaves_in_three_tenths_once_finished()
     {
         using var painter = new NthFlickPainter();
@@ -252,6 +264,7 @@ public sealed class NthPainterTests
     public static TheoryData<string> Painters() => ["spinner", "bar", "indeterminate", "ring", "status", "list", "diff", "plate", "send", "tube", "link", "glyph", "flick"];
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [MemberData(nameof(Painters))]
     public void Painters_allocate_nothing_per_frame_once_warm(string name)
     {
@@ -285,6 +298,7 @@ public sealed class NthPainterTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void Painters_stop_asking_for_frames_once_their_motion_has_ended()
     {
         using var ring = new NthRingPainter();

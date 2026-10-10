@@ -10,7 +10,7 @@ namespace Marrow.App.Tests.Nth;
 public sealed class NthMotionWarmupTests
 {
     [Fact]
-    [Trait("Decision", "ED-NEW-nth-motion")]
+    [Trait("Decision", "OD-0136")]
     public void The_nth_programs_join_the_graphics_step_once_draw_and_unregister_cleanly()
     {
         var before = GpuWarmup.Registered.ToArray();

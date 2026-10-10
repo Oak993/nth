@@ -53,6 +53,7 @@ public sealed class NthSitesBInstallCapsulePixelTests
     }
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(false)]
     [InlineData(true)]
     public void The_capsule_is_the_track_with_the_metal_fill_ending_in_a_round_nose_at_p_times_W(bool dark)
@@ -77,6 +78,7 @@ public sealed class NthSitesBInstallCapsulePixelTests
     }
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(false)]
     [InlineData(true)]
     public void The_label_is_drawn_twice_the_text_colour_on_the_track_and_the_on_colour_inside_the_fill(bool dark)
@@ -100,6 +102,7 @@ public sealed class NthSitesBInstallCapsulePixelTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_light_passes_inside_the_fill_only_white_at_half_in_light_and_at_85_percent_in_dark_and_stops_at_100_percent()
     {
         foreach (var dark in new[] { false, true })
@@ -131,6 +134,7 @@ public sealed class NthSitesBInstallCapsulePixelTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void At_100_percent_the_working_label_gives_way_to_the_done_label_over_a_quarter_of_a_second()
     {
         // the two labels cross-fade: before the done moment only the working label; after 0.25 s only the done label; the labels differ, so the pictures do
@@ -152,6 +156,7 @@ public sealed class NthSitesBInstallCapsulePixelTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_capsule_painter_moves_only_while_the_fill_springs_or_the_light_passes_and_for_the_cross_fade()
     {
         using var painter = new UpdateInstallCapsulePainter();
@@ -181,6 +186,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     // ---- step 3: bars ----
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_updates_rows_bar_is_a_4_px_nth_bar_unknown_length_while_the_updater_reports_nothing() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -208,6 +214,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_running_downloads_bar_springs_to_each_value_and_a_new_download_starts_from_the_left() => headless.OnUiThread(() =>
     {
         var bar = new LibraryProgressBar { Width = 200 };
@@ -228,6 +235,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_usage_meters_stay_the_still_library_bar_not_a_travelling_light() => headless.OnUiThread(() =>
     {
         // the account row's week bar and the service block's usage bar show how much of a quota is used: they are not a job in progress, so no light passes in them
@@ -244,6 +252,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_voice_model_rows_bar_is_the_3_px_nth_bar_inset_16_each_side_that_fades_with_the_download() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -266,6 +275,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     // ---- step 4: rings ----
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_skills_ring_is_the_14_px_nth_ring_and_never_runs_backwards_and_can_fill_into_the_done_disc() => headless.OnUiThread(() =>
     {
         var ring = new ProgressRing();
@@ -289,6 +299,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_skill_row_that_downloads_shows_the_ring_that_fills_into_the_disc_at_100_percent_and_its_checking_spinner_is_the_nth_one() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -310,6 +321,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_update_pills_ring_is_the_18_px_nth_ring_that_springs_to_the_run_and_starts_again_from_nothing() => headless.OnUiThread(() =>
     {
         var ring = new UpdateRing();
@@ -329,6 +341,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_row_bar_in_the_update_popover_is_the_3_px_nth_bar() => headless.OnUiThread(() =>
     {
         var bar = new UpdateProgressBar { Width = 200 };
@@ -348,6 +361,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_popover_rows_bar_is_drawn_only_while_its_slot_is_open() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -364,6 +378,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_voice_preparation_ring_is_the_18_px_nth_ring() => headless.OnUiThread(() =>
     {
         var ring = new VoicePreparationRing();
@@ -385,6 +400,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     // ---- step 10: download and update ----
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_install_capsule_is_168_by_26_and_says_the_download_in_the_apps_words_then_the_done_label()
     {
         Assert.Equal((168.0, 26.0), (UpdateInstallCapsule.CapsuleWidth, UpdateInstallCapsule.CapsuleHeight));
@@ -394,6 +410,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_install_capsule_springs_its_fill_stays_there_when_shown_part_way_and_is_done_only_when_told() => headless.OnUiThread(() =>
     {
         var capsule = new UpdateInstallCapsule();
@@ -414,6 +431,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void When_the_run_ends_and_Marrow_waits_for_a_restart_the_button_rises_into_the_popover() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
@@ -460,6 +478,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     // ---- step 15: getting ready ----
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void Each_getting_ready_row_has_one_16_px_nth_status_mark_whose_done_is_the_disc_and_the_bar_is_the_4_px_nth_bar_with_a_mono_percentage() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();
@@ -480,6 +499,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_getting_ready_labels_take_text3_while_waiting_text_while_working_and_text2_when_done() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();
@@ -497,6 +517,7 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_getting_ready_percentage_follows_the_share_of_the_work_and_the_title_says_Ready_at_the_end() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();

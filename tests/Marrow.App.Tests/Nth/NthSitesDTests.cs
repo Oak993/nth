@@ -27,6 +27,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void While_loading_the_tube_shows_three_flat_dots_in_the_middle_and_a_light_inside_it()
     {
         using var paint = new PaletteLoadingPaint();
@@ -50,6 +51,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_calm_tube_has_still_dots_and_no_light()
     {
         using var paint = new PaletteLoadingPaint();
@@ -60,6 +62,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_dark_tube_uses_the_dark_marks()
     {
         using var paint = new PaletteLoadingPaint();
@@ -70,6 +73,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void When_the_colours_arrive_the_light_and_the_dots_fade_out_in_0_2_seconds_and_then_nothing_is_drawn()
     {
         using var paint = new PaletteLoadingPaint();
@@ -85,6 +89,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_palette_that_never_loaded_draws_nothing()
     {
         using var paint = new PaletteLoadingPaint();
@@ -93,6 +98,7 @@ public sealed class NthSitesDTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_connecting_row_is_a_12_point_spinner_in_its_16_point_slot_and_the_label_with_the_light() => headless.OnUiThread(() =>
     {
         var row = ConnectingWait.Row("Connecting", SwiftFont.Subheadline, Chrome.SecondaryText);

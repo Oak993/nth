@@ -10,6 +10,7 @@ public sealed class NthMotionTimingTests
     private const double Tolerance = 1e-6;
 
     [Theory]
+    [Trait("Decision", "OD-0136")]
     [InlineData(.4, 0, .2, 1)]
     [InlineData(.65, 0, .35, 1)]
     [InlineData(.2, .8, .2, 1)]
@@ -28,10 +29,12 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void Symmetric_curves_pass_through_the_middle() =>
         Assert.Equal(.5, NthEase.InOut.Ease(.5), 6);
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_spring_is_critically_damped_with_stiffness_110_and_never_overshoots()
     {
         Assert.Equal(Math.Sqrt(110), NthSpring.Omega, 12);
@@ -53,6 +56,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void A_retargeted_spring_keeps_its_value_and_speed()
     {
         var spring = new NthSpring(0, 0, 1, 0);
@@ -63,6 +67,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void Calm_values_reach_their_target_in_a_tenth_of_a_second()
     {
         var spring = new NthSpring(.2, 0, .8, 3, Calm: true);
@@ -72,6 +77,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_tile_trace_runs_from_twelve_o_clock_on_a_squircle_of_n_4()
     {
         const double half = 6;
@@ -90,6 +96,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_spinner_head_and_tail_follow_the_one_point_six_second_cycle()
     {
         const double L = 100;
@@ -109,6 +116,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_calm_spinner_is_still_and_breathes_between_sixty_and_a_hundred_percent()
     {
         var a = NthMotion.Spinner(0, 80, true);
@@ -120,6 +128,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_known_bar_light_travels_72_percent_of_two_point_six_seconds_and_rests()
     {
         const double W = 200, fill = 100;
@@ -134,10 +143,12 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_bar_fill_fades_in_over_its_first_one_and_a_half_heights() =>
         Assert.Equal((0.0, .5, 1.0), (NthMotion.BarFillAlpha(0, 4), NthMotion.BarFillAlpha(3, 4), NthMotion.BarFillAlpha(6, 4)));
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_unknown_bar_runs_its_head_and_tail_over_one_point_eight_seconds_and_stands_still_when_calm()
     {
         const double W = 200, h = 4;
@@ -154,6 +165,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_ring_done_pops_the_disc_fades_the_ring_and_draws_the_tick()
     {
         Assert.Equal((1.75, 2.0, 2.25), (NthMotion.RingStroke(14), NthMotion.RingStroke(18), NthMotion.RingStroke(20)));
@@ -172,6 +184,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_text_light_crosses_the_word_in_three_quarters_of_its_period_and_never_runs_calm()
     {
         const double w = 120;
@@ -183,6 +196,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_row_tick_is_the_build_note_path_drawn_in_point_32_seconds()
     {
         Assert.Equal([new SKPoint(3, 7.2f), new SKPoint(5.6f, 9.8f), new SKPoint(11, 4.6f)], NthMotion.RowTick);
@@ -192,6 +206,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_codex_link_flows_at_fourteen_px_a_second_closes_its_gaps_and_stands_still_when_calm()
     {
         var (dash, gap, phase) = NthMotion.Link(.25, null, false);
@@ -203,6 +218,7 @@ public sealed class NthMotionTimingTests
     }
 
     [Fact]
+    [Trait("Decision", "OD-0136")]
     public void The_send_glyphs_launch_pop_and_drop_on_the_spec_timings()
     {
         Assert.Equal(-20, NthMotion.ArrowLaunch(.3, false).Y, 9);
