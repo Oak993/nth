@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- OD-0136 oracle source: the boot stage's settled tile B, copied from work/design/nth-brand/nth-brand.html (.metal, .metal::before,
+     .bs, .bs::after, the gB svg with its <defs>), colour tokens written out. The tile is 244 px (the page's stage tile at its 1000 px
+     column), at 58,40 in a 360 x 400 transparent page so its box-shadow fits. Rendered to chrome/stage-244.png (see manifest.json). -->
+<html><head><style>
+html,body{margin:0;background:transparent}
+.bs{position:absolute;left:58px;top:40px;width:244px;height:244px;border-radius:21.7%;overflow:hidden;box-shadow:0 18px 40px -14px rgba(6,8,12,.38)}
+.metal{background:radial-gradient(60% 60% at 82% 95%,rgba(214,218,226,.55),rgba(255,255,255,0) 70%),linear-gradient(145deg,#14161c,#3b414f 55%,#9aa3b5)}
+.metal::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(160deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,.08) 42%,rgba(255,255,255,0) 60%);pointer-events:none}
+.bs::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(255,255,255,.38);pointer-events:none}
+.bs svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="gGlyph" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e8ebf0"/><stop offset="1" stop-color="#b9c0cd"/></linearGradient>
+  <radialGradient id="gBead" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#d6dae2"/><stop offset="1" stop-color="#9aa3b5"/></radialGradient>
+  <filter id="fG" x="-25%" y="-25%" width="150%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#06080c" flood-opacity=".38"/></filter>
+</defs></svg>
+<div class="bs metal"><svg viewBox="8 8 240 240" aria-hidden="true"><g filter="url(#fG)"><path d="M70 196V124a44 44 0 0 1 88 0v72" fill="none" stroke="url(#gGlyph)" stroke-width="26"/><circle cx="186" cy="74" r="14" fill="url(#gBead)"/></g></svg></div>
+</body></html>

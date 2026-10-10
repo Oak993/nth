@@ -1,0 +1,44 @@
+{
+  "decision": "OD-0136",
+  "renderer": "Google Chrome 154.0.8037.99, headless",
+  "command": "chrome.exe --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --default-background-color=00000000 --window-size=<W>,<H> --screenshot=<png> file:///<source html>",
+  "sources": [
+    {
+      "path": "assets-src/brand/nth-icon-b.svg",
+      "sha256": "771971c05b995afe5481696a3886cb961bd36e22b6761423491c43afd5dc70f5"
+    },
+    {
+      "path": "tests/fixtures/nth/icon-256.html",
+      "sha256": "59f6f86e26992cbacd9fd398b6af5621ef3b95de07ecc32545287b0d1d08760c"
+    },
+    {
+      "path": "tests/fixtures/nth/stage-tile.html",
+      "sha256": "7e61767038d9774bf0255948e83c3905adc749c98b2e25ca90c7876dfd53346c"
+    }
+  ],
+  "frames": [
+    {
+      "file": "chrome/mkB-256.png",
+      "source": "tests/fixtures/nth/icon-256.html",
+      "window": [
+        256,
+        256
+      ],
+      "sha256": "cb38df5899baca86660baaa3437dc8bd0514ca30366b3839ca72bd5d9fdda9d7"
+    },
+    {
+      "file": "chrome/stage-244.png",
+      "source": "tests/fixtures/nth/stage-tile.html",
+      "window": [
+        360,
+        400
+      ],
+      "tile": [
+        58,
+        40,
+        244
+      ],
+      "sha256": "591b333411202ac06dc0400a4e528ed524382f2f363329b012d96b4447129490"
+    }
+  ]
+}
