@@ -26,6 +26,15 @@ public sealed class IgnisEngine : IIgnisEngine
     public decimal RebuildPremium(IgnisModelPoints points, long contextTokens) =>
         contextTokens > 0 ? Math.Max(0m, IgnisMoney.RebuildPremium(points, contextTokens, IgnisKeepWarm.TtlFromPoints(points))) : 0m;
 
+    public decimal RebuildPremium(IgnisModelPoints points, long contextTokens, TimeSpan? ttl) =>
+        contextTokens > 0 ? Math.Max(0m, IgnisMoney.RebuildPremium(points, contextTokens, ttl ?? IgnisKeepWarm.TtlFromPoints(points))) : 0m;
+
+    public decimal LongerMemorySaved(IgnisModelPoints points, long prefixTokens, long readTokens, TimeSpan gap, TimeSpan lifetime) =>
+        IgnisCacheLifetime.AvoidedRebuild(points, prefixTokens, readTokens, gap, lifetime);
+
+    public decimal LongerMemoryCost(IgnisModelPoints points, long oneHourWrites, long promptTokens) =>
+        IgnisCacheLifetime.ExtraWriteCost(points, oneHourWrites, promptTokens);
+
     public decimal PingCost(IgnisModelPoints points, long contextTokens) => IgnisMoney.PingCost(points, Math.Max(0, contextTokens));
 
     /// <summary>

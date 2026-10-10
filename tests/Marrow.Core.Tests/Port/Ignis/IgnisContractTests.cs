@@ -90,7 +90,10 @@ public sealed class IgnisContractTests
     public void Words_are_the_designs_exactly()
     {
         Assert.Equal(["Off", "Keep warm", "Warm + tidy up"], Enum.GetValues<IgnisMode>().Select(IgnisWords.ModeName));
-        Assert.Equal(["Reused quick memory", "Kept warm", "Tidy-ups", "Smart helpers"], Enum.GetValues<IgnisSource>().Select(IgnisWords.SourceName));
+        // ED-NEW-ignis-runtime: the design's four sources keep their names and order; the fifth, "Longer quick memory",
+        // follows them (equal-or-stricter replacement of the four-name assertion).
+        Assert.Equal(["Reused quick memory", "Kept warm", "Tidy-ups", "Smart helpers", "Longer quick memory"], Enum.GetValues<IgnisSource>().Select(IgnisWords.SourceName));
+        Assert.Equal(["Reused quick memory", "Kept warm", "Tidy-ups", "Smart helpers"], Enum.GetValues<IgnisSource>().Take(4).Select(IgnisWords.SourceName));
         Assert.Equal("42m", IgnisWords.CapsuleText(IgnisCacheState.Warm, TimeSpan.FromSeconds(41 * 60 + 5)));
         Assert.Equal("Cold", IgnisWords.CapsuleText(IgnisCacheState.Cold, null));
         Assert.Equal("Off", IgnisWords.CapsuleText(IgnisCacheState.Off, null));

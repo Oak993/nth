@@ -169,6 +169,7 @@ public static class IgnisWords
         IgnisSource.KeptWarm => "Kept warm",
         IgnisSource.TidyUp => "Tidy-ups",
         IgnisSource.SmartHelpers => "Smart helpers",
+        IgnisSource.LongerMemory => "Longer quick memory",
     };
 
     public const string SmartHelpersNowOff = "Smart helpers (now off)";
@@ -179,6 +180,32 @@ public static class IgnisWords
         IgnisSource.KeptWarm => "Small pings that stopped the quick memory from going cold and being rebuilt at full price.",
         IgnisSource.TidyUp => "Rebuilds: long chats rewritten shorter at their cheapest point, so each message carries less.",
         IgnisSource.SmartHelpers => "Look-up helpers that ran on " + DefaultHelperModel + " instead of your main model.",
+        IgnisSource.LongerMemory => "An hour-long quick memory where breaks are long enough to pay for it, so helpers and chats reread instead of rebuilding.",
+    };
+
+    // ---- cache lifetimes (ED-NEW-ignis-runtime) ----
+    /// <summary>The chat runs on paid usage credits, where the main quick memory lasts five minutes.</summary>
+    public const string PaidCreditsCache = "Paid credits: 5-minute cache";
+
+    /// <summary>"Helpers rebuilt their quick memory: $0.31" (helper writes after a gap longer than their cache).</summary>
+    public static string HelpersRebuilt(decimal missed) => "Helpers rebuilt their quick memory: " + Money(missed);
+
+    public static string BucketName(Engine.IgnisCacheBucket bucket) => bucket == Engine.IgnisCacheBucket.Main ? "Chat" : "Helpers";
+
+    /// <summary>One bucket's line in the report: "Helpers’ quick memory: 1 hour, chosen by Ignis (saves about $1.20 over 40 breaks)".</summary>
+    public static string LifetimeLine(Engine.IgnisLifetimeVerdict v) => (v.Bucket == Engine.IgnisCacheBucket.Main ? "Chat’s" : "Helpers’") + " quick memory: " + v.Reason switch
+    {
+        Engine.IgnisLifetimeReason.Longer => "1 hour, chosen by Ignis (saves about " + Money(v.Benefit - v.Cost) + " over " + v.Gaps.ToString(Us) + " breaks)",
+        Engine.IgnisLifetimeReason.IgnisOff => "Claude’s default (Ignis is off)",
+        Engine.IgnisLifetimeReason.NotClaude => "the provider’s own",
+        Engine.IgnisLifetimeReason.HeadsOff => "Claude’s default (Include Hydra heads is off)",
+        Engine.IgnisLifetimeReason.UserChoice => "your own setting (" + (v.UserSetting ?? "Claude settings") + ")",
+        Engine.IgnisLifetimeReason.CliVersionUnknown => "Claude’s default (Claude Code version not known yet)",
+        Engine.IgnisLifetimeReason.CliTooOld => "Claude’s default (needs Claude Code 2.1.242 or later)",
+        Engine.IgnisLifetimeReason.AlreadyLong => "already 1 hour",
+        Engine.IgnisLifetimeReason.TooFewGaps => "Claude’s default (still learning: " + v.Gaps.ToString(Us) + " of " + Engine.IgnisCacheLifetime.MinimumGaps.ToString(Us) + " breaks seen)",
+        Engine.IgnisLifetimeReason.NoPrices => "Claude’s default (no cache prices for this model)",
+        Engine.IgnisLifetimeReason.NotWorthIt => "Claude’s default (an hour would cost more than it saves)",
     };
 
     /// <summary>"Reused 94% of the time"</summary>
@@ -370,8 +397,11 @@ public static class IgnisWords
         };
         foreach (var source in (IgnisSource[])[IgnisSource.Reuse, IgnisSource.KeptWarm, IgnisSource.TidyUp, IgnisSource.SmartHelpers])
             lines.Add("  " + SourceName(source).PadRight(21) + Money(r.SavedBySource.TryGetValue(source, out var amount) ? amount : 0m));
+        if (r.SavedBySource.TryGetValue(IgnisSource.LongerMemory, out var longer) && longer > 0m) // ED-NEW-ignis-runtime: only once it saved
+            lines.Add("  " + SourceName(IgnisSource.LongerMemory).PadRight(21) + Money(longer));
         lines.Add("Lost when it went cold: " + Money(r.Lost) + (r.ReuseRate is { } rate ? " · Quick memory reused " + Percent(rate) + " of the time" : " · Quick memory reuse " + NotReported));
         lines.Add("Chat size: " + (r.ContextFill is { } fill ? PercentFull(fill) : NotReported));
+        lines.AddRange(r.CacheLines);
         lines.Add("");
         lines.Add(r.AccountLine);
         lines.Add("Last 7 days: " + Money(r.LastSevenDays) + " saved · All chats: " + MoneyWhole(r.AllChats) + " saved");
@@ -421,4 +451,8 @@ public sealed record IgnisReport(
     double? ContextFill,
     string AccountLine,
     decimal LastSevenDays,
-    decimal AllChats);
+    decimal AllChats)
+{
+    /// <summary>Extra lines after "Chat size" (ED-NEW-ignis-runtime): paid credits, helper rebuilds, the cache-lifetime choice.</summary>
+    public IReadOnlyList<string> CacheLines { get; init; } = [];
+}
