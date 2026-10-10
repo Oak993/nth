@@ -71,7 +71,9 @@ public sealed class TimelineRowsNativePopoverTests(WindowManagerNativeSession na
         var local = disc.TranslatePoint(new Point(disc.Bounds.Width / 2, disc.Bounds.Height / 2), window) ?? default;
         var hit = window.InputHitTest(local) as Visual;
         var chain = string.Join(" < ", (hit?.GetSelfAndVisualAncestors() ?? []).Take(8).Select(visual => visual.GetType().Name));
-        return $"disc bounds {disc.Bounds} at {disc.TranslatePoint(default, window)}, window {window.ClientSize}, its middle {local}, hit {chain}, pointer over disc {disc.IsPointerOver}, enabled {disc.IsEnabled}, hit-testable {disc.IsHitTestVisible}";
+        var sv = disc.GetVisualAncestors().OfType<ScrollViewer>().FirstOrDefault();
+        var diag = sv is null ? "no scroller" : $"scroller bounds {sv.Bounds} at {sv.TranslatePoint(default, window)} viewport {sv.Viewport} extent {sv.Extent} offset {sv.Offset}; ";
+        return diag + $"disc bounds {disc.Bounds} at {disc.TranslatePoint(default, window)}, window {window.ClientSize}, its middle {local}, hit {chain}, pointer over disc {disc.IsPointerOver}, enabled {disc.IsEnabled}, hit-testable {disc.IsHitTestVisible}";
     });
 
     [Fact]
