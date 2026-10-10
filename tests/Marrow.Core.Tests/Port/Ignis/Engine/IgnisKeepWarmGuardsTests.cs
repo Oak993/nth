@@ -151,9 +151,9 @@ public sealed class IgnisKeepWarmGuardsTests
         Assert.Equal("Kept warm · 42 min left", IgnisWords.EmberLitTip(M(41.5)));
         Assert.Equal("Kept warm · under a minute left", IgnisWords.EmberLitTip(TimeSpan.FromSeconds(20)));
         Assert.Equal("Kept warm", IgnisWords.EmberLitTip(null));
-        Assert.Equal("12 hours", IgnisWords.CoolAfter(12));
-        Assert.Equal("1 hour", IgnisWords.CoolAfter(1));
-        Assert.Equal("Never", IgnisWords.CoolAfter(null));
+        Assert.Equal("12 hours", IgnisSettingsWords.CoolAfter(12));
+        Assert.Equal("1 hour", IgnisSettingsWords.CoolAfter(1));
+        Assert.Equal("Never", IgnisSettingsWords.CoolAfter(null));
         foreach (var hold in Enum.GetValues<IgnisKeepWarmHold>()) Assert.Equal(hold, IgnisWords.HoldFrom(IgnisWords.RawName(hold)));
         foreach (var cause in Enum.GetValues<IgnisCacheMissCause>()) Assert.Equal(cause, IgnisWords.CauseFrom(IgnisWords.RawName(cause)));
         Assert.Equal(IgnisKeepWarmHold.None, IgnisWords.HoldFrom("nonsense"));

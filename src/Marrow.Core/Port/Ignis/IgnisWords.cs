@@ -324,15 +324,6 @@ public static class IgnisWords
     public static IgnisKeepWarmHold HoldFrom(string? raw) => Enum.TryParse<IgnisKeepWarmHold>(raw, out var hold) && Enum.IsDefined(hold) ? hold : IgnisKeepWarmHold.None;
     public static IgnisCacheMissCause CauseFrom(string? raw) => Enum.TryParse<IgnisCacheMissCause>(raw, out var cause) && Enum.IsDefined(cause) ? cause : IgnisCacheMissCause.Unknown;
 
-    // ---- the idle-limit settings (Settings › Ignis and the Kindle popover) ----
-    public const string RowCoolAfter = "Cool idle chats after";
-    public const string RowCoolAfterDetail = "A chat left this long stops being kept warm. Your next message warms it again.";
-    public const string RowLearnCooling = "Learn when to cool";
-    public const string RowLearnCoolingDetail = "Cools a chat sooner, once it’s idle past the time you usually come back.";
-    public const string Never = "Never";
-    /// <summary>"12 hours", "1 hour", "Never".</summary>
-    public static string CoolAfter(int? hours) => hours is { } h ? h.ToString(Us) + (h == 1 ? " hour" : " hours") : Never;
-
     /// <summary>The Details › History row.</summary>
     public static string HistoryRow(IgnisEvent e) => e.Kind switch
     {
