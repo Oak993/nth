@@ -198,12 +198,12 @@ public sealed class MCPSettingsPageProofsMcpARound2Tests(HeadlessSession headles
             foreach(var state in new MCPConnectionState[]{new MCPConnectionState.NotConnected(),new MCPConnectionState.Connecting(),new MCPConnectionState.Failed("Probe failure"),new MCPConnectionState.NeedsSetup(guide),new MCPConnectionState.Connected(3)})
             {
                 State(model,"offline",state);
-                var card=new MCPServerCard(Entry()); using(var host=Attach(card,model))
+                var card=new MCPServerCard(Entry()); EnvironmentValues.SetAccessibilityReduceMotion(card,true); using(var host=Attach(card,model)) // nth step 11: the "Connecting" label has the light through it by the clock, so this proof of "hover and press change nothing" runs calm (no light)
                 {
                     foreach(var label in Nodes<TextBlock>(card).Where(t=>t.Text is "Example" or "Vendor" or "Summary" or " " or "Probe failure" or "Setup title" or "Connecting")) Static(label,runtime,frames);
                     var surface=Assert.IsType<Border>(Assert.IsType<Panel>(card.Child).Children[0]); Static(surface,runtime,frames);
                 }
-                State(model,"custom-example",state); var custom=new MCPCustomRow(Custom()); using(var host=Attach(custom,model))
+                State(model,"custom-example",state); var custom=new MCPCustomRow(Custom()); EnvironmentValues.SetAccessibilityReduceMotion(custom,true); using(var host=Attach(custom,model))
                 {
                     var grid=Assert.IsType<Grid>(Assert.IsType<Border>(custom.Child).Child); var copy=Assert.IsType<StackPanel>(grid.Children[1]);
                     foreach(var label in copy.Children.Cast<TextBlock>()) Static(label,runtime,frames);
@@ -211,7 +211,7 @@ public sealed class MCPSettingsPageProofsMcpARound2Tests(HeadlessSession headles
                     Static(Assert.IsType<Border>(custom.Child),runtime,frames);
                 }
             }
-            State(model,"offline",new MCPConnectionState.Connecting()); var oauth=new MCPServerCard(Entry(transport:new MCPTransport.Oauth("https://example.invalid")));
+            State(model,"offline",new MCPConnectionState.Connecting()); var oauth=new MCPServerCard(Entry(transport:new MCPTransport.Oauth("https://example.invalid"))); EnvironmentValues.SetAccessibilityReduceMotion(oauth,true);
             using(var host=Attach(oauth,model)) Static(Nodes<TextBlock>(oauth).Single(t=>t.Text=="Waiting"),runtime,frames);
             State(model,"offline",new MCPConnectionState.Connected(3)); var celebrating=new MCPServerCard(Entry(),true); EnvironmentValues.SetAccessibilityReduceMotion(celebrating,true);
             using(var host=Attach(celebrating,model)) { Static(Assert.Single(Nodes<SwiftImage>(celebrating)),runtime,frames); Static(Assert.Single(Nodes<TextBlock>(celebrating)),runtime,frames); }

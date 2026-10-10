@@ -1,4 +1,6 @@
+using Marrow.UI.Port.Nth;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -246,21 +248,27 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
         using var env = Make(() => Thread(ProviderKind.Codex, null), model => model.Settings.AddToModelList(Pin(ProviderKind.Codex, "late")));
         var list = new ModelList(env.Thread, false, _ => { }, () => { });
         var listWindow = env.Show(list);
-        // nothing resolves yet: one secondary body line, "Loading models…" with the one-character ellipsis (U+2026), padded 10
-        var placeholder = Assert.Single(list.GetVisualDescendants().OfType<TextBlock>(), text => text.Text != "Select model");
-        Assert.Equal("Loading models…", placeholder.Text); Assert.Equal(0x2026, placeholder.Text![^1]); Assert.Equal(15, placeholder.Text.Length);
-        Assert.Equal(13, placeholder.FontSize); Assert.Equal(FontWeight.Normal, placeholder.FontWeight);
-        Assert.Equal(Chrome.SecondaryText.Resolve(placeholder.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(placeholder.Foreground).Color);
-        Assert.Equal(new Thickness(10), placeholder.Margin);
+        // nothing resolves yet: nth step 7's three skeleton rows (40 points each), padded 10 at the sides, stand in for the line of text; the
+        // text "Loading models…" (with the one-character ellipsis, U+2026) stays as their accessible name
+        Assert.DoesNotContain(list.GetVisualDescendants().OfType<TextBlock>(), text => text.Text != "Select model");
+        var placeholder = Assert.Single(list.GetVisualDescendants().OfType<NthSkeleton>());
+        var name = AutomationProperties.GetName(placeholder);
+        Assert.Equal("Loading models…", name); Assert.Equal(0x2026, name![^1]); Assert.Equal(15, name.Length);
+        Assert.Equal(NthSkeletonKind.List, placeholder.Kind); Assert.Equal(3, placeholder.Rows); Assert.Equal(120, placeholder.Height);
+        Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(placeholder));
+        Assert.Equal(new Thickness(10, 0), placeholder.Margin);
         Assert.Empty(Models(list));
         var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().Single();
-        Assert.Equal(35, scroll.Height); // the list still reserves one row's height
+        Assert.Equal(120, scroll.Height); // the list reserves the three rows
         // the catalogue arrives: the model takes the placeholder's place and the placeholder is gone; one row reserves the same 34 + 1
         HydraCookbookResolveFixture.SetModels(env.Model.Providers, ProviderKind.Codex, Option("late", "Late arrival"));
         Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Assert.Equal(["Late arrival"], Models(list).Select(Name));
+        Assert.DoesNotContain(list.GetVisualDescendants().OfType<NthSkeleton>(), _ => true);
         Assert.DoesNotContain(list.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Loading models…");
         Assert.Equal(35, list.GetVisualDescendants().OfType<ScrollViewer>().Single().Height);
+        // the arriving rows rise in (NthArrive.Rows): an opacity transition of 0.36 s on the model row
+        Assert.Contains(Models(list).Single().Transitions!, t => t is Avalonia.Animation.DoubleTransition { Duration: var d } && d == TimeSpan.FromSeconds(.36));
 
         // the chip itself starts the catalogue load of its thread's provider, and a chip made for another provider (the composer draws a new chip
         // when the thread's provider changes) loads that provider's: Claude and Codex are the seeded ones whose load runs and ends with no executable
