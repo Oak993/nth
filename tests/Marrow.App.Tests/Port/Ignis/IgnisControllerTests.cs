@@ -10,6 +10,7 @@ namespace Marrow.App.Tests.Port.Ignis;
 // PORT-ONLY: Ignis (ED-NEW-ignis-runtime; PLAN unit U3). The per-chat controller on a manual clock (TestRuntime): when it
 // keeps warm, when it tidies up, when it pauses, what it records. Engine, points, ledger and runtime are fakes; nothing
 // reaches a model provider.
+[Trait("Decision", "OD-0134")]
 public sealed class IgnisControllerTests : IDisposable
 {
     private readonly TestRuntime main = new();

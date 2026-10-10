@@ -17327,7 +17327,7 @@
       "screen": "Settings, About, Credits",
       "element": "Licenses popover",
       "role": "popover",
-      "exact_text": "Licenses / AGPL-3.0 with attribution terms, and the notices for what the app builds on. / Show / Marrow / Third-party notices / Trademarks",
+      "exact_text": "Licenses / AGPL-3.0 with attribution terms, and the notices for what the app builds on. / Show / nth / Third-party notices / Trademarks",
       "geometry": "Exactly 480 x 440; padded 18; blocks 18 apart with 8 points between a title and its body",
       "typography": "Block titles .system(.body, weight: .semibold) (13pt at the default text size); bodies rendered as markdown at a point size of 12",
       "colors": "Bodies Chrome.secondaryText",
@@ -17348,7 +17348,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1013 `(\"Droppy Code\", \"LICENSE\")`",
-        "port": "The LICENSE block is titled \"Marrow\"."
+        "port": "The LICENSE block is titled \"nth\"."
       },
       "status": "IMPLEMENTED"
     },
@@ -22555,7 +22555,7 @@
         "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:638-682",
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:306"
       ],
-      "notes": "The ampersand is literal, not \"and\". Tooltip is \"Installs Marrow <version> and relaunches\" with no full stop (upstream \"Installs Droppy Code <version> and relaunches\"; OD-0012 F1). Accessibility label is just \"Update & restart\". The blue is the fixed literal, NOT the theme accent.",
+      "notes": "The ampersand is literal, not \"and\". Tooltip is \"Installs nth <version> and relaunches\" with no full stop (upstream \"Installs Droppy Code <version> and relaunches\"; OD-0012 F1). Accessibility label is just \"Update & restart\". The blue is the fixed literal, NOT the theme accent.",
       "deviation": {
         "decision": "OD-0005; OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:675 '.chromeGlassCapsule()' on the version pill; '.chromeGlassCapsule()' renders 'content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)' in a Capsule(style: .continuous) (DroppyCode/UI/Chrome/Chrome.swift:129-131, :165, :180), macOS Liquid Glass. DroppyCode/App/Views/Settings/AboutUpdateViews.swift:679 '\"Installs Droppy Code \\(checker.update?.version ?? \"\") and relaunches\"'",

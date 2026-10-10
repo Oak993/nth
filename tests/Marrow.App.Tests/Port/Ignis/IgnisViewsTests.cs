@@ -23,57 +23,9 @@ namespace Marrow.App.Tests.Port.Ignis;
 [Collection("Headless")]
 public sealed class IgnisViewsTests(HeadlessSession headless)
 {
-    private static readonly Guid Chat = Guid.Parse("6f1c0e2a-1111-4c2b-9a51-0a9a3c1e7d01");
+    private static readonly Guid Chat = KindleFakeController.Chat;
 
-    internal sealed class FakeLedger : ISavingsLedger
-    {
-        public event Action? Changed { add { } remove { } }
-        public List<IgnisEvent> All { get; } = [];
-        public void Record(IgnisLedgerEntry entry) { }
-        public void Record(IgnisEvent @event) => All.Add(@event);
-        public IgnisDayTotals Day(DateOnly day) => IgnisDayTotals.Empty(day);
-        public IgnisDayTotals ChatDay(Guid thread, DateOnly day) => IgnisDayTotals.Empty(day) with { Reuse = 1.5m };
-        public IReadOnlyList<IgnisDayTotals> Days(DateOnly from, DateOnly to) => [];
-        public decimal AllTimeSaved => 1478m;
-        public DateOnly? Since => null;
-        public IReadOnlyList<IgnisEvent> Events(Guid thread, DateOnly day) => All.Where(e => e.ThreadID == thread).ToList();
-        public IgnisEvent? Event(string id) => All.FirstOrDefault(e => e.Id == id);
-    }
-
-    internal sealed class FakePoints : IIgnisPoints
-    {
-        public event Action? Changed { add { } remove { } }
-        public IgnisPointsFile Current { get; } = new(IgnisPointsFile.CurrentSchemaVersion, "2026.09.20", new ValueList<IgnisModelPoints>([]));
-        public IgnisPointsOrigin Origin => IgnisPointsOrigin.Bundled;
-        public DateTimeOffset? CheckedAt => null;
-        public IgnisModelPoints? Find(ProviderKind provider, string? model) => null;
-        public Task<IgnisPointsCheck> CheckAsync(bool install, CancellationToken cancellationToken) => Task.FromResult(new IgnisPointsCheck(Current.Version, null, false));
-    }
-
-    internal sealed class FakeController(IgnisSettings settings) : IIgnisController
-    {
-        public event Action<Guid>? Changed;
-        public IgnisSettings Settings => settings;
-        public IIgnisPoints Points { get; } = new FakePoints();
-        public FakeLedger FakeLedger { get; } = new();
-        public ISavingsLedger Ledger => FakeLedger;
-        public IgnisChatStatus Current { get; set; } = IgnisChatStatus.Unknown(Chat, IgnisMode.WarmAndTidy, true) with { Provider = ProviderKind.Claude };
-        public List<string> Calls { get; } = [];
-        public void Set(IgnisChatStatus status) { Current = status; Changed?.Invoke(status.ThreadID); }
-        public IgnisChatStatus Status(Guid thread) => Current with { ThreadID = thread };
-        public void SetMode(Guid thread, IgnisMode mode) { Calls.Add("mode " + mode); Set(Current with { Mode = mode }); }
-        public void SetAuto(Guid thread, bool auto) { Calls.Add("auto " + auto); Set(Current with { Auto = auto }); }
-        public void KeepWarmNow(Guid thread) => Calls.Add("warm");
-        public void TidyUpNow(Guid thread) => Calls.Add("tidy");
-        public string Report(Guid thread) => "Ignis report · this chat";
-        public void Attach(IIgnisRuntimePort port) { }
-        public void Detach(Guid thread) { }
-        public void Observe(Guid thread, IgnisTurnUsage usage) { }
-        public void TurnFinished(Guid thread) { }
-        public void UsageLimitHit(Guid thread, DateTimeOffset? resetsAt) { }
-    }
-
-    private static FakeController Controller(TestRuntime runtime) => new(new IgnisSettings(runtime.Defaults));
+    private static KindleFakeController Controller(TestRuntime runtime) => new(new IgnisSettings(runtime.Defaults));
 
     private static IgnisChatStatus Warm(TestRuntime runtime, TimeSpan left, IgnisMode mode = IgnisMode.WarmAndTidy) =>
         IgnisChatStatus.Unknown(Chat, mode, true) with
@@ -97,7 +49,7 @@ public sealed class IgnisViewsTests(HeadlessSession headless)
 
     private static void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
-    private static (KindleCapsule Capsule, KindlePopover Popover, AvaloniaWindow Window) Open(TestRuntime runtime, FakeController controller) => runtime.OnMain(() =>
+    private static (KindleCapsule Capsule, KindlePopover Popover, AvaloniaWindow Window) Open(TestRuntime runtime, KindleFakeController controller) => runtime.OnMain(() =>
     {
         var capsule = new KindleCapsule(controller, Chat);
         var popover = new KindlePopover(capsule);
@@ -116,7 +68,7 @@ public sealed class IgnisViewsTests(HeadlessSession headless)
         // unbound: the ContextMeter, as before
         var plain = h.Main.OnMain(() => new ComposerControls(h.Runtime, h.Thread, false, false, false, null, () => { }));
         Assert.IsType<ContextMeter>(((StackPanel)plain.Child!).Children[^2]);
-        var controller = h.Main.OnMain(() => new FakeController(new IgnisSettings(new InMemorySettingsStore())));
+        var controller = h.Main.OnMain(() => new KindleFakeController(new IgnisSettings(new InMemorySettingsStore())));
         using (IgnisViews.Override(controller))
         {
             Assert.True(IgnisViews.Supports(h.Thread.Provider), "the harness chat's provider is one Ignis supports");
@@ -178,6 +130,7 @@ public sealed class IgnisViewsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Feature", "IG-4")]
+    [Trait("Decision", "OD-0134")]
     public void Only_changed_digits_roll_and_Reduce_Motion_swaps_at_once() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -354,6 +307,7 @@ public sealed class IgnisViewsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Feature", "IG-4")]
+    [Trait("Decision", "OD-0134")]
     public void Open_usage_shows_the_usage_panel_setting() => headless.OnUiThread(() =>
     {
         using var h = ComposerViewTests.RuntimeHarness();
@@ -373,6 +327,7 @@ public sealed class IgnisViewsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Feature", "IG-4")]
+    [Trait("Decision", "OD-0134")]
     public void The_explanations_follow_Show_i_explanations_and_Details_opens_on_Savings() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -507,13 +462,13 @@ public sealed class IgnisViewsTests(HeadlessSession headless)
         {
             // a Codex chat names Codex; an API provider's chat has no hidden pings and no notice
             IgnisViewState.Shared.NoticeHolder = null;
-            var codex = new FakeController(new IgnisSettings(new InMemorySettingsStore())); // NoticeSeen is still false here
+            var codex = new KindleFakeController(new IgnisSettings(new InMemorySettingsStore())); // NoticeSeen is still false here
             codex.Current = codex.Current with { Provider = ProviderKind.Codex };
             codex.FakeLedger.Record(new IgnisEvent("c1", Chat, IgnisEventKind.KeptWarm, now));
             var codexLine = IgnisEventLine.For(codex, Entry(IgnisEvent.TimelinePrefix + "c1", "x").Item)!;
             Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(codexLine.Notice!), t => t.Text == IgnisWords.NoticeBody("Codex"));
             IgnisViewState.Shared.NoticeHolder = null;
-            var api = new FakeController(new IgnisSettings(new InMemorySettingsStore()));
+            var api = new KindleFakeController(new IgnisSettings(new InMemorySettingsStore()));
             api.Current = api.Current with { Provider = ProviderKind.Deepseek };
             api.FakeLedger.Record(new IgnisEvent("d1", Chat, IgnisEventKind.KeptWarm, now));
             Assert.Null(IgnisEventLine.For(api, Entry(IgnisEvent.TimelinePrefix + "d1", "x").Item)!.Notice);

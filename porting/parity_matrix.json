@@ -29642,7 +29642,7 @@
       ],
       "preconditions": "none",
       "action": "An initialize request is built by the probe or the in-app hub.",
-      "expected_result": "params = {\"protocolVersion\": \"2025-06-18\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"Marrow\", \"version\": \"1.0\"}} exactly, with capabilities an empty object. The same version string is also sent as the MCP-Protocol-Version HTTP header on every remote POST from these two clients.",
+      "expected_result": "params = {\"protocolVersion\": \"2025-06-18\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"nth\", \"version\": \"1.0\"}} exactly, with capabilities an empty object. The same version string is also sent as the MCP-Protocol-Version HTTP header on every remote POST from these two clients.",
       "side_effects": [
         "none"
       ],
@@ -29651,7 +29651,7 @@
         "a server that rejects the version answers an error, which surfaces through checkReply"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same three params verbatim. The clientInfo name is \"Marrow\" (OD-0012 F1); the version \"1.0\" is a literal unrelated to the app version and stays \"1.0\". The installed JavaScript bridge deliberately sends no version and no protocol header (PR-MCP-196) - do not normalize the three clients.",
+      "windows_path": "Same three params verbatim. The clientInfo name is \"nth\" (OD-0012 F1); the version \"1.0\" is a literal unrelated to the app version and stays \"1.0\". The installed JavaScript bridge deliberately sends no version and no protocol header (PR-MCP-196) - do not normalize the three clients.",
       "verification_method": "contract fixture capturing the initialize payload from all three clients",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -29660,7 +29660,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "Upstream identifies both Swift clients as \"Droppy Code\" through the one builder they share: DroppyCode/Services/MCP/MCPWire.swift:13 - :13 \"clientInfo\": .object([\"name\": .string(\"Droppy Code\"), \"version\": .string(\"1.0\")]),",
-        "port": "Marrow sends clientInfo {\"name\": \"Marrow\", \"version\": \"1.0\"} from the probe and the hub."
+        "port": "Marrow sends clientInfo {\"name\": \"nth\", \"version\": \"1.0\"} from the probe and the hub."
       }
     },
     {
@@ -32344,7 +32344,7 @@
       ],
       "preconditions": "The bridge is connecting a server.",
       "action": "It sends and receives messages.",
-      "expected_result": "initialize params are {protocolVersion: \"2025-06-18\", capabilities: {}, clientInfo: {name: \"Marrow\"}} - NO version field. Remote requests send the entry's headers plus Content-Type: application/json and Accept: application/json, text/event-stream, and NO MCP-Protocol-Version header at all; the session header is the lowercase \"mcp-session-id\" on both send and read. An SSE frame is accepted when its data parses to an object having \"result\" OR \"error\" - not, as in the Swift clients, an \"id\" - and a data payload of \"[DONE]\" is skipped. A tool's description falls back to its own name when absent or empty, and its schema falls back to the literal {type: \"object\"} with no properties key. Result content maps a text item to its text and EVERY other item to the literal \"[image]\", joined with newlines; an isError result is returned as \"Error: \" plus that text or, when empty, \"Error: tool failed\"; a thrown error is returned as \"Error: \" plus its message rather than rejecting.",
+      "expected_result": "initialize params are {protocolVersion: \"2025-06-18\", capabilities: {}, clientInfo: {name: \"nth\"}} - NO version field. Remote requests send the entry's headers plus Content-Type: application/json and Accept: application/json, text/event-stream, and NO MCP-Protocol-Version header at all; the session header is the lowercase \"mcp-session-id\" on both send and read. An SSE frame is accepted when its data parses to an object having \"result\" OR \"error\" - not, as in the Swift clients, an \"id\" - and a data payload of \"[DONE]\" is skipped. A tool's description falls back to its own name when absent or empty, and its schema falls back to the literal {type: \"object\"} with no properties key. Result content maps a text item to its text and EVERY other item to the literal \"[image]\", joined with newlines; an isError result is returned as \"Error: \" plus that text or, when empty, \"Error: tool failed\"; a thrown error is returned as \"Error: \" plus its message rather than rejecting.",
       "side_effects": [
         "none beyond the requests themselves"
       ],
@@ -32353,7 +32353,7 @@
         "a tool failure is returned as an \"Error: …\" string, so the host sees a successful call with error text"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Copy the bridge text character for character, except that the clientInfo name is \"Marrow\" (OD-0012 F1), including the missing header, the version-less clientInfo, the lowercase session header, the result-or-error SSE rule and the \"[image]\" catch-all. Normalizing the three clients would change what remote servers see from Pi and Command Code.",
+      "windows_path": "Copy the bridge text character for character, except that the clientInfo name is \"nth\" (OD-0012 F1), including the missing header, the version-less clientInfo, the lowercase session header, the result-or-error SSE rule and the \"[image]\" catch-all. Normalizing the three clients would change what remote servers see from Pi and Command Code.",
       "verification_method": "contract fixture capturing the bridge's wire traffic against a stub server",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -32362,7 +32362,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "The bridge identifies itself as \"Droppy Code\": DroppyCode/Services/MCP/MCPBridgeSource.swift:138 and :203 - await request(\"initialize\", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: \"Droppy Code\" } });",
-        "port": "The bridge sends clientInfo { name: \"Marrow\" } at both initialize sites, still with no version field."
+        "port": "The bridge sends clientInfo { name: \"nth\" } at both initialize sites, still with no version field."
       }
     },
     {
@@ -33830,7 +33830,7 @@
       ],
       "preconditions": "Connection started.",
       "action": "ACPSession sends the first request on the connection.",
-      "expected_result": "Method name is exactly \"initialize\". protocolVersion is the JSON integer 1, not a string, not 0.1. clientInfo.name is exactly \"marrow\" (lowercase), clientInfo.title is exactly \"Marrow\" (capital M), clientInfo.version is the app's short version string. The request id is the integer 1 on a fresh connection. Deviation OD-0008 B11: upstream sends name \"droppy-code\" and title \"Droppy Code\".",
+      "expected_result": "Method name is exactly \"initialize\". protocolVersion is the JSON integer 1, not a string, not 0.1. clientInfo.name is exactly \"nth\", clientInfo.title is exactly \"nth\", clientInfo.version is the app's short version string. The request id is the integer 1 on a fresh connection. Deviation OD-0008 B11: upstream sends name \"droppy-code\" and title \"Droppy Code\".",
       "side_effects": [
         "One JSON line written to the child's stdin."
       ],
@@ -33839,8 +33839,8 @@
         "An RPC error or a closed process rejects the request and start() throws; the thread reports the RPCError message."
       ],
       "cancellation": "Cancelling the awaiting task removes the pending continuation and resumes it with CancellationError (JSONRPC.swift:82-86).",
-      "windows_path": "Same payload with the ruled client identity: `\"clientInfo\": {\"name\": \"marrow\", \"title\": \"Marrow\", \"version\": <app version>}`. Every other field is identical to upstream.",
-      "verification_method": "contract fixture (golden initialize frame asserting protocolVersion 1, clientInfo.name \"marrow\", clientInfo.title \"Marrow\" and request id 1)",
+      "windows_path": "Same payload with the ruled client identity: `\"clientInfo\": {\"name\": \"nth\", \"title\": \"nth\", \"version\": <app version>}`. Every other field is identical to upstream.",
+      "verification_method": "contract fixture (golden initialize frame asserting protocolVersion 1, clientInfo.name \"nth\", clientInfo.title \"nth\" and request id 1)",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
@@ -33848,7 +33848,7 @@
       "deviation": {
         "decision": "OD-0008 B11",
         "upstream": "DroppyCode/Services/Providers/ACPSession.swift:124-128 sends `\"clientInfo\": [\"name\": \"droppy-code\", \"title\": \"Droppy Code\", \"version\": .string(AppInfo.version)]`",
-        "port": "Marrow sends clientInfo name \"marrow\" and title \"Marrow\"; the method, protocolVersion, clientCapabilities and the version field are unchanged."
+        "port": "Marrow sends clientInfo name \"nth\" and title \"nth\"; the method, protocolVersion, clientCapabilities and the version field are unchanged."
       }
     },
     {
@@ -43466,7 +43466,7 @@
       ],
       "preconditions": "An inbound control_request.",
       "action": "The CLI asks the app for something.",
-      "expected_result": "A request without a string request_id or without a request object is ignored entirely. Any subtype other than the literal \"can_use_tool\" is answered with {\"type\":\"control_response\",\"response\":{\"subtype\":\"error\",\"request_id\":\"<id>\",\"error\":\"Marrow does not support this request.\"}} - verbatim under OD-0012 F1 (upstream says \"Droppy Code does not support this request.\"), and DIFFERENT from the JSON-RPC -32601 messages Codex and Copilot use. The four refusal strings must not be unified into one helper.",
+      "expected_result": "A request without a string request_id or without a request object is ignored entirely. Any subtype other than the literal \"can_use_tool\" is answered with {\"type\":\"control_response\",\"response\":{\"subtype\":\"error\",\"request_id\":\"<id>\",\"error\":\"nth does not support this request.\"}} - verbatim under OD-0012 F1 (upstream says \"Droppy Code does not support this request.\"), and DIFFERENT from the JSON-RPC -32601 messages Codex and Copilot use. The four refusal strings must not be unified into one helper.",
       "side_effects": [
         "One stdin line"
       ],
@@ -43475,7 +43475,7 @@
         "This IS the refusal path."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The product name is on the wire here. OD-0012 F1 renames it: the string is \"Marrow does not support this request.\"",
+      "windows_path": "The product name is on the wire here. OD-0012 F1 renames it: the string is \"nth does not support this request.\"",
       "verification_method": "contract fixture with an unsupported subtype",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
@@ -43484,7 +43484,7 @@
       "deviation": {
         "decision": "OD-0012 F1",
         "upstream": "ClaudeSession.swift:614 answers with \"error\": \"Droppy Code does not support this request.\"",
-        "port": "The error string is \"Marrow does not support this request.\"; the envelope, the can_use_tool exception and the separate emission point are unchanged."
+        "port": "The error string is \"nth does not support this request.\"; the envelope, the can_use_tool exception and the separate emission point are unchanged."
       }
     },
     {
@@ -43749,7 +43749,7 @@
       ],
       "preconditions": "Connection started.",
       "action": "connect performs the handshake.",
-      "expected_result": "One request with method \"initialize\" and params {\"clientInfo\":{\"name\":\"marrow\",\"title\":\"Marrow\",\"version\":\"<AppInfo.version>\"},\"capabilities\":{\"experimentalApi\":true}}. The name is the literal \"marrow\", the title the literal \"Marrow\" (owner-ruled deviation OD-0008 B11; upstream sends \"droppy-code\" / \"Droppy Code\"). On a throw the connection is CLOSED and the error rethrown. On success one notification with method \"initialized\" and NO params is sent, and the connection is returned.",
+      "expected_result": "One request with method \"initialize\" and params {\"clientInfo\":{\"name\":\"nth\",\"title\":\"nth\",\"version\":\"<AppInfo.version>\"},\"capabilities\":{\"experimentalApi\":true}}. The name is the literal \"nth\", the title the literal \"nth\" (owner-ruled deviation OD-0008 B11; upstream sends \"droppy-code\" / \"Droppy Code\"). On a throw the connection is CLOSED and the error rethrown. On success one notification with method \"initialized\" and NO params is sent, and the connection is returned.",
       "side_effects": [
         "Two outbound frames"
       ],
@@ -43767,7 +43767,7 @@
       "deviation": {
         "decision": "OD-0008 B11",
         "upstream": "CodexSession.swift:522 sends \"clientInfo\": [\"name\": \"droppy-code\", \"title\": \"Droppy Code\", \"version\": .string(AppInfo.version)].",
-        "port": "Marrow sends \"clientInfo\": {\"name\": \"marrow\", \"title\": \"Marrow\", \"version\": <AppInfo.version>}; the capabilities object, the close-and-rethrow on failure and the \"initialized\" notification are unchanged."
+        "port": "Marrow sends \"clientInfo\": {\"name\": \"nth\", \"title\": \"nth\", \"version\": <AppInfo.version>}; the capabilities object, the close-and-rethrow on failure and the \"initialized\" notification are unchanged."
       }
     },
     {
@@ -72606,7 +72606,7 @@
       ],
       "preconditions": "The About page is selected.",
       "action": "The pill renders in each state; the user clicks it while ready.",
-      "expected_result": "While an install is showing progress, the pill is a 104-point-wide progress slider inside a glass capsule. Otherwise it is a capsule-shaped plain button that only takes clicks while an update is genuinely ready, which means an update is available, a release object exists and no install progress is showing. While ready it shows an \"arrow.down.circle.fill\" and the verbatim \"Update & restart\", both in the fixed blue rgb(0.040, 0.478, 1.000), over a blue wash at 20% opacity, with the tooltip the verbatim form \"Installs Marrow <version> and relaunches\" (OD-0012 F1) and the accessibility label the verbatim \"Update & restart\" plus the button trait. Clicking it installs the update. Otherwise it shows one of three standings, chosen in this order: an error from the last check gives \"exclamationmark.triangle.fill\" in the warning colour with the verbatim title \"Check failed\" and the error itself as the tooltip, falling back to the verbatim \"The last check did not reach GitLab\"; no check ever having run gives \"clock\" in the secondary colour with the verbatim title \"Not checked yet\" and the tooltip upstream's \"Droppy Code has not asked GitLab for a release yet\" with the product name as \"Marrow\" (OD-0012 F1); otherwise \"checkmark.seal.fill\" in the success colour with the verbatim title \"Up to date\" and the tooltip the verbatim form \"Marrow <version> is the latest version\" (OD-0012 F1). A standing's title is drawn in the primary colour even though its symbol takes the standing tint, and no wash is drawn. The standing's accessibility label is the product name, the version, a comma and the standing title lower-cased, for example \"Marrow 1.4.2, up to date\". While the update feed is empty, which is its default (OD-0012 I1), a check makes no network request and its error is \"No update feed is set.\", so the pill shows the \"Check failed\" standing with \"No update feed is set.\" as its tooltip.",
+      "expected_result": "While an install is showing progress, the pill is a 104-point-wide progress slider inside a glass capsule. Otherwise it is a capsule-shaped plain button that only takes clicks while an update is genuinely ready, which means an update is available, a release object exists and no install progress is showing. While ready it shows an \"arrow.down.circle.fill\" and the verbatim \"Update & restart\", both in the fixed blue rgb(0.040, 0.478, 1.000), over a blue wash at 20% opacity, with the tooltip the verbatim form \"Installs nth <version> and relaunches\" (OD-0012 F1) and the accessibility label the verbatim \"Update & restart\" plus the button trait. Clicking it installs the update. Otherwise it shows one of three standings, chosen in this order: an error from the last check gives \"exclamationmark.triangle.fill\" in the warning colour with the verbatim title \"Check failed\" and the error itself as the tooltip, falling back to the verbatim \"The last check did not reach GitLab\"; no check ever having run gives \"clock\" in the secondary colour with the verbatim title \"Not checked yet\" and the tooltip upstream's \"Droppy Code has not asked GitLab for a release yet\" with the product name as \"Marrow\" (OD-0012 F1); otherwise \"checkmark.seal.fill\" in the success colour with the verbatim title \"Up to date\" and the tooltip the verbatim form \"Marrow <version> is the latest version\" (OD-0012 F1). A standing's title is drawn in the primary colour even though its symbol takes the standing tint, and no wash is drawn. The standing's accessibility label is the product name, the version, a comma and the standing title lower-cased, for example \"Marrow 1.4.2, up to date\". While the update feed is empty, which is its default (OD-0012 I1), a check makes no network request and its error is \"No update feed is set.\", so the pill shows the \"Check failed\" standing with \"No update feed is set.\" as its tooltip.",
       "side_effects": [
         "Clicking while ready starts an in-place install and a relaunch"
       ],
@@ -92346,7 +92346,7 @@
       ],
       "preconditions": "The pill is not showing the slider.",
       "action": "The user hovers, or a screen reader reads the pill.",
-      "expected_result": "Ready: tooltip \"Installs Marrow <version> and relaunches\" (no full stop), accessibility label \"Update & restart\", and the button trait added. Up to date: tooltip \"Marrow <running version> is the latest version\". Check failed: tooltip is the checker's lastError, or \"The last check did not reach GitLab\" when it is somehow nil; while the feed value is empty the lastError is \"No update feed is set.\" (OD-0012 I1, PR-UPDATE-005). Not checked: \"Marrow has not asked GitLab for a release yet\". Non-ready accessibility label is \"Marrow <version>, up to date\" / \", check failed\" / \", not checked yet\" with the standing title lowercased. Upstream every \"Marrow\" here reads \"Droppy Code\" (AboutUpdateViews.swift:679, :695, :697, :702); the port's strings follow OD-0012 F1.",
+      "expected_result": "Ready: tooltip \"Installs nth <version> and relaunches\" (no full stop), accessibility label \"Update & restart\", and the button trait added. Up to date: tooltip \"Marrow <running version> is the latest version\". Check failed: tooltip is the checker's lastError, or \"The last check did not reach GitLab\" when it is somehow nil; while the feed value is empty the lastError is \"No update feed is set.\" (OD-0012 I1, PR-UPDATE-005). Not checked: \"Marrow has not asked GitLab for a release yet\". Non-ready accessibility label is \"Marrow <version>, up to date\" / \", check failed\" / \", not checked yet\" with the standing title lowercased. Upstream every \"Marrow\" here reads \"Droppy Code\" (AboutUpdateViews.swift:679, :695, :697, :702); the port's strings follow OD-0012 F1.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -92362,7 +92362,7 @@
       "deviation": {
         "decision": "OD-0012 F1; OD-0012 I1",
         "upstream": "DroppyCode/App/Views/Settings/AboutUpdateViews.swift:679 '\"Installs Droppy Code \\(checker.update?.version ?? \"\") and relaunches\"', :695 '\"Droppy Code \\(AppInfo.version) is the latest version\"', :696 'checker.lastError ?? \"The last check did not reach GitLab\"', :697 '\"Droppy Code has not asked GitLab for a release yet\"', :702 '\"Droppy Code \\(AppInfo.version), \\(standing.title.lowercased())\"'",
-        "port": "OD-0012 F1 (porting/decision_batch_20260922b.md:22-36): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT. The tooltips read \"Installs Marrow <version> and relaunches\", \"Marrow <version> is the latest version\" (named in the sheet) and \"Marrow has not asked GitLab for a release yet\", and the accessibility label \"Marrow <version>, <standing>\". OD-0012 I1 (porting/decision_batch_20260922b.md:66): the update feed is an internal value, empty by default, with no settings UI until the owner has a feed; while it is empty no network request is made and the About pill shows upstream's \"Check failed\" with the note \"No update feed is set.\""
+        "port": "OD-0012 F1 (porting/decision_batch_20260922b.md:22-36): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\", except droppy-code.json and DROPPY_CODE_PROJECT_ROOT. The tooltips read \"Installs nth <version> and relaunches\", \"Marrow <version> is the latest version\" (named in the sheet) and \"Marrow has not asked GitLab for a release yet\", and the accessibility label \"Marrow <version>, <standing>\". OD-0012 I1 (porting/decision_batch_20260922b.md:66): the update feed is an internal value, empty by default, with no settings UI until the owner has a feed; while it is empty no network request is made and the About pill shows upstream's \"Check failed\" with the note \"No update feed is set.\""
       }
     },
     {
