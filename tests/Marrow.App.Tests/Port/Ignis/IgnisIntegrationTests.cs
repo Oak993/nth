@@ -222,8 +222,17 @@ public sealed class IgnisIntegrationTests : IDisposable
         var first = await server.NextExchange();
         Assert.Equal(("GET", "/ignis/model-points.json"), (first.Method, first.Target));
         await first.Respond(200, "OK", body, ("Content-Type", "application/json"));
-        Assert.Equal("2026.10.20", await latest);
+        // "Update automatically" is off: the check also asks the catalogue whether it changed (ED-NEW-ignis-data-2), from the
+        // loopback stand-in for GitHub, and installs and stores nothing.
+        var probe = await server.NextExchange();
+        Assert.Equal(("GET", "/litellm/model_prices_and_context_window.json"), (probe.Method, probe.Target));
+        var prices = """{"claude-test-only-5":{"litellm_provider":"anthropic","mode":"chat","max_input_tokens":200000,"input_cost_per_token":1e-06,"output_cost_per_token":5e-06,"cache_read_input_token_cost":1e-07,"cache_creation_input_token_cost":1.25e-06}}""";
+        await probe.Respond(200, "OK", System.Text.Encoding.UTF8.GetBytes(prices), ("Content-Type", "application/json"));
+        var today = runtime.Time.GetUtcNow().UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal("2026.10.20 · rules 2026.10.20 · prices " + today.Replace('-', '.'), await latest);
         Assert.Equal("2026.10.10", store.Current.Version);
+        Assert.Null(store.PricesDay);
+        Assert.False(File.Exists(store.PricesPath));
 
         var update = item.Update(new Progress<double?>(), CancellationToken.None);
         var second = await server.NextExchange();
@@ -231,12 +240,11 @@ public sealed class IgnisIntegrationTests : IDisposable
         // The same action refreshes the price catalogue (ED-NEW-ignis-data), from the loopback stand-in for GitHub too.
         var third = await server.NextExchange();
         Assert.Equal(("GET", "/litellm/model_prices_and_context_window.json"), (third.Method, third.Target));
-        var prices = """{"claude-test-only-5":{"litellm_provider":"anthropic","mode":"chat","max_input_tokens":200000,"input_cost_per_token":1e-06,"output_cost_per_token":5e-06,"cache_read_input_token_cost":1e-07,"cache_creation_input_token_cost":1.25e-06}}""";
         await third.Respond(200, "OK", System.Text.Encoding.UTF8.GetBytes(prices), ("Content-Type", "application/json"));
         var outcome = await update;
 
         Assert.True(outcome.Succeeded);
-        Assert.Equal("2026.10.20 · prices " + runtime.Time.GetUtcNow().UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), outcome.NewVersion);
+        Assert.Equal("2026.10.20 · rules 2026.10.20 · prices " + today.Replace('-', '.'), outcome.NewVersion);
         Assert.Equal(1m, store.Find(ProviderKind.Claude, "claude-test-only-5")?.Prices.Input);
         Assert.True(outcome.Changed);
         Assert.Equal("2026.10.20", store.Current.Version);

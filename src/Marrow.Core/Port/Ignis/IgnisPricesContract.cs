@@ -27,4 +27,11 @@ public interface IIgnisPriceCatalogue
     /// last day is not asked again (<see cref="IgnisPricesCheck.Skipped"/>).
     /// </summary>
     Task<IgnisPricesCheck> CheckPricesAsync(bool force, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Asks whether the file on GitHub changed, without installing or storing anything (a conditional request with the held
+    /// ETag): <see cref="IgnisPricesCheck.Updated"/> is true when it did (or none is held), and
+    /// <see cref="IgnisPricesCheck.Day"/> is today then, else the day of the catalogue in use (ED-NEW-ignis-data-2).
+    /// </summary>
+    Task<IgnisPricesCheck> ProbePricesAsync(CancellationToken cancellationToken);
 }

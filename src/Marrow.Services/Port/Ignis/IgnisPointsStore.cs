@@ -138,6 +138,28 @@ public sealed class IgnisPointsStore : IIgnisPoints, IIgnisPriceCatalogue
         }
     }
 
+    public async Task<IgnisPricesCheck> ProbePricesAsync(CancellationToken cancellationToken)
+    {
+        await checkingPrices.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var held = Catalogue;
+            var now = SwiftDate.Now;
+            var fetched = await IgnisPriceCatalogue.Fetch(catalogueAddress, held?.ETag, cancellationToken).ConfigureAwait(false);
+            if (fetched.NotPublished) return new IgnisPricesCheck(held?.Day, false, false, "The price catalogue was not found.");
+            if (fetched.Error is { } error) return new IgnisPricesCheck(held?.Day, false, false, error);
+            if (fetched.NotModified && held is not null) return new IgnisPricesCheck(held.Day, false, false);
+            var built = IgnisPriceCatalogue.Build(fetched.Body, Rules(Current), now, fetched.ETag);
+            return built.Catalogue is { } fresh
+                ? new IgnisPricesCheck(fresh.Day, true, false)
+                : new IgnisPricesCheck(held?.Day, false, false, built.Error);
+        }
+        finally
+        {
+            checkingPrices.Release();
+        }
+    }
+
     /// <summary>Whether <paramref name="candidate"/>'s version is later than <paramref name="than"/>'s ("yyyy.MM.dd", ordinal).</summary>
     public static bool Newer(IgnisPointsFile candidate, IgnisPointsFile than) => string.CompareOrdinal(candidate.Version, than.Version) > 0;
 

@@ -31,6 +31,9 @@ internal sealed class FakePricedPoints(string version) : IIgnisPoints, IIgnisPri
     /// <summary>Every catalogue check (force?).</summary>
     public List<bool> PriceChecks { get; } = [];
 
+    /// <summary>How many times the row asked whether the catalogue changed (a dry run: nothing installed or stored).</summary>
+    public int Probes { get; private set; }
+
     /// <summary>The catalogue checks that reached the (scripted) network.</summary>
     public int PriceFetches { get; private set; }
 
@@ -53,6 +56,16 @@ internal sealed class FakePricedPoints(string version) : IIgnisPoints, IIgnisPri
             Changed?.Invoke();
         }
         return Task.FromResult(new IgnisPointsCheck(Current.Version, Feed, updated));
+    }
+
+    /// <summary>The store's dry run: changed (200) when none is held or <see cref="PricesChanged"/>, then today; else 304 and the held day. Nothing is stored.</summary>
+    public Task<IgnisPricesCheck> ProbePricesAsync(CancellationToken cancellationToken)
+    {
+        Probes++;
+        if (PricesError is { } error) return Task.FromResult(new IgnisPricesCheck(PricesDay, false, false, error));
+        var changed = PricesCheckedAt is null || PricesChanged;
+        var today = SwiftDate.Now.UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        return Task.FromResult(new IgnisPricesCheck(changed ? today : PricesDay, changed, false));
     }
 
     /// <summary>The store's rule: without force, a catalogue checked within the last day is not asked again.</summary>

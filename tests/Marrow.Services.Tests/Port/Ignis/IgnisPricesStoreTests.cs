@@ -234,4 +234,53 @@ public sealed class IgnisPricesStoreTests
         Assert.Null(store.Find(ProviderKind.Claude, "claude-mythos-5"));
         Assert.Equal("Opus 5.5", store.Find(ProviderKind.Claude, "opus")?.DisplayName);
     }
+
+    [Fact]
+    [Trait("Feature", "IG-1")]
+    [Trait("Decision", "ED-NEW-ignis-data-2")]
+    public async Task A_dry_run_asks_whether_the_catalogue_changed_with_the_held_ETag_and_stores_nothing()
+    {
+        using var runtime = new TestRuntime();
+        using var folder = new AccountTestFolder();
+        using var offline = new InProcessHttpHandler();
+        using var wire = URLSession.Transport.Override(offline);
+        var answer = Json(IgnisCatalogueFixture.LiteLlm, ("ETag", "\"v1\""));
+        var serverTag = "\"v1\"";
+        await using var server = new FakeUpstreamServer
+        {
+            Handler = request => request.Headers.TryGetValue("If-None-Match", out var tag) && tag == serverTag ? new FakeResponse(304, [("ETag", serverTag)], []) : answer,
+        };
+        var store = Store(folder.Path, server);
+        var changed = 0;
+        store.Changed += () => changed++;
+
+        // None held: the file counts as changed (today), and nothing is kept, on disk or in memory.
+        Assert.Equal(new IgnisPricesCheck("2026-09-22", true, false), await store.ProbePricesAsync(CancellationToken.None));
+        Assert.False(server.Received[0].Headers.ContainsKey("If-None-Match"));
+        Assert.Equal((null, false, 0), (store.PricesDay, File.Exists(store.PricesPath), changed));
+
+        Assert.True((await store.CheckPricesAsync(force: false, CancellationToken.None)).Updated);
+        var onDisk = File.ReadAllText(store.PricesPath);
+        changed = 0;
+
+        // Unchanged (304): the held day, whatever the day, and the held confirmation stays as it was.
+        runtime.Advance(TimeSpan.FromDays(3));
+        var count = server.Received.Count;
+        Assert.Equal(new IgnisPricesCheck("2026-09-22", false, false), await store.ProbePricesAsync(CancellationToken.None));
+        Assert.Equal("\"v1\"", server.Received[count].Headers["If-None-Match"]);
+
+        // Changed (200 with a new ETag): today's day, and still nothing installed or stored.
+        (answer, serverTag) = (Json(IgnisCatalogueFixture.LiteLlm, ("ETag", "\"v2\"")), "\"v2\"");
+        Assert.Equal(new IgnisPricesCheck("2026-09-25", true, false), await store.ProbePricesAsync(CancellationToken.None));
+        Assert.Equal(("2026-09-22", onDisk, 0), (store.PricesDay, File.ReadAllText(store.PricesPath), changed));
+        Assert.Equal(new DateTimeOffset(2026, 9, 22, 12, 0, 0, TimeSpan.Zero), store.PricesCheckedAt);
+
+        // A failing or malformed file is an error, the held day stays named.
+        answer = new FakeResponse(500, [], []);
+        Assert.Equal(new IgnisPricesCheck("2026-09-22", false, false, "The feed answered 500."), await store.ProbePricesAsync(CancellationToken.None));
+        answer = Json("{ broken");
+        Assert.StartsWith("The price catalogue is not JSON", (await store.ProbePricesAsync(CancellationToken.None)).Error, StringComparison.Ordinal);
+        Assert.Equal(onDisk, File.ReadAllText(store.PricesPath));
+        Assert.Empty(offline.Received);
+    }
 }
