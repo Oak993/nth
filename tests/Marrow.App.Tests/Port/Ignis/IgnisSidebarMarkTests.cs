@@ -23,67 +23,6 @@ namespace Marrow.App.Tests.Port.Ignis;
 [Trait("Decision", "OD-0134")]
 public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
 {
-    private sealed class Rig : IDisposable
-    {
-        public readonly TestRuntime Runtime = new();
-        public readonly FakeIgnisPort Port = new();
-        public readonly FakeSavingsLedger Ledger = new();
-        public readonly IgnisController Controller;
-        public readonly IgnisSidebarMark Mark;
-        public readonly AvaloniaWindow Window;
-        public int Selected;
-        private readonly List<IDisposable> scopes = [];
-
-        public Rig(ManualFrameSource? frames = null, bool dark = false, double rowHeight = 28)
-        {
-            if (frames is not null) scopes.Add(FrameClock.Source.Override(frames));
-            scopes.Add(Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform()));
-            var settings = new IgnisSettings(Runtime.Defaults);
-            Controller = Runtime.OnMain(() => new IgnisController(settings, new FakeIgnisPoints(), Ledger, new FakeIgnisEngine(), new FakeIgnisEnvironment()));
-            Mark = Runtime.OnMain(() => new IgnisSidebarMark(new IgnisRowWarmthSource(Controller, Port.ThreadID), () => Selected++));
-            var row = new Panel { Width = 260, Height = rowHeight, Children = { Mark } };
-            Window = Runtime.OnMain(() =>
-            {
-                var window = new AvaloniaWindow
-                {
-                    Width = 300, Height = rowHeight + 40, Background = new SolidColorBrush(dark ? Color.FromRgb(0x1C, 0x1C, 0x1E) : Color.FromRgb(0xF5, 0xF5, 0xF7)),
-                    RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light,
-                    Content = new Border { Padding = new Thickness(20), Child = row, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top },
-                };
-                window.Show();
-                Mark.Place(8 + 52); // a plain row's trailing clearance
-                Settle(window);
-                return window;
-            });
-        }
-
-        public void Settle() => Runtime.OnMain(() => Settle(Window));
-
-        private static void Settle(AvaloniaWindow window)
-        {
-            for (var i = 0; i < 4; i++) { window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
-        }
-
-        /// <summary>A user turn that writes and reads the cache (the chat is warm and kept warm from here).</summary>
-        public void Warm() => Runtime.OnMain(() =>
-        {
-            Controller.Attach(Port);
-            Controller.Observe(Port.ThreadID, IgnisSamples.Usage(read: 1_000, write1h: 200));
-            Controller.TurnFinished(Port.ThreadID);
-        });
-
-        public void On(Action action) => Runtime.OnMain(action);
-
-        public T On<T>(Func<T> read) => Runtime.OnMain(read);
-
-        public void Dispose()
-        {
-            Runtime.OnMain(Window.Close);
-            for (var i = scopes.Count - 1; i >= 0; i--) scopes[i].Dispose();
-            Runtime.Dispose();
-        }
-    }
-
     [Fact]
     public void The_look_is_pinned_to_the_owners_numbers()
     {
@@ -113,7 +52,7 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
     [Fact]
     public void A_chat_never_kept_warm_shows_nothing_and_a_lit_one_shows_only_its_line_at_rest() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SidebarMarkRig();
         Assert.False(rig.On(() => rig.Mark.Shows));
         Assert.False(rig.On(() => rig.Mark.IsVisible));
         Assert.Null(rig.On(() => rig.Mark.ActionTitle));
@@ -146,7 +85,7 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
     [Fact]
     public void Hovering_the_zone_shows_the_flame_brighter_and_the_pill_and_leaving_waits_120_ms() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SidebarMarkRig();
         rig.Warm();
         rig.Settle();
         rig.On(() => rig.Mark.SetPointer(zoneOver: true, pillOver: false));
@@ -181,7 +120,7 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
     [Fact]
     public void Turn_off_cools_the_chat_and_the_pill_then_reads_Turn_on_which_lights_it_again() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SidebarMarkRig();
         rig.Warm();
         rig.Settle();
         rig.On(() => rig.Mark.SetPointer(true, false));
@@ -226,7 +165,7 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
     [Fact]
     public void Clicking_the_flames_zone_selects_the_row_and_never_cools_it() => headless.OnUiThread(() =>
     {
-        using var rig = new Rig();
+        using var rig = new SidebarMarkRig();
         rig.Warm();
         rig.Settle();
         rig.On(() =>
@@ -246,7 +185,7 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
     public void The_timings_run_as_pinned_and_reduce_motion_makes_them_instant() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
-        using var rig = new Rig(frames);
+        using var rig = new SidebarMarkRig(frames);
         rig.Warm();
         rig.Settle();
         void Step(int ms) { rig.Runtime.Advance(TimeSpan.FromMilliseconds(ms)); rig.On(() => frames.Advance(TimeSpan.FromMilliseconds(ms))); }
@@ -282,7 +221,7 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
     {
         foreach (var dark in new[] { false, true })
         {
-            using var rig = new Rig(dark: dark, rowHeight: 40);
+            using var rig = new SidebarMarkRig(dark: dark, rowHeight: 40);
             rig.Warm();
             rig.Settle();
             var (zone, glyph, pill) = rig.On(() => (Rect(rig.Mark.Zone, rig.Window), Rect(rig.Mark.Glyph, rig.Window), Rect(rig.Mark.Pill, rig.Window)));
@@ -313,12 +252,7 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
 
     private static Rect Rect(Visual visual, Visual root) => new(visual.TranslatePoint(default, root)!.Value, visual.Bounds.Size);
 
-    private sealed record Frame(int Width, int Height, int Stride, byte[] Bytes)
-    {
-        public uint At(int x, int y) => BitConverter.ToUInt32(Bytes, y * Stride + x * 4);
-    }
-
-    private static Frame Pixels(TopLevel window)
+    private static SidebarMarkFrame Pixels(TopLevel window)
     {
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -326,6 +260,6 @@ public sealed class IgnisSidebarMarkTests(HeadlessSession headless)
         using var buffer = frame.Lock();
         var bytes = new byte[buffer.RowBytes * buffer.Size.Height];
         System.Runtime.InteropServices.Marshal.Copy(buffer.Address, bytes, 0, bytes.Length);
-        return new Frame(buffer.Size.Width, buffer.Size.Height, buffer.RowBytes, bytes);
+        return new SidebarMarkFrame(buffer.Size.Width, buffer.Size.Height, buffer.RowBytes, bytes);
     }
 }

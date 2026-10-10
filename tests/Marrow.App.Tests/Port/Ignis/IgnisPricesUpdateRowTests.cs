@@ -141,7 +141,7 @@ public sealed class IgnisPricesUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-data-2")]
+    [Trait("Decision", "OD-0134")]
     public async Task Without_automatic_updates_a_changed_catalogue_alone_shows_update_available_and_one_update_refreshes_it()
     {
         using var runtime = new TestRuntime();
@@ -170,7 +170,7 @@ public sealed class IgnisPricesUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-data-2")]
+    [Trait("Decision", "OD-0134")]
     public async Task Without_automatic_updates_an_unchanged_catalogue_is_up_to_date()
     {
         using var runtime = new TestRuntime();
@@ -184,7 +184,7 @@ public sealed class IgnisPricesUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-data-2")]
+    [Trait("Decision", "OD-0134")]
     public async Task A_catalogue_changed_the_day_it_was_confirmed_still_shows()
     {
         using var runtime = new TestRuntime();
@@ -197,7 +197,7 @@ public sealed class IgnisPricesUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-data-2")]
+    [Trait("Decision", "OD-0134")]
     public async Task A_newer_points_file_alone_shows_and_after_the_update_the_row_is_the_same()
     {
         using var runtime = new TestRuntime();
@@ -217,7 +217,7 @@ public sealed class IgnisPricesUpdateRowTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-data-2")]
+    [Trait("Decision", "OD-0134")]
     public async Task A_catalogue_error_in_the_dry_run_keeps_the_rows_error_behaviour()
     {
         using var runtime = new TestRuntime();

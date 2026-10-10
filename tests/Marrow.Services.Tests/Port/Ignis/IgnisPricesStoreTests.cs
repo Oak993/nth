@@ -237,7 +237,7 @@ public sealed class IgnisPricesStoreTests
 
     [Fact]
     [Trait("Feature", "IG-1")]
-    [Trait("Decision", "ED-NEW-ignis-data-2")]
+    [Trait("Decision", "OD-0134")]
     public async Task A_dry_run_asks_whether_the_catalogue_changed_with_the_held_ETag_and_stores_nothing()
     {
         using var runtime = new TestRuntime();

@@ -103,16 +103,7 @@ public sealed class PiSessionTests
         return (session, events, script, id);
     }
 
-    private static IDisposable Both(IDisposable first, IDisposable second) => new Pair(first, second);
-
-    private sealed class Pair(IDisposable first, IDisposable second) : IDisposable
-    {
-        public void Dispose()
-        {
-            second.Dispose();
-            first.Dispose();
-        }
-    }
+    private static IDisposable Both(IDisposable first, IDisposable second) => new DisposePair(first, second);
 
     private static JSONValue Json(string text) => JSONValue.Parse(text)!;
 
