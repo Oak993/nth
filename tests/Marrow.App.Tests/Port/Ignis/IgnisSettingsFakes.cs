@@ -6,7 +6,7 @@ namespace Marrow.App.Tests.Port.Ignis;
 
 // Ignis U5 (OD-0134, ED-NEW-ignis-settings): fakes of the U0 contract for Settings › Ignis and the Updates row. The engine (U1) is built
 // elsewhere; these hold fixed days and a scripted feed, and never reach a network or a model provider.
-internal sealed class FakeSavingsLedger(IEnumerable<IgnisDayTotals> days) : ISavingsLedger
+internal sealed class FakeSettingsLedger(IEnumerable<IgnisDayTotals> days) : ISavingsLedger
 {
     private readonly Dictionary<DateOnly, IgnisDayTotals> byDay = days.ToDictionary(day => day.Day);
     public event Action? Changed;
@@ -27,7 +27,7 @@ internal sealed class FakeSavingsLedger(IEnumerable<IgnisDayTotals> days) : ISav
     public IgnisEvent? Event(string id) => null;
 }
 
-internal sealed class FakeIgnisPoints(string version, params IgnisModelPoints[] models) : IIgnisPoints
+internal sealed class FakeSettingsPoints(string version, params IgnisModelPoints[] models) : IIgnisPoints
 {
     public event Action? Changed;
     public IgnisPointsFile Current { get; private set; } = new(IgnisPointsFile.CurrentSchemaVersion, version, new ValueList<IgnisModelPoints>(models));

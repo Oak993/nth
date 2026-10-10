@@ -28,17 +28,17 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     private static IgnisDayTotals Day(int month, int day, decimal reuse = 0, decimal warm = 0, decimal tidy = 0, decimal help = 0, int reuses = 0, int pings = 0, int tidyUps = 0, int jobs = 0) =>
         new(new DateOnly(2026, month, day), reuse, warm, tidy, help, 0m, 0m, reuses, pings, tidyUps, jobs);
 
-    private static FakeSavingsLedger Ledger() => new([
+    private static FakeSettingsLedger Ledger() => new([
         Day(8, 30, reuse: 1.00m, reuses: 10),
         Day(9, 15, reuse: 2.00m, warm: 0.50m, tidy: 0.25m, help: 0.25m, reuses: 20, pings: 1, tidyUps: 2, jobs: 1),
         Day(10, 1, reuse: 3.00m, reuses: 30),
         Day(10, 6, reuse: 1.20m, warm: 0.30m, reuses: 12, pings: 3),
     ]);
 
-    private static FakeIgnisPoints Points() => new("2026.10.08",
-        FakeIgnisPoints.Model("claude", "claude-haiku-5-5", "Haiku 5.5", 200_000, stepAt: 100_000),
-        FakeIgnisPoints.Model("claude", "claude-opus-5-5", "Opus 5.5", 1_000_000, tidyAt: 400_000, tidyReason: IgnisWords.WhyBreakEven, helper: "claude-haiku-5-5"),
-        FakeIgnisPoints.Model("codex", "gpt-6.1-codex", "Codex", 400_000));
+    private static FakeSettingsPoints Points() => new("2026.10.08",
+        FakeSettingsPoints.Model("claude", "claude-haiku-5-5", "Haiku 5.5", 200_000, stepAt: 100_000),
+        FakeSettingsPoints.Model("claude", "claude-opus-5-5", "Opus 5.5", 1_000_000, tidyAt: 400_000, tidyReason: IgnisWords.WhyBreakEven, helper: "claude-haiku-5-5"),
+        FakeSettingsPoints.Model("codex", "gpt-6.1-codex", "Codex", 400_000));
 
     private static void Show(Control page, TestRuntime runtime, Action<HostWindow> body)
     {
@@ -222,7 +222,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
         Assert.Equal(("October so far", "1 day · about $0.00 a day"), (month.TileLabel, month.TileDetail));
         var day = Assert.Single(month.DayRows(Today));
         Assert.Equal(("Today", 0), (day.Label, day.Did.Count));
-        var empty = IgnisSavingsHistory.From(new FakeSavingsLedger([]), Today);
+        var empty = IgnisSavingsHistory.From(new FakeSettingsLedger([]), Today);
         Assert.Equal(Today, empty.Since);
     }
 
@@ -230,7 +230,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     [Trait("Decision", "ED-NEW-ignis-settings")] // the chart shows at most twelve months and moves back so the picked one is always in it
     public void A_long_history_charts_twelve_months_around_the_picked_one()
     {
-        var history = IgnisSavingsHistory.From(new FakeSavingsLedger([new(new DateOnly(2025, 1, 10), 1m, 0, 0, 0, 0, 0, 1, 0, 0, 0)]), Today);
+        var history = IgnisSavingsHistory.From(new FakeSettingsLedger([new(new DateOnly(2025, 1, 10), 1m, 0, 0, 0, 0, 0, 1, 0, 0, 0)]), Today);
         Assert.Equal(22, history.Months.Count);
         Assert.Equal((10, 12), history.ChartWindow(21));
         Assert.Equal((3, 12), history.ChartWindow(3));

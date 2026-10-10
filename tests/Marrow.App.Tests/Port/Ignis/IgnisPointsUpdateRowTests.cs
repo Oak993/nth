@@ -20,7 +20,7 @@ public sealed class IgnisPointsUpdateRowTests
     [Trait("Decision", "ED-NEW-ignis-settings")] // design row: "Ignis model points", "2026.10.08 → 2026.10.10", Update
     public async Task The_row_reads_installed_and_latest_from_the_points_and_the_feed()
     {
-        var points = new FakeIgnisPoints("2026.10.08") { Feed = "2026.10.10" };
+        var points = new FakeSettingsPoints("2026.10.08") { Feed = "2026.10.10" };
         var item = new IgnisPointsUpdateItem(points, () => false);
         Assert.Equal((IgnisPointsUpdateItem.ItemId, IgnisWords.UpdatesRowTitle, UpdateItemKind.ModelPoints), (item.Id, item.Title, item.Kind));
         var orchestrator = new UpdateOrchestrator([item]);
@@ -40,7 +40,7 @@ public sealed class IgnisPointsUpdateRowTests
     [Trait("Decision", "ED-NEW-ignis-settings")] // "Update automatically" on: the check installs at once and the row says Up to date
     public async Task Updating_automatically_installs_on_the_check()
     {
-        var points = new FakeIgnisPoints("2026.10.08") { Feed = "2026.10.10" };
+        var points = new FakeSettingsPoints("2026.10.08") { Feed = "2026.10.10" };
         var orchestrator = new UpdateOrchestrator([new IgnisPointsUpdateItem(points, () => true)]);
         await orchestrator.CheckNow();
         var row = Assert.Single(orchestrator.Rows);
@@ -52,11 +52,11 @@ public sealed class IgnisPointsUpdateRowTests
     [Trait("Decision", "ED-NEW-ignis-settings")] // PLAN lead decision: until the feed is published the bundled points are used and the row says Up to date; a feed error is kept
     public async Task An_unpublished_feed_is_up_to_date_and_a_failed_one_checks_when_updated()
     {
-        var unpublished = new UpdateOrchestrator([new IgnisPointsUpdateItem(new FakeIgnisPoints("2026.10.08"), () => true)]);
+        var unpublished = new UpdateOrchestrator([new IgnisPointsUpdateItem(new FakeSettingsPoints("2026.10.08"), () => true)]);
         await unpublished.CheckNow();
         Assert.Equal((UpdateRowState.UpToDate, "2026.10.08", "2026.10.08"), (unpublished.Rows[0].State, unpublished.Rows[0].Installed, unpublished.Rows[0].Latest));
 
-        var failing = new UpdateOrchestrator([new IgnisPointsUpdateItem(new FakeIgnisPoints("2026.10.08") { FeedError = "The feed could not be read." }, () => false)]);
+        var failing = new UpdateOrchestrator([new IgnisPointsUpdateItem(new FakeSettingsPoints("2026.10.08") { FeedError = "The feed could not be read." }, () => false)]);
         await failing.CheckNow();
         Assert.Equal((UpdateRowState.ChecksWhenUpdated, "The feed could not be read."), (failing.Rows[0].State, failing.Rows[0].Message));
     }
@@ -71,7 +71,7 @@ public sealed class IgnisPointsUpdateRowTests
         marrow.OnUpdate = _ => { order.Add("marrow"); return Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null)); };
         var claude = Claude();
         claude.OnUpdate = _ => { order.Add("cli:claude"); return Task.FromResult(new UpdateOutcome(true, "2.1.293", true, false, null)); };
-        var points = new FakeIgnisPoints("2026.10.08") { Feed = "2026.10.10" };
+        var points = new FakeSettingsPoints("2026.10.08") { Feed = "2026.10.10" };
         var ignis = new RecordingItem(new IgnisPointsUpdateItem(points, () => false), order);
         var orchestrator = new UpdateOrchestrator([marrow, ignis, claude]);
         Assert.Equal(["cli:claude", IgnisPointsUpdateItem.ItemId, "marrow"], orchestrator.Rows.Select(row => row.Id));
@@ -110,7 +110,7 @@ public sealed class IgnisPointsUpdateRowTests
     {
         Assert.Empty(UpdateEverythingProduction.IgnisItems());
         using var store = UserDefaults.Standard.Override(new Marrow.Testing.InMemorySettingsStore());
-        var controller = new FakeController(new IgnisSettings(UserDefaults.Standard.Current), new FakeIgnisPoints("2026.10.08"));
+        var controller = new FakeController(new IgnisSettings(UserDefaults.Standard.Current), new FakeSettingsPoints("2026.10.08"));
         using (IgnisSeams.Controller.Override(() => controller))
         {
             var item = Assert.IsType<IgnisPointsUpdateItem>(Assert.Single(UpdateEverythingProduction.IgnisItems()));
@@ -134,7 +134,7 @@ public sealed class IgnisPointsUpdateRowTests
         public event Action<Guid>? Changed { add { } remove { } }
         public IgnisSettings Settings => settings;
         public IIgnisPoints Points => points;
-        public ISavingsLedger Ledger { get; } = new FakeSavingsLedger([]);
+        public ISavingsLedger Ledger { get; } = new FakeSettingsLedger([]);
         public IgnisChatStatus Status(Guid thread) => IgnisChatStatus.Unknown(thread, IgnisMode.WarmAndTidy, true);
         public void SetMode(Guid thread, IgnisMode mode) { }
         public void SetAuto(Guid thread, bool auto) { }
