@@ -14,9 +14,24 @@ public sealed record IgnisPriceTier(decimal Input, decimal Output, decimal Cache
     /// </summary>
     public decimal CacheWriteUnknown => CacheWrite5m ?? CacheWrite1h ?? Input;
 
-    /// <summary>The write price for a cache lifetime: 1 h or longer uses the 1-hour premium, shorter the 5-minute one.</summary>
-    public decimal CacheWriteFor(TimeSpan? ttl) =>
-        ttl is { } life && life >= TimeSpan.FromHours(1) ? CacheWrite1h ?? CacheWrite5m ?? Input : CacheWrite5m ?? CacheWrite1h ?? Input;
+    /// <summary>Write prices at other exact lifetimes in force for this request size (schema v2: OpenAI's 30-minute writes).</summary>
+    public ValueList<IgnisCacheWrite> CacheWrites { get; init; } = ValueList<IgnisCacheWrite>.Empty;
+
+    /// <summary>
+    /// The write price for a cache lifetime. ENGINEERING DECISION (ED-NEW-ignis-integration): a lifetime the points price
+    /// exactly (the 5-minute or 1-hour field, or an entry of <see cref="CacheWrites"/> such as 1800 s) pays that price;
+    /// otherwise 1 h or longer uses the 1-hour premium and shorter the 5-minute one, else plain input.
+    /// </summary>
+    public decimal CacheWriteFor(TimeSpan? ttl)
+    {
+        if (ttl is { } life)
+        {
+            foreach (var write in CacheWrites)
+                if (TimeSpan.FromSeconds(write.TtlSeconds) == life) return write.Price;
+            if (life >= TimeSpan.FromHours(1)) return CacheWrite1h ?? CacheWrite5m ?? Input;
+        }
+        return CacheWrite5m ?? CacheWrite1h ?? Input;
+    }
 }
 
 public static class IgnisMoney
@@ -26,15 +41,21 @@ public static class IgnisMoney
     /// <summary>The prices in force for a request of <paramref name="promptTokens"/>: the highest step it is above, else the base.</summary>
     public static IgnisPriceTier Tier(IgnisPrices prices, long promptTokens)
     {
-        var tier = new IgnisPriceTier(prices.Input, prices.Output, prices.CacheRead, prices.CacheWrite5m, prices.CacheWrite1h);
+        var tier = new IgnisPriceTier(prices.Input, prices.Output, prices.CacheRead, prices.CacheWrite5m, prices.CacheWrite1h) { CacheWrites = prices.CacheWrites };
         foreach (var step in prices.Steps.OrderBy(step => step.AboveTokens))
         {
             if (promptTokens <= step.AboveTokens) break;
-            // A step replaces every price it names; a write price it leaves out keeps the base's.
-            tier = new IgnisPriceTier(step.Input, step.Output, step.CacheRead, step.CacheWrite5m ?? tier.CacheWrite5m, step.CacheWrite1h ?? tier.CacheWrite1h);
+            // A step replaces every price it names; a write price it leaves out keeps the base's (also per exact lifetime).
+            tier = new IgnisPriceTier(step.Input, step.Output, step.CacheRead, step.CacheWrite5m ?? tier.CacheWrite5m, step.CacheWrite1h ?? tier.CacheWrite1h)
+            {
+                CacheWrites = step.CacheWrites.Count == 0 ? tier.CacheWrites : MergeWrites(tier.CacheWrites, step.CacheWrites),
+            };
         }
         return tier;
     }
+
+    private static ValueList<IgnisCacheWrite> MergeWrites(IReadOnlyList<IgnisCacheWrite> baseWrites, IReadOnlyList<IgnisCacheWrite> stepWrites) =>
+        new(baseWrites.Where(write => stepWrites.All(over => over.TtlSeconds != write.TtlSeconds)).Concat(stepWrites));
 
     /// <summary>What the turn cost: each bucket at its own price, in the tier of the turn's whole prompt.</summary>
     public static decimal Cost(IgnisModelPoints points, IgnisTurnUsage usage)
