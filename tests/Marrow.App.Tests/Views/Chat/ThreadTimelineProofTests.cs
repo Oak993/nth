@@ -45,8 +45,8 @@ public sealed class ThreadTimelineProofTests(HeadlessSession headless)
         Assert.Equal("Running commands", WorkGroupSummary.Text(liveWork));
         // :2104 hasTools wins over isRunning: the summary, not the running word.
         var running = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), liveWork, new([]), false); host.Child = running; Run();
-        Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(running), text => text.Text == "Running commands");
-        Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(running), text => text.Text == WorkingWords.Word(1, 0) + "\u2026");
+        Assert.Contains(Texts(running), text => text == "Running commands"); // OD-0136 amendment 2, step 2 B: the running line's word is breathing letters
+        Assert.DoesNotContain(Texts(running), text => text == WorkingWords.Word(1, 0) + "\u2026");
         // :2104 a finished segment that still holds tool work shows the summary, not "Earlier steps".
         var finished = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), liveWork, new([]), false, SwiftDate.Now); host.Child = finished; Run();
         Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(finished), text => text.Text == "Running commands");
@@ -55,7 +55,9 @@ public sealed class ThreadTimelineProofTests(HeadlessSession headless)
 
     // ThreadTimeline.swift:1966-1970 folds assistant singles into the live work beside the work groups' tool entries.
     private static TimelineEntry Reply(string id) => new(new TimelineItem(Turn, new TimelineItem.Content.Assistant(new AssistantMessage { Text = id }), id));
-    private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "").ToArray();
+    // Text blocks and letters (the running working line's word and clock are letters, step 2 B).
+    private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "")
+        .Concat(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthLetters>(control).Select(letters => letters.Text)).ToArray();
 
     [Fact]
     [Trait("Req", "PR-CHAT-186")] // App/Views/Chat/ThreadTimeline.swift:1966-1970,2101-2104,2123; App/Views/Chat/TimelineRows.swift:1603

@@ -27,7 +27,9 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     private static void BeginSidebarSlide(TimelineMount mount, double delta) =>
         typeof(SidebarLayout).GetMethod("BeginSlide", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.Model.Sidebar, [delta]);
 
-    private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "").ToArray();
+    // Text blocks and letters (the running working line's word and clock are letters, step 2 B).
+    private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "")
+        .Concat(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthLetters>(control).Select(letters => letters.Text)).ToArray();
 
     // 1 point for the end-of-conversation sentinel (:402-404), then the 18 of bottom padding (:420).
     private const double BelowLastRow = 1 + 18;
