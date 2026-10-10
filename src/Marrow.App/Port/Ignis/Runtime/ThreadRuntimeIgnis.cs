@@ -27,6 +27,8 @@ public sealed partial class ThreadRuntime : IIgnisRuntimePort, IIgnisRuntimeTime
 
     DateTimeOffset? IIgnisRuntimePort.LastRequestAt => ignisLastRequestAt;
 
+    string? IIgnisRuntimePort.Effort => Thread?.Effort; // ED-NEW-ignis-guards: the never-reused check names an effort switch
+
     bool IIgnisRuntimePort.CanKeepWarmSilently => session is { } live && IgnisSessionHooks.KeepWarm.Current(live) is not null;
 
     /// <summary>

@@ -29,6 +29,16 @@ public sealed partial class AppModel
     }
 
     internal bool IgnisIsOnScreen(ChatThread thread) => IsApplicationActive() && IsOnScreen(thread);
+
+    /// <summary>
+    /// ED-NEW-ignis-guards: called by UpdateThreadValue after a thread changed. A changed model or provider (the picker, a Hydra
+    /// pair, an account switch) reaches the controller, which shows the switch-cost notice when a big cache is warm.
+    /// </summary>
+    private static void IgnisThreadChanged(ChatThread before, ChatThread after)
+    {
+        if (before.Model is null || (after.Provider == before.Provider && string.Equals(after.Model, before.Model, StringComparison.Ordinal))) return;
+        IgnisSeams.Controller.Current()?.ModelChanged(after.Id, after.Provider, after.Model);
+    }
 }
 
 /// <summary>The controller's reading of the running app.</summary>

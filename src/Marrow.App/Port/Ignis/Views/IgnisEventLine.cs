@@ -27,7 +27,8 @@ public sealed class IgnisEventLine : Decorator
         ignisEvent = found;
         var words = found is { } e ? IgnisWords.EventLine(e) : (item.TimelineItemContent as TimelineItem.Content.Notice)?.Value.Message ?? "";
         Words = words;
-        Amount = found is { } withAmount ? IgnisWords.EventAmount(withAmount) : null;
+        // ED-NEW-ignis-guards: the switch-cost notice says its amount in its own sentence.
+        Amount = found is { Kind: not IgnisEventKind.SwitchCost } withAmount ? IgnisWords.EventAmount(withAmount) : null;
         Time = found is { } at ? IgnisWords.EventTime(at.At.ToLocalTime()) : null;
 
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, HorizontalAlignment = HorizontalAlignment.Center };
