@@ -61,7 +61,28 @@ internal static class InteractionRecorder
         InteractionProbe.Enable();
     }
 
-    private sealed record Script(double StartSeconds = 70, int Rounds = 3, string Search = "gpt", string Typed = "the quick brown fox jumps over the lazy dog", string[]? Steps = null);
+    private sealed record Script(double StartSeconds = 70, int Rounds = 3, string Search = "gpt", string Typed = "the quick brown fox jumps over the lazy dog", string[]? Steps = null, bool Allocations = false);
+
+    // Optional (Allocations): the runtime's allocation ticks (one per ~100 KB allocated) by type and by whether the UI thread
+    // allocated, to find what allocates. It perturbs timing, so a run that records it is not used for timing.
+    private static readonly ConcurrentDictionary<(string Type, bool Ui), long> allocations = new();
+    private sealed class AllocationListener : System.Diagnostics.Tracing.EventListener
+    {
+        protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource source)
+        {
+            if (source.Name == "Microsoft-Windows-DotNETRuntime")
+                EnableEvents(source, System.Diagnostics.Tracing.EventLevel.Verbose, (System.Diagnostics.Tracing.EventKeywords)0x1);
+        }
+
+        protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs e)
+        {
+            if (!measuring || e.EventName is not { } name || !name.StartsWith("GCAllocationTick", StringComparison.Ordinal) || e.PayloadNames is not { } names || e.Payload is not { } payload) return;
+            var type = names.IndexOf("TypeName") is >= 0 and var t ? payload[t] as string ?? "?" : "?";
+            var amount = names.IndexOf("AllocationAmount64") is >= 0 and var a ? Convert.ToInt64(payload[a], System.Globalization.CultureInfo.InvariantCulture) : names.IndexOf("AllocationAmount") is >= 0 and var b ? Convert.ToInt64(payload[b], System.Globalization.CultureInfo.InvariantCulture) : 0;
+            allocations.AddOrUpdate((type, Environment.CurrentManagedThreadId == uiThread), amount, (_, sum) => sum + amount);
+        }
+    }
+    private static AllocationListener? allocationListener;
 
     internal static void Start(string root)
     {
@@ -80,6 +101,7 @@ internal static class InteractionRecorder
         listener.Start();
         GC.KeepAlive(listener);
         keptListener = listener;
+        if (script.Allocations) allocationListener = new AllocationListener();
         InteractionProbe.FrameDrawn = (tracker, rect, _) =>
         {
             if (!measuring) return;
@@ -355,6 +377,7 @@ internal static class InteractionRecorder
         internal static Mark Begin(string name)
         {
             Drain();
+            allocations.Clear();
             current = name;
             var mark = new Mark
             {
@@ -427,6 +450,7 @@ internal static class InteractionRecorder
                 frames = frameReport,
                 meter = meterReport,
                 spans = spanReport,
+                allocationTypes = allocations.OrderByDescending(p => p.Value).Take(12).Select(p => $"{(p.Key.Ui ? "ui" : "other")} {p.Key.Type} {p.Value / 1024} KB").ToList(),
                 gpu = new { writes = GpuProgramCache.Writes - writes, hits = GpuProgramCache.Hits - hits, misses = GpuProgramCache.Misses - misses },
                 jit = new { methods = System.Runtime.JitInfo.GetCompiledMethodCount() - jitMethods, ms = Math.Round((System.Runtime.JitInfo.GetCompilationTime() - jitTime).TotalMilliseconds, 2) },
                 gc = new
