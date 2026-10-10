@@ -453,7 +453,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         mount.Settle();
         var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View));
         var slots = LogicalQuery.SelfAndDescendants<Panel>(prompt).Where(panel => panel.GetType().Name == "SwapSlot").ToList();
-        var line = Assert.Single(slots, slot => slot.Parent is StackPanel { Spacing: 26 }); var name = Assert.Single(slots, slot => slot != line);
+        var line = Assert.Single(slots, slot => slot.Parent is StackPanel { Spacing: 14 }); /* the prompt's column (OD-0136: the hero's 14 pt gap) */ var name = Assert.Single(slots, slot => slot != line);
         var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(prompt), b => ToolTip.GetTip(b) as string == "Choose another project");
         TextBlock Text(string words) => LogicalQuery.SelfAndDescendants<TextBlock>(prompt).Single(text => text.Text == words);
         var before = name.Bounds.Width; var lineBefore = line.Bounds.Width;

@@ -85,10 +85,12 @@ public sealed class NewThreadPrompt : Decorator
         if (shownModel is not null) { shownModel = model; lineSlot?.Swap(MakeLine(model), null); return; } // another window's model: the line's picker reads it (the same words)
         shownModel = model;
         // :17-21
-        var icon = AppIconImage.Make(72); // :17-20 NSApp.applicationIconImage; OD-0015: the packaged Marrow app icon, as the About pill draws it
+        // :17-20 NSApp.applicationIconImage. OD-0136: the empty chat shows the 44 px nth tile B (nth-brand.html section 3, .hero .mk),
+        // drawn as vectors, sweeping once as the chat opens, then still; 14 px above the line (.hero's gap).
+        var icon = new NthTile();
         AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw); // :21 .accessibilityHidden(true)
 
-        var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 26, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         column.Children.Add(icon);
         lineSlot = new SwapSlot(HorizontalAlignment.Center) { VerticalAlignment = VerticalAlignment.Center }; // the line stays centred in the column while it eases to a new width
         lineSlot.Swap(MakeLine(model), null);

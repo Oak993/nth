@@ -81,11 +81,12 @@ public sealed class NewThreadPromptTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 var host = Build(model, System.Guid.NewGuid(), null);
-                var icon = Assert.Single(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Image>(host));
-                Assert.Equal(72d, icon.Width);
-                Assert.Equal(72d, icon.Height);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Image>(host));
+                var icon = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.NthTile>(host));
+                Assert.Equal(44d, icon.Width);
+                Assert.Equal(44d, icon.Height);
                 Assert.Equal(Avalonia.Automation.AccessibilityView.Raw, Avalonia.Automation.AutomationProperties.GetAccessibilityView(icon)); // :21 .accessibilityHidden(true)
-                MarrowLogoCheck.AssertIsTheAppIconImage(icon, 72); // :17 NSApp.applicationIconImage (OD-0015)
+                MarrowLogoCheck.AssertIsTheNthTile(icon); // :17 NSApp.applicationIconImage; OD-0136: the 44 point nth tile B
             });
         });
     }
