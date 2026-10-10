@@ -3769,6 +3769,7 @@ public sealed class NoticeRow : Decorator
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Notice item) { Child = null; return; }
+            if (Marrow.App.Port.Ignis.Views.IgnisViews.EventLineFor(entry.Item) is { } ignisLine) { Child = ignisLine; return; } // PORT-ONLY Ignis U4 (ED-NEW-ignis-views): an "ignis:event:" notice is a quiet event line
             var notice = item.Value;
             var row = new TimelineBaselineRow { Spacing = 8 };
             row.Children.Add(SwiftImage.SystemName(Symbol(notice.NoticeLevel)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)).ForegroundStyle(Color(notice.NoticeLevel)));
