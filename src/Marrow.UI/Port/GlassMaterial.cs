@@ -66,11 +66,20 @@ internal static partial class GlassMaterial
                 queued = false;
                 ElementComposition.GetElementVisual(this.owner)?.Compositor.RequestCompositionUpdate(synchronize);
             };
-            owner.AttachedToVisualTree += (_, _) => { requested = false; Queue(); };
+            owner.AttachedToVisualTree += (_, _) => { if (InteractionProbe.On) InteractionProbe.Count(ProbeName(owner)); requested = false; Queue(); };
             owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); StopTurn(); requested = false; };
-            owner.LayoutUpdated += (_, _) => Queue();
-            owner.PropertyChanged += (_, _) => Queue();
-            owner.ActualThemeVariantChanged += (_, _) => Queue();
+            owner.LayoutUpdated += (_, _) =>
+            {
+                var indifferent = LayoutIndifferent(out var why);
+                if (InteractionProbe.On) InteractionProbe.Count(why);
+                if (!indifferent) Queue();
+            };
+            owner.PropertyChanged += (_, e) =>
+            {
+                if (InteractionProbe.On) InteractionProbe.Count("glass.queue.property." + e.Property.Name);
+                Queue();
+            };
+            owner.ActualThemeVariantChanged += (_, _) => { InteractionProbe.Count("glass.queue.theme"); Queue(); };
         }
 
         // The window is redrawn whole once, a frame after an eased turnover of its glass has ended. The turnover is drawn by partial redraws, the glass's
@@ -104,6 +113,42 @@ internal static partial class GlassMaterial
             foreach (var visual in top.GetVisualDescendants()) visual.InvalidateVisual();
         }
 
+        // ED-NEW-stutterfix-4: a layout pass anywhere in a window synchronised each of its pieces (a keystroke in the composer did so for each of the
+        // main window's ~44: 1,936 synchronisations for 43 keys), and a lone piece's synchronisation, when nothing it is drawn with had changed, computed
+        // the same state and sent nothing. A lone piece (one drawing its own material, in no container) now skips a layout pass when what it was last
+        // synchronised with that changes without telling it is as it was: its render transform's value (changed in place), its fill's colour (changed
+        // in place), its tint as resolved (the accent), its having no container, and its material's copy of its composition visual. The rest of what it is
+        // drawn with raises its PropertyChanged or ActualThemeVariantChanged (bounds, opacity, visibility, transform replaced, effect, fill replaced,
+        // corners), each of which queues it as before; the window's renderer step (WindowHook) puts its material back after Avalonia's re-synchronisation.
+        // A window without that step, a container, and a piece drawn by a container keep to every layout pass. What is drawn, and when, is unchanged.
+        private (Matrix Local, Color? Fill, Color Tint)? alone;
+
+        private (Matrix Local, Color? Fill, Color Tint) Unannounced()
+        {
+            var fill = owner switch { Border border => border.Background, SwiftShapeBorder shape => shape.Background, _ => null } as ISolidColorBrush;
+            var e = SwiftGlass.GetEffect(owner);
+            var tint = e?.TintColor?.Opacity(e.TintOpacity ?? 1).Resolve(owner.ActualThemeVariant) ?? Colors.Transparent;
+            return (LocalTransform(owner), fill?.Color, tint);
+        }
+
+        // `why` names the outcome for InteractionProbe (constant strings).
+        private bool LayoutIndifferent(out string why)
+        {
+            why = "glass.layout.queue.not-lone";
+            if (alone is not { } kept || material is not { } m || parent is null || ElementComposition.GetElementVisual(owner) is not { } v) return false;
+            why = "glass.layout.queue.no-step";
+            if (TopLevel.GetTopLevel(owner) is not { } top || !windows.TryGetValue(top, out var hook) || !hook.Installed) return false;
+            why = "glass.layout.queue.container";
+            if (SwiftGlass.GetContainerSpacing(owner) is not null || ContainerOf(owner) is not null) return false;
+            why = "glass.layout.queue.visual";
+            if (m.Offset != v.Offset || m.Translation != v.Translation || m.Size != v.Size || m.AnchorPoint != v.AnchorPoint || m.CenterPoint != v.CenterPoint
+                || m.Scale != v.Scale || m.RotationAngle != v.RotationAngle || m.Orientation != v.Orientation || m.Opacity != v.Opacity || m.Visible != v.Visible
+                || !ReferenceEquals(m.OpacityMask, v.OpacityMask)) return false;
+            var same = Unannounced() == kept;
+            why = same ? "glass.layout.skip" : "glass.layout.queue.unannounced";
+            return same;
+        }
+
         public void Queue()
         {
             // ED-356 (the first frame): until a piece has synchronised once, its window's renderer step (WindowHook) synchronises it right
@@ -112,10 +157,19 @@ internal static partial class GlassMaterial
             if (!synchronizedOnce && TopLevel.GetTopLevel(owner) is { } top) HookOf(top).Pending.Add(this);
             if (queued) return;
             queued = true;
+            InteractionProbe.Count("glass.queue");
             Dispatcher.UIThread.Post(posted, DispatcherPriority.Loaded);
         }
 
         private bool synchronizedOnce;
+        // ED-NEW-stutterfix-1: the name a piece is counted under when it is attached (InteractionProbe on only): its type and its first ancestors'.
+        private static string ProbeName(Control control)
+        {
+            var name = new StringBuilder("glass.attached.");
+            Visual? visual = control;
+            for (var i = 0; i < 4 && visual is not null; i++, visual = visual.GetVisualParent()) name.Append(visual.GetType().Name).Append('<');
+            return name.ToString();
+        }
 
         // Run by the window's renderer step (WindowHook.Repair), after the renderer's update and before the frame is committed.
         internal void SynchronizeFirst(WindowHook hook)
@@ -202,14 +256,18 @@ internal static partial class GlassMaterial
 
         private void Synchronize()
         {
+            using var probe = InteractionProbe.Begin("glass.sync");
+            SynchronizedForTests?.Invoke(owner);
             requested = false;
             var spacing = SwiftGlass.GetContainerSpacing(owner);
             var ownEffect = SwiftGlass.GetEffect(owner);
+            alone = null;
             BindInput(ownEffect?.IsInteractive == true);
             if (spacing is null && ContainerOf(owner) is { } group)
             {
                 RemoveMaterial();
                 synchronizedOnce = true; // the container draws it
+                InteractionProbe.Count("glass.queue.by-piece");
                 AttachmentFor(group).Queue();
                 return;
             }
@@ -255,6 +313,7 @@ internal static partial class GlassMaterial
             if (spacing is null)
             {
                 if (RegionFor(owner, LocalTransform(owner), 1) is { } r) regions.Add(r);
+                alone = Unannounced();
             }
             else
             {
@@ -421,6 +480,8 @@ internal static partial class GlassMaterial
         public readonly HashSet<Attachment> Pending = [];
         public readonly List<Attachment> Later = [];
         private readonly List<Attachment> pass = [];
+        /// <summary>Whether the step runs after the window's renderer update (Install found the member it names).</summary>
+        public bool Installed;
         public void Repair()
         {
             if (Pending.Count > 0) TraceForTests?.Invoke($"renderer step with {Pending.Count} pending");
@@ -473,6 +534,7 @@ internal static partial class GlassMaterial
             var update = renderer?.GetType().GetField("_update", BindingFlags.Instance | BindingFlags.NonPublic);
             if (renderer is null || update?.GetValue(renderer) is not Action original) return;
             update.SetValue(renderer, new Action(() => { TraceForTests?.Invoke("renderer update"); original(); hook.Repair(); }));
+            hook.Installed = true;
             // An update already queued holds the old delegate: one more step, after it, in the next composition update.
             if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
             TraceForTests?.Invoke("hook installed");
@@ -505,6 +567,7 @@ internal static partial class GlassMaterial
             if (state is not { Regions.Length: > 0 } s) return;
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (feature is null) return;
+            using var probe = InteractionProbe.Begin("glass.draw");
             using var lease = feature.Lease();
             DrawsForTests++;
             if (DrawsForTests == 1) TraceForTests?.Invoke("first draw (render thread)");
@@ -533,12 +596,24 @@ internal static partial class GlassMaterial
     // Test-only readback (InternalsVisibleTo): how many times any material has drawn, on the render thread.
     internal static int DrawsForTests;
 
+    // ED-NEW-stutterfix-1 (InteractionProbe, diagnostics only; render thread): give the window a handler draws in the reach that reports its frames,
+    // as a material's first draw does, and name that window's tracker.
+    internal static void ObserveFrames(CompositionCustomVisualHandler handler)
+    {
+        if (Frame.Target(handler) is { } target) Frame.ReachOf(target);
+    }
+
+    internal static object? TrackerOf(CompositionCustomVisualHandler handler) =>
+        Frame.Target(handler) is { } target ? Frame.ReachOf(target)?.Tracker : null;
+
     // Test-only (InternalsVisibleTo), ED-356's frame cost: while set, each draw waits for the GPU's work before and after itself and reports its
     // first piece's size and how long the draw took, the GPU's part included. Called on the render thread.
     internal static volatile Action<Size, TimeSpan>? FrameCostForTests;
 
     // Test-only (InternalsVisibleTo): the first-frame steps (a piece's first synchronisation, the first draw), for the native first-frame test.
     internal static volatile Action<string>? TraceForTests;
+    /// <summary>Called with a piece's owner each time it synchronises (tests).</summary>
+    internal static Action<Control>? SynchronizedForTests;
 
     // Sent before a material leaves its parent: its handler gives up the backdrop it keeps (disposed at the next render, where the GPU context is current).
     private sealed class Released { public static readonly Released Message = new(); }
@@ -838,7 +913,7 @@ internal static partial class GlassMaterial
         {
             var info = new SKImageInfo(Math.Max(1, width), Math.Max(1, height), SKColorType.Rgba8888, SKAlphaType.Premul);
             // Keep native rendering on the lease's GPU; the software path also runs in headless tests (P1).
-            return lease.GrContext is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
+            return lease.GrContext is { } gpu ? SKSurface.Create(gpu, true, info) : SKSurface.Create(info); // ED-NEW-stutterfix-3: budgeted, so a released texture goes back to Skia's scratch pool for the next one
         }
 
         // The surface the blur is drawn into, the crop's size, kept from frame to frame (what it held is drawn over where it is read).
@@ -948,6 +1023,17 @@ internal static partial class GlassMaterial
             catch (Exception e) when (Expected(e)) { return null; }
         }
 
+        // ED-NEW-stutterfix-1 (diagnostics only): the merged rect of a tracker the reach is bound to.
+        public static SKRectI? Combined(object tracker)
+        {
+            try
+            {
+                combined ??= tracker.GetType().GetProperty("CombinedRect", Members);
+                return combined?.GetValue(tracker) is { } rect ? ToRect(rect) : null;
+            }
+            catch (Exception e) when (Expected(e)) { return null; }
+        }
+
         // The window's Reach, made and set as the target's debug events the first time (only when nothing else has set them).
         public static Reach? ReachOf(object target)
         {
@@ -1030,8 +1116,10 @@ internal static partial class GlassMaterial
         private readonly HashSet<object> grown = new();
         private readonly List<KeyValuePair<object, Spread>> pass = new();
         private int rendered, visited;
+        private object? observed; // the tracker, kept for InteractionProbe's frame report even after the reach gives up
 
-        internal void Bind(object dirtyRects, Action<object, SKRectI> add) => (tracker, addRect) = (dirtyRects, add);
+        internal void Bind(object dirtyRects, Action<object, SKRectI> add) => (tracker, addRect, observed) = (dirtyRects, add, dirtyRects);
+        internal object? Tracker => observed;
         internal void Set(object material, Spread spread) => materials[material] = spread;
         internal void Remove(object material) => materials.Remove(material);
 
@@ -1050,7 +1138,12 @@ internal static partial class GlassMaterial
                     }
                     return null;
                 case "get_RenderedVisuals": return rendered;
-                case "set_RenderedVisuals" when args is [int count]: rendered = count; return null;
+                case "set_RenderedVisuals" when args is [int count]:
+                    rendered = count;
+                    // ED-NEW-stutterfix-1: set by Avalonia right after the frame is drawn, while its merged dirty rect is still the tracker's.
+                    if (InteractionProbe.On && InteractionProbe.FrameDrawn is { } drawn && observed is { } frameTracker && Frame.Combined(frameTracker) is { } merged)
+                        drawn(frameTracker, (merged.Left, merged.Top, merged.Right, merged.Bottom), count);
+                    return null;
                 case "get_VisitedVisuals": return visited;
                 case "set_VisitedVisuals" when args is [int count]: visited = count; return null;
                 default: return null;

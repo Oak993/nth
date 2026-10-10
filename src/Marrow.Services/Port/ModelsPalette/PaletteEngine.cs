@@ -69,12 +69,26 @@ public sealed partial class PaletteEngine : Actor,IDisposable
         if(running is {} joined)return await joined;
         running=Run(false);try{return await running;}finally{running=null;}
     });
-    public Task Observe(IReadOnlyList<string> modelIds)=>Isolated(()=>
+    // ED-NEW-stutterfix-6: observations queued together (a long list resolving its cold models one by one) publish once, after the last of
+    // them: the snapshot and the saved bytes are those of observing them all at once, and an observation on its own still publishes when done.
+    private int observationsQueued;
+    private bool observationUnpublished;
+    public Task Observe(IReadOnlyList<string> modelIds)
     {
-        PrimeOnActor();
-        var changed=false;foreach(var id in modelIds)changed|=observed.Add(id);
-        if(changed){Publish();QueueCheck();}
-    });
+        Interlocked.Increment(ref observationsQueued);
+        return Isolated(()=>
+        {
+            try
+            {
+                PrimeOnActor();
+                foreach(var id in modelIds)observationUnpublished|=observed.Add(id);
+            }
+            finally
+            {
+                if(Interlocked.Decrement(ref observationsQueued)==0&&observationUnpublished){observationUnpublished=false;Publish();QueueCheck();}
+            }
+        });
+    }
     public void NotifyResume()=>QueueCheck();
     public void NotifyCatalogueChanged(IReadOnlyList<string> ids)=>_ =Observe(ids);
     public void Start()

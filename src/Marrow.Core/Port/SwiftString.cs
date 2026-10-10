@@ -170,36 +170,41 @@ public static class SwiftString
         if (Count(separator) != 1) throw new ArgumentException("A Swift Character separator is exactly one Character.", nameof(separator));
         RequireNonNegative(maxSplits, "Must take zero or more splits");
         var result = new List<string>();
-        var characters = Characters(text).ToArray();
-        var starts = new int[characters.Length + 1];
-        for (var i = 0; i < characters.Length; i++) starts[i + 1] = starts[i] + characters[i].Length;
+        // ED-NEW-stutterfix-7: the Characters are walked in place (their boundaries), not each made a string. A one-unit ASCII Character
+        // equals a one-unit ASCII separator only when it is that unit (NFC leaves ASCII alone); every other Character is compared as before.
+        var asciiSeparator = separator.Length == 1 && separator[0] < 0x80;
         var subsequenceStart = 0;
         bool Append(int end)
         {
             if (subsequenceStart == end && omittingEmptySubsequences) return false;
-            result.Add(text[starts[subsequenceStart]..starts[end]]);
+            result.Add(text[subsequenceStart..end]);
             return true;
         }
-        if (maxSplits == 0 || characters.Length == 0)
+        if (maxSplits == 0 || text.Length == 0)
         {
-            Append(characters.Length);
+            Append(text.Length);
             return result;
         }
         var subsequenceEnd = 0;
-        while (subsequenceEnd != characters.Length)
+        while (subsequenceEnd != text.Length)
         {
-            if (Equal(characters[subsequenceEnd], separator))
+            var length = StringInfo.GetNextTextElementLength(text.AsSpan(subsequenceEnd));
+            var unit = text[subsequenceEnd];
+            var isSeparator = asciiSeparator && length == 1 && unit < 0x80
+                ? unit == separator[0]
+                : Equal(text.Substring(subsequenceEnd, length), separator);
+            if (isSeparator)
             {
                 var didAppend = Append(subsequenceEnd);
-                subsequenceEnd++;
+                subsequenceEnd += length;
                 subsequenceStart = subsequenceEnd;
                 if (didAppend && result.Count == maxSplits) break;
                 continue;
             }
-            subsequenceEnd++;
+            subsequenceEnd += length;
         }
-        if (subsequenceStart != characters.Length || !omittingEmptySubsequences)
-            result.Add(text[starts[subsequenceStart]..]);
+        if (subsequenceStart != text.Length || !omittingEmptySubsequences)
+            result.Add(text[subsequenceStart..]);
         return result;
     }
 
