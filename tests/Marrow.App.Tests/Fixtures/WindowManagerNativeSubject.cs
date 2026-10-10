@@ -36,7 +36,9 @@ internal sealed class WindowManagerNativeSubject : IDisposable
         session.Register(Settings);
         Template(Settings);
         Place(Main, 880, 570);
-        Place(Settings, 780, 580);
+        // ED-NEW-native-fix: Settings is owned by Main and so always above it (T45, nonmodal ownership). The fixture
+        // therefore puts it clear of Main, or every Main caption/edge target would be covered by the Settings window.
+        Place(Settings, 780, 580, ClearOf(Main, Settings, 780, 580));
         // Reads the exact instances created by MakeWindow and attached by HostedEnvironment.
         _ = AppEnvironment.GetWindowLiveResize(MainContent);
         _ = AppEnvironment.GetWindowLiveResize(SettingsContent);
@@ -64,7 +66,22 @@ internal sealed class WindowManagerNativeSubject : IDisposable
         window.UpdateLayout();
     }
 
-    private static void Place(AvaloniaWindow window, double width, double height)
+    // The first free origin beside the placed window (to its right, else below it), 24 px apart, within the working area.
+    private static PixelPoint ClearOf(AvaloniaWindow placed, AvaloniaWindow window, double width, double height)
+    {
+        var screen = window.Screens.ScreenFromWindow(placed) ?? window.Screens.Primary
+            ?? throw new InvalidOperationException("No native screen is available.");
+        var area = screen.WorkingArea;
+        var scale = window.DesktopScaling;
+        var frame = placed.FrameSize ?? placed.ClientSize;
+        var right = new PixelPoint(placed.Position.X + (int)Math.Ceiling(frame.Width * scale) + 24, area.Position.Y + 96);
+        if (right.X + width * scale + 48 <= area.Right && right.Y + height * scale + 48 <= area.Bottom) return right;
+        var below = new PixelPoint(area.Position.X + 96, placed.Position.Y + (int)Math.Ceiling(frame.Height * scale) + 24);
+        if (below.X + width * scale + 48 <= area.Right && below.Y + height * scale + 48 <= area.Bottom) return below;
+        throw new InvalidOperationException("NATIVE_PRECONDITION: the working area cannot hold the Main and Settings fixture windows side by side; Settings (owned, so above Main) would cover the Main caption and edge targets.");
+    }
+
+    private static void Place(AvaloniaWindow window, double width, double height, PixelPoint? origin = null)
     {
         var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary
             ?? throw new InvalidOperationException("No native screen is available.");
@@ -74,7 +91,7 @@ internal sealed class WindowManagerNativeSubject : IDisposable
             throw new InvalidOperationException("The native fixture needs enough working area for the factory minimum size and guarded edge drag.");
         window.Width = width;
         window.Height = height;
-        window.Position = new PixelPoint(area.Position.X + 96, area.Position.Y + 96);
+        window.Position = origin ?? new PixelPoint(area.Position.X + 96, area.Position.Y + 96);
         window.UpdateLayout();
     }
 

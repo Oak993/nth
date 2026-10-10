@@ -49,6 +49,16 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
         return (window, frames);
     }
 
+    private void Front(Avalonia.Controls.Window window) => native.OnUi(() =>
+        WindowManagerNativeForeground.Acquire(window.TryGetPlatformHandle()?.Handle ?? throw new InvalidOperationException("NATIVE_PRECONDITION: the test window has no HWND."), native.ThreadId));
+
+    private void StillFront(Avalonia.Controls.Window window, string measured) => native.OnUi(() =>
+    {
+        var handle = window.TryGetPlatformHandle()?.Handle ?? 0;
+        if (N.GetForegroundWindow() != handle)
+            throw new InvalidOperationException($"NATIVE_PRECONDITION: the test window lost the foreground during the measured seconds (foreground 0x{N.GetForegroundWindow():X}, window 0x{handle:X}); {measured}.");
+    });
+
     private int UpdatesOver(CountingFrameSource frames, TimeSpan span)
     {
         var start = native.OnUi(() => frames.Updates);
@@ -448,6 +458,10 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
                 return (window, source, slider);
             });
             N.Until(() => native.OnUi(() => window.IsActive), "the test window never became active");
+            // T44's ambient policy runs the track only while its window is the foreground one, uncovered and used within 20 s; a window that
+            // merely reports IsActive may sit in the background (the gate's count was 0). The shared foreground helper brings it to the front or
+            // refuses with NATIVE_PRECONDITION; the same check follows the measured seconds, so a lost front is named and not read as a slow track.
+            Front(window);
             Thread.Sleep(5000);
             var effect = native.OnUi(() => Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>()));
             var before = effect.Draws;
@@ -455,6 +469,7 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
             Thread.Sleep(3000);
             var count = effect.Draws - before;
             var jewel = JewelKnobOperation.GpuFrames - gpu;
+            StillFront(window, $"count {count}, jewel {jewel}");
             File.WriteAllText(Record("strike-native-cadence.json"), System.Text.Json.JsonSerializer.Serialize(new
             {
                 count, jewel, sources = source.RenderSources.Select(s => new { periodMs = s.RefreshPeriod?.TotalMilliseconds, ticks = s.Ticks, refresh = s.Refresh })

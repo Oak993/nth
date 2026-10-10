@@ -126,6 +126,14 @@ internal sealed class ComposerLightHandler(AmbientMotionController? ambient = nu
         if (IsStopped || snapshot is null) return;
         ambient?.Sample(Seconds(snapshot.Clock), Interaction(Seconds(snapshot.Clock)));
         if (ambient is not null && !ambient.Available) return;
+        // ED-NEW-frame-pacing: the light moves at the 60 Hz slots of the refreshes, with every other ambient source
+        if (ambient is not null && ambient.Pace(CompositionNow.Ticks, Seconds(snapshot.Clock), Interaction(Seconds(snapshot.Clock))) == AmbientMotionController.Paced.Wait)
+        {
+            frameRequested = true;
+            Volatile.Write(ref animating, 1);
+            RegisterForNextAnimationFrameUpdate();
+            return;
+        }
         Step(Seconds(snapshot.Clock));
     }
 

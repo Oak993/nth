@@ -22,9 +22,9 @@ namespace Marrow.App.Tests.Window.Native;
 // Native evidence for PR-GIT-137 (the changes popover, DroppyCode/App/Views/Diff/DiffInspector.swift:515-692): the real DiffPopoverCoordinator and its real Popup on a real Win32 window,
 // driven by the system's pointer and keyboard input (SendInput, keybd_event), never by RaiseEvent. Semitransient with a pass-through monitor (:515-519): Escape closes it and is swallowed
 // (:668-672), a press outside closes it first and still reaches its target, so another turn's Review button opens the diff in a single tap (:662-666). After a reopen onto another anchor the
-// popover is in the state of upstream defect 67, which the port reproduces (PORT_CONTRACT section 8, ED-196, :640-658): its delayed close stopped the new show's monitors, so Escape and an outside
-// press no longer dismiss it until it is closed another way and shown afresh; this test proves that the popup still closes by those other ways on a real window (the safety check of
-// the ruling: the stuck case is not undismissable) and that a fresh show restores the monitors. The 640 x 540 content size is asserted in points; the display scale of the PC it runs on is
+// popover was in the state of upstream defect 67, which the port reproduced (PORT_CONTRACT section 8, ED-196, :640-658): its delayed close stopped the new show's monitors, so Escape and an outside
+// press no longer dismissed it. Since T45 (ED-NEW-T45 item 11: the owner's rule that every popover closes on Escape and on an outside press) the reopened popover keeps its monitors; this test proves on
+// a real window that Escape closes it and is swallowed, that an outside tap closes it, that its flag still closes it, and that a fresh show has its monitors. The 640 x 540 content size is asserted in points; the display scale of the PC it runs on is
 // recorded (a second scale, 150 %, cannot be set without changing a system setting). Needs a free interactive desktop; the lead takes native.lock around the run.
 [Collection("WindowManagerNative")]
 public sealed class DiffPopoverNativeTests(WindowManagerNativeSession native)
@@ -46,7 +46,7 @@ public sealed class DiffPopoverNativeTests(WindowManagerNativeSession native)
     }
 
     [Fact]
-    [Trait("Req", "PR-GIT-137")] // DiffInspector.swift:515-519, :599-612, :640-658, :662-686; upstream defect 67 reproduced; native, SendInput
+    [Trait("Req", "PR-GIT-137")] // DiffInspector.swift:515-519, :599-612, :640-658, :662-686; upstream defect 67 no longer reproduced (ED-NEW-T45 item 11); native, SendInput
     public void On_a_real_window_escape_is_swallowed_an_outside_tap_on_another_review_button_reopens_there_and_the_reopened_popover_still_closes_by_its_flag() => native.Run(_ =>
     {
         N.Check(N.GetCursorPos(out var original), "GetCursorPos");
@@ -130,25 +130,36 @@ public sealed class DiffPopoverNativeTests(WindowManagerNativeSession native)
             Escape(); // the reopened popover is a fresh show with its own monitors, so Escape closes it again
             N.Until(() => !Open(), "Escape did not close the popover reopened by the tap");
 
-            // 3. Upstream defect 67, reproduced: a reopen onto another anchor while the popover is shown (no press in between, e.g. the changes opened from the keyboard or by a tool row's
-            // bump) leaves the delayed close to stop the new show's monitors, so Escape and an outside tap leave it open ...
-            native.OnUi(() => { runtime.ShowDiff(tab, null); coordinator.Sync(true, runtime); }); // the diff opens on the changes tab
-            N.Until(() => native.OnUi(() => popup.IsOpen && ReferenceEquals(popup.PlacementTarget, tab)), "the changes popover never opened on the tab");
-            native.OnUi(() => { runtime.ShowDiff(second, Guid.NewGuid()); coordinator.Reopen(runtime); });
-            N.Until(() => native.OnUi(() => popup.IsOpen && ReferenceEquals(popup.PlacementTarget, second)), "the popover did not move to the other anchor");
-            Thread.Sleep(600); // the delayed close has run
+            // 3. ED-NEW-native-fix (ED-NEW-T45 item 11): upstream defect 67 is no longer reproduced on a real window. A reopen onto another anchor while the popover is shown (no press in between, e.g. the
+            // changes opened from the keyboard or by a tool row's bump) used to leave the delayed close to stop the new show's monitors, so Escape and an outside tap left it open. The owner's T45 rule is that every
+            // popover closes on Escape and on an outside press, so the reopened popover must keep its monitors: Escape closes it and is swallowed, an outside tap closes it, and its flag still closes it.
+            void ReopenWhileShown()
+            {
+                native.OnUi(() => { runtime.ShowDiff(tab, null); coordinator.Sync(true, runtime); }); // the diff opens on the changes tab
+                N.Until(() => native.OnUi(() => popup.IsOpen && ReferenceEquals(popup.PlacementTarget, tab)), "the changes popover never opened on the tab");
+                native.OnUi(() => { runtime.ShowDiff(second, Guid.NewGuid()); coordinator.Reopen(runtime); });
+                N.Until(() => native.OnUi(() => popup.IsOpen && ReferenceEquals(popup.PlacementTarget, second)), "the popover did not move to the other anchor");
+                Thread.Sleep(600); // the delayed close has run
+            }
             string State() => native.OnUi(() => string.Join(", ", new[] { "keyMonitor", "pointerMonitor", "desiredVisible", "isShown", "shownRuntime", "session", "pendingSession", "reopening", "notifiedCloseSession" }
                 .Select(name => name + "=" + (typeof(DiffPopoverCoordinator).GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(coordinator) is { } value ? (value is bool or long ? value.ToString() : "set") : "null"))));
+            ReopenWhileShown();
             var before = State();
+            Assert.Contains("keyMonitor=set", before, StringComparison.Ordinal);     // the delayed close left the new show's monitors in place
+            Assert.Contains("pointerMonitor=set", before, StringComparison.Ordinal);
+            var escapesBefore = escapesReaching;
             Escape();
-            Thread.Sleep(800);
-            Assert.True(Open(), "Escape closed the reopened popover although the Swift's delayed close stopped its monitors; state before: " + before + "; after: " + State());
-            ClickAt(CenterOf(tab));
-            Thread.Sleep(800);
-            Assert.True(Open(), "an outside tap closed the reopened popover although the Swift's delayed close stopped its monitors");
-            Assert.True(native.OnUi(() => runtime.IsDiffVisible));
+            N.Until(() => !Open(), "Escape did not close the reopened popover; state before: " + before + "; after: " + State());
+            Assert.False(native.OnUi(() => runtime.IsDiffVisible));
+            Assert.Equal(escapesBefore, escapesReaching); // swallowed, as on a fresh show
 
-            // ... and it is not undismissable: the X button, the tab and the shortcut turn its flag off, and the popover follows it.
+            ReopenWhileShown();
+            ClickAt(CenterOf(tab));
+            N.Until(() => !Open(), "an outside tap did not close the reopened popover; state: " + State());
+            Assert.False(native.OnUi(() => runtime.IsDiffVisible));
+
+            // ... and its flag (the X button, the tab and the shortcut) still closes it, the popover following it.
+            ReopenWhileShown();
             native.OnUi(() => { runtime.IsDiffVisible = false; coordinator.Sync(false, runtime); });
             N.Until(() => !Open(), "the reopened popover did not close by its flag");
 
