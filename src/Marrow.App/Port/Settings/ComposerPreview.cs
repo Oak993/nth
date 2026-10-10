@@ -107,36 +107,53 @@ internal sealed partial class ComposerPreview : Grid
         Typed.Foreground = SwiftColor.LabelColor.Brush(Typed);
         Caret = new Border { Width = 1.5, Height = 17, IsVisible = false, IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
         Caret.Background = SwiftColor.LabelColor.Brush(Caret);
+        // OD-0132 / ED-NEW-T46-centre: the real column (ComposerTextView.PlaceInk) draws the line from its glyph outlines' centre so the ink sits on the composer's
+        // vertical centre; the preview's placeholder, the typed words over it and the caret take the same shift, so they cross on one line and match the real one.
+        var inkPlace = new TranslateTransform();
+        Hint.RenderTransform = Typed.RenderTransform = Caret.RenderTransform = inkPlace;
+        void PlaceInk()
+        {
+            var inkBounds = Hint.Bounds.Height > 0 && Hint.Placeholder.Length > 0 ? Hint.CreatePlaceholderText().BuildGeometry(new Point())?.Bounds : null;
+            inkPlace.Y = inkBounds is { Height: > 0 } ink ? Hint.Bounds.Height / 2 - ink.Center.Y - Hint.Padding.Top : 0;
+        }
+        Hint.SizeChanged += (_, _) => PlaceInk();
+        Hint.InkMetricsChanged += PlaceInk;
         textCell = new Grid { Children = { Hint, Typed, Caret } };
-        text = new Border { Child = textCell, ClipToBounds = true, MinHeight = 20, Margin = new Thickness(0, 4, 0, 4), VerticalAlignment = VerticalAlignment.Bottom };
+        text = new Border { Child = textCell, ClipToBounds = true, MinHeight = 20, Margin = new Thickness(0, 4, 0, 4), VerticalAlignment = VerticalAlignment.Center }; // OD-0132: a one-line composer's text sits on its vertical centre, as the real column's does
 
         // VT-10, voice-SPEC V-14.1 and CZ-4.3: the inert attachment is a left overlay, as in ComposerArea.MakeAttachButtons.
         var paperclip = SwiftImage.SystemName("paperclip").Font(Chrome.IconFont);
         paperclip.HorizontalAlignment = HorizontalAlignment.Center;
         paperclip.VerticalAlignment = VerticalAlignment.Center;
+        paperclip.UseLayoutRounding = false; // ComposerAttachButton.cs:57: the symbol's fractional natural size stays centred in the button
         Attach = PlainControls.Button(paperclip, () => { }); // inert: the preview attaches nothing
         Attach.Chip(false);
         Attach.Width = 34;
         Attach.Height = 28;
         Attach.HorizontalAlignment = HorizontalAlignment.Left;
-        Attach.VerticalAlignment = VerticalAlignment.Bottom;
-        Attach.Margin = new Thickness(8, 0, 0, 8);
+        Attach.VerticalAlignment = VerticalAlignment.Center; // OD-0132: on the composer's vertical centre (the real inside button: ComposerView.ArrangeOverride, single line)
+        Attach.Margin = new Thickness(8, 0, 0, 0);
         Attach.Focusable = false;
         Attach.IsHitTestVisible = false;
         ToolTip.SetTip(Attach, "Attach files");
         AutomationProperties.SetName(Attach, "Attach files");
         Chip = new PreviewComposerChip(session.Maker, () => session.Step(1));
         // ComposerControls with voice off: model chip, ring, send, two apart.
-        Controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Bottom };
+        Controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         Controls.Children.Add(Chip);
         Controls.Children.Add(Ring);
         Controls.Children.Add(send);
+        // OD-0132 (ComposerControls ctor, ComposerView.cs): every control centres on the row, so the ring is its natural 25 high
+        foreach (var child in Controls.Children) child.VerticalAlignment = VerticalAlignment.Center;
+        // the real row's own (ComposerView.ShowControls): a half-pixel centre must not round before its glyphs rasterise, and a fixed fractional width sits on the trailing edge, not centred in a rounded Auto column
+        Controls.UseLayoutRounding = false;
+        var controlsHost = new TrailingHost { Child = Controls, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, UseLayoutRounding = false };
 
         // one pill: the text on the left, the controls tucked into its trailing end (ComposerView.swift:143-145, :176-186)
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         row.Children.Add(text);
-        Grid.SetColumn(Controls, 1);
-        row.Children.Add(Controls);
+        Grid.SetColumn(controlsHost, 1);
+        row.Children.Add(controlsHost);
         // ComposerArea.ApplyAttachPlace: the inside button adds 34 to the original 14 px text inset.
         padded = new Border { Child = row, Padding = new Thickness(48, 8, 8, 8) };
         layers = new Grid { Children = { dots, padded, Attach } };
@@ -160,6 +177,30 @@ internal sealed partial class ComposerPreview : Grid
         ActualThemeVariantChanged += (_, _) => UpdatePalette();
         UpdatePalette();
         Apply(first: true);
+    }
+
+    /// <summary>
+    /// The real row's column (ComposerView.ShowControls: right-aligned, unrounded) in the preview: the controls keep their fractional width, so the chip's text decides where the chip starts,
+    /// while the column is whole pixels and the ring and send sit on the trailing edge to the pixel, as the real ones do. (The Grid rounds a fractional Auto column to the nearest pixel, which
+    /// can be narrower than the row, and the overflow would shift the ring and send by that fraction.)
+    /// </summary>
+    private sealed class TrailingHost : Decorator
+    {
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            var size = base.MeasureOverride(availableSize);
+            return new Size(Math.Ceiling(size.Width), size.Height);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (Child is { } child)
+            {
+                var width = Math.Min(child.DesiredSize.Width, finalSize.Width);
+                child.Arrange(new Rect(finalSize.Width - width, 0, width, finalSize.Height));
+            }
+            return finalSize;
+        }
     }
 
     // ComposerTextView.UpdateHeight (:374): the text view is as tall as its one line, at least 18, with the container inset above and below

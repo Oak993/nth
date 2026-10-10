@@ -224,7 +224,17 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
         Assert.Equal(6 + 8, origin.Y, 0.5);
         Assert.Equal(origin.X + 20 + 6, label.TranslatePoint(default, list)!.Value.X, 0.5);
         var scroll = list.GetVisualDescendants().OfType<ScrollViewer>().Single();
-        Assert.Equal(6 + 8 + 20 + 4, scroll.TranslatePoint(default, list)!.Value.Y, 0.5); // the rows begin 4 below the header
+        // ED-NEW-gate-fixes-1 (OD-0126): owner task T46 put the model search field between the header and the rows, so the rows no longer begin 4 under the header.
+        // The pin is at least as tight: the field is exactly 28 high with margins 4 / 4 / 4 / 8 (ModelListSearch), 4 below the header, and the rows begin exactly 8 under it.
+        var searchField = list.GetVisualDescendants().OfType<TextBox>().Single(field => Avalonia.Automation.AutomationProperties.GetName(field) == "Search models");
+        var searchBox = searchField.GetVisualAncestors().OfType<Border>().First(border => border.Height == 28);
+        var searchOrigin = searchBox.TranslatePoint(default, list)!.Value;
+        Assert.Equal(6 + 4, searchOrigin.X, 0.5);                                   // list padding 6 + field margin 4
+        Assert.Equal(6 + 8 + 20 + 4 + 4, searchOrigin.Y, 0.5);                      // 4 under the header (its bottom margin) plus the field's own 4 top margin = 42
+        Assert.Equal(list.Bounds.Width - 2 * (6 + 4), searchBox.Bounds.Width, 0.5); // 4 margin each side inside the 6 padding
+        Assert.Equal(28, searchBox.Bounds.Height, 0.5);
+        Assert.Equal(78, scroll.TranslatePoint(default, list)!.Value.Y, 0.5);       // the rows begin 78 down
+        Assert.Equal(searchOrigin.Y + 28 + 8, scroll.TranslatePoint(default, list)!.Value.Y, 0.5); // exactly the field's bottom margin (8) below the field
     });
 
     [Fact]

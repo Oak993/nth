@@ -611,7 +611,8 @@ public sealed class ComposerView : Decorator
             insideAttach.Margin = new Thickness(8, 0, 0, singleLine ? 0 : 8);
         }
         if (outsideAttach is not null) Canvas.SetBottom(outsideAttach, singleLine ? finalSize.Height / 2 - 18 : 4);
-        PlaceInlineComposer(singleLine && voice is not null ? 1 : 0);
+        var willBeSingleLine = textColumn.WillBeSingleLine && (askOthers is null || askOthers.DesiredSize.Height <= 28);
+        PlaceInlineComposer(singleLine && voice is not null ? 1 : 0, willBeSingleLine && voice is not null ? 1 : 0);
         var size = base.ArrangeOverride(finalSize);
         root.Arrange(new Rect(finalSize));
         return size;
@@ -726,12 +727,52 @@ public sealed class ComposerView : Decorator
 
     // T46 / OD-0132: the former bottom-aligned controls sat one point below the ordinary composer's centre.
     // Centre the single-line contents and retain their approved window anchor by moving the unchanged outline one point.
+    //
+    // ED-NEW-gate-fixes-6: the outline's point is not a step. Swift grows and shrinks the pill on smooth(0.28) (ComposerView.swift:604, ApplyHeight),
+    // so the outline's point rides that same transition. The view still carries `rest` (the point of the state the contents are laid out in, flipped
+    // with their alignment as before, so their window places and their places in the view are exactly what they were), and only the plate, the
+    // shape that draws the outline, glides the rest of the way to where the text is going (WillBeSingleLine, known the moment the text changes);
+    // the contents ride a counter-translation of the plate's, so they never move with it.
     private readonly TranslateTransform inlineComposerPlacement = new();
+    private readonly TranslateTransform inlinePlateGlide = new();
+    private readonly TranslateTransform inlineContentCounter = new();
+    private AnimatedScalar? inlineInset;
+    private double inlineRest;
+    private double inlineGoal;
+    private bool inlineSeen;
+    private bool inlineGliding;
 
-    private void PlaceInlineComposer(double inset)
+    private void PlaceInlineComposer(double rest, double goal)
     {
-        inlineComposerPlacement.Y = inset;
-        if (inset != 0 || ReferenceEquals(RenderTransform, inlineComposerPlacement)) RenderTransform = inlineComposerPlacement;
+        inlineInset ??= new AnimatedScalar(this, 0, _ => ApplyInlinePlacement());
+        inlineRest = rest;
+        if (!inlineSeen || goal != inlineGoal)
+        {
+            // The first showing is the state as it is. Afterwards the point follows the height: the same curve and length, and none while the
+            // height itself does not glide (a window being dragged, no live-resize state).
+            var resize = GetValue(AppEnvironment.WindowLiveResizeProperty);
+            var glides = inlineSeen && resize is not null && !resize.IsReshaping;
+            inlineSeen = true;
+            inlineGoal = goal;
+            inlineInset.Set(goal, glides ? Animation.Smooth(0.28) : null);
+        }
+        ApplyInlinePlacement();
+    }
+
+    private void ApplyInlinePlacement()
+    {
+        inlineComposerPlacement.Y = inlineRest;
+        if (inlineRest != 0 || ReferenceEquals(RenderTransform, inlineComposerPlacement)) RenderTransform = inlineComposerPlacement;
+        var glide = (inlineInset?.Value ?? 0) - inlineRest;
+        inlinePlateGlide.Y = glide;
+        inlineContentCounter.Y = -glide;
+        var gliding = glide != 0;
+        if (gliding != inlineGliding)
+        {
+            inlineGliding = gliding;
+            if (Child is { } plate) plate.RenderTransform = gliding ? inlinePlateGlide : null;
+            if (layers is not null) layers.RenderTransform = gliding ? inlineContentCounter : null;
+        }
         pillSlot?.InvalidateArrange();
     }
 
@@ -1550,7 +1591,10 @@ internal sealed class ComposerTextColumn : Decorator
     /// <summary>PORT-ONLY (voice-SPEC V-8.3, VT-11): the layer that draws live dictation over the editor.</summary>
     internal DictationLayer Dictation => textView.Dictation;
 
-    internal bool IsSingleLine => textView.Height <= 22 && clip.Height <= 22 && stack.Children.Take(stack.Children.Count - 1).All(child => child.DesiredSize.Height <= .001);
+    internal bool IsSingleLine => WillBeSingleLine && clip.Height <= 22;
+
+    /// <summary>Whether the column is one line once the height glide (the clip) has arrived: the text view takes its height at once (:599).</summary>
+    internal bool WillBeSingleLine => textView.Height <= 22 && stack.Children.Take(stack.Children.Count - 1).All(child => child.DesiredSize.Height <= .001);
 
     internal void AlignSingleLine(bool singleLine) => stack.VerticalAlignment = singleLine ? VerticalAlignment.Center : VerticalAlignment.Stretch;
 
