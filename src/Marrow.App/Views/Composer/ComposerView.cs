@@ -1891,7 +1891,8 @@ internal sealed class ComposerControls : Decorator
         // PORT-ONLY (OD-0115 composer=A, step 3a): the account capsule, only with a second account of the service or a pill relay; it sits before the model chip
         if (Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Offer.Current(runtime) is { } capsuleSlot) { capsuleSlot.VerticalAlignment = VerticalAlignment.Center; row.Children.Add(Marrow.App.Port.MultiAccount.Handshake.HandshakeCapsuleHost.With(Marrow.App.Port.MultiAccount.Link.LinkComposerHost.With(capsuleSlot, runtime), capsuleSlot, runtime)); }
         row.Children.Add(slot = new ModelEffortSlot(runtime, thread, compact)); // :647
-        if (!compact) row.Children.Add(meter = new ContextMeter(runtime, thread.Provider, headsProvider) { UseLayoutRounding = false }); // :650-651; retain the odd 27pt ring's half-point centre at fractional DPI
+        // PORT-ONLY Ignis U4 (OD-0134, ED-NEW-ignis-views): the Kindle capsule takes the ring's place in a supported provider's chat while Ignis is bound; else the ContextMeter
+        if (!compact) row.Children.Add(Marrow.App.Port.Ignis.Views.IgnisViews.ComposerOffer(runtime.ThreadID, thread.Provider) ?? (meter = new ContextMeter(runtime, thread.Provider, headsProvider) { UseLayoutRounding = false })); // :650-651; retain the odd 27pt ring's half-point centre at fractional DPI
         row.Children.Add(send = new SendButton(runtime, goesToHead, queueGoesToHead, onSend) { UseLayoutRounding = false }); // :653; keep its painted disc centred at fractional DPI
         foreach (var child in row.Children) child.VerticalAlignment = VerticalAlignment.Center; // :626 HStack's default centre alignment
         Child = row;
