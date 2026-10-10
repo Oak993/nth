@@ -355,6 +355,7 @@ public sealed partial class ThreadRuntime : MainActorModel
     public Marrow.App.Port.Skills.SkillsOfferFlow? SkillsOffers { get; private set; }
     private readonly HashSet<Guid> skillsFollowUps = [];
     private readonly AsyncLocal<bool> skillsContinuationTurn = new();
+    private readonly AsyncLocal<bool> ignisPingTurn = new(); // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping (Port/Ignis/Runtime/ThreadRuntimeIgnis.cs)
     internal void AttachSkillsOffers(Marrow.App.Port.Skills.SkillsOfferFlow flow)
     {
         if (SkillsOffers is not null) throw new InvalidOperationException("A chat already owns its skills offer flow.");
@@ -1583,9 +1584,10 @@ public sealed partial class ThreadRuntime : MainActorModel
     private async Task StartTurn(string text, IReadOnlyList<Attachment> attachments, IReadOnlyList<long>? hydraHeads = null, bool hydraBrief = false)
     {
         await EnsureLoaded();
+        var ignisPing = ignisPingTurn.Value; // Ignis: a ping that cannot run now is dropped, never queued as a follow-up
         if (Phase != RuntimePhase.Idle || IsReverting)
         {
-            EnqueueFollowUp(text, attachments);
+            if (!ignisPing) EnqueueFollowUp(text, attachments);
             return;
         }
 
@@ -1594,7 +1596,7 @@ public sealed partial class ThreadRuntime : MainActorModel
 
         if (initialThread.IsArchived)
         {
-            EnqueueFollowUp(text, attachments);
+            if (!ignisPing) EnqueueFollowUp(text, attachments);
             return;
         }
 
@@ -1611,6 +1613,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         {
             userItem = userItem with { TimelineItemContent = new TimelineItem.Content.Notice(new Notice { NoticeLevel = Notice.Level.Info, Message = text }) };
         }
+        if (ignisPing) userItem = IgnisPingItem(userItem, turn.Id);
         turn = turn with { UserItemID = userItem.Id };
         Turns = Turns.Appending(turn);
         saveRevision++;
@@ -1621,12 +1624,12 @@ public sealed partial class ThreadRuntime : MainActorModel
         Append(userItem);
         Phase = RuntimePhase.Starting;
         TurnStartedAt = SwiftDate.Now;
-        app.UpdateThread(ThreadID, thread => thread with { UpdatedAt = SwiftDate.Now, LastStatus = TurnStatus.Running });
-        app.ReopenIfSettled(ThreadID);
+        app.UpdateThread(ThreadID, thread => ignisPing ? thread with { LastStatus = TurnStatus.Running } : thread with { UpdatedAt = SwiftDate.Now, LastStatus = TurnStatus.Running });
+        if (!ignisPing) app.ReopenIfSettled(ThreadID);
 
         EndDelegationStream();
         HydraCurrentTurnTouchedPaths = new ValueSet<string>([], SwiftStringComparer.Instance);
-        hydraBudget = hydraBudget.BeginTurn(userAuthored: hydraHeads is null);
+        hydraBudget = hydraBudget.BeginTurn(userAuthored: hydraHeads is null && !ignisPing);
 
         if (initialThread.Hydra is { HydraHeadInfoKind: HydraHeadInfo.Kind.Droppy, IsFinished: true })
         {
@@ -1673,7 +1676,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         }
 
         ScheduleSave();
-        GenerateTitle(text, attachments);
+        if (!ignisPing) GenerateTitle(text, attachments);
         await EnsureModel(initialThread);
 
         var directory = initialThread.WorktreePath ?? project.Path;
@@ -1684,7 +1687,7 @@ public sealed partial class ThreadRuntime : MainActorModel
         treeEpoch++;
         var checkpoint = TaskHandle.Detached(async () =>
         {
-            if (!await git.IsRepository()) return false;
+            if (ignisPing || !await git.IsRepository()) return false;
             try
             {
                 await git.CaptureCheckpoint(checkpointRef);
@@ -1721,7 +1724,7 @@ public sealed partial class ThreadRuntime : MainActorModel
                 prompt += "\n\nAttached files:\n" + string.Join("\n", files.Select(file => "- " + file.Path));
 
             // ThreadRuntime.swift:1282-1306. Carry the selected Hydra route to the actual provider input.
-            if (app.HydraLaunch(thread) is { } launch)
+            if (!ignisPing && app.HydraLaunch(thread) is { } launch)
             {
                 var merge = launch.AutoMerges
                     ? HydraPrompts.MergeStatus(HydraMerges, app.HydraUnmergedFileCount(ThreadID))
@@ -2636,30 +2639,40 @@ public sealed partial class ThreadRuntime : MainActorModel
     }
 
     // :1738-1757
-    public void Compact()
+    public void Compact() => Compact(ignisKeepTurns: null);
+
+    // PORT-ONLY: Ignis (ED-NEW-ignis-runtime). ignisKeepTurns set: a silent tidy-up (no notices; IgnisTidy runs it).
+    private void Compact(int? ignisKeepTurns)
     {
         if (Phase != RuntimePhase.Idle) return;
         if (session is not { IsRunning: true } activeSession)
         {
-            AppendNotice(Notice.Level.Info, "Nothing to compact yet.");
+            if (ignisKeepTurns is null) AppendNotice(Notice.Level.Info, "Nothing to compact yet.");
             return;
         }
 
-        AppendNotice(Notice.Level.Info, "Compacting context.");
+        if (ignisKeepTurns is null) AppendNotice(Notice.Level.Info, "Compacting context.");
+        else IgnisTidyStarted();
         _ = MainActor.Spawn(async () =>
         {
             try
             {
-                await activeSession.Compact();
+                if (ignisKeepTurns is { } keep) await IgnisCompact(activeSession, keep);
+                else await activeSession.Compact();
                 await MainActor.Run(() =>
                 {
                     antiSlopFallbackSent = false;
                     continuationSent = false;
+                    if (ignisKeepTurns is not null) IgnisTidyFinished(succeeded: true);
                 });
             }
             catch (Exception error)
             {
-                await MainActor.Run(() => AppendNotice(Notice.Level.Warning, SwiftErrors.LocalizedDescription(error)));
+                await MainActor.Run(() =>
+                {
+                    if (ignisKeepTurns is not null) IgnisTidyFinished(succeeded: false);
+                    else AppendNotice(Notice.Level.Warning, SwiftErrors.LocalizedDescription(error));
+                });
             }
         });
     }
@@ -4125,9 +4138,14 @@ public sealed partial class ThreadRuntime : MainActorModel
                 if (currentTurnID is not null) currentProviderDiff = value.Value;
                 break;
             case ProviderEvent.Notice value:
+                if (IgnisSwallowsNotice(value.Value)) break; // Ignis: a silent tidy-up's "Context compacted."
                 AppendNotice(value.Value.NoticeLevel, value.Value.Message);
                 break;
+            case ProviderEvent.CacheUsage value:
+                IgnisObserve(value.Value); // Ignis: forwarded to the controller
+                break;
             case ProviderEvent.UsageLimit value:
+                IgnisUsageLimit(value.ResetsAt);
                 limitedReplyTurnID = currentTurnID;
                 if (App?.AccountRouting.NoteLimit(this, value.Account, value.ResetsAt) == true) break;
                 if (value.Account is { } limitedAccount) App?.AutoContinue.NoteLimit(ThreadID, value.ResetsAt, limitedAccount);
