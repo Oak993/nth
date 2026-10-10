@@ -33,6 +33,13 @@ public sealed record IgnisPreferences
     public bool AutoUpdatePoints { get; init; } = true;
     /// <summary>The first-time "Ignis hides its keep-warm pings" notice was dismissed.</summary>
     public bool NoticeSeen { get; init; }
+    /// <summary>
+    /// "Cool idle chats after" (ED-NEW-ignis-guards, owner 2026-10-10): a chat idle this many hours is no longer kept warm;
+    /// null: "Never" (no fixed limit). One of <see cref="IgnisSettings.CoolAfterChoices"/>; default 12 hours.
+    /// </summary>
+    public int? CoolAfterHours { get; init; } = IgnisSettings.DefaultCoolAfterHours;
+    /// <summary>"Learn when to cool" (ED-NEW-ignis-guards): cool earlier, at the time this chat's (or every chat's) breaks usually end. Default on.</summary>
+    public bool LearnCooling { get; init; } = true;
     /// <summary>Chats whose mode or Auto differs from the defaults, by thread id.</summary>
     public ValueMap<Guid, IgnisChatPreference> Chats { get; init; } = ValueMap<Guid, IgnisChatPreference>.Empty;
 
@@ -44,6 +51,12 @@ public sealed class IgnisSettings
 {
     public const string SettingsKey = "ignis";
     public const int DefaultKeepTurns = 12;
+
+    /// <summary>ED-NEW-ignis-guards: "Cool idle chats after" by default (the owner's number).</summary>
+    public const int DefaultCoolAfterHours = 12;
+
+    /// <summary>ED-NEW-ignis-guards: the "Cool idle chats after" choices in hours ("Never" is null, offered after them).</summary>
+    public static IReadOnlyList<int> CoolAfterChoices { get; } = [1, 2, 4, 6, 8, 12, 24];
 
     /// <summary>The "Keep word for word" choices ("Last {n} turns"). ENGINEERING DECISION: the design shows only 12.</summary>
     public static IReadOnlyList<int> KeepTurnsChoices { get; } = [6, 12, 24];
@@ -120,6 +133,13 @@ public sealed class IgnisSettings
             writer.WriteNumber("keepTurns", value.KeepTurns);
             writer.WriteBoolean("autoUpdatePoints", value.AutoUpdatePoints);
             writer.WriteBoolean("noticeSeen", value.NoticeSeen);
+            // ED-NEW-ignis-guards: written only when changed, so a value stored before them reads and writes as it did.
+            if (value.CoolAfterHours != DefaultCoolAfterHours)
+            {
+                if (value.CoolAfterHours is { } hours) writer.WriteNumber("coolAfterHours", hours);
+                else writer.WriteNull("coolAfterHours");
+            }
+            if (!value.LearnCooling) writer.WriteBoolean("learnCooling", false);
             writer.WriteStartObject("chats");
             foreach (var (thread, chat) in value.Chats.Select(pair => (Id: pair.Key.ToString("D"), pair.Value)).OrderBy(pair => pair.Id, StringComparer.Ordinal))
             {
@@ -153,6 +173,12 @@ public sealed class IgnisSettings
                 result = result with { KeepTurns = turns };
             if (Bool(root, "autoUpdatePoints") is { } update) result = result with { AutoUpdatePoints = update };
             if (Bool(root, "noticeSeen") is { } seen) result = result with { NoticeSeen = seen };
+            if (root.TryGetProperty("coolAfterHours", out var cool))
+            {
+                if (cool.ValueKind == JsonValueKind.Null) result = result with { CoolAfterHours = null };
+                else if (cool.ValueKind == JsonValueKind.Number && cool.TryGetInt32(out var hours) && hours is >= 1 and <= 168) result = result with { CoolAfterHours = hours };
+            }
+            if (Bool(root, "learnCooling") is { } learn) result = result with { LearnCooling = learn };
             if (root.TryGetProperty("chats", out var chats) && chats.ValueKind == JsonValueKind.Object)
             {
                 var map = new List<KeyValuePair<Guid, IgnisChatPreference>>();

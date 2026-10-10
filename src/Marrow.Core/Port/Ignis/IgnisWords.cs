@@ -262,7 +262,76 @@ public static class IgnisWords
         IgnisEventKind.WentCold => "The quick memory went cold. Your next message warms it again",
         IgnisEventKind.HelperRan => "A scout read the code on " + (e.Model ?? DefaultHelperModel),
         IgnisEventKind.HeadTidiedAfterSwitch => HeadRebuilt(e),
+        IgnisEventKind.KeepWarmHeld => HoldRow(HoldFrom(e.Reason)),
+        IgnisEventKind.LetCool => LetCoolRow,
+        IgnisEventKind.SwitchCost => SwitchCostLine(e.Model, e.AtTokens ?? 0, e.Amount ?? 0m),
+        IgnisEventKind.CacheNotReused => NotReusedLine(CauseFrom(e.Reason)),
     };
+
+    // ---- keep-warm guards (ED-NEW-ignis-guards; the fire words: lit, cool, rest) ----
+
+    /// <summary>The sidebar flame's pill and the row menu's item: puts the flame out until the next message.</summary>
+    public const string TurnOff = "Turn off";
+    /// <summary>The lit flame's tooltip: "Kept warm · 42 min left".</summary>
+    public static string EmberLitTip(TimeSpan? left) => "Kept warm" + (left is { } time && time > TimeSpan.Zero ? " · " + TimeLeft(IgnisCacheState.Warm, time).ToLowerInvariant() : "");
+    /// <summary>The dimmed flame's tooltip.</summary>
+    public const string EmberCooled = "Cooled";
+    /// <summary>The lit flame's accessible name.</summary>
+    public const string EmberLitAccessibleName = "Ignis keeps this chat warm";
+    /// <summary>The History row when the user put the flame out.</summary>
+    public const string LetCoolRow = "You let the quick memory cool";
+
+    /// <summary>The History row when a guard held a keep-warm that was due.</summary>
+    public static string HoldRow(IgnisKeepWarmHold hold) => hold switch
+    {
+        IgnisKeepWarmHold.LetCool => LetCoolRow,
+        IgnisKeepWarmHold.IdleLimit => "Let it cool: idle past its limit",
+        IgnisKeepWarmHold.DailyLimit => "Keep-warm rests for today: pings reached today’s allowance",
+        IgnisKeepWarmHold.OtherChats => "Let it cool: three newer chats are kept warm",
+        _ => "Kept the quick memory warm",
+    };
+
+    /// <summary>The report's line for a chat that is not kept warm any longer.</summary>
+    public static string HoldReportLine(IgnisKeepWarmHold hold) => hold switch
+    {
+        IgnisKeepWarmHold.LetCool => "Keep-warm: you let it cool; your next message lights it again",
+        IgnisKeepWarmHold.IdleLimit => "Keep-warm: cooled after a long break",
+        IgnisKeepWarmHold.DailyLimit => "Keep-warm: resting for today (pings reached today’s allowance)",
+        IgnisKeepWarmHold.OtherChats => "Keep-warm: resting while three newer chats stay warm",
+        _ => "",
+    };
+
+    /// <summary>"Keep-warm pings: 4 cost $0.12"</summary>
+    public static string PingsReportLine(int pings, decimal cost) => "Keep-warm pings: " + pings.ToString(Us) + " cost " + Money(cost);
+
+    /// <summary>"Switching to Opus 5.5 rebuilds 300K tokens: about $1.50." (the timeline notice before the next message).</summary>
+    public static string SwitchCostLine(string? model, long tokens, decimal cost) =>
+        "Switching to " + (model ?? "another model") + " rebuilds " + Tokens(tokens) + " tokens: about " + Money(cost) + ".";
+
+    /// <summary>"This chat’s cache isn’t being reused" plus the likely cause when one is known.</summary>
+    public static string NotReusedLine(IgnisCacheMissCause cause) => "This chat’s cache isn’t being reused" + cause switch
+    {
+        IgnisCacheMissCause.ModelSwitches => ": the model keeps changing",
+        IgnisCacheMissCause.EffortSwitches => ": the effort level keeps changing",
+        IgnisCacheMissCause.PrefixChanges => ": the start of the chat (tools or instructions) changes every turn",
+        IgnisCacheMissCause.NoCaching => ": this provider isn’t caching it",
+        _ => "",
+    };
+
+    /// <summary>The raw names a hold and a cause are stored under in an event's Reason.</summary>
+    public static string RawName(IgnisKeepWarmHold hold) => hold.ToString();
+    public static string RawName(IgnisCacheMissCause cause) => cause.ToString();
+    public static IgnisKeepWarmHold HoldFrom(string? raw) => Enum.TryParse<IgnisKeepWarmHold>(raw, out var hold) && Enum.IsDefined(hold) ? hold : IgnisKeepWarmHold.None;
+    public static IgnisCacheMissCause CauseFrom(string? raw) => Enum.TryParse<IgnisCacheMissCause>(raw, out var cause) && Enum.IsDefined(cause) ? cause : IgnisCacheMissCause.Unknown;
+
+    // ---- the idle-limit settings (Settings › Ignis and the Kindle popover) ----
+    public const string RowCoolAfter = "Cool idle chats after";
+    public const string RowCoolAfterDetail = "A chat left this long stops being kept warm. Your next message warms it again.";
+    public const string RowLearnCooling = "Learn when to cool";
+    public const string RowLearnCoolingDetail = "Cools a chat sooner, once it’s idle past the time you usually come back.";
+    public const string Never = "Never";
+    /// <summary>"12 hours", "1 hour", "Never".</summary>
+    public static string CoolAfter(int? hours) => hours is { } h ? h.ToString(Us) + (h == 1 ? " hour" : " hours") : Never;
 
     /// <summary>The Details › History row.</summary>
     public static string HistoryRow(IgnisEvent e) => e.Kind switch
@@ -273,6 +342,10 @@ public static class IgnisWords
         IgnisEventKind.WentCold => "Quick memory went cold over a break",
         IgnisEventKind.HelperRan => "A scout read the code on " + (e.Model ?? DefaultHelperModel),
         IgnisEventKind.HeadTidiedAfterSwitch => HeadRebuilt(e),
+        IgnisEventKind.KeepWarmHeld => HoldRow(HoldFrom(e.Reason)),
+        IgnisEventKind.LetCool => LetCoolRow,
+        IgnisEventKind.SwitchCost => "Switch to " + (e.Model ?? "another model") + " rebuilds " + Tokens(e.AtTokens ?? 0),
+        IgnisEventKind.CacheNotReused => NotReusedLine(CauseFrom(e.Reason)),
     };
 
     private static string HeadRebuilt(IgnisEvent e) =>
