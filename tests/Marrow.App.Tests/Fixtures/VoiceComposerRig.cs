@@ -155,12 +155,38 @@ internal sealed class VoiceComposerRig : IDisposable
         for (var round = 0; round < 4; round++) Main.OnMain(() => Settle(window));
     }
 
-    /// <summary>Time passes: the manual clock (timers, the session), the frame source (transitions), then layout and the dispatcher.</summary>
+    /// <summary>The frame a screen delivers while anything animates: 60 Hz.</summary>
+    private static readonly TimeSpan FrameStep = TimeSpan.FromSeconds(1.0 / 60);
+
+    /// <summary>
+    /// How long a call steps frame by frame before it jumps over steady time. Every transition of the voice surfaces ends within a second, and the pill's, which keeps its progress
+    /// across a stalled frame (VoicePill, LookMotion.PreserveFrameProgress: it never snaps after a stall), must be delivered the frames a real display would give it.
+    /// </summary>
+    private static readonly TimeSpan SteppedSpan = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Time passes: the manual clock (timers, the session), the frame source (transitions), then layout and the dispatcher. As in a running app, a frame comes every 1/60 s while a
+    /// frame is wanted (a transition runs), for up to <see cref="SteppedSpan"/>; the rest of a long wait, in which nothing is animating, passes in one jump. (A real app never jumps the
+    /// clock and the frame in one step through a running transition: the pill would treat the gap as a stall.)
+    /// </summary>
     public void Elapse(AvaloniaWindow window, double seconds)
     {
-        Main.Advance(TimeSpan.FromSeconds(seconds));
-        Main.OnMain(() => Frames.Advance(TimeSpan.FromSeconds(seconds)));
-        PumpWindow(window);
+        var remaining = TimeSpan.FromSeconds(seconds);
+        var stepped = TimeSpan.Zero;
+        while (remaining >= FrameStep && stepped < SteppedSpan && Frames.Pending > 0)
+        {
+            Main.Advance(FrameStep);
+            Main.OnMain(() => Frames.Advance(FrameStep));
+            PumpWindow(window);
+            remaining -= FrameStep;
+            stepped += FrameStep;
+        }
+        if (remaining > TimeSpan.Zero || stepped == TimeSpan.Zero)
+        {
+            Main.Advance(remaining);
+            Main.OnMain(() => Frames.Advance(remaining));
+            PumpWindow(window);
+        }
     }
 
     public void Close(AvaloniaWindow window) => Main.OnMain(() =>
