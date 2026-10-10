@@ -67,14 +67,13 @@ public sealed class AboutUpdateViewsPillStateTests(HeadlessSession headless)
         window.Close();
     });
 
-    // :625-631 the slider takes response 0.3 (0.72 celebrating, 0.15 under Reduce Motion) and a minimum speed of 0.12
-    // only while celebrating; the chase itself is proven on its own (AboutUpdateViewsTests).
+    // The install face is the nth capsule for every phase (motion pack step 10): 168 x 26, in the pill's height, with the install's fraction as its value.
     [Theory]
-    [Trait("Req", "PR-UPDATE-074")] // App/Views/Settings/AboutUpdateViews.swift:625-636,687-690: the slider's chase response and minimum speed per phase
-    [InlineData("preparing", false, 0.3, 0.0)] [InlineData("downloading", false, 0.3, 0.0)] [InlineData("verifying", false, 0.3, 0.0)]
-    [InlineData("staging", false, 0.3, 0.0)] [InlineData("handoff", false, 0.3, 0.0)] [InlineData("celebrating", false, 0.72, 0.12)]
-    [InlineData("downloading", true, 0.15, 0.0)] [InlineData("celebrating", true, 0.15, 0.12)]
-    public void The_pill_hosts_the_slider_with_the_phase_response_and_minimum_speed(string phase, bool reduced, double response, double minimumSpeed) => headless.OnUiThread(() =>
+    [Trait("Req", "PR-UPDATE-074")] // App/Views/Settings/AboutUpdateViews.swift:625-636: the slider shows for every phase
+    [InlineData("preparing", false)] [InlineData("downloading", false)] [InlineData("verifying", false)]
+    [InlineData("staging", false)] [InlineData("handoff", false)] [InlineData("celebrating", false)]
+    [InlineData("downloading", true)] [InlineData("celebrating", true)]
+    public void The_pill_hosts_the_install_capsule_for_every_phase_still_under_reduce_motion(string phase, bool reduced) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
@@ -97,27 +96,28 @@ public sealed class AboutUpdateViewsPillStateTests(HeadlessSession headless)
             if (reduced) EnvironmentValues.SetAccessibilityReduceMotion(window, true); // the window's own root, as SystemReduceMotion sets it
             window.Show(); Dispatcher.UIThread.RunJobs();
             var slider = Assert.Single(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>());
-            Assert.Equal(response, Field(slider, "response")); Assert.Equal(minimumSpeed, Field(slider, "minimumSpeed"));
+            var capsule = Assert.Single(slider.GetVisualDescendants().OfType<Marrow.App.Port.Updates.UpdateInstallCapsule>());
+            Assert.Equal((168.0, 26.0), (capsule.Bounds.Width, capsule.Bounds.Height));
+            Assert.Equal(progress.Fraction, capsule.Value, 12);
+            Assert.Equal(reduced, capsule.Calm);
             window.Close(); progress.CompleteCelebration();
         });
     });
 
-    // :387,408 the sparkles are `reduceMotion ? [] : Self.sparkles` and the environment is read live: a Reduce Motion that turns on
-    // (or off) while the slider shows drops (or brings back) the 14 sparkles without a new slider.
+    // Reduce Motion is read live: a setting that turns on (or off) while the capsule shows stills (or brings back) its light without a new capsule.
     [Fact]
-    [Trait("Req", "UI-SETTINGS-058")] // App/Views/Settings/AboutUpdateViews.swift:387,408: "Reduce Motion: no sparkles", read live from the environment
-    public void The_sparkles_follow_Reduce_Motion_while_the_slider_shows() => headless.OnUiThread(() =>
+    [Trait("Req", "UI-SETTINGS-058")] // App/Views/Settings/AboutUpdateViews.swift:387,408: "Reduce Motion", read live from the environment
+    public void The_capsule_follows_Reduce_Motion_while_it_shows() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
-        var slider = new UpdateProgressSlider(0.5) { Width = 104 };
+        var slider = new UpdateProgressSlider(0.5) { Width = 168 };
         var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = slider };
         window.Show(); Dispatcher.UIThread.RunJobs();
-        int Sparkles() => slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().Count(e => e.Classes.Contains("update-sparkle"));
-        Assert.Equal(14, Sparkles());
+        Assert.False(slider.Capsule.Calm);
         EnvironmentValues.SetAccessibilityReduceMotion(window, true); Dispatcher.UIThread.RunJobs();
-        Assert.Equal(0, Sparkles()); // the system setting turned on: gone at once
+        Assert.True(slider.Capsule.Calm); // the system setting turned on: the light is gone at once
         EnvironmentValues.SetAccessibilityReduceMotion(window, false); Dispatcher.UIThread.RunJobs();
-        Assert.Equal(14, Sparkles()); // and back when it turns off
+        Assert.False(slider.Capsule.Calm); // and back when it turns off
         window.Close();
     });
 }

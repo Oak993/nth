@@ -21,7 +21,7 @@ public sealed class OfferCardPresentationTests(HeadlessSession headless)
         h.Settle();
         Assert.Contains("500 kB", h.Card.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
         Assert.DoesNotContain("0%", h.Card.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text));
-        Assert.Single(h.Card.GetVisualDescendants().OfType<Marrow.UI.Port.SystemSpinner>(), s => s.IsEffectivelyVisible);
+        Assert.Single(h.Card.GetVisualDescendants().OfType<Marrow.UI.Port.Nth.NthSpinner>(), s => s.IsEffectivelyVisible);
     });
 
     [Theory]

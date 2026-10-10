@@ -1,53 +1,45 @@
-// PORT-ONLY: first-release feature unit SK-15 (DL-17). The determinate ring of a row that downloads, drawn in the page's own tokens (a track at the label colour's 0.16 and the accent over it).
+// PORT-ONLY: first-release feature unit SK-15 (DL-17), moved onto the nth motion pack step 4 (OD-0136 amendment 2, ED-NEW-nth-motion). The determinate ring of a row that downloads: the nth ring, 14 points
+// by default (the pack's sizes are 14, 18 and 20), a track under a mark arc that starts at 12 o'clock and runs clockwise, on the pack's spring; at 100 % it can fill into the solid disc with its tick.
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
-using Marrow.UI.Port;
-using ChromeTokens = Marrow.UI.Chrome.Chrome;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Port.Skills.Pages;
 
-/// <summary>A ring at <see cref="Value"/> (0 to 1), 14 points across with a 2 point stroke; it starts at 12 o'clock and runs clockwise.</summary>
-internal sealed class ProgressRing : Control
+/// <summary>A ring at <see cref="Value"/> (0 to 1), as wide and tall as it is given (14 by default). The arc springs to a new value and never runs backwards across the ring.</summary>
+internal sealed class ProgressRing : Decorator
 {
-    private readonly IBrush track;
-    private readonly IBrush fill;
-    private double value;
+    private readonly NthRing ring = new() { Width = 14, Height = 14 };
 
     public ProgressRing()
     {
         Width = Height = 14;
-        track = ChromeTokens.Overlay(0.16).Brush(this);
-        fill = ChromeTokens.Accent.Brush(this);
+        IsHitTestVisible = false;
+        Child = ring;
     }
 
+    /// <summary>The primitive (tests and pictures).</summary>
+    internal NthRing Ring => ring;
+
+    /// <summary>The arc the ring is going to (0 to 1).</summary>
     public double Value
     {
-        get => value;
+        get => ring.Value;
         set
         {
-            var clamped = Math.Clamp(value, 0, 1);
-            if (this.value == clamped) return;
-            this.value = clamped;
-            InvalidateVisual();
+            var clamped = Math.Clamp(double.IsFinite(value) ? value : 0, 0, 1);
+            if (clamped < ring.Value) ring.Jump(clamped); // a new download starts from nothing
+            else ring.Value = clamped;
         }
     }
 
-    public override void Render(DrawingContext context)
+    /// <summary>At 100 % the ring fills into the solid disc and its tick draws in (a row whose download is complete).</summary>
+    public bool IsDone { get => ring.IsDone; set => ring.IsDone = value; }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        base.Render(context);
-        const double stroke = 2;
-        var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
-        var radius = (Math.Min(Bounds.Width, Bounds.Height) - stroke) / 2;
-        context.DrawEllipse(null, new Pen(track, stroke), centre, radius, radius);
-        if (value <= 0) return;
-        var pen = new Pen(fill, stroke) { LineCap = PenLineCap.Round };
-        if (value >= 1) { context.DrawEllipse(null, pen, centre, radius, radius); return; }
-        var end = -Math.PI / 2 + 2 * Math.PI * value;
-        var start = new Point(centre.X, centre.Y - radius);
-        var stop = new Point(centre.X + radius * Math.Cos(end), centre.Y + radius * Math.Sin(end));
-        var figure = new PathFigure { StartPoint = start, IsClosed = false };
-        figure.Segments!.Add(new ArcSegment { Point = stop, Size = new Size(radius, radius), SweepDirection = SweepDirection.Clockwise, IsLargeArc = value > 0.5 });
-        context.DrawGeometry(null, pen, new PathGeometry { Figures = [figure] });
+        base.OnPropertyChanged(change);
+        if (change.Property == WidthProperty) ring.Width = double.IsNaN(Width) ? 14 : Width;
+        else if (change.Property == HeightProperty) ring.Height = double.IsNaN(Height) ? 14 : Height;
     }
 }

@@ -1,20 +1,26 @@
+using Avalonia.Media;
 using Marrow.App.Port.FirstRun;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
+using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Tests.Port.FirstRun;
 
-// GR-2: the sheet's states for a scripted preparation. Each row is waiting (a soft dot), running (the spinner) or done (the
-// check), driven only by the events GR-1's FirstRunPreparation reports as work completes; the bar is the real share of the
+// GR-2: the sheet's states for a scripted preparation. Each row is waiting (the nth status mark's hollow ring), running (its tile-trace spinner) or done
+// (its solid disc and tick; nth motion pack step 15), driven only by the events GR-1's FirstRunPreparation reports as work completes; the bar is the real share of the
 // work done; "Ready" shows when the run is prepared. No timer moves any of it (a clock moved by hours changes nothing).
 [Collection("Headless")]
 public sealed class GettingReadyStatesTests(HeadlessSession headless)
 {
     private static void Settle(GettingReadyRig rig) => rig.Run(0.6);
 
+    // the label's ink the sheet resolves for a step state in the rig's theme
+    private static Color Ink(GettingReadyRig rig, FirstRunStepState state) => GettingReadyRowView.InkFor(state).Resolve(rig.Sheet.ActualThemeVariant);
+
     [Fact] // GR-2.states
     [Trait("Decision", "ED-288")]
-    public void Before_any_event_every_step_waits_as_a_soft_dot_in_W1s_order() => headless.OnUiThread(() =>
+    public void Before_any_event_every_step_waits_as_a_hollow_ring_in_W1s_order() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();
         Assert.Equal(GettingReadyPhase.Working, rig.Sheet.Phase);
@@ -22,38 +28,38 @@ public sealed class GettingReadyStatesTests(HeadlessSession headless)
         foreach (var row in rig.Sheet.Rows)
         {
             Assert.Equal(FirstRunStepState.Waiting, row.State);
-            Assert.Equal(0, row.SpinnerOpacity);
-            Assert.Equal(0, row.CheckOpacity);
-            Assert.True(row.DotOpacity > 0.5, row.Id);
-            Assert.True(row.LabelOpacity < 1, row.Id); // the fixture draws a waiting step in the dimmest ink
+            Assert.Equal(NthStatus.Waiting, row.Status);
+            Assert.Equal(NthDoneMark.Disc, row.StatusMark.DoneMark); // step 15: done is the disc with its tick
+            Assert.Equal(Ink(rig, FirstRunStepState.Waiting), row.LabelColour); // text3, the dimmest ink the sheet has
+            Assert.True(row.LabelColour.A < 255, row.Id);
         }
         Assert.Equal(0, rig.Sheet.BarFraction);
+        Assert.Equal("0%", rig.Sheet.PercentText);
         Assert.Equal(0, rig.Sheet.Hand);
     });
 
     [Fact] // GR-2.states
     [Trait("Decision", "ED-288")]
-    public void A_running_step_shows_the_spinner_and_a_done_step_the_check() => headless.OnUiThread(() =>
+    public void A_running_step_shows_the_spinner_and_a_done_step_the_disc_with_its_tick() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Running, 0));
         Settle(rig);
         var first = rig.Sheet.Rows[0];
         Assert.Equal(FirstRunStepState.Running, first.State);
-        Assert.Equal((1.0, 1.0, 0.0), (first.SpinnerOpacity, first.SpinnerScale, first.DotOpacity));
-        Assert.Equal(0, first.CheckOpacity);
-        Assert.Equal(1, first.LabelOpacity);
+        Assert.Equal(NthStatus.Working, first.Status);
+        Assert.Equal(Ink(rig, FirstRunStepState.Running), first.LabelColour); // text
 
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Done, 1));
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[1], 1, 6, FirstRunStepState.Running, 0));
         Settle(rig);
         Assert.Equal(FirstRunStepState.Done, first.State);
-        Assert.Equal((1.0, 1.0), (first.CheckOpacity, first.CheckScale));
-        Assert.Equal(0, first.SpinnerOpacity);
+        Assert.Equal(NthStatus.Done, first.Status);
+        Assert.Equal(Ink(rig, FirstRunStepState.Done), first.LabelColour); // text2
         Assert.Equal(FirstRunStepState.Running, rig.Sheet.Rows[1].State);
-        Assert.Equal(1, rig.Sheet.Rows[1].SpinnerOpacity);
+        Assert.Equal(NthStatus.Working, rig.Sheet.Rows[1].Status);
         Assert.Equal(FirstRunStepState.Waiting, rig.Sheet.Rows[2].State);
-        Assert.Equal(0, rig.Sheet.Rows[2].SpinnerOpacity);
+        Assert.Equal(NthStatus.Waiting, rig.Sheet.Rows[2].Status);
     });
 
     [Fact] // GR-2.states
@@ -65,11 +71,15 @@ public sealed class GettingReadyStatesTests(HeadlessSession headless)
         rig.Sheet.Report(GettingReadyRig.Event(plan[0], 0, 6, FirstRunStepState.Done, 1));
         rig.Sheet.Report(GettingReadyRig.Event(plan[1], 1, 6, FirstRunStepState.Running, 2)); // the knob: 2 of its 4 programs
         Settle(rig);
-        Assert.Equal((1 + 0.5) / 6, rig.Sheet.BarFraction, 6);
+        Assert.Equal((1 + 0.5) / 6, rig.Sheet.BarTarget, 6); // the bar springs to it (the pack's step 3 spring: critically damped, stiffness 110)
+        Assert.Equal((1 + 0.5) / 6, rig.Sheet.BarFraction, 2);
+        Assert.Equal("25%", rig.Sheet.PercentText);
         rig.Sheet.Report(GettingReadyRig.Event(plan[1], 1, 6, FirstRunStepState.Done, 4));
         rig.Sheet.Report(GettingReadyRig.Event(plan[2], 2, 6, FirstRunStepState.Running, 1)); // the light: 1 of 3
         Settle(rig);
-        Assert.Equal((2 + 1.0 / 3) / 6, rig.Sheet.BarFraction, 6);
+        Assert.Equal((2 + 1.0 / 3) / 6, rig.Sheet.BarTarget, 6);
+        Assert.Equal((2 + 1.0 / 3) / 6, rig.Sheet.BarFraction, 2);
+        Assert.Equal("38%", rig.Sheet.PercentText);
     });
 
     [Fact] // GR-2.states
@@ -79,10 +89,10 @@ public sealed class GettingReadyStatesTests(HeadlessSession headless)
         using var rig = new GettingReadyRig();
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Running, 0));
         Settle(rig);
-        var before = rig.Sheet.Rows.Select(row => (row.State, row.SpinnerOpacity, row.CheckOpacity)).ToList();
+        var before = rig.Sheet.Rows.Select(row => (row.State, row.Status)).ToList();
         var bar = rig.Sheet.BarFraction;
         for (var hour = 0; hour < 5; hour++) rig.Frame(3600);
-        Assert.Equal(before, rig.Sheet.Rows.Select(row => (row.State, row.SpinnerOpacity, row.CheckOpacity)).ToList());
+        Assert.Equal(before, rig.Sheet.Rows.Select(row => (row.State, row.Status)).ToList());
         Assert.Equal(bar, rig.Sheet.BarFraction);
         Assert.Equal(GettingReadyPhase.Working, rig.Sheet.Phase);
         Assert.Equal(0, rig.Sheet.Hand);
@@ -99,7 +109,7 @@ public sealed class GettingReadyStatesTests(HeadlessSession headless)
             rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[index], index, 6, FirstRunStepState.Done, rig.Plan[index].Parts));
         }
         Settle(rig);
-        Assert.Equal(1, rig.Sheet.BarFraction, 6);
+        Assert.Equal(1, rig.Sheet.BarTarget, 6);
         _ = rig.Sheet.EndAsync(new FirstRunOutcome(FirstRunOutcomeKind.Prepared));
         rig.Run(0.1);
         Assert.Equal(GettingReadyPhase.Ready, rig.Sheet.Phase);
@@ -121,9 +131,9 @@ public sealed class GettingReadyStatesTests(HeadlessSession headless)
         Assert.Equal(GettingReadyPhase.Lifting, rig.Sheet.Phase);
         Assert.Equal(GettingReadyFixture.Title, rig.Sheet.TitleWord);
         Assert.Equal(FirstRunStepState.Running, rig.Sheet.Rows[1].State);
-        Assert.Equal(0, rig.Sheet.Rows[1].CheckOpacity);
+        Assert.NotEqual(NthStatus.Done, rig.Sheet.Rows[1].Status);
         Assert.Equal(0, rig.Sheet.ReadyOpacity);
-        Assert.True(rig.Sheet.BarFraction < 0.5);
+        Assert.True(rig.Sheet.BarTarget < 0.5);
     });
 
     [Fact] // GR-2.states
@@ -152,8 +162,8 @@ public sealed class GettingReadyStatesTests(HeadlessSession headless)
         Assert.Equal(GettingReadyPhase.Ready, rig.Sheet.Phase); // the hold
         Assert.All(rig.Sheet.Rows, row => Assert.Equal(FirstRunStepState.Done, row.State));
         rig.Run(0.5);
-        Assert.All(rig.Sheet.Rows, row => Assert.Equal(1, row.CheckOpacity));
-        Assert.Equal(1, rig.Sheet.BarFraction, 6);
+        Assert.All(rig.Sheet.Rows, row => Assert.Equal(NthStatus.Done, row.Status));
+        Assert.Equal(1, rig.Sheet.BarTarget, 6);
         Assert.Equal(GettingReadyFixture.Done, rig.Sheet.TitleWord);
         rig.Run(1.2);
         Assert.True(run.IsCompletedSuccessfully);

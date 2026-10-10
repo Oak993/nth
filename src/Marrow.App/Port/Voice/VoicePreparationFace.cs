@@ -73,7 +73,7 @@ internal sealed class VoicePreparationFace : Panel
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        ring.Arrange(new Rect(40, 12, 16, 16));
+        ring.Arrange(new Rect(39, 11, VoicePreparationRing.Size, VoicePreparationRing.Size)); // the old 16 ring's centre
         title.Arrange(new Rect(64, (40 - title.DesiredSize.Height) / 2, title.DesiredSize.Width, title.DesiredSize.Height));
         bytes.Arrange(new Rect(72 + title.DesiredSize.Width, (40 - bytes.DesiredSize.Height) / 2, bytes.DesiredSize.Width, bytes.DesiredSize.Height));
         return finalSize;

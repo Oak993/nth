@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Port.Settings;
@@ -35,7 +36,7 @@ internal sealed class UpdatesMainButton : CzButton
     private readonly CzNumber primary, quiet, busy, slot;
     private readonly UpdatesFadeText label;
     private readonly Border slotBox;
-    private readonly SystemSpinner spinner;
+    private readonly NthSpinner spinner;
 
     public UpdatesMainButton(string text, UpdatesButtonMode mode) : base(text)
     {
@@ -57,7 +58,7 @@ internal sealed class UpdatesMainButton : CzButton
         QuietFill.Opacity = quiet.Value;
         BusyFill.Opacity = busy.Value;
 
-        spinner = new SystemSpinner { Width = UpdatesGlyph.Size, Height = UpdatesGlyph.Size, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 7, 0) };
+        spinner = new NthSpinner { Width = UpdatesGlyph.Size, Height = UpdatesGlyph.Size, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 7, 0) };
         slot = new CzNumber(Motion, mode == UpdatesButtonMode.Busy ? SpinnerSlot : 0, SetSlot);
         slotBox = new Border { ClipToBounds = true, Child = spinner, VerticalAlignment = VerticalAlignment.Center };
         SetSlot(slot.Value);

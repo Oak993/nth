@@ -160,41 +160,7 @@ public sealed class AboutUpdateViewsTests
         Assert.True(UpdateReleaseNotesDigest.Parse("Plain release notes with no section.").IsEmpty);
     }
 
-    [Fact]
-    [Trait("Req", "PR-UPDATE-064")] // App/Views/Settings/AboutUpdateViews.swift:307-337, :363-377
-    [Trait("Req", "PR-SETTINGS-247")] // App/Views/Settings/AboutUpdateViews.swift:305-337
-    public void Fraction_chase_snaps_on_first_advance_caps_elapsed_time_and_never_overshoots()
-    {
-        var chase = new FractionChase(0);
-
-        Assert.Equal(0.5, chase.Advance(0, target: 0.5, response: 0.3, minimumSpeed: 0));
-
-        var advanced = chase.Advance(1, target: 1, response: 0.3, minimumSpeed: 0);
-        var expected = 0.5 + 0.5 * (1 - Math.Exp(-0.25 / 0.3));
-        Assert.Equal(expected, advanced, 12);
-
-        Assert.Equal(0.25, chase.Advance(2, target: 0.25, response: 0.3, minimumSpeed: 0));
-        Assert.Equal(0.25, chase.Advance(3, target: 0.25, response: 0.3, minimumSpeed: 0));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-UPDATE-064")] // App/Views/Settings/AboutUpdateViews.swift:316-335
-    [Trait("Req", "PR-SETTINGS-247")] // App/Views/Settings/AboutUpdateViews.swift:305-337
-    [Trait("Req", "PR-UPDATE-062")] // App/Views/Settings/AboutUpdateViews.swift:626-630, :687-690
-    public void Minimum_speed_sets_a_floor_on_the_chase_step()
-    {
-        var chase = new FractionChase(0);
-        Assert.Equal(0, chase.Advance(0, target: 0, response: 0.72, minimumSpeed: 0.12));
-
-        var advanced = chase.Advance(0.1, target: 1, response: 0.72, minimumSpeed: 0.12);
-        var exponentialStep = 1 - Math.Exp(-0.1 / 0.72);
-        Assert.True(exponentialStep > 0.012); // :329-330 the natural step may exceed the minimum-speed floor
-        Assert.Equal(exponentialStep, advanced, 12);
-
-        var floorChase = new FractionChase(0);
-        Assert.Equal(0, floorChase.Advance(0, target: 0, response: 10, minimumSpeed: 0.12));
-        Assert.Equal(0.012, floorChase.Advance(0.1, target: 1, response: 10, minimumSpeed: 0.12), 12);
-    }
+    // The slider's fraction chase (AboutUpdateViews.swift:305-337) is gone: the install capsule springs to the fraction on the render thread (motion pack step 3 spring), proven in NthSitesBTests.
 
     private static AvailableUpdate Update(long? size = null, System.DateTimeOffset? releasedAt = null) => new()
     {

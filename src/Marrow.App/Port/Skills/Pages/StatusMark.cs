@@ -7,6 +7,7 @@ using Marrow.App.Views.Settings;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
 namespace Marrow.App.Port.Skills.Pages;
@@ -82,6 +83,7 @@ internal sealed class StatusMark : Decorator
         if (mark == Mark.Ring && ring is not null)
         {
             ring.Value = progress ?? 0;
+            ring.IsDone = progress >= 1; // step 4: at 100 % the ring fills into the disc and its tick draws in, while the mark of the finished row takes over
             if (percent is not null) percent.Text = Percent(progress);
         }
     }
@@ -95,11 +97,12 @@ internal sealed class StatusMark : Decorator
         switch (mark)
         {
             case Mark.Ring:
-                ring = new ProgressRing { Value = progress ?? 0 };
+                ring = new ProgressRing();
+                ring.Ring.Jump(progress ?? 0); // a row shown part way shows its arc in place
                 percent = LibraryUi.Text(Percent(progress), 11, secondary: true);
                 return Line(ring, percent);
             case Mark.Spinner:
-                glyph = new SystemSpinner { Width = 14, Height = 14 };
+                glyph = new NthSpinner { Width = 14, Height = 14 };
                 break;
             case Mark.Check:
                 glyph = LibraryUi.Glyph("checkmark.circle.fill", 13, ChromeTokens.Success);

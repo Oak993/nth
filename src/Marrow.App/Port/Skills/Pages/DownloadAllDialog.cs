@@ -33,7 +33,7 @@ internal sealed class DownloadAllDialog : Decorator
     private readonly CzCrossfadeText freeLabel = new("") { FontSize = 12, Secondary = true };
     private readonly CzCrossfadeText from = new("") { FontSize = 12, Wrap = true };
     private readonly CzCrossfadeText progress = new("") { FontSize = 12, Secondary = true };
-    private readonly LibraryBar bar = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
+    private readonly LibraryProgressBar bar = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly CzFoldRow confirmSection, runSection, largeBox, plainBox, roomFold, freeRow;
     private readonly CrossfadeSlot lines = new();
     private readonly CrossfadeSlot buttons = new();
@@ -145,7 +145,7 @@ internal sealed class DownloadAllDialog : Decorator
 
     public bool RunOpen => runSection.Open;
 
-    public LibraryBar Bar => bar;
+    public LibraryProgressBar Bar => bar;
 
     public IReadOnlyDictionary<string, DialogLineView> Lines => lineViews;
 

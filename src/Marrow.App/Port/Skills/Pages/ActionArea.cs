@@ -7,6 +7,7 @@ using Marrow.App.Views.Settings;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
 namespace Marrow.App.Port.Skills.Pages;
@@ -17,7 +18,7 @@ internal sealed class ActionArea : Decorator
     private readonly string id;
     private readonly CrossfadeSlot slot = new();
     private string? kind;
-    private LibraryBar? bar;
+    private LibraryProgressBar? bar;
     private TextBlock? percent;
     private Button? primary;
 
@@ -81,7 +82,7 @@ internal sealed class ActionArea : Decorator
                 Add(LibraryButtons.Glyph("xmark", LibraryWords.Cancel, "action-cancel", () => controller.CancelItem(id)));
                 break;
             case "running":
-                bar = new LibraryBar { Width = 200 };
+                bar = new LibraryProgressBar { Width = 200 };
                 bar.Set(row.Progress ?? 0, animated: false);
                 percent = LibraryUi.Text("0%", 12.5, secondary: true);
                 percent.MinWidth = 34;
@@ -90,11 +91,11 @@ internal sealed class ActionArea : Decorator
                 Add(LibraryButtons.Glyph("xmark", LibraryWords.Cancel, "action-cancel", () => controller.CancelItem(id)));
                 break;
             case "checking":
-                Add(new SystemSpinner { Width = 14, Height = 14 });
+                Add(new NthSpinner { Width = 14, Height = 14 });
                 Add(LibraryUi.Text(LibraryWords.Checking, 12.5, secondary: true));
                 break;
             case "removing":
-                Add(new SystemSpinner { Width = 14, Height = 14 });
+                Add(new NthSpinner { Width = 14, Height = 14 });
                 Add(LibraryUi.Text(LibraryWords.Removing, 12.5, secondary: true));
                 break;
             case "failed":

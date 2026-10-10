@@ -19,7 +19,7 @@ public sealed class CudaMountedRowTests(HeadlessSession headless)
             Assert.Equal("NVIDIA CUDA", row.Title);
             Assert.Equal("Optional, for NVIDIA cards. 644 MB from nuget.org and NVIDIA", row.Detail);
             Assert.True(row.Download.IsVisible);
-            Assert.Equal(2, row.Bar.MeasureForTest());
+            Assert.Equal(3, row.Bar.MeasureForTest()); // the nth bar is 3 px (motion pack step 3 option B: 4 or 3), where the old track was 2
             row.Apply(CudaOfferStates.Downloading("644 MB", .375));
             Assert.Equal("38%", row.ProgressText);
             Assert.True(row.Cancel.IsVisible);

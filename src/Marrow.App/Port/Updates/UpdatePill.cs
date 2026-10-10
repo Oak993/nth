@@ -200,7 +200,7 @@ public sealed class UpdatePill : Decorator
             }
         });
         foreach (var (phase, mark) in marks) mark.On.Set(phase == next.Phase ? 1 : 0, quick);
-        ring.Set(next.Phase == UpdatePillPhase.Running ? next.Fraction : 0, Animation.EaseOut(0.35));
+        if (next.Phase == UpdatePillPhase.Running) ring.Set(next.Fraction, quick); // the ring springs; it keeps its arc while the mark of the next phase takes over
         AutomationProperties.SetName(button, next.PillText);
         reveal.Set(1, animation);
     }

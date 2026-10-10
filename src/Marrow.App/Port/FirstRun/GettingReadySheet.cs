@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Views;
@@ -8,6 +9,7 @@ using Marrow.App.Window;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Port.FirstRun;
 
@@ -107,6 +109,12 @@ public static class GettingReadyLook
 
     internal static Animation Settle(double seconds) => Animation.TimingCurve(0.32, 0.72, 0, 1, seconds);
 
+    // nth motion pack step 15: the title's words cross-fade over 0.25 s and the word rises 5 px over 0.3 s on (.2,.8,.2,1)
+    internal static Animation Arrive(double seconds) => Animation.TimingCurve(0.2, 0.8, 0.2, 1, seconds);
+
+    /// <summary>The percentage beside the bar (step 15): mono 11 px, 34 px wide, right-aligned, with a 10 px gap.</summary>
+    public const double PercentWidth = 34, PercentGap = 10, PercentSize = 11, PercentHeight = 14;
+
     private sealed record CubicInOut(double Seconds) : Animation
     {
         public override double Duration => Seconds;
@@ -117,40 +125,42 @@ public static class GettingReadyLook
 
 public enum GettingReadyPhase { Working, Ready, Lifting, Gone }
 
-/// <summary>One step of the sheet: its glyph, W1's name and the mark that says where it is (a soft dot waiting, a spinner running,
-/// a check done), each change a transition of the page's (gr_lib.py .tr, .r).</summary>
+/// <summary>One step of the sheet: its glyph, W1's name and the nth status mark that says where it is (nth motion pack step 15: a hollow ring waiting, the tile-trace spinner while it runs, the solid disc with its tick
+/// done; each change a 0.2 s cross-fade, the done tick drawn in), the label's ink following it (waiting text3, working text, done text2; 0.25 s).</summary>
 public sealed class GettingReadyRowView
 {
     private const double DimmedLabel = 0.45; // gr_lib.py --tx3 over --tx in the dark theme: a waiting step's ink
 
-    private readonly AnimatedScalar spinnerOpacity, spinnerScale, checkOpacity, checkScale, dotOpacity, dotScale, labelOpacity;
-    private readonly Panel spinnerHost = new() { Width = GettingReadyLook.MarkSize, Height = GettingReadyLook.MarkSize };
-    private readonly Control checkMark = new StepCheck();
-    private readonly Control dot = new StepDot();
-    private readonly SystemSpinner spinner = new();
+    // the sheet's own ink, per step state: step 15 "label colour waiting text3, working text, done text2". The sheet has the app's primary text (the label) and its secondary text
+    // (the glyph and the line, 70 %); its tertiary is the waiting step's 45 % ink it already drew (DimmedLabel).
+    internal static SwiftColor InkFor(FirstRunStepState state) => state switch
+    {
+        FirstRunStepState.Running => Chrome.PrimaryText,
+        FirstRunStepState.Done => Chrome.SecondaryText,
+        _ => Chrome.PrimaryText.Opacity(DimmedLabel),
+    };
+
+    private readonly Control owner;
+    private readonly AnimatedColor labelInk;
+    private readonly NthStatusMark statusMark = new() { DoneMark = NthDoneMark.Disc, MarkSize = GettingReadyLook.GlyphSize, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock text;
 
     internal GettingReadyRowView(Control owner, FirstRunStepInfo info)
     {
+        this.owner = owner;
         Id = info.Step.Id;
         Label = info.Step.Name;
         State = FirstRunStepState.Waiting;
         text = new LiveStatusText { Text = Label, VerticalAlignment = VerticalAlignment.Center, LineHeight = GettingReadyLook.LabelLine, ClipToBounds = true, TextWrapping = TextWrapping.NoWrap };
         AutomationProperties.SetName(text, Label + ": Waiting");
         SwiftFont.System(GettingReadyLook.LabelSize, SwiftFont.Weight.Regular).Apply(text);
-        text.Foreground = Chrome.PrimaryText.Brush(text);
+        labelInk = new AnimatedColor(text);
+        labelInk.Set(InkFor(State), null);
+        text.Foreground = labelInk.Brush;
         var glyph = new StepGlyph(Id) { VerticalAlignment = VerticalAlignment.Center };
-        var mark = new Panel { Width = GettingReadyLook.MarkSize, Height = GettingReadyLook.MarkSize, VerticalAlignment = VerticalAlignment.Center };
-        foreach (var part in new Control[] { dot, spinnerHost, checkMark })
-        {
-            part.RenderTransformOrigin = RelativePoint.Center;
-            part.IsHitTestVisible = false;
-        }
-        mark.Children.Add(dot);
-        mark.Children.Add(spinnerHost);
-        mark.Children.Add(checkMark);
+        statusMark.Status = NthStatus.Waiting;
         Glyph = glyph;
-        Mark = mark;
+        Mark = statusMark;
         Text = text;
         var grid = new Grid { Height = GettingReadyLook.RowHeight };
         grid.ColumnDefinitions.Add(new ColumnDefinition(GettingReadyLook.GlyphSize, GridUnitType.Pixel));
@@ -160,21 +170,11 @@ public sealed class GettingReadyRowView
         grid.ColumnDefinitions.Add(new ColumnDefinition(GettingReadyLook.MarkSize, GridUnitType.Pixel));
         Grid.SetColumn(glyph, 0);
         Grid.SetColumn(text, 2);
-        Grid.SetColumn(mark, 4);
+        Grid.SetColumn(statusMark, 4);
         grid.Children.Add(glyph);
         grid.Children.Add(text);
-        grid.Children.Add(mark);
+        grid.Children.Add(statusMark);
         Box = grid;
-
-        // the scalars follow the page: a mark's opacity 0.25 s ease and its scale 0.35 s cubic-bezier(.32,.72,0,1); a label 0.3 s ease.
-        // They follow the sheet's reduce-motion setting, so their owner is the sheet (inherited from the window).
-        spinnerOpacity = new AnimatedScalar(owner, 0, value => { SpinnerOpacity = value; ShowSpinner(value); });
-        spinnerScale = new AnimatedScalar(owner, 0.5, value => { SpinnerScale = value; spinnerHost.RenderTransform = new ScaleTransform(value, value); });
-        checkOpacity = new AnimatedScalar(owner, 0, value => { CheckOpacity = value; checkMark.Opacity = value; });
-        checkScale = new AnimatedScalar(owner, 0.5, value => { CheckScale = value; checkMark.RenderTransform = new ScaleTransform(value, value); });
-        dotOpacity = new AnimatedScalar(owner, 0.6, value => { DotOpacity = value; dot.Opacity = value; });
-        dotScale = new AnimatedScalar(owner, 1, value => dot.RenderTransform = new ScaleTransform(value, value));
-        labelOpacity = new AnimatedScalar(owner, DimmedLabel, value => { LabelOpacity = value; text.Opacity = value; });
     }
 
     public string Id { get; }
@@ -183,17 +183,11 @@ public sealed class GettingReadyRowView
 
     public FirstRunStepState State { get; private set; }
 
-    public double SpinnerOpacity { get; private set; }
+    /// <summary>What the status mark shows (it cross-fades to a new one over 0.2 s).</summary>
+    public NthStatus Status => statusMark.Status;
 
-    public double SpinnerScale { get; private set; } = 0.5;
-
-    public double CheckOpacity { get; private set; }
-
-    public double CheckScale { get; private set; } = 0.5;
-
-    public double DotOpacity { get; private set; } = 0.6;
-
-    public double LabelOpacity { get; private set; } = DimmedLabel;
+    /// <summary>The label's ink as drawn now (it moves to its step's ink over 0.25 s).</summary>
+    public Avalonia.Media.Color LabelColour => labelInk.Brush.Color;
 
     public Control Box { get; }
 
@@ -201,7 +195,11 @@ public sealed class GettingReadyRowView
 
     public Control Text { get; }
 
+    /// <summary>The status slot: the nth status mark (16 x 16).</summary>
     public Control Mark { get; }
+
+    /// <summary>The nth status mark itself (tests and pictures).</summary>
+    internal NthStatusMark StatusMark => statusMark;
 
     /// <summary>The share of the step's work done, as the run reported it: 1 done, the fraction running, 0 waiting.</summary>
     internal double Share { get; private set; }
@@ -215,65 +213,9 @@ public sealed class GettingReadyRowView
         AutomationProperties.SetName(text, Label + ": " + status);
         if (state == State) return;
         State = state;
-        var opacity = GettingReadyLook.Fade(0.25);
-        var scale = GettingReadyLook.Settle(0.35);
-        var (spin, check, waiting) = state switch
-        {
-            FirstRunStepState.Running => (1.0, 0.0, 0.0),
-            FirstRunStepState.Done => (0.0, 1.0, 0.0),
-            _ => (0.0, 0.0, 1.0),
-        };
-        spinnerOpacity.Set(spin, opacity);
-        spinnerScale.Set(spin > 0 ? 1 : 0.5, scale);
-        checkOpacity.Set(check, opacity);
-        checkScale.Set(check > 0 ? 1 : 0.5, scale);
-        dotOpacity.Set(waiting * 0.6, opacity);
-        dotScale.Set(waiting > 0 ? 1 : 0.3, scale);
-        labelOpacity.Set(state == FirstRunStepState.Waiting ? DimmedLabel : 1, GettingReadyLook.Fade(0.3));
-    }
-
-    // the spinner is in the tree only while it is seen: a hidden spinner would ask for a frame sixty times a second for nothing
-    private void ShowSpinner(double opacity)
-    {
-        spinnerHost.Opacity = opacity;
-        var inside = spinnerHost.Children.Count > 0;
-        if (opacity > 0 && !inside) spinnerHost.Children.Add(spinner);
-        else if (opacity <= 0 && inside) spinnerHost.Children.Clear();
-    }
-
-    /// <summary>The check: a filled circle (r 7 in the 16 box) with a white tick (gr_lib.py CHECK).</summary>
-    private sealed class StepCheck : Control
-    {
-        private static readonly Geometry Tick = Geometry.Parse("M4.9 8.2 L7 10.2 L11.1 5.8");
-        private IBrush? fill;
-
-        public StepCheck()
-        {
-            Width = GettingReadyLook.MarkSize;
-            Height = GettingReadyLook.MarkSize;
-            AttachedToVisualTree += (_, _) => { fill = Chrome.Success.Brush(this); InvalidateVisual(); };
-        }
-
-        public override void Render(DrawingContext context)
-        {
-            context.DrawEllipse(fill ?? Brushes.Green, null, new Point(8, 8), 7, 7);
-            context.DrawGeometry(null, new Pen(Brushes.White, 1.7, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), Tick);
-        }
-    }
-
-    /// <summary>The waiting dot: 6 px, centred (gr_lib.py .wt).</summary>
-    private sealed class StepDot : Control
-    {
-        private IBrush? fill;
-
-        public StepDot()
-        {
-            Width = GettingReadyLook.MarkSize;
-            Height = GettingReadyLook.MarkSize;
-            AttachedToVisualTree += (_, _) => { fill = Chrome.PrimaryText.Opacity(0.45).Brush(this); InvalidateVisual(); };
-        }
-
-        public override void Render(DrawingContext context) => context.DrawEllipse(fill ?? Brushes.Gray, null, new Point(8, 8), 3, 3);
+        statusMark.Status = state switch { FirstRunStepState.Running => NthStatus.Working, FirstRunStepState.Done => NthStatus.Done, _ => NthStatus.Waiting };
+        var still = EnvironmentValues.GetAccessibilityReduceMotion(owner) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
+        labelInk.Set(InkFor(state), still ? null : GettingReadyLook.Fade(0.25));
     }
 
     /// <summary>A step's glyph in the page's 16 x 16 box, drawn at 14 (gr_lib.py GLYPH; strokes 1.3, round).</summary>
@@ -312,26 +254,6 @@ public sealed class GettingReadyRowView
     }
 }
 
-/// <summary>The progress bar: its fill is the share of the work done, arranged at that share of the track.</summary>
-internal sealed class GettingReadyBar : Panel
-{
-    public static readonly StyledProperty<double> FractionProperty = AvaloniaProperty.Register<GettingReadyBar, double>(nameof(Fraction));
-
-    static GettingReadyBar() => AffectsArrange<GettingReadyBar>(FractionProperty);
-
-    public GettingReadyBar() => Children.Add(Fill);
-
-    public Border Fill { get; } = new() { CornerRadius = new CornerRadius(GettingReadyLook.BarHeight / 2) };
-
-    public double Fraction { get => GetValue(FractionProperty); set => SetValue(FractionProperty, value); }
-
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        Fill.Arrange(new Rect(0, 0, finalSize.Width * Math.Clamp(Fraction, 0, 1), finalSize.Height));
-        return finalSize;
-    }
-}
-
 /// <summary>
 /// The Getting ready sheet (see the file note). Built with the plan, in the window from its first frame; it shows what GR-1's run
 /// reports and nothing else; <see cref="EndAsync"/> says "Ready" (a prepared run), holds 0.15 s, lifts for 1.1 s and then completes,
@@ -344,9 +266,11 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
     private readonly Panel card = new() { Width = GettingReadyLook.SheetWidth };
     private readonly Grid titleBox = new() { Height = GettingReadyLook.TitleLine };
     private readonly TextBlock title, ready, line;
-    private readonly Border barTrack, shadow;
-    private readonly GettingReadyBar bar = new();
-    private readonly AnimatedScalar barShare, readyOpacity, readyRise;
+    private readonly Border shadow;
+    private readonly Grid barRow;
+    private readonly NthProgressBar bar = new() { Height = GettingReadyLook.BarHeight, VerticalAlignment = VerticalAlignment.Center };
+    private readonly NthLetters percent = new(NthLettersMode.Roll) { Width = GettingReadyLook.PercentWidth, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+    private readonly AnimatedScalar readyOpacity, readyRise;
     private readonly TaskCompletionSource ended = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Action<TimeSpan>? tick;
     private IFrameSource? source;
@@ -366,14 +290,24 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         list.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
         list.Margin = new Thickness(0, 0, 0, GettingReadyLook.ListBottom);
         BuildRows(plan);
-        bar.Fill.Background = Chrome.Accent.Brush(bar.Fill);
-        barTrack = new Border { Height = GettingReadyLook.BarHeight, CornerRadius = new CornerRadius(GettingReadyLook.BarHeight / 2), ClipToBounds = true, Child = bar, Background = Chrome.PrimaryText.Opacity(0.10).Brush(bar) };
+        // step 15: the 4 px nth bar (step 3 option B) with the percentage in mono beside it, 10 px apart, the percentage 34 px wide and right-aligned. The row is as tall as the 14 px figure but takes only the
+        // bar's 4 px of the sheet's height (a -5 px margin each side): the sheet keeps the height it was measured at, and the figure, centred on the bar, passes over the margins around it.
+        percent.SetValue(TextElement.FontFamilyProperty, new FontFamily("Cascadia Mono,Consolas,monospace"));
+        percent.SetValue(TextElement.FontSizeProperty, GettingReadyLook.PercentSize);
+        percent.SetTextInstantly("0%");
+        percent.Foreground = new SolidColorBrush(WaitingInk(percent));
+        percent.ActualThemeVariantChanged += (_, _) => percent.Foreground = new SolidColorBrush(WaitingInk(percent));
+        percent.Height = GettingReadyLook.PercentHeight;
+        barRow = new Grid { Height = GettingReadyLook.PercentHeight, Margin = new Thickness(0, -(GettingReadyLook.PercentHeight - GettingReadyLook.BarHeight) / 2), ColumnDefinitions = new ColumnDefinitions($"*,{GettingReadyLook.PercentGap},{GettingReadyLook.PercentWidth}") };
+        Grid.SetColumn(percent, 2);
+        barRow.Children.Add(bar);
+        barRow.Children.Add(percent);
 
         var content = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(GettingReadyLook.PaddingSide, GettingReadyLook.PaddingTop, GettingReadyLook.PaddingSide, GettingReadyLook.PaddingBottom) };
         content.Children.Add(titleBox);
         content.Children.Add(line);
         content.Children.Add(list);
-        content.Children.Add(barTrack);
+        content.Children.Add(barRow);
 
         // the glass is the app's, taller than the window's top edge so the page's square top is the edge itself (ED-306 (3));
         // gr_lib.py --gshadow under it
@@ -388,7 +322,6 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         card.Children.Add(content);
         Child = card;
 
-        barShare = new AnimatedScalar(this, 0, value => { BarFraction = value; bar.Fraction = value; });
         readyOpacity = new AnimatedScalar(this, 0, value => { ReadyOpacity = value; ready.Opacity = value; title.Opacity = 1 - value; });
         readyRise = new AnimatedScalar(this, 0, value =>
         {
@@ -398,6 +331,8 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         });
         DetachedFromVisualTree += (_, _) => { if (Phase is GettingReadyPhase.Ready or GettingReadyPhase.Lifting) Finish(); };
     }
+
+    private static Color WaitingInk(Control control) => GettingReadyRowView.InkFor(FirstRunStepState.Waiting).Resolve(control.ActualThemeVariant);
 
     private static TextBlock Word(string text)
     {
@@ -428,8 +363,14 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
     /// <summary>How far the lift is, 0 hanging to 1 gone (gr-page.js --h).</summary>
     public double Hand { get; private set; }
 
-    /// <summary>The bar's fill as drawn: the share of the work done, eased.</summary>
-    public double BarFraction { get; private set; }
+    /// <summary>The bar's fill as drawn: the share of the work done, on the pack's spring.</summary>
+    public double BarFraction => bar.Shown;
+
+    /// <summary>The share of the work done the bar is going to.</summary>
+    public double BarTarget => bar.Value;
+
+    /// <summary>The percentage as it reads (the share reported, rounded down).</summary>
+    public string PercentText => percent.Text;
 
     /// <summary>The word the title says: W1's title, and "Ready" once a prepared run has ended.</summary>
     public string TitleWord => saidReady ? GettingReadyLook.Done : GettingReadyLook.Title;
@@ -448,9 +389,12 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
 
     public Control List => list;
 
-    public Control BarTrack => barTrack;
+    /// <summary>The nth bar (its box is the bar's track).</summary>
+    public NthProgressBar Bar => bar;
 
-    public Control BarFill => bar.Fill;
+    public Control BarTrack => bar;
+
+    internal NthLetters Percent => percent;
 
     /// <summary>Raised with the lift's progress each time it changes (RootView brings the pane back with it).</summary>
     public event Action<double>? HandChanged;
@@ -472,7 +416,9 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         var row = rows.FirstOrDefault(candidate => candidate.Id == progress.Step.Id);
         if (row is null) return; // a step the sheet was not made with has no row: its work is not on this screen
         row.Apply(progress.State, progress.Fraction);
-        barShare.Set(rows.Count == 0 ? 0 : rows.Sum(candidate => candidate.Share) / rows.Count, GettingReadyLook.Settle(0.3));
+        var share = rows.Count == 0 ? 0 : rows.Sum(candidate => candidate.Share) / rows.Count;
+        bar.Value = share;
+        percent.Text = Math.Floor(Math.Clamp(share, 0, 1) * 100).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%"; // the figure rolls to the share reported
     }
 
     public Task EndAsync(FirstRunOutcome outcome)
@@ -483,8 +429,8 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         {
             saidReady = true;
             Phase = GettingReadyPhase.Ready;
-            readyOpacity.Set(1, GettingReadyLook.Fade(0.28));
-            readyRise.Set(1, GettingReadyLook.Settle(0.38));
+            readyOpacity.Set(1, GettingReadyLook.Fade(0.25)); // step 15: the title cross-fades to "Ready" over 0.25 s, the word rising 5 px over 0.3 s (.2,.8,.2,1)
+            readyRise.Set(1, GettingReadyLook.Arrive(0.3));
         }
         else Phase = GettingReadyPhase.Lifting;
         Lift(prepared ? GettingReadyLook.Hold : 0);

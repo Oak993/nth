@@ -119,7 +119,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-006")] // App/Views/Settings/AboutUpdateViews.swift:628-641
     [InlineData(false)]
     [InlineData(true)]
-    public void Install_or_celebration_shows_a_104_point_progress_capsule_instead_of_the_button(bool celebration)
+    public void Install_or_celebration_shows_the_168_by_26_install_capsule_instead_of_the_button(bool celebration)
     {
         headless.OnUiThread(() =>
         {
@@ -136,7 +136,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
                 if (celebration) { progress.ArmCelebration(); progress.ConsumePendingCelebration(); } else progress.Begin();
                 var pill = new AboutVersionPill(); var window = Show(pill);
                 var slider = Assert.Single(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>());
-                Assert.Equal(104, slider.Width); Assert.Equal(28, slider.Height);
+                Assert.Equal(168, slider.Width); Assert.Equal(26, slider.Height); // nth motion pack step 10: the install capsule
                 Assert.Empty(pill.GetVisualDescendants().OfType<Button>());
                 Assert.Contains(pill.GetVisualDescendants().OfType<UpdateProgressSlider>(), child => AutomationProperties.GetName(child) == "Updating Marrow");
                 window.Close();

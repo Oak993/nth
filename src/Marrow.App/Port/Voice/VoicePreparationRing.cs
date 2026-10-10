@@ -1,43 +1,37 @@
-// PORT-ONLY: the locked qring viewBox20/r7.5/stroke2.2, scaled to16. Real progress only.
+// PORT-ONLY: the voice preparation pill's ring, moved onto the nth motion pack step 4 (OD-0136 amendment 2, ED-NEW-nth-motion): the nth ring at 18 (the pack's sizes are 14, 18 and 20; the old locked qring was
+// 16), a track under a mark arc from 12 o'clock, clockwise, on the pack's spring. Real progress only.
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
-using Marrow.UI.Port;
+using Marrow.App.Port.Updates;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Port.Voice;
 
-internal sealed class VoicePreparationRing : Control
+internal sealed class VoicePreparationRing : Decorator
 {
-    private readonly LookMotion motion;
-    private readonly LookNumber fraction;
+    internal const double Size = 18;
+
+    private readonly NthRing ring = new() { Width = Size, Height = Size };
 
     internal VoicePreparationRing()
     {
-        motion = new LookMotion(this);
-        fraction = new LookNumber(motion, 0);
-        motion.Frame += InvalidateVisual;
+        IsHitTestVisible = false;
+        Child = ring;
     }
 
-    internal double Fraction { get => fraction.Value; set => fraction.To(Math.Clamp(value, 0, 1), LookCurve.Ease(.3)); }
+    /// <summary>The primitive (tests and pictures).</summary>
+    internal NthRing Ring => ring;
 
-    public override void Render(DrawingContext context)
+    /// <summary>The arc as drawn now; set it to spring to a new fraction (a new download starts from nothing: the arc never runs backwards).</summary>
+    internal double Fraction
     {
-        var dark = LookDraw.IsDark(ActualThemeVariant);
-        var track = new SolidColorBrush(Color.FromArgb(26, dark ? (byte)255 : (byte)0, dark ? (byte)255 : (byte)0, dark ? (byte)255 : (byte)0));
-        context.DrawEllipse(null, new Pen(track, 1.76), new Point(8, 8), 6, 6);
-        var progress = fraction.Value;
-        if (progress <= 0) return;
-        var ink = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
-        var pen = new Pen(ink, 1.76, lineCap: PenLineCap.Round);
-        if (progress >= 1) { context.DrawEllipse(null, pen, new Point(8, 8), 6, 6); return; }
-        var angle = progress * Math.Tau - Math.PI / 2;
-        var geometry = new StreamGeometry();
-        using (var path = geometry.Open())
+        get => ring.Drawn();
+        set
         {
-            path.BeginFigure(new Point(8, 2), false);
-            path.ArcTo(new Point(8 + 6 * Math.Cos(angle), 8 + 6 * Math.Sin(angle)), new Size(6, 6), 0, progress > .5, SweepDirection.Clockwise);
-            path.EndFigure(false);
+            var clamped = Math.Clamp(value, 0, 1);
+            if (clamped < ring.Value) ring.Jump(clamped); else ring.Value = clamped;
         }
-        context.DrawGeometry(null, pen, geometry);
     }
+
+    protected override Size MeasureOverride(Size availableSize) => new(Size, Size);
 }

@@ -6,6 +6,7 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port.Skills.Pages;
 using Marrow.Core.Port.Skills.State;
 using Marrow.UI.Port.Settings;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -129,7 +130,16 @@ public sealed class LibraryPageMotionTests(HeadlessSession headless)
         harness.Settle();
         var target = bar.Target;
         Assert.True(target > 0.2);
-        EaseOf(Frames(harness, () => bar.Drawn, 400), 0, target);
+        // nth motion pack step 3: the fill springs to it (critically damped, stiffness 110): v(t) = target * (1 - (1 + w t) e^(-w t)), t seconds after the value was set; no overshoot, never backwards
+        var series = Frames(harness, () => bar.Drawn, 400);
+        Assert.Equal(0, series[0], 6);
+        for (var i = 1; i < series.Count; i++)
+        {
+            Assert.True(series[i] >= series[i - 1] - 1e-9 && series[i] <= target + 1e-9, "the value turned back or overshot at frame " + i);
+            var t = i * 0.016;
+            Assert.True(Math.Abs(series[i] - target * (1 - (1 + NthSpring.Omega * t) * Math.Exp(-NthSpring.Omega * t))) <= 0.004, $"frame {i}: {series[i]:0.0000}");
+        }
+        Assert.True(series.Distinct().Count() >= 6, "the change was a cut");
         harness.Install.Release("S1");
         harness.Wait(harness.Controller.RunCompletion);
     }, motion: true);

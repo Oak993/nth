@@ -50,7 +50,7 @@ internal sealed class SkillsProgressPill : Decorator
     private readonly Panel mark = new();
     private readonly CzCrossfadeText words = new("") { FontSize = 12.5, FontWeight = FontWeight.Medium };
     private readonly ProgressRing ring = new() { Width = 20, Height = 20 };
-    private readonly SkillsMotionNumber progress, reveal, opacity;
+    private readonly SkillsMotionNumber reveal, opacity;
     private readonly SkillsLeadFace ringLead, pauseLead, checkLead, warningLead;
     private readonly Control face;
     private RunPhase lastPhase;
@@ -81,7 +81,6 @@ internal sealed class SkillsProgressPill : Decorator
             PlacementMode.TopEdgeAlignedLeft, buildBeforeOpen: !nested);
         Popover.SetValue(Presentation.MotionProperty, new SkillsPopoverMotion(this));
         Child = new Panel { Children = { face, Popover } };
-        progress = new SkillsMotionNumber(ring, 0, value => ring.Value = value);
         opacity = new SkillsMotionNumber(face, 0, value => face.Opacity = value);
         var scale = new ScaleTransform(.92, .92);
         var shift = new TranslateTransform(0, 10);
@@ -133,7 +132,7 @@ internal sealed class SkillsProgressPill : Decorator
         };
         words.SetText(label);
         Button.Named(label, "skills-progress-pill-" + (model.Tools ? "Tools" : model.Controller.Section.ToString()));
-        progress.Set(view.Overall, .35, movement: true);
+        ring.Value = view.Overall; // the nth ring springs to it itself (step 4)
         if (lastPhase != view.Phase)
         {
             lastPhase = view.Phase;
@@ -220,9 +219,9 @@ internal sealed class SkillsProgressPopover : Border
         var stack = new StackPanel { Spacing = 9, Margin = new Thickness(0, 9, 0, 0) };
         if (view.IsRunning)
         {
-            var bar = new LibraryBar();
+            var bar = new LibraryProgressBar();
             var current = new CzCrossfadeText("") { FontSize = 12, Secondary = true };
-            var ring = new ProgressRing { Width = 16, Height = 16 };
+            var ring = new ProgressRing { Width = 14, Height = 14 };
             var progressLine = new CzCrossfadeText(progress.Text) { FontSize = 12, Secondary = true };
             var overall = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 8, Children = { bar, progressLine } };
             Grid.SetColumn(progressLine, 1);
@@ -235,7 +234,7 @@ internal sealed class SkillsProgressPopover : Border
                 bar.Set(run.Overall, true);
                 var item = run.Lines.FirstOrDefault(l => l.State is RunLineState.Downloading or RunLineState.Checking or RunLineState.Waiting);
                 current.SetText(item is null ? "" : item.Title + " \u00b7 " + Math.Round(item.Fraction * 100) + "%");
-                ring.Value = item?.Fraction ?? 0;
+                ring.Value = item?.Fraction ?? 0; // never runs backwards: the next item starts from nothing
             });
         }
         else if (view.Phase == RunPhase.Done) stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8,

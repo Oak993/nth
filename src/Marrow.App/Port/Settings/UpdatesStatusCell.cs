@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Port.Settings;
@@ -201,7 +202,7 @@ internal sealed class UpdatesStatusCell : Panel
             RowStatus.ChecksWhenUpdated or RowStatus.Waiting => new UpdatesGlyph(UpdatesGlyphKind.QuietDot),
             RowStatus.RestartToFinish => new UpdatesGlyph(UpdatesGlyphKind.Restart),
             RowStatus.DidNotUpdate => new UpdatesGlyph(UpdatesGlyphKind.Warning),
-            RowStatus.Checking or RowStatus.Updating or RowStatus.Downloading => new SystemSpinner { Width = UpdatesGlyph.Size, Height = UpdatesGlyph.Size },
+            RowStatus.Checking or RowStatus.Updating or RowStatus.Downloading => new NthSpinner { Width = UpdatesGlyph.Size, Height = UpdatesGlyph.Size },
             _ => null,
         };
     }

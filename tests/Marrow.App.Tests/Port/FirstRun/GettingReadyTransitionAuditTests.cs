@@ -1,14 +1,15 @@
 using Avalonia.Media;
 using Marrow.App.Port.FirstRun;
 using Marrow.App.Tests.Fixtures;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Tests.Port.FirstRun;
 
 // GR-2: the frame-clock transition audit (OD-0076: nothing cuts). Every state change of the sheet, with the transition it gets:
-//   a step's mark (spinner <-> check <-> dot)   opacity 0.25 s ease, scale 0.35 s cubic-bezier(.32,.72,0,1)   (gr_lib.py .tr)
-//   a step's label going from waiting to live   colour 0.3 s ease                                          (gr_lib.py .r)
-//   the bar's fill                               0.3 s cubic-bezier(.32,.72,0,1)                            (gr_lib.py .bar i)
-//   the title "Getting ready" -> "Ready"         opacity 0.28 s ease, rise 0.38 s cubic-bezier(.32,.72,0,1) (gr_lib.py .stk)
+//   a step's mark (ring <-> spinner <-> disc)   the nth status mark's cross-fade, 0.2 s                    (nth motion pack step 15)
+//   a step's label changing ink                  colour 0.25 s ease                                         (nth-motion-review.html .grl li)
+//   the bar's fill                               the pack's step 3 spring (critically damped, stiffness 110)
+//   the title "Getting ready" -> "Ready"         opacity 0.25 s ease, rise 5 px over 0.3 s cubic-bezier(.2,.8,.2,1) (nth-motion-review.html .gr .gt)
 //   the lift and the pane's return               1.1 s cubic in-out after a 0.15 s hold                     (gr-page.js HAND, HOLD, ease)
 // All on the frame clock: the only wake-ups are frames, spans are measured on SwiftClock (ED-117).
 [Collection("Headless")]
@@ -135,64 +136,70 @@ public sealed class GettingReadyTransitionAuditTests(HeadlessSession headless)
 
     [Fact] // GR-2.audit
     [Trait("Decision", "ED-288")]
-    public void A_step_finishing_swaps_spinner_for_check_along_the_pages_curves_with_no_jump() => headless.OnUiThread(() =>
+    public void A_step_finishing_hands_the_slot_to_the_nth_mark_and_moves_the_label_to_its_done_ink_in_025_s() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Running, 0));
         rig.Run(0.6);
         var row = rig.Sheet.Rows[0];
+        var from = row.LabelColour;
+        var to = GettingReadyRowView.InkFor(FirstRunStepState.Done).Resolve(rig.Sheet.ActualThemeVariant);
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Done, 1));
-        for (var index = 1; index <= 30; index++)
+        Assert.Equal(NthStatus.Done, row.Status); // the mark is told in the step's own frame; it cross-fades itself on the render thread
+        var last = 0.0;
+        for (var index = 1; index <= 24; index++)
         {
             rig.Frame(Frame);
             var time = index * Frame;
-            var opacity = GettingReadyCurves.Ease(time / 0.25);
-            var scale = 0.5 + 0.5 * GettingReadyCurves.Settle(time / 0.35);
-            Assert.True(Math.Abs(row.CheckOpacity - opacity) <= 0.03, $"{time:0.000}: check opacity {row.CheckOpacity:0.000}, page {opacity:0.000}");
-            Assert.True(Math.Abs(row.CheckScale - scale) <= 0.03, $"{time:0.000}: check scale {row.CheckScale:0.000}, page {scale:0.000}");
-            Assert.True(Math.Abs(row.SpinnerOpacity - (1 - opacity)) <= 0.03, $"{time:0.000}: spinner opacity {row.SpinnerOpacity:0.000}");
-            Assert.True(Math.Abs(row.SpinnerScale - (1 - 0.5 * GettingReadyCurves.Settle(time / 0.35))) <= 0.03, $"{time:0.000}: spinner scale");
+            var share = GettingReadyCurves.Ease(time / 0.25);
+            // the ink moves along the page's ease from the working ink to the done ink (alpha is the channel that differs: text -> text2 is 100 % -> 70 % of the label colour)
+            var expected = from.A + (to.A - from.A) * share;
+            Assert.True(Math.Abs(row.LabelColour.A - expected) <= 8, $"{time:0.000}: ink alpha {row.LabelColour.A}, expected {expected:0}");
+            Assert.True(row.LabelColour.A <= last || last == 0, $"{time:0.000}: the ink only moves one way");
+            last = row.LabelColour.A;
         }
-        Assert.Equal((1.0, 1.0, 0.0), (row.CheckOpacity, row.CheckScale, row.SpinnerOpacity));
+        Assert.Equal(to, row.LabelColour);
     });
 
     [Fact] // GR-2.audit
     [Trait("Decision", "ED-288")]
-    public void A_step_starting_dims_up_its_label_in_03_s_and_the_dot_gives_way_to_the_spinner() => headless.OnUiThread(() =>
+    public void A_step_starting_moves_its_label_ink_up_in_025_s_and_its_mark_becomes_the_spinner() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();
         var row = rig.Sheet.Rows[0];
-        var from = row.LabelOpacity;
-        var dot = row.DotOpacity;
+        var from = row.LabelColour;
+        var to = GettingReadyRowView.InkFor(FirstRunStepState.Running).Resolve(rig.Sheet.ActualThemeVariant);
+        Assert.Equal(NthStatus.Waiting, row.Status);
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Running, 0));
-        var last = from;
+        Assert.Equal(NthStatus.Working, row.Status);
+        var last = (double)from.A;
         for (var index = 1; index <= 24; index++)
         {
             rig.Frame(Frame);
             var time = index * Frame;
-            var share = GettingReadyCurves.Ease(time / 0.3);
-            Assert.True(Math.Abs(row.LabelOpacity - (from + (1 - from) * share)) <= 0.03, $"{time:0.000}: label {row.LabelOpacity:0.000}");
-            Assert.True(row.LabelOpacity >= last - 1e-9);
-            last = row.LabelOpacity;
-            var gone = GettingReadyCurves.Ease(time / 0.25);
-            Assert.True(Math.Abs(row.DotOpacity - dot * (1 - gone)) <= 0.03, $"{time:0.000}: dot {row.DotOpacity:0.000}");
-            Assert.True(Math.Abs(row.SpinnerOpacity - gone) <= 0.03, $"{time:0.000}: spinner {row.SpinnerOpacity:0.000}");
+            var share = GettingReadyCurves.Ease(time / 0.25);
+            Assert.True(Math.Abs(row.LabelColour.A - (from.A + (to.A - from.A) * share)) <= 8, $"{time:0.000}: label ink alpha {row.LabelColour.A}");
+            Assert.True(row.LabelColour.A >= last - 1e-9);
+            last = row.LabelColour.A;
         }
+        Assert.Equal(to, row.LabelColour);
     });
 
     [Fact] // GR-2.audit
     [Trait("Decision", "ED-288")]
-    public void The_bar_eases_to_the_new_share_in_03_s() => headless.OnUiThread(() =>
+    public void The_bar_springs_to_the_new_share_on_the_packs_step_3_spring() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig();
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Done, 1));
-        for (var index = 1; index <= 24; index++)
+        for (var index = 1; index <= 60; index++)
         {
             rig.Frame(Frame);
-            var expected = 1.0 / 6 * GettingReadyCurves.Settle(index * Frame / 0.3);
-            Assert.True(Math.Abs(rig.Sheet.BarFraction - expected) <= 0.01, $"{index * Frame:0.000}: bar {rig.Sheet.BarFraction:0.0000}, page {expected:0.0000}");
+            // NthSpring: critically damped, stiffness 110, from rest: v(t) = target * (1 - (1 + w t) e^(-w t))
+            var t = index * Frame;
+            var expected = 1.0 / 6 * (1 - (1 + NthSpring.Omega * t) * Math.Exp(-NthSpring.Omega * t));
+            Assert.True(Math.Abs(rig.Sheet.BarFraction - expected) <= 0.002, $"{t:0.000}: bar {rig.Sheet.BarFraction:0.0000}, spring {expected:0.0000}");
         }
-        Assert.Equal(1.0 / 6, rig.Sheet.BarFraction, 9);
+        Assert.Equal(1.0 / 6, rig.Sheet.BarTarget, 9);
     });
 
     [Fact] // GR-2.audit
@@ -211,8 +218,8 @@ public sealed class GettingReadyTransitionAuditTests(HeadlessSession headless)
             var time = index * Frame;
             opacity.Add(rig.Sheet.ReadyOpacity);
             rise.Add(rig.Sheet.ReadyRise);
-            Assert.True(Math.Abs(rig.Sheet.ReadyOpacity - GettingReadyCurves.Ease(time / 0.28)) <= 0.03, $"{time:0.000}: fade {rig.Sheet.ReadyOpacity:0.000}");
-            Assert.True(Math.Abs(rig.Sheet.ReadyRise - GettingReadyCurves.Settle(time / 0.38)) <= 0.03, $"{time:0.000}: rise {rig.Sheet.ReadyRise:0.000}");
+            Assert.True(Math.Abs(rig.Sheet.ReadyOpacity - GettingReadyCurves.Ease(time / 0.25)) <= 0.03, $"{time:0.000}: fade {rig.Sheet.ReadyOpacity:0.000}");
+            Assert.True(Math.Abs(rig.Sheet.ReadyRise - GettingReadyCurves.CubicBezier(0.2, 0.8, 0.2, 1, time / 0.3)) <= 0.03, $"{time:0.000}: rise {rig.Sheet.ReadyRise:0.000}");
         }
         Assert.Equal(opacity.Order().ToList(), opacity);
         Assert.Equal(rise.Order().ToList(), rise);

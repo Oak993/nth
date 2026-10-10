@@ -11,6 +11,7 @@ using Marrow.Core.Port.Skills.State;
 using Marrow.Core.Port.Skills.Terms;
 using Marrow.Services.Port.Skills.Offers;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
 namespace Marrow.App.Port.Skills;
@@ -36,7 +37,7 @@ public sealed class OfferCardControl : Border
     private string? kind;
     private string? contentKey;
     private OfferCardView? view;
-    private LibraryBar? bar;
+    private LibraryProgressBar? bar;
     private TextBlock? percent;
     private TextBlock? failure;
     private Button? primary;
@@ -187,9 +188,9 @@ public sealed class OfferCardControl : Border
 
     private Control TransferFace(bool known)
     {
-        if (known) return bar = new LibraryBar { Width = 150 };
+        if (known) return bar = new LibraryProgressBar { Width = 150 };
         bar = null;
-        return new SystemSpinner { Width = 14, Height = 14 };
+        return new NthSpinner { Width = 14, Height = 14 };
     }
 
     private Control Build(string what)
@@ -227,7 +228,7 @@ public sealed class OfferCardControl : Border
                 bytes = new Marrow.UI.Port.Settings.CzCrossfadeText("") { FontSize = 11.5, Secondary = true };
                 return new StackPanel { Spacing = 4, Children = { line, bytes } };
             case "checking":
-                Add(new SystemSpinner { Width = 14, Height = 14 });
+                Add(new NthSpinner { Width = 14, Height = 14 });
                 Add(LibraryUi.Text(view!.Status!, 12.5, secondary: true));
                 break;
             case "failed":
