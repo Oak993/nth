@@ -2,7 +2,7 @@
 // lost and spent, in buckets by local day, chat, kind and source, plus its events, kept at Storage.Root/ignis/ledger-v1.json.
 //
 // File shape (compact JSON, fixed member order, buckets sorted): {"version":1,"buckets":[{"day":"2026-10-10",
-// "thread":"<guid>","kind":"saved|lost|spent","source":"reuse|keptWarm|tidyUp|smartHelpers"?,"amount":0.42,"count":3}],
+// "thread":"<guid>","kind":"saved|lost|spent|missed","source":"reuse|keptWarm|tidyUp|smartHelpers|longerMemory"?,"amount":0.42,"count":3}],
 // "events":[{"id","thread","kind","at","amount"?,"amountKind","agent"?,"head"?,"model"?,"atTokens"?}]}.
 // Every change is written at once (atomic replace). A file that cannot be read is moved aside (ledger-v1.corrupt-<stamp>.json,
 // never deleted) and the ledger starts empty; an entry with an unknown value is skipped and the rest kept. Events older than
@@ -47,7 +47,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
         if (entry.Amount == 0m && entry.Count == 0) return;
         lock (gate)
         {
-            var key = new BucketKey(LocalDay(entry.At), entry.ThreadID, entry.Kind, entry.Kind == IgnisLedgerKind.Lost ? null : entry.Source);
+            var key = new BucketKey(LocalDay(entry.At), entry.ThreadID, entry.Kind, entry.Kind is IgnisLedgerKind.Lost or IgnisLedgerKind.Missed ? null : entry.Source);
             var (amount, count) = buckets.GetValueOrDefault(key);
             buckets[key] = (amount + entry.Amount, count + entry.Count);
             Save();
@@ -115,8 +115,11 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
                 (IgnisLedgerKind.Saved, IgnisSource.KeptWarm) => t with { KeptWarm = t.KeptWarm + amount },
                 (IgnisLedgerKind.Saved, IgnisSource.TidyUp) => t with { TidyUp = t.TidyUp + amount, TidyUps = t.TidyUps + count },
                 (IgnisLedgerKind.Saved, IgnisSource.SmartHelpers) => t with { SmartHelpers = t.SmartHelpers + amount, HelperJobs = t.HelperJobs + count },
+                (IgnisLedgerKind.Saved, IgnisSource.LongerMemory) => t with { LongerMemory = t.LongerMemory + amount },
                 (IgnisLedgerKind.Lost, _) => t with { Lost = t.Lost + amount },
+                (IgnisLedgerKind.Missed, _) => t with { Missed = t.Missed + amount },
                 (IgnisLedgerKind.Spent, IgnisSource.KeptWarm) => t with { Spent = t.Spent + amount, Pings = t.Pings + count },
+                (IgnisLedgerKind.Spent, IgnisSource.LongerMemory) => t with { Spent = t.Spent + amount, LongerMemorySpent = t.LongerMemorySpent + amount },
                 (IgnisLedgerKind.Spent, _) => t with { Spent = t.Spent + amount },
                 _ => t,
             };
@@ -137,9 +140,9 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
 
     private sealed record BucketKey(DateOnly Day, Guid Thread, IgnisLedgerKind Kind, IgnisSource? Source);
 
-    private static readonly (IgnisLedgerKind Kind, string Raw)[] KindNames = [(IgnisLedgerKind.Saved, "saved"), (IgnisLedgerKind.Lost, "lost"), (IgnisLedgerKind.Spent, "spent")];
+    private static readonly (IgnisLedgerKind Kind, string Raw)[] KindNames = [(IgnisLedgerKind.Saved, "saved"), (IgnisLedgerKind.Lost, "lost"), (IgnisLedgerKind.Spent, "spent"), (IgnisLedgerKind.Missed, "missed")];
     private static readonly (IgnisSource Source, string Raw)[] SourceNames =
-        [(IgnisSource.Reuse, "reuse"), (IgnisSource.KeptWarm, "keptWarm"), (IgnisSource.TidyUp, "tidyUp"), (IgnisSource.SmartHelpers, "smartHelpers")];
+        [(IgnisSource.Reuse, "reuse"), (IgnisSource.KeptWarm, "keptWarm"), (IgnisSource.TidyUp, "tidyUp"), (IgnisSource.SmartHelpers, "smartHelpers"), (IgnisSource.LongerMemory, "longerMemory")];
     private static readonly (IgnisEventKind Kind, string Raw)[] EventNames =
     [
         (IgnisEventKind.KeptWarm, "keptWarm"), (IgnisEventKind.WarmedAgain, "warmedAgain"), (IgnisEventKind.TidiedUp, "tidiedUp"),

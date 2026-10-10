@@ -75,6 +75,10 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     private readonly Dictionary<string, string> headTurns = new(StringComparer.Ordinal); // :47
     private readonly Dictionary<string, TokenSpendTracker> headSpend = new(StringComparer.Ordinal); // :48
     private readonly Dictionary<string, string> headModels = new(StringComparer.Ordinal); // :51
+    // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. Sub-threads Codex starts under one of this
+    // lead's heads (or this lead) that the view does not take as heads (no agent nickname or role): Ignis still learns
+    // their cache usage (and nothing else of them reaches the conversation), so helpers at every depth are counted.
+    private readonly Dictionary<string, string?> ignisNestedThreads = new(StringComparer.Ordinal);
     // PORT-ONLY: OD-0116, OD-0122, ED-439. While the standby waits, no turn, item, hook or approval may appear on its thread.
     private bool standbyActive;
     private bool standbyDiscarding;
@@ -1174,7 +1178,13 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         Target target = new Target.Lead(); // :541
         if (parameters["threadId"]?.JSONValueString is { } eventThread && threadID is { } currentThreadID && !SwiftString.Equal(eventThread, currentThreadID)) // :542
         {
-            if (!headThreads.Contains(eventThread)) return; // :543
+            if (!headThreads.Contains(eventThread)) // :543
+            {
+                // Ignis only (ED-NEW-ignis-runtime): a nested helper's cache usage, as its own agent; nothing else.
+                if (method == "thread/tokenUsage/updated" && ignisNestedThreads.TryGetValue(eventThread, out var nestedModel) && parameters["tokenUsage"] is { } nestedUsage && nestedUsage["last"] is not null)
+                    OnEvent?.Invoke(new ProviderEvent.CacheUsage(CacheUsageOf(nestedUsage, nestedModel, eventThread)));
+                return;
+            }
             target = new Target.Head(eventThread); // :544
         }
 
@@ -1342,8 +1352,12 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
     }
 
     // DEVIATION (OD-0134 Ignis): no Swift counterpart. One request's cache usage from tokenUsage.last: inputTokens counts
-    // the cached part too (OpenAI's convention), so the uncached bucket is inputTokens - cachedInputTokens; Codex has
-    // no cache-write premium, so the write buckets stay 0. Without cachedInputTokens the usage is "not reported".
+    // the cached part too (OpenAI's convention), so the uncached bucket is inputTokens - cachedInputTokens - the written
+    // part. ED-NEW-ignis-runtime: newer Codex CLIs also report the tokens written to the prompt cache
+    // (cache_write_input_tokens in `codex exec --json`, codex-rs exec_events.rs Usage; the app-server's camelCase
+    // cacheWriteInputTokens is read too, its exact name UNRESOLVED); the stream gives no lifetime for them, so they
+    // land in CacheWriteUnknownTtl. Older CLIs omit the field: the writes stay 0. Without cachedInputTokens the usage
+    // is "not reported".
     internal static global::Marrow.Core.Port.Ignis.IgnisTurnUsage CacheUsageOf(JSONValue tokenUsage, string? model, string? agentID)
     {
         var last = tokenUsage["last"];
@@ -1353,8 +1367,10 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             return global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Codex, model, agentID, used, window);
         var input = last["inputTokens"]?.JSONValueInt ?? 0;
         var output = last["outputTokens"]?.JSONValueInt ?? 0;
+        var written = Math.Max(0, last["cacheWriteInputTokens"]?.JSONValueInt ?? last["cache_write_input_tokens"]?.JSONValueInt ?? 0);
+        var read = Math.Max(0, cached);
         return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Codex, model, agentID,
-            Math.Max(0, input - cached), Math.Max(0, cached), 0, 0, 0, output, used, window, true);
+            Math.Max(0, input - read - written), read, 0, 0, written, output, used, window, true);
     }
 
     // :671-677
@@ -1406,7 +1422,12 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         {
             var nickname = thread["agentNickname"]?.JSONValueString; // :688
             var role = thread["agentRole"]?.JSONValueString;
-            if (nickname is null && role is null) return; // :689
+            if (nickname is null && role is null) // :689
+            {
+                // Ignis only (ED-NEW-ignis-runtime): a sub-thread of one of this lead's heads keeps its cache usage.
+                if (parent is not null && (headThreads.Contains(parent) || ignisNestedThreads.ContainsKey(parent))) ignisNestedThreads[id] = thread["model"]?.JSONValueString;
+                return;
+            }
             Log.Error($"thread/started {id} names parent {parent ?? "none"}, not this lead {currentThreadID}; taken as a head by its agent nickname"); // :690
             headThreads.Add(id); // :691
             if (thread["model"]?.JSONValueString is { } headModel1) headModels[id] = headModel1; // :692

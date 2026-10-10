@@ -423,6 +423,7 @@ public sealed class KindlePopover : Decorator
         IgnisSource.KeptWarm => SwiftColor.Rgb(0xff6a1f),
         IgnisSource.TidyUp => KindleUi.Color(KindleTone.Good),
         IgnisSource.SmartHelpers => SwiftColor.Dynamic(SwiftColor.Rgb(0x7b55e0), SwiftColor.Rgb(0xa98bff)),
+        IgnisSource.LongerMemory => SwiftColor.Dynamic(SwiftColor.Rgb(0xffb040), SwiftColor.Rgb(0xffc464)), // ED-NEW-ignis-runtime: amber
         _ => Chrome.Accent,
     };
 
@@ -438,8 +439,11 @@ public sealed class KindlePopover : Decorator
     {
         var pane = new StackPanel { Spacing = 10 };
         pane.Children.Add(Header(KindleUi.Text(IgnisWords.WhereTodaysSavingsCameFrom, 12), KindleUi.Text(IgnisWords.Money(status.SavedToday), 12, KindleTone.Good, strong: true, tabular: true)));
-        IgnisSource[] sources = [IgnisSource.Reuse, IgnisSource.KeptWarm, IgnisSource.TidyUp, IgnisSource.SmartHelpers];
         decimal Amount(IgnisSource s) => status.SavedBySource.TryGetValue(s, out var v) ? v : 0m;
+        // ED-NEW-ignis-runtime: "Longer quick memory" joins the design's four only on a day it saved something.
+        IgnisSource[] sources = Amount(IgnisSource.LongerMemory) > 0m
+            ? [IgnisSource.Reuse, IgnisSource.KeptWarm, IgnisSource.TidyUp, IgnisSource.SmartHelpers, IgnisSource.LongerMemory]
+            : [IgnisSource.Reuse, IgnisSource.KeptWarm, IgnisSource.TidyUp, IgnisSource.SmartHelpers];
         var bar = new Grid { Height = 6, ColumnSpacing = 2, ClipToBounds = true };
         var total = sources.Sum(Amount);
         for (var i = 0; i < sources.Length; i++)

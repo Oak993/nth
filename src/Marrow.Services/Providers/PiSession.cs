@@ -25,6 +25,19 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
 
     public Action<ProviderEvent>? OnEvent { get; set; } // :21
 
+    /// <summary>PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): pi's documented prompt-cache retention variable.</summary>
+    internal const string IgnisCacheRetentionVariable = "PI_CACHE_RETENTION";
+
+    /// <summary>
+    /// PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): adds PI_CACHE_RETENTION=long to the launch environment while Ignis
+    /// is on for the chat, unless the user set the variable (the dictionary ignores letter case, as Windows does).
+    /// </summary>
+    internal static void WithIgnisCacheRetention(Dictionary<string, string> environment, Guid? ignisThreadID)
+    {
+        if (global::Marrow.Core.Port.Ignis.IgnisSeams.IsOn.Current(ProviderKind.Pi, ignisThreadID) && !environment.ContainsKey(IgnisCacheRetentionVariable))
+            environment[IgnisCacheRetentionVariable] = "long";
+    }
+
     // PORT-ONLY: SK-11e / WU-10 and DL-12. Null for both means today's argv, environment and behaviour exactly.
     public ProviderSkillLaunch? SkillLaunch { get; init; }
     public Action<ToolEvent>? ToolEvents { get; set; }
@@ -153,6 +166,10 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         var environment = new Dictionary<string, string>(ProviderSkillEnvironment.Apply(configuration.Environment, SkillLaunch), StringComparer.OrdinalIgnoreCase); // PORT-ONLY: SK-11e (DL-6 PATH from launch or bound root)
         environment["DROPPY_CODE_PI_GATE"] = gateURL;
         environment["PI_SKIP_VERSION_CHECK"] = "1";
+        // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. While Ignis is on for the chat, pi's own
+        // documented cache lever (PI_CACHE_RETENTION=long: "extended prompt cache (Anthropic: 1h, OpenAI: 24h)", pi-coding-agent
+        // README) instead of pings; a value the user set is kept. It changes only how long the provider keeps the prefix.
+        WithIgnisCacheRetention(environment, configuration.IgnisThreadID);
         if (!textOnlyHead && SwiftTry.Optional(() => localApplicationData is { } bridgeAppData
                 ? MCPBridge.InstallBridge(bridgeAppData)
                 : MCPBridge.InstallBridge()) is { } bridge)

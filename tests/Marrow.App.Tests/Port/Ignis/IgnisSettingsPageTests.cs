@@ -297,4 +297,39 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
             Assert.Equal(IgnisWords.ModelPointsDetail("2026.10.08"), page.ModelPointsDetail);
         });
     });
+
+    [Fact]
+    [Trait("Decision", "OD-0134")] // ED-NEW-ignis-runtime: the fifth source joins the legend once it saved; helper rebuilds show under it as a cost
+    public void Longer_quick_memory_joins_the_legend_once_it_saved_and_helper_rebuilds_show_under_it() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var ledger = new FakeSettingsLedger([
+            Day(9, 15, reuse: 2.00m, reuses: 20),
+            Day(10, 6, reuse: 1.20m, reuses: 12) with { LongerMemory = 0.40m, LongerMemorySpent = 0.05m, Missed = 0.31m },
+        ]);
+        var history = IgnisSavingsHistory.From(ledger, Today);
+        var october = history.Months[^1];
+        Assert.Equal(1.60m, october.Total);
+        Assert.Equal(0.40m, october.BySource[IgnisSource.LongerMemory]);
+        Assert.Equal([IgnisSource.Reuse, IgnisSource.KeptWarm, IgnisSource.TidyUp, IgnisSource.SmartHelpers, IgnisSource.LongerMemory], october.Shown);
+        Assert.Equal((0.31m, "Helpers rebuilt their quick memory: $0.31"), (october.Missed, october.MissedLine));
+        var september = history.Months[^2];
+        Assert.Equal(IgnisSavingsHistory.Sources, september.Shown);
+        Assert.Null(september.MissedLine);
+
+        var page = new IgnisSettingsPage(new IgnisSettings(runtime.Defaults), ledger, Points(), () => Today, () => null);
+        Show(page, runtime, _ =>
+        {
+            var view = Assert.IsType<IgnisSavingsHistoryView>(page.History);
+            Assert.Equal([("Reused quick memory", "$1.20"), ("Kept warm", "$0.00"), ("Tidy-ups", "$0.00"), ("Smart helpers", "$0.00"), ("Longer quick memory", "$0.40")], view.Legend);
+            Assert.Equal("$1.60", view.MonthTileAmount.Text);
+            Assert.True(view.MissedText.IsVisible);
+            Assert.Equal("Helpers rebuilt their quick memory: $0.31", view.MissedText.Text);
+
+            Click(view.PreviousButton);
+            runtime.RunUntilIdle();
+            Assert.Equal([("Reused quick memory", "$2.00"), ("Kept warm", "$0.00"), ("Tidy-ups", "$0.00"), ("Smart helpers", "$0.00")], view.Legend);
+            Assert.False(view.MissedText.IsVisible);
+        });
+    });
 }

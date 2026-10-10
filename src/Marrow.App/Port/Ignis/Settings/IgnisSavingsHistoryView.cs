@@ -64,7 +64,8 @@ public sealed class IgnisSavingsHistoryView : Decorator
         SourceTitle = Text("", SwiftFont.System(13, SwiftFont.Weight.Semibold), Chrome.PrimaryText, wrap: true);
         sourceTrack.Child = sourceBar;
         sourceTrack.RoundedRectangle(3, RoundedCornerStyle.Continuous);
-        var sourceCard = Card(SourceTitle, sourceTrack, legend);
+        MissedText = Text("", SwiftFont.System(11.5), Chrome.SecondaryText.Opacity(0.8), wrap: true);
+        var sourceCard = Card(SourceTitle, sourceTrack, legend, MissedText);
 
         // .sv-card "Day by day"
         var dayScroll = new ScrollViewer { Content = days, MaxHeight = 300, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
@@ -90,6 +91,9 @@ public sealed class IgnisSavingsHistoryView : Decorator
     public Button PreviousButton { get; }
     public Button NextButton { get; }
     public TextBlock SourceTitle { get; }
+
+    /// <summary>The month's helper rebuilds under the legend (ED-NEW-ignis-runtime); hidden when there were none.</summary>
+    public TextBlock MissedText { get; }
     public ScrollViewer DayScroll { get; }
 
     /// <summary>The chart's bars as they stand: the month, its accessible name and whether it is the picked one.</summary>
@@ -192,9 +196,11 @@ public sealed class IgnisSavingsHistoryView : Decorator
         legend.Children.Clear();
         var total = month.BySource.Values.Sum();
         var lines = new List<(string, string)>();
-        for (var i = 0; i < IgnisSavingsHistory.Sources.Count; i++)
+        var shown = month.Shown;
+        legend.RowDefinitions = new RowDefinitions(shown.Count > 4 ? "Auto,8,Auto,8,Auto" : "Auto,8,Auto");
+        for (var i = 0; i < shown.Count; i++)
         {
-            var source = IgnisSavingsHistory.Sources[i];
+            var source = shown[i];
             var amount = month.BySource[source];
             if (total > 0)
             {
@@ -209,12 +215,14 @@ public sealed class IgnisSavingsHistoryView : Decorator
             Grid.SetColumn(name, 2);
             Grid.SetColumn(value, 4);
             Grid.SetColumn(row, i % 2 == 0 ? 0 : 2);
-            Grid.SetRow(row, i < 2 ? 0 : 2);
+            Grid.SetRow(row, i / 2 * 2);
             legend.Children.Add(row);
             lines.Add((IgnisWords.SourceName(source), IgnisWords.Money(amount)));
         }
         sourceTrack.Background = total <= 0 ? Chrome.Overlay(0.08).Brush(sourceTrack) : null;
         Legend = lines;
+        MissedText.Text = month.MissedLine ?? "";
+        MissedText.IsVisible = month.MissedLine is not null;
     }
 
     private void BuildDays(IgnisMonthSavings month, bool animate)
@@ -256,6 +264,7 @@ public sealed class IgnisSavingsHistoryView : Decorator
         IgnisSource.KeptWarm => SwiftColor.Dynamic(new SwiftColor(red: 1.0, green: 0.416, blue: 0.122), new SwiftColor(red: 1.0, green: 0.416, blue: 0.122)), // --ember-outer
         IgnisSource.TidyUp => Chrome.Success,
         IgnisSource.SmartHelpers => SwiftColor.Dynamic(new SwiftColor(red: 0.482, green: 0.333, blue: 0.878), new SwiftColor(red: 0.663, green: 0.545, blue: 1.0)), // --violet
+        IgnisSource.LongerMemory => SwiftColor.Dynamic(new SwiftColor(red: 1.0, green: 0.690, blue: 0.251), new SwiftColor(red: 1.0, green: 0.769, blue: 0.392)), // ENGINEERING DECISION: amber, the ember's warm sibling
     };
 
     private static Control Dot(IgnisSource source, double size)

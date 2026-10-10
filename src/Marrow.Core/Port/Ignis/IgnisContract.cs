@@ -26,6 +26,11 @@ public enum IgnisSource
     TidyUp,
     /// <summary>"Smart helpers": look-up helpers run on the cheaper helper model.</summary>
     SmartHelpers,
+    /// <summary>
+    /// "Longer quick memory" (ED-NEW-ignis-runtime): rebuilds avoided because nth asked the CLI for a 1-hour cache in a
+    /// bucket whose gaps pay for it (Saved), and the extra 1-hour write price it paid for that (Spent). Not a ping.
+    /// </summary>
+    LongerMemory,
 }
 
 /// <summary>The state of a chat's prompt cache ("quick memory").</summary>
@@ -278,10 +283,21 @@ public sealed record IgnisChatStatus
     /// <summary>Context fill 0...1, or null when either number is unknown.</summary>
     public double? ContextFill => ContextUsed is { } used && ContextWindow is { } window && window > 0 ? (double)used / window : null;
 
+    // ---- cache lifetimes (ED-NEW-ignis-runtime) ----
+    /// <summary>
+    /// The main chat runs on paid usage credits: its writes are 5-minute ones where the points say 1 hour (or the CLI
+    /// said it is using overage). The lifetime and keep-warm timing follow the 5 minutes until 1-hour writes return.
+    /// </summary>
+    public bool PaidCredits { get; init; }
+    /// <summary>What nth chose for the Claude CLI's two cache buckets at the chat's last launch, and why; null: not asked.</summary>
+    public Engine.IgnisLifetimeChoice? CacheLifetimes { get; init; }
+    /// <summary>Today's helper cache rebuilds in this chat (gaps longer than a helper's lifetime).</summary>
+    public decimal MissedToday { get; init; }
+
     /// <summary>The all-sources zero map, for building a status before any saving.</summary>
     public static IReadOnlyDictionary<IgnisSource, decimal> NoSavings { get; } = new Dictionary<IgnisSource, decimal>
     {
-        [IgnisSource.Reuse] = 0m, [IgnisSource.KeptWarm] = 0m, [IgnisSource.TidyUp] = 0m, [IgnisSource.SmartHelpers] = 0m,
+        [IgnisSource.Reuse] = 0m, [IgnisSource.KeptWarm] = 0m, [IgnisSource.TidyUp] = 0m, [IgnisSource.SmartHelpers] = 0m, [IgnisSource.LongerMemory] = 0m,
     };
 
     /// <summary>The status of a chat Ignis knows nothing about yet.</summary>
@@ -343,6 +359,8 @@ public enum IgnisLedgerKind
     Saved,
     Lost,
     Spent,
+    /// <summary>A helper's cache rebuilt after a gap longer than its lifetime (ED-NEW-ignis-runtime); kept apart from the chat's Lost.</summary>
+    Missed,
 }
 
 /// <summary>
@@ -366,8 +384,17 @@ public sealed record IgnisDayTotals(
     int TidyUps,
     int HelperJobs)
 {
-    /// <summary>Money saved that day: the four sources.</summary>
-    public decimal Saved => Reuse + KeptWarm + TidyUp + SmartHelpers;
+    /// <summary>"Longer quick memory" saved (ED-NEW-ignis-runtime): rebuilds avoided by nth's 1-hour choice.</summary>
+    public decimal LongerMemory { get; init; }
+
+    /// <summary>What nth's 1-hour choice paid on top for its writes (also inside <see cref="Spent"/>).</summary>
+    public decimal LongerMemorySpent { get; init; }
+
+    /// <summary>Helper cache rebuilds: a helper's write after a gap longer than its cache lifetime (not inside <see cref="Lost"/>).</summary>
+    public decimal Missed { get; init; }
+
+    /// <summary>Money saved that day: every source.</summary>
+    public decimal Saved => Reuse + KeptWarm + TidyUp + SmartHelpers + LongerMemory;
 
     public decimal SavedFrom(IgnisSource source) => source switch
     {
@@ -375,6 +402,7 @@ public sealed record IgnisDayTotals(
         IgnisSource.KeptWarm => KeptWarm,
         IgnisSource.TidyUp => TidyUp,
         IgnisSource.SmartHelpers => SmartHelpers,
+        IgnisSource.LongerMemory => LongerMemory,
     };
 
     public static IgnisDayTotals Empty(DateOnly day) => new(day, 0m, 0m, 0m, 0m, 0m, 0m, 0, 0, 0, 0);
@@ -426,6 +454,9 @@ public interface IIgnisRuntimePort
 
     /// <summary>When the chat last sent a request to the model (the cache's clock starts here); null when never.</summary>
     DateTimeOffset? LastRequestAt { get; }
+
+    /// <summary>When the running (or just finished) turn started; the gap Ignis learns ends here (ED-NEW-ignis-runtime). Null: unknown.</summary>
+    DateTimeOffset? TurnStartedAt => null;
 
     /// <summary>Whether this session keeps warm without a visible turn (API sessions); CLIs use hidden pings instead.</summary>
     bool CanKeepWarmSilently { get; }
@@ -482,4 +513,7 @@ public interface IIgnisController
 
     /// <summary>The provider reported a usage-limit error in the chat: pause until it resets.</summary>
     void UsageLimitHit(Guid thread, DateTimeOffset? resetsAt);
+
+    /// <summary>The provider said the chat now runs on (or off) paid usage credits (ED-NEW-ignis-runtime); the observed writes still win.</summary>
+    void CreditsHint(Guid thread, bool onCredits) { }
 }

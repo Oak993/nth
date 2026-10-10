@@ -262,6 +262,10 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                 arguments.Add("Task");
             }
         }
+        // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. The prompt-cache lifetimes Ignis chose
+        // for this launch go on the process environment once, so they cover every request outside the main
+        // conversation of this CLI process: subagents at every depth, workflows and forks included.
+        environment = WithIgnisCacheLifetimes(environment, configuration);
         if (handshakeAgent is not null && configuration.Hydra?.RunsNatively != true)
         {
             arguments.Add("--agents");
@@ -473,6 +477,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                     var stream = agentStreams.TryGetValue(assistantParent, out var headStream) ? headStream : new StreamState();
                     HandleAssistant(message, ref stream, AgentSink(assistantParent));
                     agentStreams[assistantParent] = stream;
+                    IgnisHeadUsage(message, assistantParent); // DEVIATION (OD-0134 Ignis): the helper request's cache usage
                 }
                 else
                 {
@@ -497,6 +502,10 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                     var when = resetsAt is { } r ? $" It resets at {UsageLimitSignal.Format(r)}." : "";
                     OnEvent?.Invoke(new ProviderEvent.Notice(new Notice { NoticeLevel = Notice.Level.Warning, Message = $"Claude hit a usage limit.{when}" }));
                     OnEvent?.Invoke(new ProviderEvent.UsageLimit(resetsAt));
+                }
+                else if (OverageHint(info) is { } onCredits) // DEVIATION (OD-0134 Ignis): paid-credits hint
+                {
+                    OnEvent?.Invoke(new ProviderEvent.CacheBilling(onCredits));
                 }
                 break;
             default:
@@ -1215,22 +1224,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         if (message["usage"] is not { IsNull: false } usage) return null;
         var parts = usage["iterations"]?.JSONValueArray is { Count: > 0 } iterations ? iterations.ToList() : [usage];
         var context = ContextUsageOf(message);
-        long uncached = 0, read = 0, write5m = 0, write1h = 0, writeUnknown = 0, output = 0;
-        var reported = false;
-        foreach (var part in parts)
-        {
-            uncached += part["input_tokens"]?.JSONValueInt ?? 0;
-            output += part["output_tokens"]?.JSONValueInt ?? 0;
-            if (part["cache_read_input_tokens"]?.JSONValueInt is { } partRead) { read += partRead; reported = true; }
-            var written = part["cache_creation_input_tokens"]?.JSONValueInt;
-            if (written is not null) reported = true;
-            var fiveMinutes = part["cache_creation"]?["ephemeral_5m_input_tokens"]?.JSONValueInt ?? 0;
-            var oneHour = part["cache_creation"]?["ephemeral_1h_input_tokens"]?.JSONValueInt ?? 0;
-            if (fiveMinutes != 0 || oneHour != 0) reported = true;
-            write5m += fiveMinutes;
-            write1h += oneHour;
-            writeUnknown += Math.Max(0, (written ?? 0) - fiveMinutes - oneHour);
-        }
+        var (uncached, read, write5m, write1h, writeUnknown, output, reported) = UsageBuckets(parts);
         if (!reported)
             return global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, model, null, context?.UsedTokens, context?.WindowTokens);
         return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Claude, model, null, uncached, read, write5m, write1h, writeUnknown, output,
@@ -1254,6 +1248,85 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             [HydraPrompts.ScoutAgentName] = new JSONValue.Object(new ValueMap<string, JSONValue>(scout, SwiftStringComparer.Instance)),
         };
         return new JSONValue.Object(new ValueMap<string, JSONValue>(all, SwiftStringComparer.Instance));
+    }
+
+    // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. Asks Ignis (IgnisSeams.CacheLifetimes) for this
+    // launch's prompt-cache lifetimes and adds the variables it chose to the environment the CLI inherits. Unbound, no
+    // choice, or a variable already present in any letter case: the environment is returned unchanged.
+    internal static ValueMap<string, string> WithIgnisCacheLifetimes(ValueMap<string, string> environment, SessionConfiguration configuration)
+    {
+        var choice = global::Marrow.Core.Port.Ignis.IgnisSeams.CacheLifetimes.Current(new global::Marrow.Core.Port.Ignis.IgnisLifetimeQuery(
+            ProviderKind.Claude, configuration.Model, configuration.IgnisThreadID, environment, configuration.WorkingDirectory.Path));
+        if (choice is null) return environment;
+        var add = choice.Environment
+            .Where(pair => !environment.Keys.Any(key => string.Equals(key, pair.Key, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        return add.Count == 0 ? environment : environment.Mutating(map => { foreach (var (key, value) in add) map[key] = value; });
+    }
+
+    // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. One helper request's cache usage, from an
+    // assistant message whose parent_tool_use_id names the agent (subagents of subagents carry their own spawning tool
+    // call, so every depth is its own agent). A message with several content blocks arrives once per block with the same
+    // usage, so each message id is counted once. The message's own usage is that single request's.
+    private readonly HashSet<string> ignisHeadMessages = new(StringComparer.Ordinal);
+    private readonly Queue<string> ignisHeadMessageOrder = new();
+
+    /// <summary>ENGINEERING DECISION: the message ids remembered for de-duplication per session.</summary>
+    internal const int IgnisHeadMessageMemory = 4096;
+
+    private void IgnisHeadUsage(JSONValue message, string agentID)
+    {
+        if (message["message"] is not { } body || body["id"]?.JSONValueString is not { Length: > 0 } id) return;
+        if (HeadCacheUsageOf(message, agentID) is not { } usage) return;
+        if (!ignisHeadMessages.Add(id)) return;
+        ignisHeadMessageOrder.Enqueue(id);
+        if (ignisHeadMessageOrder.Count > IgnisHeadMessageMemory) ignisHeadMessages.Remove(ignisHeadMessageOrder.Dequeue());
+        OnEvent?.Invoke(new ProviderEvent.CacheUsage(usage));
+    }
+
+    internal static global::Marrow.Core.Port.Ignis.IgnisTurnUsage? HeadCacheUsageOf(JSONValue message, string agentID)
+    {
+        if (message["message"] is not { } body || body["usage"] is not { IsNull: false } usage) return null;
+        var model = body["model"]?.JSONValueString;
+        if (model is not null && SwiftString.Equal(model, SyntheticModel)) return null;
+        var (uncached, read, write5m, write1h, writeUnknown, output, reported) = UsageBuckets([usage]);
+        if (!reported) return null;
+        var prompt = uncached + read + write5m + write1h + writeUnknown;
+        return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Claude, model, agentID, uncached, read, write5m, write1h, writeUnknown, output,
+            prompt, null, true);
+    }
+
+    private static (long Uncached, long Read, long Write5m, long Write1h, long WriteUnknown, long Output, bool Reported) UsageBuckets(IReadOnlyList<JSONValue> parts)
+    {
+        long uncached = 0, read = 0, write5m = 0, write1h = 0, writeUnknown = 0, output = 0;
+        var reported = false;
+        foreach (var part in parts)
+        {
+            uncached += part["input_tokens"]?.JSONValueInt ?? 0;
+            output += part["output_tokens"]?.JSONValueInt ?? 0;
+            if (part["cache_read_input_tokens"]?.JSONValueInt is { } partRead) { read += partRead; reported = true; }
+            var written = part["cache_creation_input_tokens"]?.JSONValueInt;
+            if (written is not null) reported = true;
+            var fiveMinutes = part["cache_creation"]?["ephemeral_5m_input_tokens"]?.JSONValueInt ?? 0;
+            var oneHour = part["cache_creation"]?["ephemeral_1h_input_tokens"]?.JSONValueInt ?? 0;
+            if (fiveMinutes != 0 || oneHour != 0) reported = true;
+            write5m += fiveMinutes;
+            write1h += oneHour;
+            writeUnknown += Math.Max(0, (written ?? 0) - fiveMinutes - oneHour);
+        }
+        return (uncached, read, write5m, write1h, writeUnknown, output, reported);
+    }
+
+    // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. Whether an allowed rate_limit_event says the
+    // subscription now draws on paid usage credits (overage): rateLimitType / rate_limit_type "overage", or
+    // isUsingOverage true. null: the event says nothing either way. UNRESOLVED: no single documented "on credits" flag;
+    // these are the closest stream fields (SDK RateLimitInfo), so Ignis treats them as a hint the observed writes override.
+    internal static bool? OverageHint(JSONValue info)
+    {
+        if (info["isUsingOverage"]?.JSONValueBool is { } usingOverage) return usingOverage;
+        if (info["is_using_overage"]?.JSONValueBool is { } usingOverageSnake) return usingOverageSnake;
+        var type = info["rateLimitType"]?.JSONValueString ?? info["rate_limit_type"]?.JSONValueString;
+        return type is not null && SwiftString.Equal(type, "overage") ? true : null; // another limit type says nothing about credits
     }
 
     /// <summary>Swift `private`; kept internal for this part's own tests.</summary>

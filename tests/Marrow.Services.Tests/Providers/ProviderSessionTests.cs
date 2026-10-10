@@ -43,8 +43,9 @@ public sealed class ProviderSessionTests
             .Select(t => t.Name)
             .ToArray();
 
-        // DEVIATION OD-0134 / ED-NEW-ignis-contract: the port-only Ignis case CacheUsage follows the 31 Swift cases.
-        Assert.Equal(expectedOrder.Append("CacheUsage").ToArray(), actualOrder);
+        // DEVIATION OD-0134 / ED-NEW-ignis-contract: the port-only Ignis case CacheUsage follows the 31 Swift cases;
+        // ED-NEW-ignis-runtime: then the port-only CacheBilling (equal-or-stricter: the same exact order, one more case).
+        Assert.Equal(expectedOrder.Append("CacheUsage").Append("CacheBilling").ToArray(), actualOrder);
 
         var usageIndex = Array.IndexOf(expectedOrder, "Usage");
         var tokenSpendIndex = Array.IndexOf(expectedOrder, "TokenSpend");
@@ -113,7 +114,9 @@ public sealed class ProviderSessionTests
             new ProviderEvent.AgentProgress("id", "s", "t", 1, 2),
             new ProviderEvent.AgentFinished("id", TurnStatus.Completed, "s"),
             // DEVIATION OD-0134 / ED-NEW-ignis-contract: the port-only Ignis case.
-            new ProviderEvent.CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, null, null)));
+            new ProviderEvent.CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, null, null)),
+            // DEVIATION OD-0134 / ED-NEW-ignis-runtime: the port-only paid-credits hint.
+            new ProviderEvent.CacheBilling(true));
 
         foreach (var sample in samples)
         {
@@ -151,6 +154,7 @@ public sealed class ProviderSessionTests
                 ProviderEvent.AgentProgress => true,
                 ProviderEvent.AgentFinished => true,
                 ProviderEvent.CacheUsage => true,
+                ProviderEvent.CacheBilling => true,
                 _ => throw new UnreachableException(),
             };
             Assert.True(described);

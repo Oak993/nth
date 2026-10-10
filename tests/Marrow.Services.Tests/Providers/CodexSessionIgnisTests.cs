@@ -76,4 +76,64 @@ public sealed class CodexSessionIgnisTests
         Assert.Equal(0, usage.CacheWrite);
         Assert.True(usage.Reported);
     }
+
+    // ---- ED-NEW-ignis-runtime ----
+
+    [Theory]
+    [Trait("Feature", "IG-2")]
+    [Trait("Decision", "OD-0134")]
+    [InlineData("cache_write_input_tokens")]
+    [InlineData("cacheWriteInputTokens")]
+    public void CacheUsageOf_reads_the_cache_write_field_into_the_unknown_lifetime_bucket(string field)
+    {
+        var usage = CodexSession.CacheUsageOf(TokenUsage(JSONValue.FromDictionaryLiteral(
+            ("totalTokens", 41_200L), ("inputTokens", 41_000L), ("cachedInputTokens", 30_000L), (field, 6_000L), ("outputTokens", 200L))),
+            "gpt-5.6-codex", null);
+
+        // 41000 input = 30000 read + 6000 written + 5000 uncached; the stream names no lifetime for the writes.
+        Assert.Equal(new IgnisTurnUsage(ProviderKind.Codex, "gpt-5.6-codex", null, 5_000, 30_000, 0, 0, 6_000, 200, 41_200, 272_000, true), usage);
+    }
+
+    [Fact]
+    [Trait("Feature", "IG-2")]
+    [Trait("Decision", "OD-0134")]
+    public void Nested_helpers_at_every_depth_reach_ignis_once_each_and_nothing_else_of_them_reaches_the_chat()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var ledger = runtime.OnMain(() => (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        var events = new List<ProviderEvent>();
+        var session = new CodexSession(MinimalConfig()) { OnEvent = events.Add };
+        typeof(CodexSession).GetField("threadID", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(session, "lead");
+        void Notify(string method, JSONValue parameters) => typeof(CodexSession).GetMethod("HandleNotification", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(session, [method, parameters]);
+        JSONValue Started(string id, string parent, string? nickname = null) => JSONValue.FromDictionaryLiteral(("thread", nickname is null
+            ? JSONValue.FromDictionaryLiteral(("id", id), ("parentThreadId", parent), ("model", "gpt-5.6-codex-mini"))
+            : JSONValue.FromDictionaryLiteral(("id", id), ("parentThreadId", parent), ("model", "gpt-5.6-codex-mini"), ("agentNickname", nickname))));
+        JSONValue Used(string thread, long cached) => JSONValue.FromDictionaryLiteral(("threadId", thread), ("tokenUsage", TokenUsage(JSONValue.FromDictionaryLiteral(
+            ("totalTokens", 10_000L), ("inputTokens", 9_000L), ("cachedInputTokens", cached), ("outputTokens", 1_000L)))));
+
+        runtime.OnMain(() =>
+        {
+            Notify("thread/started", Started("head", "lead", "Scout"));          // level 1: a head of this lead
+            Notify("thread/started", Started("nested", "head"));                 // level 2: the head's own sub-thread
+            Notify("thread/started", Started("nested2", "nested"));              // level 3
+            Notify("thread/started", Started("stranger", "someone-else"));       // not under this lead
+            Notify("thread/tokenUsage/updated", Used("head", 8_000));
+            Notify("thread/tokenUsage/updated", Used("nested", 7_000));
+            Notify("thread/tokenUsage/updated", Used("nested2", 6_000));
+            Notify("thread/tokenUsage/updated", Used("stranger", 5_000));
+            Notify("thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(("threadId", "lead"), ("tokenUsage", TokenUsage(JSONValue.FromDictionaryLiteral(
+                ("totalTokens", 10_000L), ("inputTokens", 9_000L), ("cachedInputTokens", 4_000L), ("outputTokens", 1_000L))))));
+        });
+
+        var usages = events.OfType<ProviderEvent.CacheUsage>().Select(e => e.Value).ToList();
+        Assert.Equal(["head", "nested", "nested2", null], usages.Select(u => u.AgentID));
+        Assert.Equal([8_000L, 7_000L, 6_000L, 4_000L], usages.Select(u => u.CacheRead));
+        Assert.Equal("gpt-5.6-codex-mini", usages[1].Model);
+        // Only the real head is an agent in the chat; the nested threads add no agent, progress or spend events.
+        Assert.Equal(["head"], events.OfType<ProviderEvent.AgentStarted>().Select(e => e.Value.Id));
+        Assert.Equal(["head"], events.OfType<ProviderEvent.AgentProgress>().Select(e => e.AgentID).Distinct());
+    }
 }

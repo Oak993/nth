@@ -26,13 +26,31 @@ public static class IgnisReportText
                 [IgnisSource.KeptWarm] = chatToday.KeptWarm,
                 [IgnisSource.TidyUp] = chatToday.TidyUp,
                 [IgnisSource.SmartHelpers] = chatToday.SmartHelpers,
+                [IgnisSource.LongerMemory] = chatToday.LongerMemory,
             },
             chatToday.Lost,
             status.CacheReported ? status.ReuseRate : null,
             status.ContextFill,
             AccountLine(status, zone),
             week,
-            ledger.AllTimeSaved);
+            ledger.AllTimeSaved) { CacheLines = CacheLines(status) };
+    }
+
+    /// <summary>
+    /// The report's cache lines (ED-NEW-ignis-runtime): "Paid credits: 5-minute cache", today's helper rebuilds, and the
+    /// two cache-lifetime verdicts of the chat's last Claude launch. Empty when none applies.
+    /// </summary>
+    public static IReadOnlyList<string> CacheLines(IgnisChatStatus status)
+    {
+        var lines = new List<string>();
+        if (status.PaidCredits) lines.Add(IgnisWords.PaidCreditsCache);
+        if (status.MissedToday > 0m) lines.Add(IgnisWords.HelpersRebuilt(status.MissedToday));
+        if (status.CacheLifetimes is { } choice)
+        {
+            lines.Add(IgnisWords.LifetimeLine(choice.Main));
+            lines.Add(IgnisWords.LifetimeLine(choice.Helpers));
+        }
+        return lines;
     }
 
     /// <summary>Plan: "This chat used 9% of your week." plus the weekly-limit sentence when known; API key: its cost line.</summary>

@@ -48,6 +48,12 @@ public sealed class AppIgnisEnvironment(AppModel app) : IIgnisEnvironment
             : null;
 
     public IgnisAccountKind Account(ProviderKind provider) => provider.IsAPIKeyBased ? IgnisAccountKind.ApiKey : IgnisAccountKind.Plan;
+
+    /// <summary>The version the provider check already read (ProviderRegistry.Status): no process is started for it.</summary>
+    public string? CliVersion(ProviderKind provider) => app.Providers.Status(provider).Version;
+
+    public IReadOnlySet<string> ClaudeCacheSettings(IReadOnlyDictionary<string, string> environment, string? workingDirectory) =>
+        Marrow.Services.Port.Ignis.IgnisClaudeSettings.UserTtlChoices(environment, workingDirectory, Marrow.Core.Support.LoginEnvironment.HomeDirectory);
 }
 
 /// <summary>

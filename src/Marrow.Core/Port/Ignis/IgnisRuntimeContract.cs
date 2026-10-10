@@ -45,6 +45,19 @@ public interface IIgnisEngine
 
     /// <summary>What a tidy-up from <paramref name="beforeTokens"/> to <paramref name="afterTokens"/> saves (the shorter chat's next rebuild and reads).</summary>
     decimal TidySaved(IgnisModelPoints points, long beforeTokens, long afterTokens);
+
+    /// <summary>The rebuild premium at a known cache lifetime (a helper's 5-minute writes price differently from the chat's 1-hour ones).</summary>
+    decimal RebuildPremium(IgnisModelPoints points, long contextTokens, TimeSpan? ttl) => RebuildPremium(points, contextTokens);
+
+    /// <summary>
+    /// What a request saved because nth lengthened its cache bucket to <paramref name="lifetime"/>: after a gap over 5 minutes
+    /// (and within the lifetime) it read the prefix a 5-minute cache would have rebuilt (ED-NEW-ignis-runtime).
+    /// </summary>
+    decimal LongerMemorySaved(IgnisModelPoints points, long prefixTokens, long readTokens, TimeSpan gap, TimeSpan lifetime) =>
+        gap > TimeSpan.FromMinutes(5) && gap <= lifetime && prefixTokens > 0 && readTokens > 0 ? RebuildPremium(points, Math.Min(prefixTokens, readTokens), TimeSpan.FromMinutes(5)) : 0m;
+
+    /// <summary>What nth's longer lifetime added to a request: its 1-hour writes priced over the 5-minute ones.</summary>
+    decimal LongerMemoryCost(IgnisModelPoints points, long oneHourWrites, long promptTokens) => 0m;
 }
 
 /// <summary>

@@ -7,6 +7,7 @@
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Ignis;
+using Marrow.Core.Port.Ignis.Engine;
 
 namespace Marrow.App.Port.Ignis.Runtime;
 
@@ -28,6 +29,12 @@ public interface IIgnisEnvironment
     double? FullestPlanWindow(ProviderKind provider);
 
     IgnisAccountKind Account(ProviderKind provider);
+
+    /// <summary>The installed CLI's version as the provider check read it ("2.1.296"); null: unknown (ED-NEW-ignis-runtime).</summary>
+    string? CliVersion(ProviderKind provider) => null;
+
+    /// <summary>The user's own prompt-cache lifetime choices in the Claude settings files a launch reads (read only).</summary>
+    IReadOnlySet<string> ClaudeCacheSettings(IReadOnlyDictionary<string, string> environment, string? workingDirectory) => new HashSet<string>();
 }
 
 public sealed class IgnisController : IIgnisController
@@ -47,17 +54,21 @@ public sealed class IgnisController : IIgnisController
     /// <summary>ENGINEERING DECISION: the chat's own idle-gap history keeps this many gaps.</summary>
     public const int MaxGaps = 20;
 
+    private static readonly Logger Log = new(Logger.Subsystem, "ignis");
+
     private readonly IIgnisEngine engine;
     private readonly IIgnisEnvironment environment;
+    private readonly IIgnisGapHistory gaps;
     private readonly Dictionary<Guid, Chat> chats = [];
 
-    public IgnisController(IgnisSettings settings, IIgnisPoints points, ISavingsLedger ledger, IIgnisEngine engine, IIgnisEnvironment environment)
+    public IgnisController(IgnisSettings settings, IIgnisPoints points, ISavingsLedger ledger, IIgnisEngine engine, IIgnisEnvironment environment, IIgnisGapHistory? gaps = null)
     {
         Settings = settings;
         Points = points;
         Ledger = ledger;
         this.engine = engine;
         this.environment = environment;
+        this.gaps = gaps ?? new IgnisGapMemory();
         settings.Changed += () => Everything();
         points.Changed += () => Everything();
         ledger.Changed += () => Changed?.Invoke(Guid.Empty);
@@ -70,6 +81,9 @@ public sealed class IgnisController : IIgnisController
     public IIgnisPoints Points { get; }
 
     public ISavingsLedger Ledger { get; }
+
+    /// <summary>What Ignis learned of each provider's request rhythm (ED-NEW-ignis-runtime).</summary>
+    public IIgnisGapHistory Gaps => gaps;
 
     /// <summary>
     /// How long before the cache goes cold a keep-warm is considered: a tenth of its lifetime, between 15 seconds and
@@ -106,6 +120,7 @@ public sealed class IgnisController : IIgnisController
         public DateTimeOffset? WarmAt;
         public long? ContextUsed;
         public long? TidyAt;
+        public TimeSpan? ObservedTtl;
     }
 
     private sealed class Chat
@@ -135,6 +150,14 @@ public sealed class IgnisController : IIgnisController
         public TaskHandle? Timer;
         public long TimerEpoch;
         public readonly List<Head> Heads = [];
+        /// <summary>The lifetime the main chat's writes last showed (1 h or 5 min); it outlives read-only turns.</summary>
+        public TimeSpan? ObservedTtl;
+        /// <summary>The CLI said the chat now runs on paid usage credits (5-minute main cache) until 1-hour writes return.</summary>
+        public bool CreditsHint;
+        /// <summary>The inherited environment says the main conversation defaults to 5 minutes (API key, cloud provider).</summary>
+        public bool ShortByEnvironment;
+        /// <summary>What nth chose for the two cache buckets at the chat's last Claude launch.</summary>
+        public IgnisLifetimeChoice? Lifetimes;
 
         public IIgnisRuntimePort? Runtime => Port is { } weak && weak.TryGetTarget(out var port) ? port : null;
 
@@ -179,7 +202,7 @@ public sealed class IgnisController : IIgnisController
         var now = SwiftDate.Now;
         if (usage.AgentID is { } agent)
         {
-            if (Settings.Value.IncludeHeads) ObserveHead(thread, chat, agent, usage, now);
+            ObserveHead(thread, chat, agent, usage, now); // learns always; its list, lines and money follow "Include Hydra heads"
             return;
         }
 
@@ -199,6 +222,7 @@ public sealed class IgnisController : IIgnisController
             return;
         }
 
+        var idleSince = chat.IdleSince;
         if (chat.IdleSince is { } idle)
         {
             chat.Gaps.Add(now - idle);
@@ -211,6 +235,14 @@ public sealed class IgnisController : IIgnisController
         chat.Model = usage.Model ?? chat.Model;
         var points = PointsOf(chat);
         var mode = Settings.ForChat(thread).Mode;
+        // The idle gap Ignis learns ends where the turn's first request went out (the turn's start), not at its result.
+        TimeSpan? gap = idleSince is { } since
+            ? (chat.Runtime?.TurnStartedAt is { } started && started >= since && started <= now ? started : now) - since
+            : null;
+        var longerMain = chat.Lifetimes?.Main.SetsLonger == true;
+        if (mode != IgnisMode.Off && usage.Reported)
+            gaps.Add(usage.Provider, IgnisCacheBucket.Main, new IgnisRequestSample(now, usage.Model ?? chat.Model, gap?.TotalSeconds,
+                chat.ContextUsed ?? 0, usage.CacheWrite5m, usage.CacheWrite1h, usage.CacheWriteUnknownTtl, longerMain));
         if (mode != IgnisMode.Off && usage.Reported && points is not null)
         {
             var saved = engine.ReuseSaved(points, usage);
@@ -219,6 +251,18 @@ public sealed class IgnisController : IIgnisController
             {
                 var kept = engine.RebuildPremium(points, usage.CacheRead);
                 if (kept > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Saved, IgnisSource.KeptWarm, kept, Count: 0));
+            }
+            else if (longerMain && gap is { } idleGap && chat.ContextUsed is { } prefix)
+            {
+                // nth's 1-hour main cache and no ping in the break: a read after more than 5 minutes is a rebuild
+                // avoided. Credited here only, never as "Kept warm" (a ping since the user's turn takes the branch above).
+                var longer = engine.LongerMemorySaved(points, prefix, usage.CacheRead, idleGap, IgnisCacheLifetime.Long);
+                if (longer > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Saved, IgnisSource.LongerMemory, longer, Count: 0));
+            }
+            if (longerMain)
+            {
+                var extra = engine.LongerMemoryCost(points, usage.CacheWrite1h, usage.TotalInput);
+                if (extra > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Spent, IgnisSource.LongerMemory, extra, Count: 0));
             }
             if (chat.TidyFrom is { } before && (usage.ContextUsed ?? usage.TotalInput) is var after && after < before)
             {
@@ -245,13 +289,21 @@ public sealed class IgnisController : IIgnisController
         chat.CacheReported = usage.Reported;
         chat.ContextUsed = usage.ContextUsed ?? (usage.Reported ? usage.TotalInput : chat.ContextUsed);
         chat.ContextWindow = usage.ContextWindow ?? points?.ContextWindow ?? chat.ContextWindow;
-        chat.Ttl = Ttl(usage, points, subagent: false) ?? chat.Ttl;
+        // The lifetime the writes show wins and lasts until other writes show another (a read-only turn proves nothing);
+        // 5-minute writes on a plan whose points say 1 hour mean paid usage credits, and the 5 minutes rule the keep-warm.
+        chat.ObservedTtl = (usage.Reported ? IgnisKeepWarm.TtlFromUsage(usage) : null) ?? chat.ObservedTtl;
+        if (chat.ObservedTtl >= IgnisCacheLifetime.Long) chat.CreditsHint = false;
+        chat.Ttl = ChatTtl(chat, points) ?? chat.Ttl;
         chat.WarmAt = now;
         chat.ColdSeen = false;
     }
 
+    // Every helper at every depth (Claude subagents of subagents, Codex sub-threads, Hydra heads) is its own head, keyed by
+    // the id its usage carries: one entry per agent, each request counted once. Learning runs whenever Ignis is on; the
+    // head list, its lines and its money follow "Include Hydra heads".
     private void ObserveHead(Guid thread, Chat chat, string agent, IgnisTurnUsage usage, DateTimeOffset now)
     {
+        var include = Settings.Value.IncludeHeads;
         var head = chat.Heads.Find(candidate => candidate.AgentID == agent);
         if (head is null)
         {
@@ -259,24 +311,114 @@ public sealed class IgnisController : IIgnisController
             chat.Heads.Add(head);
         }
         var provider = usage.Provider;
-        var points = Points.Find(provider, usage.Model);
+        var points = Points.Find(provider, usage.Model ?? head.Model);
+        var previousAt = head.WarmAt;
+        var previousContext = head.ContextUsed;
+        var previousTtl = head.Ttl;
         var switched = head.Model is { } previous && usage.Model is { } next && !string.Equals(previous, next, StringComparison.Ordinal);
         head.Model = usage.Model ?? head.Model;
-        head.Ttl = Ttl(usage, points, subagent: true) ?? head.Ttl;
+        head.ObservedTtl = (usage.Reported ? IgnisKeepWarm.TtlFromUsage(usage) : null) ?? head.ObservedTtl;
+        head.Ttl = head.ObservedTtl ?? Ttl(null, points, subagent: true) ?? head.Ttl;
         head.WarmAt = now;
         head.ContextUsed = usage.ContextUsed ?? (usage.Reported ? usage.TotalInput : head.ContextUsed);
         var tidyAt = points is null ? null : engine.TidyPoint(points);
         var mode = Settings.ForChat(thread).Mode;
-        if (switched && mode != IgnisMode.Off && tidyAt != head.TidyAt)
+        if (include && switched && mode != IgnisMode.Off && tidyAt != head.TidyAt)
             Record(thread, chat, new IgnisEvent(NewEventID(), thread, IgnisEventKind.HeadTidiedAfterSwitch, now,
                 AgentID: agent, HeadLabel: head.Label, Model: points?.DisplayName ?? head.Model, AtTokens: tidyAt));
         head.TidyAt = tidyAt;
-        if (mode != IgnisMode.Off && usage.Reported && points is not null)
+        var longer = provider == ProviderKind.Claude && chat.Lifetimes?.Helpers.SetsLonger == true;
+        TimeSpan? gap = previousAt is { } at ? now - at : null;
+        if (mode != IgnisMode.Off && usage.Reported)
+            gaps.Add(provider, IgnisCacheBucket.Helpers, new IgnisRequestSample(now, head.Model, gap?.TotalSeconds, previousContext ?? 0,
+                usage.CacheWrite5m, usage.CacheWrite1h, usage.CacheWriteUnknownTtl, longer));
+        if (include && mode != IgnisMode.Off && usage.Reported && points is not null)
         {
             var saved = engine.ReuseSaved(points, usage);
             if (saved > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Saved, IgnisSource.Reuse, saved));
+            if (gap is { } idle && previousContext is { } prefix && prefix > 0)
+            {
+                if (previousTtl is { } ttl && idle > ttl && usage.CacheWrite > 0 && Math.Min(prefix - usage.CacheRead, usage.CacheWrite) > 0)
+                {
+                    // The helper's cache ran out between its requests and this one wrote it again: a missed rebuild. The
+                    // part it still read was alive (a longer lifetime than assumed), so only the rewritten rest counts.
+                    var missed = engine.RebuildPremium(points, Math.Min(prefix - usage.CacheRead, usage.CacheWrite), ttl);
+                    if (missed > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Missed, null, missed, Count: 0));
+                }
+                else if (longer && usage.CacheRead > 0)
+                {
+                    var avoided = engine.LongerMemorySaved(points, prefix, usage.CacheRead, idle, previousTtl ?? IgnisCacheLifetime.Long);
+                    if (avoided > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Saved, IgnisSource.LongerMemory, avoided, Count: 0));
+                }
+            }
+            if (longer)
+            {
+                var extra = engine.LongerMemoryCost(points, usage.CacheWrite1h, usage.TotalInput);
+                if (extra > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Spent, IgnisSource.LongerMemory, extra, Count: 0));
+            }
         }
         Changed?.Invoke(thread);
+    }
+
+    /// <summary>The main chat's lifetime: 5 minutes while paid credits are hinted and no 1-hour write contradicts it; else what its writes showed; else the points'.</summary>
+    private static TimeSpan? ChatTtl(Chat chat, IgnisModelPoints? points) =>
+        chat.CreditsHint && !(chat.ObservedTtl >= IgnisCacheLifetime.Long) && chat.Lifetimes?.Main.SetsLonger != true ? IgnisCacheLifetime.Short
+        : chat.ObservedTtl ?? Ttl(null, points, subagent: false);
+
+    /// <summary>The main chat runs on paid usage credits: hinted by the CLI, or 5-minute writes where the points promise 1 hour.</summary>
+    private bool OnPaidCredits(Chat chat)
+    {
+        if (chat.Provider != ProviderKind.Claude || chat.Lifetimes?.Main.SetsLonger == true) return false;
+        if (chat.CreditsHint && !(chat.ObservedTtl >= IgnisCacheLifetime.Long)) return true;
+        return !chat.ShortByEnvironment && chat.ObservedTtl is { } observed && observed < IgnisCacheLifetime.Long
+            && PointsOf(chat)?.Cache.TtlMainSeconds is { } main && main >= IgnisCacheLifetime.Long.TotalSeconds;
+    }
+
+    public void CreditsHint(Guid thread, bool onCredits)
+    {
+        var chat = Get(thread);
+        if (chat.CreditsHint == onCredits) return;
+        chat.CreditsHint = onCredits;
+        // The 1-hour writes seen before the switch are stale now; the next writes decide again (1 h clears the hint).
+        if (onCredits && chat.ObservedTtl >= IgnisCacheLifetime.Long) chat.ObservedTtl = null;
+        chat.Ttl = ChatTtl(chat, PointsOf(chat)) ?? chat.Ttl;
+        Plan(thread);
+        Changed?.Invoke(thread);
+    }
+
+    /// <summary>
+    /// The prompt-cache lifetimes for a Claude CLI launch (IgnisSeams.CacheLifetimes, ED-NEW-ignis-runtime): the pure
+    /// decision over what Ignis learned, the chat's mode, the installed CLI and the user's own choices. The verdicts are
+    /// kept for the chat's status and its accounting. Null: not a Claude launch.
+    /// </summary>
+    public IgnisLifetimeChoice? ChooseCacheLifetimes(IgnisLifetimeQuery query)
+    {
+        if (query.Provider != ProviderKind.Claude) return null;
+        var preferences = Settings.Value;
+        var mode = query.ThreadID is { } id ? Settings.ForChat(id).Mode : preferences.DefaultMode;
+        var choice = IgnisCacheLifetime.Decide(new IgnisLifetimeInput
+        {
+            Provider = query.Provider,
+            Mode = mode,
+            IncludeHeads = preferences.IncludeHeads,
+            CliVersion = environment.CliVersion(query.Provider),
+            Environment = query.Environment,
+            UserSettings = mode == IgnisMode.Off ? new HashSet<string>() : environment.ClaudeCacheSettings(query.Environment, query.WorkingDirectory),
+            Main = gaps.Samples(query.Provider, IgnisCacheBucket.Main),
+            Helpers = gaps.Samples(query.Provider, IgnisCacheBucket.Helpers),
+            MainModel = query.MainModel,
+            PointsFor = model => Points.Find(query.Provider, model ?? query.MainModel),
+        });
+        Log.Info("cache lifetimes for " + (query.ThreadID?.ToString("D") ?? "a chat") + ": main " + choice.Main.Reason + ", helpers " + choice.Helpers.Reason
+            + " (" + choice.Helpers.Gaps.ToString(System.Globalization.CultureInfo.InvariantCulture) + " gaps)");
+        if (query.ThreadID is { } thread)
+        {
+            var chat = Get(thread);
+            chat.Lifetimes = choice;
+            chat.ShortByEnvironment = IgnisCacheLifetime.EnvironmentSaysShortMain(query.Environment);
+            Changed?.Invoke(thread);
+        }
+        return choice;
     }
 
     public void TurnFinished(Guid thread)
@@ -349,7 +491,18 @@ public sealed class IgnisController : IIgnisController
 
     // ---- planning ----
 
-    private bool SupportsKeepWarm(Chat chat) => PointsOf(chat) is { Cache.KeepWarm: true };
+    private bool SupportsKeepWarm(Chat chat) => chat.Provider is { } provider && KeepWarmAllowed(provider) && PointsOf(chat) is { Cache.KeepWarm: true };
+
+    /// <summary>
+    /// ENGINEERING DECISION (ED-NEW-ignis-runtime, lead research 2026-10-10): keep-warm can run only where a ping is worth
+    /// money and can reach the same cache without changing what the model reads beyond today's Claude ping turn: Claude,
+    /// and the API routes OpenRouter (Anthropic/Gemini upstreams, 5 minutes) and OpenCode Zen; the points still decide per
+    /// model. Never: Codex (a ping would be a turn in the thread's history; the 30-minute cache is refreshed by every
+    /// read anyway), DeepSeek (hours to days), Meta and pi (retention hints instead), Grok, Z.ai (TTL unknown; a Coding Plan
+    /// ping spends a prompt), Antigravity, Copilot, Cursor, Devin, Command Code, OpenCode Go (quota or no token view) and
+    /// local servers (no money). Those keep their savings report.
+    /// </summary>
+    public static bool KeepWarmAllowed(ProviderKind provider) => provider is ProviderKind.Claude or ProviderKind.OpenRouter or ProviderKind.Opencode;
 
     /// <summary>Why automatic work is paused (the first that applies), NotSupported when only keep-warm is off for the model.</summary>
     private IgnisPause Pause(Guid thread, Chat chat)
@@ -544,7 +697,11 @@ public sealed class IgnisController : IIgnisController
             {
                 [IgnisSource.Reuse] = day.Reuse, [IgnisSource.KeptWarm] = day.KeptWarm,
                 [IgnisSource.TidyUp] = day.TidyUp, [IgnisSource.SmartHelpers] = day.SmartHelpers,
+                [IgnisSource.LongerMemory] = day.LongerMemory,
             },
+            PaidCredits = !off && OnPaidCredits(chat),
+            CacheLifetimes = chat.Lifetimes,
+            MissedToday = day.Missed,
             ReuseRate = chat.CacheReported && chat.InputTotal > 0 ? (double)chat.ReadTotal / chat.InputTotal : null,
             Next = next,
             Pause = off ? IgnisPause.None : pause,
@@ -569,6 +726,6 @@ public sealed class IgnisController : IIgnisController
         return IgnisWords.Report(new IgnisReport(
             SwiftDate.Now.ToLocalTime(), status.ModelDisplayName ?? status.Model ?? "", status.Mode, status.Auto,
             status.SavedToday, status.SavedBySource, status.LostToday, status.ReuseRate, status.ContextFill,
-            accountLine, week, Ledger.AllTimeSaved));
+            accountLine, week, Ledger.AllTimeSaved) { CacheLines = IgnisReportText.CacheLines(status) });
     }
 }
