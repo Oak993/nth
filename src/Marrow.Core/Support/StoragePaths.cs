@@ -67,7 +67,7 @@ public sealed class StoragePathsLocations : IStoragePathsLocations
     /// never shares a folder with the owner's separate Electron "Marrow" (%LOCALAPPDATA%\Marrow).
     /// </summary>
     public static StoragePathsLocations CreateProduction() => new(() =>
-        SwiftPath.AppendingPathComponent(DevDataRoot.LocalApplicationData(), "Marrow Code")); // ED-212
+        SwiftPath.AppendingPathComponent(DevDataRoot.LocalApplicationData(), AppInfo.DataFolderName)); // ED-212; OD-0135
 
     /// <summary>A test's own throwaway root (R-TEST-9): a real folder under MARROW_PORT_DATA_DIR, never production.</summary>
     public static StoragePathsLocations Create(string root) => new(() => root);

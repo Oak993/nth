@@ -34,12 +34,12 @@ public sealed class MCPBridgeSourceTests
 
     [Fact]
     [Trait("Req", "PR-MCP-193")] // Services/MCP/MCPBridgeSource.swift:240-251
-    public void InstallBridge_WritesTheBridgeUnderMarrowCodeMcp()
+    public void InstallBridge_WritesTheBridgeUnderNthMcp()
     {
         using var scratch = new McpBridgeScratchFolder();
         var uri = MCPBridge.InstallBridge(scratch.Root);
 
-        var expectedFile = Path.Combine(scratch.Root, "Marrow Code", "mcp", "droppy-mcp-bridge.mjs");
+        var expectedFile = Path.Combine(scratch.Root, "Nth", "mcp", "droppy-mcp-bridge.mjs");
         Assert.Equal(Path.GetFullPath(expectedFile), Path.GetFullPath(uri.LocalPath));
         Assert.True(File.Exists(expectedFile));
         Assert.Equal(Encoding.UTF8.GetBytes(MCPBridge.McpBridgeSource), File.ReadAllBytes(expectedFile));
@@ -55,7 +55,7 @@ public sealed class MCPBridgeSourceTests
 
         MCPBridge.InstallBridge(nestedBase);
 
-        Assert.True(Directory.Exists(Path.Combine(nestedBase, "Marrow Code", "mcp")));
+        Assert.True(Directory.Exists(Path.Combine(nestedBase, "Nth", "mcp")));
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed class MCPBridgeSourceTests
     public void InstallBridge_RewritesAFileWhoseBytesDiffer()
     {
         using var scratch = new McpBridgeScratchFolder();
-        var directory = Path.Combine(scratch.Root, "Marrow Code", "mcp");
+        var directory = Path.Combine(scratch.Root, "Nth", "mcp");
         Directory.CreateDirectory(directory);
         var file = Path.Combine(directory, "droppy-mcp-bridge.mjs");
         File.WriteAllText(file, "stale bridge text from an earlier build");
@@ -223,12 +223,12 @@ public sealed class MCPBridgeSourceTests
     {
         var initialize = McpBridgeScenarios.Remote.HttpRequests.First(r => r.Body!.Value.GetProperty("method").GetString() == "initialize");
         var clientInfo = initialize.Body!.Value.GetProperty("params").GetProperty("clientInfo");
-        Assert.Equal("Marrow", clientInfo.GetProperty("name").GetString());
+        Assert.Equal("Nth", clientInfo.GetProperty("name").GetString());
         Assert.False(clientInfo.TryGetProperty("version", out _));
 
         var stdioInitialize = McpBridgeScenarios.Stdio.Log.First(entry => entry.GetProperty("method").GetString() == "initialize");
         var stdioClientInfo = stdioInitialize.GetProperty("params").GetProperty("clientInfo");
-        Assert.Equal("Marrow", stdioClientInfo.GetProperty("name").GetString());
+        Assert.Equal("Nth", stdioClientInfo.GetProperty("name").GetString());
         Assert.False(stdioClientInfo.TryGetProperty("version", out _));
     }
 

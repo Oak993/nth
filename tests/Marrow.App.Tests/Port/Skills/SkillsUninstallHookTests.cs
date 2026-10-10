@@ -78,6 +78,6 @@ public sealed class SkillsUninstallHookTests
     [Trait("Decision", "ED-321")]
     public void The_hook_reaches_the_same_data_root_the_app_uses()
     {
-        Assert.Equal(Path.Combine(Marrow.Core.Support.DevDataRoot.LocalApplicationData(), "Marrow Code"), SkillsDataRoot.Resolve());
+        Assert.Equal(Path.Combine(Marrow.Core.Support.DevDataRoot.LocalApplicationData(), "Nth"), SkillsDataRoot.Resolve());
     }
 }

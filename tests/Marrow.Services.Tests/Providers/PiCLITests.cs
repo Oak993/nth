@@ -102,12 +102,12 @@ public sealed class PiCLITests
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-301")] // Services/Providers/PiCLI.swift:13-18; porting/spec/PROVCLI.json Pi start (deviation OD-0008 C7)
-    public void The_support_directory_is_Marrow_Code_pi_under_local_app_data()
+    public void The_support_directory_is_Nth_pi_under_local_app_data()
     {
         var localAppData = Scratch("support");
         var url = PiCLI.SupportDirectoryUnder(localAppData);
         Assert.Equal("file", url.Scheme);
-        Assert.EndsWith("/Marrow Code/pi", url.Path, StringComparison.Ordinal);
+        Assert.EndsWith("/Nth/pi", url.Path, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -116,10 +116,10 @@ public sealed class PiCLITests
     {
         var localAppData = Scratch("install");
         var url = PiCLI.InstallExtension(localAppData);
-        var file = Path.Combine(localAppData, "Marrow Code", "pi", "droppy-gate.ts");
+        var file = Path.Combine(localAppData, "Nth", "pi", "droppy-gate.ts");
         Assert.Equal(Encoding.UTF8.GetBytes(PiCLI.ExtensionSource), File.ReadAllBytes(file));
         Assert.Equal("file", url.Scheme);
-        Assert.EndsWith("/Marrow Code/pi/droppy-gate.ts", url.Path, StringComparison.Ordinal);
+        Assert.EndsWith("/Nth/pi/droppy-gate.ts", url.Path, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class PiCLITests
     {
         var localAppData = Scratch("install-twice");
         PiCLI.InstallExtension(localAppData);
-        var file = Path.Combine(localAppData, "Marrow Code", "pi", "droppy-gate.ts");
+        var file = Path.Combine(localAppData, "Nth", "pi", "droppy-gate.ts");
         var stamp = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         File.SetLastWriteTimeUtc(file, stamp);
         PiCLI.InstallExtension(localAppData);
@@ -144,7 +144,7 @@ public sealed class PiCLITests
     public void InstallExtension_throws_when_the_directory_cannot_be_made()
     {
         var localAppData = Scratch("install-blocked");
-        File.WriteAllText(Path.Combine(localAppData, "Marrow Code"), "a file where the folder should be");
+        File.WriteAllText(Path.Combine(localAppData, "Nth"), "a file where the folder should be");
         Assert.ThrowsAny<IOException>(() => PiCLI.InstallExtension(localAppData));
     }
 

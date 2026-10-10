@@ -199,7 +199,7 @@ function connectStdio(server, entry) {
     };
     const callTool = (name, args) => request("tools/call", { name, arguments: args });
     (async () => {
-      await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "Marrow" } });
+      await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "Nth" } });
       notify("notifications/initialized", {});
       let cursor = undefined;
       const tools = [];
@@ -264,7 +264,7 @@ function connectRemote(server, entry) {
         sessionId = outcome.sessionId;
       } catch {}
     };
-    await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "Marrow" } });
+    await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "Nth" } });
     await notify("notifications/initialized", {});
     let cursor = undefined;
     const tools = [];
@@ -322,7 +322,7 @@ export async function loadMCPTools() {
     {
         // :243 directory. DEVIATION: "Marrow Code" (OD-0008 C7) replaces AppInfo.name interpolation;
         // windows_path names the leaf "mcp" (lower case).
-        var directory = SwiftPath.AppendingPathComponent(SwiftPath.AppendingPathComponent(localApplicationData, "Marrow Code"), "mcp");
+        var directory = SwiftPath.AppendingPathComponent(SwiftPath.AppendingPathComponent(localApplicationData, AppInfo.DataFolderName), "mcp"); // OD-0135
         // :244 createDirectory(at:withIntermediateDirectories: true).
         Directory.CreateDirectory(directory);
         // :245 file.
