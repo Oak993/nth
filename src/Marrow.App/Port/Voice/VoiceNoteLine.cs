@@ -33,7 +33,7 @@ internal sealed class VoiceNoteLine : Decorator
         Place = place;
         var field = place == VoiceNotePlace.Field;
         // the text and its link are one sentence, so the run has no gap; the mark stands 10 px before it
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, VerticalAlignment = VerticalAlignment.Top };
+        var row = new NoteRow { VerticalAlignment = VerticalAlignment.Top };
         if (content.Warning && field) row.Children.Add(Mark());
         text = new TextBlock
         {
@@ -63,6 +63,46 @@ internal sealed class VoiceNoteLine : Decorator
         RenderTransform = rise;
         Child = row;
         IsHitTestVisible = true;
+    }
+
+    /// <summary>
+    /// The words, then the link, in one line that is no wider than the room it is given: the words are trimmed with an ellipsis and the link keeps its width. (A horizontal StackPanel
+    /// measures its children without a limit, so a long note ran on past the end of the text column, under the pill the column is held in for, OD-0130; the column's mask cannot
+    /// clear what lies outside its bounds.)
+    /// </summary>
+    private sealed class NoteRow : Panel
+    {
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            double fixedWidth = 0, height = 0;
+            var words = Children.OfType<TextBlock>().FirstOrDefault();
+            foreach (var child in Children)
+            {
+                if (ReferenceEquals(child, words)) continue;
+                child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+                fixedWidth += child.DesiredSize.Width;
+                height = Math.Max(height, child.DesiredSize.Height);
+            }
+            var width = fixedWidth;
+            if (words is not null)
+            {
+                words.Measure(new Size(Math.Max(0, availableSize.Width - fixedWidth), availableSize.Height));
+                width += words.DesiredSize.Width;
+                height = Math.Max(height, words.DesiredSize.Height);
+            }
+            return new Size(width, height);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            double x = 0;
+            foreach (var child in Children)
+            {
+                child.Arrange(new Rect(x, 0, child.DesiredSize.Width, Math.Max(child.DesiredSize.Height, finalSize.Height)));
+                x += child.DesiredSize.Width;
+            }
+            return finalSize;
+        }
     }
 
     public VoiceNoteContent Content { get; }
