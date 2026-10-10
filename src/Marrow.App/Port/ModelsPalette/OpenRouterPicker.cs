@@ -27,6 +27,12 @@ public sealed class OpenRouterPicker : Decorator
     private readonly List<(string Maker, PickerFold Fold)> groups = [];
     private readonly Dictionary<string,Marrow.UI.Port.Settings.CzColor> makerDots = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PickerCount> counts = new(StringComparer.Ordinal);
+    // ED-NEW-stutterfix-2: a long list's count labels are made as each count is first shown, in the order of their counts
+    // (the stack the cross-fade draws in); the widest, the full count, is made with the picker, so the column keeps its width.
+    private const int LazyCountsFrom = 100;
+    private readonly Grid countGrid;
+    private readonly List<int> countOrder = [];
+    private readonly DeferredRows? fill;
     private readonly ScrollViewer scroll;
     private readonly AnimatedScalar scrollOffset;
     private readonly PickerFold empty;
@@ -67,11 +73,9 @@ public sealed class OpenRouterPicker : Decorator
         var backButton = Button(new PickerGlyph("back"), back); backButton.Width = backButton.Height = 20;
         AutomationProperties.SetName(backButton, "Back"); header.Children.Add(backButton);
         var caption = Label("Select model", 13, .6); caption.Margin = new Thickness(6,0,0,0); Grid.SetColumn(caption,1); header.Children.Add(caption);
-        var countGrid = new Grid(); Grid.SetColumn(countGrid,2); header.Children.Add(countGrid);
-        for (var n=0; n<=models.Count; n++)
-        {
-            var c = new PickerCount(Count(n), n==models.Count); counts.Add(Count(n), c); countGrid.Children.Add(c);
-        }
+        countGrid = new Grid(); Grid.SetColumn(countGrid,2); header.Children.Add(countGrid);
+        if (models.Count < LazyCountsFrom) for (var n=0; n<=models.Count; n++) CountLabel(n, n==models.Count);
+        else CountLabel(models.Count, true);
         stack.Children.Add(header);
         Search = new TextBox { PlaceholderText = "Search models", FontSize = 12.5, Background = Brushes.Transparent,
             BorderThickness = new Thickness(0), Padding = new Thickness(0), MinHeight = 0, VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
@@ -92,22 +96,27 @@ public sealed class OpenRouterPicker : Decorator
         Search.LostFocus += (_,_)=>field.BorderBrush=Brush(1,1,1,.12);
         stack.Children.Add(field);
         var list = new StackPanel { Margin=new Thickness(0,0,0,2) };
+        var items = new List<Control>(); var heights = new List<double>(); // ED-NEW-stutterfix-2: the list's items, put in by DeferredRows past its first screens
         foreach (var group in models.GroupBy(m=>m.Maker,StringComparer.Ordinal))
         {
             var section = new StackPanel { Orientation=Avalonia.Layout.Orientation.Horizontal, Spacing=7, Height=24, Margin=new Thickness(10,0) };
             var makerDot=(Border)Dot(group.First().Color,7);section.Children.Add(makerDot);section.Children.Add(Label(group.Key,11,.55));
             var makerBrush=(SolidColorBrush)makerDot.Background!;makerDots.Add(group.Key,new(new Marrow.UI.Port.Settings.CzMotion(makerDot),makerBrush.Color,c=>makerBrush.Color=c));
-            var fold = new PickerFold(section,true); groups.Add((group.Key,fold)); list.Children.Add(fold);
+            var fold = new PickerFold(section,true); groups.Add((group.Key,fold)); items.Add(fold); heights.Add(24);
             foreach (var model in group)
             {
                 var row = new PickerRow(model, model.Id==selectedId,()=>Pick(model.Id));
                 row.Button.PointerEntered += (_,_)=> { if (Keyed && row.Shown) { active=Visible.ToList().IndexOf(row); UpdateActive(); } };
-                rows.Add(row); list.Children.Add(row);
+                rows.Add(row); items.Add(row); heights.Add(47);
             }
         }
+        var eager = DeferredRows.EagerCount(heights, 0, 0);
+        for (var i=0; i<eager; i++) list.Children.Add(items[i]);
         emptyLabel = Label("",13,.6); emptyLabel.TextAlignment=TextAlignment.Center; emptyLabel.Margin=new Thickness(12,18,12,22);
-        empty = new PickerFold(emptyLabel,false); list.Children.Add(empty);
+        empty = new PickerFold(emptyLabel,false);
         scroll = new ScrollViewer { Content=list, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled, VerticalScrollBarVisibility=ScrollBarVisibility.Hidden };
+        if (eager < items.Count) fill = new DeferredRows(list, scroll, eager, heights, 0, i => items[i]);
+        list.Children.Add(empty);
         PickerScroll.Apply(scroll);
         stack.Children.Add(scroll);
         scrollOffset=new(scroll,0,v=>scroll.Offset=new Vector(0,v));
@@ -120,6 +129,15 @@ public sealed class OpenRouterPicker : Decorator
         Edges();
     }
 
+    private PickerCount CountLabel(int n, bool shown=false)
+    {
+        if (counts.TryGetValue(Count(n), out var made)) return made;
+        var label = new PickerCount(Count(n), shown); counts.Add(Count(n), label);
+        var at = countOrder.BinarySearch(n); at = at < 0 ? ~at : at;
+        countOrder.Insert(at, n); countGrid.Children.Insert(at, label);
+        return label;
+    }
+
     public void ClearSearch() { changing=true; Search.Text=""; changing=false; QueryChanged(); Search.Focus(); }
     private void Pick(string id)
     {
@@ -128,6 +146,7 @@ public sealed class OpenRouterPicker : Decorator
     }
     private void QueryChanged()
     {
+        fill?.RealiseAll(); // ED-NEW-stutterfix-2: a search folds every row in the list
         active=0; var words=Words;
         foreach (var row in rows)
         {
@@ -136,7 +155,7 @@ public sealed class OpenRouterPicker : Decorator
         }
         foreach (var g in groups) g.Fold.Show(rows.Any(r=>r.Model.Maker==g.Maker && r.Shown));
         var count=Visible.Count(); var next=Count(count);
-        if (shownCount!=next) { counts[shownCount].Set(false); counts[next].Set(true); shownCount=next; }
+        if (shownCount!=next) { counts[shownCount].Set(false); CountLabel(count).Set(true); shownCount=next; }
         emptyLabel.Text=$"No models match “{Search.Text}”"; empty.Show(Keyed && count==0);
         clear.IsHitTestVisible=!string.IsNullOrEmpty(Search.Text);
         clearOpacity.Set(clear.IsHitTestVisible?1:0,Animation.TimingCurve(.25,.1,.25,1,.16));
@@ -146,6 +165,7 @@ public sealed class OpenRouterPicker : Decorator
     }
     private void OnSearchKey(object? sender, KeyEventArgs e)
     {
+        if (fill?.RealiseAll()==true) scroll.UpdateLayout(); // ED-NEW-stutterfix-2: rows just put in are laid out before one is scrolled to
         var visible=Visible.ToArray(); if (!Keyed || visible.Length==0) return;
         if (e.Key is Key.Down or Key.Up)
         {

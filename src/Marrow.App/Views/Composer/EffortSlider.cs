@@ -426,7 +426,8 @@ public sealed class ModelList : Decorator
                     showsProviders, rowHeight, !leadsWithPair && entry.Provider == thread.Provider && entry.Option.Id == thread.Model, !locked, () => onChoose(entry)); // :327-339
             }
             // ED-NEW-stutterfix-2: a long list makes its first screens of rows now and the rest a slice per frame (DeferredRows).
-            var eager = Marrow.App.Port.ModelsPalette.DeferredRows.EagerCount(entries.Count, rowHeight + 1, pairsHeight);
+            var heights = Enumerable.Repeat((double)rowHeight, entries.Count).ToArray();
+            var eager = Marrow.App.Port.ModelsPalette.DeferredRows.EagerCount(heights, rows.Spacing, pairsHeight);
             for (var i = 0; i < eager; i++) rows.Children.Add(Row(entries[i]));
             if (entries.Count == 0)
             {
@@ -445,7 +446,7 @@ public sealed class ModelList : Decorator
                 var search = new Marrow.App.Port.ModelsPalette.ModelListSearch(scroll, entries, rows.Children.OfType<ModelListRow>().ToArray(), rowHeight, pairsHeight, onChoose);
                 if (eager < entries.Count)
                 {
-                    var fill = new Marrow.App.Port.ModelsPalette.DeferredRows(rows, scroll, eager, entries.Count, rowHeight + 1, rows.Spacing, i =>
+                    var fill = new Marrow.App.Port.ModelsPalette.DeferredRows(rows, scroll, eager, heights, rows.Spacing, i =>
                     {
                         var row = Row(entries[i]); search.Add(row); return row;
                     });
