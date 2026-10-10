@@ -86,4 +86,45 @@ public sealed class IgnisReportTextTests
         Assert.Equal("Chat size: not reported", lines[9]);
         Assert.Equal("API key: this chat cost $4.12 so far.", lines[11]);
     }
+
+    [Fact]
+    [Trait("Feature", "IG-1")]
+    [Trait("Decision", "OD-0134")]
+    public void The_report_adds_longer_memory_paid_credits_helper_rebuilds_and_the_cache_lifetimes()
+    {
+        using var runtime = new TestRuntime();
+        using var folder = new AccountTestFolder();
+        var ledger = Ledger(folder.Path);
+        var today = new DateTimeOffset(2026, 10, 13, 9, 30, 0, TimeSpan.Zero);
+        ledger.Record(new IgnisLedgerEntry(today, Chat, IgnisLedgerKind.Saved, IgnisSource.LongerMemory, 0.60m));
+        ledger.Record(new IgnisLedgerEntry(today, Chat, IgnisLedgerKind.Spent, IgnisSource.LongerMemory, 0.05m));
+        ledger.Record(new IgnisLedgerEntry(today, Chat, IgnisLedgerKind.Missed, null, 0.31m));
+        var status = Status(IgnisAccountKind.Plan) with
+        {
+            PaidCredits = true,
+            MissedToday = ledger.ChatDay(Chat, new DateOnly(2026, 10, 13)).Missed,
+            CacheLifetimes = new IgnisLifetimeChoice(
+                IgnisLifetimeVerdict.Because(IgnisCacheBucket.Main, IgnisLifetimeReason.UserChoice, "promptCacheTtl"),
+                new IgnisLifetimeVerdict(IgnisCacheBucket.Helpers, IgnisLifetimeReason.Longer, 40, 1.30m, 0.10m)),
+        };
+
+        var lines = IgnisReportText.Build(status, ledger, new DateTimeOffset(2026, 10, 13, 10, 6, 0, TimeSpan.Zero), TimeZoneInfo.Utc).Split('\n');
+
+        Assert.Equal(
+        [
+            "Saved today: $3.00",
+            "  Reused quick memory  $1.50",
+            "  Kept warm            $0.40",
+            "  Tidy-ups             $0.42",
+            "  Smart helpers        $0.08",
+            "  Longer quick memory  $0.60",
+            "Lost when it went cold: $0.21 · Quick memory reused 94% of the time",
+            "Chat size: 38% full",
+            "Paid credits: 5-minute cache",
+            "Helpers rebuilt their quick memory: $0.31",
+            "Chat’s quick memory: your own setting (promptCacheTtl)",
+            "Helpers’ quick memory: 1 hour, chosen by Ignis (saves about $1.20 over 40 breaks)",
+            "",
+        ], lines[3..16]);
+    }
 }
