@@ -242,9 +242,14 @@ public static class PopoverHost
                     }
                     void Deactivate(object? sender, EventArgs e) => Presentation.DismissMotion(popup);
                     outsideOwner.AddHandler(InputElement.PointerPressedEvent, Press, RoutingStrategies.Tunnel, handledEventsToo: true);
+                    // A press that hits nothing is routed to nothing, so Press would never see it (a window whose template draws no background; a bare corner): the surface catches it.
+                    var overlay = OverlayLayer.GetOverlayLayer(outsideOwner);
+                    var surface = overlay is null ? null : new PopoverDismissSurface(outsideOwner);
+                    if (surface is not null) overlay!.Children.Add(surface);
                     if (outsideOwner is Window window) window.Deactivated += Deactivate;
                     releaseOutside = () =>
                     {
+                        if (surface is not null) overlay!.Children.Remove(surface);
                         outsideOwner.PropertyChanged -= OwnerChanged;
                         outsideOwner.RemoveHandler(InputElement.PointerPressedEvent, Press);
                         if (outsideOwner is Window window) window.Deactivated -= Deactivate;
