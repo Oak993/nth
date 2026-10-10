@@ -247,7 +247,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             if (hydra.RunsNatively) // :106-112
             {
                 arguments.Add("--agents");
-                arguments.Add(HandshakeAgents(HydraPrompts.ClaudeAgents(hydra)).CompactString);
+                arguments.Add(HandshakeAgents(WithIgnisHelperModel(HydraPrompts.ClaudeAgents(hydra), configuration.Model)).CompactString); // DEVIATION (OD-0134 Ignis): Smart helpers moves only the scout entry to the helper model.
                 hydraPolicy = HydraPrompts.Policy(ProviderKind.Claude, hydra);
                 if (options.Contains("--forward-subagent-text")) arguments.Add("--forward-subagent-text");
                 // Uncapped, the CLI keeps its own limit on heads at once. :111-112
@@ -783,6 +783,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
                 OnEvent?.Invoke(new ProviderEvent.TokenSpend(spend));
             }
         }
+        // DEVIATION (OD-0134 Ignis): the turn's cache-aware usage, iterations summed, for Ignis; no Swift counterpart.
+        if (CacheUsageOf(message, model) is { } cacheUsage) OnEvent?.Invoke(new ProviderEvent.CacheUsage(cacheUsage));
         foreach (var requestID in pendingTools.Keys.ToList()) OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :586
         pendingTools.Clear(); // :587
         toolNames.Clear(); // :589
@@ -998,12 +1000,22 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         _ = await SwiftTry.OptionalAsync(async () => (JSONValue?)await Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt")))); // :246
     }
 
-    public Task Compact() // :249-252
+    public Task Compact() => Compact(null); // :249-252
+
+    // DEVIATION (OD-0134 Ignis): Swift's compact() takes no argument. Ignis's tidy-up passes its keep-N request as the
+    // /compact instructions (KeepTurnsInstructions); null or empty writes the plain "/compact" exactly as Swift does.
+    public Task Compact(string? instructions)
     {
         if (process is not { IsRunning: true }) throw new ProviderError(new ProviderError.Case.NotRunning()); // :250
-        WriteUserMessage(new JSONValue.String("/compact")); // :251
+        var command = instructions?.Trim() is { Length: > 0 } text ? "/compact " + text : "/compact";
+        WriteUserMessage(new JSONValue.String(command)); // :251
         return Task.CompletedTask;
     }
+
+    /// <summary>DEVIATION (OD-0134 Ignis): the /compact instructions for an Ignis tidy-up that keeps the last
+    /// <paramref name="keepTurns"/> turns. The CLI decides the summary itself, so this is a request, not a guarantee.</summary>
+    public static string KeepTurnsInstructions(int keepTurns) =>
+        $"Keep the last {Math.Max(1, keepTurns).ToString(CultureInfo.InvariantCulture)} turns (each user message and everything after it) word for word, including their tool calls and results. Summarize only what came before them, keeping decisions, file paths and open tasks.";
 
     public void ResolveApproval(string requestID, string optionID) => ResolveApproval(requestID, optionID, null);
 
@@ -1192,6 +1204,56 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             ? inputTokens + (cached ?? 0) + (usage["cache_creation_input_tokens"]?.JSONValueInt ?? 0)
             : null;
         return new TokenSpend(ProviderKind.Claude, total, inputTokens: input, outputTokens: usage["output_tokens"]?.JSONValueInt, cachedInputTokens: cached, model: model);
+    }
+
+    // DEVIATION (OD-0134 Ignis): no Swift counterpart. The result's usage as Ignis buckets: iterations[] summed when
+    // present (as TurnSpend does), else the top-level usage. cache_creation's ephemeral_5m/1h_input_tokens fill the
+    // 5-minute and 1-hour write buckets; any write the stream gave no TTL for stays in CacheWriteUnknownTtl. A usage
+    // with neither cache_read_input_tokens nor cache_creation_input_tokens anywhere is "not reported".
+    internal static global::Marrow.Core.Port.Ignis.IgnisTurnUsage? CacheUsageOf(JSONValue message, string? model)
+    {
+        if (message["usage"] is not { IsNull: false } usage) return null;
+        var parts = usage["iterations"]?.JSONValueArray is { Count: > 0 } iterations ? iterations.ToList() : [usage];
+        var context = ContextUsageOf(message);
+        long uncached = 0, read = 0, write5m = 0, write1h = 0, writeUnknown = 0, output = 0;
+        var reported = false;
+        foreach (var part in parts)
+        {
+            uncached += part["input_tokens"]?.JSONValueInt ?? 0;
+            output += part["output_tokens"]?.JSONValueInt ?? 0;
+            if (part["cache_read_input_tokens"]?.JSONValueInt is { } partRead) { read += partRead; reported = true; }
+            var written = part["cache_creation_input_tokens"]?.JSONValueInt;
+            if (written is not null) reported = true;
+            var fiveMinutes = part["cache_creation"]?["ephemeral_5m_input_tokens"]?.JSONValueInt ?? 0;
+            var oneHour = part["cache_creation"]?["ephemeral_1h_input_tokens"]?.JSONValueInt ?? 0;
+            if (fiveMinutes != 0 || oneHour != 0) reported = true;
+            write5m += fiveMinutes;
+            write1h += oneHour;
+            writeUnknown += Math.Max(0, (written ?? 0) - fiveMinutes - oneHour);
+        }
+        if (!reported)
+            return global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, model, null, context?.UsedTokens, context?.WindowTokens);
+        return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Claude, model, null, uncached, read, write5m, write1h, writeUnknown, output,
+            context?.UsedTokens, context?.WindowTokens, true);
+    }
+
+    // DEVIATION (OD-0134 Ignis): no Swift counterpart. With Smart helpers on (IgnisSeams.HelperAgents bound and
+    // answering a model), only the read-only scout entry of the --agents JSON gets the helper model; the worker and
+    // every profile variant keep theirs. Unbound or null: the agents are returned unchanged.
+    internal static JSONValue WithIgnisHelperModel(JSONValue agents, string? mainModel)
+    {
+        var helper = global::Marrow.Core.Port.Ignis.IgnisSeams.HelperAgents.Current(
+            new global::Marrow.Core.Port.Ignis.IgnisHelperQuery(ProviderKind.Claude, mainModel));
+        if (helper?.Trim() is not { Length: > 0 } helperModel) return agents;
+        if (agents is not JSONValue.Object { Value: { } entries }
+            || !entries.TryGetValue(HydraPrompts.ScoutAgentName, out var scoutValue)
+            || scoutValue is not JSONValue.Object { Value: { } scoutFields }) return agents;
+        var scout = new Dictionary<string, JSONValue>(scoutFields, SwiftStringComparer.Instance) { ["model"] = helperModel };
+        var all = new Dictionary<string, JSONValue>(entries, SwiftStringComparer.Instance)
+        {
+            [HydraPrompts.ScoutAgentName] = new JSONValue.Object(new ValueMap<string, JSONValue>(scout, SwiftStringComparer.Instance)),
+        };
+        return new JSONValue.Object(new ValueMap<string, JSONValue>(all, SwiftStringComparer.Instance));
     }
 
     /// <summary>Swift `private`; kept internal for this part's own tests.</summary>

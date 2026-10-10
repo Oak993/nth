@@ -1296,6 +1296,7 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:1173-1216. Swift: turnFinished(_:status:continues:).
     public void TurnFinished(Guid id, TurnStatus status, bool continues) // AppModel.swift:1173-1216
     {
+        if (IgnisTurnFinished(id, status)) return; // PORT-ONLY: Ignis (ED-NEW-ignis-runtime): a hidden keep-warm ping ends silently
         var thread = Thread(id);
         var isVisible = IsApplicationActive() && thread is not null && IsOnScreen(thread);
         var isHead = thread?.IsHydraHead == true;

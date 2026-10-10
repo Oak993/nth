@@ -136,7 +136,7 @@ public sealed class ThreadTimeline : Decorator
             var model = AppEnvironment.GetAppModel(this);
             var modelInputs = ReadModelInputs(runtime); seenModelInputs = modelInputs; // :99-131
             var pills = modelInputs.Pills;
-            var blocks = TimelineBlockCache.Cache(runtime.ThreadID).Blocks(runtime.Entries, model.Settings.ShowReasoning, runtime.IsRunning, MergeID(runtime.IsHydraMerging, runtime.HydraMergeNoteID), pills);
+            var blocks = TimelineBlockCache.Cache(runtime.ThreadID).Blocks(Marrow.App.Port.Ignis.Views.IgnisViews.Visible(runtime.Entries) /* PORT-ONLY Ignis U4 (ED-NEW-ignis-views): hidden keep-warm pings left out unless shown */, model.Settings.ShowReasoning, runtime.IsRunning, MergeID(runtime.IsHydraMerging, runtime.HydraMergeNoteID), pills);
             var lastID = runtime.Questions.LastOrDefault() is { } question ? "question-" + question.Id : blocks.LastOrDefault()?.Id;
             if (seenLastEntryID != lastID) { seenLastEntryID = lastID; NoteArrival(lastID, blocks); }
             MarkdownView.SetHydraMentionPersonas(this, TimelineBlockCache.Cache(runtime.ThreadID).MentionPersonas(modelInputs.Heads, modelInputs.Roster));

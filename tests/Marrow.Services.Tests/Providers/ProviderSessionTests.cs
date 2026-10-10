@@ -43,7 +43,8 @@ public sealed class ProviderSessionTests
             .Select(t => t.Name)
             .ToArray();
 
-        Assert.Equal(expectedOrder, actualOrder);
+        // DEVIATION OD-0134 / ED-NEW-ignis-contract: the port-only Ignis case CacheUsage follows the 31 Swift cases.
+        Assert.Equal(expectedOrder.Append("CacheUsage").ToArray(), actualOrder);
 
         var usageIndex = Array.IndexOf(expectedOrder, "Usage");
         var tokenSpendIndex = Array.IndexOf(expectedOrder, "TokenSpend");
@@ -110,7 +111,9 @@ public sealed class ProviderSessionTests
             new ProviderEvent.AgentStarted(spawn),
             new ProviderEvent.AgentEvent("id", new ProviderEvent.Title("t")),
             new ProviderEvent.AgentProgress("id", "s", "t", 1, 2),
-            new ProviderEvent.AgentFinished("id", TurnStatus.Completed, "s"));
+            new ProviderEvent.AgentFinished("id", TurnStatus.Completed, "s"),
+            // DEVIATION OD-0134 / ED-NEW-ignis-contract: the port-only Ignis case.
+            new ProviderEvent.CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, null, null)));
 
         foreach (var sample in samples)
         {
@@ -147,6 +150,7 @@ public sealed class ProviderSessionTests
                 ProviderEvent.AgentEvent => true,
                 ProviderEvent.AgentProgress => true,
                 ProviderEvent.AgentFinished => true,
+                ProviderEvent.CacheUsage => true,
                 _ => throw new UnreachableException(),
             };
             Assert.True(described);

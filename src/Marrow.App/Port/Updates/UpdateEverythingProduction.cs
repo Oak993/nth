@@ -105,6 +105,12 @@ internal static class UpdateEverythingProduction
     /// <summary>UE-4/ED-343: the owning skills units add their SkillsAndTools items here.</summary>
     internal static Func<IEnumerable<IUpdateItem>> ExtraItems { get; set; } = () => [];
 
+    /// <summary>PORT-ONLY (OD-0134, ED-NEW-ignis-settings): Ignis's model points, appended beside the skills rows (never in place of them) while the Ignis controller is bound.</summary>
+    internal static IEnumerable<IUpdateItem> IgnisItems() =>
+        Marrow.Core.Port.Ignis.IgnisSeams.Controller.Current() is { } ignis
+            ? [new IgnisPointsUpdateItem(ignis.Points, () => ignis.Settings.Value.AutoUpdatePoints)]
+            : [];
+
     /// <summary>The production inventory. The process/registry seams default to the real boundary; a test supplies recorded or fake answers, so no real tool ever runs.</summary>
     internal static async Task<(IReadOnlyList<IUpdateItem> Items, Action Restart)> Real(AppModel model,
         Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, Func<CancellationToken, Task<OfficeInstallation?>>? office = null)
@@ -112,7 +118,7 @@ internal static class UpdateEverythingProduction
         run ??= new WindowsDevToolProcess(WindowsGitInstallerLog.Read).Run;
         office ??= WindowsOfficeInstallation.Read;
         var marrow = new MarrowUpdateItem(UpdateChecker.Shared, SelfUpdateEngine.Shared, (package, version) => AppUpdater.Shared.ApplyDownloaded(package, version));
-        var items = ProviderCliUpdateItem.For(ProviderRegistry.UpdatableProviders, model.Providers, new FetchedVersionListing(HttpVersionFetch.Get)).Concat(ExtraItems()).Append(marrow).ToList();
+        var items = ProviderCliUpdateItem.For(ProviderRegistry.UpdatableProviders, model.Providers, new FetchedVersionListing(HttpVersionFetch.Get)).Concat(ExtraItems()).Concat(IgnisItems()).Append(marrow).ToList();
         try
         {
             items.AddRange(await DevToolUpdateCatalog.Discover(run, office, inventoryFailure: (tool, error) => Log.Error("Developer-tool inventory is incomplete for " + tool + ": " + error.GetType().Name)));

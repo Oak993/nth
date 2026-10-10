@@ -59,7 +59,9 @@ public sealed class ThreadRuntimePartFourTests
             new ProviderEvent.AgentStarted(spawn),
             new ProviderEvent.AgentEvent("agent", new ProviderEvent.Title("head title")),
             new ProviderEvent.AgentProgress("agent", "summary", "tool", 1, 1),
-            new ProviderEvent.AgentFinished("agent", TurnStatus.Completed, "summary"));
+            new ProviderEvent.AgentFinished("agent", TurnStatus.Completed, "summary"),
+            // DEVIATION OD-0134 / ED-NEW-ignis-contract: the port-only Ignis case (the runtime forwards it in unit U3).
+            new ProviderEvent.CacheUsage(global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, null, null)));
 
         fixture.Harness.Main.OnMain(() =>
         {

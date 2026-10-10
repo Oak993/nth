@@ -239,7 +239,8 @@ public sealed class OpenAICompatibleSessionThirdTests
 
     [Fact]
     [Trait("Req", "PR-PROVAPI-139")] // OpenAICompatibleSession.swift:1251-1257
-    public void TrimHistory_keeps_the_system_message_the_whole_running_turn_and_earlier_up_to_50()
+    // DEVIATION (OD-0134 Ignis): the body is cut to 40, not Swift's 50, so the cached prefix holds for 20 messages.
+    public void TrimHistory_keeps_the_system_message_the_whole_running_turn_and_earlier_up_to_40()
     {
         var session = new OpenAICompatibleSessionTestSeam(MakeConfig(), MakeSessionConfiguration());
         var messages = new List<JSONValue> { Msg("system", "sys") };
@@ -259,8 +260,8 @@ public sealed class OpenAICompatibleSessionThirdTests
         var currentIndex = result.ToList().FindIndex(m => m["content"]?.JSONValueString == "current task");
         Assert.True(currentIndex >= 0);
         Assert.Equal(21, result.Count - currentIndex);
-        // Earlier messages are capped so the body (earlier + current) totals 50.
-        Assert.Equal(1 + 50, result.Count); // system + 50-message body
+        // Earlier messages are capped so the body (earlier + current) totals 40.
+        Assert.Equal(1 + 40, result.Count); // system + 40-message body
     }
 
     // ---- PR-PROVAPI-140 ----

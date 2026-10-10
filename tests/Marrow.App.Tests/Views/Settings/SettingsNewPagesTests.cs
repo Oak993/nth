@@ -32,13 +32,14 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
     {
         var pages = SwiftEnum<SettingsPage>.AllCases;
         Assert.Equal(
-            ["general", "hydra", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "models", "pills", "sourceControl", "shortcuts", "archive", "about"],
+            ["general", "hydra", "ignis", "appearance", "customization", "voiceTyping", "providers", "updates", "mcp", "plugins", "skills", "models", "pills", "sourceControl", "shortcuts", "archive", "about"],
             pages.Select(page => page.Id));
         Assert.Equal(["customization", "voiceTyping", "updates", "plugins", "skills", "pills"], NewPages.Select(page => page.Id));
         Assert.Equal(pages.ToList().IndexOf(SettingsPage.Plugins) + 1, pages.ToList().IndexOf(SettingsPage.Skills));
-        Assert.Equal(SettingsPage.Appearance, pages[2]);
-        Assert.Equal(SettingsPage.Customization, pages[3]);
-        Assert.Equal(SettingsPage.VoiceTyping, pages[4]);
+        Assert.Equal(SettingsPage.Ignis, pages[2]); // OD-0134 (ED-NEW-ignis-settings): Ignis directly below Hydra
+        Assert.Equal(SettingsPage.Appearance, pages[3]);
+        Assert.Equal(SettingsPage.Customization, pages[4]);
+        Assert.Equal(SettingsPage.VoiceTyping, pages[5]);
     }
 
     [Fact]
@@ -132,8 +133,8 @@ public sealed class SettingsNewPagesTests(HeadlessSession headless)
         }
         Assert.All(SwiftEnum<SettingsPage>.AllCases.Where(page => !NewPages.Contains(page)), page => Assert.True(page.IsReady, page.Title));
         Assert.Equal(SwiftEnum<SettingsPage>.AllCases.Where(page => page.IsReady).Select(page => page.Id), SettingsSidebar.Pages("").Select(page => page.Id));
-        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("")[2]);
-        Assert.Equal(SettingsPage.Customization, SettingsSidebar.Pages("")[3]);
+        Assert.Equal(SettingsPage.Appearance, SettingsSidebar.Pages("")[3]); // [2] is Ignis (OD-0134)
+        Assert.Equal(SettingsPage.Customization, SettingsSidebar.Pages("")[4]);
     }
 
     [Fact]

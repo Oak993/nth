@@ -10,6 +10,8 @@ public enum UpdateItemKind
     ProviderCli,
     DevTool,
     SkillsAndTools,
+    /// <summary>PORT-ONLY (OD-0134, ED-NEW-ignis-settings): Ignis's model points, a data file; it runs after the tools and before Marrow itself, and the page lists it right after Marrow.</summary>
+    ModelPoints,
     Marrow,
 }
 

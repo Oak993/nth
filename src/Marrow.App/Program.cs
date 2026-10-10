@@ -131,6 +131,7 @@ public static class Program
         var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
         Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.Bind(); // T11 step 2: Settings > Models (accounts) and Settings > Pills read the running AppModel
         Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
+        Marrow.App.Port.Ignis.Runtime.IgnisRuntimeStartup.Bind(); // Ignis (ED-NEW-ignis-runtime): the controller, made on first use once the U1 parts are bound
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
