@@ -454,7 +454,11 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
                 var popup = menu.WaitForMenu();
                 Assert.True(probe.Count(N.WM_CONTEXTMENU) > 0, "The native right click did not reach WM_CONTEXTMENU.");
                 Assert.Equal(canResize, popup.Enabled(N.SC_SIZE));
-                Assert.Equal(canResize, popup.Enabled(N.SC_MAXIMIZE));
+                // ED-NEW-native-fix (T45 owner override): Settings may be maximized though it cannot be resized, so Maximize is on for both
+                // windows (was: it followed canResize), and the managed CanMaximize agrees with what the native menu offers.
+                Assert.True(popup.Enabled(N.SC_MAXIMIZE));
+                Assert.True(native.OnUi(() => window.CanMaximize));
+                Assert.Equal(canResize, native.OnUi(() => window.CanResize));
                 Assert.True(popup.Enabled(N.SC_MINIMIZE));
                 Assert.True(popup.Enabled(N.SC_CLOSE));
                 Assert.False(popup.Enabled(N.SC_RESTORE));

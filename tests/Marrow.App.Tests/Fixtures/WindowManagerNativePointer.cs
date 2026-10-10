@@ -59,10 +59,14 @@ internal sealed class WindowManagerNativePointer : IDisposable
     {
         WindowManagerNativeMethods.RequireOwner(probe.Handle);
         if (WindowManagerNativeMethods.GetForegroundWindow() != probe.Handle || WindowManagerNativeMethods.RootAt(point) != probe.Handle)
-            throw new InvalidOperationException("Native pointer target is covered or is no longer the foreground test window.");
+            throw new InvalidOperationException("Native pointer target is covered or is no longer the foreground test window." +
+                $" target=0x{probe.Handle:X}, foreground=0x{WindowManagerNativeMethods.GetForegroundWindow():X}, rootAtPoint=0x{WindowManagerNativeMethods.RootAt(point):X}, point={point.X},{point.Y}," +
+                $" main=0x{subject.MainProbe.Handle:X}, settings=0x{subject.SettingsProbe.Handle:X}, targetRect={Describe(WindowManagerNativeMethods.Rect(probe.Handle))}, mainRect={Describe(WindowManagerNativeMethods.Rect(subject.MainProbe.Handle))}, settingsRect={Describe(WindowManagerNativeMethods.Rect(subject.SettingsProbe.Handle))}.");
         if (WindowManagerNativeMethods.Hit(probe.Handle, point) != expectedHit)
             throw new InvalidOperationException("The actual WM_NCHITTEST result does not match the requested test hit region.");
     }
+
+    private static string Describe(NativeWindowRect rectangle) => $"{rectangle.Left},{rectangle.Top},{rectangle.Right},{rectangle.Bottom}";
 
     private void GuardDelivery(NativeWindowPoint point)
     {
