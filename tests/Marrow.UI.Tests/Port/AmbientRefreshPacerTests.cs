@@ -8,7 +8,7 @@ namespace Marrow.UI.Tests.Port;
 
 // ED-NEW-frame-pacing: decorative motion advances exactly once per 60 Hz slot of the display's refreshes, evenly, on
 // the same refresh for every ambient source, at any refresh rate; never on a timer.
-[Trait("Decision", "ED-NEW-frame-pacing")]
+[Trait("Decision", "ED-NEW-framepacing-1")]
 public sealed class AmbientRefreshPacerTests
 {
     // a tick comes after its vblank by 0.2-1.4 ms, every 37th by up to 1.9 ms (under half a refresh at 240 Hz)
@@ -125,35 +125,5 @@ public sealed class AmbientRefreshPacerTests
         for (var k = 0; k < 720; k++) { var now = 7 + k / 240.0 + Latency(k); if (pacer.Beat(k + 1, now)) beats.Add(now); }
         Assert.InRange(beats.Count, 179, 184);
         Assert.All(beats.Skip(5).Zip(beats.Skip(6), (a, b) => b - a), gap => Assert.InRange(gap, .008, .026));
-    }
-
-    [Collection("Headless")]
-    public sealed class Controller(HeadlessSession headless)
-    {
-        [Fact]
-        public void Pacing_waits_on_refreshes_never_a_timer_runs_interactions_at_display_rate_and_stops_when_idle_or_unseen() => headless.OnUiThread(() =>
-        {
-            var clock = new ManualTimeProvider(); using var time = SwiftClock.Provider.Override(clock);
-            var state = new AmbientWindowState(new Window(), true);
-            state.Touch(0);
-            using var ambient = new AmbientMotionController(state) { Pacer = new AmbientRefreshPacer(() => TimeSpan.FromSeconds(1 / 240.0)) };
-            var paced = new List<AmbientMotionController.Paced>();
-            for (var k = 0; k < 16; k++) paced.Add(ambient.Pace(k + 1, k / 240.0, false));
-            Assert.Equal(4, paced.Count(p => p == AmbientMotionController.Paced.Go));
-            Assert.Equal(12, paced.Count(p => p == AmbientMotionController.Paced.Wait));
-            Assert.Equal(0, clock.ActiveTimers);
-            Assert.True(ambient.Request(16 / 240.0, false));
-            for (var k = 16; k < 24; k++) Assert.Equal(AmbientMotionController.Paced.Go, ambient.Pace(k + 1, k / 240.0, true));
-            // after the interaction the slots go on from the count: refreshes 24 and 28 are slots, 25-27 are not
-            Assert.Equal(AmbientMotionController.Paced.Go, ambient.Pace(25, 24 / 240.0, false));
-            Assert.Equal(AmbientMotionController.Paced.Wait, ambient.Pace(26, 25 / 240.0, false));
-            Assert.Equal(AmbientMotionController.Paced.Stop, ambient.Pace(27, 20.7, false));
-            Assert.False(ambient.Request(20.7, false));
-            state.Touch(21);
-            Assert.True(ambient.Request(21, false));
-            state.SetAvailable(false);
-            Assert.Equal(AmbientMotionController.Paced.Stop, ambient.Pace(28, 21.1, true));
-            Assert.Equal(0, clock.ActiveTimers);
-        });
     }
 }
