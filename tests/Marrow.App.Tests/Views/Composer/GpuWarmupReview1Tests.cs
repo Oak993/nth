@@ -137,12 +137,19 @@ public sealed class GpuWarmupReview1Tests(HeadlessSession headless)
         GpuWarmup.WarmTarget.Inspect = surface => painted.Add(Painted(surface));
         try
         {
-            var program = GpuWarmup.Registered.Single(p => p.Name == name);
-            program.Drawing(new GpuWarmContext(gpu, 1));
-            Assert.Single(asked);                                     // the context made the surface the program drew into
+            // the family's parts drawn through LiquidTrack.Draw (ED-NEW-warmupsplit-1: one GPU draw each; the strike's legacy frame)
+            var parts = GpuWarmup.Registered.Where(p => p.Family == name && (name != "strike" || p.Name.StartsWith("strike[legacy ", StringComparison.Ordinal))).ToArray();
+            Assert.Equal(name == "strike" ? StrikeWarmup.LegacySites : GpuWarmup.LiquidSites, parts.Length);
+            foreach (var program in parts) program.Drawing(new GpuWarmContext(gpu, 1));
+            Assert.Equal(parts.Length, asked.Count);                  // the context made the surface each part drew into
             Assert.True(sameContext, "the surface was asked of another context");
-            Assert.Equal((160, (int)EffortSlider.TrackHeight), (asked[0].Width, asked[0].Height));
-            Assert.Equal([true], painted);                            // and the program drew into it
+            Assert.All(asked, info => Assert.Equal((160, (int)EffortSlider.TrackHeight), (info.Width, info.Height)));
+            Assert.Equal(parts.Length, painted.Count);
+            Assert.Contains(true, painted);                           // and the frame was drawn into them
+            asked.Clear(); painted.Clear();
+            GpuWarmup.DrawLiquid(new GpuWarmContext(gpu, 1), strike: name == "strike"); // the frame whole, in one part
+            Assert.Single(asked);
+            Assert.Equal([true], painted);                            // drew into the surface the context made
         }
         finally { GpuWarmup.WarmTarget.GpuSurface = factory; GpuWarmup.WarmTarget.Inspect = inspect; }
     });

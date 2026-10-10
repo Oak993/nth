@@ -33,7 +33,9 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
     {
         var plan = new FirstRunPreparation().Plan();
         Assert.Equal(["Graphics card", "Effort slider knob", "Composer light", "Slider liquid", "Fast mode lightning"], plan.Select(s => s.Step.Name));
-        Assert.Equal([1, 4, 3, 1, 1], plan.Select(s => s.Parts)); // the adapter read; the knob's four programs; the light's three; the liquid; the strike
+        // the adapter read; the knob's four programs; the light's three, the liquid and the strike, each in frame-sized parts
+        // (ED-NEW-warmupsplit-1: 5 + 3 + 3 for the lights, 8 for the liquid, 8 legacy and 63 Mix for the strike)
+        Assert.Equal([1, 4, 11, 8, 71], plan.Select(s => s.Parts));
     }
 
     [Fact] // GR-1.order
@@ -47,7 +49,7 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
         var plan = new FirstRunPreparation().Plan();
         Assert.Equal(["Graphics card", "Effort slider knob", "A step between", "Composer light", "Slider liquid", "Fast mode lightning", "Voice hardware"],
             plan.Select(s => s.Step.Name));
-        Assert.Equal([1, 4, 1, 3, 1, 2, 1], plan.Select(s => s.Parts)); // a new strike program is one more part of its step
+        Assert.Equal([1, 4, 1, 11, 8, 72, 1], plan.Select(s => s.Parts)); // a new strike program is one more part of its step
         voice.Dispose(); step.Dispose(); strike.Dispose();
         Assert.Equal(5, new FirstRunPreparation().Plan().Count);
     }
@@ -288,7 +290,8 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
             Assert.False(preparation.IsPrepared);                    // nothing kept: the first run
             Directory.CreateDirectory(gpu);
             Key(GpuProgramCache.Build, machine);
-            for (var k = 0; k < GpuWarmup.Steps; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
+            // an entry for each family the warm-up draws (ED-NEW-warmupsplit-1: a family's parts make its programs)
+            for (var k = 0; k < GpuWarmup.Families; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
             Assert.False(preparation.IsPrepared);                    // programs kept, but no warm-up completed on them
             GpuProgramCache.MarkWarm(gpu);
             Assert.True(preparation.IsPrepared);                     // the marker: build, adapter and driver as they are now
@@ -405,6 +408,10 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
 
     // ----- the real preparation, on the headless renderer pretending a GPU -----
 
+    // a step's reports, one a part drawn, then done
+    private static IEnumerable<string> Parts(string step, int parts) =>
+        Enumerable.Range(0, parts).Select(k => $"{step}:Running:{k}/{parts}").Append($"{step}:Done:{parts}/{parts}");
+
     [Fact] // GR-1.progress
     [Trait("Decision", "ED-252")]
     public void The_real_preparation_draws_every_program_and_runs_a_registered_step_once_in_order() => headless.OnUiThread(() =>
@@ -429,10 +436,10 @@ public sealed class FirstRunPreparationTests(HeadlessSession headless)
             [
                 "begin:gpu,knob,lights,liquid,strike,hw",
                 "gpu:Running:0/1", "gpu:Done:1/1",
-                "knob:Running:0/4", "knob:Running:1/4", "knob:Running:2/4", "knob:Running:3/4", "knob:Done:4/4",
-                "lights:Running:0/3", "lights:Running:1/3", "lights:Running:2/3", "lights:Done:3/3",
-                "liquid:Running:0/1", "liquid:Done:1/1",
-                "strike:Running:0/1", "strike:Done:1/1",
+                .. Parts("knob", 4),
+                .. Parts("lights", 11), // ED-NEW-warmupsplit-1: each family in frame-sized parts (5 + 3 + 3, 8, 8 + 63)
+                .. Parts("liquid", 8),
+                .. Parts("strike", 71),
                 "hw:Running:0/1", "voice-hardware", "hw:Done:1/1",
                 "end:Prepared",
             ], log);

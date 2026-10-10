@@ -34,11 +34,30 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
     public void The_composer_light_the_slider_liquid_and_the_strike_are_registered_after_the_knob_in_W1_order()
     {
         var after = GpuWarmup.Registered.Skip(4).ToArray();
-        Assert.Equal(["light-rotate", "light-moving", "light-aura", "liquid", "strike"], after.Select(p => p.Name));
-        Assert.Equal([FirstRunSteps.Lights, FirstRunSteps.Lights, FirstRunSteps.Lights, FirstRunSteps.Liquid, FirstRunSteps.Strike], after.Select(p => p.Step));
-        Assert.Equal(9, GpuWarmup.Steps);
+        // ED-NEW-warmupsplit-1: each family is drawn in frame-sized parts, its parts in a row, in the families' W1 order
+        Assert.Equal(["light-rotate", "light-moving", "light-aura", "liquid", "strike"], after.Select(p => p.Family).Distinct());
+        Assert.Equal(AfterTheKnob(), after.Select(p => p.Name));
+        Assert.All(after, p => Assert.Equal(p.Family switch { "liquid" => FirstRunSteps.Liquid, "strike" => FirstRunSteps.Strike, _ => FirstRunSteps.Lights }, p.Step));
+        Assert.Equal(4 + 5 + 3 + 3 + 8 + 8 + 3 * 7 * 3, GpuWarmup.Steps);
+        Assert.Equal(9, GpuWarmup.Families);
         Assert.Equal(GpuWarmup.Steps, GpuWarmup.Programs.Count);
     }
+
+    // the parts' names after the knob's four programs (ED-NEW-warmupsplit-1): the lights' and the liquid's one GPU draw each, the
+    // legacy strike frame's one draw each, then each brand's Mix strikes in three parts (the fresh lightning's two halves of its
+    // masks, the settled frame)
+    private static string[] AfterTheKnob() =>
+    [
+        .. Enumerable.Range(0, 5).Select(k => $"light-rotate[{k}]"),
+        .. Enumerable.Range(0, 3).Select(k => $"light-moving[{k}]"),
+        .. Enumerable.Range(0, 3).Select(k => $"light-aura[{k}]"),
+        .. Enumerable.Range(0, 8).Select(k => $"liquid[{k}]"),
+        .. Enumerable.Range(0, 8).Select(k => $"strike[legacy {k}]"),
+        .. from brand in new[] { "Claude", "Silver", "Copilot" }
+           from strike in new[] { 36862, 36863, 36870, 36875, 36887, 36898, 36918 }
+           from part in new[] { "a", "b", "c" }
+           select $"strike[{brand} {strike} {part}]",
+    ];
 
     [Fact] // GR-1.registry
     [Trait("Decision", "ED-252")]
@@ -48,7 +67,7 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         using var early = GpuWarmup.Register(GpuProgram.Draw("between", Later, _ => { }));
         using var knob = GpuWarmup.Register(GpuProgram.Draw("knob-two", FirstRunSteps.Knob, _ => { }));
         var names = GpuWarmup.Registered.Select(p => p.Name).ToArray();
-        Assert.Equal(["noise", "fluid", "orb", "page", "knob-two", "between", "light-rotate", "light-moving", "light-aura", "liquid", "strike", "strike-two"], names);
+        Assert.Equal(["noise", "fluid", "orb", "page", "knob-two", "between", .. AfterTheKnob(), "strike-two"], names);
     }
 
     [Fact] // GR-1.registry
@@ -144,7 +163,7 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
             var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(reports.Add));
             FramesFor(TimeSpan.FromSeconds(60), () => task.IsCompleted);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.ToString());
-            Assert.Equal(["noise", "fluid", "orb", "page", "between", "light-rotate"], reports.Select(r => r.Program).Take(6));
+            Assert.Equal(["noise", "fluid", "orb", "page", "between", "light-rotate[0]"], reports.Select(r => r.Program).Take(6));
             var scaling = Assert.Single(drawn); // (the headless renderer draws on the UI thread; on a window it is the render thread: GpuWarmup's primer)
             Assert.Equal(window.RenderScaling, scaling);
         }
@@ -300,7 +319,8 @@ public sealed class GpuWarmupRegistryTests(HeadlessSession headless)
         {
             Directory.CreateDirectory(gpu);
             File.WriteAllText(Path.Combine(gpu, "key.txt"), "ANGLE (Test GPU)\nOpenGL ES 3.0.0\n" + GpuProgramCache.Build + "\n" + machine + "\n");
-            for (var k = 0; k < GpuWarmup.Steps; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
+            // an entry for each family that draws (ED-NEW-warmupsplit-1: a family's parts make its programs)
+            for (var k = 0; k < GpuWarmup.Families; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
             GpuProgramCache.MarkWarm(gpu);
             Assert.True(GpuWarmup.IsWarm);
             using (GpuWarmup.Register(GpuProgram.Work("voice-hardware", FirstRunSteps.Voice, _ => Task.CompletedTask)))

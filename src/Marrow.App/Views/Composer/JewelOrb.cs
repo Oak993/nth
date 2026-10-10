@@ -602,7 +602,7 @@ internal sealed partial class JewelKnobRenderer
     /// </summary>
     internal void Warm(int step)
     {
-        var values = warmValues ??= WarmFrame(size);
+        var values = warmValues ??= warmFrames.GetOrAdd(size, WarmFrame);
         Marshal.Copy(values, 0, block, JewelUniforms.ShaderBytes / sizeof(float));
         Marshal.WriteInt32(block, 79 * sizeof(float), BitConverter.SingleToInt32Bits(0f));
         switch (step)
@@ -622,6 +622,10 @@ internal sealed partial class JewelKnobRenderer
     }
 
     private float[]? warmValues;
+
+    // ED-NEW-warmupsplit-2: the warm-up's frame of each size, made once a process and only read after (the worker's pass before
+    // the idle steps makes it, so a render-thread step only copies it)
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, float[]> warmFrames = new();
 
     private static float[] WarmFrame(int px)
     {

@@ -206,8 +206,8 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             Key(GpuProgramCache.Build, machine);
             GpuProgramCache.MarkWarm(gpu);
             Assert.False(GpuWarmup.IsWarm);                  // marked, but no program in it
-            for (var k = 0; k < GpuWarmup.Steps - 1; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
-            Assert.False(GpuWarmup.IsWarm);                  // fewer entries than the warm-up's steps
+            for (var k = 0; k < GpuWarmup.Families - 1; k++) File.WriteAllBytes(Path.Combine(gpu, k + ".bin"), [1, 2, 3]);
+            Assert.False(GpuWarmup.IsWarm);                  // fewer entries than the warm-up's families (ED-NEW-warmupsplit-1: a family's parts make its programs)
             File.WriteAllBytes(Path.Combine(gpu, "last.bin"), [1, 2, 3]);
             Assert.True(GpuWarmup.IsWarm);
             Assert.Equal([GpuProgramCache.Build, Path.GetFileName(gpu), machine], File.ReadAllLines(Path.Combine(root, "warm.txt")));
@@ -395,9 +395,11 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             Assert.Equal(GpuWarmup.Steps, GpuWarmup.StepsDone - done);
             Assert.Equal(GpuWarmup.Steps, asked.Count);
             Assert.True((asked[0] - since).TotalMilliseconds >= 500, $"the first step {(asked[0] - since).TotalMilliseconds:F0} ms in, before the cap");
-            var rest = (asked[^1] - asked[0]).TotalMilliseconds;
-            Assert.True(rest < 450, $"the last three steps took {rest:F0} ms: a cap each, not one a frame");
-            Assert.All(GpuWarmup.Done.TakeLast(GpuWarmup.Steps), step => Assert.True(step.Forced));
+            // after the cap, one a frame, not a cap each: every gap a few 16 ms frames (the pass's 9 steps once had 450 ms for their
+            // 8 gaps, 56 ms a gap; ED-NEW-warmupsplit-1 draws more, smaller steps, each gap held under 50 ms)
+            var gaps = asked.Zip(asked.Skip(1), (a, b) => (b - a).TotalMilliseconds).ToArray();
+            Assert.True(gaps.Max() < 50, $"a gap of {gaps.Max():F0} ms between steps after the cap: a cap each, not one a frame");
+            Assert.All(GpuWarmup.Done.TakeLast(GpuWarmup.Steps), step => Assert.True(step.Forced)); // animating at the cap throughout
         }
         finally { GpuWarmup.IdleCap = cap; GpuWarmup.PretendGpu = false; window.Close(); }
     });
@@ -569,8 +571,14 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             FramesFor(TimeSpan.FromMilliseconds(500), () => false);
             Assert.Equal(asked, GpuWarmup.StepsAsked);
             var reports = new List<GpuWarmupStep>();
+            var done = GpuWarmup.StepsDone;
             var task = GpuWarmup.WarmAsync(window, new SyncProgress<GpuWarmupStep>(reports.Add));
-            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted);
+            // hurried: within 5 s it steps at once (as many steps as a whole pass once had, ED-NEW-warmupsplit-1 now drawing its
+            // programs in more, smaller parts), the idle run first, then the first run's own pass; both end well within the 60 s
+            // cap a run still waiting for idle frames would need
+            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted || GpuWarmup.StepsDone - done >= 9);
+            Assert.True(task.IsCompleted || GpuWarmup.StepsDone - done >= 9, $"{GpuWarmup.StepsDone - done} steps in 5 s: still waiting for idle frames");
+            FramesFor(TimeSpan.FromSeconds(30), () => task.IsCompleted);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
             Assert.Equal(GpuWarmup.Programs, reports.Select(r => r.Program));
             Assert.All(reports, r => Assert.False(r.Forced));
@@ -1079,7 +1087,11 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             FramesFor(TimeSpan.FromMilliseconds(500), () => false);
             Assert.Equal(asked, GpuWarmup.StepsAsked);
             var task = GpuWarmup.WarmAsync(window);
-            FramesFor(TimeSpan.FromSeconds(5), () => task.IsCompleted && GpuWarmup.StepsDone - done >= 2 * GpuWarmup.Steps);
+            // within 5 s both runs step at once (as many steps as a whole pass once had; ED-NEW-warmupsplit-1 draws more, smaller
+            // parts), and both end well within the 60 s cap a run still waiting for idle frames would need
+            FramesFor(TimeSpan.FromSeconds(5), () => GpuWarmup.StepsDone - done >= 9);
+            Assert.True(GpuWarmup.StepsDone - done >= 9, $"{GpuWarmup.StepsDone - done} steps in 5 s: still waiting for idle frames");
+            FramesFor(TimeSpan.FromSeconds(30), () => task.IsCompleted && GpuWarmup.StepsDone - done >= 2 * GpuWarmup.Steps);
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.Message);
             Assert.True(GpuWarmup.StepsDone - done == 2 * GpuWarmup.Steps, $"{GpuWarmup.StepsDone - done} steps: the chip's run still waits for idle frames");
         }

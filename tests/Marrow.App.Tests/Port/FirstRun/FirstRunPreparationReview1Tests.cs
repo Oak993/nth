@@ -42,11 +42,12 @@ public sealed class FirstRunPreparationReview1Tests(HeadlessSession headless)
             Assert.True(task.IsCompletedSuccessfully, task.Exception?.InnerException?.ToString());
             Assert.Equal(FirstRunOutcomeKind.Prepared, task.Result.Kind);
             Assert.True(moved);
-            Assert.Equal(2, log.Count(l => l == "drawn:light-rotate")); // the pass started again on the new context
-            var auraOnNewContext = log.LastIndexOf("drawn:light-aura");
+            Assert.Equal(2, log.Count(l => l == "drawn:light-rotate[0]")); // the pass started again on the new context
+            var lastAura = GpuWarmup.Registered.Last(p => p.Family == "light-aura").Name; // its last part (ED-NEW-warmupsplit-1)
+            var auraOnNewContext = log.LastIndexOf("drawn:" + lastAura);
             var lightsDone = log.FindIndex(l => l.StartsWith("lights:Done", StringComparison.Ordinal));
             Assert.True(auraOnNewContext >= 0 && lightsDone > auraOnNewContext,
-                "Composer light ticked done before light-aura was drawn on the new context: " + string.Join(" | ", log));
+                "Composer light ticked done before " + lastAura + " was drawn on the new context: " + string.Join(" | ", log));
         }
         finally { GpuWarmup.PretendGpu = false; GpuWarmup.PretendContext = 0; GpuProgramCache.MachineSource = source; window.Close(); }
     });

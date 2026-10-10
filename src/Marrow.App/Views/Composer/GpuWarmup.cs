@@ -25,7 +25,8 @@ namespace Marrow.App.Views.Composer;
 // four programs, the composer light's three, the slider liquid's and the strike's are registered here (Builtins); a program or
 // step another unit adds (the voice orbs, a new strike, the voice hardware check) registers from its own file with Register,
 // and joins every later warm-up and FirstRunPreparation's plan without this file being edited. The cache entries a warm state
-// needs (IsWarm, the marker) are counted over the programs that draw; a work step makes none.
+// needs (IsWarm, the marker) are counted over the families of programs that draw (ED-NEW-warmupsplit-1: a program split into
+// frame-sized parts is one family); a work step makes none.
 //
 // OD-0090 / ED-252 (lead's rulings, 2026-10-03, under the owner's zero-stutter bar): on ANGLE (D3D11) the knob's programs
 // compile on their first draw, so the first open of the effort popover would hitch. GpuWarmup prepares them ahead, as a
@@ -72,12 +73,14 @@ public sealed class GpuProgram
     private readonly Action<GpuWarmContext>? drawing;
     private readonly Func<CancellationToken, Task>? working;
 
-    private GpuProgram(string name, FirstRunStep step, Action<GpuWarmContext>? drawing, Func<CancellationToken, Task>? working)
+    private GpuProgram(string name, FirstRunStep step, Action<GpuWarmContext>? drawing, Func<CancellationToken, Task>? working, string? family = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(step);
+        if (family is not null) ArgumentException.ThrowIfNullOrWhiteSpace(family);
         Name = name;
         Step = step;
+        Family = family ?? name;
         this.drawing = drawing;
         this.working = working;
     }
@@ -88,6 +91,13 @@ public sealed class GpuProgram
     /// <summary>The first-run step it belongs to.</summary>
     public FirstRunStep Step { get; }
 
+    /// <summary>
+    /// The family it is a part of (ED-NEW-warmupsplit-1): a program too big for one frame is registered as several parts, each
+    /// its own step, under one family (its own name when it is whole). The cache's proof of a warm machine counts families:
+    /// each family that draws links at least one cache entry, as each whole program did before it was split.
+    /// </summary>
+    public string Family { get; }
+
     /// <summary>True for a step of other work, false for a program that draws (and so makes its cache entry).</summary>
     public bool IsWork => working is not null;
 
@@ -96,10 +106,10 @@ public sealed class GpuProgram
 
     /// <summary>A program drawn on the render thread: <paramref name="draw"/> draws it once offscreen (a frame's step) and
     /// leaves nothing on screen. A throw faults the warm-up (it never completes as if prepared).</summary>
-    public static GpuProgram Draw(string name, FirstRunStep step, Action<GpuWarmContext> draw)
+    public static GpuProgram Draw(string name, FirstRunStep step, Action<GpuWarmContext> draw, string? family = null)
     {
         ArgumentNullException.ThrowIfNull(draw);
-        return new(name, step, draw, null);
+        return new(name, step, draw, null, family);
     }
 
     /// <summary>A step of other work (the voice hardware check): awaited on the UI thread in a first-run warm-up, in its step's
@@ -191,6 +201,11 @@ public static class GpuWarmup
     /// <summary>How many steps a warm-up takes: the programs that draw (a work step is no program).</summary>
     public static int Steps => Registered.Count(p => !p.IsWork);
 
+    /// <summary>How many families the programs that draw make (ED-NEW-warmupsplit-1): the cache entries a warm state needs.</summary>
+    internal static int Families => FamiliesOf(Registered);
+
+    private static int FamiliesOf(IEnumerable<GpuProgram> programs) => programs.Where(p => !p.IsWork).Select(p => p.Family).Distinct(StringComparer.Ordinal).Count();
+
     /// <summary>How long the idle fallback waits for a quiet frame before it steps anyway (tests shorten it).</summary>
     public static TimeSpan IdleCap { get; internal set; } = TimeSpan.FromSeconds(3);
 
@@ -235,13 +250,14 @@ public static class GpuWarmup
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Visual, Driver> drivers = new();
     private static readonly List<Activity> activities = [];
 
-    // the native record and tests: every step done in this process, with its time (the last DoneKept kept: a model chip's
-    // warm-up adds four, and one runs for every composer made in a session)
+    // the native record and tests: every step done in this process, with its time (the last DoneKept kept: a whole pass, its
+    // families drawn in frame-sized parts (ED-NEW-warmupsplit-1), and a model chip's warm-up adds four, and one runs for every
+    // composer made in a session)
     internal static int stepsDone, stepsAsked;
     internal static int StepsDone => Volatile.Read(ref stepsDone);
     internal static int StepsAsked => Volatile.Read(ref stepsAsked);
     internal static readonly System.Collections.Concurrent.ConcurrentQueue<GpuWarmupStep> Done = new();
-    internal const int DoneKept = 64;
+    internal const int DoneKept = 256;
     internal static long FirstStepTicks;
 
     /// <summary>Keeps a step done in <see cref="Done"/>, the oldest let go beyond <see cref="DoneKept"/>.</summary>
@@ -301,6 +317,52 @@ public static class GpuWarmup
         return false;
     }
 
+    /// <summary>
+    /// ED-NEW-warmupsplit-2: how long after the user's last input (a key down or up, text, the pointer pressed, released or
+    /// turning its wheel, in any of the app's windows or popups) the idle fallback waits before it asks a step,
+    /// cap or not. A popup that opens or closes, or a window that repaints, makes the UI thread wait for the render thread's
+    /// next frame (Avalonia 12.1.2, decompiled: CompositingRenderer.Paint and Dispose wait on MediaContext's synchronous
+    /// commit), so a step drawn just then would hold the key's handling for as long as it takes. Tests shorten it.
+    /// </summary>
+    internal static TimeSpan InputQuiet { get; set; } = TimeSpan.FromMilliseconds(300);
+
+    private static long lastInput; // the timestamp of the last input, on lastInputClock (null: none yet)
+    private static TimeProvider? lastInputClock;
+    private static int watchingInput;
+
+    /// <summary>Notes input now (the class handlers below; tests).</summary>
+    internal static void NoteInput()
+    {
+        var clock = SwiftClock.Provider.Current;
+        Volatile.Write(ref lastInput, clock.GetTimestamp());
+        Volatile.Write(ref lastInputClock, clock);
+    }
+
+    /// <summary>True when input came less than <see cref="InputQuiet"/> ago (read on <paramref name="clock"/>, the clock the
+    /// input was noted on; input noted on another clock, a test's earlier one, counts as long ago).</summary>
+    internal static bool InputRecent(TimeProvider clock)
+    {
+        return ReferenceEquals(Volatile.Read(ref lastInputClock), clock) && clock.GetElapsedTime(Volatile.Read(ref lastInput)) < InputQuiet;
+    }
+
+    // class handlers on every TopLevel (windows and popups alike), handled events too: they see every key, text,
+    // press, release and wheel first (what opens and closes popups and repaints), cost a timestamp each, and are added once a
+    // process; a pointer that only moves does not hold the warm-up
+    internal static void WatchInput()
+    {
+        if (Interlocked.Exchange(ref watchingInput, 1) != 0) return;
+        // every route an event can take to its window (a key goes Direct and Bubble, a press Tunnel and Bubble): a handler may
+        // see an event twice, which only notes the same input again
+        const Avalonia.Interactivity.RoutingStrategies routes = Avalonia.Interactivity.RoutingStrategies.Direct
+            | Avalonia.Interactivity.RoutingStrategies.Tunnel | Avalonia.Interactivity.RoutingStrategies.Bubble;
+        Avalonia.Input.InputElement.KeyDownEvent.AddClassHandler<TopLevel>((_, _) => NoteInput(), routes, handledEventsToo: true);
+        Avalonia.Input.InputElement.KeyUpEvent.AddClassHandler<TopLevel>((_, _) => NoteInput(), routes, handledEventsToo: true);
+        Avalonia.Input.InputElement.TextInputEvent.AddClassHandler<TopLevel>((_, _) => NoteInput(), routes, handledEventsToo: true);
+        Avalonia.Input.InputElement.PointerPressedEvent.AddClassHandler<TopLevel>((_, _) => NoteInput(), routes, handledEventsToo: true);
+        Avalonia.Input.InputElement.PointerReleasedEvent.AddClassHandler<TopLevel>((_, _) => NoteInput(), routes, handledEventsToo: true);
+        Avalonia.Input.InputElement.PointerWheelChangedEvent.AddClassHandler<TopLevel>((_, _) => NoteInput(), routes, handledEventsToo: true);
+    }
+
     /// <summary>True when something on screen animates: a frame-clock request is waiting (on <paramref name="frames"/>, the
     /// frame clock's source by default), an Avalonia transition or animation runs, or a registered activity runs.</summary>
     internal static bool Animating(IFrameSource? frames = null)
@@ -349,7 +411,7 @@ public static class GpuWarmup
     /// <summary>
     /// True when a warm-up of this build completed on this machine as it is now: the marker names this build, a GPU folder
     /// and the graphics adapter the app draws with and its current driver (DXGI), that folder's key names the same build and
-    /// adapter, and the folder holds an entry for each step. An update of that adapter's driver, a move of the app to another
+    /// adapter, and the folder holds an entry for each family of programs. An update of that adapter's driver, a move of the app to another
     /// adapter or a new build is not warm (OD-0096); a change to an adapter the app does not draw with leaves it warm.
     /// </summary>
     public static bool IsWarm
@@ -370,7 +432,7 @@ public static class GpuWarmup
                 if (lines[1].Length == 0 || Path.GetFileName(lines[1]) != lines[1]) return false; // a folder's name, nothing else
                 if (GpuProgramCache.Machine() is not { Length: > 0 } here || lines[2] != here) return false;
                 var folder = Path.Combine(root, lines[1]);
-                var steps = Steps;
+                var steps = Families; // an entry for each family that draws (ED-NEW-warmupsplit-1: a split program's parts are one family)
                 return Directory.Exists(folder) && GpuProgramCache.MadeHere(folder, here)
                     && Directory.EnumerateFiles(folder, "*.bin").Take(steps).Count() == steps;
             }
@@ -399,6 +461,7 @@ public static class GpuWarmup
     public static Task WarmAsync(TopLevel window, IProgress<GpuWarmupStep>? progress = null, CancellationToken cancellation = default)
     {
         Dispatcher.UIThread.VerifyAccess();
+        WatchInput();
         var driver = drivers.GetValue(window, _ => new Driver(window, FrameClock.Source.Current, SwiftClock.Provider.Current));
         foreach (var (host, other) in drivers)
             if (other != driver && TopLevel.GetTopLevel(host) == window) other.Hurry();
@@ -410,6 +473,7 @@ public static class GpuWarmup
     public static void WhenIdle(Control host)
     {
         if (drivers.TryGetValue(host, out _)) return;
+        WatchInput();
         var driver = new Driver(host, FrameClock.Source.Current, SwiftClock.Provider.Current); // the views' frame source and clock, taken here (the steps run in other flows)
         drivers.Add(host, driver);
         host.AttachedToVisualTree += (_, _) => driver.Attached();
@@ -428,6 +492,7 @@ public static class GpuWarmup
         private TopLevel? watched; // the window whose scaling it follows: its host's, while the host is in it
         private Task? running;
         private bool again, hurry, runningIdle;
+        private int quiet; // calm frames in a row, kept from step to step in a pass (ED-NEW-warmupsplit-1)
         private IProgress<GpuWarmupStep>? progress;
 
         // WhenIdle's host is in a window: follow its scaling; warm after the window's first frame, then at idle (never in
@@ -530,12 +595,18 @@ public static class GpuWarmup
                 await Task.Run(() => { JewelKnobShader.Prepare(); ComposerLightRenderer.Prepare(); GpuProgramCache.Prepare(); }, cancellation);
                 // GR-1: the registry as it is as the pass begins; the idle fallback draws only (a work step is a first run's)
                 var items = Registered.Where(p => !idle || !p.IsWork).ToArray();
-                var drawn = items.Count(p => !p.IsWork);
+                var drawn = FamiliesOf(items);
                 var scaling = top.RenderScaling;
-                if (!idle && top is Avalonia.Controls.Window { Content: AuroraBootStage })
-                    await GpuBootPreparation.Run(items, scaling, cancellation);
-                var entries = GpuProgramCache.Entries;
                 var since = clock.GetTimestamp(); // the cap counts from the warm-up's start: once it ran out, one step a frame
+                if (!idle && top is Avalonia.Controls.Window { Content: AuroraBootStage })
+                {
+                    await GpuBootPreparation.Run(items, scaling, cancellation);
+                    since = clock.GetTimestamp(); // (Boot B holds the steps while it draws: its cap from here, as before)
+                }
+                else if (idle)
+                    await WorkerPass(items, scaling, cancellation); // ED-NEW-warmupsplit-2: compiles and first runs off the render thread, inside the cap
+                var entries = GpuProgramCache.Entries;
+                quiet = 0;
                 var restarted = false;
                 var gpuLess = false;
                 string? passFolder = null;
@@ -624,25 +695,38 @@ public static class GpuWarmup
         private static void Observe(Task abandoned) =>
             abandoned.ContinueWith(static task => _ = task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
-        // waits for two frames in a row with nothing animating; true when the cap (since the warm-up began) ran out first
+        // waits for two frames in a row with nothing animating and no input for InputQuiet; once they came, the steps follow
+        // one a frame while it stays so (ED-NEW-warmupsplit-1: a pass is many frame-sized steps; anything that animates or input
+        // waits for two calm frames again). Once the cap (since the warm-up began) has run out it steps without waiting for
+        // calm frames, but still never while held or right after input (ED-NEW-warmupsplit-2). The answer is the step's Forced
+        // label (ED-NEW-warmupsplit-3): true only when, as the cap lets it step, something animates, so a step the cap let
+        // through in a calm moment is not called forced.
         private async Task<bool> CapRanOut(TopLevel top, long since, CancellationToken cancellation)
         {
-            var calm = 0;
-            while (calm < 2)
+            while (true)
             {
                 if (hurry) return false; // WarmAsync joined: step now
                 var held = Held(); // Boot B draws (ED-NEW-launch-fix (6)): no step, not even at the cap
-                if (!held && clock.GetElapsedTime(since) >= IdleCap) return true;
+                var waiting = held || InputRecent(clock); // input just now: a sync paint may wait on the render thread (ED-NEW-warmupsplit-2)
+                if (waiting || Animating(frames)) quiet = 0;
+                else if (quiet >= 2) return false; // still calm since the last step's frame: the next one
+                if (!waiting && clock.GetElapsedTime(since) >= IdleCap) return Animating(frames);
                 var frame = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 top.RequestAnimationFrame(_ => frame.TrySetResult());
                 try { await frame.Task.WaitAsync(IdleCap, clock, cancellation); }
-                catch (TimeoutException) { if (Held()) continue; return true; } // no frame at all (a closed or hidden window): the cap
-                calm = held || Animating(frames) ? 0 : calm + 1;
+                catch (TimeoutException)
+                {
+                    // no frame at all (a closed or hidden window): the cap, but never while held or right after input (a timer's
+                    // turn before waiting again, so a short cap does not spin the UI thread)
+                    if (!Held() && !InputRecent(clock)) return Animating(frames);
+                    await Task.Delay(1, cancellation);
+                    continue;
+                }
+                quiet = held || InputRecent(clock) || Animating(frames) ? 0 : quiet + 1;
                 // a timer's turn between checks: where frames come back at once (nothing drawn, a headless test's job queue)
                 // the loop leaves the dispatcher free instead of spinning it until the cap
                 await Task.Delay(1, cancellation);
             }
-            return false;
         }
     }
 
@@ -666,14 +750,67 @@ public static class GpuWarmup
                 context => JewelKnobRenderer.For(context.Gpu, JewelOrb.RenderSize(EffortSlider.ThumbSize, context.Scaling).Size).Warm(step));
         }
         // the composer light (ED-251): Border beam's rotating beam (Large, the default: its blob bake and its shader), its moving
-        // beam (Line, and the two pulses) and the Uiverse light
-        yield return GpuProgram.Draw("light-rotate", FirstRunSteps.Lights, context => DrawLight(context, LightKind.Rotate));
-        yield return GpuProgram.Draw("light-moving", FirstRunSteps.Lights, context => DrawLight(context, LightKind.Moving));
-        yield return GpuProgram.Draw("light-aura", FirstRunSteps.Lights, context => DrawLight(context, LightKind.Aura));
-        // the slider liquid (OD-0051, OD-0075): every pass of the tube, Grok's oil and the bubbles
-        yield return GpuProgram.Draw("liquid", FirstRunSteps.Liquid, context => DrawLiquid(context, strike: false));
-        // the fast mode's lightning (OD-0073): the strike over the liquid and the glass that lights with it
-        yield return StrikeWarmup.Program;
+        // beam (Line, and the two pulses) and the Uiverse light; ED-NEW-warmupsplit-1: each light one GPU draw a step (its
+        // bakes' blurred rectangles, the blob bake's passes, each slot's shader), so a step makes one program at most
+        foreach (var kind in Enum.GetValues<LightKind>())
+            foreach (var part in Parts(LightFamily(kind), FirstRunSteps.Lights, LightSites(kind), (context, k, n) => DrawLight(context, kind, k, n)))
+                yield return part;
+        // the slider liquid (OD-0051, OD-0075): every pass of the tube, Grok's oil and the bubbles, one pass a step
+        foreach (var part in Parts("liquid", FirstRunSteps.Liquid, LiquidSites, (context, k, n) => DrawLiquid(context, strike: false, k, n)))
+            yield return part;
+        // the fast mode's lightning (OD-0073): the strike over the liquid and the glass that lights with it, and every Mix effect
+        foreach (var part in StrikeWarmup.Programs) yield return part;
+    }
+
+    /// <summary>
+    /// ED-NEW-warmupsplit-1: a frame drawn in <paramref name="count"/> parts, one numbered GPU draw site each (GpuWarmSites), as
+    /// one family: part k draws only site k, the last part every site from its own on (a site added later is still warmed).
+    /// Named "family[k]" (the family's own name when it is whole).
+    /// </summary>
+    internal static IEnumerable<GpuProgram> Parts(string family, FirstRunStep step, int count, Action<GpuWarmContext, int, int> draw)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
+        for (var k = 0; k < count; k++)
+        {
+            var part = k;
+            yield return GpuProgram.Draw(count == 1 ? family : family + "[" + part + "]", step, context => draw(context, part, count), family);
+        }
+    }
+
+    /// <summary>A part's scope: only site <paramref name="part"/> of <paramref name="parts"/> draws (the last, every later one too).</summary>
+    internal static GpuWarmSites.Scope Site(int part, int parts) => GpuWarmSites.Only(part, andAfter: part == parts - 1);
+
+    /// <summary>The family a light kind's parts make (the registry's names before the split).</summary>
+    internal static string LightFamily(LightKind kind) => kind switch { LightKind.Moving => "light-moving", LightKind.Aura => "light-aura", _ => "light-rotate" };
+
+    /// <summary>How many GPU draws (sites) a warm-up's frame of each light makes, so how many parts it is drawn in; a test
+    /// counts them on the CPU and pins these.</summary>
+    internal static int LightSites(LightKind kind) => kind switch { LightKind.Moving => 3, LightKind.Aura => 3, _ => 5 };
+
+    /// <summary>How many GPU draws (sites) the liquid's warm-up frame makes (a test counts them and pins this).</summary>
+    internal const int LiquidSites = 8;
+
+    // ED-NEW-warmupsplit-2: before an idle pass's first step, once a process and scaling, every program it draws is drawn on
+    // GpuBootPreparation's own GPU context, on its worker thread (Boot B's independent ANGLE D3D11 context: its own EGL display,
+    // only the program binaries cross, through GpuProgramCache). A program not kept yet (no first run, or one that did not
+    // finish) is compiled and kept there, so the render thread's step only loads it; and the drawing code's first run (its
+    // JIT, its statics, its scene) is paid there too, so a step on the render thread is its GPU draw and little else. The
+    // worker draws on the GPU as the steps do: a frame drawn on the CPU first was measured to change what 10 of the 43
+    // programs compile to (Skia's caches are shared by both), so no part of the warm-up is drawn on the CPU. Shared by every
+    // idle run; a failure (no ANGLE, no cache folder) only means the steps do it all as before.
+    private static readonly Dictionary<double, Task> workerPasses = [];
+
+    private static async Task WorkerPass(GpuProgram[] items, double scaling, CancellationToken cancellation)
+    {
+        Task? pass;
+        lock (workerPasses)
+        {
+            if (!workerPasses.TryGetValue(scaling, out pass) || pass.IsFaulted || pass.IsCanceled)
+                workerPasses[scaling] = pass = GpuBootPreparation.Run(items, scaling, CancellationToken.None);
+        }
+        try { await pass.WaitAsync(cancellation); }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
+        catch (Exception) { }
     }
 
     /// <summary>The composer lights a warm-up draws (tests read what each draws).</summary>
@@ -694,14 +831,14 @@ public static class GpuWarmup
     }
 
     // the composer light's own renderer into a small offscreen surface: its first draw bakes (the blurred rectangles, the blob
-    // fields) and runs the family's shader
-    private static void DrawLight(GpuWarmContext context, LightKind kind)
+    // fields) and runs the family's shader; a part draws only its site of that frame (ED-NEW-warmupsplit-1)
+    internal static void DrawLight(GpuWarmContext context, LightKind kind, int part, int parts)
     {
         var light = LightAnimator(kind);
         using var renderer = new ComposerLightRenderer();
         var info = new SKImageInfo(16, 16, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = (context.Gpu is { } gpu ? SKSurface.Create(gpu, false, info) : null) ?? SKSurface.Create(info);
-        renderer.Draw(surface.Canvas, context.Gpu, light, (float)Math.Max(1, context.Scaling));
+        using (Site(part, parts)) renderer.Draw(surface.Canvas, context.Gpu, light, (float)Math.Max(1, context.Scaling));
     }
 
     private const int WarmSeed = 1;
@@ -742,12 +879,17 @@ public static class GpuWarmup
 
     // the liquid's own public entry point, LiquidTrack.Draw, into a target on the window's GPU context (WarmTarget): its custom
     // operation runs at once, here on the render thread, and makes its surfaces and compiles its shaders on that context
-    internal static void DrawLiquid(GpuWarmContext context, bool strike)
+    internal static void DrawLiquid(GpuWarmContext context, bool strike) => DrawLiquid(context, strike, 0, 1);
+
+    /// <summary>Part <paramref name="part"/> of <paramref name="parts"/> of the liquid's (or the strike's) warm-up frame: only its
+    /// site draws (ED-NEW-warmupsplit-1).</summary>
+    internal static void DrawLiquid(GpuWarmContext context, bool strike, int part, int parts)
     {
         var scale = Math.Max(1, context.Scaling);
         var scene = Scene(strike, scale);
         var info = new SKImageInfo((int)Math.Ceiling(scene.Size.Width * scale), (int)Math.Ceiling(scene.Size.Height * scale), SKColorType.Rgba8888, SKAlphaType.Premul);
         using var target = WarmTarget.Open(context.Gpu, info, scale);
+        using var site = Site(part, parts); // the custom operation runs at once, inside this part's scope
         LiquidTrack.Draw(target.Context, scene.Size, scene.Size.Width, scene.Time, scene.Spec, scene.Gradient, scene.Bubbles, false, ThemeVariant.Dark, scene.Flow, scene.Strike, scene.Ink);
     }
 

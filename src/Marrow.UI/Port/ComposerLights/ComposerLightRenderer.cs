@@ -74,7 +74,7 @@ internal sealed class BakedRoundRect : IDisposable
         canvas.Translate(-left, -top);
         using var blur = sigma > 0.05f ? SKMaskFilter.CreateBlur(SKBlurStyle.Normal, sigma) : null;
         using var paint = new SKPaint { IsAntialias = true, Color = SKColors.White, MaskFilter = blur };
-        canvas.DrawRoundRect(new SKRoundRect(new SKRect(x, y, x + w, y + h), Math.Max(0, r)), paint);
+        if (GpuWarmSites.Draw()) canvas.DrawRoundRect(new SKRoundRect(new SKRect(x, y, x + w, y + h), Math.Max(0, r)), paint); // a warm-up site (ED-NEW-warmupsplit-1)
         image = surface.Snapshot();
         var local = SKMatrix.CreateScaleTranslation(1 / scale, 1 / scale, left, top);
         shader = image.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear), local);
@@ -222,7 +222,7 @@ public sealed class ComposerLightRenderer : IDisposable
         {
             var reach = f.Mode == 3 ? 30 + 3 * (float)Math.Max(f.OuterBloomSigma, f.CoreSigma) + 4 : 1;
             paint.Shader = shader;
-            canvas.DrawRect(new SKRect(-reach, -reach, w + reach, h + reach), paint);
+            if (GpuWarmSites.Draw()) canvas.DrawRect(new SKRect(-reach, -reach, w + reach, h + reach), paint);
             paint.Shader = null;
         }
     }
@@ -288,7 +288,7 @@ public sealed class ComposerLightRenderer : IDisposable
             canvas.Translate(1, 1);
             using var shader = ComposerLightShaders.RotateBake.ToShader(u, c);
             using var p = new SKPaint { Shader = shader, BlendMode = SKBlendMode.Src };
-            canvas.DrawRect(new SKRect(-1, -1, w + 1, h + 1), p);
+            if (GpuWarmSites.Draw()) canvas.DrawRect(new SKRect(-1, -1, w + 1, h + 1), p);
             return surface.Snapshot();
         }
         g.Blobs.Set(w, h, scale, Pass(1), Pass(2));
@@ -315,7 +315,7 @@ public sealed class ComposerLightRenderer : IDisposable
         var reach = hs + 3 * hb + 4;
         using var shader = ComposerLightShaders.Aura.ToShader(u, auraChildren);
         paint.Shader = shader;
-        canvas.DrawRect(new SKRect(-reach, -reach, w + reach, h + reach), paint);
+        if (GpuWarmSites.Draw()) canvas.DrawRect(new SKRect(-reach, -reach, w + reach, h + reach), paint);
         paint.Shader = null;
     }
 

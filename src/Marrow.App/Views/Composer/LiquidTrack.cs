@@ -1003,8 +1003,9 @@ public static partial class LiquidTrack
         }
 
         // one shader of the pass's uniforms and children, set on its paint, drawn over rect, released
-        private void Paint(SKCanvas target, PassUniforms pass, SKRect rect, SKBlendMode mode)
+        private void Paint(SKCanvas target, PassUniforms pass, SKRect rect, SKBlendMode mode, bool site = true)
         {
+            if (site && !GpuWarmSites.Draw()) return; // each pass is a warm-up site (ED-NEW-warmupsplit-1)
             var shader = pass.MakeShader();
             if (shader == 0) return;
             ShadersHanded++;
@@ -1046,8 +1047,8 @@ public static partial class LiquidTrack
             var oilMask = basePass.OilMask;
             try { Paint(target, basePass, rect, SKBlendMode.SrcOver); }
             finally { basePass.SetChild("grad", 0); SkiaShaders.Release(mixedGradient); }
-            frame.Palette?.Ink?.Draw(target,rect,1-(float)(frame.Palette?.SolidMix??0));
-            if(frame.Palette is {} palette)paletteLoading.Draw(target,rect,palette.Loading,palette.LoadingPhase,frame.MixStill,frame.Dark); // nth step 14 (was v22's loading overlay): the tube's light and dots, then their 0.2 s fade, under the currents/glass.
+            if(frame.Palette?.Ink is {} paletteInk && GpuWarmSites.Draw()) paletteInk.Draw(target,rect,1-(float)(frame.Palette?.SolidMix??0));
+            if(frame.Palette is {} palette && GpuWarmSites.Draw())paletteLoading.Draw(target,rect,palette.Loading,palette.LoadingPhase,frame.MixStill,frame.Dark); // nth step 14 (was v22's loading overlay): the tube's light and dots, then their 0.2 s fade, under the currents/glass.
             if (hasOil && oilMask > 0.5f) Paint(target, Filled(OilEffect), rect, SKBlendMode.Screen); // a blend's oil goes under its currents
             Paint(target, Filled(StrandsEffect), rect, SKBlendMode.SoftLight);
             Paint(target, Filled(SlowEffect), rect, SKBlendMode.SoftLight);
@@ -1060,19 +1061,20 @@ public static partial class LiquidTrack
             {
                 _ = Surface(ref light, ref lightCanvas, gpu, wanted); bubbleTarget = lightCanvas!; bubbleTarget.Clear(SKColors.Transparent); bubbleTarget.Save(); bubbleTarget.Scale((float)scale);
             }
-            for (var i = 0; i < bubbles; i++)
+            var bubblesDrawn = bubbles > 0 && GpuWarmSites.Draw(); // the bubbles are one program: one warm-up site
+            for (var i = 0; i < bubbles && bubblesDrawn; i++)
             {
                 Array.Copy(bubbleA, i * 4, oneA, 0, 4); Array.Copy(bubbleB, i * 4, oneB, 0, 4);
                 bubble.Set("scale", (float)scale); bubble.Set("A", oneA); bubble.Set("B", oneB);
                 var reach = (oneB[0] * 0.5f + 6f) * oneA[2];
-                Paint(bubbleTarget, bubble, new SKRect(oneA[0] - reach, oneA[1] - reach, oneA[0] + reach, oneA[1] + reach), SKBlendMode.SrcOver);
+                Paint(bubbleTarget, bubble, new SKRect(oneA[0] - reach, oneA[1] - reach, oneA[0] + reach, oneA[1] + reach), SKBlendMode.SrcOver, site: false);
             }
             if (frame.Mix is not null)
             {
-                if (!frame.MixStill && frame.MixContacts is { } contacts) mixRings.Draw(bubbleTarget, contacts, frame.MixGeometry, frame.Time, frame.MixInk);
-                bubbleTarget.Restore(); var matrix = target.Save(); target.ResetMatrix(); glassPaint.Color = SKColors.White; light!.Draw(target, 0, 0, glassPaint); target.RestoreToCount(matrix);
+                if (!frame.MixStill && frame.MixContacts is { } contacts && GpuWarmSites.Draw()) mixRings.Draw(bubbleTarget, contacts, frame.MixGeometry, frame.Time, frame.MixInk);
+                bubbleTarget.Restore(); var matrix = target.Save(); target.ResetMatrix(); glassPaint.Color = SKColors.White; if (GpuWarmSites.Draw()) light!.Draw(target, 0, 0, glassPaint); target.RestoreToCount(matrix);
             }
-            if (frame.Rings is { Count: > 0 } rings)
+            if (frame.Rings is { Count: > 0 } rings && GpuWarmSites.Draw())
                 BubbleBursts.DrawRings(target, rings, Math.Max(0.62, Math.Min(1, h / 40)), frame.Time, frame.BubbleInk);
             Paint(target, Filled(CoverEffect), rect, SKBlendMode.DstIn);
             target.RestoreToCount(saved);
@@ -1085,7 +1087,7 @@ public static partial class LiquidTrack
             if (frame.Mix is { } resolvedMix)
             {
                 if (mixRaster is null) { mixRaster = new StrikeRaster(wanted, gpu); StrikeSurfacesMade += mixRaster.SurfacesMade; }
-                mixRaster.Paint(frame.MixGeometry, resolvedMix, frame.MixInk, frame.Time, frame.MixSeed, frame.MixStill ? null : frame.MixContacts);
+                if (GpuWarmSites.Draw()) mixRaster.Paint(frame.MixGeometry, resolvedMix, frame.MixInk, frame.Time, frame.MixSeed, frame.MixStill ? null : frame.MixContacts);
                 lit = mixRaster.Screen; over = mixRaster.Over;
             }
             if (frame.ResolvedStrike is { } strike)
@@ -1100,7 +1102,7 @@ public static partial class LiquidTrack
                         var lightSaved = lc.Save();
                         lc.Clear(SKColors.Transparent);
                         lc.Scale((float)scale);
-                        painter.Paint(lc, ops);
+                        if (GpuWarmSites.Draw()) painter.Paint(lc, ops);
                         lc.RestoreToCount(lightSaved);
                     }
                 }
@@ -1111,7 +1113,8 @@ public static partial class LiquidTrack
                 lit = Surface(ref light, ref lightCanvas, gpu, wanted);
                 var lc = lightCanvas!;
                 var count = lc.Save(); lc.Clear(SKColors.Transparent); lc.Scale((float)scale);
-                painter.Paint(lc, legacy); lc.RestoreToCount(count);
+                if (GpuWarmSites.Draw()) painter.Paint(lc, legacy);
+                lc.RestoreToCount(count);
             }
 
             // (B) the glass: the composed liquid refracted per channel, the gloss and the rims
@@ -1139,7 +1142,7 @@ public static partial class LiquidTrack
                 {
                     ShadersHanded++;
                     SkiaShaders.SetShader(glassPaint, shader);
-                    canvas.DrawRect(rect, glassPaint);
+                    if (GpuWarmSites.Draw()) canvas.DrawRect(rect, glassPaint);
                     SkiaShaders.SetShader(glassPaint, 0);
                     SkiaShaders.Release(shader);
                 }
