@@ -418,15 +418,18 @@ public class MorphingTextBlock : TextBlock
         driftFrames!.RequestFrame(driftCallback!);
     }
 
-    private void OnDriftFrame(TimeSpan _)
+    private void OnDriftFrame(TimeSpan frameTime)
     {
         driftPending = false;
         if (!drifting) return;
         var now = SwiftClock.Now;
         if (driftAmbient is not null)
         {
-            driftAmbient.Sample(now.Ticks / (double)TimeSpan.TicksPerSecond, false);
+            var seconds = now.Ticks / (double)TimeSpan.TicksPerSecond;
+            driftAmbient.Sample(seconds, false);
             if (!driftAmbient.Available) return;
+            // ED-NEW-frame-pacing: the drift moves at the 60 Hz slots of the refreshes (the frame's time names its refresh)
+            if (driftAmbient.Pace(frameTime.Ticks, seconds, false) == AmbientMotionController.Paced.Wait) { RequestDriftFrame(); return; }
             var phaseTime = driftAmbient.Clock.Time;
             if (driftAmbientLast is { } previous) driftSeconds = (driftSeconds + Math.Max(0, phaseTime - previous)) % driftPeriod;
             driftAmbientLast = phaseTime;

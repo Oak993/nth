@@ -48,9 +48,9 @@ public sealed class AmbientPacedTimelineTests(HeadlessSession headless)
             Assert.Equal(trackSlots, knobSlots); // the same refreshes: one render for both
             Assert.Equal(180, trackSlots.Count);
             var perSlot = rate / 60;
-            Assert.All(trackSlots.Zip(trackSlots.Skip(1), (a, b) => b - a), gap => Assert.InRange(gap, (long)Math.Floor(perSlot), (long)Math.Ceiling(perSlot)));
-            for (var i = 0; i + 5 < trackSlots.Count; i++)
-                Assert.InRange(trackSlots[i + 5] - trackSlots[i], Math.Floor(5 * perSlot), Math.Ceiling(5 * perSlot));
+            var gaps = trackSlots.Zip(trackSlots.Skip(1), (a, b) => b - a).ToList();
+            Assert.All(gaps, gap => Assert.InRange(gap, (long)Math.Floor(perSlot), (long)Math.Ceiling(perSlot)));
+            AmbientRefreshPacerTests.AssertEven(gaps);
             Assert.Equal(0, clock.ActiveTimers); // paced on the refreshes, never on a timer
         }
         finally

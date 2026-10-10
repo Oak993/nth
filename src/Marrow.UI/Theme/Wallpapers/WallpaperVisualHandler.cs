@@ -60,6 +60,11 @@ internal sealed class WallpaperVisualHandler(AmbientMotionController? ambient = 
         if (stopped || snapshot is not { } s) return;
         ambient?.Sample(Now, Interaction);
         if (ambient is not null && !ambient.Available) { frame = callback; return; }
+        // ED-NEW-frame-pacing: a moving wallpaper advances at the 60 Hz slots of the refreshes, with every other ambient source
+        if (ambient is not null && ambient.Pace(CompositionNow.Ticks, Now, Interaction) == AmbientMotionController.Paced.Wait)
+        {
+            frame = callback; registered = true; RegisterForNextAnimationFrameUpdate(); return;
+        }
         callback?.Invoke(TimeSpan.FromSeconds(ambient?.Clock.Time ?? Now));
     }
     public override Rect GetRenderBounds() => snapshot is { } s ? new Rect(s.Size) : default;

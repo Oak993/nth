@@ -518,13 +518,20 @@ public sealed class AnimationTimeline
         return n >= 1 && Math.Abs(n * seconds - interval) <= 0.005 * interval ? (int)n : null;
     }
 
+    /// <summary>
+    /// ED-NEW-frame-pacing: an ambient render source delivers its frames only at the 60 Hz slots of the display's refreshes
+    /// (AmbientRefreshPacer), the same refreshes for every ambient timeline; an interval of 1/60 s or less draws at each of
+    /// them. Counting or timing the interval again here skipped slots (at 144 Hz a slot is 2 or 3 refreshes, never 1/60 s).
+    /// </summary>
+    private static bool PacedBySource(double interval) => interval <= AmbientMotionClock.FrameSeconds * 1.005;
+
     private void OnFrame(TimeSpan _)
     {
         lock (gate)
         {
             outstanding = false;
             if (!Running) return; // paused or gone: the stale request does nothing
-            if (current.MinimumInterval is not { } interval || current.Ambient && renderFrames?.DecorationTime is not null && ambientInteraction?.Invoke() == true)
+            if (current.MinimumInterval is not { } interval || current.Ambient && renderFrames?.DecorationTime is not null && (ambientInteraction?.Invoke() == true || PacedBySource(interval)))
             {
                 Draw();
             }

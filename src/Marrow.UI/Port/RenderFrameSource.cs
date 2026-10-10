@@ -302,8 +302,18 @@ public sealed class RenderFrameSource : IRefreshFrameSource, IDisposable
             registered = false;
             if (owner.ambient is { } ambient)
             {
-                ambient.Sample(ambient.Now, owner.ambientInteraction?.Invoke() == true);
+                // ED-NEW-frame-pacing: a moving ambient source is registered at every refresh; only the 60 Hz slots, the
+                // same refreshes for every ambient source of this compositor, tick (CompositionNow is the tick's identity)
+                var interaction = owner.ambientInteraction?.Invoke() == true;
+                ambient.Sample(ambient.Now, interaction);
                 if (!ambient.Available) return;
+                if (ambient.Pace(CompositionNow.Ticks, ambient.Now, interaction) == AmbientMotionController.Paced.Wait)
+                {
+                    lock (owner.sync) { if (owner.disposed || owner.pending.Count == 0) return; }
+                    registered = true;
+                    RegisterForNextAnimationFrameUpdate();
+                    return;
+                }
             }
             if (owner.Tick()) Request();
         }
