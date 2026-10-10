@@ -110,10 +110,6 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     // Reads a small block of the screen as fast as it can from its own thread (a few hundred times a second), so every
     // frame the compositor presents there is likely to be seen.
 
-    // The frames that show the glass window's tint over stripes that are still sharp: the P13 gap.
-    private static GlassSample[] TintedOverSharp(IEnumerable<GlassSample> samples, double bareMean) =>
-        samples.Where(s => s.Contrast >= Blurred && s.Mean < bareMean - 1.5).ToArray();
-
     private static void WaitFor(Func<bool> condition, string reason, int milliseconds = 4000) => N.Until(condition, reason, milliseconds);
 
     [Fact]
@@ -188,8 +184,10 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
 
     // One launch of the real factory main window under the boot stage (BootStageWindow), over the stripes. Returns what
     // the screen showed at a block inside the window's top left (away from the centre, where the mark is) from before the
-    // stage began until it had closed, the stripes' own mean luma, and when the hand-over showed the main window.
-    private (GlassSample[] Timeline, double BareMean, double ShownAt) Launch(WindowManagerNativeSubject subject, PixelRect work, bool handOver, bool reduceMotion)
+    // stage began until it had closed, the stripes' own mean luma and contrast read before the stage opened, when the
+    // hand-over showed the main window, and the stage's scrim and the block's place against the window's clip at each
+    // stage frame (ED-NEW-handoverfix-2: Boot B, OD-0113, dims the desktop from its start).
+    private BootHandOverRun Launch(WindowManagerNativeSubject subject, PixelRect work, bool handOver, bool reduceMotion)
     {
         var frame = new PixelPoint(work.X + (work.Width - 900) / 2, work.Y + (work.Height - 600) / 2);
         var (manager, window) = native.OnUi(() =>
@@ -207,10 +205,24 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
             return (manager, window);
         });
         var sampler = new Sampler(new PixelPoint(frame.X + 90, frame.Y + 100));
-        double shownAt = -1;
+        Thread.Sleep(150); // the bare stripes, before the stage opens
+        double shownAt = -1, startedAt = 0;
+        var dark = true;
+        var frames = new List<(double Milliseconds, double Scrim, int Place)>();
         var stage = native.OnUi(() =>
         {
+            startedAt = sampler.Now;
             var launched = BootStageWindow.Start(window, reduceMotion, manager.ShowMain, handOver ? null : (_, _) => false);
+            void Record()
+            {
+                var f = launched.Stage.Frame; var origin = launched.Window.Position; var scaling = launched.Window.RenderScaling;
+                var block = new Rect((frame.X + 90 - origin.X) / scaling, (frame.Y + 100 - origin.Y) / scaling, 60 / scaling, 12 / scaling);
+                var place = BootHandOverRun.Place(block, f.ContentClip.Translate((Vector)launched.Stage.WindowFrame.Position), f.CornerRadius);
+                dark = PlainControls.IsDark(launched.Stage.ActualThemeVariant);
+                lock (frames) frames.Add((sampler.Now, f.ScrimOpacity, place));
+            }
+            Record();
+            launched.Stage.FrameChanged += (_, _) => Record();
             launched.MainWindowShown += (_, _) => shownAt = sampler.Now;
             launched.Ready();
             return launched;
@@ -220,8 +232,8 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         var timeline = sampler.Stop();
         native.OnUi(() => window.Hide());
         Thread.Sleep(600); // the system fades a hidden window out
-        var bareMean = timeline.TakeWhile(s => s.Milliseconds < 150).Average(s => s.Mean);
-        return (timeline, bareMean, shownAt);
+        var bare = timeline.TakeWhile(s => s.Milliseconds < startedAt).ToArray();
+        lock (frames) return new BootHandOverRun(timeline, bare.Average(s => s.Mean), bare.Average(s => s.Contrast), shownAt, frames.ToArray(), dark);
     }
 
     // ED-284 (1): the boot outline is the VISIBLE main window. The real factory main HWND (cloaked by the sequence, shown, so DWM knows
@@ -284,21 +296,22 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
 
         // Control: the same launch without the hand-over (the window is shown at the hand-over, as before ED-236). The
         // instrument must see the P13 gap in it, or seeing none with the hand-over would prove nothing.
-        var (plain, plainBare, plainShown) = Launch(subject, work, handOver: false, reduceMotion: true);
-        var plainGap = TintedOverSharp(plain.Where(s => s.Milliseconds >= plainShown - 30), plainBare); // from the hand-over on
+        var plain = Launch(subject, work, handOver: false, reduceMotion: true);
+        var plainGap = plain.TintedOverSharp(plain.Timeline.Where(s => s.Milliseconds >= plain.ShownAt - 30), ScrimAlpha); // from the hand-over on
         Assert.True(plainGap.Length >= 20, $"the instrument saw only {plainGap.Length} samples of scrim over sharp stripes without the hand-over");
         Assert.InRange(plainGap[^1].Milliseconds - plainGap[0].Milliseconds, 80, 600); // P13: about 150 to 200 ms
 
-        var (timeline, bareMean, shownAt) = Launch(subject, work, handOver: true, reduceMotion: true);
+        var run = Launch(subject, work, handOver: true, reduceMotion: true);
+        var (timeline, bareMean, shownAt) = (run.Timeline, run.BareMean, run.ShownAt);
         Assert.InRange(bareMean, 120, 135);
-        // nothing of the main window shows before the hand-over, though it has been shown (cloaked) for 0.5 s ...
+        Assert.InRange(run.BareContrast, Sharp - 6, Sharp + 3);
+        // nothing of the main window shows before the hand-over, though it has been shown (cloaked) for 0.5 s: every sample is
+        // the stripes under the stage's own scrim (Boot B, OD-0113) ...
         var before = timeline.Where(s => s.Milliseconds < shownAt - 30).ToArray();
         Assert.True(before.Length > 100, $"{before.Length} samples before the hand-over");
-        var bareContrast = timeline.TakeWhile(s => s.Milliseconds < 150).Average(s => s.Contrast);
-        Assert.InRange(bareContrast, Sharp - 6, Sharp + 3);
-        Assert.All(before, s => Assert.True(Math.Abs(s.Mean - bareMean) < 1.5 && s.Contrast > bareContrast - 3, $"displayed before the hand-over: {s}"));
+        Assert.Empty(run.NotTheStageScrim(before));
         // ... and from the hand-over on, not one frame is the scrim over sharp stripes, and it ends blurred under the scrim
-        Assert.Empty(TintedOverSharp(timeline, bareMean));
+        Assert.Empty(run.TintedOverSharp(timeline, ScrimAlpha));
         var after = timeline.Where(s => s.Milliseconds >= shownAt - 30).ToArray();
         Assert.Contains(after, s => s.Contrast < Blurred);
         Assert.True(after[^1].Contrast < Blurred && after[^1].Mean < bareMean * (1 - ScrimAlpha) + 4, $"ended: {after[^1]}");
@@ -314,13 +327,15 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         var (work, scale) = native.OnUi(() => Work(subject.Main));
         var stripes = native.OnUi(() => Backdrop(subject, work, scale));
         Thread.Sleep(800);
-        var (timeline, bareMean, shownAt) = Launch(subject, work, handOver: true, reduceMotion: false);
+        var run = Launch(subject, work, handOver: true, reduceMotion: false);
+        var (timeline, bareMean, shownAt) = (run.Timeline, run.BareMean, run.ShownAt);
         Assert.InRange(bareMean, 120, 135);
-        // The window particles cross the sampled block until they have landed, so what is judged is the hand-over: from
-        // 30 ms before it (the uncloak) on, no frame is the scrim over sharp stripes; and the window ends blurred under the scrim.
+        // What is judged is the hand-over: from 30 ms before it (the uncloak) on, no frame is the window's scrim over sharp stripes
+        // (the stage's own scrim, and its growing frame's edge crossing the block, are the design, OD-0113); and the window ends
+        // blurred under the scrim.
         var after = timeline.Where(s => s.Milliseconds >= shownAt - 30).ToArray();
         Assert.True(after.Length > 100, $"{after.Length} samples from the hand-over");
-        Assert.Empty(TintedOverSharp(after, bareMean));
+        Assert.Empty(run.TintedOverSharp(after, ScrimAlpha));
         Assert.True(after[^1].Contrast < Blurred && after[^1].Mean < bareMean * (1 - ScrimAlpha) + 4, $"ended: {after[^1]}");
         GC.KeepAlive(stripes);
     }, factType: typeof(GlassWindowNativeTests));
