@@ -38,6 +38,9 @@ public class NthShineText : TextBlock
     /// <summary>The frame last sent (tests).</summary>
     public NthFrame? Frame => host.Frame;
 
+    /// <summary>Whether the light is on screen and moving now.</summary>
+    public bool IsMoving => host.IsMoving;
+
     public NthFrame Snapshot() => host.Snapshot();
 
     protected override Size ArrangeOverride(Size finalSize)

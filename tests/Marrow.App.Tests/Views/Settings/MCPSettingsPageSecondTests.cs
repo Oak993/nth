@@ -13,6 +13,7 @@ using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using static Marrow.App.Tests.Fixtures.MCPSettingsPageFixture;
 
 namespace Marrow.App.Tests.Views.Settings;
@@ -141,7 +142,7 @@ public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
     [Trait("Req", "UI-MCP-027")] // App/Views/Settings/MCPSettingsPage.swift:331-338
     public void Connecting_and_oauth_waiting_use_three_cell_spinner_and_fixed_label()
     {
-        Ui((model, _) => { State(model,"offline",new MCPConnectionState.Connecting()); foreach(var oauth in new[]{false,true}) { var card=new MCPServerCard(Entry(transport:oauth?new MCPTransport.Oauth("https://example.invalid"):null)); using var window=Attach(card,model); Assert.Single(Nodes<WorkingSpinner>(card)); var text=Nodes<TextBlock>(card).Single(x=>x.Text==(oauth?"Waiting":"Connecting")); Assert.Equal(11,text.FontSize); Assert.Equal(TextWrapping.NoWrap,text.TextWrapping); Assert.DoesNotContain(Nodes<Button>(card), b=>AutomationProperties.GetName(b)=="Cancel"); } });
+        Ui((model, _) => { State(model,"offline",new MCPConnectionState.Connecting()); foreach(var oauth in new[]{false,true}) { var card=new MCPServerCard(Entry(transport:oauth?new MCPTransport.Oauth("https://example.invalid"):null)); using var window=Attach(card,model); Assert.Single(Nodes<NthStatusMark>(card)); var text=Nodes<TextBlock>(card).Single(x=>x.Text==(oauth?"Waiting":"Connecting")); Assert.Equal(11,text.FontSize); Assert.Equal(TextWrapping.NoWrap,text.TextWrapping); Assert.DoesNotContain(Nodes<Button>(card), b=>AutomationProperties.GetName(b)=="Cancel"); } });
     }
 }
 

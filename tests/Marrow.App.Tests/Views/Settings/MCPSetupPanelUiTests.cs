@@ -14,6 +14,7 @@ using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -660,19 +661,19 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
             var label = MCPSetupPanelRig.Text(session.View, "Checking");
             TextIs(label, 11, FontWeight.Normal, Chrome.SecondaryText);
 
-            var spinner = MCPSetupPanelRig.All<WorkingSpinner>(session.View).Single();
+            // nth step 11: the 12 px spinner in the 16 px status slot replaces the 3 x 3 working spinner of cell size 3
+            var spinner = MCPSetupPanelRig.All<NthStatusMark>(session.View).Single();
+            Assert.Equal(NthStatus.Working, spinner.Status);
+            Assert.Equal(12, spinner.MarkSize);
+            Assert.True(Assert.IsType<NthShineText>(label).IsShining);
             var spinnerFrame = Frame(spinner, session.View);
             var labelFrame = Frame(label, session.View);
             Assert.Equal(6, labelFrame.Left - spinnerFrame.Right, 0.5);
             Assert.Equal(labelFrame.Center.Y, spinnerFrame.Center.Y, 0.5);
             Assert.Equal(18 + 364, labelFrame.Right, 0.5);
 
-            var small = new WorkingSpinner(3);
-            small.Measure(Size.Infinity);
-            var stock = new WorkingSpinner(3.5);
-            stock.Measure(Size.Infinity);
-            Assert.Equal(small.DesiredSize.Width, spinnerFrame.Width, 0.01);
-            Assert.NotEqual(stock.DesiredSize.Width, spinnerFrame.Width);
+            Assert.Equal(16, spinnerFrame.Width, 0.01);
+            Assert.Equal(16, spinnerFrame.Height, 0.01);
         });
     }
 
@@ -686,7 +687,7 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
             Assert.Equal(2, buttons.Count); // the close button and the page button
             session.SetState(NeedsSetup());
             Assert.DoesNotContain("Checking", Texts(session.View));
-            Assert.Empty(MCPSetupPanelRig.All<WorkingSpinner>(session.View));
+            Assert.Empty(MCPSetupPanelRig.All<NthStatusMark>(session.View));
             Assert.Contains("Check again", Texts(session.View));
         });
     }

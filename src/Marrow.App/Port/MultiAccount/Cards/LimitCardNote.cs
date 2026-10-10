@@ -17,7 +17,7 @@ internal sealed class LimitCardNote : Decorator
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 7 };
         Child = new Border { Padding = new Thickness(11, 4), Background = CardColors.Tile.Brush(this), BorderBrush = CardColors.Rim.Brush(this), BorderThickness = new Thickness(.5), Child = row }.RoundedRectangle(999, RoundedCornerStyle.Circular);
         var waiting = note.StartsWith("Waiting for ", StringComparison.Ordinal);
-        row.Children.Add(waiting ? new SystemSpinner { Width = 11, Height = 11, VerticalAlignment = VerticalAlignment.Center } : LibraryUi.Glyph("checkmark", 11, ChromeTokens.Accent));
+        row.Children.Add(waiting ? new Marrow.UI.Port.Nth.NthSpinner { Width = 11, Height = 11, VerticalAlignment = VerticalAlignment.Center } : LibraryUi.Glyph("checkmark", 11, ChromeTokens.Accent));
         var link = waiting ? "Switch now" : "What was handed over";
         var suffix = " · " + link; var text = note.EndsWith(suffix, StringComparison.Ordinal) ? note[..^suffix.Length] : note;
         var words = MultiAccountText.Text(text, 11.5, secondary: !waiting, wrap: true); words.LineHeight = 16; Grid.SetColumn(words, 1); row.Children.Add(words);

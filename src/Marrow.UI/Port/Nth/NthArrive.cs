@@ -16,10 +16,11 @@ public static class NthArrive
 {
     private static readonly SplineEasing Out = new(.2, .8, .2, 1);
 
-    /// <summary>Rows that replace a skeleton: row i rises 6 px and fades in, 0.36 s, 40 ms after row i - 1.</summary>
-    public static void Rows(IReadOnlyList<Control> rows, double distance = 6, double seconds = .36, double stagger = .04)
+    /// <summary>Rows that replace a skeleton: row i rises 6 px and fades in, 0.36 s, 40 ms after row i - 1 (after <paramref name="delay"/>).
+    /// The thread history hand-over: 10 px, 0.5 s, 45 ms apart, 150 ms after the loader starts to leave.</summary>
+    public static void Rows(IReadOnlyList<Control> rows, double distance = 6, double seconds = .36, double stagger = .04, double delay = 0)
     {
-        for (var i = 0; i < rows.Count; i++) Rise(rows[i], distance, seconds, i * stagger);
+        for (var i = 0; i < rows.Count; i++) Rise(rows[i], distance, seconds, delay + i * stagger);
     }
 
     /// <summary>One control rising <paramref name="distance"/> px and fading in over <paramref name="seconds"/>, after <paramref name="delay"/>.</summary>

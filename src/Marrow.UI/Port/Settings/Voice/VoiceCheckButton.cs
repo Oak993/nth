@@ -17,7 +17,7 @@ public sealed class VoiceCheckButton : CzButton
     private const double SpinnerSize = 11;
     private const double SpinnerGap = 5;
 
-    private readonly VoiceSpinner spinner = new(SpinnerSize) { VerticalAlignment = VerticalAlignment.Center };
+    private readonly Nth.NthSpinner spinner = new() { Width = SpinnerSize, Height = SpinnerSize, VerticalAlignment = VerticalAlignment.Center }; // step 1 B, drawn at the design's 11 (the slot's room maths counts 11)
     private readonly Decorator spinnerSlot;
     private readonly CzNumber grow, fade, labelWidth;
     private bool busy;

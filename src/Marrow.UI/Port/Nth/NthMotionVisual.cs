@@ -185,9 +185,12 @@ public sealed class NthVisualHost
     public static bool AnyAnimating()
     {
         foreach (var host in mounted)
-            if (host.owner.IsEffectivelyVisible && host.sent is { } frame && host.probe is { } moving && moving(frame)) return true;
+            if (host.IsMoving) return true;
         return false;
     }
+
+    /// <summary>Whether this primitive is on screen and moving now (its painter still asks for frames).</summary>
+    public bool IsMoving => owner.IsEffectivelyVisible && sent is { } frame && probe is { } moving && moving(frame);
 
     /// <summary>Start the loops again from now (a new wait).</summary>
     public void Restart() { started = Now; Send(); }
@@ -252,6 +255,7 @@ public abstract class NthMotionControl : Control
     public bool Dark => host.Dark;
     public NthFrame? Frame => host.Frame;
     public int FramesDrawn => host.FramesDrawn;
+    public bool IsMoving => host.IsMoving;
     public NthFrame Snapshot() => host.Snapshot();
 
     /// <summary>Start the loops again from now (a new wait).</summary>

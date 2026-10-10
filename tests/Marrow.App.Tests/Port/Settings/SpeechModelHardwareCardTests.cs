@@ -274,10 +274,14 @@ public sealed class SpeechModelHardwareCardTests(HeadlessSession headless)
         var card = Card(scene);
         card.CheckButton.Activate();
         scene.Advance(100);
-        var spinner = LogicalQuery.SelfAndDescendants<VoiceSpinner>(card.ProbeRows[0]).Single();
-        var first = spinner.Angle;
-        scene.Advance(200);
-        Assert.NotEqual(first, spinner.Angle);
+        var spinner = LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(card.ProbeRows[0]).Single();
+        // the nth spinner turns on the render thread: here it is shown (fading in), 12 pt, and the frame it sent keeps it moving
+        Assert.Equal(new Avalonia.Size(12, 12), spinner.Bounds.Size);
+        Assert.True(card.ProbeRows[0].SpinnerOpacity > 0);
+        Assert.False(spinner.Calm);
+        using var painter = new Marrow.UI.Port.Nth.NthSpinnerPainter();
+        var frame = spinner.Snapshot();
+        Assert.True(painter.Moving(frame, Marrow.UI.Port.Nth.NthFrame.Seconds(frame.Clock)));
     }, probe: GatedHardwareProbe.OwnersDesktop());
 
     // ---- the preference row (OD-0099 Q-V-1 C) -------------------------------------------------------------------------------------------------------------------

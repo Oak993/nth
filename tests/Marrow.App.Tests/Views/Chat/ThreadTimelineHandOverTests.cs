@@ -6,6 +6,7 @@ using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Xunit;
 
 namespace Marrow.App.Tests.Views.Chat;
@@ -13,6 +14,8 @@ namespace Marrow.App.Tests.Views.Chat;
 // UI-CHAT-001 STOP App.Views.Chat.ThreadTimeline #10, ruled by the owner 2026-10-05 (OD-0105 (1), "Smooth fade"): where the Mac cuts (ThreadTimeline.swift:132-135, the
 // loading branch is `Color.clear` and a thread opens in one frame, CATALOGUE.md C 164.452-164.640; :317-321, :339 a row's removal is `.identity`), the port by OD-0076
 // "The loading mark fades out while the rows fade and rise in, in about 0.2 s. Rows that leave together fold shut together, in about 0.3 s." Each is sampled frame by frame.
+// OD-0136 amendment 3 (ED-NEW-nth-motion) replaces the loading mark and its hand-over with the nth Flick's: the loader leaves in 0.3 s while the messages rise 10 px and
+// fade in, 0.5 s, 150 ms later, 45 ms apart.
 [Collection("Headless")]
 public sealed class ThreadTimelineHandOverTests(HeadlessSession headless)
 {
@@ -29,45 +32,48 @@ public sealed class ThreadTimelineHandOverTests(HeadlessSession headless)
         typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.IsLoadingHistory))!.SetValue(mount.Runtime, loading);
 
     [Fact]
-    [Trait("Req", "UI-CHAT-001")] // ThreadTimeline.swift:132-135; OD-0105 (1) the loading mark fades out while the rows fade and rise in, in about 0.2 s
-    public void The_loading_mark_fades_out_while_the_rows_fade_and_rise_in_together_in_a_fifth_of_a_second() => ThreadTimelineRig.Run(headless, mount =>
+    [Trait("Req", "UI-CHAT-001")] // ThreadTimeline.swift:132-135; OD-0105 (1) a hand-over, not a cut; OD-0136 amendment 3 (ED-NEW-nth-motion) the Flick's hand-over
+    public void The_history_loader_leaves_while_the_messages_rise_in_one_by_one() => ThreadTimelineRig.Run(headless, mount =>
     {
         SetLoading(mount, true);
-        mount.Advance(600); // the mark has shown (it draws nothing for its first 400 ms, ED-097)
-        var mark = Assert.Single(mount.View.GetVisualDescendants().OfType<AuroraLoader>()); // OD-0113 supersedes the Comet icon
+        mount.Advance(600); // the loader has shown (it draws nothing for its first 400 ms)
+        var mark = Assert.Single(mount.View.GetVisualDescendants().OfType<NthFlick>());
+        Assert.Equal(48, mark.Width); Assert.Equal(48, mark.Height);
+        Assert.False(mark.IsFinished);
         mount.SetEntries(TimelineMount.Turns(3));
         SetLoading(mount, false);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
+        Assert.True(mark.IsFinished, "the loader was told to leave (opacity 0.22 s, scale 0.9 in 0.3 s, drawn on the render thread)");
         var layer = (Control)mount.Scroll.GetVisualParent()!; // the timeline's branch (scrollOverlay)
-        var samples = new List<(int Ms, double Mark, double Rows, double Rise, bool MarkShown)>();
-        double Rise() => layer.RenderTransform is TranslateTransform rise ? rise.Y : 0;
-        for (var ms = 10; ms <= 300; ms += 10)
+        Assert.Equal(1, layer.Opacity);
+        var rows = mount.View.DrawnRows.ToArray();
+        Assert.True(rows.Length >= 2, $"{rows.Length} rows");
+        double Rise(Control row) => row.RenderTransform is TranslateTransform rise ? rise.Y : 0;
+        var samples = new List<(int Ms, double[] Opacity, double[] Rise, bool MarkShown)>();
+        for (var ms = 10; ms <= 1000; ms += 10)
         {
             Frame(mount);
-            samples.Add((ms, ((Visual)mark).Opacity, layer.Opacity, Rise(), TopLevel.GetTopLevel(mark) is not null));
+            samples.Add((ms, rows.Select(row => row.Opacity).ToArray(), rows.Select(Rise).ToArray(), TopLevel.GetTopLevel(mark) is not null));
         }
-        // together, on one curve: what the mark has lost the rows have gained, and the rise is the rest of the 4 points
-        foreach (var (ms, markOpacity, rows, rise, shown) in samples.Where(sample => sample.MarkShown))
-        {
-            Assert.True(Math.Abs(markOpacity + rows - 1) < 0.03, $"+{ms} ms: the mark at {markOpacity:F3} and the rows at {rows:F3} are not one hand-over");
-            Assert.True(Math.Abs(rise - 4 * (1 - rows)) < 0.15, $"+{ms} ms: the rows are {rise:F2} points low at opacity {rows:F3}");
-        }
-        // never a cut: the first frame is part way, and so is 100 ms
-        Assert.True(samples[0].Rows is > 0 and < 0.6, $"10 ms in, the rows are at {samples[0].Rows:F3}");
-        var at100 = samples.Single(sample => sample.Ms == 100);
-        Assert.True(at100.Rows is > 0.4 and < 0.98 && at100.Rise > 0.05, $"100 ms in, the rows are at {at100.Rows:F3}, {at100.Rise:F2} points low");
-        Assert.All(samples.Zip(samples.Skip(1)), pair => Assert.True(pair.Second.Rows >= pair.First.Rows - 1e-9, $"the rows fell back at +{pair.Second.Ms} ms"));
-        // about 0.2 s: by 220 ms the mark has gone, the rows are whole and in place
-        var after = samples.Single(sample => sample.Ms == 220);
-        Assert.False(after.MarkShown, "the mark is still in the tree 220 ms after the hand-over began");
-        Assert.Equal(1, after.Rows, 6);
-        Assert.Equal(0, after.Rise, 6);
-        Assert.True(samples.Single(sample => sample.Ms == 170).Rows < 1, "the hand-over was over in well under 0.2 s");
+        // the messages wait 150 ms, then rise 10 px and fade in over 0.5 s on (.2,.8,.2,1), each 45 ms after the one above
+        foreach (var sample in samples.Where(sample => sample.Ms <= 140)) Assert.All(sample.Opacity, opacity => Assert.Equal(0, opacity, 6));
+        foreach (var (ms, opacity, rise, _) in samples)
+            for (var i = 0; i < rows.Length; i++)
+                Assert.True(Math.Abs(rise[i] - 10 * (1 - opacity[i])) < 0.05, $"+{ms} ms: row {i} is {rise[i]:F2} px low at opacity {opacity[i]:F3}");
+        var at250 = samples.Single(sample => sample.Ms == 250);
+        Assert.True(at250.Opacity[0] > at250.Opacity[1] && at250.Opacity[0] is > .2 and < 1, $"row 0 at {at250.Opacity[0]:F3} leads row 1 at {at250.Opacity[1]:F3}");
+        // the loader is taken out once it has left (0.3 s)
+        Assert.True(samples.Single(sample => sample.Ms == 200).MarkShown, "the loader is still leaving at 200 ms");
+        Assert.False(samples.Single(sample => sample.Ms == 320).MarkShown, "the loader is still in the tree 320 ms after it began to leave");
+        // all in place by 150 + 45 (n - 1) + 500 ms
+        var end = samples.Single(sample => sample.Ms == Math.Min(1000, (int)Math.Ceiling((150 + 45 * (rows.Length - 1) + 500) / 10.0) * 10 + 10));
+        Assert.All(end.Opacity, opacity => Assert.Equal(1, opacity, 6));
+        Assert.All(rows, row => Assert.Null(row.RenderTransform));
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-001")] // OD-0105 (1); ED-084 Reduce Motion: the end state at once
-    public void Under_reduce_motion_the_loading_mark_hands_over_at_once() => ThreadTimelineRig.Run(headless, mount =>
+    [Trait("Req", "UI-CHAT-001")] // OD-0136 amendment 3: under reduce motion the hand-over is opacity only
+    public void Under_reduce_motion_the_messages_fade_in_without_rising() => ThreadTimelineRig.Run(headless, mount =>
     {
         EnvironmentValues.SetAccessibilityReduceMotion(mount.Host, true);
         SetLoading(mount, true);
@@ -75,8 +81,12 @@ public sealed class ThreadTimelineHandOverTests(HeadlessSession headless)
         mount.SetEntries(TimelineMount.Turns(3));
         SetLoading(mount, false);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs(); mount.Window.UpdateLayout();
-        Frame(mount);
-        Assert.Empty(mount.View.GetVisualDescendants().OfType<AuroraLoader>());
+        var rows = mount.View.DrawnRows.ToArray();
+        Frame(mount, 300);
+        Assert.All(rows, row => Assert.Null(row.RenderTransform));
+        for (var i = 0; i < 80; i++) Frame(mount);
+        Assert.Empty(mount.View.GetVisualDescendants().OfType<NthFlick>());
+        Assert.All(rows, row => Assert.Equal(1, row.Opacity, 6));
         Assert.Equal(1, ((Control)mount.Scroll.GetVisualParent()!).Opacity);
     });
 

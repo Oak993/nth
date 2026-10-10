@@ -23,6 +23,7 @@ using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Marrow.App.Views.Settings;
 using Marrow.App.Views.Chat;
 using Marrow.App.Port;
@@ -384,6 +385,10 @@ public sealed class ModelList : Decorator
     // :273 private static let sectionHeaderHeight: CGFloat = 22
     private const double SectionHeaderHeight = 22;
 
+    // nth step 7: while no model has arrived, three skeleton rows (40 points each) stand in the list's area; the rows rise in when they come.
+    private const int SkeletonRows = 3;
+    private bool showedSkeleton;
+
     /// <param name="thread">:263 <c>let thread: ChatThread</c>.</param>
     /// <param name="hasHistory">:264 <c>let hasHistory: Bool</c>.</param>
     /// <param name="onChoose">:265 <c>let onChoose: (ModelCatalog.Entry) -> Void</c>.</param>
@@ -431,12 +436,14 @@ public sealed class ModelList : Decorator
             for (var i = 0; i < eager; i++) rows.Children.Add(Row(entries[i]));
             if (entries.Count == 0)
             {
-                var loading = EffortView.Text("Loading models…", SwiftFont.Body, Chrome.SecondaryText); loading.Margin = new Thickness(10); rows.Children.Add(loading); // :340-345
+                var loading = new NthSkeleton(NthSkeletonKind.List, SkeletonRows) { Margin = new Thickness(10, 0) }; // :340-345, nth step 7 in place of the line of text
+                AutomationProperties.SetName(loading, "Loading models…"); AutomationProperties.SetAccessibilityView(loading, AccessibilityView.Content); // U+2026 HORIZONTAL ELLIPSIS
+                rows.Children.Add(loading);
             }
             var backIcon = SwiftImage.SystemName("chevron.left").Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
             var back = PlainControls.Button(new Border { Width = 20, Height = 20, Background = Brushes.Transparent, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299, :294 .contentShape(.rect): the whole frame takes the press
             var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(8, 8, 8, 4), Children = { back, EffortView.Text("Select model", SwiftFont.Body, Chrome.SecondaryText) } };
-            var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + Math.Max(entries.Count, 1) * (rowHeight + 1), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + (entries.Count == 0 ? SkeletonRows * 40 : entries.Count * (rowHeight + 1)), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
             // Owner task T46: keep the source rows, pair order and disabled-provider guards; add model/maker search above them.
             Marrow.App.Port.ModelsPalette.PickerScroll.Apply(scroll);
             var stack = new StackPanel { Spacing = 0, Children = { header } };
@@ -458,6 +465,8 @@ public sealed class ModelList : Decorator
             }
             stack.Children.Add(scroll);
             Child = new Border { Padding = new Thickness(6), Child = stack }; // :348-353
+            if (showedSkeleton && entries.Count > 0) NthArrive.Rows(rows.Children.OfType<ModelListRow>().Cast<Control>().ToList()); // nth step 7: 6 px up, 0.36 s, 40 ms apart
+            showedSkeleton = entries.Count == 0;
         });
         this.Task(() => 0, async _ =>
         {
@@ -2164,7 +2173,7 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
     private sealed record Scene(Size Size, double Track, LiquidSpec Spec, SkiaSharp.SKColor[] Gradient, BubbleLanes? Bubbles, bool DarkBubbles,
         IReadOnlyList<Color> Strands, bool Fast, bool Still, StrikeChannels? Strikes, StrikeGeometry Geometry, StrikeTint Tint, int Seed,
         LiquidTrack.LiquidLayers Layers, SkiaSharp.SKColor[]? FromGradient, StrikeTint FromTint,
-        double FadeStart, double FadeDuration, double IntentTime, StrikeInk Ink, StrikeInk? InkFrom, double InkStart);
+        double FadeStart, double FadeDuration, double IntentTime, StrikeInk Ink, StrikeInk? InkFrom, double InkStart, bool Dark);
 
     private static StrikeInk InkAt(Scene s, double t) => s.InkFrom is { } from ? StrikeInk.Mix(from, s.Ink, Strike.Ss(0, s.Still ? 0.2 : 0.6, t - s.InkStart)) : s.Ink;
 
@@ -2216,7 +2225,7 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
             var resolved = mixStorm.Resolve(s.Geometry, StrikeFrameTime, s.Still ? 0 : t, s.Still ? s.Fast ? 1 : 0 : mixClock.FastAt(t), ink.Amount);
             if (!s.Still) { mixContacts!.Process(s.Geometry, mixStorm.Plans, resolved, t, reentry.Offset, ink.Amount); mixContacts.ResolveLight(s.Geometry, resolved, t); }
             frame = new LiquidTrack.Frame(s.Size, s.Track, s.Still ? 0 : t, s.Gradient, s.Spec, null, false, s.Strands, flow, null, ink.Amount, Layers: s.Layers, PreviousGradient: mix < 1 ? s.FromGradient : null, GradientMix: mix,
-                Mix: resolved, MixGeometry: s.Geometry, MixInk: ink, MixLanes: mixLanes, FastClock: mixClock, MixContacts: mixContacts, MixStill: s.Still, MixSeed: s.Seed);
+                Mix: resolved, MixGeometry: s.Geometry, MixInk: ink, MixLanes: mixLanes, FastClock: mixClock, MixContacts: mixContacts, MixStill: s.Still, MixSeed: s.Seed, Dark: s.Dark);
             frame = ApplyPalette(frame, t); // ED-625: precomputed tables on this retained effect/clock.
             resolvedScene = s; resolvedPageTime = t; cachedFrame = frame;
             return true;
@@ -2268,7 +2277,7 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
             colourDuration = EnvironmentValues.GetAccessibilityReduceMotion(this) ? 0.2 : f.Duration;
         }
         var next = new Scene(size, track, spec, row, still ? null : Bubbles(track, size.Height), darkBubbles,
-            layers.StrandColors(spec, theme), fast, still, fast ? strikes : null, StrikeGeometryFor(size), StrikeTint.For(look.Brand), StrikeSeed, layers, fromRow, fromTint, colourStart, colourDuration, TimeAt(SwiftDate.Now)+mixPageOrigin, StrikeInk.Of(JewelLiquid.Of(look.Brand)), inkFrom, inkStart);
+            layers.StrandColors(spec, theme), fast, still, fast ? strikes : null, StrikeGeometryFor(size), StrikeTint.For(look.Brand), StrikeSeed, layers, fromRow, fromTint, colourStart, colourDuration, TimeAt(SwiftDate.Now)+mixPageOrigin, StrikeInk.Of(JewelLiquid.Of(look.Brand)), inkFrom, inkStart, PlainControls.IsDark(theme));
         if (scene is null || !scene.Equals(next))
         {
             Volatile.Write(ref scene, next); // (records compare their lists by reference)

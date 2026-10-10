@@ -430,17 +430,13 @@ internal sealed class MCPServerCard : Decorator
     private Control Action(MCPConnectionState state) => state switch
     {
         MCPConnectionState.NotConnected => MCPSettingsPage.ActionButton(entry.IsOAuth ? "Sign in" : "Connect", () => MCPSettingsPage.Begin(this, entry)),
-        MCPConnectionState.Connecting => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new WorkingSpinner(3), FixedLabel(entry.IsOAuth ? "Waiting" : "Connecting") } },
+        MCPConnectionState.Connecting => ConnectingWait.Row(entry.IsOAuth ? "Waiting" : "Connecting", SwiftFont.Subheadline, Chrome.SecondaryText), // nth step 11: the 12 px spinner and the light through the label
         MCPConnectionState.Connected => new Border(),
         MCPConnectionState.NeedsSetup n => MCPSettingsPage.ActionButton("Fix it", () => MCPSetupPanel.Shared.Present(entry, n.Guide, AppEnvironment.GetAppModel(this)), true),
         MCPConnectionState.Failed => MCPSettingsPage.ActionButton(entry.IsOAuth ? "Sign in again" : "Try again", () => MCPSettingsPage.Begin(this, entry)),
         _ => throw new UnreachableException(),
     };
-    // :334-337 .fixedSize()
-    private static TextBlock FixedLabel(string label)
-    {
-        var text = MCPSettingsPage.Text(label, 11, Chrome.SecondaryText); text.TextWrapping = TextWrapping.NoWrap; return text;
-    }
+    // :334-337 .fixedSize() and :508-515 .font(.system(.subheadline)): the waiting label is ConnectingWait.Label (no wrap, subheadline).
 }
 
 internal sealed class MCPCustomSection : Decorator
@@ -545,7 +541,7 @@ internal sealed class MCPCustomRow : Decorator
         Control action = state switch
         {
             MCPConnectionState.NotConnected => MCPSettingsPage.ActionButton("Connect", () => MCPSettingsPage.Begin(this, entry)),
-            MCPConnectionState.Connecting => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new WorkingSpinner(3), ConnectingLabel() } },
+            MCPConnectionState.Connecting => ConnectingWait.Row("Connecting", SwiftFont.Subheadline, Chrome.SecondaryText), // nth step 11
             MCPConnectionState.Connected => new SettingsSwitch(new Binding<bool>(() => model.Mcp.Connection(server.Id)?.IsEnabled ?? true, v => model.Mcp.SetEnabled(v, entry))),
             MCPConnectionState.NeedsSetup n => MCPSettingsPage.ActionButton("Fix it", () => MCPSetupPanel.Shared.Present(entry, n.Guide, model), true),
             MCPConnectionState.Failed => MCPSettingsPage.ActionButton("Try again", () => MCPSettingsPage.Begin(this, entry)),
@@ -567,13 +563,6 @@ internal sealed class MCPCustomRow : Decorator
         children.Add(menuHost);
         MCPSettingsPage.Reconcile(row, children);
         Child ??= new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = row };
-    }
-    // :508-515 .font(.system(.subheadline)) and .fixedSize().
-    private TextBlock ConnectingLabel()
-    {
-        var label = new TextBlock { Text = "Connecting", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.NoWrap };
-        SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(label);
-        return label;
     }
     // :554-568
     private Control BuildMenu()

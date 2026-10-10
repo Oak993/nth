@@ -1,3 +1,4 @@
+using Marrow.UI.Port.Nth;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -98,7 +99,7 @@ public sealed class EffortSliderModelListRecordsTests(HeadlessSession headless)
             (1, 2, true, true, false, 0, 46, 94), // a locked cross-provider row: 46
             (1, 2, true, false, false, 0, 34, 70), // the same list without history: nothing is locked and one provider shows no icons, 34 (:286's `hasHistory &&`)
             (1, 2, false, false, false, 0, 34, 70),
-            (2, 5, false, false, false, 0, 46, 440), (1, 1, false, false, true, 0, 34, 35), (1, 3, false, false, false, 2, 34, 44 + 94 + 105), (1, 1, false, false, false, 1, 34, 44 + 47 + 35), (2, 2, false, false, false, 5, 46, 440),
+            (2, 5, false, false, false, 0, 46, 440), (1, 1, false, false, true, 0, 34, 120), (1, 3, false, false, false, 2, 34, 44 + 94 + 105), (1, 1, false, false, false, 1, 34, 44 + 47 + 35), (2, 2, false, false, false, 5, 46, 440),
         })
         {
             var own = foreignOnly || empty ? "unlisted" : "c1";
@@ -122,9 +123,9 @@ public sealed class EffortSliderModelListRecordsTests(HeadlessSession headless)
             Assert.All(Pairs(list), row => Assert.Equal(46, row.Bounds.Height, 0.5));
             // fixed heights: the rows fit the frame in one pass (no jump) unless the cap cuts them, and then they scroll; the frame is what the arithmetic says
             Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            // An empty list is the one exception: its frame counts one 34-point row (:350 max(entries.count, 1)) but holds "Loading models…" in
-            // .system(.body) padded 10 (:341-345), 10 + the body line box 18 + 10 = 38 (ED-290 (1)), so on the Mac too it overhangs its 35-point frame by 3.
-            if (empty) Assert.Equal(10 + 18 + 10, scroll.Extent.Height, 0.5);
+            // An empty list is the one exception. nth step 7 (replacing the "Loading models…" line, :341-345): three skeleton rows of 40, so the frame
+            // reserves those 3 * 40 = 120 points and the rows fill them exactly.
+            if (empty) Assert.Equal(3 * 40, scroll.Extent.Height, 0.5);
             else if (height < 440) Assert.True(scroll.Extent.Height <= scroll.Viewport.Height + 1.5, $"the rows ({scroll.Extent.Height}) fit the frame ({scroll.Viewport.Height}) with nothing to scroll");
             else Assert.True(scroll.Extent.Height > scroll.Viewport.Height, "past the 440 cap the rows scroll");
             Assert.Equal(height, scroll.Viewport.Height, 0.5);

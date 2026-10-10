@@ -205,7 +205,7 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         // State: loading history. Upstream draws `Color.clear` (:134-135); the port draws the loading mark (OD-0016), and neither the prompt nor a timeline.
         typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.IsLoadingHistory))!.SetValue(mount.Runtime, true);
         mount.Advance(100);
-        Assert.Single(LogicalQuery.SelfAndDescendants<AuroraLoader>(mount.View)); // OD-0113 replaces the icon at this site
+        Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthFlick>(mount.View)); // OD-0136 amendment 3: the nth Flick replaces Curtain Fold (OD-0113) at this site
         Assert.Empty(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(mount.View)); Assert.Null(mount.ScrollOrNull);
         typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.IsLoadingHistory))!.SetValue(mount.Runtime, false);
         // State: empty and idle: the prompt, the chrome's travel zeroed and the jump button hidden.

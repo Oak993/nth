@@ -9,6 +9,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Common;
@@ -107,7 +108,8 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
     }
 
     // PR-COMPOSER-074: DroppyCode/UI/Common/AttachmentPreview.swift:287-323, :374-387. The loading-mark deviation
-    // (UI-COMPOSER-077, OD-0016) shows while the thumbnail loads and hides once it lands.
+    // (UI-COMPOSER-077, OD-0016; since the nth motion pack step 13 the blurred backdrop and the glass puck, not Flow Arc)
+    // shows while the thumbnail loads and goes once it lands; the picture settles in (opacity 0 to 1, scale 1.02 to 1, 0.6 s).
     [Fact]
     [Trait("Req", "PR-COMPOSER-074")] // DroppyCode/UI/Common/AttachmentPreview.swift:374-377
     [Trait("Req", "UI-COMPOSER-077")] // DroppyCode/UI/Common/AttachmentPreview.swift:231-396
@@ -124,6 +126,11 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var preview = new AttachmentLargePreview(attachment);
             Show(preview);
+            // while it loads: the backdrop and the 44 px puck (the spinner: a loading picture's size is not known) are mounted
+            Assert.Single(VisualQuery.Descendants<NthPreviewBackdrop>(preview));
+            Assert.False(preview.Backdrop.HasThumbnail); // nothing was drawn in the strip for this file
+            Assert.Equal(44, preview.Puck.Width); Assert.Equal(44, preview.Puck.Height);
+            Assert.False(preview.Puck.IsRing); Assert.IsType<NthSpinner>(preview.Puck.Mark);
             var deadline = DateTime.UtcNow.AddSeconds(4);
             while (!VisualQuery.Descendants<Image>(preview).Any(image => image.Source is not null))
             {
@@ -132,6 +139,17 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
                 Thread.Sleep(15);
             }
             var loaded = VisualQuery.Descendants<Image>(preview).First(i => i.Source is not null);
+            // the picture settles in: a 0.6 s opacity transition (NthArrive.Settle), then it stands at 1
+            Assert.Contains(loaded.Transitions!, t => t is Avalonia.Animation.DoubleTransition { Property: var p, Duration: var d } && p == Visual.OpacityProperty && d == TimeSpan.FromSeconds(.6));
+            Assert.True(preview.Puck.HasArrived); Assert.True(preview.Backdrop.HasArrived);
+            var settled = DateTime.UtcNow.AddSeconds(4);
+            while (loaded.Opacity < 1)
+            {
+                if (DateTime.UtcNow > settled) throw new TimeoutException("The picture never finished settling in.");
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(15);
+            }
             Assert.Equal(1, loaded.Opacity);
         });
     }
@@ -515,7 +533,7 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
                 Thread.Sleep(15);
             }
-            Assert.DoesNotContain(VisualQuery.Descendants<ProgressBar>(preview), p => p.IsVisible);
+            Assert.DoesNotContain(VisualQuery.Descendants<NthSpinner>(preview), p => p.IsVisible); // nth step 1 spinner 16 replaced the indeterminate bar
         });
     }
 }

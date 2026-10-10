@@ -1,3 +1,4 @@
+using Marrow.UI.Port.Nth;
 using System;
 using System.Linq;
 using Avalonia;
@@ -559,8 +560,10 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var list = new ModelList(new ChatThread(Guid.NewGuid(), ProviderKind.Codex, null, null, RuntimeMode.Supervised), false, _ => { }, () => backs++);
             var window = Host(list, model);
             Assert.Contains(list.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "Select model" && b.FontSize == 13);
-            Assert.Contains(list.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "Loading models…" && b.FontSize == 13);
-            Assert.Equal(35, Assert.Single(list.GetVisualDescendants().OfType<ScrollViewer>()).Height);
+            // nth step 7: three skeleton rows stand in for the "Loading models…" line, which stays as their accessible name
+            var skeleton = Assert.Single(list.GetVisualDescendants().OfType<NthSkeleton>());
+            Assert.Equal("Loading models…", AutomationProperties.GetName(skeleton));
+            Assert.Equal(120, Assert.Single(list.GetVisualDescendants().OfType<ScrollViewer>()).Height);
             var back = Assert.Single(list.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), "Back"));
             back.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Assert.Equal(1, backs);

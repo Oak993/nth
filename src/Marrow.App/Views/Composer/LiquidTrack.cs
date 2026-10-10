@@ -670,7 +670,7 @@ public static partial class LiquidTrack
     internal readonly record struct Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
         IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike, double BubbleInk = 0,
         IReadOnlyList<BubbleBurst>? Rings = null, IReadOnlyCollection<(int Lane, int Rise)>? Popped = null, LiquidLayers? Layers = null, StrikeFrame? ResolvedStrike = null, SKColor[]? PreviousGradient = null, double GradientMix = 1,
-        StrikeResolvedFrame? Mix = null, StrikeGeometry MixGeometry = default, StrikeInk MixInk = default, StrikeBubbleLanes? MixLanes = null, StrikeFastClock? FastClock = null, StrikeContacts? MixContacts = null, bool MixStill = false, int MixSeed = 0, Marrow.App.Port.ModelsPalette.PaletteLiveSample? Palette = null);
+        StrikeResolvedFrame? Mix = null, StrikeGeometry MixGeometry = default, StrikeInk MixInk = default, StrikeBubbleLanes? MixLanes = null, StrikeFastClock? FastClock = null, StrikeContacts? MixContacts = null, bool MixStill = false, int MixSeed = 0, Marrow.App.Port.ModelsPalette.PaletteLiveSample? Palette = null, bool Dark = false);
 
 
     /// <summary>
@@ -1047,7 +1047,7 @@ public static partial class LiquidTrack
             try { Paint(target, basePass, rect, SKBlendMode.SrcOver); }
             finally { basePass.SetChild("grad", 0); SkiaShaders.Release(mixedGradient); }
             frame.Palette?.Ink?.Draw(target,rect,1-(float)(frame.Palette?.SolidMix??0));
-            if(frame.Palette?.Loading==true)paletteLoading.Draw(target,rect,frame.Palette.LoadingPhase,frame.MixStill); // v22: the worker's retained density picture under the currents/glass.
+            if(frame.Palette is {} palette)paletteLoading.Draw(target,rect,palette.Loading,palette.LoadingPhase,frame.MixStill,frame.Dark); // nth step 14 (was v22's loading overlay): the tube's light and dots, then their 0.2 s fade, under the currents/glass.
             if (hasOil && oilMask > 0.5f) Paint(target, Filled(OilEffect), rect, SKBlendMode.Screen); // a blend's oil goes under its currents
             Paint(target, Filled(StrandsEffect), rect, SKBlendMode.SoftLight);
             Paint(target, Filled(SlowEffect), rect, SKBlendMode.SoftLight);

@@ -27,6 +27,7 @@ using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using static Marrow.App.Tests.Fixtures.MCPSettingsPageFixture;
 
 namespace Marrow.App.Tests.Views.Settings;
@@ -548,19 +549,19 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
     [Trait("Req", "UI-MCP-026")] // App/Views/Settings/MCPSettingsPage.swift:331-338
     [Trait("Req", "UI-MCP-027")] // App/Views/Settings/MCPSettingsPage.swift:334-335
     [Trait("Req", "UI-MCP-038")] // App/Views/Settings/MCPSettingsPage.swift:508-515
-    public void All_connecting_indicators_have_six_spacing_three_cell_spinner_and_secondary_fixed_type(bool oauth, bool custom)
+    public void All_connecting_indicators_have_six_spacing_nth_twelve_pixel_spinner_and_secondary_fixed_type(bool oauth, bool custom)
     {
         Ui((model, _, _, _) =>
         {
             State(model, "offline", new MCPConnectionState.Connecting()); State(model, "custom-example", new MCPConnectionState.Connecting());
             Control control = custom ? new MCPCustomRow(Custom()) : new MCPServerCard(oauth ? Entry(transport: new MCPTransport.Oauth("https://example.invalid")) : Entry());
             {
-                using var window = Attach(control, model); var spinner = Assert.Single(Nodes<WorkingSpinner>(control));
+                using var window = Attach(control, model); var spinner = Assert.Single(Nodes<NthStatusMark>(control)); // nth step 11: the 12 px spinner in the 16 px status slot replaces the 3 x 3 working spinner
                 var stack = Assert.IsType<StackPanel>(spinner.Parent); Assert.Equal(Orientation.Horizontal, stack.Orientation); Assert.Equal(6, stack.Spacing);
-                var text = Assert.IsType<TextBlock>(stack.Children[1]); Assert.Equal(oauth ? "Waiting" : "Connecting", text.Text); Font(text, 11); Colour(text.Foreground, Chrome.SecondaryText, text); Assert.Equal(TextWrapping.NoWrap, text.TextWrapping);
-                Assert.Equal(3, Read<double>(spinner.Child!, "cellSize")); Assert.DoesNotContain(Nodes<Button>(control), b => AutomationProperties.GetName(b) == "Cancel");
+                var text = Assert.IsType<NthShineText>(stack.Children[1]); Assert.True(text.IsShining); Assert.Equal(oauth ? "Waiting" : "Connecting", text.Text); Font(text, 11); Colour(text.Foreground, Chrome.SecondaryText, text); Assert.Equal(TextWrapping.NoWrap, text.TextWrapping);
+                Assert.Equal(NthStatus.Working, spinner.Status); Assert.Equal(12, spinner.MarkSize); Assert.Equal(16, spinner.Width); Assert.Equal(16, spinner.Height); Assert.DoesNotContain(Nodes<Button>(control), b => AutomationProperties.GetName(b) == "Cancel");
             }
-            State(model, "offline", new MCPConnectionState.NotConnected()); var idle = new MCPServerCard(Entry()); using var idleWindow = Attach(idle, model); Assert.Empty(Nodes<WorkingSpinner>(idle));
+            State(model, "offline", new MCPConnectionState.NotConnected()); var idle = new MCPServerCard(Entry()); using var idleWindow = Attach(idle, model); Assert.Empty(Nodes<NthStatusMark>(idle));
         });
     }
 

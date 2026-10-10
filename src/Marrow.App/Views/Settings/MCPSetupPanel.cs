@@ -223,8 +223,8 @@ public sealed class MCPSetupPanelView : FloatingGuidePanelView
         {
             // A spinner and a label are not controls: a press on them drags the panel like the background (:77-80).
             var checking = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, IsHitTestVisible = false };
-            checking.Children.Add(new WorkingSpinner(cellSize: 3));
-            checking.Children.Add(Label("Checking", SwiftFont.Subheadline, Chrome.SecondaryText));
+            checking.Children.Add(ConnectingWait.Mark()); // nth step 11: the 12 px spinner and the light through the label
+            checking.Children.Add(ConnectingWait.Label("Checking", SwiftFont.Subheadline, Chrome.SecondaryText, wrap: true));
             Grid.SetColumn(checking, 2);
             buttons.Children.Add(checking);
         }
