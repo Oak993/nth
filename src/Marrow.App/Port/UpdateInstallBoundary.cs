@@ -92,7 +92,7 @@ public sealed class WindowsUpdateInstallBoundary : IUpdateInstallBoundary
         if (stagedPath.EndsWith(PackageExtension, StringComparison.OrdinalIgnoreCase))
         {
             if (VelopackPackage.ReadIdentity(stagedPath) is not { } identity || identity.Id != MarrowReleaseFeed.PackageId)
-                throw new UpdateInstallError($"The downloaded app is not signed by Marrow. Not a {MarrowReleaseFeed.PackageId} package");
+                throw new UpdateInstallError($"The downloaded app is not signed by Nth. Not a {MarrowReleaseFeed.PackageId} package");
             return;
         }
         if (!WinTrust.IsTrusted(stagedPath, out var reason))
@@ -100,7 +100,7 @@ public sealed class WindowsUpdateInstallBoundary : IUpdateInstallBoundary
             // text (PR-UPDATE-049 has no `deviation` field); the product-name substitution follows
             // OD-0012 F1's established pattern ("Droppy" -> "Marrow") since WinVerifyTrust collapses the
             // three macOS-specific failure messages into one trust gate (PR-UPDATE-051 windows_path).
-            throw new UpdateInstallError($"The downloaded app is not signed by Marrow. {reason}");
+            throw new UpdateInstallError($"The downloaded app is not signed by Nth. {reason}");
     }
 
     // :332-336. UE-1: the version a Velopack package's nuspec names; null for anything that is not one.

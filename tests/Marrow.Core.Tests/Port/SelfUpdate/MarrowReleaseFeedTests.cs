@@ -13,7 +13,7 @@ public sealed class MarrowReleaseFeedTests
         Assert.Equal("Oak993/marrow-releases", MarrowReleaseFeed.Repository);
         Assert.Equal("https://github.com/Oak993/marrow-releases", MarrowReleaseFeed.Url);
         Assert.Equal("https://github.com/Oak993/marrow-releases/releases/latest", MarrowReleaseFeed.LatestReleasePage);
-        Assert.Equal("MarrowCode", MarrowReleaseFeed.PackageId);                       // ED-235: the id vpk pack is given
+        Assert.Equal("NthApp", MarrowReleaseFeed.PackageId);                       // ED-235: the id vpk pack is given
     }
 
     [Theory]

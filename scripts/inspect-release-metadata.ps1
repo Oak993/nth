@@ -29,23 +29,23 @@ function Read-Identity([string]$Exe, [string]$Assembly, [string]$Title) {
         product_version = $resource.ProductVersion; product = $resource.ProductName
         company = $resource.CompanyName; title = $resource.FileDescription
     }
-    $expected = @{ assembly_version="$version.0"; file_version="$version.$build"; product_version="$version+build.$build"; product='Marrow'; company='Marrow Code'; title=$Title }
+    $expected = @{ assembly_version="$version.0"; file_version="$version.$build"; product_version="$version+build.$build"; product='Nth'; company='Nth'; title=$Title }
     foreach ($name in $expected.Keys) {
         if ($fields[$name] -ne $expected[$name]) { throw "$Exe PE $name does not equal $($expected[$name])." }
     }
     $fields.exe_sha256 = (Get-FileHash $Exe -Algorithm SHA256).Hash.ToLowerInvariant()
     $fields.assembly_sha256 = (Get-FileHash $Assembly -Algorithm SHA256).Hash.ToLowerInvariant()
     $fields.legal_copyright = $resource.LegalCopyright
-    if ($Title -eq 'Marrow' -and $fields.legal_copyright -cne $copyright) { throw 'Application legal copyright differs from the unchanged canonical source.' }
+    if ($Title -eq 'Nth' -and $fields.legal_copyright -cne $copyright) { throw 'Application legal copyright differs from the unchanged canonical source.' }
     $fields.architecture = 'x64'
     $fields.exe_artifact = Artifact $Exe
     $fields.assembly_artifact = Artifact $Assembly
     return $fields
 }
-$result = [ordered]@{ pe_metadata=[ordered]@{ app=(Read-Identity (Join-Path $AppDirectory 'Marrow.App.exe') (Join-Path $AppDirectory 'Marrow.App.dll') 'Marrow') }; complete=$false }
+$result = [ordered]@{ pe_metadata=[ordered]@{ app=(Read-Identity (Join-Path $AppDirectory 'Marrow.App.exe') (Join-Path $AppDirectory 'Marrow.App.dll') 'Nth') }; complete=$false }
 if ($SetupExe -or $SetupAssembly) {
     if (-not $SetupExe -or -not $SetupAssembly) { throw 'Supply both final SetupExe and its matching build SetupAssembly for inspection.' }
-    $result.pe_metadata.setup = Read-Identity $SetupExe $SetupAssembly 'Marrow Setup'
+    $result.pe_metadata.setup = Read-Identity $SetupExe $SetupAssembly 'Nth Setup'
     $result.complete = $true
 }
 $result | ConvertTo-Json -Depth 5
