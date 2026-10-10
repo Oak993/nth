@@ -126,6 +126,7 @@ public static class Program
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
         Marrow.App.Views.Composer.GpuProgramCache.PrepareAtLaunch(); // ED-NEW-launch-fix (1): the kept GPU programs read on the pool before Boot B's first frame
         Marrow.UI.Port.AuroraBootGpu.ContextReady = gpu => Marrow.App.Views.Composer.GpuProgramCache.ForContext(gpu); // installed before anything links
+        _ = LoginEnvironment.Load(); // OD-0133: the provider refresh's environment read on the pool now (single-flight), not when bootstrap reaches it
         // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
         var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
         Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.Bind(); // T11 step 2: Settings > Models (accounts) and Settings > Pills read the running AppModel

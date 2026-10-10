@@ -107,9 +107,14 @@ public sealed class AppDelegate
         }
         MainActor.Spawn(async () => // :27 Task { await windows.model.bootstrap() }
         {
-            await BootstrapModel(windows.Model);
+            var bootstrap = BootstrapModel(windows.Model);
+            // OD-0133 (amending OD-0108 for provider checks only): B waits for the bootstrap up to its provider refresh
+            // (AppModel.LaunchReady), or for all of it where it ends first; the refresh, the sign-in checks and the catalogs
+            // finish after the window shows. A bootstrap that fails before then still never reveals the window, as before.
+            await await Task.WhenAny(bootstrap, windows.Model.LaunchReady);
             if (boot is not null) await firstRunDone.Task;
-            boot?.Ready(); // OD-0108 / OD-0113: bootstrap AND preparation must finish before B reveals the window
+            boot?.Ready(); // OD-0108 / OD-0113: bootstrap (to its provider refresh) AND preparation must finish before B reveals the window
+            await bootstrap;
         });
         UpdateChecker.Shared.StartBackgroundChecks(); // :28
         UpdateEverythingProduction.Configure(windows.Model); // UE-5 (OD-0100): Update everything's items and its background check; no Swift twin
