@@ -25,6 +25,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
+using Marrow.App.Port.Updates;
 
 // Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B3 52bc7926), :1-845.
 
@@ -488,126 +489,40 @@ internal sealed class UpdateReleaseSectionPopover : Decorator
     }
 }
 
-internal sealed class FractionChase
-{
-    private double displayed;
-    private double? lastTime;
-
-    public FractionChase(double initial) => displayed = initial;
-
-    public double Advance(double to, double target, double response, double minimumSpeed)
-    {
-        var previousTime = lastTime;
-        lastTime = to;
-        if (previousTime is null)
-        {
-            displayed = target;
-            return displayed;
-        }
-
-        if (target < displayed)
-        {
-            displayed = target;
-            return displayed;
-        }
-
-        var dt = Math.Max(0, Math.Min(to - previousTime.Value, 0.25));
-        var remaining = target - displayed;
-        if (remaining <= 0 || dt <= 0)
-            return displayed;
-
-        var step = remaining * (1 - Math.Exp(-dt / Math.Max(response, 0.01)));
-        step = Math.Max(step, minimumSpeed * dt);
-        displayed = Math.Min(displayed + step, target);
-        if (target - displayed < 0.0001)
-            displayed = target;
-        return displayed;
-    }
-}
-
+/// <summary>
+/// The install face's control (nth motion pack step 10, OD-0136 amendment 2): follows the install's fraction target and hands it to the install capsule, which springs to it on the render thread (the step 3 spring), so
+/// there is no per-frame chase on the UI thread. At 100 % the capsule says it is done.
+/// </summary>
 public sealed class SmoothedUpdateProgressSlider : Decorator
 {
-    private sealed class ViewState : MainActorModel
-    {
-        private double target;
-        private bool settled;
-
-        public double Target { get => Read(target); set => Set(ref target, value); }
-        public bool Settled { get => Read(settled); set => Set(ref settled, value); }
-    }
-
-    private readonly ViewState state = new();
-    private readonly FractionChase chase;
     private readonly UpdateProgressSlider slider;
-    private readonly double response;
-    private readonly double minimumSpeed;
 
-    public SmoothedUpdateProgressSlider(
-        UpdateInstallProgress.FractionTarget target,
-        double response = 0.3,
-        double minimumSpeed = 0,
-        double trackHeight = 14,
-        double headDiameter = 20)
+    public SmoothedUpdateProgressSlider(UpdateInstallProgress.FractionTarget target)
     {
-        this.response = response;
-        this.minimumSpeed = minimumSpeed;
-        state.Target = target.Value;
-        chase = new FractionChase(target.Value);
-        slider = new UpdateProgressSlider(target.Value, trackHeight, headDiameter);
+        slider = new UpdateProgressSlider(target.Value);
         Child = slider;
-
-        this.Track(() => target.Value, value =>
-        {
-            state.Target = value;
-            state.Settled = false;
-        });
-        this.TimelineView(
-            () => new AnimationTimelineSchedule(
-                1.0 / 60.0,
-                state.Settled || ScrollActivity.Shared.Current.IsScrolling),
-            date =>
-            {
-                var time = (date.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / (double)TimeSpan.TicksPerSecond;
-                var fraction = chase.Advance(time, state.Target, this.response, this.minimumSpeed);
-                slider.SetFraction(fraction);
-                state.Settled = fraction == state.Target;
-            });
+        this.Track(() => target.Value, value => slider.SetFraction(value));
     }
 }
 
 public sealed class UpdateProgressSlider : Decorator
 {
-    private const ulong SparkleSeed = 0x5EED_D80B;
-    private static readonly ValueList<SwiftColor> FillColors = new(
-    [
-        new SwiftColor(red: 0x67 / 255.0, green: 0xB9 / 255.0, blue: 0xEE / 255.0),
-        new SwiftColor(red: 0x1A / 255.0, green: 0x77 / 255.0, blue: 0xB4 / 255.0),
-        new SwiftColor(red: 0x12 / 255.0, green: 0x6C / 255.0, blue: 0xAF / 255.0),
-    ]);
-    private static readonly ValueList<SparkleParticle> Sparkles = SparkleParticle.Field(14, SparkleSeed);
-
-    private readonly ProgressTrack track;
+    private readonly UpdateInstallCapsule capsule = new();
     private double fraction;
 
     public double Fraction => fraction;
 
-    public UpdateProgressSlider(double fraction, double trackHeight = 14, double headDiameter = 20)
+    /// <summary>The primitive that draws the install (tests and pictures).</summary>
+    internal UpdateInstallCapsule Capsule => capsule;
+
+    public UpdateProgressSlider(double fraction)
     {
         this.fraction = fraction;
-        Height = headDiameter; // :435 .frame(height: headDiameter)
-        track = new ProgressTrack(fraction, trackHeight, headDiameter, FillColors, Sparkles);
-        Child = track;
+        Height = UpdateInstallCapsule.CapsuleHeight;
+        capsule.Jump(fraction); // shown part way (the celebration after a relaunch), it is there at once
+        if (fraction >= 1) capsule.ShowDone();
+        Child = capsule;
         AutomationProperties.SetName(this, "Updating Marrow");
-        AttachedToVisualTree += (_, _) =>
-            track.SetReduceMotion(EnvironmentValues.GetAccessibilityReduceMotion(this));
-        // :387,408 @Environment(\.accessibilityReduceMotion) is read by body on every evaluation, so a change while the slider
-        // shows (the system setting, WM_SETTINGCHANGE, ED-084) drops or brings back the sparkles at once.
-        PropertyChanged += (_, e) =>
-        {
-            if (e.Property == EnvironmentValues.AccessibilityReduceMotionProperty)
-                track.SetReduceMotion(EnvironmentValues.GetAccessibilityReduceMotion(this));
-        };
-        ActualThemeVariantChanged += (_, _) => track.UpdateTheme(ActualThemeVariant);
     }
 
     internal void SetFraction(double value)
@@ -615,25 +530,11 @@ public sealed class UpdateProgressSlider : Decorator
         if (fraction.Equals(value))
             return;
         fraction = value;
-        track.SetFraction(value);
+        capsule.Value = value;
+        capsule.IsDone = value >= 1; // at 100 % the light stops and the label cross-fades to the done label
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new ProgressPeer(this);
-
-    internal static double HeadX(double @for, double width, double trackHeight) =>
-        trackHeight / 2 + (width - trackHeight) * Math.Clamp(@for, 0, 1);
-
-    internal static double FillOpacity(double @for)
-    {
-        const double start = 0.012;
-        const double end = 0.05;
-        if (@for <= start)
-            return 0;
-        if (@for >= end)
-            return 1;
-        var t = (@for - start) / (end - start);
-        return t * t * (3 - 2 * t);
-    }
 
     private sealed class ProgressPeer(UpdateProgressSlider owner) : ControlAutomationPeer(owner), IValueProvider
     {
@@ -644,249 +545,6 @@ public sealed class UpdateProgressSlider : Decorator
 
         public void SetValue(string? value) =>
             throw new InvalidOperationException("The progress value is read-only.");
-    }
-}
-
-internal sealed record SparkleParticle
-{
-    public required double X { get; init; }
-    public required double Y { get; init; }
-    public required double Size { get; init; }
-    public required double Speed { get; init; }
-    public required double Phase { get; init; }
-    public required double Drift { get; init; }
-
-    public static ValueList<SparkleParticle> Field(long count, ulong seed)
-    {
-        var state = seed;
-        double Next()
-        {
-            unchecked
-            {
-                state += 0x9E37_79B9_7F4A_7C15UL;
-                var z = state;
-                z = (z ^ (z >> 30)) * 0xBF58_476D_1CE4_E5B9UL;
-                z = (z ^ (z >> 27)) * 0x94D0_49BB_1331_11EBUL;
-                z ^= z >> 31;
-                return (z >> 11) / 9007199254740992.0;
-            }
-        }
-
-        var particles = new List<SparkleParticle>((int)Math.Max(0, count));
-        for (var index = 0L; index < count; index++)
-        {
-            particles.Add(new SparkleParticle
-            {
-                X = Next(),
-                Y = 0.12 + Next() * 0.76,
-                Size = 1.2 + Next() * 1.6,
-                Speed = 0.9 + Next() * 2.4,
-                Phase = Next() * Math.PI * 2,
-                Drift = 0.6 + Next() * 1.4,
-            });
-        }
-        return new ValueList<SparkleParticle>(particles);
-    }
-}
-
-internal sealed class ProgressTrack : Panel
-{
-    private readonly Border track;
-    private readonly FillCanvas fill;
-    private readonly Border head;
-    private readonly double trackHeight;
-    private readonly double headDiameter;
-    private double fraction;
-    private double width;
-
-    public ProgressTrack(
-        double fraction,
-        double trackHeight,
-        double headDiameter,
-        IReadOnlyList<SwiftColor> colors,
-        IReadOnlyList<SparkleParticle> sparkles)
-    {
-        this.fraction = fraction;
-        this.trackHeight = trackHeight;
-        this.headDiameter = headDiameter;
-        track = new Border { HorizontalAlignment = HorizontalAlignment.Stretch }.Capsule(RoundedCornerStyle.Circular); // :402-405 Capsule()
-        fill = new FillCanvas(fraction, trackHeight, colors, sparkles) { IsHitTestVisible = false }; // :409 allowsHitTesting(false)
-        var inner = new Ellipse
-        {
-            Width = headDiameter * 0.64,
-            Height = headDiameter * 0.64,
-            Fill = new SolidColorBrush(Color.FromArgb(245, 255, 255, 255)),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        head = new Border { Width = headDiameter, Height = headDiameter, Child = inner };
-        AutomationProperties.SetAccessibilityView(track, AccessibilityView.Raw);
-        AutomationProperties.SetAccessibilityView(fill, AccessibilityView.Raw);
-        AutomationProperties.SetAccessibilityView(head, AccessibilityView.Raw);
-        AutomationProperties.SetAccessibilityView(inner, AccessibilityView.Raw);
-        Children.Add(track);
-        Children.Add(fill);
-        Children.Add(head);
-        UpdateTheme(ActualThemeVariant);
-    }
-
-    public void SetFraction(double value)
-    {
-        fraction = value;
-        fill.SetFraction(value, width, trackHeight);
-        InvalidateArrange();
-    }
-
-    public void SetReduceMotion(bool reduceMotion) => fill.SetReduceMotion(reduceMotion);
-
-    public void UpdateTheme(ThemeVariant? theme)
-    {
-        var dark = PlainControls.IsDark(theme);
-        track.Background = dark
-            ? new SolidColorBrush(Color.FromArgb(26, 255, 255, 255))
-            : new SolidColorBrush(Color.FromArgb(18, 0, 0, 0));
-    }
-
-    protected override Size MeasureOverride(Size availableSize)
-    {
-        var measuredWidth = double.IsFinite(availableSize.Width) ? availableSize.Width : 104;
-        track.Measure(new Size(measuredWidth, trackHeight));
-        fill.Measure(new Size(measuredWidth, trackHeight));
-        head.Measure(new Size(headDiameter, headDiameter));
-        return new Size(measuredWidth, headDiameter);
-    }
-
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        width = finalSize.Width;
-        var y = (finalSize.Height - trackHeight) / 2;
-        track.Arrange(new Rect(0, y, finalSize.Width, trackHeight));
-        fill.Arrange(new Rect(0, y, finalSize.Width, trackHeight));
-        fill.SetFraction(fraction, finalSize.Width, trackHeight);
-        var x = UpdateProgressSlider.HeadX(fraction, finalSize.Width, trackHeight) - headDiameter / 2;
-        head.Arrange(new Rect(x, (finalSize.Height - headDiameter) / 2, headDiameter, headDiameter));
-        return finalSize;
-    }
-}
-
-internal sealed class FillCanvas : Decorator
-{
-    private readonly Grid content;
-    private readonly Border gradient;
-    private readonly Canvas sparkleCanvas;
-    private readonly IReadOnlyList<SparkleParticle> allSparkles;
-    private readonly double trackHeight;
-    private IReadOnlyList<SparkleParticle> sparkles;
-    private readonly List<Ellipse> sparkleEllipses = [];
-    private double width;
-    private double currentTime;
-    private readonly ViewState animationState = new();
-
-    private sealed class ViewState : MainActorModel
-    {
-        private bool paused;
-        public bool Paused { get => Read(paused); set => Set(ref paused, value); }
-    }
-
-    public FillCanvas(double fraction, double trackHeight, IReadOnlyList<SwiftColor> colors, IReadOnlyList<SparkleParticle> sparkles)
-    {
-        this.trackHeight = trackHeight;
-        allSparkles = sparkles;
-        this.sparkles = sparkles;
-
-        var stops = new GradientStops();
-        for (var index = 0; index < colors.Count; index++)
-        {
-            stops.Add(new GradientStop(colors[index].Resolve(ThemeVariant.Light), index / (double)(colors.Count - 1)));
-        }
-        var brush = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
-            GradientStops = stops,
-        };
-        gradient = new Border { Background = brush };
-        sparkleCanvas = new Canvas();
-        AutomationProperties.SetAccessibilityView(gradient, AccessibilityView.Raw);
-        AutomationProperties.SetAccessibilityView(sparkleCanvas, AccessibilityView.Raw);
-        content = new Grid { Children = { gradient, sparkleCanvas } };
-        AutomationProperties.SetAccessibilityView(content, AccessibilityView.Raw); // :439 children ignored
-        Child = content;
-        BuildSparkles();
-        SetFraction(fraction, 0, trackHeight);
-        animationState.Paused = sparkles.Count == 0 || ScrollActivity.Shared.Current.IsScrolling;
-        this.TimelineView(
-            () => new AnimationTimelineSchedule(
-                1.0 / 30.0,
-                animationState.Paused || ScrollActivity.Shared.Current.IsScrolling),
-            date =>
-            {
-                currentTime = (date.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / (double)TimeSpan.TicksPerSecond;
-                UpdateSparkles(currentTime);
-            });
-    }
-
-    public void SetFraction(double value, double availableWidth, double height)
-    {
-        width = availableWidth;
-        Opacity = UpdateProgressSlider.FillOpacity(value);
-        var headX = UpdateProgressSlider.HeadX(value, availableWidth, trackHeight);
-        var revealWidth = Math.Max(headX, trackHeight / 2);
-        content.Clip = availableWidth > 0 && height > 0
-            ? new RectangleGeometry(new Rect(0, 0, Math.Min(revealWidth, availableWidth), height), Math.Min(revealWidth, height) / 2, Math.Min(revealWidth, height) / 2) // :458-462 circular clip, exact authored rectangle
-            : null;
-        UpdateSparkles(currentTime);
-    }
-
-    public void SetReduceMotion(bool reduceMotion)
-    {
-        sparkles = reduceMotion ? Array.Empty<SparkleParticle>() : allSparkles;
-        animationState.Paused = sparkles.Count == 0 || ScrollActivity.Shared.Current.IsScrolling;
-        BuildSparkles();
-        UpdateSparkles(currentTime);
-    }
-
-    private void BuildSparkles()
-    {
-        sparkleEllipses.Clear();
-        sparkleCanvas.Children.Clear();
-        foreach (var particle in sparkles)
-        {
-            var sparkle = new Ellipse
-            {
-                Width = particle.Size,
-                Height = particle.Size,
-                Fill = Brushes.White,
-                IsHitTestVisible = false,
-            };
-            sparkle.Classes.Add("update-sparkle");
-            AutomationProperties.SetAccessibilityView(sparkle, AccessibilityView.Raw);
-            sparkleEllipses.Add(sparkle);
-            sparkleCanvas.Children.Add(sparkle);
-        }
-    }
-
-    private void UpdateSparkles(double time)
-    {
-        currentTime = time;
-        if (width <= 0)
-            return;
-
-        var usableWidth = Math.Max(0, width - 10);
-        var usableHeight = Math.Max(0, trackHeight - 6);
-        for (var index = 0; index < sparkles.Count; index++)
-        {
-            var particle = sparkles[index];
-            var twinkle = 0.5 + 0.5 * Math.Sin(time * particle.Speed + particle.Phase);
-            var opacity = 0.08 + 0.72 * twinkle * twinkle;
-            var drift = Math.Sin(time * particle.Speed * 0.31 + particle.Phase * 2.1) * particle.Drift;
-            var x = 5 + particle.X * usableWidth + drift - particle.Size / 2;
-            var y = 3 + particle.Y * usableHeight - particle.Size / 2;
-            var sparkle = sparkleEllipses[index];
-            Canvas.SetLeft(sparkle, x);
-            Canvas.SetTop(sparkle, y);
-            sparkle.Opacity = Math.Min(1, opacity);
-        }
     }
 }
 
@@ -1048,33 +706,20 @@ internal sealed class AboutVersionPill : Decorator
     {
         if (snapshot.Phase is not (UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed))
         {
-            // PR-UPDATE-074 (CLOSED from the Swift, OD-0098): the 104 pt slider in the capsule for every phase, and the chase's response and
-            // minimum speed per phase, are asserted in AboutUpdateViewsProofGeometryTests and AboutUpdateViewsPillStateTests; neither
-            // reference video shows an install or its celebration (the recorded app was up to date), so :625-636 is the proof.
-            var slider = new SmoothedUpdateProgressSlider(
-                progress.UpdateInstallProgressFractionTarget,
-                response: EnvironmentValues.GetAccessibilityReduceMotion(this)
-                    ? 0.15
-                    : snapshot.Phase == UpdateInstallProgress.Phase.Celebrating ? 0.72 : 0.3,
-                minimumSpeed: snapshot.Phase == UpdateInstallProgress.Phase.Celebrating ? 0.12 : 0,
-                trackHeight: 14,
-                headDiameter: 20)
+            // nth motion pack step 10 (OD-0136 amendment 2): the 168 x 26 install capsule stands in the pill's slot in place of the 104 pt slider with its head and sparkles (which the owner discarded: no knob, no
+            // sparks). It is a capsule of its own (the pack's track colour), centred in the pill's height, with no glass around it.
+            var slider = new SmoothedUpdateProgressSlider(progress.UpdateInstallProgressFractionTarget)
             {
-                Width = 104,
-                Height = Chrome.CapsuleContentHeight,
+                Width = UpdateInstallCapsule.CapsuleWidth,
+                Height = UpdateInstallCapsule.CapsuleHeight,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
             };
-            var inner = new Border
+            return new Border
             {
-                Width = 104,
-                Height = Chrome.CapsuleContentHeight,
+                Height = Chrome.CapsuleContentHeight + Chrome.CapsuleVerticalPadding * 2,
                 Child = slider,
             };
-            var padded = new Border
-            {
-                Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
-                Child = inner,
-            };
-            return padded.ChromeGlassCapsule();
         }
 
         // PR-UPDATE-072 (CLOSED, OD-0098): the Up to date chip is compared with the reference frame (AboutUpdateViewsChipCaptureTests); Check failed

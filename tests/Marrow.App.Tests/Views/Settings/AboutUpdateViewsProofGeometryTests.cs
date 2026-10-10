@@ -185,11 +185,11 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-180")] // PR-UPDATE-074: the Swift is the proof where no frame exists (OD-0098); every phase is walked below.
-    [Trait("Req", "PR-UPDATE-074")] // App/Views/Settings/AboutUpdateViews.swift:625-636: 104 pt slider in the capsule (12/28/2), no label or button, failed phase not in the set
+    [Trait("Req", "PR-UPDATE-074")] // App/Views/Settings/AboutUpdateViews.swift:625-636, replaced by the nth install capsule (motion pack step 10): no button, failed phase not in the set
     [Trait("Req", "UI-UPDATE-006")] // App/Views/Settings/AboutUpdateViews.swift:625-636; App/AppUpdater.swift:72-78
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:625-636
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:625-636 (104-point slider in the glass capsule)
-    public void Every_progress_phase_replaces_the_face_at_104_plus_padding_and_failure_restores_it() => headless.OnUiThread(() =>
+    public void Every_progress_phase_replaces_the_face_with_the_168_by_26_install_capsule_in_the_pills_height_and_failure_restores_it() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var source = new ManualFrameSource(); using var frames = FrameClock.Source.Override(source);
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
@@ -204,12 +204,11 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             {
                 Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source); // a face and the slider swap over 0.18 s (OD-0076): the phase is read once that is over
                 var slider = Assert.Single(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>());
-                Assert.Equal(104, slider.Width); Assert.Equal(28, slider.Height);
-                var padded = Assert.Single(pill.GetVisualDescendants().OfType<Border>(), b => b.Padding != default);
-                Assert.Equal(new Thickness(12, 2), padded.Padding);
-                Assert.Equal(128, pill.Bounds.Width); Assert.Equal(32, pill.Bounds.Height); Assert.Equal(startY, pill.Bounds.Y);
+                // nth motion pack step 10: a 168 x 26 capsule of its own (no glass around it), centred in the 32 pt the pill's other faces take; its label is drawn by the capsule, not a TextBlock
+                Assert.Equal(168, slider.Width); Assert.Equal(26, slider.Height);
+                Assert.Equal(168, pill.Bounds.Width); Assert.Equal(32, pill.Bounds.Height); Assert.Equal(startY, pill.Bounds.Y);
+                Assert.Equal(3, slider.Bounds.Y, 0.5); // (32 - 26) / 2
                 Assert.Empty(pill.GetVisualDescendants().OfType<Button>()); Assert.Empty(pill.GetVisualDescendants().OfType<TextBlock>());
-                Glass(pill);
                 var value = Assert.Single(pill.GetVisualDescendants().OfType<UpdateProgressSlider>()).Fraction;
                 Click(slider, window); Assert.Equal(value, Assert.Single(pill.GetVisualDescendants().OfType<UpdateProgressSlider>()).Fraction);
             }

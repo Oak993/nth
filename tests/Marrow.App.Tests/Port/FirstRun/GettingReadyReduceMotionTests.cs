@@ -1,7 +1,7 @@
-using Avalonia.VisualTree;
 using Marrow.App.Port.FirstRun;
 using Marrow.App.Tests.Fixtures;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.App.Tests.Port.FirstRun;
 
@@ -23,11 +23,13 @@ public sealed class GettingReadyReduceMotionTests(HeadlessSession headless)
         var row = rig.Sheet.Rows[0];
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Running, 0));
         rig.Frame(Frame);
-        Assert.Equal((1.0, 1.0, 0.0, 1.0), (row.SpinnerOpacity, row.SpinnerScale, row.DotOpacity, row.LabelOpacity));
+        // the label's ink is at its end in the same frame (a still sheet moves nothing), and the status mark is told at once; its own change is the pack's calm cross-fade
+        Assert.Equal((NthStatus.Working, GettingReadyRowView.InkFor(FirstRunStepState.Running).Resolve(rig.Sheet.ActualThemeVariant)), (row.Status, row.LabelColour));
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Done, 1));
         rig.Frame(Frame);
-        Assert.Equal((1.0, 1.0, 0.0), (row.CheckOpacity, row.CheckScale, row.SpinnerOpacity));
-        Assert.Equal(1.0 / 6, rig.Sheet.BarFraction, 9);
+        Assert.Equal((NthStatus.Done, GettingReadyRowView.InkFor(FirstRunStepState.Done).Resolve(rig.Sheet.ActualThemeVariant)), (row.Status, row.LabelColour));
+        Assert.True(row.StatusMark.Calm);
+        Assert.Equal(1.0 / 6, rig.Sheet.BarTarget, 9); // the bar's calm spring is a 0.1 s ease
     });
 
     [Fact] // GR-2.reduce
@@ -69,14 +71,18 @@ public sealed class GettingReadyReduceMotionTests(HeadlessSession headless)
 
     [Fact] // GR-2.reduce
     [Trait("Decision", "ED-231")]
-    public void The_spinner_keeps_turning_under_reduce_motion() => headless.OnUiThread(() =>
+    public void The_spinner_keeps_going_under_reduce_motion_as_the_packs_calm_pulse() => headless.OnUiThread(() =>
     {
         using var rig = new GettingReadyRig(reduceMotion: true);
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Running, 0));
         rig.Frame(Frame);
-        var spinner = rig.Sheet.Rows[0].Mark.GetVisualDescendants().OfType<SystemSpinner>().Single();
-        var leads = new HashSet<int> { spinner.Lead };
-        rig.Run(1.2, _ => leads.Add(spinner.Lead));
-        Assert.Equal(SystemSpinner.Spokes, leads.Count);
+        var mark = rig.Sheet.Rows[0].StatusMark;
+        Assert.Equal(NthStatus.Working, mark.Status);
+        Assert.True(mark.Calm); // step 1 "Calm": the line stands still on the tile and its opacity eases 0.6 to 1 every 2.4 s, for as long as the step runs
+        var frame = mark.Snapshot();
+        using var painter = new NthStatusPainter();
+        var now = NthFrame.Seconds(frame.Clock);
+        Assert.True(painter.Moving(frame, now));
+        Assert.True(painter.Moving(frame, now + 60));
     });
 }

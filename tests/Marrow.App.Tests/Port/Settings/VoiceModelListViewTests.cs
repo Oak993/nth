@@ -180,8 +180,8 @@ public sealed class VoiceModelListViewTests(HeadlessSession headless)
         scene.Until(() => tiny.StateColumn.PercentText == "37%");
         Assert.Equal(.37, tiny.Bar.Target, 0.001);
         scene.Advance(50);
-        Assert.InRange(tiny.Bar.Fraction, 0, .37); // linear over 0.18 s
-        scene.Advance(300);
+        Assert.InRange(tiny.Bar.Fraction, 0.0001, .37); // the fill is on its way: the nth bar springs to it (motion pack step 3: critically damped, stiffness 110)
+        scene.Advance(1500); // (1 + 10.5 * 1.55) e^(-10.5 * 1.55) is under 0.00001 of the gap
         Assert.Equal(.37, tiny.Bar.Fraction, 0.001);
         Assert.Null(scene.Model.Settings.VoiceTyping.Model); // Download never selects
         backend.Finish("tiny-q5_1");

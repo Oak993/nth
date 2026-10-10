@@ -45,7 +45,9 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
         var line = Fixture(frame.GetProperty("sub"));
         Near(Taller(line, extra), rig.Rect(rig.Sheet.LineText), "the line");
         Near(Fixture(frame.GetProperty("list"), extra), rig.Rect(rig.Sheet.List), "the list");
-        Near(Fixture(frame.GetProperty("bar"), extra), rig.Rect(rig.Sheet.BarTrack), "the bar's track");
+        // step 15: the percentage sits at the bar's right (a 34 px figure and a 10 px gap), so the track is that much shorter than the full-width one the page was measured with; its place and its 4 px height are the fixture's
+        var barTrack = Fixture(frame.GetProperty("bar"), extra);
+        Near(new Rect(barTrack.X, barTrack.Y, barTrack.Width - GettingReadyLook.PercentWidth - GettingReadyLook.PercentGap, barTrack.Height), rig.Rect(rig.Sheet.BarTrack), "the bar's track");
         Assert.Equal(0, rig.Rect(rig.Sheet.Card).Top, 3); // it hangs from the top edge
         Assert.Equal((GettingReadyRig.PaneWidth - GettingReadyLook.SheetWidth) / 2, rig.Rect(rig.Sheet.Card).Left, 3); // centred on the detail pane
     });
@@ -128,11 +130,15 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
         using var rig = new GettingReadyRig();
         Assert.Equal(GettingReadyFixture.Title, rig.Sheet.TitleWord);
         Assert.Equal(GettingReadyFixture.Line, ((TextBlock)rig.Sheet.LineText).Text);
-        Assert.Equal(0, rig.Rect(rig.Sheet.BarFill).Width, 3); // nothing is done yet
+        Assert.Equal(0, rig.Sheet.BarFraction, 3); // nothing is done yet
         var track = rig.Rect(rig.Sheet.BarTrack);
+        Assert.Equal(4, track.Height, 3); // step 15: the 4 px bar
         rig.Sheet.Report(GettingReadyRig.Event(rig.Plan[0], 0, 6, FirstRunStepState.Done, 1));
-        rig.Run(0.4);
-        Assert.Equal(track.Width / 6, rig.Rect(rig.Sheet.BarFill).Width, 2);
-        Assert.Equal(track.Left, rig.Rect(rig.Sheet.BarFill).Left, 3); // it fills from the left, as the fixture's transform-origin
+        rig.Run(1.2);
+        Assert.Equal(1.0 / 6, rig.Sheet.BarFraction, 2); // the fill is one sixth of the track
+        var percent = rig.Rect(rig.Sheet.Percent);
+        Assert.Equal(GettingReadyLook.PercentWidth, percent.Width, 3); // the figure: 34 px wide, 10 px from the track
+        Assert.Equal(track.Right + GettingReadyLook.PercentGap, percent.Left, 3);
+        Assert.Equal("16%", rig.Sheet.PercentText);
     });
 }

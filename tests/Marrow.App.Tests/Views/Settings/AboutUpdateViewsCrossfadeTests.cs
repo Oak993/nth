@@ -275,12 +275,12 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
                 return;
             }
             // install starts: the face fades out, the slider fades in
-            var standingWidth = pill.Bounds.Width; Assert.True(standingWidth > 128 + 4); // the standing is wider than the slider's capsule, so the width has somewhere to ease to
+            var standingWidth = pill.Bounds.Width; Assert.NotEqual(168, standingWidth, 4); // the standing is not the install capsule's width (nth motion pack step 10: 168), so the width has somewhere to ease to
             stage.Step(45); Assert.InRange(Shown(pill, "Not checked yet"), 0.80, 0.995); Assert.InRange(Slider(), 0.005, 0.20);
             stage.Step(45); Assert.InRange(Shown(pill, "Not checked yet"), 0.40, 0.60); Assert.InRange(Slider(), 0.40, 0.60);
-            Assert.Equal((standingWidth + 128) / 2, pill.Bounds.Width, 0.75); // the capsule eases from one width to the other
+            Assert.Equal((standingWidth + 168) / 2, pill.Bounds.Width, 0.75); // the capsule eases from one width to the other
             stage.Step(100); Assert.Empty(TextHosts(pill, "Not checked yet")); Assert.Equal(1, Slider()); Assert.Single(pill.GetVisualDescendants().OfType<UpdateProgressSlider>());
-            Assert.Equal(128, pill.Bounds.Width, 0.5);
+            Assert.Equal(168, pill.Bounds.Width, 0.5);
             // it fails: the slider fades out, the face (Failed shows the standing) fades in
             stage.Progress.Fail(); Dispatcher.UIThread.RunJobs();
             stage.Step(90); Assert.InRange(Slider(), 0.40, 0.60); Assert.InRange(Shown(pill, "Not checked yet"), 0.40, 0.60);

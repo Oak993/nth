@@ -62,6 +62,8 @@ internal sealed class UpdatesRowControl : Border
 
         ProgressBar = new UpdatesProgressBar { Margin = new Thickness(0, 2, 0, 8) };
         ProgressFold = new CzFoldRow(ProgressBar, view.ShowProgress);
+        ProgressBar.SetDrawn(view.ShowProgress);
+        ProgressFold.PropertyChanged += (_, e) => { if (e.Property == Visual.OpacityProperty) ProgressBar.SetDrawn(ProgressFold.Opacity > 0); }; // a shut fold draws no light
 
         failureBlock = new TextBlock { TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
         SwiftFont.System(12).Apply(failureBlock);

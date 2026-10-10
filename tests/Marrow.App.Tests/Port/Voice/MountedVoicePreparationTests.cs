@@ -54,8 +54,8 @@ public sealed class MountedVoicePreparationTests(HeadlessSession headless)
                 Assert.Equal(1, models.Installs);
                 Assert.Empty(engine.Loads);
                 var ring = LogicalQuery.SelfAndDescendants<VoicePreparationRing>(Pill(view)).Single();
-                Assert.Equal(16, ring.Bounds.Width);
-                Assert.Equal(16, ring.Bounds.Height);
+                Assert.Equal(18, ring.Bounds.Width); // the nth ring at 18 (motion pack step 4: 14, 18 or 20), where the locked qring was 16
+                Assert.Equal(18, ring.Bounds.Height);
                 Assert.Equal(.36, ring.Fraction, 6);
                 var point = ring.TranslatePoint(default, window)!.Value;
                 var crop = new Avalonia.Rect(point, ring.Bounds.Size);
@@ -69,7 +69,8 @@ public sealed class MountedVoicePreparationTests(HeadlessSession headless)
                 rig.Main.OnMain(() => models.Report(.52));
                 rig.PumpWindow(window);
                 rig.Elapse(window, .15);
-                Assert.Equal(.36 + .16 * CssCurves.Ease(.5), ring.Fraction, .002); // locked qring .3s ease
+                // the ring springs (motion pack step 3 spring: critically damped, stiffness 110) from .36 to .52, read 0.15 s after
+                Assert.Equal(.52 + (.36 - .52) * (1 + Marrow.UI.Port.Nth.NthSpring.Omega * .15) * Math.Exp(-Marrow.UI.Port.Nth.NthSpring.Omega * .15), ring.Fraction, .02);
                 rig.Elapse(window, .15);
                 Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(Pill(view)), text => text.Text == "455 of 874 MB");
                 rig.Main.OnMain(() => Click(Pill(view).Cross));

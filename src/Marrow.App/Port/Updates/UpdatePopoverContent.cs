@@ -10,6 +10,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Port.Updates;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Chrome = Marrow.UI.Chrome.Chrome;
 
 namespace Marrow.App.Port.Updates;
@@ -33,6 +34,7 @@ internal sealed class UpdatePopoverContent : Decorator
     private readonly ForEach<UpdatePillRow, string> rows;
     private UpdatePillState? shown;
     private string? actionKey;
+    private UpdatePillPhase? lastPhase;
     private Control? banner;
     private bool bannerWanted;
     private OpacityCrossfade? bannerTitle;
@@ -92,12 +94,16 @@ internal sealed class UpdatePopoverContent : Decorator
         shown = state;
         Transaction.WithAnimation(animation, () =>
         {
-            Show(title, state.Title, 13, SwiftFont.Weight.Semibold, Chrome.PrimaryText);
+            // step 10: at 100 % the title cross-fades over 0.25 s
+            if (animation is not null && title.Current is TextBlock && state.Phase is UpdatePillPhase.Restart or UpdatePillPhase.Done && lastPhase == UpdatePillPhase.Running)
+                Transaction.WithAnimation(Animation.EaseOut(0.25), () => Show(title, state.Title, 13, SwiftFont.Weight.Semibold, Chrome.PrimaryText));
+            else Show(title, state.Title, 13, SwiftFont.Weight.Semibold, Chrome.PrimaryText);
             Show(detail, state.Detail, 11, SwiftFont.Weight.Regular, Chrome.SecondaryText, wraps: true);
             ShowAction(state);
             ShowBanner(state, animation);
             rows.Apply(state.Rows);
         });
+        lastPhase = state.Phase;
     }
 
     private static void Show(OpacityCrossfade into, string text, double size, SwiftFont.Weight weight, SwiftColor color, bool wraps = false)
@@ -115,7 +121,15 @@ internal sealed class UpdatePopoverContent : Decorator
         if (key == actionKey) return;
         actionKey = key;
         var act = state.Action;
-        action.Show(SmallAccentGlassButton.Create(state.ButtonText, () => service.Perform(act), state.ButtonEnabled));
+        var button = SmallAccentGlassButton.Create(state.ButtonText, () => service.Perform(act), state.ButtonEnabled);
+        // step 10: when the run reaches 100 % the button for what is next rises 6 to 0 px over 0.32 s (the cross-fade of the words around it is the card's own)
+        if (lastPhase == UpdatePillPhase.Running && state.Phase is UpdatePillPhase.Restart or UpdatePillPhase.Done && action.Current is not null)
+        {
+            var rising = new Decorator { Child = button };
+            action.Show(rising);
+            NthArrive.Rise(rising, 6, .32);
+        }
+        else action.Show(button);
     }
 
     private void ShowBanner(UpdatePillState state, Animation? animation)
@@ -288,7 +302,7 @@ internal sealed class UpdateRowView : Decorator
             "check" => SwiftImage.SystemName("checkmark.circle.fill").Font(SwiftFont.System(12, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759)),
             "dot-accent" => Dot(Chrome.Accent),
             "dot-grey" => Dot(Chrome.SecondaryText),
-            "spinner" => new SystemSpinner(),
+            "spinner" => new NthSpinner(),
             "restart" => SwiftImage.SystemName("arrow.clockwise").Font(SwiftFont.System(11, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent),
             "warning" => SwiftImage.SystemName("exclamationmark.triangle.fill").Font(SwiftFont.System(12, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.Orange),
             _ => null,

@@ -140,79 +140,7 @@ public sealed class AboutUpdateViewsSecondTests(HeadlessSession headless)
         });
     }
 
-    // MARK: - UpdateProgressSlider pure geometry and colour (:382-524)
-
-    [Theory]
-    [InlineData(0.0, 7.0)] // :427 trackHeight/2 at value 0, default track 14
-    [InlineData(1.0, 97.0)] // trackHeight/2 + (104-14)*1 = 7 + 90
-    [InlineData(0.5, 52.0)] // 7 + 90*0.5
-    [Trait("Req", "PR-UPDATE-109")] // AboutUpdateViews.swift:426-428
-    [Trait("Req", "UI-UPDATE-008")] // AboutUpdateViews.swift:426-428
-    public void HeadX_travels_between_the_two_end_cap_centres_over_a_104_point_slider(double value, double expected)
-    {
-        Assert.Equal(expected, UpdateProgressSlider.HeadX(value, width: 104, trackHeight: 14), 6);
-    }
-
-    [Fact]
-    [Trait("Req", "PR-UPDATE-109")] // AboutUpdateViews.swift:427 CGFloat(min(max(value, 0), 1))
-    public void HeadX_clamps_the_fraction_to_0_and_1()
-    {
-        Assert.Equal(UpdateProgressSlider.HeadX(0, 104, 14), UpdateProgressSlider.HeadX(-5, 104, 14));
-        Assert.Equal(UpdateProgressSlider.HeadX(1, 104, 14), UpdateProgressSlider.HeadX(5, 104, 14));
-    }
-
-    [Theory]
-    [InlineData(0.0, 0.0)] // below start -> 0
-    [InlineData(0.011, 0.0)]
-    [InlineData(0.05, 1.0)] // at or above end -> 1
-    [InlineData(0.2, 1.0)]
-    [Trait("Req", "PR-UPDATE-108")] // AboutUpdateViews.swift:431-437
-    public void FillOpacity_is_zero_below_start_and_one_at_or_above_end(double fraction, double expected)
-    {
-        Assert.Equal(expected, UpdateProgressSlider.FillOpacity(fraction));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-UPDATE-108")] // AboutUpdateViews.swift:436-437
-    public void FillOpacity_follows_the_smoothstep_polynomial_between_start_and_end()
-    {
-        var midpoint = (0.012 + 0.05) / 2.0;
-        var t = (midpoint - 0.012) / (0.05 - 0.012);
-        var expected = t * t * (3 - 2 * t); // :437, smoothstep is exactly 0.5 at the midpoint by symmetry
-        Assert.Equal(0.5, expected, 10);
-        Assert.Equal(expected, UpdateProgressSlider.FillOpacity(midpoint), 10);
-
-        // Monotonic within the ramp.
-        Assert.True(UpdateProgressSlider.FillOpacity(0.02) < UpdateProgressSlider.FillOpacity(0.03));
-        Assert.True(UpdateProgressSlider.FillOpacity(0.03) < UpdateProgressSlider.FillOpacity(0.04));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-UPDATE-111")] // AboutUpdateViews.swift:390-394
-    [Trait("Req", "UI-UPDATE-007")] // AboutUpdateViews.swift:390-394
-    public void The_fill_gradient_is_the_fixed_three_stop_literal_in_both_themes()
-    {
-        headless.OnUiThread(() =>
-        {
-            using var frames = FrameClock.Source.Override(new ManualFrameSource());
-            var slider = new UpdateProgressSlider(0.5);
-            var window = Show(slider);
-            var brush = slider.GetVisualDescendants().OfType<Border>()
-                .Select(border => border.Background).OfType<LinearGradientBrush>().First();
-            var stops = brush.GradientStops;
-            Assert.Equal(3, stops.Count);
-            Assert.Equal(Color.FromRgb(0x67, 0xB9, 0xEE), stops[0].Color); // :391
-            Assert.Equal(Color.FromRgb(0x1A, 0x77, 0xB4), stops[1].Color); // :392
-            Assert.Equal(Color.FromRgb(0x12, 0x6C, 0xAF), stops[2].Color); // :393
-
-            window.RequestedThemeVariant = ThemeVariant.Dark;
-            Dispatcher.UIThread.RunJobs();
-            var darkBrush = slider.GetVisualDescendants().OfType<Border>()
-                .Select(border => border.Background).OfType<LinearGradientBrush>().First();
-            Assert.Equal(stops.Select(stop => stop.Color), darkBrush.GradientStops.Select(stop => stop.Color));
-            window.Close();
-        });
-    }
+    // MARK: - UpdateProgressSlider accessibility (:420-422). The slider's head, fill gradient and sparkle field (:382-524) were replaced by the nth install capsule (motion pack step 10); its drawing is proven in NthSitesBTests.
 
     [Fact]
     [Trait("Req", "PR-UPDATE-107")] // AboutUpdateViews.swift:420-422
@@ -253,60 +181,6 @@ public sealed class AboutUpdateViewsSecondTests(HeadlessSession headless)
                 CultureInfo.CurrentCulture = originalCulture;
                 CultureInfo.CurrentUICulture = originalUiCulture;
             }
-        });
-    }
-
-    // MARK: - Sparkle field determinism (:494-524)
-
-    [Fact]
-    [Trait("Req", "PR-UPDATE-110")] // AboutUpdateViews.swift:502-523
-    [Trait("Req", "UI-UPDATE-009")] // AboutUpdateViews.swift:502-523
-    public void Field_produces_fourteen_particles_deterministically_from_the_seed()
-    {
-        var field = SparkleParticle.Field(14, 0x5EED_D80B);
-        Assert.Equal(14, field.Count); // :395 count: 14
-        var again = SparkleParticle.Field(14, 0x5EED_D80B);
-        Assert.Equal(field, again); // same seed, same sequence
-
-        // First particle, computed by hand from the same SplitMix64 recurrence at :506-511 seeded 0x5EEDD80B,
-        // walked in the source's own draw order x, y, size, speed, phase, drift (:513-521); not read from the
-        // C# under test (R-TEST-4).
-        var first = field[0];
-        Assert.Equal(0.14227714622904464, first.X, 12);
-        Assert.Equal(0.57059065349669102, first.Y, 12); // :516 0.12 + next()*0.76
-        Assert.Equal(1.415433605072985, first.Size, 10); // :517 1.2 + next()*1.6
-        Assert.Equal(1.7804096046289621, first.Speed, 10); // :518 0.9 + next()*2.4
-        Assert.Equal(3.962854788881442, first.Phase, 9); // :519 next() * pi * 2
-        Assert.Equal(1.2641436300426923, first.Drift, 10); // :521 0.6 + next()*1.4
-    }
-
-    [Fact]
-    [Trait("Req", "PR-UPDATE-110")] // AboutUpdateViews.swift:513-516
-    public void Every_particle_stays_within_its_documented_normalised_bounds()
-    {
-        var field = SparkleParticle.Field(14, 0x5EED_D80B);
-        foreach (var p in field)
-        {
-            Assert.InRange(p.X, 0.0, 1.0); // :515 next() in [0, 1)
-            Assert.InRange(p.Y, 0.12, 0.88); // :516 0.12 + next()*0.76
-            Assert.InRange(p.Size, 1.2, 2.8); // :517
-            Assert.InRange(p.Speed, 0.9, 3.3); // :518
-            Assert.InRange(p.Phase, 0.0, Math.PI * 2); // :519
-            Assert.InRange(p.Drift, 0.6, 2.0); // :521
-        }
-    }
-
-    [Fact]
-    [Trait("Req", "PR-UPDATE-110")] // AboutUpdateViews.swift:406-409
-    public void Reduce_motion_shows_no_sparkles_at_all()
-    {
-        headless.OnUiThread(() =>
-        {
-            var slider = new UpdateProgressSlider(0.5);
-            EnvironmentValues.SetAccessibilityReduceMotion(slider, true); // :387, R-VIEW-6
-            var window = Show(slider);
-            Assert.Equal(0, slider.GetVisualDescendants().OfType<Ellipse>().Count(ellipse => ellipse.Classes.Contains("update-sparkle"))); // :408 reduceMotion ? [] : Self.sparkles
-            window.Close();
         });
     }
 
