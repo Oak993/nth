@@ -28,6 +28,7 @@ public sealed class BootStageWindow
     private bool warmTried;
     private bool cloaked;
     private bool following;
+    private readonly IDisposable idleHold;
 
     /// <summary>The stage control (for tests).</summary>
     internal AuroraBootStage Stage => stage;
@@ -86,6 +87,9 @@ public sealed class BootStageWindow
         // T44: HWND destruction performs a synchronous compositor commit. Never reenter it from RenderCore.
         stage.Closed += (_, _) => Dispatcher.UIThread.Post(Finish, DispatcherPriority.Background);
         stageWindow.Closed += (_, _) => FinishWithoutClosing();
+        // ED-NEW-launch-fix (6): the idle warm-ups (the model chips') compile nothing on the render thread while B draws; a
+        // stage that is not shown (closed, never opened) holds nothing
+        idleHold = Marrow.App.Views.Composer.GpuWarmup.HoldIdle(() => stageWindow.IsVisible);
     }
 
     /// <summary>The main window cloaked early (ED-236); false until then, and for good where it cannot be cloaked (tests).</summary>
@@ -212,6 +216,7 @@ public sealed class BootStageWindow
     private void Finish()
     {
         using var work = AuroraBootTrace.Begin("Boot: finish");
+        idleHold.Dispose(); // ED-NEW-launch-fix (6)
         stage.FrameChanged -= OnFrame;
         presentation.Restore();
         if (cloaked)
@@ -230,6 +235,7 @@ public sealed class BootStageWindow
 
     private void FinishWithoutClosing()
     {
+        idleHold.Dispose(); // ED-NEW-launch-fix (6)
         stage.FrameChanged -= OnFrame; presentation.Restore();
         if (cloaked) { cloaked = false; cloak(main, false); }
         if (content is not null) { content.Opacity = 1; content.RenderTransform = null; content.Clip = null; }
