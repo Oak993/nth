@@ -12,7 +12,7 @@ public static class Tour
     private static readonly ValueList<TourPage> pages = new(new[]
     {
         // DEVIATION OD-0012: the Windows welcome title and description are truthful to the port.
-        new TourPage("tour-welcome", "Welcome to Marrow", "One native Windows window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same glass."),
+        new TourPage("tour-welcome", "Welcome to Nth", "One native Windows window for every coding agent you use. Claude, Codex, Gemini, Copilot and more, each in its own thread, on the same glass."),
         new TourPage("tour-hydra", "Meet Hydra", "One chat, many heads. The lead writes the briefs, sends helper agents out in parallel, each in a copy of your project, and their work lands back in your checkout."),
         new TourPage("tour-pairs", "Pair a strong lead with quick heads", "Put a Claude lead over Gemini or OpenCode heads. Pick the pair from the model picker, cap how many heads run at once, and give each side its own effort."),
         new TourPage("tour-slider", "Effort, on a slider", "Drag from low to max on any model. In a pair the track blends the lead's colour into the heads', fast mode streaks toward the knob, and the title opens the model picker."),

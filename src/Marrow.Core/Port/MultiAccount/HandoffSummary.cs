@@ -35,7 +35,7 @@ public sealed record HandoffSummary(string Text, string FullConversation, string
 
         var full = JsonSerializer.Serialize(context, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
         var text = new StringBuilder();
-        text.Append("Marrow handoff: recorded context for continuing this task.\n")
+        text.Append("Nth handoff: recorded context for continuing this task.\n")
             .Append("Full conversation, including all shortened output: ").Append(handoffFile).Append('\n')
             .Append("Use the archive to look up any missing detail. No tool should be repeated merely because its output was shortened.\n")
             .Append("Task:\n").Append(context.Task).Append('\n');

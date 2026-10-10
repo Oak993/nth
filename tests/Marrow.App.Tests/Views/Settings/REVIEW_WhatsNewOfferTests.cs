@@ -53,7 +53,7 @@ public sealed class REVIEW_WhatsNewOfferTests(HeadlessSession headless)
         using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
         var checker = Inject(runtime, Release("Plain prose summary of the release, no headings."));
         using var shared = UpdateChecker.OverrideShared(checker);
-        var item = new FakeUpdateItem("marrow", "Marrow", UpdateItemKind.Marrow, "1.7.0", "1.8.0");
+        var item = new FakeUpdateItem("marrow", "Nth", UpdateItemKind.Marrow, "1.7.0", "1.8.0");
         var service = runtime.OnMain(() => new UpdateEverythingService([item], () => throw new InvalidOperationException("Restart forbidden")));
         runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
         Control offer = sidebar ? new UpdatePopoverContent(service) : new UpdatesSettingsPage(service);

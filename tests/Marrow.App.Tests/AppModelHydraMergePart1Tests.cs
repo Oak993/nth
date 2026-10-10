@@ -296,7 +296,7 @@ public sealed class AppModelHydraMergePart1Tests
         Assert.Equal(0, r.Files);
         Assert.Contains("0 files (+0 −0) landed on `main`", Assert.Single(f.Notes), StringComparison.Ordinal);
         var create = Assert.Single(f.Forge.Calls(), c => c.Arguments.Contains("create"));
-        Assert.Equal("Opened by Marrow once its Hydra team finished.\n\n## Files", create.Arguments.Single(a => a.StartsWith("Opened by Marrow", StringComparison.Ordinal))); // :845,:866-868 join, no trailing newline when files is empty.
+        Assert.Equal("Opened by Nth once its Hydra team finished.\n\n## Files", create.Arguments.Single(a => a.StartsWith("Opened by Nth", StringComparison.Ordinal))); // :845,:866-868 join, no trailing newline when files is empty.
         Assert.Equal("team edit\n", f.Repo.Git("show", f.Repo.Git("branch", "--list", "hydra/*").Trim() + ":a.txt"));
     }
 

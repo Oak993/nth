@@ -7,7 +7,7 @@ public static class ImportWords
     // ---- the page
     public const string Action = "Import skills";
     public const string SectionHeading = "Imported skills";
-    public const string SectionNote = "Skills you brought in from other apps on this PC. Marrow gives them to your chats like any other skill.";
+    public const string SectionNote = "Skills you brought in from other apps on this PC. Nth gives them to your chats like any other skill.";
     public const string ActionNote = "Bring in skills that other AI apps keep on this PC. Nothing in those apps is changed.";
 
     // ---- the quiet line (OD-0118 addendum: found by itself)
@@ -25,8 +25,8 @@ public static class ImportWords
     public const string ModeHeading = "How to bring them in";
     public const string Copy = "Copy";
     public const string Link = "Link";
-    public const string CopyNote = "Marrow keeps its own copy. Later changes to the original are not picked up.";
-    public const string LinkNote = "Marrow reads the original each time, so changes to it are picked up. If the original goes away, the skill pauses.";
+    public const string CopyNote = "Nth keeps its own copy. Later changes to the original are not picked up.";
+    public const string LinkNote = "Nth reads the original each time, so changes to it are picked up. If the original goes away, the skill pauses.";
     public const string ChooseFolder = "Choose a folder…";
     public const string Cancel = "Cancel";
     public const string Close = "Close";
@@ -44,8 +44,8 @@ public static class ImportWords
     public const string Skip = "Skip";
     public const string ApplyToRest = "Do this for the rest";
     /// <summary>Lead-proposed (pre-merge review M2): shown under the imported skills when a newer Marrow wrote them.</summary>
-    public const string ReadOnlyNote = "These skills were saved by a newer Marrow, so they can\u2019t be changed here.";
-    public const string CouldNotSave = "Marrow couldn\u2019t save the imported skills. Nothing was changed.";
+    public const string ReadOnlyNote = "These skills were saved by a newer Nth, so they can\u2019t be changed here.";
+    public const string CouldNotSave = "Nth couldn\u2019t save the imported skills. Nothing was changed.";
 
     // ---- the result
     public const string Importing = "Importing…";

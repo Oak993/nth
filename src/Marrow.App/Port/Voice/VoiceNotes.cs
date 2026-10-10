@@ -23,7 +23,7 @@ public static class VoiceNotes
     private static readonly VoiceNoteContent Cancelled = new("cancelled", "Voice input cancelled", null, null, CancelledLength, false);
     private static readonly VoiceNoteContent NoSpeech = new("noSpeech", "No speech was heard", null, null, NoSpeechLength, false);
 
-    private static readonly VoiceNoteContent Blocked = new("blocked", "Microphone blocked. Allow Marrow in ", "Privacy & security > Microphone",
+    private static readonly VoiceNoteContent Blocked = new("blocked", "Microphone blocked. Allow Nth in ", "Privacy & security > Microphone",
         BlockedDestination, VoiceSession.BlockedLength, true);
 
     private static readonly VoiceNoteContent LocalPrivacy = new("privacy.local",

@@ -63,7 +63,7 @@ public sealed class ShortcutsTests
         (AppShortcut.ToggleTerminal, "toggleTerminal", AppShortcutSection.Window, "Toggle terminal", "Shows or hides the thread's terminal.", 0x24, Ctrl, "Ctrl+J", "j"),
         (AppShortcut.ToggleChanges, "toggleChanges", AppShortcutSection.Window, "Toggle changes", "Shows or hides the changes panel.", 0x20, Ctrl, "Ctrl+D", "d"),
         (AppShortcut.ToggleActivityView, "toggleActivityView", AppShortcutSection.Window, "Activity view", "Lists every thread by when it was last active.", 0x16, Ctrl | Alt, "Ctrl+Alt+U", "u"),
-        (AppShortcut.ShowMainWindow, "showMainWindow", AppShortcutSection.Window, "Show Marrow", "Brings the main window to the front.", null, default, null, null),
+        (AppShortcut.ShowMainWindow, "showMainWindow", AppShortcutSection.Window, "Show Nth", "Brings the main window to the front.", null, default, null, null),
         (AppShortcut.OpenSettings, "openSettings", AppShortcutSection.Window, "Settings", "Opens this window.", 0x33, Ctrl, "Ctrl+,", ","),
     ];
 
@@ -97,7 +97,7 @@ public sealed class ShortcutsTests
     private static readonly long[] ModifierKeyCodes = [0x2A, 0x36, 0x1D, 0xE01D, 0x38, 0xE038, 0xE05B, 0xE05C, 0x3A];
 
     private const string TypingRefusal = "Add Ctrl or Alt so typing still works."; // :326 (OD-0008 B7, ED-099 (4))
-    private const string ReservedRefusal = "Windows or Marrow already uses this chord."; // :329 (OD-0008 B8, ED-099 (4))
+    private const string ReservedRefusal = "Windows or Nth already uses this chord."; // :329 (OD-0008 B8, ED-099 (4))
     private const string ModifierRefusal = "Add a key to the modifiers."; // :324
     private const string MenuRefusal = "Menus cannot use this key."; // :328
 
@@ -396,7 +396,7 @@ public sealed class ShortcutsTests
             Assert.True(store.IsCustomized(AppShortcut.ShowMainWindow));
             Assert.Equal(Utf8("Ctrl+0"), Utf8(ShortcutStore.Label(AppShortcut.ShowMainWindow)!));
             Assert.Equal(Utf8(" (Ctrl+0)"), Utf8(ShortcutStore.Hint(AppShortcut.ShowMainWindow)));
-            Assert.Equal(Utf8("Show Marrow already uses this chord."), Utf8(store.Refusal(ctrl0, AppShortcut.NewThread)!));
+            Assert.Equal(Utf8("Show Nth already uses this chord."), Utf8(store.Refusal(ctrl0, AppShortcut.NewThread)!));
             Assert.Null(store.Refusal(ctrl0, AppShortcut.ShowMainWindow));
         });
         AssertStoredChord(runtime, "showMainWindow", 11, 2);
@@ -1243,7 +1243,7 @@ public sealed class ShortcutsTests
         {
             store.Set(null, AppShortcut.ToggleChanges);
             store.Set(ctrlD, AppShortcut.ShowMainWindow);
-            Assert.Equal(Utf8("Show Marrow already uses this chord."), Utf8(store.Refusal(ctrlD, AppShortcut.NewThread)!));
+            Assert.Equal(Utf8("Show Nth already uses this chord."), Utf8(store.Refusal(ctrlD, AppShortcut.NewThread)!));
         });
     }
 
@@ -2056,7 +2056,7 @@ public sealed class ShortcutsTests
     {
         using var runtime = new TestRuntime();
         var store = Load(runtime);
-        Assert.Equal("Windows or Marrow already uses this chord.", ReservedRefusal);
+        Assert.Equal("Windows or Nth already uses this chord.", ReservedRefusal);
         Assert.Equal(18, Reserved.Length);
         OnMain(runtime, store, () =>
         {

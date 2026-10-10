@@ -51,7 +51,7 @@ public sealed class ParityTailLicensesTests(HeadlessSession headless) : Settings
             var blocks = Assert.IsType<Avalonia.Controls.StackPanel>(scroll.Content);
             Assert.Equal(18, blocks.Spacing);
             Assert.Equal(new Avalonia.Thickness(18), blocks.Margin);
-            Assert.Equal(new[] { "Marrow", "Third-party notices", "Trademarks" }, blocks.Children.Select(block => Text(block).First()));
+            Assert.Equal(new[] { "Nth", "Third-party notices", "Trademarks" }, blocks.Children.Select(block => Text(block).First()));
             foreach (var block in blocks.Children)
             {
                 var column = Assert.IsType<Avalonia.Controls.StackPanel>(block);

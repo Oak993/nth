@@ -327,7 +327,7 @@ public sealed class UpdateCheckerThirdTests
         var shown = Assert.Single(toasts.Shown);
         // DEVIATION OD-0012 F1: upstream's "Droppy Code <version> is available" (:250) becomes "Marrow <version>
         // is available".
-        Assert.Equal("Marrow 3.1.4 is available", shown.Title);
+        Assert.Equal("Nth 3.1.4 is available", shown.Title);
         // U+203A SINGLE RIGHT-POINTING ANGLE QUOTATION MARK, not ">" (:251, the notes field's separator).
         Assert.Equal("Open Settings › About to update and restart.", shown.Body);
         // :253 identifier: "update-\(update.version)".

@@ -253,11 +253,11 @@ public sealed partial class DownloadJob
             }
             var location = response.Headers.Location;
             response.Dispose();
-            if (++hops > options.MaxRedirects) throw Refusal(file, DownloadCause.TooManyRedirects, $"Marrow gave up following redirects from {file.Url.Host}.");
+            if (++hops > options.MaxRedirects) throw Refusal(file, DownloadCause.TooManyRedirects, $"Nth gave up following redirects from {file.Url.Host}.");
             if (location is null) throw Refusal(file, DownloadCause.BadRedirect, $"{current.Host} sent a redirect with nowhere to go.");
             var next = location.IsAbsoluteUri ? location : new Uri(current, location);
-            if (next.Scheme == Uri.UriSchemeHttp) throw Refusal(file, DownloadCause.InsecureRedirect, $"Marrow won't follow a redirect to plain http ({next.Host}).");
-            if (next.Scheme != Uri.UriSchemeHttps) throw Refusal(file, DownloadCause.BadRedirect, $"{current.Host} sent a redirect Marrow can't follow.");
+            if (next.Scheme == Uri.UriSchemeHttp) throw Refusal(file, DownloadCause.InsecureRedirect, $"Nth won't follow a redirect to plain http ({next.Host}).");
+            if (next.Scheme != Uri.UriSchemeHttps) throw Refusal(file, DownloadCause.BadRedirect, $"{current.Host} sent a redirect Nth can't follow.");
             current = next;
         }
     }

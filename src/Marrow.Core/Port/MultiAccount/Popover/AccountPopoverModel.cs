@@ -68,7 +68,7 @@ public sealed class AccountPopoverModel : IDisposable
         (DecisionKind.MidReply, DecisionValues.Finish) => "Finish the reply on the next account",
         (DecisionKind.MidReply, DecisionValues.Stop) => "Stop, use the next one from my next message",
         (DecisionKind.Bring, DecisionValues.Full) => "Full conversation",
-        (DecisionKind.Bring, DecisionValues.MarrowSummary) => "Marrow’s summary",
+        (DecisionKind.Bring, DecisionValues.MarrowSummary) => "Nth’s summary",
         (DecisionKind.Bring, DecisionValues.AiSummary) => "AI summary",
         (DecisionKind.EarlierAccount, DecisionValues.GoBack) => "Go back to it",
         (DecisionKind.EarlierAccount, DecisionValues.Stay) => "Stay until this one runs out",

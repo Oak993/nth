@@ -68,7 +68,7 @@ public sealed class ChatViewScriptsEditorFrameTests(HeadlessSession headless)
                 Assert.Equal(20, box(heading).Y);
                 // Under it the explanation, exactly, in the .callout style (12 points, ED-059) in Chrome.secondaryText, 14 below the heading.
                 var explanation = Assert.IsType<TextBlock>(stack.Children[1]);
-                Assert.Equal("Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.", explanation.Text); // OD-0012 F1: "Marrow", the file name kept
+                Assert.Equal("Scripts run in a terminal at the project root. Nth also picks up scripts from droppy-code.json.", explanation.Text); // OD-0012 F1: "Marrow", the file name kept
                 Assert.Equal(12, explanation.FontSize);
                 Assert.Equal(Chrome.SecondaryText.Resolve(explanation.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(explanation.Foreground).Color);
                 Assert.Equal(box(heading).Bottom + 14, box(explanation).Y, 0.5);

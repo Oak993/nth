@@ -64,7 +64,7 @@ public sealed class AboutUpdateViewsProofSliderTests(HeadlessSession headless)
         window.RequestedThemeVariant = ThemeVariant.Dark; Dispatcher.UIThread.RunJobs();
         Assert.Equal(Color.FromArgb(26, 255, 255, 255), Assert.IsAssignableFrom<ISolidColorBrush>(empty.Background).Color); // white .10
         Assert.Equal(Color.FromArgb(245, 255, 255, 255), Assert.IsAssignableFrom<ISolidColorBrush>(disc.Fill).Color);
-        Assert.Equal("Updating Marrow", AutomationProperties.GetName(slider));
+        Assert.Equal("Updating Nth", AutomationProperties.GetName(slider));
         var peer = ControlAutomationPeer.CreatePeerForElement(slider)!; Assert.Equal(AutomationControlType.ProgressBar, peer.GetAutomationControlType());
         Assert.True(Assert.IsAssignableFrom<IValueProvider>(peer).IsReadOnly); Assert.IsNotType<Button>(slider);
         Assert.All(track.GetVisualDescendants().OfType<Control>(), c => Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(c)));

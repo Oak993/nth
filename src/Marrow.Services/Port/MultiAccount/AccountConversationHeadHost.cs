@@ -81,7 +81,7 @@ public sealed class AccountConversationHeadHost(
                 : request.Purpose == ConversationHeadPurpose.Combine
                     ? "Combine the supplied answers in text only. Take no actions."
                     : "Answer this one message using the recorded conversation. Return text only. Take no actions.";
-            var prompt = "[Marrow " + request.Purpose + "] " + instruction + "\nRecorded conversation:\n" + request.Context
+            var prompt = "[Nth " + request.Purpose + "] " + instruction + "\nRecorded conversation:\n" + request.Context
                 + "\nUser message:\n" + request.Message
                 + (request.Answer is null ? "" : "\nPrimary answer:\n" + request.Answer);
             return await TextOnlyAccountHead.RunAsync(launch.Session, launch.Configuration, prompt, text, CanSend, ct);

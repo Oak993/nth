@@ -126,7 +126,7 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
         var show = Nodes<Button>(view).Single(button => Text(button).Contains("Show"));
         Click(window, show);
         var content = Open(presenter.Calls.Last(call => call.Presented).Popup);
-        Assert.Equal(["Marrow", "Third-party notices", "Trademarks"], Nodes<StackPanel>(content).Single(panel => panel.Spacing == 18).Children.Select(block => Text((Control)block).First()));
+        Assert.Equal(["Nth", "Third-party notices", "Trademarks"], Nodes<StackPanel>(content).Single(panel => panel.Spacing == 18).Children.Select(block => Text((Control)block).First()));
         var bodies = Nodes<MarkdownView>(content);
         string[] resources = ["LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK"];
         Assert.Equal(resources.Length, bodies.Length);

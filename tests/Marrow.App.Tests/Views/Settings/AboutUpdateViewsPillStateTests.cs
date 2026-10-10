@@ -57,7 +57,7 @@ public sealed class AboutUpdateViewsPillStateTests(HeadlessSession headless)
         Assert.Contains(pill.GetVisualDescendants().OfType<SwiftImage>(), i => i.SymbolName == "arrow.down.circle.fill");
         Assert.True(button.IsHitTestVisible); Assert.True(button.Focusable); // :674 allowsHitTesting(isReady)
         Assert.Equal("Update & restart", AutomationProperties.GetName(button)); // :702
-        Assert.Equal("Installs Marrow 9.0.0 and relaunches", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :679, not the error
+        Assert.Equal("Installs Nth 9.0.0 and relaunches", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :679, not the error
         var peer = ControlAutomationPeer.CreatePeerForElement(button)!;
         Assert.Equal(AutomationControlType.Button, peer.GetAutomationControlType()); Assert.IsAssignableFrom<IInvokeProvider>(peer); // :682 isButton
         var texts = row.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToArray();

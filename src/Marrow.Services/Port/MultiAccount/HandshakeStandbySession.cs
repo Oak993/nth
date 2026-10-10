@@ -84,7 +84,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
         };
         if (package.Bring != Bring.AiSummary && !string.IsNullOrWhiteSpace(package.Briefing))
             context += "\nOutgoing account's briefing:\n" + package.Briefing;
-        var prompt = "[Marrow Handshake] Read this recorded context without taking any actions. "
+        var prompt = "[Nth Handshake] Read this recorded context without taking any actions. "
             + (readBack ? "Reply with the files, open tasks, and latest user instructions you understood.\n" : "Acknowledge the context and wait for the user's next turn.\n")
             + context;
         return ReceivePackageAsync(package, prompt, readBack, ct);
@@ -99,7 +99,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
     }
 
     public async Task FillGapsAsync(IReadOnlyList<string> gaps, CancellationToken ct) =>
-        _ = await RunTextTurnAsync("[Marrow Handshake] These recorded facts were missing from your read-back. Retain them without taking actions:\n"
+        _ = await RunTextTurnAsync("[Nth Handshake] These recorded facts were missing from your read-back. Retain them without taking actions:\n"
             + string.Join("\n", gaps), true, ct);
 
     public Task<string?> TextTurnAsync(string prompt, CancellationToken ct, Action<string>? progress = null) => RunTextTurnAsync(prompt, true, ct, progress: progress);
@@ -111,7 +111,7 @@ public sealed class HandshakeStandbySession : IAdoptableStandby
             throw new NotSupportedException("This account did not report a supported light model for its AI briefing.");
         if (summary.FilePath is not { } path) throw new InvalidOperationException("The full conversation archive is unavailable.");
         var archive = await File.ReadAllTextAsync(path, ct);
-        return await RunTextTurnAsync("[Marrow Handshake] Write a compact briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use this complete recorded conversation:\n" + archive, true, ct, model: "haiku");
+        return await RunTextTurnAsync("[Nth Handshake] Write a compact briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use this complete recorded conversation:\n" + archive, true, ct, model: "haiku");
     }
 
     public async Task PrepareForAdoptionAsync(CancellationToken ct)

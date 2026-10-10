@@ -321,15 +321,15 @@ public static class HydraBudget
 
     // :198. DEVIATION OD-0012 F1: "Droppy Code" -> "Marrow" in the app's own text.
     public static string PacingNote =>
-        $"[Marrow] You have run {PacingTools} tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you.";
+        $"[Nth] You have run {PacingTools} tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you.";
 
     // :199. DEVIATION OD-0012 F1.
     public static string WrapUpNote =>
-        "[Marrow] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.";
+        "[Nth] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.";
 
     // :200. DEVIATION OD-0012 F1.
     public static string FinalNote =>
-        "[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.";
+        "[Nth] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.";
 }
 
 // :204-226. Color is a plain RGBA value at the Core boundary (IMPLEMENTING 2.1).
@@ -903,7 +903,7 @@ public static partial class HydraPrompts
     internal static string WorkplaceRules(Workplace workplace) => workplace switch
     {
         Workplace.OwnCopy(var path) => string.Join("\n",
-            $"You have your own copy of the project at {path}: a git worktree Marrow made for you from the project's checkout as it was when you were sent out, uncommitted work included. Work in it directly, on the files as they are; your tools already run there. When you report, Marrow carries your changes into that checkout itself. So never commit, branch, stash, push, check out, reset, restore or clean anything, and never make or remove worktrees, whatever the project's own guidelines say about agents and worktrees: this copy already is yours. Do not use git to check your work either.",
+            $"You have your own copy of the project at {path}: a git worktree Nth made for you from the project's checkout as it was when you were sent out, uncommitted work included. Work in it directly, on the files as they are; your tools already run there. When you report, Nth carries your changes into that checkout itself. So never commit, branch, stash, push, check out, reset, restore or clean anything, and never make or remove worktrees, whatever the project's own guidelines say about agents and worktrees: this copy already is yours. Do not use git to check your work either.",
             "Never build, test or verify anything in your copy: the lead runs every check itself, in its own checkout. Anything under the project folder that git does not ignore lands in the lead's checkout, so leave no build output there."),
         Workplace.Shared(var path) =>
             $"You work in the lead's checkout at {path}, alongside the lead and the other heads, who are changing other files at the same time. Changes you did not make are expected there: leave every one of them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes, and the lead does the verifying.",
@@ -940,7 +940,7 @@ public static partial class HydraPrompts
         var named = others.Count == 0
             ? ""
             : " The other projects in the sidebar: " + string.Join(", ", others.Select(p => $"{p.Name} (`{p.Path}`)")) + ".";
-        return $"Heads may work in any project. A head works in {own} unless it is sent to another: an entry of the delegation block names it with \"project\" (a sidebar project's name or path, or the absolute path of any git repository on this Mac, which Marrow then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt.{named} Whatever a head changes lands in the checkout of the project it worked in, and the team's work is merged per project, one merge request each. Your own tools run in this chat's checkout, and you may read and edit files in any project all the same: what you change elsewhere is merged along with that project's work. Run your own checks in the checkout itself: never make a worktree or a copy of the project for them.";
+        return $"Heads may work in any project. A head works in {own} unless it is sent to another: an entry of the delegation block names it with \"project\" (a sidebar project's name or path, or the absolute path of any git repository on this Mac, which Nth then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt.{named} Whatever a head changes lands in the checkout of the project it worked in, and the team's work is merged per project, one merge request each. Your own tools run in this chat's checkout, and you may read and edit files in any project all the same: what you change elsewhere is merged along with that project's work. Run your own checks in the checkout itself: never make a worktree or a copy of the project for them.";
     }
 
     // :708 (B3). Swift `private`. DEVIATION OD-0012 F1 (x2): "Droppy Code handles branches" -> "Marrow handles
@@ -948,7 +948,7 @@ public static partial class HydraPrompts
     // adds two sentences: the "if it says ... retries by itself" clause and "A merge never waits on another
     // chat or session ...". The rest of the paragraph is unchanged.
     internal const string AutoMergeRule =
-        "Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Marrow retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.";
+        "Nth handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Nth retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.";
 
     // :713. Swift `private`.
     internal const string ReviewRule =
@@ -1031,7 +1031,7 @@ public static partial class HydraPrompts
         {
             "# Hydra",
             "",
-            $"The user switched on Hydra for this chat: you lead a team of helper agents, called heads, that work in parallel in your checkout. Switching Hydra on is the user asking you to use them, so it overrides any standing rule that says not to spawn agents unless asked. {howToSpawn} The agents you spawn this way are the Hydra heads themselves: Marrow shows each one in the team's panel under a roster name and posts its outcome in the chat. There is no other launcher and no other kind of head, so never tell the user that Hydra heads cannot be started here; when the user asks for heads, spawn them this way.",
+            $"The user switched on Hydra for this chat: you lead a team of helper agents, called heads, that work in parallel in your checkout. Switching Hydra on is the user asking you to use them, so it overrides any standing rule that says not to spawn agents unless asked. {howToSpawn} The agents you spawn this way are the Hydra heads themselves: Nth shows each one in the team's panel under a roster name and posts its outcome in the chat. There is no other launcher and no other kind of head, so never tell the user that Hydra heads cannot be started here; when the user asks for heads, spawn them this way.",
             "",
             "Delegate first, work second. Anything bigger than a single obvious change to a single file is a job for heads: audits, reviews, a feature that spans files, a refactor, \"check everything\", research across many files or sources, several tasks in one message. In your first reply, look at the code only long enough to write good briefs, a minute and a handful of files rather than ten, then send out scouts for the reading and workers for the changes, all in that same message. Never spend minutes reading before you delegate, and never do inline what heads could be doing in parallel. Only a truly single-focus request, one file and one obvious change, is yours to do alone, and size the team to the work rather than to how many heads are free: a handful of independent pieces is a team, where three tiny steps that depend on each other are one head's task, or your own.",
             "",
@@ -1042,9 +1042,9 @@ public static partial class HydraPrompts
             $"- {VerificationRule}",
             $"- {ProjectRule(projects)}",
             "- Split the work so no two heads edit the same file and no head's task rests on another head's unfinished changes: they run in parallel and never see each other's work. Keep integration, verification and the final answer for yourself: never send out a head to verify, redo or finish another head's work.",
-            "- Tell the user in one line which heads you sent out and what each one does. Marrow names the heads in roster order (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on): announce each head by its task and use exactly those names in that order, never invented ones. There is no head called Ives; the roster has Ivo.",
+            "- Tell the user in one line which heads you sent out and what each one does. Nth names the heads in roster order (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on): announce each head by its task and use exactly those names in that order, never invented ones. There is no head called Ives; the roster has Ivo.",
             "- After delegating, yield until reports arrive.",
-            "- Heads go out through the tools above, never through a fenced hydra block: that is the delegation format for providers without agent tools of their own. If you end a reply with one anyway, Marrow still sends those heads out as threads of their own, but your turn ends there and their reports come back as a later message.",
+            "- Heads go out through the tools above, never through a fenced hydra block: that is the delegation format for providers without agent tools of their own. If you end a reply with one anyway, Nth still sends those heads out as threads of their own, but your turn ends there and their reports come back as a later message.",
             "",
             "When they report back:",
             "- The checkout changes under you while heads work, and the user may be editing too. Never use git status or git diff to check on a head, and never reconcile, revert, stash or move changes you did not make.",
@@ -1059,13 +1059,13 @@ public static partial class HydraPrompts
     // both read it directly (see the file header note). DEVIATION OD-0012 F1: "in Droppy Code:" -> "in
     // Marrow:"; the rest is unchanged.
     public static string WorkerPrompt =>
-        "You are a Hydra head in Marrow: one of several helpers working in parallel for a lead agent, in the lead's own checkout, where the lead and the other heads are changing other files at the same time. Do exactly the task you were given, and only that: do not widen it, do not touch files it does not name unless the task cannot be done otherwise, and never revert, reformat or clean up work that is not yours. Changes you did not make are expected in the checkout: leave them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes. Never run a build, a test, a lint or any other check of your work: the lead runs every check itself. Make the edits your brief names and report. If something blocks you, say so instead of guessing.\n\n" +
+        "You are a Hydra head in Nth: one of several helpers working in parallel for a lead agent, in the lead's own checkout, where the lead and the other heads are changing other files at the same time. Do exactly the task you were given, and only that: do not widen it, do not touch files it does not name unless the task cannot be done otherwise, and never revert, reformat or clean up work that is not yours. Changes you did not make are expected in the checkout: leave them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes. Never run a build, a test, a lint or any other check of your work: the lead runs every check itself. Make the edits your brief names and report. If something blocks you, say so instead of guessing.\n\n" +
         HowToReport;
 
     // :800-805. Not named by any PR-HYDRA-0xx record in this part; see WorkerPrompt above. DEVIATION
     // OD-0012 F1: "in Droppy Code:" -> "in Marrow:"; the rest is unchanged.
     public static string ScoutPrompt =>
-        "You are a Hydra head in Marrow: a read-only researcher working in parallel for a lead agent, in the lead's own checkout, where the lead and other heads are changing files at the same time; uncommitted changes there are theirs and expected. Answer exactly the question you were given, from the code and sources you can read. Change nothing.\n\n" +
+        "You are a Hydra head in Nth: a read-only researcher working in parallel for a lead agent, in the lead's own checkout, where the lead and other heads are changing files at the same time; uncommitted changes there are theirs and expected. Answer exactly the question you were given, from the code and sources you can read. Change nothing.\n\n" +
         "Reply with a short report the lead can act on: the findings, with file paths and line references, and anything that contradicts what the lead assumed. No preamble.";
 
     // :807-839
@@ -1233,7 +1233,7 @@ public static partial class HydraPrompts
         profiles ??= [];
         // :942-944
         var whereHeadsWork = isolated
-            ? "Each head works in a copy of its project of its own and Marrow lands its changes in that project's checkout when it reports"
+            ? "Each head works in a copy of its project of its own and Nth lands its changes in that project's checkout when it reports"
             : "The heads work in your checkout";
         // :945
         var team = maxHeads is { } cap ? $"a team of up to {cap} helper agents" : "a team of helper agents";
@@ -1265,7 +1265,7 @@ public static partial class HydraPrompts
             BriefRule + " " + VerificationRule + " " + ProjectRule(projects) +
             " A head can be sent to read and report as well as to change files, so the reading goes out in parallel too. Say in one line which heads you sent out and what each one does." +
             whoTheHeadsAre + whatHeadsCanDo +
-            " The reports arrive as a later message with the work already in place: build on them, do not redo them, never send out heads to verify or redo other heads, and never use git status or git diff to check on heads, since the checkout changes under you while they work. A message that opens with [Hydra] is from Marrow, not the user." +
+            " The reports arrive as a later message with the work already in place: build on them, do not redo them, never send out heads to verify or redo other heads, and never use git status or git diff to check on heads, since the checkout changes under you while they work. A message that opens with [Hydra] is from Nth, not the user." +
             reviewTail + autoMergeTail + " " + ReportStyleRule;
     }
 
@@ -1319,7 +1319,7 @@ public static partial class HydraPrompts
                 if (last.Retryable == true)
                 {
                     // DEVIATION OD-0012 F1: "Droppy Code retries it by itself" -> "Marrow retries it by itself".
-                    return $"Merge state: the last try at {When(last.At)} did not land yet ({last.Detail ?? "no reason recorded"}). Marrow retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.";
+                    return $"Merge state: the last try at {When(last.At)} did not land yet ({last.Detail ?? "no reason recorded"}). Nth retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.";
                 }
                 return $"Merge state: the last merge failed at {When(last.At)}: {last.Detail ?? "no reason recorded"}. The work is still in the checkout and goes out by itself once that is settled; if the reason needs the user (a sign-in, conflict markers, a real conflict with the remote), say exactly that.";
             case HydraMergeRecord.Outcome.Held: // :1006-1011. Written only by earlier versions: a merge never waits on another chat now.
@@ -1346,7 +1346,7 @@ public static partial class HydraPrompts
     {
         var route = launch.RunsNatively
             ? "Use the configured Hydra agent tools and head profiles."
-            : "Delegate through the final hydra block so Marrow runs the selected heads; do not use native agent tools.";
+            : "Delegate through the final hydra block so Nth runs the selected heads; do not use native agent tools.";
         return "[Hydra setting: enabled]\n" +
             $"Use Hydra heads for this request when it involves multiple files, an audit, broad research, or independent tasks. Keep a single obvious change in one file with the lead. {route} Follow any explicit request below to work alone or limit delegation.\n" +
             "\n---\n\n";
@@ -1552,7 +1552,7 @@ public static partial class HydraPrompts
     // :1245-1261. DEVIATION OD-0012 F1: "a Hydra head in Droppy Code:" -> "a Hydra head in Marrow:"; the
     // sections and headings are unchanged.
     public static string DelegatedHeadPrompt(HydraPersona persona, HydraDelegation delegation, Workplace workplace) =>
-        $"You are {persona.Name}, a Hydra head in Marrow: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n" +
+        $"You are {persona.Name}, a Hydra head in Nth: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n" +
         "\n" +
         $"## Your task: {delegation.Task}\n" +
         $"{WithoutVerificationSteps(delegation.Prompt)}\n" +
@@ -1599,7 +1599,7 @@ public static partial class HydraPrompts
             ? "The user queued this task for you while the lead works on something else."
             : "The user sent this task straight to you; the lead is idle and will hear your report.";
         return
-            $"You are {persona.Name}, a Hydra head in Marrow: a helper running in parallel with the lead agent. {handoff}\n" +
+            $"You are {persona.Name}, a Hydra head in Nth: a helper running in parallel with the lead agent. {handoff}\n" +
             "\n" +
             "## What is going on in the main chat\n" +
             $"{contextBlock}\n" +

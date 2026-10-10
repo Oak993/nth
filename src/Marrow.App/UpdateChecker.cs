@@ -255,7 +255,7 @@ public sealed class UpdateChecker : MainActorModel
         // DEVIATION OD-0012 F1: "Droppy Code/<version>" -> "Marrow/<version>".
         configuration.HttpAdditionalHeaders = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["User-Agent"] = "Marrow/" + appInfo.Version,
+            ["User-Agent"] = "Nth/" + appInfo.Version,
             ["Accept"] = "application/json",
         };
         return new URLSession(configuration);
@@ -494,7 +494,7 @@ public sealed class UpdateChecker : MainActorModel
         if (storedVersion is not null && SwiftString.Equal(storedVersion, found.Version)) return; // :247
         defaults.Set(Keys.NotifiedVersion, found.Version); // :248
         // DEVIATION OD-0012 F1: "Droppy Code <version> is available" -> "Marrow <version> is available".
-        var title = "Marrow " + found.Version + " is available"; // :250
+        var title = "Nth " + found.Version + " is available"; // :250
         var body = "Open Settings › About to update and restart."; // U+203A SINGLE RIGHT-POINTING ANGLE QUOTATION MARK, :251
         // PR-UPDATE-023 windows_path: Windows 10/11 toasts need no runtime permission prompt, so the
         // notDetermined/requestAuthorization branch (:256-258) has no analogue; the port sends the toast

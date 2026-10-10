@@ -9,7 +9,7 @@ public static class SkillsNotices
 {
     /// <summary>The not-affiliated line the footer of the Plugins and Skills pages carries (skills-PLAN.md 3.1 "Footer").</summary>
     public const string Footer =
-        "Marrow is not affiliated with or endorsed by Anthropic or OpenAI. Claude and Anthropic are trademarks of Anthropic, PBC. " +
+        "Nth is not affiliated with or endorsed by Anthropic or OpenAI. Claude and Anthropic are trademarks of Anthropic, PBC. " +
         "ChatGPT, Codex and OpenAI are trademarks of OpenAI. Other names belong to their owners.";
 
     /// <summary>The separate control beside the licence text (ONDEMAND-PLAN.md 2.5).</summary>

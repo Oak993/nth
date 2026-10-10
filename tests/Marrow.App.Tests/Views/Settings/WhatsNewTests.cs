@@ -177,7 +177,7 @@ public sealed class WhatsNewTests(HeadlessSession headless)
         var window = Show(offer);
         try
         {
-            Assert.Contains(offer.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Release notes are unavailable for Marrow 1.8.0.");
+            Assert.Contains(offer.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Release notes are unavailable for Nth 1.8.0.");
             Assert.DoesNotContain(engine.Calls, call => call.StartsWith("Download", StringComparison.Ordinal));
         }
         finally { window.Close(); }
@@ -287,7 +287,7 @@ public sealed class WhatsNewTests(HeadlessSession headless)
         using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
         var checker = Inject(runtime, Release(), "1.7.0");
         using var shared = UpdateChecker.OverrideShared(checker);
-        var item = new FakeUpdateItem("marrow", "Marrow", UpdateItemKind.Marrow, "1.7.0", "1.8.0");
+        var item = new FakeUpdateItem("marrow", "Nth", UpdateItemKind.Marrow, "1.7.0", "1.8.0");
         var service = runtime.OnMain(() => new UpdateEverythingService([item], () => throw new InvalidOperationException("Restart forbidden")));
         runtime.OnMain(() => service.CheckNow().GetAwaiter().GetResult());
         Control offer = sidebar ? new UpdatePopoverContent(service) : new UpdatesSettingsPage(service);

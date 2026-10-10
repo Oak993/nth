@@ -211,7 +211,7 @@
       "provides": [],
       "artifacts": [],
       "files": [],
-      "licenceNotes": "Apache-2.0; partner plugins MIT (Apollo, brand-voice, Slack, Zoom) or Apache-2.0 (Common Room). Many name connectors Marrow does not provide; the text works without them.",
+      "licenceNotes": "Apache-2.0; partner plugins MIT (Apollo, brand-voice, Slack, Zoom) or Apache-2.0 (Common Room). Many name connectors Nth does not provide; the text works without them.",
       "skillCount": 252,
       "folders": [
         {
@@ -644,7 +644,7 @@
       "id": "T1",
       "kind": "tool",
       "title": "Python",
-      "summary": "The Python runtime Marrow's skills run their scripts with, in the small embeddable build.",
+      "summary": "The Python runtime Nth's skills run their scripts with, in the small embeddable build.",
       "vendor": "python.org",
       "countState": "plan",
       "pinState": "unpinned",
@@ -760,7 +760,7 @@
       "id": "T3",
       "kind": "tool",
       "title": "LibreOffice",
-      "summary": "The office suite Marrow drives headlessly to convert and render documents.",
+      "summary": "The office suite Nth drives headlessly to convert and render documents.",
       "vendor": "The Document Foundation",
       "countState": "plan",
       "pinState": "unpinned",

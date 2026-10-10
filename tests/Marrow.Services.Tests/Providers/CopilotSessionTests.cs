@@ -158,7 +158,7 @@ public sealed class CopilotSessionTests
         var ping = script.Messages()[0];
         Assert.Equal("ping", ping["method"]!.JSONValueString);
         Assert.Equal(["message"], Keys(Params(ping)));
-        Assert.Equal("marrow", Params(ping)["message"]!.JSONValueString);
+        Assert.Equal("nth", Params(ping)["message"]!.JSONValueString);
         Assert.Single(script.Requests("ping"));
     }
 
@@ -254,7 +254,7 @@ public sealed class CopilotSessionTests
         var configuration = Config(null);
         var (session, _) = Make(configuration);
         var parameters = Parameters(session);
-        Assert.Equal("marrow", parameters["clientName"].JSONValueString);
+        Assert.Equal("nth", parameters["clientName"].JSONValueString);
         Assert.Equal(configuration.WorkingDirectory.Path, parameters["workingDirectory"].JSONValueString);
         Assert.Equal(true, parameters["streaming"].JSONValueBool);
         Assert.Equal(true, parameters["requestPermission"].JSONValueBool);
@@ -278,7 +278,7 @@ public sealed class CopilotSessionTests
         var configuration = Config(script);
         var (_, _, id) = Started(runtime, configuration);
         var sent = Params(script.Requests("session.create").Single());
-        Assert.Equal("marrow", sent["clientName"]!.JSONValueString);
+        Assert.Equal("nth", sent["clientName"]!.JSONValueString);
         Assert.Equal(configuration.WorkingDirectory.Path, sent["workingDirectory"]!.JSONValueString);
         Assert.Equal(true, sent["streaming"]!.JSONValueBool);
         Assert.Equal(true, sent["requestPermission"]!.JSONValueBool);

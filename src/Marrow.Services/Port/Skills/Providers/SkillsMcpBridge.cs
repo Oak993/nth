@@ -19,7 +19,7 @@ public sealed class SkillsMcpBridge : IDisposable
     private bool disposed;
     public SkillsMcpBridge(Generation generation, string executable)
     {
-        if (!Path.IsPathFullyQualified(executable)) throw new ArgumentException("An absolute Marrow MCP executable is required.", nameof(executable));
+        if (!Path.IsPathFullyQualified(executable)) throw new ArgumentException("An absolute Nth MCP executable is required.", nameof(executable));
         server = new(generation);
         PipeName = Prefix + Guid.NewGuid().ToString("N");
         Configuration = JSONValue.FromDictionaryLiteral(("name", "marrow-skills-" + PipeName[Prefix.Length..]),

@@ -47,10 +47,10 @@ public sealed class DeferredContextDeliveryTests
         rig.Send("the next message");
         var first = Assert.Single(incoming.Inputs).Text;
         Assert.Contains("the next message", first, StringComparison.Ordinal);
-        Assert.Contains("[Marrow Handshake]", first, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", first, StringComparison.Ordinal);
         rig.Complete();
         rig.Send("and another");
-        Assert.DoesNotContain("[Marrow Handshake]", incoming.Inputs[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Nth Handshake]", incoming.Inputs[1].Text, StringComparison.Ordinal);
     }
 
     [Fact]

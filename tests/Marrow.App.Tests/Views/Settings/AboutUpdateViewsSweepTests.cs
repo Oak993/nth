@@ -51,8 +51,8 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-002")] // App/Views/Settings/AboutUpdateViews.swift:596-624,649-660
     [Trait("Req", "UI-UPDATE-003")] // App/Views/Settings/AboutUpdateViews.swift:596-624,649-660
     [Trait("Req", "UI-UPDATE-004")] // App/Views/Settings/AboutUpdateViews.swift:596-624,649-660
-    [InlineData(false, null, "Not checked yet", "clock", "Marrow has not asked GitHub for a release yet")]
-    [InlineData(true, null, "Up to date", "checkmark.seal.fill", "Marrow 1.7.0 is the latest version")]
+    [InlineData(false, null, "Not checked yet", "clock", "Nth has not asked GitHub for a release yet")]
+    [InlineData(true, null, "Up to date", "checkmark.seal.fill", "Nth 1.7.0 is the latest version")]
     [InlineData(false, "Fixture error", "Check failed", "exclamationmark.triangle.fill", "Fixture error")]
     [InlineData(true, "Fixture error", "Check failed", "exclamationmark.triangle.fill", "Fixture error")]
     public void Standing_priority_help_and_accessibility_follow_the_checker_state(bool checkedBefore, string? error, string label, string symbol, string help)
@@ -75,7 +75,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
                 Assert.False(button.IsHitTestVisible);
                 Assert.False(button.Focusable);
                 Assert.Equal(help, ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680 .help outside .allowsHitTesting
-                Assert.Equal("Marrow 1.7.0, " + label.ToLowerInvariant(), AutomationProperties.GetName(button));
+                Assert.Equal("Nth 1.7.0, " + label.ToLowerInvariant(), AutomationProperties.GetName(button));
                 var title = Assert.Single(pill.GetVisualDescendants().OfType<TextBlock>());
                 Assert.Equal(label, title.Text); Assert.Equal(12, title.FontSize); Assert.Equal(FontWeight.SemiBold, title.FontWeight);
                 Assert.Contains(pill.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == symbol);
@@ -105,7 +105,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
                 var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
                 Assert.True(button.IsHitTestVisible); Assert.True(button.Focusable);
                 Assert.Equal("Update & restart", AutomationProperties.GetName(button));
-                Assert.Equal("Installs Marrow 9.0.0 and relaunches", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680
+                Assert.Equal("Installs Nth 9.0.0 and relaunches", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680
                 Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Update & restart");
                 Assert.Contains(pill.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == "arrow.down.circle.fill");
                 Assert.Contains(pill.GetVisualDescendants().OfType<Border>(), border => border.Background is ISolidColorBrush brush && brush.Color.A is >= 50 and <= 52);
@@ -138,7 +138,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
                 var slider = Assert.Single(pill.GetVisualDescendants().OfType<SmoothedUpdateProgressSlider>());
                 Assert.Equal(104, slider.Width); Assert.Equal(28, slider.Height);
                 Assert.Empty(pill.GetVisualDescendants().OfType<Button>());
-                Assert.Contains(pill.GetVisualDescendants().OfType<UpdateProgressSlider>(), child => AutomationProperties.GetName(child) == "Updating Marrow");
+                Assert.Contains(pill.GetVisualDescendants().OfType<UpdateProgressSlider>(), child => AutomationProperties.GetName(child) == "Updating Nth");
                 window.Close();
                 progress.CompleteCelebration();
             });
@@ -151,9 +151,9 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:826-833
     [Trait("Req", "UI-UPDATE-021")] // App/Views/Settings/AboutUpdateViews.swift:824-844
     [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:826-833
-    [InlineData(false, null, false, "Marrow checks GitHub for new versions a few times a day. Not checked yet.")]
+    [InlineData(false, null, false, "Nth checks GitHub for new versions a few times a day. Not checked yet.")]
     [InlineData(false, "Fixture error", false, "Fixture error Not checked yet.")]
-    [InlineData(false, null, true, "Marrow 9.0.0 is ready to install. Not checked yet.")]
+    [InlineData(false, null, true, "Nth 9.0.0 is ready to install. Not checked yet.")]
     [InlineData(true, "Fixture error", true, "Asking GitHub for the latest release…")]
     public void Check_row_prioritizes_checking_then_error_then_release_and_disables_the_checking_button(bool checking, string? error, bool ready, string detail)
     {

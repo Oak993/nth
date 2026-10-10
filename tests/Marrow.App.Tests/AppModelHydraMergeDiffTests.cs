@@ -29,7 +29,7 @@ public sealed class AppModelHydraMergeDiffTests
         var description = create.Arguments.ToList().FindIndex(argument => argument is "--description" or "--body");
         Assert.True(description >= 0);
         // AppModel+HydraMerge.swift:844-869 uses U+2212 for deletions; OD-0008 authorizes the Marrow product name.
-        Assert.Equal("Opened by Marrow once its Hydra team finished.\n\n## Files\n- `a.txt` (+1 −1)",
+        Assert.Equal("Opened by Nth once its Hydra team finished.\n\n## Files\n- `a.txt` (+1 −1)",
             create.Arguments[description + 1]);
         Assert.Contains("1 file (+1 −1)", Assert.Single(f.Notes), StringComparison.Ordinal); // Swift:908-912, including U+2212.
     }

@@ -16,7 +16,7 @@ public sealed class UpdateEverythingServiceTests
 {
     private static FakeUpdateItem Cli(string id, string title, string installed = "1.0.0", string? latest = "1.1.0") => new(id, title, UpdateItemKind.ProviderCli, installed, latest);
 
-    private static FakeUpdateItem MarrowItem() => new("marrow", "Marrow", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { NeedsRestart = true };
+    private static FakeUpdateItem MarrowItem() => new("marrow", "Nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { NeedsRestart = true };
 
     private static void Settle(TestRuntime runtime) => runtime.RunUntilIdle();
 
@@ -84,7 +84,7 @@ public sealed class UpdateEverythingServiceTests
         Settle(runtime);
         var done = runtime.OnMain(() => service.State);
         Assert.Equal(UpdatePillPhase.Restart, done.Phase);
-        Assert.Equal("Restart Marrow", done.ButtonText);
+        Assert.Equal("Restart Nth", done.ButtonText);
         Assert.Equal(1, marrow.Updates);
     }
 

@@ -373,7 +373,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var root = Assert.IsType<StackPanel>(page.Child); Assert.Equal(20, root.Spacing);
             Assert.DoesNotContain("Connected", Texts(page));
             var footer = Assert.IsType<TextBlock>(root.Children[^1]); Font(footer, 11); Colour(footer.Foreground, Chrome.SecondaryText, footer);
-            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.", footer.Text);
+            Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Nth itself.", footer.Text);
             Assert.All(Nodes<Grid>(page).Where(g => g.ColumnDefinitions.Count == 2 && g.ColumnDefinitions.All(c => c.Width.IsStar)), g =>
             { Assert.Equal(10, g.ColumnSpacing); Assert.Equal(10, g.RowSpacing); Assert.All(g.ColumnDefinitions, c => Assert.Equal(new GridLength(1, GridUnitType.Star), c.Width)); });
             runtime.OnMain(() => { ObservableState(model, "github", new MCPConnectionState.Connected(3)); ObservableState(model, "gitlab", new MCPConnectionState.Connected(2)); });

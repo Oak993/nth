@@ -11,7 +11,7 @@ namespace Marrow.App.Tests.Runtime;
 // real StartTurn over an offline scripted session (Fixtures/ThreadRuntimeScriptedSession.cs).
 public sealed class ThreadRuntimeTurnLifecycleTests
 {
-    private const string FinalNote = "[Marrow] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.";
+    private const string FinalNote = "[Nth] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.";
 
     private static ChatThread AsHead(ChatThread thread, HydraHeadInfo.Status status = HydraHeadInfo.Status.Running, DateTimeOffset? finishedAt = null) =>
         thread with

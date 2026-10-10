@@ -174,7 +174,7 @@ internal sealed class PopoverGlass : IDisposable
     {
         Failure ??= why;
         // Said once per process (every popover that opens after it fails the same way).
-        if (Interlocked.Exchange(ref logged, 1) == 0) System.Diagnostics.Trace.WriteLine("Marrow: the popovers' see-through glass is off, they draw their opaque panel: " + why);
+        if (Interlocked.Exchange(ref logged, 1) == 0) System.Diagnostics.Trace.WriteLine("Nth: the popovers' see-through glass is off, they draw their opaque panel: " + why);
         Dispose();
     }
 

@@ -155,7 +155,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
             rig.Main.OnMain(() =>
             {
                 Assert.Equal(VoiceNotePlace.Field, line.Place);
-                Assert.Equal("Microphone blocked. Allow Marrow in ", line.Text);
+                Assert.Equal("Microphone blocked. Allow Nth in ", line.Text);
                 var link = Assert.IsType<Button>(line.Link);
                 Assert.Equal("Privacy & security > Microphone", Avalonia.Automation.AutomationProperties.GetName(link));
                 Click(link);
@@ -187,7 +187,7 @@ public sealed class ComposerVoiceNotesTests(HeadlessSession headless)
             rig.Main.OnMain(() =>
             {
                 Assert.Equal(VoiceNotePlace.Notice, line.Place);
-                Assert.Equal("Microphone blocked. Allow Marrow in ", line.Text);
+                Assert.Equal("Microphone blocked. Allow Nth in ", line.Text);
                 Assert.NotNull(line.Link);
                 Assert.NotNull(Avalonia.VisualTree.VisualExtensions.FindAncestorOfType<NoticeSlot>(line));
                 Assert.Equal("keep this", box.Text);

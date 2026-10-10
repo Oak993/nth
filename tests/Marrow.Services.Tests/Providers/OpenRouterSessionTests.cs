@@ -286,7 +286,7 @@ public sealed class OpenRouterSessionTests
     [InlineData("User not found.", 200, "OpenRouter rejected the API key. Check it in Settings → Providers → OpenRouter (keys are made at openrouter.ai/keys).")]
     [InlineData("Insufficient credits", 402, "OpenRouter has no credits left for this request. Add credits at openrouter.ai/credits, or pick a free model, then try again.")]
     [InlineData("This request requires more credits, or fewer max_tokens.", 200, "OpenRouter has no credits left for this request. Add credits at openrouter.ai/credits, or pick a free model, then try again.")]
-    [InlineData("No endpoints found that support tool use. To learn more about provider routing, visit: https://openrouter.ai/docs", 404, "That OpenRouter model cannot use tools, which Marrow needs to work on files. Pick another model in the model picker.")]
+    [InlineData("No endpoints found that support tool use. To learn more about provider routing, visit: https://openrouter.ai/docs", 404, "That OpenRouter model cannot use tools, which Nth needs to work on files. Pick another model in the model picker.")]
     [InlineData("No endpoints found for acme/gone-1.", 404, "OpenRouter has no provider serving that model right now. Pick another model in the model picker.")]
     [InlineData("acme/x is not a valid model ID", 400, "OpenRouter has no provider serving that model right now. Pick another model in the model picker.")]
     [InlineData("Rate limit exceeded: free-models-per-day", 429, "OpenRouter is rate-limited right now. Wait a moment and try again.")]

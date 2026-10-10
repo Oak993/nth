@@ -69,7 +69,7 @@ public sealed class OpenRouterSession : OpenAICompatibleSession
         }
         if (lower.Contains("support tool use", StringComparison.Ordinal))
         {
-            return "That OpenRouter model cannot use tools, which Marrow needs to work on files. Pick another model in the model picker.";
+            return "That OpenRouter model cannot use tools, which Nth needs to work on files. Pick another model in the model picker.";
         }
         if (statusCode == 404 || lower.Contains("no endpoints found", StringComparison.Ordinal) || lower.Contains("model not found", StringComparison.Ordinal) || lower.Contains("not a valid model", StringComparison.Ordinal))
         {

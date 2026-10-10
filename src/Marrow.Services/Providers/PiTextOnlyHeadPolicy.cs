@@ -35,7 +35,7 @@ internal static class PiTextOnlyHeadPolicy
           pi.on("before_agent_start", async () => lock());
           pi.on("tool_call", async () => ({ block: true, reason: "Text-only head: no tools" }));
           pi.registerCommand("marrow-text-only-proof", {
-            description: "Marrow private text-only runtime proof",
+            description: "Nth private text-only runtime proof",
             handler: async (nonce) => {
               lock();
               pi.sendMessage({ customType: "marrow-text-only-proof", content: nonce, details: { tools: pi.getActiveTools() }, display: false }, { triggerTurn: false });

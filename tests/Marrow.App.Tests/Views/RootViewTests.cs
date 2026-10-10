@@ -131,7 +131,7 @@ public sealed class RootViewTests(HeadlessSession headless)
             {
                 var host = Build(model, () => new WelcomeView());
                 var text = AllText(host);
-                Assert.Contains("Marrow", text, StringComparison.Ordinal);
+                Assert.Contains("Nth", text, StringComparison.Ordinal);
                 Assert.DoesNotContain("Droppy Code", text, StringComparison.Ordinal);
                 Assert.Contains("A calm, native home for your coding agents.", text, StringComparison.Ordinal);
             });

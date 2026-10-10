@@ -45,7 +45,7 @@ public sealed class ParityTailLaunchTests(HeadlessSession headless)
                 // RootView.swift:306-342 plus OD-0098: identity, Add project, voice consent, Activity list, Providers.
                 // No extra wizard/sign-in/terms/data-location page or card replaces the source Welcome.
                 Assert.Equal(5, sections.Children.Count);
-                Assert.Equal("Marrow", RootViewRig.All<Avalonia.Controls.TextBlock>(sections.Children[0])[0].Text);
+                Assert.Equal("Nth", RootViewRig.All<Avalonia.Controls.TextBlock>(sections.Children[0])[0].Text);
                 Assert.Single(RootViewRig.All<Avalonia.Controls.Button>(sections.Children[1]));
                 Assert.IsType<WelcomeVoiceSection>(sections.Children[2]);
                 Assert.IsType<Marrow.UI.Chrome.ChromeSection>(sections.Children[3]);

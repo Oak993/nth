@@ -85,7 +85,7 @@ public sealed class UpdateCheckerSecondTests
         var checker = runtime.OnMain(() => new UpdateChecker(Running("2.4.6"), [], server.Url("/releases")));
         runtime.Loop.Run(() => checker.Check());
         var request = Assert.Single(server.Requests);
-        Assert.Equal(["Marrow/2.4.6"], request.HeaderValues("User-Agent")); // DEVIATION OD-0012 F1
+        Assert.Equal(["Nth/2.4.6"], request.HeaderValues("User-Agent")); // DEVIATION OD-0012 F1
         Assert.Equal(["application/json"], request.HeaderValues("Accept"));
     }
 
@@ -294,7 +294,7 @@ public sealed class UpdateCheckerSecondTests
         Assert.True(available);
         var shown = Assert.Single(toasts.Shown);
         Assert.Equal("update-2.0.0", shown.Identifier);
-        Assert.Equal("Marrow 2.0.0 is available", shown.Title); // DEVIATION OD-0012 F1
+        Assert.Equal("Nth 2.0.0 is available", shown.Title); // DEVIATION OD-0012 F1
         Assert.Equal("Open Settings › About to update and restart.", shown.Body); // U+203A
         Assert.Equal("2.0.0", shown.Version);
         Assert.Contains("updateChecker_notifiedVersion", runtime.Defaults.Writes);
@@ -400,7 +400,7 @@ public sealed class UpdateCheckerSecondTests
     public void The_default_toast_binding_is_a_safe_no_op_until_the_toast_unit_exists()
     {
         // No override installed: production defaults to NoUpdateToastCenter, which must not throw.
-        NoUpdateToastCenter.Instance.Show("update-1.0.0", "Marrow 1.0.0 is available", "body", "1.0.0");
+        NoUpdateToastCenter.Instance.Show("update-1.0.0", "Nth 1.0.0 is available", "body", "1.0.0");
     }
 
     // ---- PR-UPDATE-007 / PR-UPDATE-009 / PR-UPDATE-010: the schedule ----

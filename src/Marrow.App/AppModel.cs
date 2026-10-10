@@ -203,7 +203,7 @@ public sealed partial class AppModel : MainActorModel
             alert = new AppAlert
             {
                 Title = "Could not read library.json",
-                Message = "Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.",
+                Message = "Nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.",
             }; // DEVIATION OD-0012: show the E4 library-load message.
         var library = load is LibraryLoadResult.Loaded loaded ? loaded.Library : new Library(); // AppModel.swift:126-128
         projects = library.Projects;

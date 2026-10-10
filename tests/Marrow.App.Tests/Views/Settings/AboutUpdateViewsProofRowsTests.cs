@@ -71,7 +71,7 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         if (checkedBefore) Set(checker, nameof(UpdateChecker.LastCheckedAt), SwiftDate.Now.AddHours(-2));
         using var shared = UpdateChecker.OverrideShared(checker); var view = new AboutUpdateCheckRow(); var window = Show(view);
         var suffix = checkedBefore ? "Checked 2 hours ago." : "Not checked yet."; // :837 named relative date, ED-096 under en_US fixture
-        var expected = checking ? "Asking GitHub for the latest release…" : error is not null ? error + " " + suffix : ready ? "Marrow 9.0.0 is ready to install. " + suffix : "Marrow checks GitHub for new versions a few times a day. " + suffix;
+        var expected = checking ? "Asking GitHub for the latest release…" : error is not null ? error + " " + suffix : ready ? "Nth 9.0.0 is ready to install. " + suffix : "Nth checks GitHub for new versions a few times a day. " + suffix;
         Row(Assert.IsType<ChromeRow>(view.Child), "Software update", expected);
         var button = Assert.Single(view.GetVisualDescendants().OfType<Button>()); Assert.Equal(!checking, button.IsEnabled);
         Assert.Equal(checking ? "Checking…" : "Check now", Assert.Single(button.GetVisualDescendants().OfType<TextBlock>()).Text);

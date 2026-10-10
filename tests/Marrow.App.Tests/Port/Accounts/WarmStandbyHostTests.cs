@@ -55,12 +55,12 @@ public sealed class WarmStandbyHostTests
         rig.Send("the next message");
         var first = Assert.Single(warm.Inputs).Text;
         Assert.Contains("the next message", first, StringComparison.Ordinal);
-        Assert.Contains("[Marrow Handshake]", first, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", first, StringComparison.Ordinal);
         Assert.Equal(1, warm.StartCalls);
         rig.Install(warm, observe: false);
         rig.Complete();
         rig.Send("and another");
-        Assert.DoesNotContain("[Marrow Handshake]", warm.Inputs[1].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Nth Handshake]", warm.Inputs[1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class WarmStandbyHostTests
         Assert.Empty(warm.Inputs);
         rig.Install(incoming);
         rig.Send("next");
-        Assert.Contains("[Marrow Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed class WarmStandbyHostTests
         Assert.Null(rig.Thread.ProviderSessionID);
         rig.Install(incoming);
         rig.Send("next");
-        Assert.Contains("[Marrow Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", Assert.Single(incoming.Inputs).Text, StringComparison.Ordinal);
 
         using var cancelRig = new ThreadRuntimeTurnRig();
         var cancelled = new ThreadRuntimeScriptedSession { StartScript = () => Task.FromResult("warm-session") };
@@ -152,7 +152,7 @@ public sealed class WarmStandbyHostTests
         Assert.Equal(("warm-pi", ProviderKind.Pi), (rig.Thread.ProviderSessionID, rig.Thread.Provider));
         Assert.Empty(injection.Inputs);
         rig.Send("next");
-        Assert.Contains("[Marrow Handshake]", Assert.Single(warm.Inputs).Text, StringComparison.Ordinal);
+        Assert.Contains("[Nth Handshake]", Assert.Single(warm.Inputs).Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -171,6 +171,6 @@ public sealed class WarmStandbyHostTests
         rig.Send("next");
         var turn = Assert.Single(injection.Inputs).Text;
         Assert.EndsWith("next", turn, StringComparison.Ordinal);
-        Assert.DoesNotContain("[Marrow Handshake]", turn, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Nth Handshake]", turn, StringComparison.Ordinal);
     }
 }
