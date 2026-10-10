@@ -124,6 +124,8 @@ public static class Program
         // (SwiftTrapException, "StoragePaths.Locations is not bound...") on first access if this is missed.
         Storage.Locations.SetProcessDefault(StorageLocations.CreateProduction());
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
+        Marrow.App.Views.Composer.GpuProgramCache.PrepareAtLaunch(); // ED-NEW-launch-fix (1): the kept GPU programs read on the pool before Boot B's first frame
+        Marrow.UI.Port.AuroraBootGpu.ContextReady = gpu => Marrow.App.Views.Composer.GpuProgramCache.ForContext(gpu); // installed before anything links
         // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
         var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
         Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.Bind(); // T11 step 2: Settings > Models (accounts) and Settings > Pills read the running AppModel

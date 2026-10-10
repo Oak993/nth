@@ -16,8 +16,8 @@ namespace Marrow.App.Views.Composer;
 // under it is: Avalonia's ANGLE (av_libglesv2.dll, the D3D11 backend) implements EGL_ANDROID_blob_cache, which hands every
 // linked program's binary (with its compiled D3D shaders) to the application to keep, and asks for it back before it
 // compiles. This installs those two callbacks on the display the render thread draws with, storing each entry as a file
-// under the app's cache folder (StoragePaths.Root\Cache\GPU Programs\<the GPU, its driver and the app's build>), so a later
-// launch on the same machine, driver and build links the knob's programs from their binaries instead of compiling them.
+// under the app's cache folder (StoragePaths.Root\Cache\GPU Programs\<the GPU, its driver and ANGLE's version>), so a later
+// launch on the same machine and driver links the knob's programs from their binaries instead of compiling them.
 // Installed from the render thread, before the knob's programs are first linked (GpuWarmup's first step), and again on
 // every new GPU context (a device lost or a display change can give ANGLE a new display; a display that has the callbacks
 // already refuses them again, harmlessly). Off where the renderer is not ANGLE (software, another GL) and when the storage
@@ -30,6 +30,14 @@ namespace Marrow.App.Views.Composer;
 // where no Win32PlatformOptions.GraphicsAdapterSelectionCallback is set, and the port sets none; on ARM64 with several
 // adapters the first that is not an Adreno), read the same way. A completed warm-up removes the folders of other builds and
 // of adapters or drivers this machine no longer has (a folder made on its other adapter, as it is now, is kept).
+// ED-NEW-launch-fix (1), (2): the folder is named for the renderer (the GPU and its driver, as ANGLE names them) and the GL
+// version (ANGLE's own version and commit) only, not for the app's build, so a new build links the programs the last one
+// kept instead of compiling them all again (ANGLE checks each binary it is given and compiles the program again when it
+// cannot load it); each install writes the folder's key afresh naming the build that uses it now, and the marker (warm.txt,
+// OD-0096) still names the build whose warm-up completed. The entries are kept under a size cap (Trim: those no launch has
+// used for longest go first). The folders are read on a pool thread as Main begins (PrepareAtLaunch), and Boot B installs
+// the callbacks on its first frame, before anything links (Marrow.UI.Port.AuroraBootGpu); an entry asked for before its
+// folder has been read is read from its file.
 
 /// <summary>ANGLE's program-binary cache, kept on disk (see the file note).</summary>
 internal static class GpuProgramCache
@@ -51,6 +59,7 @@ internal static class GpuProgramCache
     private static nint installedFor; // the GPU context it was last installed for (render thread)
     private static string? folder;
     private static volatile string? machine;
+    private static Task? launch;
 
     /// <summary>Tests: the folder to keep the entries in (null: the app's cache folder, when the storage paths are bound).</summary>
     internal static string? FolderOverride { get; set; }
@@ -169,9 +178,58 @@ internal static class GpuProgramCache
     {
         machine = Machine();
         if (Root() is not { } root || !Directory.Exists(root)) return;
+        Trim(root, SizeCap);
         foreach (var path in Directory.EnumerateDirectories(root))
             stores.GetOrAdd(path, static p => new GpuProgramBlobStore(p)).Load();
     }
+
+    /// <summary>ED-NEW-launch-fix (1): <see cref="Prepare"/> on a pool thread as Main begins (once; the storage paths bound),
+    /// so the adapter's identity is read and the kept programs are in memory before Boot B's first frame installs the
+    /// callbacks (<see cref="ForContext"/> through Marrow.UI.Port.AuroraBootGpu).</summary>
+    internal static Task PrepareAtLaunch() => launch ??= Task.Run(() =>
+    {
+        using var work = Marrow.UI.Port.AuroraBootTrace.Begin("cache: prepare");
+        try { Prepare(); }
+        catch (Exception) { } // a folder that cannot be read: its entries are compiled and kept again
+    });
+
+    /// <summary>The most the cache's entries take on disk, all folders together (ED-NEW-launch-fix (2): about 0.7 MB a GPU
+    /// today, so a cap only years of new programs reach).</summary>
+    internal static long SizeCap { get; set; } = 16L << 20;
+
+    /// <summary>
+    /// ED-NEW-launch-fix (2): keeps the entries (*.bin) of every folder under <paramref name="root"/> within
+    /// <paramref name="cap"/> bytes together, removing those used longest ago first (an entry's file is written when it is
+    /// kept and touched when a launch finds it, GpuProgramBlobStore); keys and markers stay.
+    /// </summary>
+    internal static void Trim(string root, long cap)
+    {
+        try
+        {
+            var entries = new List<FileInfo>();
+            foreach (var path in Directory.EnumerateDirectories(root))
+                entries.AddRange(new DirectoryInfo(path).EnumerateFiles("*.bin"));
+            var total = entries.Sum(file => file.Length);
+            foreach (var file in entries.OrderBy(file => file.LastWriteTimeUtc))
+            {
+                if (total <= cap) break;
+                var size = file.Length; // read before the delete: a deleted file's length cannot be read
+                try { file.Delete(); total -= size; }
+                catch (IOException) { }                 // in use (another instance): next time
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    /// <summary>ED-NEW-launch-fix (2): a folder's name: the renderer (the GPU and its driver) and the GL version (ANGLE's), not
+    /// the app's build.</summary>
+    internal static string KeyFolderName(string renderer, string version) =>
+        Hex(SHA256.HashData(Encoding.UTF8.GetBytes(renderer + "\n" + version)))[..24];
+
+    /// <summary>Tests: the store kept for <paramref name="keyFolder"/>, once one was made or read.</summary>
+    internal static GpuProgramBlobStore? StoreOf(string keyFolder) => stores.TryGetValue(keyFolder, out var store) ? store : null;
 
     internal static Task Drain(string keyFolder) => stores.TryGetValue(keyFolder, out var store) ? store.Drain() : Task.CompletedTask;
 
@@ -327,11 +385,13 @@ internal static class GpuProgramCache
         var renderer = Marshal.PtrToStringAnsi(glGetString(GlRenderer)) ?? "";
         var version = Marshal.PtrToStringAnsi(glGetString(GlVersion)) ?? "";
         var build = Build;
-        // the GPU and its driver (ANGLE's renderer string names both), the GL version, and this build of the app
-        var key = Hex(SHA256.HashData(Encoding.UTF8.GetBytes(renderer + "\n" + version + "\n" + build)))[..24];
-        var made = Path.Combine(root, key);
+        // the GPU and its driver (ANGLE's renderer string names both) and the GL version (ANGLE's): not the build
+        // (ED-NEW-launch-fix (2)); the key names the build that uses the folder now, and the adapter as read ahead (read here
+        // when Boot B's first frame comes before PrepareAtLaunch has read it)
+        var here = machine ?? (machine = Machine());
+        var made = Path.Combine(root, KeyFolderName(renderer, version));
         var store = stores.GetOrAdd(made, static p => new GpuProgramBlobStore(p));
-        store.Keep("key.txt", Encoding.UTF8.GetBytes(renderer + "\n" + version + "\n" + build + "\n" + (machine ?? "") + "\n"), false);
+        store.Keep("key.txt", Encoding.UTF8.GetBytes(renderer + "\n" + version + "\n" + build + "\n" + (here ?? "") + "\n"), false);
         folder = made;
         store.Install(display, setFuncs);
         return null;
