@@ -16,8 +16,10 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input.GestureRecognizers;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.UI.Port;
 
@@ -43,28 +45,35 @@ public static class PortControlThemes
         Setters = { new Setter(TemplatedControl.TemplateProperty, ScrollTemplate) },
     };
 
-    // ProgressView(): the system busy indicator, or a track and fill when determinate (SystemSpinner.cs).
+    // ProgressView(): the nth busy indicator (OD-0136 amendment 2). Unknown length is the tile-trace spinner (step 1 B) at the
+    // bar's own size (16 when it gives none), or, when the bar is a thin strip (4 to 6 high, or at least 2.5 times wider than
+    // tall), the liquid-silver bar growing and catching up (step 3 B) at 4 or 3 high. Known length is the liquid-silver bar
+    // whose value follows Value/Minimum/Maximum: shown at once the first time, springing after.
     // ProgressBar's own code requires a PART_Indicator Border, which it sizes; it stays hidden, the drawing is ours.
-    // The drawing follows IsIndeterminate as it changes (a site may switch a bar between the two).
+    // The drawing follows IsIndeterminate (and the bar's size) as it changes: a site may switch a bar between the two.
     private static readonly FuncControlTemplate<ProgressBar> ProgressTemplate = new((bar, scope) =>
     {
-        Control Drawing() => bar.IsIndeterminate ? new SystemSpinner() : new SystemProgressTrack(bar);
         var panel = new Panel
         {
             Children =
             {
-                Drawing(),
+                NthBusyDrawing.For(bar),
                 new Border { Name = "PART_Indicator", IsVisible = false }.RegisterInNameScope(scope),
             },
         };
         bar.PropertyChanged += (_, e) =>
         {
-            if (e.Property == ProgressBar.IsIndeterminateProperty) panel.Children[0] = Drawing();
+            if (e.Property == ProgressBar.IsIndeterminateProperty || e.Property == Layoutable.WidthProperty || e.Property == Layoutable.HeightProperty)
+                panel.Children[0] = NthBusyDrawing.For(bar);
+            else if (e.Property == RangeBase.ValueProperty || e.Property == RangeBase.MinimumProperty || e.Property == RangeBase.MaximumProperty)
+            {
+                if (panel.Children[0] is NthProgressBar known && !bar.IsIndeterminate) known.Value = NthBusyDrawing.Fraction(bar);
+            }
         };
         return panel;
     });
 
-    /// <summary>The ProgressBar default theme: SystemSpinner or SystemProgressTrack.</summary>
+    /// <summary>The ProgressBar default theme: NthSpinner or NthProgressBar (step 1 B and step 3 B).</summary>
     public static ControlTheme ProgressBarTheme { get; } = new(typeof(ProgressBar))
     {
         Setters = { new Setter(TemplatedControl.TemplateProperty, ProgressTemplate) },
@@ -291,5 +300,49 @@ public static class PortControlThemes
         {
             Setters = { new Setter(TextElement.ForegroundProperty, new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension(PrimaryTextKey)) },
         });
+    }
+}
+
+/// <summary>PORT-ONLY. Which nth drawing a plain ProgressBar gets (see PortControlThemes' ProgressView note).</summary>
+internal static class NthBusyDrawing
+{
+    /// <summary>A bar this thin, or this much wider than tall, is a strip, not a round busy mark.</summary>
+    public const double StripMaxHeight = 6, StripAspect = 2.5;
+
+    /// <summary>The drawing for <paramref name="bar"/> as it is now.</summary>
+    public static Control For(ProgressBar bar)
+    {
+        if (!bar.IsIndeterminate)
+        {
+            var known = Strip(bar);
+            known.Jump(Fraction(bar));
+            return known;
+        }
+        if (IsStrip(bar))
+        {
+            var strip = Strip(bar);
+            strip.IsIndeterminate = true;
+            return strip;
+        }
+        // the spinner keeps the bar's own size; a bar with none is the small 16 pt busy indicator
+        return new NthSpinner { Width = bar.Width, Height = bar.Height, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    }
+
+    /// <summary>Whether an unknown-length bar of this shape is drawn as a strip.</summary>
+    public static bool IsStrip(ProgressBar bar)
+    {
+        var height = bar.Height;
+        if (double.IsNaN(height)) return false;
+        return height <= StripMaxHeight || (!double.IsNaN(bar.Width) && bar.Width >= height * StripAspect);
+    }
+
+    private static NthProgressBar Strip(ProgressBar bar) =>
+        new() { Height = !double.IsNaN(bar.Height) && bar.Height <= 3 ? 3 : 4, VerticalAlignment = VerticalAlignment.Center };
+
+    /// <summary>The bar's value as 0 to 1 over its Minimum and Maximum.</summary>
+    public static double Fraction(ProgressBar bar)
+    {
+        var span = bar.Maximum - bar.Minimum;
+        return span <= 0 ? 0 : Math.Clamp((bar.Value - bar.Minimum) / span, 0, 1);
     }
 }

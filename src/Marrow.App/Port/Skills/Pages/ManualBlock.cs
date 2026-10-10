@@ -96,7 +96,7 @@ internal sealed class ManualBlock : Border
             kind = next;
             Control control = next switch
             {
-                "checking" => Line(new SystemSpinner { Width = 14, Height = 14 }, LibraryUi.Text(LibraryWords.Checking, 12.5, secondary: true)),
+                "checking" => Line(new Marrow.UI.Port.Nth.NthSpinner { Width = 14, Height = 14 }, LibraryUi.Text(LibraryWords.Checking, 12.5, secondary: true)),
                 "idle" => new Border { Height = 0 },
                 "installed" => Line(LibraryUi.Glyph("checkmark.circle.fill", 14, ChromeTokens.Success), LibraryUi.Text(LibraryWords.Installed, 12.5, secondary: true)),
                 _ => Small(ManualFallbackWords.CheckAgain, () => _ = controller.CheckAgain(id), ButtonLook.Accent, "manual-check-again"),

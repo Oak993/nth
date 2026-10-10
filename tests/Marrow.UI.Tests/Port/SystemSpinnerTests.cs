@@ -4,13 +4,14 @@ using Avalonia.Headless;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Port;
 
-// SystemSpinner: a ProgressView() built as an Avalonia ProgressBar without a template is drawn as the macOS spinner
-// (OD-0042 "Mac look", OD-0045: "Apple macOS 27 UI Kit", Progress Indicators / Circular / Indeterminate, 2 Sm and 3 Rg,
-// SOURCE FACT (Apple design resource), read 2026-10-02), stepping with the frame clock.
+// A ProgressView() built as an Avalonia ProgressBar without a template is drawn by the nth primitives (OD-0136 amendment 2: NthSpinner, NthProgressBar). The older
+// SystemSpinner class (the macOS spinner, OD-0042 "Mac look", OD-0045: "Apple macOS 27 UI Kit", Progress Indicators / Circular / Indeterminate, 2 Sm and 3 Rg,
+// SOURCE FACT (Apple design resource), read 2026-10-02) is tested directly while it exists.
 [Collection("Headless")]
 public sealed class SystemSpinnerTests(HeadlessSession headless)
 {
@@ -24,41 +25,35 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-117")] // the port's frame clock drives the turn
-    public void An_indeterminate_progress_view_is_drawn_as_a_spinner_that_turns_with_the_frames() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-117")]
+    public void An_indeterminate_progress_view_is_drawn_as_the_nth_spinner_at_the_bars_own_size() => headless.OnUiThread(() =>
     {
-        var frames = new ManualFrameSource();
-        using var scope = FrameClock.Source.Override(frames);
+        // OD-0136 amendment 2, step 1 B: the bar's drawing is the nth tile trace, not the system spokes
         var bar = new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16 };
         var window = Host(bar);
         try
         {
-            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<NthSpinner>());
             Assert.Equal(new Size(16, 16), spinner.Bounds.Size);
-            Assert.Equal(0, spinner.Lead);
-            // The lead moves on one spoke, clockwise, every eighth of SystemSpinner.Period, in whole steps.
-            frames.Advance(TimeSpan.FromSeconds(0.1));
-            Assert.Equal(0, spinner.Lead);
-            frames.Advance(TimeSpan.FromSeconds(0.05));
-            Assert.Equal(1, spinner.Lead);
-            frames.Advance(TimeSpan.FromSeconds(0.25));
-            Assert.Equal(3, spinner.Lead);
-            frames.Advance(TimeSpan.FromSeconds(0.625));
-            Assert.Equal(0, spinner.Lead); // a full turn later it starts over
+            Assert.Empty(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            Assert.Empty(bar.GetVisualDescendants().OfType<NthProgressBar>());
         }
         finally { window.Close(); }
     });
 
-    [Fact]
+    [Theory]
+    [InlineData(10.0)]
+    [InlineData(12.0)]
+    [InlineData(18.0)]
     [Trait("Decision", "ED-117")]
-    public void With_no_frame_source_bound_the_spinner_stands_still_instead_of_throwing() => headless.OnUiThread(() =>
+    public void The_nth_spinner_keeps_the_size_the_site_gave_the_bar(double size) => headless.OnUiThread(() =>
     {
-        var bar = new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16 };
-        var window = Host(bar);
+        var bar = new ProgressBar { IsIndeterminate = true, Width = size, Height = size };
+        var window = Host(new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Children = { bar } });
         try
         {
-            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
-            Assert.Equal(0, spinner.Lead);
+            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<NthSpinner>());
+            Assert.Equal(new Size(size, size), spinner.Bounds.Size);
         }
         finally { window.Close(); }
     });
@@ -72,8 +67,26 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
         var window = Host(new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Children = { bar } });
         try
         {
-            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<NthSpinner>());
             Assert.Equal(new Size(16, 16), spinner.Bounds.Size);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-117")]
+    public void An_indeterminate_strip_is_the_nth_bar_growing_and_catching_up_not_a_spinner() => headless.OnUiThread(() =>
+    {
+        // step 3 B: a bar that is a strip (thin, or much wider than tall) keeps that shape
+        var bar = new ProgressBar { IsIndeterminate = true, Width = 120, Height = 4 };
+        var window = Host(bar);
+        try
+        {
+            var strip = Assert.Single(bar.GetVisualDescendants().OfType<NthProgressBar>());
+            Assert.True(strip.IsIndeterminate);
+            Assert.Equal(4, strip.Bounds.Height);
+            Assert.Equal(120, strip.Bounds.Width);
+            Assert.Empty(bar.GetVisualDescendants().OfType<NthSpinner>());
         }
         finally { window.Close(); }
     });
@@ -86,31 +99,75 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
         var window = Host(bar);
         try
         {
-            Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            Assert.Single(bar.GetVisualDescendants().OfType<NthProgressBar>(), strip => strip.IsIndeterminate);
             bar.IsIndeterminate = false;
             Dispatcher.UIThread.RunJobs();
-            Assert.Empty(bar.GetVisualDescendants().OfType<SystemSpinner>());
-            Assert.Single(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
+            Assert.False(Assert.Single(bar.GetVisualDescendants().OfType<NthProgressBar>()).IsIndeterminate);
             bar.IsIndeterminate = true;
             Dispatcher.UIThread.RunJobs();
-            Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
-            Assert.Empty(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
+            Assert.True(Assert.Single(bar.GetVisualDescendants().OfType<NthProgressBar>()).IsIndeterminate);
+            // a round bar switched the same way
+            var round = new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16 };
+            window.Content = round;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Single(round.GetVisualDescendants().OfType<NthSpinner>());
+            round.IsIndeterminate = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Empty(round.GetVisualDescendants().OfType<NthSpinner>());
+            Assert.Single(round.GetVisualDescendants().OfType<NthProgressBar>());
         }
         finally { window.Close(); }
     });
 
     [Fact]
     [Trait("Decision", "ED-117")]
-    public void A_determinate_progress_view_is_a_track_and_fill() => headless.OnUiThread(() =>
+    public void A_determinate_progress_view_is_the_nth_bar_following_its_value() => headless.OnUiThread(() =>
     {
         var bar = new ProgressBar { Minimum = 0, Maximum = 10, Value = 4, Width = 120, Height = 8 };
         var window = Host(bar);
         try
         {
-            var track = Assert.Single(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
-            Assert.Equal(new Size(120, 8), track.Bounds.Size);
+            var fill = Assert.Single(bar.GetVisualDescendants().OfType<NthProgressBar>());
+            Assert.Equal(new Size(120, 4), fill.Bounds.Size);
+            Assert.False(fill.IsIndeterminate);
+            Assert.Equal(.4, fill.Value, 6);
+            Assert.Equal(.4, fill.Shown, 6); // shown at once the first time
+            bar.Value = 7.5;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(.75, fill.Value, 6);
+            bar.Maximum = 15;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(.5, fill.Value, 6);
+            Assert.Empty(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
         }
         finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-117")] // the port's frame clock drives the turn (the class itself; no bar draws it any more)
+    public void The_system_spinner_class_still_turns_with_the_frames_and_stands_still_with_none() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var scope = FrameClock.Source.Override(frames);
+        var spinner = new SystemSpinner { Width = 16, Height = 16 };
+        var window = Host(spinner);
+        try
+        {
+            Assert.Equal(0, spinner.Lead);
+            frames.Advance(TimeSpan.FromSeconds(0.1));
+            Assert.Equal(0, spinner.Lead);
+            frames.Advance(TimeSpan.FromSeconds(0.05));
+            Assert.Equal(1, spinner.Lead);
+            frames.Advance(TimeSpan.FromSeconds(0.25));
+            Assert.Equal(3, spinner.Lead);
+            frames.Advance(TimeSpan.FromSeconds(0.625));
+            Assert.Equal(0, spinner.Lead); // a full turn later it starts over
+        }
+        finally { window.Close(); }
+        var bare = new SystemSpinner { Width = 16, Height = 16 };
+        var other = Host(bare); // no frame source bound: it stands still instead of throwing
+        try { Assert.Equal(0, bare.Lead); }
+        finally { other.Close(); }
     });
 
     [Theory]
@@ -143,14 +200,14 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
     public void The_spokes_are_white_in_dark_and_black_in_light_not_the_accent(string variant) => headless.OnUiThread(() =>
     {
         var theme = variant == "Dark" ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
-        var bar = new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16 };
+        var bar = new SystemSpinner { Width = 16, Height = 16 };
         var window = new Window { Content = bar, Width = 200, Height = 200, RequestedThemeVariant = theme };
         window.Show();
         try
         {
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
-            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            var spinner = bar;
             var expected = variant == "Dark" ? Avalonia.Media.Colors.White : Avalonia.Media.Colors.Black;
             Assert.Equal(expected, spinner.SpokeColor);
         }
@@ -162,7 +219,7 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
     public void Each_spoke_is_drawn_eleven_points_out_at_its_own_opacity_with_the_lead_at_twelve_o_clock() => headless.OnUiThread(() =>
     {
         // A 32-point spinner, white on black (Dark): a spoke's centre (11 out) reads as its opacity, the middle stays black.
-        var bar = new ProgressBar { IsIndeterminate = true, Width = 32, Height = 32, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var bar = new SystemSpinner { Width = 32, Height = 32, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
         var window = new Window { Content = bar, Width = 64, Height = 64, Background = Avalonia.Media.Brushes.Black, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark };
         window.Show();
         try

@@ -17,19 +17,20 @@ public sealed class UsageViewsMiniSpinnerTests(HeadlessSession headless)
 {
     private static void AssertMini(ProgressBar spinner)
     {
-        Assert.Equal(10, spinner.Width); // 2-chat-use.mov 145.0-145.6 s, crop 1894,1148,64x64: 10x10 px
-        Assert.Equal(10, spinner.Height);
-        Assert.Equal(10, spinner.Bounds.Width);
-        Assert.Equal(10, spinner.Bounds.Height);
-        var drawing = Assert.Single(spinner.GetVisualDescendants().OfType<SystemSpinner>());
-        Assert.Equal(10, drawing.Bounds.Width);
-        Assert.Equal(10, drawing.Bounds.Height);
-        Assert.Equal(8, SystemSpinner.Spokes);
+        // OD-0136 amendment 2: the nth tile-trace spinner draws from 12 pt (the old mini control was 10 pt, 2-chat-use.mov 145.0-145.6 s)
+        Assert.Equal(12, spinner.Width);
+        Assert.Equal(12, spinner.Height);
+        Assert.Equal(12, spinner.Bounds.Width);
+        Assert.Equal(12, spinner.Bounds.Height);
+        var drawing = Assert.Single(spinner.GetVisualDescendants().OfType<Marrow.UI.Port.Nth.NthSpinner>());
+        Assert.Equal(12, drawing.Bounds.Width);
+        Assert.Equal(12, drawing.Bounds.Height);
+        Assert.Empty(spinner.GetVisualDescendants().OfType<SystemSpinner>());
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-099")] // UsageViews.swift:22 ProgressView().controlSize(.mini): 10 pt, 2-chat-use.mov 145.0-145.6 s
-    public void The_plan_limits_header_spinner_is_the_10_point_mini_control() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-CHAT-099")] // UsageViews.swift:22 ProgressView().controlSize(.mini): the nth spinner at 12 pt (was 10 pt, 2-chat-use.mov 145.0-145.6 s)
+    public void The_plan_limits_header_spinner_is_the_12_point_nth_spinner() => headless.OnUiThread(() =>
     {
         using var rig = new UsageViewsRig();
         rig.PublishLimits(ProviderKind.Zai, Limits(planName: "Max (20x)"));
@@ -40,8 +41,8 @@ public sealed class UsageViewsMiniSpinnerTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-099")] // UsageViews.swift:109 ProgressView().controlSize(.mini): 10 pt, 2-chat-use.mov 145.0-145.6 s
-    public void The_credits_row_spinner_is_the_10_point_mini_control() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-CHAT-099")] // UsageViews.swift:109 ProgressView().controlSize(.mini): the nth spinner at 12 pt (was 10 pt, 2-chat-use.mov 145.0-145.6 s)
+    public void The_credits_row_spinner_is_the_12_point_nth_spinner() => headless.OnUiThread(() =>
     {
         using var rig = new UsageViewsRig();
         rig.PublishCredits(ProviderKind.Deepseek, Balance(12.34, monthly: 12.34));
@@ -52,8 +53,8 @@ public sealed class UsageViewsMiniSpinnerTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-099")] // UsageViews.swift:355 ProgressView().controlSize(.mini): 10 pt, 2-chat-use.mov 145.0-145.6 s
-    public void The_resetting_row_spinner_is_the_10_point_mini_control() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-CHAT-099")] // UsageViews.swift:355 ProgressView().controlSize(.mini): the nth spinner at 12 pt (was 10 pt, 2-chat-use.mov 145.0-145.6 s)
+    public void The_resetting_row_spinner_is_the_12_point_nth_spinner() => headless.OnUiThread(() =>
     {
         using var rig = new UsageViewsRig();
         var block = rig.Show(new BankedResetsView(ProviderKind.Codex,

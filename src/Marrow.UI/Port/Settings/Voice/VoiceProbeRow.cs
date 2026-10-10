@@ -14,7 +14,7 @@ namespace Marrow.UI.Port.Settings;
 public sealed class VoiceProbeRow : Grid
 {
     private readonly CzNumber opacity, shift, spinFade, spinScale;
-    private readonly VoiceSpinner spinner = new(12) { Opacity = 0 };
+    private readonly Nth.NthSpinner spinner = new() { Width = 12, Height = 12, Opacity = 0 }; // step 1 B at the probe row's 12
     private readonly CzCheckMark check = new() { Width = 12, Height = 12 };
     private readonly Panel icon = new() { Width = 12, Height = 12 };
     private bool on, busy, done;
