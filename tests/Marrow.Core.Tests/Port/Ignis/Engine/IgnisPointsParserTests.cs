@@ -5,7 +5,8 @@ using Marrow.Core.Port.Ignis.Engine;
 namespace Marrow.Core.Tests.Port.Ignis.Engine;
 
 // Ignis U1 (OD-0134, ED-NEW-ignis-engine; work/ignis/PLAN.md): the points parser takes a valid schema v1 file whole and
-// rejects a malformed one with its first reason; ids and aliases find a model, case-insensitively, per provider.
+// rejects a malformed one with its first reason; ids and aliases find a model, case-insensitively, per provider. Schema v2
+// (ED-NEW-ignis-data) is read too, so the unsupported-schema case names 3 and 0 (IgnisPointsSchemaV2Tests covers v2).
 public sealed class IgnisPointsParserTests
 {
     internal const string Valid = """
@@ -76,7 +77,8 @@ public sealed class IgnisPointsParserTests
     [Trait("Decision", "OD-0134")]
     [InlineData("not json", "not JSON")]
     [InlineData("[]", "the file is not an object")]
-    [InlineData("{\"schemaVersion\":2,\"version\":\"2026.10.10\",\"models\":[]}", "schemaVersion: 2 is not supported")]
+    [InlineData("{\"schemaVersion\":3,\"version\":\"2026.10.10\",\"models\":[]}", "schemaVersion: 3 is not supported")]
+    [InlineData("{\"schemaVersion\":0,\"version\":\"2026.10.10\",\"models\":[]}", "schemaVersion: 0 is not supported")]
     [InlineData("{\"version\":\"2026.10.10\",\"models\":[]}", "schemaVersion: missing")]
     [InlineData("{\"schemaVersion\":1,\"version\":\"2026-10-10\",\"models\":[]}", "version: not yyyy.MM.dd")]
     [InlineData("{\"schemaVersion\":1,\"version\":\"2026.02.30\",\"models\":[]}", "version: not yyyy.MM.dd")]
