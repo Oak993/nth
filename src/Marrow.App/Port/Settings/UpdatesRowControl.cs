@@ -179,6 +179,9 @@ internal sealed class UpdatesRowControl : Border
             case UpdateItemKind.Marrow:
                 tile.Child = new Image { Source = AppIconImage.Bitmap, Width = UpdatesColumns.Icon, Height = UpdatesColumns.Icon, Stretch = Stretch.Uniform };
                 break;
+            case UpdateItemKind.ModelPoints: // PORT-ONLY (OD-0134, ED-NEW-ignis-settings): Ignis's lit flame
+                tile.Child = new Marrow.App.Port.Ignis.Settings.IgnisFlameMark { Width = 14, Height = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                break;
             case UpdateItemKind.ProviderCli when ProviderOf(view.Id) is { } provider:
                 tile.Child = new ProviderIcon { Provider = provider, Size = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
                 break;
