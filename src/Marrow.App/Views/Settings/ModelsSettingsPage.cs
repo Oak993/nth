@@ -17,6 +17,7 @@ using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 // Source: DroppyCode/App/Views/Settings/ModelsSettingsPage.swift (B3 52bc7926), :1-448.
 // R-VIEW-2: Swift's `@State private var query` is read by body and (via a chrome search field elsewhere) written
@@ -564,6 +565,7 @@ internal sealed class ProviderModelsSection : Decorator
         // an activated button keeps its identity and keyboard focus while its glyph and state change.
         ValueList<ModelOption>? builtCatalogue = null;
         var builtLoading = false;
+        var arrivingFromSkeleton = false; // nth step 7: the rows that replace the skeleton rise in
         var parts = new List<RowParts>();
         ChromeRevealLayout? emptyReveal = null;
         SettingsScalarAnimation? emptyMotion = null;
@@ -609,13 +611,16 @@ internal sealed class ProviderModelsSection : Decorator
             if (catalogue.Count == 0) // :330-344
             {
                 var loading = registry.LoadingCatalogs.Contains(provider);
-                var content = new ChromeRow(loading ? "Loading models…" : "No models loaded", () => // U+2026 HORIZONTAL ELLIPSIS
+                Button LoadButton()
                 {
                     var loadButton = new Button { Content = "Load models", IsEnabled = !loading }; // :337 .buttonStyle(.glass)
                     SwiftGlass.StyleButton(loadButton);
                     loadButton.Click += async (_, _) => await registry.LoadCatalog(provider, force: true);
                     return loadButton;
-                });
+                }
+                // nth step 7: while the models load, three skeleton rows (3 x 40 points) take the place of the "Loading models…" line; the
+                // text stays as the rows' accessible name, and the glass button stays at the trailing edge, disabled.
+                Control content = loading ? LoadingRows(LoadButton()) : new ChromeRow("No models loaded", LoadButton);
                 var start = expanded || isFiltering ? 1 : 0;
                 var reveal = new ChromeRevealLayout(start) { ClipToBounds = true };
                 reveal.Children.Add(content);
@@ -663,6 +668,21 @@ internal sealed class ProviderModelsSection : Decorator
             }
         }
 
+        static Control LoadingRows(Button loadButton)
+        {
+            var skeleton = new NthSkeleton(NthSkeletonKind.List, 3) { Margin = new Thickness(16, 0, 12, 0) };
+            AutomationProperties.SetName(skeleton, "Loading models…"); // U+2026 HORIZONTAL ELLIPSIS
+            AutomationProperties.SetAccessibilityView(skeleton, AccessibilityView.Content);
+            loadButton.HorizontalAlignment = HorizontalAlignment.Right;
+            loadButton.VerticalAlignment = VerticalAlignment.Center;
+            loadButton.Margin = new Thickness(0, 0, Chrome.RowControlTrailingPadding, 0);
+            var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+            grid.Children.Add(skeleton);
+            Grid.SetColumn(loadButton, 1);
+            grid.Children.Add(loadButton);
+            return grid;
+        }
+
         var immediate = true;
         void Sync()
         {
@@ -672,6 +692,7 @@ internal sealed class ProviderModelsSection : Decorator
             var loading = registry.LoadingCatalogs.Contains(provider);
             if (builtCatalogue is null || !builtCatalogue.Equals(catalogue) || (catalogue.Count == 0 && loading != builtLoading))
             {
+                arrivingFromSkeleton = builtLoading && builtCatalogue?.Count == 0 && catalogue.Count > 0;
                 Build(catalogue, expanded, isFiltering);
                 builtCatalogue = catalogue;
                 builtLoading = loading;
@@ -708,6 +729,11 @@ internal sealed class ProviderModelsSection : Decorator
                     AutomationProperties.SetAccessibilityView(part.RowReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
                     AutomationProperties.SetAccessibilityView(part.DividerReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
                     UpdateToggle(part.Toggle, part.Option, new ModelPin(provider, part.Option.Id));
+                }
+                if (arrivingFromSkeleton)
+                {
+                    arrivingFromSkeleton = false;
+                    NthArrive.Rows(parts.Where(part => visibleIDs.Contains(part.Option.Id)).Select(part => (Control)part.RowReveal).ToList()); // nth step 7: 6 px up, 0.36 s, 40 ms apart
                 }
             }
 

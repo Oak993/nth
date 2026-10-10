@@ -281,7 +281,7 @@ public sealed class EffortSliderPanelTests(HeadlessSession headless)
     [InlineData(1, 2, true, false, false, 34, 70)]     // the same foreign-only list without history: nothing is locked and one provider shows no icons, so 34 (the `hasHistory &&` term)
     [InlineData(1, 2, false, false, false, 34, 70)]    // the thread's own provider, no history: 2 * 35
     [InlineData(2, 5, false, false, false, 46, 440)]   // ten rows would be 470: the popover stops at 440
-    [InlineData(1, 1, false, false, true, 34, 35)]     // no model at all: the "Loading models…" line takes one reserved row
+    [InlineData(1, 1, false, false, true, 34, 120)]    // no model at all: nth step 7's three skeleton rows (3 x 40) take the place of the "Loading models…" line
     public void Model_list_heights_follow_the_fixed_row_arithmetic(int providers, int perProvider, bool foreignOnly, bool history, bool empty, double rowHeight, double scrollHeight) =>
         headless.OnUiThread(() =>
         {

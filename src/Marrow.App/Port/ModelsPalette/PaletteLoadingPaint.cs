@@ -1,25 +1,37 @@
-// PORT-ONLY: locked v22 :58-62 loading overlay, same tube clock and CSS ease-in-out.
-using Marrow.UI.Port;
+// PORT-ONLY: OD-0136 amendment 2, step 14 "Model colours loading" (ED-NEW-nth-motion), replacing locked v22 :58-62's loading overlay.
+// The same tube clock; the drawing is the nth tube: one light sweep every 1.6 s clipped to the track (no radial glow) and three
+// flat --mark dots (r 2, 11 px apart) that swell in turn. The track is drawn by the host, so only the light and the dots are
+// painted. When the colours arrive (loading turns off) the light and the dots fade out in 0.2 s. The track renders on the render
+// thread (LiquidTrack's draw operation), so this is drawn there and no UI-thread loop is involved.
+using Marrow.UI.Port.Nth;
 using SkiaSharp;
 namespace Marrow.App.Port.ModelsPalette;
 internal sealed class PaletteLoadingPaint : IDisposable
 {
-    private readonly SKPaint pulse=new(){IsAntialias=true};private readonly SKPaint shim=new();
-    private readonly SKPoint[] points=new SKPoint[2];private readonly uint[] colours=[0x00FFFFFF,0x66FFFFFF,0x00FFFFFF];
-    private readonly float[] stops=[0,.5f,1];private static readonly Animation Ease=Animation.TimingCurve(.42,0,.58,1,1);
-    internal void Draw(SKCanvas canvas,SKRect rect,double time,bool still)
+    /// <summary>Seconds the light and the dots fade out once loading ends (step 14: "dots fade 0.2 s").</summary>
+    internal const double FadeSeconds = .2;
+
+    private readonly NthTubePainter tube = new();
+    private bool wasLoading;
+    private double endedAt = double.NaN;
+
+    /// <summary>
+    /// Draws the loading tube over <paramref name="rect"/> (at the origin). <paramref name="phase"/> is the tube clock in seconds
+    /// since the palette was born; <paramref name="loading"/> false after a wait draws the 0.2 s fade, then nothing.
+    /// </summary>
+    internal void Draw(SKCanvas canvas, SKRect rect, bool loading, double phase, bool still, bool dark)
     {
-        var t=still?0:time;var q=Ease.Progress((t/1.1)%1);var x=rect.Width*(float)(-.4+1.5*q);var width=rect.Width*.35f;
-        points[0]=new(x,0);points[1]=new(x+width,0);
-        var shader=SkiaShaders.LinearGradient(points,colours,stops);
-        // Loading is transient; the retained paint owns only this frame's native shader.
-        try{SkiaShaders.SetShader(shim,shader);canvas.DrawRect(new SKRect(x,0,x+width,rect.Height),shim);}
-        finally{SkiaShaders.SetShader(shim,0);SkiaShaders.Release(shader);}
-        for(var i=0;i<3;i++)
+        double? loaded = null;
+        if (loading) { wasLoading = true; endedAt = double.NaN; }
+        else
         {
-            var local=(t-i*.18)/1.1;var p=local<0?0:local%1;var h=Ease.Progress(p<.5?p*2:(1-p)*2);var radius=(float)(5*(.6+.4*h));
-            pulse.Color=new(255,255,255,(byte)Math.Round(255*.8*(.35+.65*h)));canvas.DrawCircle(rect.Width*(.30f+.18f*i)+5,20,radius,pulse);
+            if (wasLoading) { wasLoading = false; endedAt = phase; }
+            if (double.IsNaN(endedAt)) return;
+            loaded = Math.Max(0, phase - endedAt);
+            if (loaded >= FadeSeconds) { endedAt = double.NaN; return; }
         }
+        tube.DrawTube(canvas, rect.Width, rect.Height, NthPalette.For(dark), dark, still, phase, loaded, null, false);
     }
-    public void Dispose(){shim.Dispose();pulse.Dispose();}
+
+    public void Dispose() => tube.Dispose();
 }

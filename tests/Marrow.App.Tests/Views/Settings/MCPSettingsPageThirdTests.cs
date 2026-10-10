@@ -12,6 +12,7 @@ using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using static Marrow.App.Tests.Fixtures.MCPSettingsPageFixture;
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -88,7 +89,7 @@ public sealed class MCPSettingsPageThirdTests(HeadlessSession headless)
             Assert.Equal(11, label.FontSize);
             Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Subheadline).Resolve().FontFamily, label.FontFamily);
             Assert.Equal(FontWeight.Normal, label.FontWeight); Assert.Equal(TextWrapping.NoWrap, label.TextWrapping);
-            Assert.Single(Nodes<WorkingSpinner>(row));
+            Assert.Single(Nodes<NthStatusMark>(row)); // nth step 11
         });
     }
 
@@ -122,7 +123,7 @@ public sealed class MCPSettingsPageThirdTests(HeadlessSession headless)
         Ui((model,_)=>{var server=Custom();foreach(var state in new MCPConnectionState[]{new MCPConnectionState.NotConnected(),new MCPConnectionState.Connecting(),new MCPConnectionState.Connected(4),new MCPConnectionState.NeedsSetup(new MCPSetupGuide("Setup","Reason",new[]{"Step"},"Open","https://example.invalid",null)),new MCPConnectionState.Failed("Rejected")}){
             State(model,server.Id,state);var row=new MCPCustomRow(server);using var window=Attach(row,model);Assert.Equal(new Thickness(16,11,10,11),Assert.IsType<Border>(row.Child).Padding);Assert.Equal(26,Assert.IsType<Border>(Assert.Single(Nodes<MCPIcon>(row)).Parent).Width);
             var options=Nodes<Button>(row).Single(x=>ToolTip.GetTip(x) as string=="Server options");Assert.Equal(22,options.Width);Assert.Equal(22,options.Height);
-            switch(state){case MCPConnectionState.NotConnected:Assert.NotNull(Button(row,"Connect"));break;case MCPConnectionState.Connecting:Assert.Single(Nodes<WorkingSpinner>(row));Assert.Equal(TextWrapping.NoWrap,Nodes<TextBlock>(row).Single(x=>x.Text=="Connecting").TextWrapping);break;case MCPConnectionState.Connected:Assert.Single(Nodes<SettingsSwitch>(row));Assert.Contains("4 tools \U000000B7 Custom",Texts(row));break;case MCPConnectionState.NeedsSetup:Assert.NotNull(Button(row,"Fix it"));break;case MCPConnectionState.Failed:Assert.NotNull(Button(row,"Try again"));Assert.Equal(3,Nodes<TextBlock>(row).Single(x=>x.Text=="Rejected").MaxLines);break;}
+            switch(state){case MCPConnectionState.NotConnected:Assert.NotNull(Button(row,"Connect"));break;case MCPConnectionState.Connecting:Assert.Single(Nodes<NthStatusMark>(row));Assert.Equal(TextWrapping.NoWrap,Nodes<TextBlock>(row).Single(x=>x.Text=="Connecting").TextWrapping);break;case MCPConnectionState.Connected:Assert.Single(Nodes<SettingsSwitch>(row));Assert.Contains("4 tools \U000000B7 Custom",Texts(row));break;case MCPConnectionState.NeedsSetup:Assert.NotNull(Button(row,"Fix it"));break;case MCPConnectionState.Failed:Assert.NotNull(Button(row,"Try again"));Assert.Equal(3,Nodes<TextBlock>(row).Single(x=>x.Text=="Rejected").MaxLines);break;}
         }}); // U+00B7 MIDDLE DOT
     }
     [Fact]

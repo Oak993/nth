@@ -14,6 +14,7 @@ using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 using static Marrow.App.Tests.Fixtures.ModelsSettingsSectionRig;
 
 namespace Marrow.App.Tests.Views.Settings;
@@ -123,9 +124,17 @@ public sealed class ModelsSettingsPageSectionTests(HeadlessSession headless)
         Assert.Empty(Of<ChromeRowDivider>(section));
         Assert.True(LoadButton(section).IsEnabled);
 
+        // nth step 7: while the models load, three skeleton rows (3 x 40) stand in for the "Loading models…" title (U+2026), which stays as
+        // their accessible name; the glass button stays at the trailing edge, disabled
         rig.SetLoading(ProviderKind.Deepseek, true);
-        row = Assert.Single(Of<ChromeRow>(rig.SectionOf(ProviderKind.Deepseek)));
-        Assert.Equal(["Loading models…", "Load models"], Of<TextBlock>(row).Select(text => text.Text ?? "").ToArray()); // U+2026
+        var loadingSection = rig.SectionOf(ProviderKind.Deepseek);
+        Assert.Empty(Of<ChromeRow>(loadingSection));
+        var skeleton = Assert.Single(Of<NthSkeleton>(loadingSection));
+        Assert.Equal(NthSkeletonKind.List, skeleton.Kind); Assert.Equal(3, skeleton.Rows); Assert.Equal(120, skeleton.Height);
+        Assert.Equal("Loading models…", AutomationProperties.GetName(skeleton));
+        Assert.Equal(AccessibilityView.Content, AutomationProperties.GetAccessibilityView(skeleton));
+        Assert.DoesNotContain(Of<TextBlock>(loadingSection), text => text.Text == "Loading models…"); // the text is only the rows' accessible name
+        Assert.Contains(Of<TextBlock>(loadingSection), text => text.Text == "Load models");
         Assert.False(LoadButton(rig.SectionOf(ProviderKind.Deepseek)).IsEnabled);
 
         rig.SetLoading(ProviderKind.Deepseek, false);

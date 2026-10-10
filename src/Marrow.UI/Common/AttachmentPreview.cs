@@ -6,10 +6,12 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 namespace Marrow.UI.Common;
 
@@ -297,7 +299,12 @@ public sealed class AttachmentPlayBadge : Panel
 public sealed class AttachmentVideoThumbnail : Border
 {
     private readonly Panel stack = new();
+    // nth motion pack step 6: the plate with the light while the frame loads; the frame settles over it (the plate stays under it).
+    private readonly NthSkeleton plate = new(NthSkeletonKind.Plate);
     private bool hasFrame;
+
+    /// <summary>The placeholder plate shown while the frame loads (tests).</summary>
+    public NthSkeleton Plate => plate;
 
     public AttachmentVideoThumbnail(Attachment attachment, double size = 56) // :198-199
     {
@@ -308,6 +315,7 @@ public sealed class AttachmentVideoThumbnail : Border
         Background = SwiftColor.Quaternary.Opacity(0.6).Brush(this);
         Width = size; // :215
         Height = size;
+        stack.Children.Add(plate);
         stack.Children.Add(new AttachmentPlayBadge()); // :213, drawn over the (still empty) image slot
         Child = stack;
         this.Task(() => attachment.Path, async path => // :217 .task(id: attachment.path)
@@ -315,12 +323,14 @@ public sealed class AttachmentVideoThumbnail : Border
             await AttachmentLargePreview.PrefetchVideoSize(attachment); // :218
             if (hasFrame) return; // :219 guard image == nil else return
             var frame = await PreviewVideos.Thumbnail(path, size); // :220
-            if (frame is null || SwiftTask.IsCancelled) return;
+            if (SwiftTask.IsCancelled) return;
+            if (frame is null) { plate.Finish(); return; } // no frame to wait for: the plate stops (it fades back to the quaternary fill)
             hasFrame = true;
-            var image = new Image { Source = frame.ToBitmap(), Stretch = Stretch.UniformToFill } // :208-210
-                .Transition(SwiftTransition.Opacity); // :211 .transition(.opacity)
-            Transaction.WithAnimation(Marrow.UI.Port.Animation.EaseOut(0.15), () => // :221 withAnimation(.easeOut(duration: 0.15))
-                SwiftTransition.Insert(stack, 0, image)); // below the badge, which was added first
+            var image = new Image { Source = frame.ToBitmap(), Stretch = Stretch.UniformToFill }; // :208-210
+            stack.Children.Insert(1, image); // over the plate, below the badge
+            NthArrive.Settle(image); // :211, :221 nth step 6: opacity 0 to 1 and scale 1.02 to 1 over 0.6 s, in place of the 0.15 s fade
+            // the plate stays under the picture while it settles, then stops
+            DispatcherTimer.RunOnce(plate.Finish, TimeSpan.FromSeconds(.6));
         });
     }
 }
@@ -390,7 +400,20 @@ public sealed class AttachmentLargePreview : Border
     private readonly Attachment attachment; // :232
     private readonly Size? imageSize; // :234
     private readonly Image mediaImage = new(); // :236 @State private var image / :237 videoFrame, one control for either
-    private readonly AuroraLoader loadingMark = new(AuroraLoaderKind.FlowArc); // DEVIATION OD-0113: loader 4, 40 DIP
+    // nth motion pack step 13 (replaces OD-0113's Flow Arc): the blurred thumbnail with the light band behind the picture, and the
+    // glass puck holding a white spinner over it. The size of a loading picture is not known, so the puck holds the spinner.
+    private readonly NthPreviewBackdrop backdrop;
+    private readonly PreviewPuck puck = new();
+
+    /// <summary>The placeholder behind the picture (tests).</summary>
+    public NthPreviewBackdrop Backdrop => backdrop;
+
+    /// <summary>The glass puck over it (tests).</summary>
+    public PreviewPuck Puck => puck;
+
+    // The thumbnail the strip already decoded for this file (it was shown at 56 or 48 points), if the strip drew it.
+    private static DecodedBitmap? KnownThumbnail(Attachment attachment) =>
+        attachment.IsImage ? ThumbnailMemory.ImageFor(attachment.Path, 56) ?? ThumbnailMemory.ImageFor(attachment.Path, 48) : null;
     private readonly Panel contentArea = new();
     private readonly AttachmentPlayBadge videoBadge = new() { IsVisible = false }; // :312 overlay { AttachmentPlayBadge() }, shown with the frame
 
@@ -399,6 +422,7 @@ public sealed class AttachmentLargePreview : Border
     {
         this.attachment = attachment;
         this.imageSize = imageSize;
+        backdrop = new NthPreviewBackdrop(KnownThumbnail(attachment));
         Padding = new Thickness(12); // :372
         MaxWidth = 504; // :373
         var outer = new StackPanel { Spacing = 10 }; // :288 VStack(alignment: .leading, spacing: 10)
@@ -418,13 +442,11 @@ public sealed class AttachmentLargePreview : Border
             mediaImage.Height = slot.Height;
             mediaImage.Opacity = 0;
             mediaImage.Stretch = Stretch.Uniform; // :295, :314 .aspectRatio(contentMode: .fit)
-            loadingMark.HorizontalAlignment = HorizontalAlignment.Center;
-            loadingMark.VerticalAlignment = VerticalAlignment.Center;
             var clip = new Border // :296, :315 .clipShape(.rect(cornerRadius: 12, style: .continuous))
             {
                 Width = slot.Width,
                 Height = slot.Height,
-                Child = attachment.IsVideo ? new Panel { Children = { mediaImage, videoBadge, loadingMark } } : new Panel { Children = { mediaImage, loadingMark } },
+                Child = attachment.IsVideo ? new Panel { Children = { backdrop, mediaImage, videoBadge, puck } } : new Panel { Children = { backdrop, mediaImage, puck } },
                 HorizontalAlignment = HorizontalAlignment.Center, // :303, :323 .frame(maxWidth: .infinity, alignment: .center)
             }.RoundedRectangle(12, RoundedCornerStyle.Continuous);
             clip.ClipToBounds = true;
@@ -526,11 +548,8 @@ public sealed class AttachmentLargePreview : Border
             if (SwiftTask.IsCancelled) return;
             if (loaded is null) return; // PR-COMPOSER-074 failure case: the spinner (loading mark) stays.
             CancelLoadingMark();
-            Transaction.WithAnimation(Marrow.UI.Port.Animation.EaseOut(0.15), () => // :377
-            {
-                mediaImage.Source = loaded.Image.ToBitmap();
-                mediaImage.Opacity = 1;
-            });
+            mediaImage.Source = loaded.Image.ToBitmap(); // :377
+            NthArrive.Settle(mediaImage); // nth step 13: opacity 0 to 1 and scale 1.02 to 1 over 0.6 s, in place of the 0.15 s fade
         }
         else if (attachment.IsVideo) // :378
         {
@@ -541,12 +560,9 @@ public sealed class AttachmentLargePreview : Border
                                         // reaches the textPreview branch for a video (PR-COMPOSER-201 decides the
                                         // branch once); PR-COMPOSER-202: the placeholder (the loading mark) just stays.
             CancelLoadingMark();
-            Transaction.WithAnimation(Marrow.UI.Port.Animation.EaseOut(0.15), () => // :383
-            {
-                mediaImage.Source = frame.ToBitmap();
-                mediaImage.Opacity = 1;
-                videoBadge.IsVisible = true; // :312
-            });
+            mediaImage.Source = frame.ToBitmap(); // :383
+            videoBadge.IsVisible = true; // :312
+            NthArrive.Settle(mediaImage); // nth step 13, as for a photo
         }
         else // :384-386
         {
@@ -554,15 +570,16 @@ public sealed class AttachmentLargePreview : Border
         }
     }
 
-    // OD-0113 deviation (UI-COMPOSER-077): Flow Arc owns the 400 ms gate and 200 ms fade, starting at the wait.
+    // UI-COMPOSER-077 (nth step 13): the backdrop shows at once; the puck keeps the 0.4 s gate the old loader had and appears with a 0.2 s fade.
     private void ScheduleLoadingMark()
     {
-        loadingMark.BeginWait();
+        // both start when they are mounted: nothing to begin here
     }
 
     private void CancelLoadingMark()
     {
-        loadingMark.Complete(); // same 150 ms fade as the arriving image/video, without a second 400 ms gate
+        puck.Arrive(); // opacity 0 and scale .9 over 0.24 s
+        backdrop.Arrive(); // the light band fades out in 0.2 s; the blurred thumbnail stays under the sharp picture
     }
 }
 
@@ -571,7 +588,7 @@ public sealed class AttachmentLargePreview : Border
 public sealed class ToolImagePreview : StackPanel
 {
     private readonly Image image = new(); // :403 @State private var image: CGImage?
-    private readonly Avalonia.Controls.ProgressBar spinner = new() { IsIndeterminate = true, Width = 16, Height = 16 }; // :416-417 ProgressView().controlSize(.small)
+    private readonly NthSpinner spinner = new() { Width = 16, Height = 16 }; // :416-417 ProgressView().controlSize(.small); nth step 1 spinner 16
 
     public ToolImagePreview(string path) // :401
     {
