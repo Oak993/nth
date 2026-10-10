@@ -462,7 +462,7 @@ public sealed class ChatViewParityDetailTests(HeadlessSession headless)
                 Assert.True(spinner.IsVisible);
                 Assert.False(sparkles.IsVisible);
                 Assert.True(spinner.IsIndeterminate);
-                Assert.Single(spinner.GetVisualDescendants().OfType<SystemSpinner>()); // .controlSize(.small) ProgressView (OD-0042)
+                Assert.Equal(new Avalonia.Size(16, 16), Assert.Single(spinner.GetVisualDescendants().OfType<Marrow.UI.Port.Nth.NthSpinner>()).Bounds.Size); // .controlSize(.small) ProgressView: the nth spinner (OD-0136 amendment 2, step 1 B)
                 Assert.False(sheet.WriteForMeButton.IsEnabled);
                 Assert.Equal("Writing a message…", LogicalQuery.SelfAndDescendants<TextBlock>(sheet.MessageFrame).Single(t => t.IsVisible && t.Text!.StartsWith("Writing", StringComparison.Ordinal)).Text);
             });

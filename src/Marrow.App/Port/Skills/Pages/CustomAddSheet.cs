@@ -226,7 +226,7 @@ internal sealed class CustomAddSheet : Border
         ApplyButtons();
         var searching = source switch { CustomAddSource.Folder => "Looking in the chosen folder for ", CustomAddSource.Zip => "Opening the chosen .zip and looking for ", _ => "Fetching the repository and looking for " };
         searching += kind switch { CustomAddKind.Skills => "SKILL.md files", CustomAddKind.Plugins => "plugin manifests", _ => "an .exe" };
-        results.Show(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 9, Children = { new SystemSpinner { Width = 14, Height = 14 }, LibraryUi.Text(searching + "\u2026", 12.5, secondary: true, wrap: true) } }, Fade);
+        results.Show(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 9, Children = { new Marrow.UI.Port.Nth.NthSpinner { Width = 14, Height = 14 }, LibraryUi.Text(searching + "\u2026", 12.5, secondary: true, wrap: true) } }, Fade);
         foot.SetText("Checking what is there.");
         try
         {

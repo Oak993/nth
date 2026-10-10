@@ -3125,7 +3125,7 @@ internal sealed class HelperStubRow : Decorator
         var label = new TextBlock { TextWrapping = TextWrapping.NoWrap }; // :1588-1589
         SwiftFont.Subheadline.Apply(label); // :1590
 
-        var spinner = new MiniSpinner(cellSize: 2.4) { Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center }; // :1592-1594
+        var spinner = NthWorkingMarks.Working(); spinner.Margin = new Thickness(0, 0, 4, 0); spinner.HorizontalAlignment = HorizontalAlignment.Right; // :1592-1594, the nth spinner (OD-0136 amendment 2, step 1 B)
         var leading = new StackPanel // :1585 HStack(spacing: 5) { chevron; label; Spacer(minLength: 4); [spinner] }
         {
             Orientation = Orientation.Horizontal,
@@ -4268,7 +4268,7 @@ internal sealed class ThreadGhostBadge : Decorator
             NeedsInput
                 ? Tinted(new SidebarSymbol("hand.raised.fill"), Chrome.Orange) // :2097-2099
                 : IsRunning
-                    ? new MiniSpinner(cellSize: 2.4, isStill: true) // :2100-2101
+                    ? NthWorkingMarks.Still() // :2100-2101 isStill: the calm still trace (a ghost is carried as a picture)
                     : thread.IsPinned
                         ? Tinted(new SidebarSymbol("pin.fill", scale: 0.9), Chrome.Danger.Opacity(0.85)) // :2102-2104
                         : new ProviderIcon { Provider = thread.Provider, Size = 14 }); // :2105-2106
@@ -4419,7 +4419,8 @@ internal sealed class ThreadBadge : Decorator
             }
             else if (isRunning) // :2156
             {
-                var spinner = new MiniSpinner(cellSize: 2.4); // :2157
+                var spinner = NthWorkingMarks.Working(); // :2157, the nth spinner (OD-0136 amendment 2, step 1 B)
+                spinner.IsHitTestVisible = true; // it carries the merge stage as its tooltip
                 ToolTip.SetTip(spinner, mergeStage ?? ""); // :2158
                 glyph = spinner;
             }
@@ -4872,7 +4873,8 @@ internal sealed class ActivityStatus : Decorator
             }
             else if (isRunning) // :2418
             {
-                var spinner = new MiniSpinner(cellSize: 2.4); // :2419
+                var spinner = NthWorkingMarks.Working(); // :2419, the nth spinner (OD-0136 amendment 2, step 1 B)
+                spinner.IsHitTestVisible = true; // it carries the merge stage as its tooltip
                 ToolTip.SetTip(spinner, mergeStage ?? ""); // :2420
                 content = spinner;
             }

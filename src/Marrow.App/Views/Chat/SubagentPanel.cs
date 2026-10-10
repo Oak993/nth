@@ -472,7 +472,7 @@ internal sealed class ClosePanelPresentationState : MainActorModel
 /// <summary>:359-413 <c>private struct SubagentWorkingBox: View</c>.</summary>
 internal sealed class SubagentWorkingBox : Decorator
 {
-    private readonly MiniSpinner spinner = new();
+    private readonly Marrow.UI.Port.Nth.NthSpinner spinner = new() { Width = 12, Height = 12, VerticalAlignment = VerticalAlignment.Center }; // OD-0136 amendment 2, step 1 B
     private readonly TextBlock text = new();
     private string name = "Helper";
     private bool isRunning;

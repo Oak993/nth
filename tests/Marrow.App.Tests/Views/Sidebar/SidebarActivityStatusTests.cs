@@ -38,7 +38,7 @@ public sealed class SidebarActivityStatusTests(HeadlessSession headless)
         harness.Main.OnMain(() =>
         {
             Control Status() => Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), thread)!);
-            Assert.Empty(LogicalQuery.SelfAndDescendants<MiniSpinner>(Status())); // idle: nothing, to tell each state from the quiet row
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(Status())); // idle: nothing, to tell each state from the quiet row
             switch (state)
             {
                 case "running":
@@ -58,14 +58,14 @@ public sealed class SidebarActivityStatusTests(HeadlessSession headless)
             var status = Status();
             if (state == "pending question")
             {
-                Assert.Empty(LogicalQuery.SelfAndDescendants<MiniSpinner>(status));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(status));
                 var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(status).Single();
                 Assert.Equal("hand.raised.fill", hand.SymbolName); // :2415
                 Assert.Equal(Chrome.Warning.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color); // :2417
             }
             else
             {
-                Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(status)); // :2419
+                Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Port.Nth.NthSpinner>(status)); // :2419
                 Assert.Empty(LogicalQuery.SelfAndDescendants<SwiftImage>(status));
             }
         });
