@@ -1695,6 +1695,8 @@ public sealed class AttachmentThumbnail : Decorator
     private DecodedBitmap? image;
     private Image? imageView;
     private readonly Panel plate = new();
+    // nth motion pack step 6 (OD-0136 amendment 2): the plate with the light while the photo loads; the photo settles over it.
+    private NthSkeleton? waiting;
 
     // :1245-1249 @State private var ownAnchor = WeakView(): the thumbnail's own view, handed to the panel on tap so the
     // arrow lands on the tapped photo rather than the strip's middle.
@@ -1742,6 +1744,7 @@ public sealed class AttachmentThumbnail : Decorator
             label = Plate(plate); // :1292-1304
             // :1270-1271 a photo shown before starts out drawn, so scrolling back to it never fades it in again.
             if (ThumbnailMemory.ImageFor(attachment.Path, size) is { } known) ShowImage(known, fade: false);
+            else plate.Children.Add(waiting = new NthSkeleton(NthSkeletonKind.Plate));
         }
         else if (attachment.IsVideo) // :1305
         {
@@ -1797,8 +1800,8 @@ public sealed class AttachmentThumbnail : Decorator
             var thumbnail = await ThumbnailCache.Shared.Current.ThumbnailFor(path, size, fillingSquare: true); // :1346
             if (thumbnail is null) return;
             ThumbnailMemory.Store(thumbnail.Image, path, size); // :1347
-            // :1348 withAnimation(.easeOut(duration: 0.15)) { image = thumbnail.image }
-            Transaction.WithAnimation(Marrow.UI.Port.Animation.EaseOut(0.15), () => ShowImage(thumbnail.Image, fade: true));
+            // :1348 withAnimation(.easeOut(duration: 0.15)) { image = thumbnail.image }; nth step 6: the photo settles in over 0.6 s instead
+            ShowImage(thumbnail.Image, fade: true);
         });
     }
 
@@ -1832,8 +1835,14 @@ public sealed class AttachmentThumbnail : Decorator
         var view = new Image { Source = next.ToBitmap(), Stretch = Stretch.UniformToFill };
         RenderOptions.SetBitmapInterpolationMode(view, Avalonia.Media.Imaging.BitmapInterpolationMode.HighQuality);
         imageView = view;
-        if (fade) SwiftTransition.Insert(plate, plate.Children.Count, view.Transition(SwiftTransition.Opacity));
-        else plate.Children.Add(view);
+        plate.Children.Add(view);
+        if (waiting is not { } placeholder) return;
+        waiting = null;
+        if (!fade) { plate.Children.Remove(placeholder); return; }
+        // nth step 6: opacity 0 to 1 and scale 1.02 to 1 over 0.6 s (in place of the 0.15 s fade); the plate stays under it, then goes
+        NthArrive.Settle(view);
+        placeholder.Finish();
+        Avalonia.Threading.DispatcherTimer.RunOnce(() => plate.Children.Remove(placeholder), TimeSpan.FromSeconds(.6));
     }
 
     // :1274-1282 togglePanel(): opens (or closes) the panel for this photo, making one only now if the caller handed

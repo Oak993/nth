@@ -885,7 +885,7 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
             {
                 Assert.Null(Mounted<Image>(leaves).Single().Source);
                 Assert.Equal(0, Mounted<Image>(leaves).Single().Opacity);
-                Assert.True(Mounted<ProgressBar>(leaves).Single().IsVisible, "the spinner of a preview that left stays as it was");
+                Assert.True(Mounted<Marrow.UI.Port.Nth.NthSpinner>(leaves).Single().IsVisible, "the spinner of a preview that left stays as it was");
             }
             finally { Close(window); }
         });
@@ -936,7 +936,7 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
                     {
                         var preview = Assert.Single(Mounted<ToolImagePreview>(view));
                         var box = BlitzAbRender.BoxIn(Assert.IsType<Border>(preview.Children[0]), window);
-                        var spinner = Assert.Single(Mounted<ProgressBar>(preview));
+                        var spinner = Assert.Single(Mounted<Marrow.UI.Port.Nth.NthSpinner>(preview)); // OD-0136 amendment 2 (nth step 1): the plate's spinner is the nth spinner
                         Assert.True(spinner.IsVisible);
                         var spinnerBox = BlitzAbRender.BoxIn(spinner, window);
                         Assert.Equal(box.Center.X, spinnerBox.Center.X, 1.0);
@@ -944,7 +944,7 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
                         Assert.Equal(0, Assert.Single(Mounted<Image>(preview)).Opacity);
                     }
                 });
-                h.Main.Loop.RunUntil(() => views.All(view => !Mounted<ProgressBar>(view).Single().IsVisible), AppModelHarness.Bound);
+                h.Main.Loop.RunUntil(() => views.All(view => !Mounted<Marrow.UI.Port.Nth.NthSpinner>(view).Single().IsVisible), AppModelHarness.Bound);
                 h.Main.OnMain(() =>
                 {
                     Settle(window);
@@ -958,7 +958,7 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
                         // :408-421 as wide as the row, as tall as the image fitted to that width, at most 420; the loaded image replaces the spinner.
                         Assert.Equal(480, plateBox.Width, 0.5);
                         Assert.Equal(height, plateBox.Height, 1.0);
-                        Assert.False(Assert.Single(Mounted<ProgressBar>(preview)).IsVisible);
+                        Assert.False(Assert.Single(Mounted<Marrow.UI.Port.Nth.NthSpinner>(preview)).IsVisible);
                         Assert.Equal(1, Assert.Single(Mounted<Image>(preview)).Opacity);
                         foreach (var (sx, sy, colour) in samples)
                         {

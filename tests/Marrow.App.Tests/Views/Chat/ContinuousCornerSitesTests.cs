@@ -123,6 +123,7 @@ public sealed class ContinuousCornerSitesTests(HeadlessSession headless)
         ("Marrow.UI/Chrome/ChromeSegmentedPicker.cs", "11", 1, Capsule),
         ("Marrow.UI/Chrome/DragHandle.cs", "Metrics.GlowRadius", 1, Circular),
         ("Marrow.UI/Chrome/DragHandle.cs", "grip.Thickness / 2", 1, Capsule),
+        ("Marrow.UI/Common/PreviewLoading.cs", "Size / 2", 1, Circle), // OD-0136 amendment 2 (nth step 13): the 44 x 44 glass puck of the large preview, r = side / 2, a circle by construction
         ("Marrow.UI/Port/PortControlThemes.cs", "10", 1, Circle),
         ("Marrow.UI/Port/PortControlThemes.cs", "2", 1, Tiny),
         ("Marrow.UI/Port/PortControlThemes.cs", "7", 1, Circle),

@@ -387,7 +387,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                         Paints(box.Background, SwiftColor.Quaternary.Opacity(0.45), box, "image plate");
                         Assert.Equal(480, box.Bounds.Width, 0.5);
                         // :416-417 a small spinner stays until the thumbnail loads (an empty file never does).
-                        Assert.True(Assert.Single(Mounted<Avalonia.Controls.ProgressBar>(box)).IsVisible);
+                        Assert.True(Assert.Single(Mounted<Marrow.UI.Port.Nth.NthSpinner>(box)).IsVisible); // OD-0136 amendment 2 (nth step 1): the nth spinner
                         // :422-433 6 points below, the file's last path component (caption, secondary, one line) and an Open link.
                         Assert.Equal(6, Top(preview.Children[1], window) - (Top(box, window) + box.Bounds.Height), 0.5);
                         var name = Assert.Single(Mounted<MiddleTruncatingTextBlock>(preview));

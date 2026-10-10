@@ -41,24 +41,25 @@ public sealed class AuroraDiffLoadingStateTests(HeadlessSession headless)
     [Trait("Decision", "ED-252")]
     public void The_compositor_activity_guard_tracks_visibility_completion_and_detach_without_allocating() => headless.OnUiThread(() =>
     {
+        // OD-0136 amendment 2 (ED-NEW-nth-motion): the diff wait is the nth diff skeleton; the idle GPU warm-up reads NthVisualHost.AnyAnimating
         var time = new ManualTimeProvider(); using var clock = SwiftClock.Provider.Override(time);
-        var loader = new AuroraLoader(AuroraLoaderKind.FlowArc); loader.BeginWait();
-        var window = new Avalonia.Controls.Window { Width = 100, Height = 100, Content = loader };
+        var skeleton = new Marrow.UI.Port.Nth.NthSkeleton(Marrow.UI.Port.Nth.NthSkeletonKind.Diff, 8) { Width = 180, Height = 88 };
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = skeleton };
         window.Show(); Dispatcher.UIThread.RunJobs();
         try
         {
-            Assert.True(AuroraLoader.AnyAnimating());
-            loader.IsVisible = false; Assert.False(AuroraLoader.AnyAnimating());
-            loader.IsVisible = true; Assert.True(AuroraLoader.AnyAnimating());
-            loader.Complete(); time.Advance(TimeSpan.FromMilliseconds(150)); Assert.False(AuroraLoader.AnyAnimating());
-            loader.BeginWait(); Assert.True(AuroraLoader.AnyAnimating());
-            for (var i = 0; i < 180; i++) AuroraLoader.AnyAnimating();
+            Assert.True(skeleton.IsMoving); Assert.True(Marrow.UI.Port.Nth.NthVisualHost.AnyAnimating());
+            skeleton.IsVisible = false; Assert.False(skeleton.IsMoving);
+            skeleton.IsVisible = true; Assert.True(skeleton.IsMoving);
+            skeleton.Finish(); time.Advance(TimeSpan.FromMilliseconds(150)); Assert.True(skeleton.IsMoving, "fading out (0.2 s)");
+            time.Advance(TimeSpan.FromMilliseconds(60)); Assert.False(skeleton.IsMoving);
+            for (var i = 0; i < 2000; i++) { Marrow.UI.Port.Nth.NthVisualHost.AnyAnimating(); _ = skeleton.IsMoving; }
             var bytes = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 180; i++) AuroraLoader.AnyAnimating();
+            for (var i = 0; i < 180; i++) { Marrow.UI.Port.Nth.NthVisualHost.AnyAnimating(); _ = skeleton.IsMoving; }
             Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - bytes);
         }
         finally { window.Close(); }
-        Assert.False(AuroraLoader.AnyAnimating());
+        Assert.False(skeleton.IsMoving);
     });
 
     [Fact]
