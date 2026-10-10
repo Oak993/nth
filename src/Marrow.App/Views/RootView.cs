@@ -1092,6 +1092,13 @@ internal sealed class ProviderStatusRow : Decorator
     private readonly TextBlock statusText = new();
     private readonly ContentControl trailing = new() { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
     private int trailingBranch = -1;
+    // PORT-ONLY (OD-0133, OD-0076): the status line and the trailing control each change by a crossfade, the one they replace
+    // laid over them in the row's grid fading out while they fade in; the providers' checks now finish after the window shows
+    private Grid? rowGrid;
+    private readonly Grid trailingCell = new() { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+
+    /// <summary>OD-0133 / OD-0076: how long a status change crossfades.</summary>
+    internal const double ChangeSeconds = 0.25;
 
     // :367 let provider: ProviderKind; :369-409 body
     public ProviderStatusRow(ProviderKind provider)
@@ -1114,9 +1121,11 @@ internal sealed class ProviderStatusRow : Decorator
 
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :382 Spacer() pushes trailing to the far edge
         Grid.SetColumn(leading, 0);
-        Grid.SetColumn(trailing, 2);
+        trailingCell.Children.Add(trailing);
+        Grid.SetColumn(trailingCell, 2);
         grid.Children.Add(leading);
-        grid.Children.Add(trailing);
+        grid.Children.Add(trailingCell);
+        rowGrid = grid;
 
         Child = new Border { Padding = new Thickness(16, 11), Child = grid }; // :407-408
 
@@ -1134,7 +1143,17 @@ internal sealed class ProviderStatusRow : Decorator
         catch (InvalidOperationException) { return; }
 
         var status = model.Providers.Status(provider); // :370
-        statusText.Text = status.IsChecking ? "Checking…" : status.Summary; // :379, U+2026
+        var text = status.IsChecking ? "Checking…" : status.Summary; // :379, U+2026
+        // OD-0133 / OD-0076: a change of an attached row crossfades; its first build, and reduce motion, are at once
+        var soft = statusText.Text is not null && TopLevel.GetTopLevel(this) is not null && !EnvironmentValues.GetAccessibilityReduceMotion(this);
+        if (soft && statusText.Text != text && rowGrid is { } over && statusText.TranslatePoint(default, over) is { } at)
+        {
+            var copy = CopyOf(statusText);
+            copy.HorizontalAlignment = HorizontalAlignment.Left; copy.VerticalAlignment = VerticalAlignment.Top;
+            copy.Margin = new Thickness(at.X, at.Y, 0, 0); // where the line it replaces was
+            FadeOut(over, copy, statusText);
+        }
+        statusText.Text = text;
 
         // :383-405 the trailing control keeps its structural identity while the row stays in the same branch: another
         // provider's status change must not replace a focused Login button or restart a spinner.
@@ -1166,7 +1185,33 @@ internal sealed class ProviderStatusRow : Decorator
         {
             content = SwiftImage.SystemName("checkmark.circle.fill").ForegroundStyle(Chrome.Success);
         }
+        if (soft && trailing.Content is Control old)
+        {
+            trailing.Content = null;
+            FadeOut(trailingCell, new ContentControl { Content = old, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false }, content);
+        }
         trailing.Content = content;
+    }
+
+    // the old status line, laid over the new one where it was
+    private static TextBlock CopyOf(TextBlock text)
+    {
+        var copy = new TextBlock { Text = text.Text, Foreground = text.Foreground, IsHitTestVisible = false };
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(copy);
+        return copy;
+    }
+
+    // OD-0076: the one leaving fades out over the one arriving, which fades in; the leaving one then goes
+    private static void FadeOut(Grid cell, Control leaving, Control? arriving)
+    {
+        cell.Children.Add(leaving);
+        var curve = Animation.EaseInOut(ChangeSeconds);
+        Marrow.App.Views.Composer.EffortView.Animate(leaving, curve, progress =>
+        {
+            leaving.Opacity = 1 - Math.Clamp(progress, 0, 1);
+            if (progress >= 1) cell.Children.Remove(leaving);
+        });
+        if (arriving is not null) Marrow.App.Views.Composer.EffortView.Animate(arriving, curve, progress => arriving.Opacity = Math.Clamp(progress, 0, 1));
     }
 
     /// <summary>A plain `.buttonStyle(.glass)` text capsule (Install, Login, Add key): the same glass-capsule recipe
