@@ -89,6 +89,9 @@ public sealed class AppModelHarness : IDisposable
         var homeBoundary = typeof(LoginEnvironment).GetProperty("HomeForTesting", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(homeBoundary);
         scopes.Add(Assert.IsType<Ambient<string>>(homeBoundary.GetValue(null)).Override(Home));
+        // R-TEST-9: a Command Code session this harness starts installs its mod and approval folders under the scratch
+        // folder, never under the real %LOCALAPPDATA%\nth.
+        scopes.Add(Marrow.Services.Providers.CommandCodeSession.LocalApplicationDataForTesting.Override(Path.Combine(baseFolder, "LocalAppData")));
         if (withRuntime)
         {
             Runtime = new TestRuntime();
