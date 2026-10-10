@@ -44,30 +44,40 @@ internal sealed class ModelListSearch
         Control = new Border { Height = 28, Margin = new Thickness(4, 4, 4, 8), Padding = new Thickness(10, 0),
             Background = Chrome.PrimaryText.Opacity(.08).Brush(Field),
             BorderBrush = Chrome.PrimaryText.Opacity(.12).Brush(Field), BorderThickness = new Thickness(1), Child = Field }.Capsule(RoundedCornerStyle.Continuous);
-        for (var i = 0; i < entries.Count; i++)
-        {
-            var entry = entries[i]; var row = modelRows[i];
-            row.ClipToBounds = true;
-            if (row.Child is Button { Content: Border plate } button)
-            {
-                var fill = new AnimatedColor(plate); plate.Background = fill.Brush; highlights.Add(row, fill);
-                button.OnHover(hovered => fill.Set(hovered && button.IsEnabled || IsActive(row) ? Chrome.Overlay(.1) : SwiftColor.Clear, Chrome.Hover));
-            }
-            var maker = Makers.Resolve(entry.Provider.Id, entry.Option.Id, PaletteSourcePack.Default.Baseline, entry.Option.ShortName).Maker;
-            var text = $"{entry.Option.ShortName} {entry.Option.Id} {entry.Provider.DisplayName} {maker} {ModelPickerSeam.MakerName(maker)}";
-            var fold = new AnimatedScalar(row, 1, v =>
-            {
-                row.Height = rowHeight * v; row.Opacity = v;
-                if (v == 0) row.IsVisible = false;
-            });
-            rows.Add((row, text, fold)); matches.Add((row, entry));
-        }
+        this.entries = entries;
+        foreach (var row in modelRows) Add(row);
         Field.TextChanged += (_, _) => Query(entries);
         Field.KeyDown += OnKey;
     }
 
+    private readonly IReadOnlyList<ModelCatalog.Entry> entries;
+
+    /// <summary>ED-NEW-stutterfix-2: makes the list's rows still to come (DeferredRows); true when there were any.</summary>
+    internal Func<bool>? RealiseAll { get; set; }
+
+    /// <summary>The list's next row, for the next entry: searched, highlighted and folded as the rows made with the list.</summary>
+    internal void Add(ModelListRow row)
+    {
+        var entry = entries[rows.Count];
+        row.ClipToBounds = true;
+        if (row.Child is Button { Content: Border plate } button)
+        {
+            var fill = new AnimatedColor(plate); plate.Background = fill.Brush; highlights.Add(row, fill);
+            button.OnHover(hovered => fill.Set(hovered && button.IsEnabled || IsActive(row) ? Chrome.Overlay(.1) : SwiftColor.Clear, Chrome.Hover));
+        }
+        var maker = Makers.Resolve(entry.Provider.Id, entry.Option.Id, PaletteSourcePack.Default.Baseline, entry.Option.ShortName).Maker;
+        var text = $"{entry.Option.ShortName} {entry.Option.Id} {entry.Provider.DisplayName} {maker} {ModelPickerSeam.MakerName(maker)}";
+        var fold = new AnimatedScalar(row, 1, v =>
+        {
+            row.Height = rowHeight * v; row.Opacity = v;
+            if (v == 0) row.IsVisible = false;
+        });
+        rows.Add((row, text, fold)); matches.Add((row, entry));
+    }
+
     private void Query(IReadOnlyList<ModelCatalog.Entry> entries)
     {
+        RealiseAll?.Invoke(); // ED-NEW-stutterfix-2: a search reads every row
         matches.Clear(); active = 0; keyboardActive = false;
         var words = (Field.Text ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         for (var i = 0; i < rows.Count; i++)
@@ -84,6 +94,8 @@ internal sealed class ModelListSearch
 
     private void OnKey(object? sender, KeyEventArgs e)
     {
+        // ED-NEW-stutterfix-2: a key press moves through every row; ones just made are laid out before one is scrolled to
+        if (e.Key is Key.Down or Key.Up or Key.Enter && RealiseAll?.Invoke() == true) scroll.UpdateLayout();
         if (matches.Count == 0) return;
         if (e.Key is Key.Down or Key.Up)
         {

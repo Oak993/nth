@@ -419,12 +419,15 @@ public sealed class ModelList : Decorator
                 }
                 rows.Children.Add(new PopoverSectionHeader("Models") { Height = SectionHeaderHeight }); // :325
             }
-            foreach (var entry in entries)
+            ModelListRow Row(ModelCatalog.Entry entry)
             {
                 var locked = hasHistory && entry.Provider != thread.Provider;
-                rows.Children.Add(new ModelListRow(entry, locked ? "New chats only" : showsProviders ? entry.Provider.DisplayName : null,
-                    showsProviders, rowHeight, !leadsWithPair && entry.Provider == thread.Provider && entry.Option.Id == thread.Model, !locked, () => onChoose(entry))); // :327-339
+                return new ModelListRow(entry, locked ? "New chats only" : showsProviders ? entry.Provider.DisplayName : null,
+                    showsProviders, rowHeight, !leadsWithPair && entry.Provider == thread.Provider && entry.Option.Id == thread.Model, !locked, () => onChoose(entry)); // :327-339
             }
+            // ED-NEW-stutterfix-2: a long list makes its first screens of rows now and the rest a slice per frame (DeferredRows).
+            var eager = Marrow.App.Port.ModelsPalette.DeferredRows.EagerCount(entries.Count, rowHeight + 1, pairsHeight);
+            for (var i = 0; i < eager; i++) rows.Children.Add(Row(entries[i]));
             if (entries.Count == 0)
             {
                 var loading = EffortView.Text("Loading models…", SwiftFont.Body, Chrome.SecondaryText); loading.Margin = new Thickness(10); rows.Children.Add(loading); // :340-345
@@ -440,6 +443,14 @@ public sealed class ModelList : Decorator
             {
                 var previousSearch = Child?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
                 var search = new Marrow.App.Port.ModelsPalette.ModelListSearch(scroll, entries, rows.Children.OfType<ModelListRow>().ToArray(), rowHeight, pairsHeight, onChoose);
+                if (eager < entries.Count)
+                {
+                    var fill = new Marrow.App.Port.ModelsPalette.DeferredRows(rows, scroll, eager, entries.Count, rowHeight + 1, rows.Spacing, i =>
+                    {
+                        var row = Row(entries[i]); search.Add(row); return row;
+                    });
+                    search.RealiseAll = fill.RealiseAll;
+                }
                 stack.Children.Add(search.Control);
                 search.Field.Text = previousSearch?.Text;
                 if (previousSearch?.IsFocused == true) MainActor.Post(() => search.Field.Focus());
