@@ -12,7 +12,7 @@ internal static class PageFixtures
 
     public static CatalogueItem Plugin(string id, string title, double? mb, TermsClass terms = TermsClass.Open, string vendor = "Anthropic", params (string Name, int Skills)[] folders) => new()
     {
-        Id = id, Kind = ItemKind.Plugin, Title = title, Summary = "Nth-made summary of " + title, Vendor = vendor, CountState = CountState.Plan, PinState = PinState.Unpinned,
+        Id = id, Kind = ItemKind.Plugin, Title = title, Summary = "nth-made summary of " + title, Vendor = vendor, CountState = CountState.Plan, PinState = PinState.Unpinned,
         Pin = Pin, SourceUrl = "https://github.com/example/" + id.ToLowerInvariant(), LicenceName = terms == TermsClass.Open ? "Apache-2.0" : "Proprietary", LicenceUrl = null,
         LicenceFile = terms == TermsClass.Open ? null : "LICENSE.txt", TermsClass = terms, ApproxSizeMb = mb, Needs = [], Provides = [], Artifacts = [],
         Files = terms == TermsClass.Open ? [] : [new CatalogueFile { Path = "LICENSE.txt", Size = 5, Sha256 = LicenceHash }],
@@ -21,7 +21,7 @@ internal static class PageFixtures
 
     public static CatalogueItem SkillSet(string id, string title, double? mb, string[]? needs = null, TermsClass terms = TermsClass.Open, string vendor = "OpenAI", params string[] skills) => new()
     {
-        Id = id, Kind = ItemKind.Skillset, Title = title, Summary = "Nth-made summary of " + title, Vendor = vendor, CountState = CountState.Plan, PinState = PinState.Unpinned,
+        Id = id, Kind = ItemKind.Skillset, Title = title, Summary = "nth-made summary of " + title, Vendor = vendor, CountState = CountState.Plan, PinState = PinState.Unpinned,
         Pin = Pin, SourceUrl = "https://github.com/example/" + id.ToLowerInvariant(), LicenceName = terms == TermsClass.Open ? "Apache-2.0" : "Proprietary", LicenceUrl = null,
         LicenceFile = terms == TermsClass.Open ? null : "LICENSE.txt", TermsClass = terms, ApproxSizeMb = mb, Needs = needs ?? [], Provides = [], Artifacts = [],
         Files = terms == TermsClass.Open ? [] : [new CatalogueFile { Path = "LICENSE.txt", Size = 5, Sha256 = LicenceHash }],

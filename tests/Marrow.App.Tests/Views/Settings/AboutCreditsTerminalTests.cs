@@ -20,7 +20,7 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class AboutCreditsTerminalTests(HeadlessSession headless) : SettingsRestFixture(headless)
 {
-    private const string TerminalDetail = "Nth's own terminal, built on Windows ConPTY."; // ED-272, the same words as the licence line (OD-0072)
+    private const string TerminalDetail = "nth's own terminal, built on Windows ConPTY."; // ED-272, the same words as the licence line (OD-0072)
 
     private static StackPanel CreditRows(Control page)
     {
@@ -85,8 +85,8 @@ public sealed class AboutCreditsTerminalTests(HeadlessSession headless) : Settin
             foreach (var swiftTerm in new[] { "SwiftTerm", "Miguel de Icaza", "migueldeicaza", "Miguel" }) Assert.DoesNotContain(swiftTerm, all, StringComparison.OrdinalIgnoreCase);
             foreach (var tooltip in Nodes<Control>(view).Select(c => ToolTip.GetTip(c)).OfType<string>()) Assert.DoesNotContain("SwiftTerm", tooltip, StringComparison.OrdinalIgnoreCase);
             // :997-1002 the licence line, whose "SwiftTerm is MIT licensed" OD-0072 settled as "the terminal is Marrow's own, built on Windows ConPTY"; the Terminal row's detail is the same clause.
-            var licence = Assert.Single(Nodes<TextBlock>(view), t => t.Text is { } text && text.StartsWith("Nth is licensed under", StringComparison.Ordinal));
-            Assert.Equal("Nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Nth's own, built on Windows ConPTY.", licence.Text);
+            var licence = Assert.Single(Nodes<TextBlock>(view), t => t.Text is { } text && text.StartsWith("nth is licensed under", StringComparison.Ordinal));
+            Assert.Equal("nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is nth's own, built on Windows ConPTY.", licence.Text);
             Assert.EndsWith("built on Windows ConPTY.", licence.Text, StringComparison.Ordinal); Assert.EndsWith("built on Windows ConPTY.", TerminalDetail, StringComparison.Ordinal);
             Assert.Equal(2, all.Split("built on Windows ConPTY.", StringSplitOptions.None).Length - 1); // the Terminal row's detail and the licence line, once each
         });

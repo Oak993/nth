@@ -374,7 +374,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
         IUpdateItem[] items =
         [
             Cli("c", "Claude Code", "2.1.283", "2.1.290"), Cli("x", "Codex", "0.157.1", "0.160.0"), Cli("o", "OpenCode", "1.4.2", "1.4.2"), Cli("g", "Gone", "1.0", "1.0"),
-            new FakeUpdateItem("m", "Nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0"),
+            new FakeUpdateItem("m", "nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0"),
         ];
         var service = harness.Main.OnMain(() => new UpdateEverythingService(items, () => { }));
         using var shared = UpdateEverythingService.OverrideShared(service);
@@ -389,9 +389,9 @@ public sealed class UpdatePillTests(HeadlessSession headless)
                 var content = Hosted(model, PillOf(view));
                 var texts = LogicalQuery.SelfAndDescendants<TextBlock>(content).Select(t => t.Text).ToArray();
                 Assert.Contains("3 updates available", texts);
-                Assert.Contains("Claude Code 2.1.290, Codex 0.160.0 and Nth 1.1.0.", texts);
+                Assert.Contains("Claude Code 2.1.290, Codex 0.160.0 and nth 1.1.0.", texts);
                 var rows = content.RowViews.ToArray();
-                Assert.Equal(["Nth", "Claude Code", "Codex", "OpenCode", "Gone"], rows.Select(r => r.NameText)); // Marrow first, as the page lists it
+                Assert.Equal(["nth", "Claude Code", "Codex", "OpenCode", "Gone"], rows.Select(r => r.NameText)); // Marrow first, as the page lists it
                 Assert.Equal(["1.0.0 → 1.1.0", "2.1.283 → 2.1.290", "0.157.1 → 0.160.0", "1.4.2", "1.0"], rows.Select(r => r.VersionsText));
                 Assert.Equal(["Update available", "Update available", "Update available", "Up to date", "Up to date"], rows.Select(r => r.StatusText));
                 Assert.Equal(["The app", "", "", "", ""], rows.Select(r => r.SubText)); // ids that are not a provider CLI's have no command to show
@@ -520,7 +520,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
         using var bound = FrameClock.Source.Override(frames);
         using var harness = new AppModelHarness();
         var restarts = 0;
-        var marrow = new FakeUpdateItem("marrow", "Nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { NeedsRestart = true };
+        var marrow = new FakeUpdateItem("marrow", "nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { NeedsRestart = true };
         var service = harness.Main.OnMain(() => new UpdateEverythingService([Cli("c", "Claude Code"), marrow], () => restarts++));
         using var shared = UpdateEverythingService.OverrideShared(service);
         var model = harness.MakeModel();
@@ -542,7 +542,7 @@ public sealed class UpdatePillTests(HeadlessSession headless)
                 content = Hosted(model, pill);
                 Assert.Equal("Restart to finish", content.RowViews.Single(r => r.Id == "marrow").StatusText);
                 var button = LogicalQuery.SelfAndDescendants<Button>(content.ActionControl!).Single();
-                Assert.Equal("Restart Nth", AutomationProperties.GetName(button));
+                Assert.Equal("Restart nth", AutomationProperties.GetName(button));
                 button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
                 Close(content);
             });

@@ -302,7 +302,7 @@ public sealed class HttpTests
         var exchange = await server.NextExchange();
         var lines = RawHeaderLines(exchange.RawHead)
             .Where(line => line.StartsWith("user-agent:", StringComparison.OrdinalIgnoreCase)).ToList();
-        Assert.Equal(["User-Agent: Nth/7.6.5"], lines);
+        Assert.Equal(["User-Agent: nth/7.6.5"], lines);
         await exchange.Respond(204, "No Content", []);
         await pending.WaitAsync(Guard);
     }
@@ -314,10 +314,10 @@ public sealed class HttpTests
         // AppUpdater.swift:481 sets User-Agent on the request; the server sees that value alone.
         using var runtime = new TestRuntime();
         await using var server = new LoopbackHttpServer();
-        var request = new URLRequest(server.Url("/ua")).SetValue("Nth/9.8.7", forHTTPHeaderField: "User-Agent");
+        var request = new URLRequest(server.Url("/ua")).SetValue("nth/9.8.7", forHTTPHeaderField: "User-Agent");
         var pending = URLSession.Shared.Data(request);
         var exchange = await server.NextExchange();
-        Assert.Equal(["Nth/9.8.7"], exchange.HeaderValues("User-Agent"));
+        Assert.Equal(["nth/9.8.7"], exchange.HeaderValues("User-Agent"));
         await exchange.Respond(204, "No Content", []);
         await pending.WaitAsync(Guard);
     }

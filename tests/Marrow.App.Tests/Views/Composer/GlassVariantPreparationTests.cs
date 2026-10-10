@@ -14,7 +14,7 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class GlassVariantPreparationTests(HeadlessSession headless)
 {
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void Every_number_of_pieces_is_drawn_whole_and_faded_open_and_under_the_hand_overs_clip()
     {
         var variants = GlassVariantPreparation.Variants;
@@ -30,7 +30,7 @@ public sealed class GlassVariantPreparationTests(HeadlessSession headless)
         Assert.Equal(8, GlassProgramVariants.Counts); // the material's merged container programs (GlassMaterial.WarmShapes)
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void The_variants_draw_and_are_not_in_the_warm_up_a_first_run_waits_for()
     {
         Assert.Equal(GlassVariantPreparation.Variants.Select(v => v.Name), GlassVariantPreparation.Programs.Select(p => p.Name));
@@ -38,7 +38,7 @@ public sealed class GlassVariantPreparationTests(HeadlessSession headless)
         Assert.DoesNotContain(GpuWarmup.Registered, program => program.Name.StartsWith("glass ", StringComparison.Ordinal));
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void A_variant_draws_the_glass_faded_when_faded_and_only_inside_the_hand_overs_clip_when_clipped() => headless.OnUiThread(() =>
     {
         var whole = Drawn(new(1, false, false, false));
@@ -54,14 +54,14 @@ public sealed class GlassVariantPreparationTests(HeadlessSession headless)
         Assert.NotEqual(backdrop, faded[(100, 120)]);
     });
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public void Every_variant_draws_into_its_target() => headless.OnUiThread(() =>
     {
         foreach (var variant in GlassVariantPreparation.Variants)
             Assert.NotEqual(new SKColor(24, 35, 58), Drawn(variant)[(100, 56)]); // on every piece (a capsule is 40..160, 30..62) and inside the clip
     });
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public async Task A_pass_draws_every_variant_once_for_a_build_and_a_GPU_and_then_launches_do_nothing()
     {
         using var cache = new GpuProgramCacheFolder();
@@ -84,7 +84,7 @@ public sealed class GlassVariantPreparationTests(HeadlessSession headless)
         finally { GlassVariantPreparation.Runner = runner; }
     }
 
-    [Fact, Trait("Decision", "ED-NEW-launch-fix")]
+    [Fact, Trait("Decision", "ED-NEW-launchfix-1")] // traceability alias of ED-NEW-launch-fix
     public async Task A_pass_that_fails_writes_no_marker_and_throws_nothing()
     {
         using var cache = new GpuProgramCacheFolder();

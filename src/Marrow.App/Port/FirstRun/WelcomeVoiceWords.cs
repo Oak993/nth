@@ -22,7 +22,7 @@ public static class WelcomeVoiceWords
     public static string? Template(VoiceQuestionState state, string field) => (Name(state), field) switch
     {
             ("ask", "t") => "Talk instead of type?",
-            ("ask", "b") => "Nth can turn your voice into text, right here on your PC. It needs a one-time {mb} download.",
+            ("ask", "b") => "nth can turn your voice into text, right here on your PC. It needs a one-time {mb} download.",
             ("ask", "yes") => "Yes, set it up",
             ("ask", "no") => "Maybe later",
             ("yes", "t") => "Setting up voice typing",

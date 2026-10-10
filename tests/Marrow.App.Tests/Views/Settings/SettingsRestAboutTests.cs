@@ -34,7 +34,7 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
             Assert.IsType<StackPanel>(rows.Children[0]); Assert.Equal("Welcome tour", Text(Assert.IsType<ChromeRow>(rows.Children[2])).First()); Assert.IsType<AboutUpdateCheckRow>(rows.Children[4]);
             foreach (var index in new[] { 1, 3, 5, 7 }) { var divider = Assert.IsType<ChromeRowDivider>(rows.Children[index]); Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); }
             var description = Assert.IsType<TextBlock>(rows.Children[6]); Assert.Equal("A native home for your coding agents, built in C# with Avalonia.", description.Text); Font(description, 13); Assert.Equal(new Thickness(16, 11, 10, 11), description.Margin); Assert.Equal(TextWrapping.Wrap, description.TextWrapping);
-            var licence = Assert.IsType<TextBlock>(rows.Children[8]); Assert.Equal("Nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Nth's own, built on Windows ConPTY.", licence.Text);
+            var licence = Assert.IsType<TextBlock>(rows.Children[8]); Assert.Equal("nth is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is nth's own, built on Windows ConPTY.", licence.Text);
         });
     }
 
@@ -99,8 +99,8 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
     {
         With(() => new AboutSettingsPage(), (view, _, _, _) =>
         {
-            var row = Assert.Single(Nodes<ChromeRow>(view), r => Text(r).Contains("Nth's own terminal, built on Windows ConPTY."));
-            CheckRow(row, "Terminal", "Nth's own terminal, built on Windows ConPTY."); Assert.Empty(Nodes<CreditLink>(row));
+            var row = Assert.Single(Nodes<ChromeRow>(view), r => Text(r).Contains("nth's own terminal, built on Windows ConPTY."));
+            CheckRow(row, "Terminal", "nth's own terminal, built on Windows ConPTY."); Assert.Empty(Nodes<CreditLink>(row));
         });
     }
 

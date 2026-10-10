@@ -127,7 +127,7 @@ public sealed class AppModelSecondTests
 
         Assert.Equal(unreadable, File.ReadAllBytes(Storage.LibraryURL));
         h.Main.OnMain(() => Assert.Equal(
-            "Nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.",
+            "nth could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.",
             model.Alert!.Message));
     }
 

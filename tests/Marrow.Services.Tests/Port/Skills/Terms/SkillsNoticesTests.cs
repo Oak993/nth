@@ -12,7 +12,7 @@ public sealed class SkillsNoticesTests
     public void The_Settings_footer_carries_the_not_affiliated_line_word_for_word()
     {
         Assert.Equal(
-            "Nth is not affiliated with or endorsed by Anthropic or OpenAI. Claude and Anthropic are trademarks of Anthropic, PBC. " +
+            "nth is not affiliated with or endorsed by Anthropic or OpenAI. Claude and Anthropic are trademarks of Anthropic, PBC. " +
             "ChatGPT, Codex and OpenAI are trademarks of OpenAI. Other names belong to their owners.",
             SkillsNotices.Footer);
     }

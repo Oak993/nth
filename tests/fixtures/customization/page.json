@@ -432,7 +432,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -869,7 +869,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -1306,7 +1306,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -1743,7 +1743,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -2180,7 +2180,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -2617,7 +2617,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -3054,7 +3054,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -3491,7 +3491,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -3928,7 +3928,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -4365,7 +4365,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -4802,7 +4802,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -5239,7 +5239,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -5676,7 +5676,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -6113,7 +6113,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -6550,7 +6550,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -6987,7 +6987,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -7424,7 +7424,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -7861,7 +7861,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -8298,7 +8298,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -8735,7 +8735,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -9172,7 +9172,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -9609,7 +9609,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -10046,7 +10046,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -10483,7 +10483,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -10920,7 +10920,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -11357,7 +11357,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -11794,7 +11794,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -12231,7 +12231,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "Border beam as Nth ships it",
+     "d": "Border beam as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -12454,7 +12454,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -12675,7 +12675,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -12896,7 +12896,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -13117,7 +13117,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -13338,7 +13338,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -13559,7 +13559,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -13780,7 +13780,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -14001,7 +14001,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -14222,7 +14222,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -14443,7 +14443,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -14664,7 +14664,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -14885,7 +14885,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -15106,7 +15106,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -15327,7 +15327,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -15548,7 +15548,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -15769,7 +15769,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"
@@ -15990,7 +15990,7 @@
     "default": {
      "kind": "Reset",
      "t": "Defaults",
-     "d": "The Uiverse light as Nth ships it",
+     "d": "The Uiverse light as nth ships it",
      "dim": false,
      "fold": false,
      "dis": "true"

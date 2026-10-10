@@ -33,13 +33,13 @@ public sealed class SkillsMcpServer : IDisposable
                 {
                     protocolVersion = ProtocolVersion(parameters),
                     capabilities = new { tools = new { } }, serverInfo = new { name = "marrow-skills", version = "1.0.0" },
-                    instructions = "Use list_skills to discover relevant Nth skills. Read a relevant skill with read_skill before answering. These are read-only skills.",
+                    instructions = "Use list_skills to discover relevant nth skills. Read a relevant skill with read_skill before answering. These are read-only skills.",
                 },
                 "ping" => new { },
                 "tools/list" => new { tools = new object[]
                 {
-                    new { name = "list_skills", description = "List the names, descriptions and folders of Nth-owned skills to find instructions relevant to the current request.", inputSchema = new { type = "object", properties = new { }, additionalProperties = false }, annotations = new { readOnlyHint = true, idempotentHint = true } },
-                    new { name = "read_skill", description = "Read the complete instructions of a relevant Nth-owned skill by name. For its references, supply a pinned relative path.", inputSchema = new { type = "object", properties = new { name = new { type = "string" }, path = new { type = "string" } }, required = new[] { "name" }, additionalProperties = false }, annotations = new { readOnlyHint = true, idempotentHint = true } },
+                    new { name = "list_skills", description = "List the names, descriptions and folders of nth-owned skills to find instructions relevant to the current request.", inputSchema = new { type = "object", properties = new { }, additionalProperties = false }, annotations = new { readOnlyHint = true, idempotentHint = true } },
+                    new { name = "read_skill", description = "Read the complete instructions of a relevant nth-owned skill by name. For its references, supply a pinned relative path.", inputSchema = new { type = "object", properties = new { name = new { type = "string" }, path = new { type = "string" } }, required = new[] { "name" }, additionalProperties = false }, annotations = new { readOnlyHint = true, idempotentHint = true } },
                 } },
                 "tools/call" => Call(parameters),
                 _ => throw new NotSupportedException("Unsupported MCP method."),
@@ -64,10 +64,10 @@ public sealed class SkillsMcpServer : IDisposable
                 {
                     var name = parameters["arguments"]?["name"]?.GetValue<string>();
                     var skill = generation.Skills.SingleOrDefault(s => !s.ExplicitOnly && (s.Name == name || s.Id == name))
-                        ?? throw new ArgumentException("Unknown automatic Nth skill. Explicit-only skills require Nth's explicit picker.");
+                        ?? throw new ArgumentException("Unknown automatic nth skill. Explicit-only skills require nth's explicit picker.");
                     text = generation.ReadReference(skill.Id, parameters["arguments"]?["path"]?.GetValue<string>() ?? "SKILL.md");
                 }
-                else throw new ArgumentException("Unknown Nth skills tool.");
+                else throw new ArgumentException("Unknown nth skills tool.");
                 return new { content = new[] { new { type = "text", text } } };
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error))

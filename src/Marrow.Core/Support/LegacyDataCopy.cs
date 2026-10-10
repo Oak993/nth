@@ -1,7 +1,7 @@
-// PORT-ONLY (OD-0135, no Swift twin): the product is named Nth, so its data folder moves from %LOCALAPPDATA%\Marrow Code
-// to %LOCALAPPDATA%\Nth and its home state folder from .marrow / .marrow-dev to .nth / .nth-dev. Program.Main runs this once,
+// PORT-ONLY (OD-0135, no Swift twin): the product is named nth, so its data folder moves from %LOCALAPPDATA%\Marrow Code
+// to %LOCALAPPDATA%\nth and its home state folder from .marrow / .marrow-dev to .nth / .nth-dev. Program.Main runs this once,
 // before anything reads settings, logs, the library or the GPU program cache, so a user who ran the app under its old name
-// opens Nth with everything they had.
+// opens nth with everything they had.
 namespace Marrow.Core.Support;
 
 /// <summary>What one <see cref="LegacyDataCopy.CopyOnce"/> did.</summary>
@@ -48,7 +48,7 @@ public static class LegacyDataCopy
     public const string StagingSuffix = ".copying";
 
     /// <summary>
-    /// The data folder (%LOCALAPPDATA%\Marrow Code to %LOCALAPPDATA%\Nth) under <paramref name="localApplicationData"/>, and
+    /// The data folder (%LOCALAPPDATA%\Marrow Code to %LOCALAPPDATA%\nth) under <paramref name="localApplicationData"/>, and
     /// the state folder (.marrow to .nth, .marrow-dev to .nth-dev) under <paramref name="homeDirectory"/>.
     /// </summary>
     public static (LegacyDataCopyResult Data, LegacyDataCopyResult State) CopyProductFolders(
@@ -73,7 +73,7 @@ public static class LegacyDataCopy
             CopyDirectory(legacyRoot, staging, skipped);
             File.WriteAllText(Path.Combine(staging, MarkerName),
                 "Copied once from " + legacyRoot + " at " + DateTimeOffset.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture)
-                + " (OD-0135: the product is named Nth). The old folder was left as it was.\n");
+                + " (OD-0135: the product is named nth). The old folder was left as it was.\n");
             if (!Directory.Exists(root))
             {
                 Directory.Move(staging, root);

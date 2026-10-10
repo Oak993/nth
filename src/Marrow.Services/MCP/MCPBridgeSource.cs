@@ -199,7 +199,7 @@ function connectStdio(server, entry) {
     };
     const callTool = (name, args) => request("tools/call", { name, arguments: args });
     (async () => {
-      await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "Nth" } });
+      await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "nth" } });
       notify("notifications/initialized", {});
       let cursor = undefined;
       const tools = [];
@@ -264,7 +264,7 @@ function connectRemote(server, entry) {
         sessionId = outcome.sessionId;
       } catch {}
     };
-    await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "Nth" } });
+    await request("initialize", { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: { name: "nth" } });
     await notify("notifications/initialized", {});
     let cursor = undefined;
     const tools = [];

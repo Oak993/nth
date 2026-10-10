@@ -14,7 +14,7 @@ public sealed class UpdatesControllerTests
     private static ScriptedUpdateItem Codex(string installed = "0.157.1", string? latest = "0.160.0") => new("cli:codex", "Codex", UpdateItemKind.ProviderCli, installed, latest);
 
     private static ScriptedUpdateItem MarrowItem(string installed = "1.0.0", string? latest = "1.1.0") =>
-        new("marrow", "Nth", UpdateItemKind.Marrow, installed, latest) { OnUpdate = _ => Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null)) };
+        new("marrow", "nth", UpdateItemKind.Marrow, installed, latest) { OnUpdate = _ => Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null)) };
 
     private static UpdatesController Make(out UpdateOrchestrator orchestrator, List<string> restarts, params IUpdateItem[] items)
     {
@@ -34,10 +34,10 @@ public sealed class UpdatesControllerTests
         runtime.Loop.Run(controller.Attach);
         Assert.Equal(1, claude.Checks);
         Assert.Equal(UpdatesPhase.Current, controller.View.Header.Phase);
-        Assert.Equal("Checked just now. Nth also keeps Claude Code current in the background.", controller.View.Header.Detail);
+        Assert.Equal("Checked just now. nth also keeps Claude Code current in the background.", controller.View.Header.Detail);
         runtime.AdvanceMilliseconds(2.4 * 3_600_000);
         controller.Tick();
-        Assert.Equal("Checked 2 hours ago. Nth also keeps Claude Code current in the background.", controller.View.Header.Detail);
+        Assert.Equal("Checked 2 hours ago. nth also keeps Claude Code current in the background.", controller.View.Header.Detail);
         controller.Detach();
         runtime.Loop.Run(controller.Attach);
         Assert.Equal(1, claude.Checks);
@@ -85,7 +85,7 @@ public sealed class UpdatesControllerTests
         List<string> log = [];
         var claude = Claude();
         claude.OnUpdate = _ => { log.Add("claude"); return Task.FromResult(new UpdateOutcome(true, "2.1.290", true, false, null)); };
-        var marrow = new ScriptedUpdateItem("marrow", "Nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { OnUpdate = _ => { log.Add("marrow"); return Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null)); } };
+        var marrow = new ScriptedUpdateItem("marrow", "nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { OnUpdate = _ => { log.Add("marrow"); return Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null)); } };
         List<string> restarts = [];
         var controller = Make(out _, restarts, marrow, claude);
         runtime.Loop.Run(controller.Attach);
@@ -93,7 +93,7 @@ public sealed class UpdatesControllerTests
         runtime.Loop.Run(controller.Press);
         Assert.Equal(["claude", "marrow"], log);
         Assert.Equal(UpdatesPhase.Done, controller.View.Header.Phase);
-        Assert.Equal(("2 updated", "Restart Nth"), (controller.View.Header.Title, controller.View.Header.ButtonLabel));
+        Assert.Equal(("2 updated", "Restart nth"), (controller.View.Header.Title, controller.View.Header.ButtonLabel));
         Assert.True(controller.View.Banner.Visible);
         Assert.Empty(restarts);
         runtime.Loop.Run(controller.Press);
@@ -117,7 +117,7 @@ public sealed class UpdatesControllerTests
         runtime.AdvanceMilliseconds(24_000);
         Assert.Equal(UpdatesPhase.Restarting, controller.View.Header.Phase);
         runtime.AdvanceMilliseconds(1_500);
-        Assert.Equal(("Restart Nth", UpdatesPhase.Done), (controller.View.Header.ButtonLabel, controller.View.Header.Phase));
+        Assert.Equal(("Restart nth", UpdatesPhase.Done), (controller.View.Header.ButtonLabel, controller.View.Header.Phase));
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public sealed class UpdatesControllerTests
         Assert.True(controller.View.Banner.Visible);
         controller.DismissBanner();
         Assert.False(controller.View.Banner.Visible);
-        Assert.Equal("Updated Nth. Restart Nth to finish its update.", controller.View.Header.Detail);
+        Assert.Equal("Updated nth. Restart nth to finish its update.", controller.View.Header.Detail);
         runtime.Loop.Run(() => controller.UpdateRow("cli:claude"));
         Assert.True(controller.View.Banner.Visible);
     }

@@ -10,8 +10,8 @@
     <FileVersion>$(MarrowReleaseVersion).$(MarrowReleaseBuild)</FileVersion>
     <InformationalVersion>$(MarrowReleaseVersion)+build.$(MarrowReleaseBuild)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Product>Nth</Product>
-    <Company>Nth</Company>
+    <Product>nth</Product>
+    <Company>nth</Company>
   </PropertyGroup>
   <Target Name="ValidateMarrowReleaseMetadata" BeforeTargets="PrepareForBuild;CoreGenerateAssemblyInfo">
     <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(MarrowReleaseVersion)', '^\d+\.\d+\.\d+$'))"
@@ -22,14 +22,14 @@
            Text="The release build exceeds the PE FileVersion revision range." />
     <Error Condition="$([System.Version]::Parse('$(FileVersion)').Major) &gt; 65534 or $([System.Version]::Parse('$(FileVersion)').Minor) &gt; 65534 or $([System.Version]::Parse('$(FileVersion)').Build) &gt; 65534"
            Text="The release version exceeds the assembly version component range." />
-    <Error Condition="'$(Version)' != '$(MarrowReleaseVersion)' or '$(AssemblyVersion)' != '$(MarrowReleaseVersion).0' or '$(FileVersion)' != '$(MarrowReleaseVersion).$(MarrowReleaseBuild)' or '$(Product)' != 'Nth'"
-           Text="Release assembly metadata overrides disagree with the canonical Nth release source." />
+    <Error Condition="'$(Version)' != '$(MarrowReleaseVersion)' or '$(AssemblyVersion)' != '$(MarrowReleaseVersion).0' or '$(FileVersion)' != '$(MarrowReleaseVersion).$(MarrowReleaseBuild)' or '$(Product)' != 'nth'"
+           Text="Release assembly metadata overrides disagree with the canonical nth release source." />
     <Error Condition="'$(PackageVersion)' != '$(MarrowReleaseVersion)' or '$(InformationalVersion)' != '$(MarrowReleaseVersion)+build.$(MarrowReleaseBuild)' or '$(IncludeSourceRevisionInInformationalVersion)' != 'false'"
            Text="Release package/product version must match the canonical version and build." />
-    <Error Condition="('$(MSBuildProjectName)' == 'Marrow.App' and '$(AssemblyTitle)' != 'Nth') or ('$(MSBuildProjectName)' == 'Marrow.Setup' and '$(AssemblyTitle)' != 'Nth Setup')"
-           Text="Release application/installer title must use the approved Nth identity." />
-    <Error Condition="'$(Company)' != 'Nth' or '$(GenerateAssemblyInfo)' == 'false' or '$(GenerateAssemblyVersionAttribute)' == 'false' or '$(GenerateAssemblyFileVersionAttribute)' == 'false' or '$(GenerateAssemblyInformationalVersionAttribute)' == 'false' or '$(GenerateAssemblyProductAttribute)' == 'false' or '$(GenerateAssemblyTitleAttribute)' == 'false' or '$(GenerateAssemblyCompanyAttribute)' == 'false'"
-           Text="Required Nth release metadata generation cannot be disabled or given a different identity." />
+    <Error Condition="('$(MSBuildProjectName)' == 'Marrow.App' and '$(AssemblyTitle)' != 'nth') or ('$(MSBuildProjectName)' == 'Marrow.Setup' and '$(AssemblyTitle)' != 'nth Setup')"
+           Text="Release application/installer title must use the approved nth identity." />
+    <Error Condition="'$(Company)' != 'nth' or '$(GenerateAssemblyInfo)' == 'false' or '$(GenerateAssemblyVersionAttribute)' == 'false' or '$(GenerateAssemblyFileVersionAttribute)' == 'false' or '$(GenerateAssemblyInformationalVersionAttribute)' == 'false' or '$(GenerateAssemblyProductAttribute)' == 'false' or '$(GenerateAssemblyTitleAttribute)' == 'false' or '$(GenerateAssemblyCompanyAttribute)' == 'false'"
+           Text="Required nth release metadata generation cannot be disabled or given a different identity." />
     <Error Condition="'$(MSBuildProjectName)' == 'Marrow.Setup' and '$(InstallerVersion)' != '' and '$(InstallerVersion)' != '$(MarrowReleaseVersion)'"
            Text="InstallerVersion must equal the canonical release version." />
   </Target>

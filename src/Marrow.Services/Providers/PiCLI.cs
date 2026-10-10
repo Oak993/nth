@@ -246,7 +246,7 @@ public static class PiCLI
         "",
         "export default async function (pi) {",
         "  pi.registerCommand(\"droppy-load\", {",
-        "    description: \"Nth: load a recorded context file into the history without starting a turn\",",
+        "    description: \"nth: load a recorded context file into the history without starting a turn\",",
         "    handler: async (args) => {",
         "      const text = fs.readFileSync(String(args ?? \"\").trim(), \"utf8\");",
         "      pi.sendMessage({ customType: \"droppy-handoff\", content: text, display: false }, { triggerTurn: false });",

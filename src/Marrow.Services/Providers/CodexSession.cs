@@ -1091,7 +1091,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         ["clientInfo"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
         {
             ["name"] = "nth",   // DEVIATION OD-0008 B11: upstream "droppy-code"
-            ["title"] = "Nth",  // DEVIATION OD-0008 B11: upstream "Droppy Code"
+            ["title"] = "nth",  // DEVIATION OD-0008 B11: upstream "Droppy Code"
             ["version"] = AppInfo.Current.Version,
         })),
         ["capabilities"] = new JSONValue.Object(new ValueMap<string, JSONValue>(new Dictionary<string, JSONValue>
@@ -1832,11 +1832,11 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice
             {
                 NoticeLevel = Notice.Level.Warning,
-                Message = server + " asked for input, which Nth cannot show yet.", // :992. DEVIATION OD-0012 F1: upstream "Droppy Code".
+                Message = server + " asked for input, which nth cannot show yet.", // :992. DEVIATION OD-0012 F1: upstream "Droppy Code".
             }));
             return;
         }
-        connection?.Respond(id, -32601, $"Nth does not support {method}."); // :993-995. DEVIATION OD-0012 F1: upstream "Droppy Code".
+        connection?.Respond(id, -32601, $"nth does not support {method}."); // :993-995. DEVIATION OD-0012 F1: upstream "Droppy Code".
     }
 
     // :998-1023. PR-PROVCLI-130.

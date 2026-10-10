@@ -15,7 +15,7 @@ namespace Marrow.App.Tests.Views.Composer;
 // before the pill in step with its width (V-12.6, 0.42 s ease) and the column's last 24 points fade to clear (ComposerView.FadeBesidePill); the field note (the privacy line) is part
 // of that column, so it ends before the pill too, trimmed rather than run on.
 [Collection("Headless")]
-[Trait("Decision", "ED-NEW-gate-fixes")]
+[Trait("Decision", "ED-NEW-gatefixes-5")] // traceability alias of ED-NEW-gate-fixes-5
 public sealed class ComposerPillClearsTextTests(HeadlessSession headless)
 {
     private static void Tick() { for (var k = 0; k < 3; k++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); } }

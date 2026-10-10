@@ -109,9 +109,9 @@
     "The model in use: {maker name}",
     "Your accent: {accent name}",
     "Two colours you pick",
-    "Border beam as Nth ships it",
+    "Border beam as nth ships it",
     "Defaults",
-    "The Uiverse light as Nth ships it",
+    "The Uiverse light as nth ships it",
     "Return every Border beam setting to how it ships",
     "Return every Uiverse light setting to how it ships",
     "Look",
@@ -664,7 +664,7 @@
     }
   ],
   "source": "porting/first-release/design-src/customization/cz.js",
-  "sha256": "450c8d8bbb7b305424390a8a8c3e1f5aba1c04c7920e5435369f1c77d15de981",
+  "sha256": "0f3a897fab12a021661d9583ba6a8e04686cfbd0d9a311bb585b2a45f7b04c8d",
   "fmt": [
     {
       "v": 0,
@@ -4540,7 +4540,7 @@
     "spike",
     "How much the streak flares as it goes",
     "Defaults",
-    "Border beam as Nth ships it",
+    "Border beam as nth ships it",
     "BorderBeamOptions.Default",
     "fit",
     "faithful",
@@ -4611,7 +4611,7 @@
     "Dot strength",
     "dotStr",
     "How visible the dots are",
-    "The Uiverse light as Nth ships it",
+    "The Uiverse light as nth ships it",
     "UiverseAuraOptions",
     "Default",
     "Return every Uiverse light setting to how it ships",

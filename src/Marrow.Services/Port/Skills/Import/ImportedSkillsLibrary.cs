@@ -123,14 +123,14 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
 
     private void CheckWritable()
     {
-        if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer Nth and are not changed.");
+        if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer nth and are not changed.");
     }
 
     public bool Remove(string id)
     {
         lock (gate)
         {
-            if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer Nth and are not changed.");
+            if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer nth and are not changed.");
             var entry = entries.FirstOrDefault(e => e.Skill.Id == id);
             if (entry is null) return false;
             entries.Remove(entry);
@@ -144,7 +144,7 @@ public sealed class ImportedSkillsLibrary : IImportedSkillSource
     {
         lock (gate)
         {
-            if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer Nth and are not changed.");
+            if (ReadOnly) throw new InvalidOperationException("The imported skills were written by a newer nth and are not changed.");
             var at = entries.FindIndex(e => e.Skill.Id == id);
             if (at < 0) throw new KeyNotFoundException("No imported skill " + id);
             entries[at] = entries[at] with { Skill = entries[at].Skill with { Enabled = on } };

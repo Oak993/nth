@@ -109,7 +109,7 @@ public sealed class MCPSettingsPageFourthTests(HeadlessSession headless)
     [Trait("Req", "UI-MCP-094")] // App/Views/Settings/MCPSettingsPage.swift:95-98
     public void Footer_and_category_and_lead_title_keep_exact_text_styles()
     {
-        Ui((model,_)=>{var page=new MCPSettingsPage("");using var window=Attach(page,model);var footer=Assert.IsType<TextBlock>(Assert.IsType<StackPanel>(page.Child).Children[^1]);Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Nth itself.",footer.Text);Assert.Equal(11,footer.FontSize);var title=Nodes<TextBlock>(page).Single(x=>x.Text=="Connected servers lead");Assert.Equal(13,title.FontSize);Assert.Equal(FontWeight.SemiBold,title.FontWeight);var header=Nodes<TextBlock>(page).Single(x=>x.Text=="Developer");Assert.Equal(13,header.FontSize);Assert.Equal(FontWeight.SemiBold,header.FontWeight);});
+        Ui((model,_)=>{var page=new MCPSettingsPage("");using var window=Attach(page,model);var footer=Assert.IsType<TextBlock>(Assert.IsType<StackPanel>(page.Child).Children[^1]);Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.",footer.Text);Assert.Equal(11,footer.FontSize);var title=Nodes<TextBlock>(page).Single(x=>x.Text=="Connected servers lead");Assert.Equal(13,title.FontSize);Assert.Equal(FontWeight.SemiBold,title.FontWeight);var header=Nodes<TextBlock>(page).Single(x=>x.Text=="Developer");Assert.Equal(13,header.FontSize);Assert.Equal(FontWeight.SemiBold,header.FontWeight);});
     }
     [Fact]
     [Trait("Req", "UI-MCP-091")] // App/Views/Settings/MCPSettingsPage.swift:1124-1141

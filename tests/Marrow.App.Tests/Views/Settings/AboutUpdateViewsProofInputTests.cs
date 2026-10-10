@@ -98,9 +98,9 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-002")] // App/Views/Settings/AboutUpdateViews.swift:674-681,695 ("Hover shows the tooltip; clicking does nothing")
     [Trait("Req", "UI-UPDATE-003")] // App/Views/Settings/AboutUpdateViews.swift:674-681,696 ("Hover shows the tooltip")
     [Trait("Req", "UI-UPDATE-004")] // App/Views/Settings/AboutUpdateViews.swift:674-681,697 ("Hover shows the tooltip")
-    [InlineData(true, null, "Nth 1.7.0 is the latest version")] // :695, OD-0012 F1
+    [InlineData(true, null, "nth 1.7.0 is the latest version")] // :695, OD-0012 F1
     [InlineData(false, "GitHub answered with HTTP 503.", "GitHub answered with HTTP 503.")] // :696
-    [InlineData(false, null, "Nth has not asked GitHub for a release yet")] // :697, OD-0012 F1
+    [InlineData(false, null, "nth has not asked GitHub for a release yet")] // :697, OD-0012 F1
     public void Hovering_a_standing_pill_opens_its_tooltip_while_a_press_does_nothing(bool checkedBefore, string? error, string help) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -144,7 +144,7 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
             var pill = new AboutVersionPill(); var window = Show(pill);
             var host = HoverAndReadOpenedTip(Center(pill, window), window);
             Assert.NotNull(host); Assert.True(ReferenceEquals(host, pill) || pill.IsVisualAncestorOf(host!));
-            Assert.Equal("Installs Nth 9.0.0 and relaunches", ToolTip.GetTip(host!)); // :679, OD-0012 F1, no full stop
+            Assert.Equal("Installs nth 9.0.0 and relaunches", ToolTip.GetTip(host!)); // :679, OD-0012 F1, no full stop
             Assert.True(Assert.Single(pill.GetVisualDescendants().OfType<Button>()).IsPointerOver); // the button itself is under the pointer
             window.Close();
         });
@@ -311,8 +311,8 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
             var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
             Assert.Equal("Up to date", Assert.Single(pill.GetVisualDescendants().OfType<TextBlock>()).Text); // :602
             Assert.False(button.IsHitTestVisible); // :674
-            Assert.Equal("Nth 1.7.0, up to date", AutomationProperties.GetName(button)); // :702, OD-0012 F1
-            Assert.Equal("Nth 1.7.0 is the latest version", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :695
+            Assert.Equal("nth 1.7.0, up to date", AutomationProperties.GetName(button)); // :702, OD-0012 F1
+            Assert.Equal("nth 1.7.0 is the latest version", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :695
             window.Close();
         });
     });

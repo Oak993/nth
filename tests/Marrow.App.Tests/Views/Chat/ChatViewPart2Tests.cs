@@ -204,7 +204,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
 
                 // DEVIATION OD-0012 F1: "Droppy Code" -> "Marrow"; the file name droppy-code.json is kept verbatim.
                 var explanation = LogicalQuery.SelfAndDescendants<TextBlock>(editor)
-                    .Single(t => t.Text == "Scripts run in a terminal at the project root. Nth also picks up scripts from droppy-code.json.");
+                    .Single(t => t.Text == "Scripts run in a terminal at the project root. nth also picks up scripts from droppy-code.json.");
                 Assert.Equal(12, explanation.FontSize); // .callout, ED-059 (B1:ChatZoom.swift:52)
             });
         });

@@ -16,7 +16,7 @@ public sealed class LimitCardModelTests
         var request=new DecisionRequest(Guid.NewGuid(),[DecisionKind.OnLimit,DecisionKind.Bring,DecisionKind.MidReply],true,a.Id.ToString(),b.Id.ToString(),null);
         var ev=new HandshakeEvent(request.ThreadId,HandshakeEventKind.DecisionRequested,HandshakePhase.Idle,HandshakePhase.Asking,request.OutgoingAccountId,request.IncomingAccountId,HandshakeReason.HardLimit,DateTimeOffset.UnixEpoch,Request:request); port.Raise(ev);
         var model=new LimitCardModel(ev,accounts.Accounts,port);
-        Assert.Equal(CardKind.FirstTime,model.Kind); Assert.Equal("Claude Max 1 ran out. How should Nth handle this?",model.Title);
+        Assert.Equal(CardKind.FirstTime,model.Kind); Assert.Equal("Claude Max 1 ran out. How should nth handle this?",model.Title);
         Assert.Equal(new[]{"Keep me going","Ask me each time","Just wait"},model.Buttons.Select(b=>b.Text));
         Assert.All(model.Buttons,b=>{ Assert.False(b.Primary); Assert.False(b.Selected); });
         Assert.Null(model.SelectedBring); Assert.Empty(port.Answers); Assert.Equal(RememberScope.JustThisTime,model.Scope);

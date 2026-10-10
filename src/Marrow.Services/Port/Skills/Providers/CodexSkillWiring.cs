@@ -21,5 +21,5 @@ public sealed class CodexSkillWiring(Generation chat, StorePaths paths, IReadOnl
     public string? MovedNote => Chat.PreviousFolder is { } previous ? MovedLine(Chat.Folder, previous) : null;
 
     public static string MovedLine(string folder, string previous) =>
-        "Nth's skills for this chat are now in " + folder + ". Paths under " + previous + " earlier in this conversation no longer exist; use the same relative path under the new folder.";
+        "nth's skills for this chat are now in " + folder + ". Paths under " + previous + " earlier in this conversation no longer exist; use the same relative path under the new folder.";
 }

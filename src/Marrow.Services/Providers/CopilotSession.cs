@@ -1028,7 +1028,7 @@ public sealed partial class CopilotSession : ProviderSession, ISkillSessionLifet
                 break;
             default: // :771-772
                 // DEVIATION OD-0012 F1: upstream says "Droppy Code does not support <method>."
-                connection?.Respond(id, errorCode: -32601, message: "Nth does not support " + method + ".");
+                connection?.Respond(id, errorCode: -32601, message: "nth does not support " + method + ".");
                 break;
         }
     }

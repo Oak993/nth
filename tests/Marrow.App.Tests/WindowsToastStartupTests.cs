@@ -11,9 +11,9 @@ public sealed class WindowsToastStartupTests
 {
     [Theory]
     [Trait("Req", "PR-LAUNCH-025")] // App/AppDelegate.swift:15; ED-220 (2), (6) protocol retains origin identity
-    [InlineData("nth-dev://notification?payload=%7B%22update%22%3A%222.0%22%7D", "Nth.App.Dev")]
-    [InlineData("nth-release://notification?payload=%7B%22update%22%3A%222.0%22%7D", "Nth.App")]
-    [InlineData("nth-dev://notification?payload=invalid", "Nth.App")]
+    [InlineData("nth-dev://notification?payload=%7B%22update%22%3A%222.0%22%7D", "nth.App.Dev")]
+    [InlineData("nth-release://notification?payload=%7B%22update%22%3A%222.0%22%7D", "nth.App")]
+    [InlineData("nth-dev://notification?payload=invalid", "nth.App")]
     public void Release_protocol_launch_retains_dev_identity_without_inherited_environment(string argument, string appId) =>
         Assert.Equal(appId, ToastBuildIdentity.ForLaunch(debug: false, dev: false, [argument]).AppId);
 
@@ -22,13 +22,13 @@ public sealed class WindowsToastStartupTests
     [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-002, ED-212, ED-220 (6); owner_decisions.md OD-0037
     public void Activation_keeps_its_origin_root_even_if_another_dev_instance_registered_the_shared_scheme()
     {
-        var origin = new ToastBuildIdentity("Nth.App.Dev", "nth-dev") { DevRoot = "C:\\First Dev Root" };
+        var origin = new ToastBuildIdentity("nth.App.Dev", "nth-dev") { DevRoot = "C:\\First Dev Root" };
         var current = origin with { DevRoot = "C:\\Second Dev Root" };
         var info = new Dictionary<string, object> { ["threadID"] = "00112233-4455-6677-8899-AABBCCDDEEFF" };
         var uri = ToastActivation.Encode(origin, info);
         Assert.Equal("C:\\First Dev Root", ToastActivation.DevRoot(current, uri));
         Assert.Equal(info["threadID"], ToastActivation.Decode(current, uri)!.UserInfo["threadID"]);
-        Assert.Null(ToastActivation.DevRoot(new("Nth.App", "nth-release"), uri));
+        Assert.Null(ToastActivation.DevRoot(new("nth.App", "nth-release"), uri));
     }
 
     [Fact]

@@ -125,7 +125,7 @@ public sealed class NativeProviderSkillsTurnTests
         await rig.Turn("two");
 
         var prompt = SystemContent(rig.Json(0));
-        Assert.True(prompt.IndexOf("[Nth anti-slop guidance]", StringComparison.Ordinal) is var policy and >= 0 && policy < prompt.IndexOf(tools.CatalogueBlock()!, StringComparison.Ordinal));
+        Assert.True(prompt.IndexOf("[nth anti-slop guidance]", StringComparison.Ordinal) is var policy and >= 0 && policy < prompt.IndexOf(tools.CatalogueBlock()!, StringComparison.Ordinal));
         Assert.EndsWith("\n\n" + tools.CatalogueBlock(), prompt, StringComparison.Ordinal); // no project guidelines here: the block is the last thing
         Assert.Equal(prompt, SystemContent(rig.Json(1)));
     }
@@ -147,7 +147,7 @@ public sealed class NativeProviderSkillsTurnTests
             await rig.Turn("one");
 
             var prompt = SystemContent(rig.Json(0));
-            var policy = prompt.IndexOf("[Nth anti-slop guidance]", StringComparison.Ordinal);
+            var policy = prompt.IndexOf("[nth anti-slop guidance]", StringComparison.Ordinal);
             var block = prompt.IndexOf(tools.CatalogueBlock()!, StringComparison.Ordinal);
             var guidance = prompt.IndexOf("PROJECT RULES SENTINEL", StringComparison.Ordinal);
             Assert.True(policy >= 0 && policy < block && block < guidance, $"policy {policy}, block {block}, guidance {guidance}");

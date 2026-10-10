@@ -188,7 +188,7 @@ public static class HangWatchdog
     {
         var utc = sampledAt.ToUniversalTime();
         var description = utc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " +0000";
-        return "Nth main thread unresponsive for " + SwiftNumber.Fixed(stalledFor, 1) + "s\n"
+        return "nth main thread unresponsive for " + SwiftNumber.Fixed(stalledFor, 1) + "s\n"
             + "Version " + (shortVersion ?? "?") + " (" + (build ?? "?") + ")\n"
             + "Sampled at " + description + "\n\n" + body;
     }

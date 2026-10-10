@@ -28,7 +28,7 @@ public static class SpeechModelList
     public static string MeterName(WhisperModel model) => model.Name + ": speed " + model.Speed + " of 5, accuracy " + model.Accuracy + " of 5";
 
     /// <summary>V-16.3.4: the footer, `Installed: {size}, in Marrow Code’s models folder` (DESIGN voice.js:200), the size as V-9.2 formats it.</summary>
-    public static string Footer(long installedBytes) => "Installed: " + ModelCatalog.SizeText(installedBytes) + ", in Nth’s models folder";
+    public static string Footer(long installedBytes) => "Installed: " + ModelCatalog.SizeText(installedBytes) + ", in nth’s models folder";
 
     /// <summary>The versions a model has in the manifest, in the order Compact, Balanced, Full (Large v3 has no Balanced).</summary>
     public static IReadOnlyList<ModelVersion> VersionsOf(string modelName) =>

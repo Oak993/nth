@@ -22,8 +22,8 @@ public sealed record ToastBuildIdentity(string AppId, string Scheme)
         return arguments.Any(argument => ToastActivation.Decode(protocolIdentity, argument) is not null) ? protocolIdentity : identity;
     }
     public static ToastBuildIdentity ForBuild(bool debug, bool dev) => debug || dev
-        ? new("Nth.App.Dev", "nth-dev")
-        : new("Nth.App", "nth-release"); // ED-220 (2), (6); OD-0135 renames both from MarrowCode.Marrow / marrow-code-*
+        ? new("nth.App.Dev", "nth-dev")
+        : new("nth.App", "nth-release"); // ED-220 (2), (6); OD-0135 renames both from MarrowCode.Marrow / marrow-code-*
 
     /// <summary>
     /// OD-0135: the AppUserModelID and URL scheme keys this app registered under its old name (HKCU\Software\Classes\...),
@@ -55,10 +55,10 @@ public static class WindowsToastRegistration
         // ED-220 (2): set before any top level is constructed. Only our own keys are read.
         platform.SetProcessAppId(identity.AppId);
         var appKey = "Software\\Classes\\AppUserModelId\\" + identity.AppId;
-        WriteIfDifferent(appKey, "DisplayName", "Nth"); // OD-0135
+        WriteIfDifferent(appKey, "DisplayName", "nth"); // OD-0135
         WriteIfDifferent(appKey, "IconUri", icon);
         var schemeKey = "Software\\Classes\\" + identity.Scheme;
-        WriteIfDifferent(schemeKey, "", "URL:Nth"); // OD-0135
+        WriteIfDifferent(schemeKey, "", "URL:nth"); // OD-0135
         WriteIfDifferent(schemeKey, "URL Protocol", "");
         // Explorer's second launch must retain ED-212's root, hence its instance lock and payload pipe.
         var rootArgument = devRoot is null ? "" : " --notification-data-root " + Quote(devRoot);

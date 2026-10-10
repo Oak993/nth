@@ -37,7 +37,7 @@ public sealed class MCPSettingsPage : Decorator
     private readonly ViewState view = new();
     private OnChange<IReadOnlyDictionary<string, MCPConnectionState>>? stateChanges;
     private readonly MCPLeadCard lead = new();
-    private readonly TextBlock footer = Text("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Nth itself.", 11, Chrome.SecondaryText); // :60-62
+    private readonly TextBlock footer = Text("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.", 11, Chrome.SecondaryText); // :60-62
     private readonly StackPanel connectedRows = new();
     private readonly Dictionary<string, MCPConnectedRow> connectedControls = new(SwiftStringComparer.Instance);
     private readonly Dictionary<string, ChromeRowDivider> connectedDividers = new(SwiftStringComparer.Instance);

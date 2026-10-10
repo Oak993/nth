@@ -204,7 +204,7 @@ public sealed class SecretStore
 
     /// <summary>
     /// OD-0135: <see cref="CopyMatching"/> under <paramref name="service"/>. When that item is missing and the same account
-    /// has an item under <paramref name="legacyService"/> (the service name before the product was named Nth) that was never
+    /// has an item under <paramref name="legacyService"/> (the service name before the product was named nth) that was never
     /// carried over, its bytes are added under the new service, a marker (the new item's target name plus
     /// <see cref="CarriedMarkerSuffix"/>, no value) records that, and the bytes are returned. The old item is never changed
     /// or removed: an older copy of the app may still read it. The marker keeps an item the user later removes under the new

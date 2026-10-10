@@ -240,7 +240,7 @@ public sealed class ACPSession : ProviderSession, Port.Skills.Providers.ISkillSe
         ("clientCapabilities", ClientCapabilities),
         ("clientInfo", JSONValue.FromDictionaryLiteral(
             ("name", "nth"),
-            ("title", "Nth"),
+            ("title", "nth"),
             ("version", AppInfo.Current.Version))));
 
     // :129-132. Factored out of Start() (behaviourally identical) so the reply parsing can be proven

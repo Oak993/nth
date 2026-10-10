@@ -61,7 +61,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // PLAN U5: the page sits directly below Hydra, with its title, symbol and IgnisWords' search words
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // PLAN U5: the page sits directly below Hydra, with its title, symbol and IgnisWords' search words
     public void Ignis_is_listed_directly_below_Hydra_and_found_by_its_words()
     {
         var all = SwiftEnum<SettingsPage>.AllCases.ToList();
@@ -82,7 +82,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // the factory line, and the sidebar row draws Ignis's lit flame (as Hydra draws its own mark)
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // the factory line, and the sidebar row draws Ignis's lit flame (as Hydra draws its own mark)
     public void The_factory_builds_the_page_and_the_sidebar_row_draws_the_flame() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -91,7 +91,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // design: the rows, their words and the defaults (Warm + tidy up, every switch on but pings, Last 12 turns, Update automatically on)
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // design: the rows, their words and the defaults (Warm + tidy up, every switch on but pings, Last 12 turns, Update automatically on)
     public void The_rows_read_the_designs_words_and_defaults() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -118,7 +118,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // every row writes the one "ignis" key, and a fresh reader sees it
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // every row writes the one "ignis" key, and a fresh reader sees it
     public void Every_row_persists_through_the_ignis_key() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -148,7 +148,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // a change made elsewhere (the composer, another window) shows on the open page
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // a change made elsewhere (the composer, another window) shows on the open page
     public void A_change_made_elsewhere_shows_on_the_open_page() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -165,7 +165,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // design .sv-tiles / .mpick / .mchart / .sv-legend / .days from the ledger: the newest month first, then the picker steps back
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // design .sv-tiles / .mpick / .mchart / .sv-legend / .days from the ledger: the newest month first, then the picker steps back
     public void The_history_is_built_from_the_ledger_with_the_month_picker_totals_and_days() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -213,7 +213,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // no ledger yet (Ignis not running, or nothing saved): one month, today, $0.00, a quiet day
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // no ledger yet (Ignis not running, or nothing saved): one month, today, $0.00, a quiet day
     public void An_empty_ledger_reads_as_today_with_nothing_saved()
     {
         var history = IgnisSavingsHistory.From(null, Today);
@@ -227,7 +227,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // the chart shows at most twelve months and moves back so the picked one is always in it
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // the chart shows at most twelve months and moves back so the picked one is always in it
     public void A_long_history_charts_twelve_months_around_the_picked_one()
     {
         var history = IgnisSavingsHistory.From(new FakeSettingsLedger([new(new DateOnly(2025, 1, 10), 1m, 0, 0, 0, 0, 0, 1, 0, 0, 0)]), Today);
@@ -238,7 +238,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // the ledger's Changed rebuilds the history and keeps the picked month
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // the ledger's Changed rebuilds the history and keeps the picked month
     public void A_ledger_change_rebuilds_the_history_and_keeps_the_picked_month() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -256,7 +256,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // design table: model / cheapest point / why, "in use" on the chat's model; Update now checks the feed only
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // design table: model / cheapest point / why, "in use" on the chat's model; Update now checks the feed only
     public void The_rebuild_points_table_and_Update_now() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -281,7 +281,7 @@ public sealed class IgnisSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-NEW-ignis-settings")] // a feed that cannot be read gives "Update now" back
+    [Trait("Decision", "ED-NEW-ignissettings-1")] // a feed that cannot be read gives "Update now" back
     public void A_failed_check_gives_Update_now_back() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

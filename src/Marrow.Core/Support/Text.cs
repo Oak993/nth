@@ -35,7 +35,7 @@ public sealed record AppInfo
     /// than <see cref="Name"/>, the same for both build channels. Never the owner's separate Electron app's "Marrow" folder,
     /// and never the installer's package folder (Velopack's %LOCALAPPDATA%\NthApp, which uninstall deletes whole).
     /// </summary>
-    public const string DataFolderName = "Nth";
+    public const string DataFolderName = "nth";
 
     /// <summary>The data folder's name before OD-0135, read only by the one-time copy (LegacyDataCopy).</summary>
     public const string LegacyDataFolderName = "Marrow Code";
@@ -53,7 +53,7 @@ public sealed record AppInfo
     {
         string Value(string key, string fallback) =>
             metadata.TryGetValue(key, out var value) && value is string text ? text : fallback;
-        return new(Value("CFBundleDisplayName", "Nth"), // OD-0135: the product's own name, not upstream's "Droppy Code"
+        return new(Value("CFBundleDisplayName", "nth"), // OD-0135: the product's own name, not upstream's "Droppy Code"
             Value("CFBundleShortVersionString", "1.0.0"), Value("CFBundleVersion", "1"), isDevelopment);
     }
 

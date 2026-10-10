@@ -540,7 +540,7 @@ public sealed class CopilotSessionThirdTests
         Assert.Null(unknown["result"]);
         Assert.Equal(-32601, unknown["error"]!["code"]!.JSONValueInt);
         // DEVIATION OD-0012 F1: upstream says "Droppy Code does not support sampling.createMessage."
-        Assert.Equal("Nth does not support sampling.createMessage.", unknown["error"]!["message"]!.JSONValueString);
+        Assert.Equal("nth does not support sampling.createMessage.", unknown["error"]!["message"]!.JSONValueString);
         Assert.DoesNotContain(events, e => e is ProviderEvent.Question or ProviderEvent.Approval or ProviderEvent.PlanCompleted);
         Assert.Empty(PendingRequests(session));
     }

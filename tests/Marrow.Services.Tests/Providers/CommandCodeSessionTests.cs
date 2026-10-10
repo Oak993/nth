@@ -1886,7 +1886,7 @@ public sealed class CommandCodeSessionTests
 
             var reply = File.ReadAllText(Path.Combine(directory, "c1.reply.json"));
             Assert.Equal(
-                """{"decision":"deny","reason":"The user declined this in Nth. Do not retry it; take another approach or explain what you would need."}""",
+                """{"decision":"deny","reason":"The user declined this in nth. Do not retry it; take another approach or explain what you would need."}""",
                 reply);
         }
         finally

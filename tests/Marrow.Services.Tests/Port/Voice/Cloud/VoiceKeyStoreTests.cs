@@ -16,9 +16,9 @@ public sealed class VoiceKeyStoreTests
     public void V_T47_the_key_is_one_generic_credential_under_the_service_and_account()
     {
         var (keys, backend) = CloudFixtures.KeyStore();
-        Assert.Equal("Nth", VoiceKeyStore.Service); // OD-0135; "Marrow Code" before it
+        Assert.Equal("nth", VoiceKeyStore.Service); // OD-0135; "Marrow Code" before it
         Assert.Equal("voice-openai", VoiceKeyStore.Account);
-        Assert.Equal([SecretStore.TargetName("Nth", "voice-openai")], backend.TargetNames);
+        Assert.Equal([SecretStore.TargetName("nth", "voice-openai")], backend.TargetNames);
         Assert.True(backend.Read(backend.TargetNames[0], out var credential) == 0 && credential is not null);
         Assert.Equal("voice-openai", credential!.UserName);
         Assert.Equal(CloudFixtures.Key, System.Text.Encoding.UTF8.GetString(credential.Blob));
@@ -51,7 +51,7 @@ public sealed class VoiceKeyStoreTests
         var keys = new VoiceKeyStore(new SecretStore(backend));
         Assert.Null(keys.Read());
         backend.RefuseReads = false;
-        backend.RefuseWriteTargets.Add(SecretStore.TargetName("Nth", "voice-openai"));
+        backend.RefuseWriteTargets.Add(SecretStore.TargetName("nth", "voice-openai"));
         Assert.False(keys.Save(CloudFixtures.Key));
         Assert.Null(keys.Read());
     }

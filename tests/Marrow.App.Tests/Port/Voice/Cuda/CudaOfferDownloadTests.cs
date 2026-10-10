@@ -27,7 +27,7 @@ public sealed class CudaOfferDownloadTests
 
         var folder = rig.Installer.FolderFor(rig.Pin);
         Assert.Equal(CudaOfferState.Installed, rig.Offer.Row.State);
-        Assert.Equal("Installed. Restart Nth to use it", rig.Offer.Row.Detail);
+        Assert.Equal("Installed. Restart nth to use it", rig.Offer.Row.Detail);
         Assert.True(rig.Installer.IsInstalled(rig.Pin));
         Assert.Equal([folder], rig.Companions.Installs); // the libraries go beside the pack's files
         Assert.True(rig.Companions.IsInstalled(folder));

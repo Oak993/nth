@@ -24,7 +24,7 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
     private static ScriptedUpdateItem Codex(string installed = "0.157.1", string? latest = "0.160.0") => new("cli:codex", "Codex", UpdateItemKind.ProviderCli, installed, latest);
 
     private static ScriptedUpdateItem MarrowItem(Func<IProgress<double?>, Task<UpdateOutcome>>? update = null) =>
-        new("marrow", "Nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { OnUpdate = update ?? (_ => Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null))) };
+        new("marrow", "nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { OnUpdate = update ?? (_ => Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null))) };
 
     private static UpdatesSettingsPage Page(List<string> restarts, params IUpdateItem[] items) =>
         new(new OrchestratorUpdatesRunner(new UpdateOrchestrator(items), () => restarts.Add("restart")));
@@ -66,16 +66,16 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
         var page = Page([], Claude("2.1.290", "2.1.290"), Codex("0.160.0", "0.160.0"), MarrowItem());
         Show(page, runtime, _ =>
         {
-            Assert.Equal(["Nth", "Provider tools"], page.SectionTitles);
+            Assert.Equal(["nth", "Provider tools"], page.SectionTitles);
             Assert.Equal(["marrow", "cli:claude", "cli:codex"], page.RowControls.Select(r => r.RowId));
             Assert.Equal("1 update available", page.TitleText.Text);
-            Assert.Equal("Nth 1.1.0.", page.DetailText.Text);
+            Assert.Equal("nth 1.1.0.", page.DetailText.Text);
             Assert.Equal(("Update everything", UpdatesButtonMode.Primary), (page.MainButton.Label, page.MainButton.Mode));
             var claude = page.RowControl("cli:claude");
             Assert.Equal(("Claude Code", "claude update", "2.1.290", "2.1.290"), (claude.NameText.Text, claude.SubText.Text, claude.InstalledText.Text, claude.LatestText.Text));
             Assert.Equal((RowStatus.Current, "Up to date"), (claude.StatusCell.Status, claude.StatusCell.Text));
             var marrow = page.RowControl("marrow");
-            Assert.Equal(("Nth", "The app", "1.0.0", "1.1.0"), (marrow.NameText.Text, marrow.SubText.Text, marrow.InstalledText.Text, marrow.LatestText.Text));
+            Assert.Equal(("nth", "The app", "1.0.0", "1.1.0"), (marrow.NameText.Text, marrow.SubText.Text, marrow.InstalledText.Text, marrow.LatestText.Text));
             Assert.Equal((RowStatus.Available, "Update available"), (marrow.StatusCell.Status, marrow.StatusCell.Text));
             Assert.Equal(["Item", "Installed", "Latest", "Status"], page.ColumnHeaders);
         });
@@ -93,9 +93,9 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
             Assert.Equal("2 updates available", page.TitleText.Text);
             page.MainButton.Activate();
             runtime.RunUntilIdle();
-            Assert.Equal(("2 updated", "Restart Nth", UpdatesButtonMode.Primary), (page.TitleText.Text, page.MainButton.Label, page.MainButton.Mode));
+            Assert.Equal(("2 updated", "Restart nth", UpdatesButtonMode.Primary), (page.TitleText.Text, page.MainButton.Label, page.MainButton.Mode));
             Assert.True(page.BannerFold.Open);
-            Assert.Equal(("Nth 1.1.0 is ready.", "Restart Nth to finish its update."), (page.BannerTitleText.Text, page.BannerDetailText.Text));
+            Assert.Equal(("nth 1.1.0 is ready.", "Restart nth to finish its update."), (page.BannerTitleText.Text, page.BannerDetailText.Text));
             Assert.Equal(RowStatus.RestartToFinish, page.RowControl("marrow").StatusCell.Status);
             Assert.Equal(RowStatus.Updated, page.RowControl("cli:claude").StatusCell.Status);
             Assert.Empty(restarts);
@@ -120,7 +120,7 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
             Assert.Equal("Later", AutomationProperties.GetName(page.LaterButton));
             page.LaterButton.Activate();
             Assert.False(page.BannerFold.Open);
-            Assert.Equal("Updated Nth. Restart Nth to finish its update.", page.DetailText.Text);
+            Assert.Equal("Updated nth. Restart nth to finish its update.", page.DetailText.Text);
         });
     });
 
@@ -395,16 +395,16 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
         UpdateRow Row(string id, string title, UpdateItemKind kind) => new(id, title, kind, UpdateRowState.UpToDate, "1.1.0", "1.1.0", null, null, false);
-        var runner = new ScriptedUpdatesRunner { Rows = [Row("marrow", "Nth", UpdateItemKind.Marrow)] };
+        var runner = new ScriptedUpdatesRunner { Rows = [Row("marrow", "nth", UpdateItemKind.Marrow)] };
         var page = new UpdatesSettingsPage(runner);
         Show(page, runtime, _ =>
         {
             Step(runtime, frames, 600);
-            Assert.Equal(["Nth"], page.SectionTitles);
-            runner.Rows = [Row("marrow", "Nth", UpdateItemKind.Marrow), Row("cli:claude", "Claude Code", UpdateItemKind.ProviderCli)];
+            Assert.Equal(["nth"], page.SectionTitles);
+            runner.Rows = [Row("marrow", "nth", UpdateItemKind.Marrow), Row("cli:claude", "Claude Code", UpdateItemKind.ProviderCli)];
             runner.Raise();
             runtime.RunUntilIdle();
-            Assert.Equal(["Nth", "Provider tools"], page.SectionTitles);
+            Assert.Equal(["nth", "Provider tools"], page.SectionTitles);
             Assert.Equal(0, page.SectionFold("Provider tools").Fraction);
             Step(runtime, frames, 120);
             Assert.InRange(page.SectionFold("Provider tools").Fraction, 0.01, 0.99);
@@ -417,7 +417,7 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
             Assert.Equal(0, page.RowFold("cli:codex").Fraction);
             Step(runtime, frames, 600);
             Assert.Equal(1, page.RowFold("cli:codex").Fraction);
-            runner.Rows = [Row("marrow", "Nth", UpdateItemKind.Marrow), Row("cli:claude", "Claude Code", UpdateItemKind.ProviderCli)];
+            runner.Rows = [Row("marrow", "nth", UpdateItemKind.Marrow), Row("cli:claude", "Claude Code", UpdateItemKind.ProviderCli)];
             runner.Raise();
             runtime.RunUntilIdle();
             Assert.False(page.RowFold("cli:codex").Open);
@@ -434,9 +434,9 @@ public sealed class UpdatesSettingsPageTests(HeadlessSession headless)
         var page = Page([], Claude("2.1.290", "2.1.290"));
         Show(page, runtime, _ =>
         {
-            Assert.Equal("Checked just now. Nth also keeps Claude Code current in the background.", page.DetailText.Text);
+            Assert.Equal("Checked just now. nth also keeps Claude Code current in the background.", page.DetailText.Text);
             runtime.AdvanceMilliseconds(2.4 * 3_600_000);
-            Assert.Equal("Checked 2 hours ago. Nth also keeps Claude Code current in the background.", page.DetailText.Text);
+            Assert.Equal("Checked 2 hours ago. nth also keeps Claude Code current in the background.", page.DetailText.Text);
         });
     });
 

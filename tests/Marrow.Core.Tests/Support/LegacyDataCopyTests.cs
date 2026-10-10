@@ -3,8 +3,8 @@ using Marrow.Testing;
 
 namespace Marrow.Core.Tests.Support;
 
-// OD-0135: the product is named Nth. On first launch the old "Marrow Code" data folder and the old .marrow / .marrow-dev state
-// folder are COPIED once to "Nth" and .nth / .nth-dev; the old folders are never moved, changed or deleted. Every test works in
+// OD-0135: the product is named nth. On first launch the old "Marrow Code" data folder and the old .marrow / .marrow-dev state
+// folder are COPIED once to "nth" and .nth / .nth-dev; the old folders are never moved, changed or deleted. Every test works in
 // its own folder under MARROW_PORT_DATA_DIR (R-TEST-9): no real user folder is read or written.
 [Trait("Decision", "OD-0135")]
 public sealed class LegacyDataCopyTests : IDisposable
@@ -51,7 +51,7 @@ public sealed class LegacyDataCopyTests : IDisposable
         Assert.Equal(LegacyDataCopyOutcome.Copied, data.Outcome);
         Assert.Empty(data.Skipped);
         Assert.Equal(LegacyDataCopyOutcome.NothingToCopy, state.Outcome);
-        var copied = Path.Combine(local, "Nth");
+        var copied = Path.Combine(local, "nth");
         var after = Snapshot(copied);
         Assert.True(after.Remove(LegacyDataCopy.MarkerName));
         Assert.Equal(before, after);
@@ -67,15 +67,15 @@ public sealed class LegacyDataCopyTests : IDisposable
         var local = Path.Combine(scratch, "LocalAppData");
         Write(Path.Combine(local, "Marrow Code", "library.json"), "old");
         Write(Path.Combine(local, "Marrow Code", "threads", "a.json"), "thread a");
-        Write(Path.Combine(local, "Nth", "library.json"), "new");
-        Write(Path.Combine(local, "Nth", LegacyDataCopy.MarkerName), "copied earlier");
-        var before = Snapshot(Path.Combine(local, "Nth"));
+        Write(Path.Combine(local, "nth", "library.json"), "new");
+        Write(Path.Combine(local, "nth", LegacyDataCopy.MarkerName), "copied earlier");
+        var before = Snapshot(Path.Combine(local, "nth"));
 
-        var result = LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "Nth"));
+        var result = LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "nth"));
 
         Assert.Equal(LegacyDataCopyOutcome.AlreadyThere, result.Outcome);
-        Assert.Equal(before, Snapshot(Path.Combine(local, "Nth")));
-        Assert.False(Directory.Exists(Path.Combine(local, "Nth" + LegacyDataCopy.StagingSuffix)));
+        Assert.Equal(before, Snapshot(Path.Combine(local, "nth")));
+        Assert.False(Directory.Exists(Path.Combine(local, "nth" + LegacyDataCopy.StagingSuffix)));
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class LegacyDataCopyTests : IDisposable
         Write(Path.Combine(old, "CommandCode", "marrow-approvals.ts"), "old mod");
         Write(Path.Combine(old, "CommandCode", "settings.json"), "old settings");
         var oldBefore = Snapshot(old);
-        var root = Path.Combine(local, "Nth");
+        var root = Path.Combine(local, "nth");
         Write(Path.Combine(root, "CommandCode", "marrow-approvals.ts"), "new mod");
         Directory.CreateDirectory(Path.Combine(root, "CommandCode", "approvals"));
 
@@ -113,15 +113,55 @@ public sealed class LegacyDataCopyTests : IDisposable
     }
 
     [Fact]
+    public void A_folder_an_interim_build_copied_under_the_capitalised_name_is_the_same_folder_and_is_left_alone()
+    {
+        // OD-0135 amendment 1: the interim build named the folder "Nth"; the name is now "nth". Windows compares folder
+        // names without case, so the marker the interim copy left is found and nothing is read or written.
+        var local = Path.Combine(scratch, "LocalAppData");
+        Write(Path.Combine(local, "Marrow Code", "library.json"), "old");
+        Write(Path.Combine(local, "Nth", "library.json"), "interim");
+        Write(Path.Combine(local, "Nth", LegacyDataCopy.MarkerName), "copied by the interim build");
+        var before = Snapshot(Path.Combine(local, "Nth"));
+
+        var (data, _) = LegacyDataCopy.CopyProductFolders(local, Path.Combine(scratch, "Home"), isDevelopment: false);
+
+        Assert.Equal(LegacyDataCopyOutcome.AlreadyThere, data.Outcome);
+        Assert.Equal(before, Snapshot(Path.Combine(local, AppInfo.DataFolderName)));
+        Assert.Equal(["Marrow Code", "Nth"], Directory.GetDirectories(local).Select(directory => Path.GetFileName(directory)).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void A_capitalised_folder_without_the_marker_keeps_its_files_gains_the_rest_and_is_marked_once()
+    {
+        // The interim "Nth" folder made by something else (the stray test of the interim build): it is merged into, never
+        // replaced or duplicated beside a second "nth" folder.
+        var local = Path.Combine(scratch, "LocalAppData");
+        Write(Path.Combine(local, "Marrow Code", "library.json"), "library");
+        Write(Path.Combine(local, "Marrow Code", "CommandCode", "marrow-approvals.ts"), "old mod");
+        Write(Path.Combine(local, "Nth", "CommandCode", "marrow-approvals.ts"), "interim mod");
+
+        var (data, _) = LegacyDataCopy.CopyProductFolders(local, Path.Combine(scratch, "Home"), isDevelopment: false);
+
+        Assert.Equal(LegacyDataCopyOutcome.Merged, data.Outcome);
+        var root = Path.Combine(local, AppInfo.DataFolderName);
+        Assert.Equal("interim mod", File.ReadAllText(Path.Combine(root, "CommandCode", "marrow-approvals.ts")));
+        Assert.Equal("library", File.ReadAllText(Path.Combine(root, "library.json")));
+        Assert.True(File.Exists(Path.Combine(root, LegacyDataCopy.MarkerName)));
+        Assert.Equal(["Marrow Code", "Nth"], Directory.GetDirectories(local).Select(directory => Path.GetFileName(directory)).Order(StringComparer.Ordinal));
+        Assert.Equal(LegacyDataCopyOutcome.AlreadyThere,
+            LegacyDataCopy.CopyProductFolders(local, Path.Combine(scratch, "Home"), isDevelopment: false).Data.Outcome);
+    }
+
+    [Fact]
     public void The_copy_runs_only_once_even_when_the_old_folder_changes_later()
     {
         var local = Path.Combine(scratch, "LocalAppData");
         Write(Path.Combine(local, "Marrow Code", "library.json"), "first");
-        Assert.Equal(LegacyDataCopyOutcome.Copied, LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "Nth")).Outcome);
+        Assert.Equal(LegacyDataCopyOutcome.Copied, LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "nth")).Outcome);
         Write(Path.Combine(local, "Marrow Code", "library.json"), "changed by the old app");
 
-        Assert.Equal(LegacyDataCopyOutcome.AlreadyThere, LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "Nth")).Outcome);
-        Assert.Equal("first", File.ReadAllText(Path.Combine(local, "Nth", "library.json")));
+        Assert.Equal(LegacyDataCopyOutcome.AlreadyThere, LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "nth")).Outcome);
+        Assert.Equal("first", File.ReadAllText(Path.Combine(local, "nth", "library.json")));
     }
 
     [Fact]
@@ -165,14 +205,14 @@ public sealed class LegacyDataCopyTests : IDisposable
     {
         var local = Path.Combine(scratch, "LocalAppData");
         Write(Path.Combine(local, "Marrow Code", "library.json"), "library");
-        Write(Path.Combine(local, "Nth" + LegacyDataCopy.StagingSuffix, "half.json"), "half");
+        Write(Path.Combine(local, "nth" + LegacyDataCopy.StagingSuffix, "half.json"), "half");
 
-        var result = LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "Nth"));
+        var result = LegacyDataCopy.CopyOnce(Path.Combine(local, "Marrow Code"), Path.Combine(local, "nth"));
 
         Assert.Equal(LegacyDataCopyOutcome.Copied, result.Outcome);
-        Assert.Equal("library", File.ReadAllText(Path.Combine(local, "Nth", "library.json")));
-        Assert.False(File.Exists(Path.Combine(local, "Nth", "half.json")));
-        Assert.False(Directory.Exists(Path.Combine(local, "Nth" + LegacyDataCopy.StagingSuffix)));
+        Assert.Equal("library", File.ReadAllText(Path.Combine(local, "nth", "library.json")));
+        Assert.False(File.Exists(Path.Combine(local, "nth", "half.json")));
+        Assert.False(Directory.Exists(Path.Combine(local, "nth" + LegacyDataCopy.StagingSuffix)));
     }
 
     [Fact]
@@ -184,12 +224,12 @@ public sealed class LegacyDataCopyTests : IDisposable
         Write(Path.Combine(old, "Logs", "held.log"), "held");
         using (new FileStream(Path.Combine(old, "Logs", "held.log"), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
         {
-            var result = LegacyDataCopy.CopyOnce(old, Path.Combine(local, "Nth"));
+            var result = LegacyDataCopy.CopyOnce(old, Path.Combine(local, "nth"));
 
             Assert.Equal(LegacyDataCopyOutcome.Copied, result.Outcome);
             Assert.Equal([Path.Combine(old, "Logs", "held.log")], result.Skipped);
         }
-        Assert.Equal("library", File.ReadAllText(Path.Combine(local, "Nth", "library.json")));
+        Assert.Equal("library", File.ReadAllText(Path.Combine(local, "nth", "library.json")));
         Assert.Equal("held", File.ReadAllText(Path.Combine(old, "Logs", "held.log")));
     }
 
@@ -212,11 +252,11 @@ public sealed class LegacyDataCopyTests : IDisposable
             Assert.Equal(0, junction.ExitCode);
         }
 
-        var result = LegacyDataCopy.CopyOnce(old, Path.Combine(local, "Nth"));
+        var result = LegacyDataCopy.CopyOnce(old, Path.Combine(local, "nth"));
 
         Assert.Equal(LegacyDataCopyOutcome.Copied, result.Outcome);
         Assert.Equal([link], result.Skipped);
-        Assert.False(Directory.Exists(Path.Combine(local, "Nth", "linked")));
+        Assert.False(Directory.Exists(Path.Combine(local, "nth", "linked")));
         Assert.Equal("outside", File.ReadAllText(Path.Combine(outside, "secret.txt")));
     }
 }

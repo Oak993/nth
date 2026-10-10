@@ -34,7 +34,7 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
     }
 
     // :306 the identity VStack(spacing: 14), the first child of the page's VStack(spacing: 30) (:305).
-    private static StackPanel Identity(Control host) => Assert.IsType<StackPanel>(RootViewRig.Text(host, "Nth").Parent);
+    private static StackPanel Identity(Control host) => Assert.IsType<StackPanel>(RootViewRig.Text(host, "nth").Parent);
 
     private static StackPanel Column(Control host) => Assert.IsType<StackPanel>(Identity(host).Parent);
 
@@ -99,7 +99,7 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
         OnWelcome(host =>
         {
             var identity = Identity(host);
-            var title = RootViewRig.Text(host, "Nth");
+            var title = RootViewRig.Text(host, "nth");
             Assert.Same(title, identity.Children[1]); // second element of the stack
             RootViewRig.AssertStyle(title, 34, FontWeight.SemiBold); // :311 .font(.system(size: 34, weight: .semibold))
             Assert.False(title.IsSet(TextBlock.ForegroundProperty)); // no foregroundStyle: the default text colour
@@ -118,7 +118,7 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
         {
             // A VStack centres each child at its own width: the name's and the tagline's text sit under the icon's centre,
             // not left-aligned at the widest line's edge (the native gallery showed "Marrow" flush left under the tagline).
-            foreach (var text in new[] { RootViewRig.Text(host, "Nth"), RootViewRig.Text(host, "A calm, native home for your coding agents.") })
+            foreach (var text in new[] { RootViewRig.Text(host, "nth"), RootViewRig.Text(host, "A calm, native home for your coding agents.") })
             {
                 Assert.Equal(text.DesiredSize.Width, text.Bounds.Width, 0.5); // at its own width
                 Assert.Equal(host.Bounds.Width / 2, RootViewRig.In(text, host).Center.X, 0.5);

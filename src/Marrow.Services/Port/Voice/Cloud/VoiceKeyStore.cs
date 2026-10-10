@@ -1,12 +1,12 @@
 // PORT-ONLY, owner-ruled addition (OD-0092; first-release voice typing, VT-16): voice-SPEC V-17.2. The OpenAI key lives in Windows
-// Credential Manager through SecretStore (service "Nth", formerly "Marrow Code" and carried over once by OD-0135; account "voice-openai"; R-SEC-1). It is never written anywhere else and
+// Credential Manager through SecretStore (service "nth", formerly "Marrow Code" and carried over once by OD-0135; account "voice-openai"; R-SEC-1). It is never written anywhere else and
 // never logged: this type has no logging, and nothing it throws or returns about a failure carries the key.
 namespace Marrow.Services.Port.Voice.Cloud;
 
 /// <summary>The cloud engine's key: one item in the secret store.</summary>
 public sealed class VoiceKeyStore(SecretStore? store = null)
 {
-    /// <summary>The item's service: the port's data identity (OD-0008 C7), "Nth" since OD-0135.</summary>
+    /// <summary>The item's service: the port's data identity (OD-0008 C7), "nth" since OD-0135.</summary>
     public const string Service = Marrow.Core.Support.AppInfo.DataFolderName;
 
     /// <summary>The item's service before OD-0135, read only to carry the key over once.</summary>

@@ -409,7 +409,7 @@
       }
     },
     "nvidiaCompanions": {
-      "licenceNote": "NVIDIA CUDA Toolkit licence (NVIDIA EULA, redistributables of the CUDA Toolkit). UNRESOLVED for the owner: whether Nth may download and unpack these on the user's PC, and which CUDA 12.x release the offer pins.",
+      "licenceNote": "NVIDIA CUDA Toolkit licence (NVIDIA EULA, redistributables of the CUDA Toolkit). UNRESOLVED for the owner: whether nth may download and unpack these on the user's PC, and which CUDA 12.x release the offer pins.",
       "manifest": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.4.0.json",
       "libcublas": {
         "version": "12.4.2.65",
