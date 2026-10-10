@@ -19,7 +19,7 @@ public sealed class DevToolUpdateCompositionTests
         using var runtime = new TestRuntime();
         var service = runtime.OnMain(() => new UpdateEverythingService([], () => { }));
         var git = new FakeUpdateItem("dev:Git.Git", "Git", UpdateItemKind.DevTool, "2.54.0", "2.55.0.5");
-        var marrow = new FakeUpdateItem("marrow", "Nth", UpdateItemKind.Marrow, "1.7.0", "1.7.1");
+        var marrow = new FakeUpdateItem("marrow", "nth", UpdateItemKind.Marrow, "1.7.0", "1.7.1");
         var pending = runtime.OnMain(() => UpdateEverythingProduction.ConfigureSource(service, () => Task.FromResult<(IReadOnlyList<IUpdateItem>, Action)>(([marrow, git], () => { }))));
         Assert.True(pending.IsCompletedSuccessfully); Assert.Equal([git.Id, marrow.Id], service.Rows.Select(r => r.Id));
         Assert.Equal(UpdateItemKind.DevTool, service.Rows[0].Kind);

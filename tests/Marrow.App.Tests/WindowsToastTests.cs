@@ -17,17 +17,17 @@ namespace Marrow.App.Tests;
 [Collection("Headless")]
 public sealed class WindowsToastTests(HeadlessSession headless)
 {
-    private static readonly ToastBuildIdentity ReleaseIdentity = new("Nth.App", "nth-release");
+    private static readonly ToastBuildIdentity ReleaseIdentity = new("nth.App", "nth-release");
     private static ToastRequest Request(string identifier = "thread", bool sound = true) =>
         new(identifier, "A <title> & \"quoted\"", "Body \u203A \u2019", sound,
             new Dictionary<string, object> { ["threadID"] = "00112233-4455-6677-8899-AABBCCDDEEFF" });
 
     [Theory]
     [Trait("Req", "PR-LAUNCH-025")] // App/AppDelegate.swift:15; PLATFORM BOUNDARY ED-220 (2)
-    [InlineData(false, false, "Nth.App", "nth-release")]
-    [InlineData(true, false, "Nth.App.Dev", "nth-dev")]
-    [InlineData(false, true, "Nth.App.Dev", "nth-dev")]
-    [InlineData(true, true, "Nth.App.Dev", "nth-dev")]
+    [InlineData(false, false, "nth.App", "nth-release")]
+    [InlineData(true, false, "nth.App.Dev", "nth-dev")]
+    [InlineData(false, true, "nth.App.Dev", "nth-dev")]
+    [InlineData(true, true, "nth.App.Dev", "nth-dev")]
     public void Build_identity_separates_release_from_debug_and_dev(bool debug, bool dev, string appId, string scheme) =>
         Assert.Equal(new ToastBuildIdentity(appId, scheme), ToastBuildIdentity.ForBuild(debug, dev));
 
@@ -38,10 +38,10 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         var platform = new RecordingToastPlatform();
         const string executable = "C:\\Program Files\\Marrow\\Marrow.exe";
         WindowsToastRegistration.Register(platform, ReleaseIdentity, executable, "C:\\Marrow\\icon.ico");
-        Assert.Equal(["Nth.App"], platform.AppIds);
-        Assert.Equal("Nth", platform.Registry[("Software\\Classes\\AppUserModelId\\Nth.App", "DisplayName")]);
-        Assert.Equal("URL:Nth", platform.Registry[("Software\\Classes\\nth-release", "")]);
-        Assert.Equal("C:\\Marrow\\icon.ico", platform.Registry[("Software\\Classes\\AppUserModelId\\Nth.App", "IconUri")]);
+        Assert.Equal(["nth.App"], platform.AppIds);
+        Assert.Equal("nth", platform.Registry[("Software\\Classes\\AppUserModelId\\nth.App", "DisplayName")]);
+        Assert.Equal("URL:nth", platform.Registry[("Software\\Classes\\nth-release", "")]);
+        Assert.Equal("C:\\Marrow\\icon.ico", platform.Registry[("Software\\Classes\\AppUserModelId\\nth.App", "IconUri")]);
         Assert.Equal("", platform.Registry[("Software\\Classes\\nth-release", "URL Protocol")]);
         Assert.Equal("\"C:\\Program Files\\Marrow\\Marrow.exe\" \"%1\"", platform.Registry[("Software\\Classes\\nth-release\\shell\\open\\command", "")]);
         var count = platform.Writes.Count;
@@ -54,7 +54,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "OD-0135")] // the product is named Nth: the old name's own HKCU keys go, nothing else is deleted
+    [Trait("Decision", "OD-0135")] // the product is named nth: the old name's own HKCU keys go, nothing else is deleted
     public void Registration_removes_exactly_the_old_names_own_keys_and_keeps_the_new_ones()
     {
         var platform = new RecordingToastPlatform();
@@ -62,7 +62,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         platform.Registry[("Software\\Classes\\marrow-code-release\\shell\\open\\command", "")] = "\"C:\\Old\\Marrow.App.exe\" \"%1\"";
         platform.Registry[("Software\\Classes\\marrow-code-dev", "URL Protocol")] = "";
         platform.Registry[("Software\\Classes\\marrow-release", "")] = "URL:Someone else";
-        WindowsToastRegistration.Register(platform, ReleaseIdentity, "C:\\Nth\\Marrow.App.exe", "icon");
+        WindowsToastRegistration.Register(platform, ReleaseIdentity, "C:\\nth\\Marrow.App.exe", "icon");
         Assert.Equal(
             ["Software\\Classes\\AppUserModelId\\MarrowCode.Marrow", "Software\\Classes\\AppUserModelId\\MarrowCode.Marrow.Dev",
              "Software\\Classes\\marrow-code-release", "Software\\Classes\\marrow-code-dev"],
@@ -70,8 +70,8 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         Assert.DoesNotContain(platform.Registry.Keys, entry => entry.Key.Contains("MarrowCode", StringComparison.Ordinal)
             || entry.Key.Contains("marrow-code-", StringComparison.Ordinal));
         Assert.Equal("URL:Someone else", platform.Registry[("Software\\Classes\\marrow-release", "")]);
-        Assert.Equal("Nth", platform.Registry[("Software\\Classes\\AppUserModelId\\Nth.App", "DisplayName")]);
-        Assert.Equal("\"C:\\Nth\\Marrow.App.exe\" \"%1\"", platform.Registry[("Software\\Classes\\nth-release\\shell\\open\\command", "")]);
+        Assert.Equal("nth", platform.Registry[("Software\\Classes\\AppUserModelId\\nth.App", "DisplayName")]);
+        Assert.Equal("\"C:\\nth\\Marrow.App.exe\" \"%1\"", platform.Registry[("Software\\Classes\\nth-release\\shell\\open\\command", "")]);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     public void Dev_protocol_command_preserves_its_isolated_data_root()
     {
         var platform = new RecordingToastPlatform();
-        WindowsToastRegistration.Register(platform, new("Nth.App.Dev", "nth-dev"), "C:\\Marrow.exe", "icon", "C:\\Dev Data");
+        WindowsToastRegistration.Register(platform, new("nth.App.Dev", "nth-dev"), "C:\\Marrow.exe", "icon", "C:\\Dev Data");
         Assert.Equal("\"C:\\Marrow.exe\" --notification-data-root \"C:\\Dev Data\" \"%1\"",
             platform.Registry[("Software\\Classes\\nth-dev\\shell\\open\\command", "")]);
     }
@@ -117,7 +117,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         Assert.Equal(2, platform.Posts.Count);
         Assert.All(platform.Posts, p => Assert.Equal(id, p.Tag));
         Assert.Single(platform.Delivered);
-        Assert.Contains("Next", platform.Delivered[("Nth.App", id)], StringComparison.Ordinal);
+        Assert.Contains("Next", platform.Delivered[("nth.App", id)], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -356,7 +356,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         var posted = Assert.Single(platform.Posts);
         Assert.Equal("update-2.0.0", posted.Tag);
         var xml = XDocument.Parse(posted.Xml);
-        Assert.Equal(new[] { "Nth 2.0.0 is available", "Open Settings \u203A About to update and restart." }, xml.Descendants("text").Select(t => t.Value));
+        Assert.Equal(new[] { "nth 2.0.0 is available", "Open Settings \u203A About to update and restart." }, xml.Descendants("text").Select(t => t.Value));
         var audio = xml.Root!.Element("audio")!;
         Assert.Equal("true", (string?)audio.Attribute("silent")); // :249-252 no content.sound
         Assert.Null(audio.Attribute("src"));

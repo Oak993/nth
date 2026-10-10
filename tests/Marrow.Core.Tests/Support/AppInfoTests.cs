@@ -26,12 +26,12 @@ public sealed class AppInfoTests
     {
         Assert.Equal(legacy, AppInfo.LegacyStateDirectoryNameFor(development));
         Assert.Equal(current, AppInfo.StateDirectoryNameFor(development));
-        Assert.Equal("Nth", AppInfo.DataFolderName);
+        Assert.Equal("nth", AppInfo.DataFolderName);
         Assert.Equal("Marrow Code", AppInfo.LegacyDataFolderName);
     }
 
     [Fact]
-    [Trait("Rule", "R-STR-9")] // OD-0135: the name fallback is the product's own name "Nth", never upstream's "Droppy Code".
+    [Trait("Rule", "R-STR-9")] // OD-0135: the name fallback is the product's own name "nth", never upstream's "Droppy Code".
     public void Missing_and_wrongly_typed_metadata_use_the_three_literal_fallbacks()
     {
         foreach (var metadata in new[]
@@ -46,7 +46,7 @@ public sealed class AppInfoTests
         })
         {
             var info = AppInfo.Read(metadata, false);
-            Assert.Equal("Nth", info.Name);
+            Assert.Equal("nth", info.Name);
             Assert.Equal("1.0.0", info.Version);
             Assert.Equal("1", info.Build);
         }
@@ -58,13 +58,13 @@ public sealed class AppInfoTests
     {
         var metadata = new Dictionary<string, object?>
         {
-            ["CFBundleDisplayName"] = "Nth",
+            ["CFBundleDisplayName"] = "nth",
             ["CFBundleShortVersionString"] = "",
             ["CFBundleVersion"] = " 19 "
         };
         var info = AppInfo.Read(metadata, false);
         metadata["CFBundleDisplayName"] = "changed";
-        Assert.Equal("Nth", info.Name);
+        Assert.Equal("nth", info.Name);
         Assert.Equal("", info.Version);
         Assert.Equal(" 19 ", info.Build);
         Assert.Same(AppInfo.Current, AppInfo.Current);
@@ -117,10 +117,10 @@ public sealed class AppInfoTests
         var constructor = typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!;
         foreach (var (key, value) in new[]
         {
-            ("CFBundleDisplayName", "Nth"), ("CFBundleShortVersionString", "1.6.0"), ("CFBundleVersion", "19")
+            ("CFBundleDisplayName", "nth"), ("CFBundleShortVersionString", "1.6.0"), ("CFBundleVersion", "19")
         }) assembly.SetCustomAttribute(new CustomAttributeBuilder(constructor, [key, value]));
         var info = AppInfo.FromAssembly(assembly, true);
-        Assert.Equal("Nth", info.Name);
+        Assert.Equal("nth", info.Name);
         Assert.Equal("1.6.0", info.Version);
         Assert.Equal("19", info.Build);
         Assert.True(info.IsDevelopment);
@@ -134,10 +134,10 @@ public sealed class AppInfoTests
         var constructor = typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!;
         foreach (var (key, value) in new[]
         {
-            ("CFBundleDisplayName", "  Nth  "), ("CFBundleShortVersionString", " 1.6.2"), ("CFBundleVersion", "20 ")
+            ("CFBundleDisplayName", "  nth  "), ("CFBundleShortVersionString", " 1.6.2"), ("CFBundleVersion", "20 ")
         }) assembly.SetCustomAttribute(new CustomAttributeBuilder(constructor, [key, value]));
         var info = AppInfo.FromAssembly(assembly, false);
-        Assert.Equal("  Nth  ", info.Name);
+        Assert.Equal("  nth  ", info.Name);
         Assert.Equal(" 1.6.2", info.Version);
         Assert.Equal("20 ", info.Build);
     }
@@ -148,7 +148,7 @@ public sealed class AppInfoTests
     {
         var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("MetadataMissingFixture"), AssemblyBuilderAccess.Run);
         var info = AppInfo.FromAssembly(assembly, false);
-        Assert.Equal("Nth", info.Name);
+        Assert.Equal("nth", info.Name);
         Assert.Equal("1.0.0", info.Version);
         Assert.Equal("1", info.Build);
     }

@@ -466,7 +466,7 @@ public sealed class HydraTests
     public void PacingNote_is_the_deviation_worded_note_with_twenty_four_interpolated()
     {
         Assert.Equal(
-            "[Nth] You have run 24 tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you.",
+            "[nth] You have run 24 tools without changing a file. If the task is research, reply with your findings now. Otherwise act on what you know: make the change, or reply with what blocks you.",
             HydraBudget.PacingNote);
     }
 
@@ -475,7 +475,7 @@ public sealed class HydraTests
     public void WrapUpNote_is_the_deviation_worded_note_verbatim()
     {
         Assert.Equal(
-            "[Nth] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.",
+            "[nth] Your budget is nearly spent. Finish now: complete the smallest correct version of the task, then reply with your report.",
             HydraBudget.WrapUpNote);
     }
 
@@ -484,7 +484,7 @@ public sealed class HydraTests
     public void FinalNote_is_the_deviation_worded_note_verbatim()
     {
         Assert.Equal(
-            "[Nth] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.",
+            "[nth] Your budget is spent and your tools are gone. Reply now with your report: what you changed, how far it got, and what is left.",
             HydraBudget.FinalNote);
     }
 
@@ -1013,7 +1013,7 @@ public sealed class HydraTests
         var text = HydraPrompts.ProjectRule([]);
 
         Assert.StartsWith("Heads may work in any project. A head works in this chat's project unless it is sent to another:", text, StringComparison.Ordinal);
-        Assert.Contains("which Nth then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt. Whatever a head changes lands", text, StringComparison.Ordinal);
+        Assert.Contains("which nth then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt. Whatever a head changes lands", text, StringComparison.Ordinal);
     }
 
     [Trait("Req", "PR-HYDRA-035")] // DroppyCode/Core/Models/Hydra.swift:699 the own clause with one project
@@ -1044,7 +1044,7 @@ public sealed class HydraTests
     public void ProjectRule_full_text_with_no_projects_is_exact()
     {
         Assert.Equal(
-            "Heads may work in any project. A head works in this chat's project unless it is sent to another: an entry of the delegation block names it with \"project\" (a sidebar project's name or path, or the absolute path of any git repository on this Mac, which Nth then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt. Whatever a head changes lands in the checkout of the project it worked in, and the team's work is merged per project, one merge request each. Your own tools run in this chat's checkout, and you may read and edit files in any project all the same: what you change elsewhere is merged along with that project's work. Run your own checks in the checkout itself: never make a worktree or a copy of the project for them.",
+            "Heads may work in any project. A head works in this chat's project unless it is sent to another: an entry of the delegation block names it with \"project\" (a sidebar project's name or path, or the absolute path of any git repository on this Mac, which nth then adds to the sidebar), and a head spawned with your own agent tool is told the project's folder in its prompt. Whatever a head changes lands in the checkout of the project it worked in, and the team's work is merged per project, one merge request each. Your own tools run in this chat's checkout, and you may read and edit files in any project all the same: what you change elsewhere is merged along with that project's work. Run your own checks in the checkout itself: never make a worktree or a copy of the project for them.",
             HydraPrompts.ProjectRule([]));
     }
 
@@ -1056,7 +1056,7 @@ public sealed class HydraTests
     {
         // B3 adds "if it says Marrow retries by itself..." and "A merge never waits on another chat or session...".
         Assert.Equal(
-            "Nth handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Nth retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.",
+            "nth handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says nth retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.",
             HydraPrompts.AutoMergeRule);
     }
 
@@ -1092,7 +1092,7 @@ public sealed class HydraTests
 
         var expected = string.Join("\n",
         [
-            @"You have your own copy of the project at C:\worktrees\otto: a git worktree Nth made for you from the project's checkout as it was when you were sent out, uncommitted work included. Work in it directly, on the files as they are; your tools already run there. When you report, Nth carries your changes into that checkout itself. So never commit, branch, stash, push, check out, reset, restore or clean anything, and never make or remove worktrees, whatever the project's own guidelines say about agents and worktrees: this copy already is yours. Do not use git to check your work either.",
+            @"You have your own copy of the project at C:\worktrees\otto: a git worktree nth made for you from the project's checkout as it was when you were sent out, uncommitted work included. Work in it directly, on the files as they are; your tools already run there. When you report, nth carries your changes into that checkout itself. So never commit, branch, stash, push, check out, reset, restore or clean anything, and never make or remove worktrees, whatever the project's own guidelines say about agents and worktrees: this copy already is yours. Do not use git to check your work either.",
             "Never build, test or verify anything in your copy: the lead runs every check itself, in its own checkout. Anything under the project folder that git does not ignore lands in the lead's checkout, so leave no build output there.",
         ]);
 
@@ -1201,7 +1201,7 @@ public sealed class HydraTests
         var text = HydraPrompts.Policy(ProviderKind.Claude, NativeLaunch(ProviderKind.Claude));
 
         Assert.StartsWith("# Hydra\n\nThe user switched on Hydra for this chat:", text, StringComparison.Ordinal);
-        Assert.Contains("unless asked. Two agent types are yours: `droppy-worker` (edits files, runs commands) and `droppy-scout` (read-only research). Spawn them with the Agent tool and prefer them over other agents while Hydra is on: they run on the model and effort the user chose for heads. The agents you spawn this way are the Hydra heads themselves: Nth shows each one in the team's panel", text, StringComparison.Ordinal);
+        Assert.Contains("unless asked. Two agent types are yours: `droppy-worker` (edits files, runs commands) and `droppy-scout` (read-only research). Spawn them with the Agent tool and prefer them over other agents while Hydra is on: they run on the model and effort the user chose for heads. The agents you spawn this way are the Hydra heads themselves: nth shows each one in the team's panel", text, StringComparison.Ordinal);
     }
 
     [Trait("Req", "PR-HYDRA-046")] // DroppyCode/Core/Models/Hydra.swift:774-778 the fixed delegate bullets
@@ -1221,7 +1221,7 @@ public sealed class HydraTests
     {
         var text = HydraPrompts.Policy(ProviderKind.Claude, NativeLaunch(ProviderKind.Claude));
 
-        Assert.Contains("Nth names the heads in roster order (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on)", text, StringComparison.Ordinal);
+        Assert.Contains("nth names the heads in roster order (Hank, Walter, Ada, Otto, Nova, Remy, Iris, Milo, Juno, Ezra, Lena, Bo, Kai, Vera, Finn, Mira, Odin, Suki, Rex, Zola, Pip, Ivo, Lux, Tova, Gus, then Hank 2 and so on)", text, StringComparison.Ordinal);
     }
 
     [Trait("Req", "PR-HYDRA-047")] // DroppyCode/Core/Models/Hydra.swift:782 the reproduced contradiction, upstream defect
@@ -1231,7 +1231,7 @@ public sealed class HydraTests
         var text = HydraPrompts.Policy(ProviderKind.Claude, NativeLaunch(ProviderKind.Claude));
 
         Assert.Contains(
-            "- Heads go out through the tools above, never through a fenced hydra block: that is the delegation format for providers without agent tools of their own. If you end a reply with one anyway, Nth still sends those heads out as threads of their own, but your turn ends there and their reports come back as a later message.",
+            "- Heads go out through the tools above, never through a fenced hydra block: that is the delegation format for providers without agent tools of their own. If you end a reply with one anyway, nth still sends those heads out as threads of their own, but your turn ends there and their reports come back as a later message.",
             text, StringComparison.Ordinal);
     }
 
@@ -1543,7 +1543,7 @@ public sealed class HydraTests
     public void WorkerPrompt_is_the_exact_two_paragraph_literal_with_Marrow_and_howToReport()
     {
         Assert.Equal(
-            "You are a Hydra head in Nth: one of several helpers working in parallel for a lead agent, in the lead's own checkout, where the lead and the other heads are changing other files at the same time. Do exactly the task you were given, and only that: do not widen it, do not touch files it does not name unless the task cannot be done otherwise, and never revert, reformat or clean up work that is not yours. Changes you did not make are expected in the checkout: leave them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes. Never run a build, a test, a lint or any other check of your work: the lead runs every check itself. Make the edits your brief names and report. If something blocks you, say so instead of guessing.\n\n" +
+            "You are a Hydra head in nth: one of several helpers working in parallel for a lead agent, in the lead's own checkout, where the lead and the other heads are changing other files at the same time. Do exactly the task you were given, and only that: do not widen it, do not touch files it does not name unless the task cannot be done otherwise, and never revert, reformat or clean up work that is not yours. Changes you did not make are expected in the checkout: leave them alone, never stash, check out, reset, restore or clean anything, and never move work into a branch or worktree, whatever the project's own guidelines say about agents and worktrees. Do not use git status or git diff to check your work: they show everyone's changes. Never run a build, a test, a lint or any other check of your work: the lead runs every check itself. Make the edits your brief names and report. If something blocks you, say so instead of guessing.\n\n" +
             HydraPrompts.HowToReport,
             HydraPrompts.WorkerPrompt);
     }
@@ -1553,7 +1553,7 @@ public sealed class HydraTests
     public void ScoutPrompt_second_paragraph_is_its_own_text_not_howToReport()
     {
         Assert.Equal(
-            "You are a Hydra head in Nth: a read-only researcher working in parallel for a lead agent, in the lead's own checkout, where the lead and other heads are changing files at the same time; uncommitted changes there are theirs and expected. Answer exactly the question you were given, from the code and sources you can read. Change nothing.\n\n" +
+            "You are a Hydra head in nth: a read-only researcher working in parallel for a lead agent, in the lead's own checkout, where the lead and other heads are changing files at the same time; uncommitted changes there are theirs and expected. Answer exactly the question you were given, from the code and sources you can read. Change nothing.\n\n" +
             "Reply with a short report the lead can act on: the findings, with file paths and line references, and anything that contradicts what the lead assumed. No preamble.",
             HydraPrompts.ScoutPrompt);
         Assert.DoesNotContain(HydraPrompts.HowToReport, HydraPrompts.ScoutPrompt, StringComparison.Ordinal);
@@ -1588,11 +1588,11 @@ public sealed class HydraTests
     public void FallbackPolicy_closing_paragraph_says_Marrow_not_Droppy_Code_and_appends_conditional_tails_and_reportStyleRule()
     {
         var plain = HydraPrompts.FallbackPolicy(null, isolated: true);
-        Assert.Contains("A message that opens with [Hydra] is from Nth, not the user. " + HydraPrompts.ReportStyleRule, plain, StringComparison.Ordinal);
+        Assert.Contains("A message that opens with [Hydra] is from nth, not the user. " + HydraPrompts.ReportStyleRule, plain, StringComparison.Ordinal);
 
         var both = HydraPrompts.FallbackPolicy(null, isolated: true, autoMerges: true, reviewsHeads: true);
         Assert.Contains(
-            "A message that opens with [Hydra] is from Nth, not the user. " + HydraPrompts.ReviewRule + " " + HydraPrompts.AutoMergeRule + " " + HydraPrompts.ReportStyleRule,
+            "A message that opens with [Hydra] is from nth, not the user. " + HydraPrompts.ReviewRule + " " + HydraPrompts.AutoMergeRule + " " + HydraPrompts.ReportStyleRule,
             both, StringComparison.Ordinal);
     }
 
@@ -1601,7 +1601,7 @@ public sealed class HydraTests
     public void FallbackPolicy_whereHeadsWork_says_Marrow_lands_its_changes_when_isolated_else_your_checkout()
     {
         var isolated = HydraPrompts.FallbackPolicy(null, isolated: true);
-        Assert.Contains("Each head works in a copy of its project of its own and Nth lands its changes in that project's checkout when it reports; heads never see your context", isolated, StringComparison.Ordinal);
+        Assert.Contains("Each head works in a copy of its project of its own and nth lands its changes in that project's checkout when it reports; heads never see your context", isolated, StringComparison.Ordinal);
 
         var shared = HydraPrompts.FallbackPolicy(null, isolated: false);
         Assert.Contains("The heads work in your checkout; heads never see your context", shared, StringComparison.Ordinal);
@@ -1680,7 +1680,7 @@ public sealed class HydraTests
         var text = HydraPrompts.DelegatedHeadPrompt(persona, delegation, workplace);
 
         Assert.Equal(
-            $"You are {persona.Name}, a Hydra head in Nth: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n\n" +
+            $"You are {persona.Name}, a Hydra head in nth: one of several helpers working in parallel for a lead agent. The lead delegated this task to you.\n\n" +
             "## Your task: Fix the widget\n" +
             HydraPrompts.WithoutVerificationSteps(delegation.Prompt) + "\n\n" +
             "## Where you work\n" +
@@ -1707,7 +1707,7 @@ public sealed class HydraTests
         Assert.Contains("## What is going on in the main chat\nThe lead has not said anything yet.\n\n", text, StringComparison.Ordinal);
         // The task is NOT filtered through withoutVerificationSteps: "run the tests" stays verbatim.
         Assert.Contains("## Your task\nrun the tests everywhere\n\n", text, StringComparison.Ordinal);
-        Assert.Contains($"You are {persona.Name}, a Hydra head in Nth: a helper running in parallel with the lead agent. The user queued this task for you while the lead works on something else.\n\n", text, StringComparison.Ordinal);
+        Assert.Contains($"You are {persona.Name}, a Hydra head in nth: a helper running in parallel with the lead agent. The user queued this task for you while the lead works on something else.\n\n", text, StringComparison.Ordinal);
     }
 
     [Trait("Req", "PR-HYDRA-062")] // DroppyCode/Core/Models/Hydra.swift:1277-1286 the three context lines, in order
@@ -1960,7 +1960,7 @@ public sealed class HydraTests
         var text = HydraPrompts.MergeStatus([record], 5, now);
 
         Assert.Equal(
-            "Merge state: the last try at " + FormattedShortTime(now) + " did not land yet (still checking the forge). Nth retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.",
+            "Merge state: the last try at " + FormattedShortTime(now) + " did not land yet (still checking the forge). nth retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.",
             text);
         Assert.DoesNotContain("not merged yet", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Nothing has changed since", text, StringComparison.Ordinal);
@@ -1975,7 +1975,7 @@ public sealed class HydraTests
 
         var text = HydraPrompts.MergeStatus([record], 0, now);
 
-        Assert.Contains("did not land yet (no reason recorded). Nth retries it by itself within a minute", text, StringComparison.Ordinal);
+        Assert.Contains("did not land yet (no reason recorded). nth retries it by itself within a minute", text, StringComparison.Ordinal);
     }
 
     // PR-HYDRAMERGE-132's failure_cases: "A record carrying false, which this build never writes, is treated
@@ -2082,7 +2082,7 @@ public sealed class HydraTests
 
         var text = HydraPrompts.DelegationRequest(launch);
 
-        Assert.Contains("Delegate through the final hydra block so Nth runs the selected heads; do not use native agent tools. Follow any explicit request below", text, StringComparison.Ordinal);
+        Assert.Contains("Delegate through the final hydra block so nth runs the selected heads; do not use native agent tools. Follow any explicit request below", text, StringComparison.Ordinal);
         Assert.EndsWith("\n\n---\n\n", text, StringComparison.Ordinal);
     }
 

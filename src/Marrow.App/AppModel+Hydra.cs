@@ -18,7 +18,7 @@ public sealed partial class AppModel
     // :114-127
     private static partial class HydraWatchdog
     {
-        internal const string StalledNote = "Stalled: no edits for 10 minutes; stopped by Nth. Resend with a sharper brief.";
+        internal const string StalledNote = "Stalled: no edits for 10 minutes; stopped by nth. Resend with a sharper brief.";
         internal static readonly HashSet<Guid> StalledHeadIDs = [];
         internal static readonly Dictionary<Guid, long> ToolCounts = [];
         internal static readonly HashSet<Guid> Labelled = [];
@@ -1073,7 +1073,7 @@ public sealed partial class AppModel
                             capture = Task.Run(async () =>
                             {
                                 var tree = await git.CurrentTree();
-                                var commit = await git.CommitTree(tree, "Nth: a Hydra head's starting point");
+                                var commit = await git.CommitTree(tree, "nth: a Hydra head's starting point");
                                 return new CaptureResult(tree, commit);
                             });
                         }

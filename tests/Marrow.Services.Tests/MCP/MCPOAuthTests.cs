@@ -202,7 +202,7 @@ public sealed class MCPOAuthTests
         Assert.Contains("\n<title>Signed in to " + name + "</title>\n", page, StringComparison.Ordinal);
         Assert.Contains("\n<h1>Signed in to " + name + "</h1>\n", page, StringComparison.Ordinal);
         // DEVIATION OD-0012 F1: upstream says "head back to Droppy Code." (:845).
-        Assert.Contains("\n<p>You can close this tab and head back to Nth.</p>\n", page, StringComparison.Ordinal);
+        Assert.Contains("\n<p>You can close this tab and head back to nth.</p>\n", page, StringComparison.Ordinal);
         Assert.DoesNotContain("Droppy", page, StringComparison.Ordinal);
     }
 
@@ -984,7 +984,7 @@ public sealed class MCPOAuthTests
             ["client_name", "grant_types", "redirect_uris", "response_types", "scope", "token_endpoint_auth_method"],
             body.EnumerateObject().Select(member => member.Name).Order(StringComparer.Ordinal));
         // DEVIATION OD-0012 F1: upstream registers as "Droppy Code" (:369).
-        Assert.Equal("Nth", body.GetProperty("client_name").GetString());
+        Assert.Equal("nth", body.GetProperty("client_name").GetString());
         Assert.Equal([redirect], body.GetProperty("redirect_uris").EnumerateArray().Select(e => e.GetString()));
         Assert.Equal(["authorization_code", "refresh_token"], body.GetProperty("grant_types").EnumerateArray().Select(e => e.GetString()));
         Assert.Equal(["code"], body.GetProperty("response_types").EnumerateArray().Select(e => e.GetString()));
@@ -1584,7 +1584,7 @@ public sealed class MCPOAuthTests
         Logo, // :907
         "<h1>" + heading + "</h1>", // :908
         "<p>" + message + "</p>", // :909
-        "<div class=\"wordmark\">Nth</div>", // :910 DEVIATION OD-0012 F1: upstream reads "Droppy Code"
+        "<div class=\"wordmark\">nth</div>", // :910 DEVIATION OD-0012 F1: upstream reads "Droppy Code"
         "</div>", // :911
         "<script>setTimeout(() => window.close(), 1500);</script>", // :912
         "</body>", // :913
@@ -1596,7 +1596,7 @@ public sealed class MCPOAuthTests
     public void SuccessPage_is_the_whole_fixed_document_with_the_Marrow_wordmark()
     {
         Assert.Equal(
-            Document("Signed in to Linear", "Signed in to Linear", "You can close this tab and head back to Nth."),
+            Document("Signed in to Linear", "Signed in to Linear", "You can close this tab and head back to nth."),
             MCPOAuth.SuccessPage("Linear"));
     }
 
@@ -1623,7 +1623,7 @@ public sealed class MCPOAuthTests
             Assert.DoesNotContain("\n ", page.Replace("\n  ", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
             Assert.Equal(56, page.Split('\n').Length); // :859-914
             Assert.Contains("\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<meta name=\"color-scheme\" content=\"dark\">\n", page, StringComparison.Ordinal);
-            Assert.Contains("\n<div class=\"wordmark\">Nth</div>\n", page, StringComparison.Ordinal); // DEVIATION OD-0012 F1
+            Assert.Contains("\n<div class=\"wordmark\">nth</div>\n", page, StringComparison.Ordinal); // DEVIATION OD-0012 F1
             Assert.DoesNotContain("Droppy", page, StringComparison.Ordinal);
             Assert.Equal(2, page.Split("<script>").Length);
             Assert.Contains("\n<script>setTimeout(() => window.close(), 1500);</script>\n", page, StringComparison.Ordinal);
@@ -1657,7 +1657,7 @@ public sealed class MCPOAuthTests
     {
         var lines = MCPOAuth.FailurePage("Linear", "Why").Split('\n');
         Assert.Equal(
-            ["<div class=\"card\">", Logo, "<h1>Sign-in didn't finish</h1>", "<p>Why</p>", "<div class=\"wordmark\">Nth</div>", "</div>"],
+            ["<div class=\"card\">", Logo, "<h1>Sign-in didn't finish</h1>", "<p>Why</p>", "<div class=\"wordmark\">nth</div>", "</div>"],
             lines[47..53]);
         Assert.Equal(1448, Encoding.UTF8.GetByteCount(Logo));
         Assert.Equal(LogoSha256, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Logo))));
@@ -1720,7 +1720,7 @@ public sealed class MCPOAuthTests
     {
         var name = "a" + character + "b" + character;
         var escaped = "a" + entity + "b" + entity;
-        Assert.Equal(Document("Signed in to " + escaped, "Signed in to " + escaped, "You can close this tab and head back to Nth."), MCPOAuth.SuccessPage(name));
+        Assert.Equal(Document("Signed in to " + escaped, "Signed in to " + escaped, "You can close this tab and head back to nth."), MCPOAuth.SuccessPage(name));
         Assert.Equal(Document("Sign-in didn't finish \U00002014 " + escaped, "Sign-in didn't finish", escaped), MCPOAuth.FailurePage(name, name)); // U+2014 EM DASH
     }
 
@@ -1734,7 +1734,7 @@ public sealed class MCPOAuthTests
     [InlineData("<́>́")] // two Characters, "<" and ">" each with a combining acute, so neither equals "<" or ">"
     public void Every_other_character_is_copied_unchanged(string text)
     {
-        Assert.Equal(Document("Signed in to " + text, "Signed in to " + text, "You can close this tab and head back to Nth."), MCPOAuth.SuccessPage(text));
+        Assert.Equal(Document("Signed in to " + text, "Signed in to " + text, "You can close this tab and head back to nth."), MCPOAuth.SuccessPage(text));
         Assert.Equal(Document("Sign-in didn't finish \U00002014 " + text, "Sign-in didn't finish", text), MCPOAuth.FailurePage(text, text)); // U+2014 EM DASH
     }
 

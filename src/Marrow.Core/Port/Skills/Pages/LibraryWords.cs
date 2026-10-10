@@ -50,7 +50,7 @@ public static class LibraryWords
     public const string ProvidersHeading = "Already available through your providers";
 
     /// <summary>ENGINEERING DECISION: the plan's Q8 says the section "copies nothing and only shows what the user already has".</summary>
-    public const string ProvidersNote = "Read-only. Nth copies nothing from these.";
+    public const string ProvidersNote = "Read-only. nth copies nothing from these.";
 
     public const string ResetAction = "Reset skills and tools";
     public const string ResetConfirm = "Reset";
@@ -75,7 +75,7 @@ public static class LibraryWords
     public static string PartialTitle(int done, int of) => done + " of " + of + " downloaded";
 
     public static string ItemsFrom(int items, string hosts) => items + (items == 1 ? " item" : " items") + " from " + hosts + ".";
-    public const string RunningSub = "One at a time. Hide it and keep using Nth.";
+    public const string RunningSub = "One at a time. Hide it and keep using nth.";
     public const string PausedSub = "Nothing is downloading. Resume carries on where it stopped.";
     public static string DoneSub(int items, string disk) => "All " + items + " are on this PC: " + disk + ".";
     public static string PartialSub(int failed) => failed + " didn\u2019t download. The rest are on this PC.";

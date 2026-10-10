@@ -64,7 +64,7 @@ public sealed class TerminalSession : MainActorModel
         // :31
         environment["COLORTERM"] = "truecolor";
         // :32 environment["TERM_PROGRAM"] = "Droppy Code" -- DEVIATION OD-0008 B12: "Marrow".
-        environment["TERM_PROGRAM"] = "Nth";
+        environment["TERM_PROGRAM"] = "nth";
         // :33
         environment["DROPPY_CODE_PROJECT_ROOT"] = directory;
         // :34 let pairs = environment.map { "\($0.key)=\($0.value)" }

@@ -41,7 +41,7 @@ public sealed class AppSettingsTests
 
     private static string CredentialTarget(string account) => SecretStore.TargetName(AppInfo.Current.Name, account);
 
-    // OD-0135: an account with no key under "Nth" is looked up once more: its carry-over marker, then the earlier name ("Marrow").
+    // OD-0135: an account with no key under "nth" is looked up once more: its carry-over marker, then the earlier name ("Marrow").
     private static IEnumerable<string> CarryOverTargets(string account) =>
         [CredentialTarget(account) + SecretStore.CarriedMarkerSuffix, SecretStore.TargetName(AppInfo.LegacyNameFor(AppInfo.Current.IsDevelopment), account)];
 

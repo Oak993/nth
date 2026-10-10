@@ -517,7 +517,7 @@ public sealed class AppUpdater
         var destination = destinationOverride ?? InstalledAppDirectory(); // :375
         var parent = SwiftPath.DeletingLastPathComponent(destination); // :376
         if (!IsWritableDirectory(parent))
-            throw new UpdateInstallError($"Nth cannot replace itself in {parent}. Reinstall it with the installer and try again."); // :377-379
+            throw new UpdateInstallError($"nth cannot replace itself in {parent}. Reinstall it with the installer and try again."); // :377-379
         try { engine!.WaitExitThenApplyAndRestart(); } // :385-395
         catch (Exception error) when (SwiftTry.IsThrownError(error) && error is not UpdateInstallError)
         {
@@ -535,7 +535,7 @@ public sealed class AppUpdater
         if (!IsWritableDirectory(parent))
         {
             // :377-379, DEVIATION OD-0008 B15; OD-0012 H, F1.
-            throw new UpdateInstallError($"Nth cannot replace itself in {parent}. Reinstall it with the installer and try again.");
+            throw new UpdateInstallError($"nth cannot replace itself in {parent}. Reinstall it with the installer and try again.");
         }
 
         var stagingDirectory = SwiftPath.DeletingLastPathComponent(staged); // :380
@@ -625,7 +625,7 @@ internal sealed class Downloader
 
     // :481, DEVIATION OD-0012 F1. PORT-ONLY: split out for the same reason as BuildConfiguration above.
     internal static URLRequest BuildRequest(SwiftURL url) =>
-        new URLRequest(new Uri(url.AbsoluteString)).SetValue($"Nth/{AppInfo.Current.Version}", "User-Agent");
+        new URLRequest(new Uri(url.AbsoluteString)).SetValue($"nth/{AppInfo.Current.Version}", "User-Agent");
 
     // :472-486, :496-502, :504-521, :523-527
     public async Task Download(SwiftURL url, string destination)

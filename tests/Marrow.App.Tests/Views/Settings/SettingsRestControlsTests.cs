@@ -64,7 +64,7 @@ public sealed class SettingsRestControlsTests(HeadlessSession headless) : Settin
                 var card = Assert.IsType<ChromeCard>(Assert.IsType<StackPanel>(((AboutSettingsPage)view).Child).Children[1]); var rows = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(card.Child).Child).Children[0]);
                 var header = Assert.IsType<StackPanel>(rows.Children[0]); Assert.Equal(14, header.Spacing); Assert.Equal(new Thickness(16), header.Margin); Assert.Equal(Avalonia.Layout.Orientation.Horizontal, header.Orientation); Assert.Equal(2, header.Children.Count);
                 var icon = Assert.IsType<Image>(header.Children[0]); Assert.Equal(56, icon.Width); Assert.Equal(56, icon.Height); Assert.NotNull(icon.Source);
-                var labels = Assert.IsType<StackPanel>(header.Children[1]); Assert.Equal(3, labels.Spacing); var name = Assert.IsType<TextBlock>(labels.Children[0]); Assert.Equal("Nth", name.Text); Font(name, 15, FontWeight.SemiBold);
+                var labels = Assert.IsType<StackPanel>(header.Children[1]); Assert.Equal(3, labels.Spacing); var name = Assert.IsType<TextBlock>(labels.Children[0]); Assert.Equal("nth", name.Text); Font(name, 15, FontWeight.SemiBold);
                 var version = Assert.IsType<TextBlock>(labels.Children[1]); Assert.Equal(pair.Text, version.Text); Font(version, 12); Ink(version, version.Foreground, Chrome.SecondaryText);
             });
         }

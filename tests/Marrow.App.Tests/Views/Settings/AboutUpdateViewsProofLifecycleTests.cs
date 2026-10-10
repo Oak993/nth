@@ -79,7 +79,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
             Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Check failed");
             var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
             Assert.Equal("No update feed is set.", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680
-            Assert.Equal("Nth 1.7.0, check failed", AutomationProperties.GetName(button)); // :702
+            Assert.Equal("nth 1.7.0, check failed", AutomationProperties.GetName(button)); // :702
             window.Close();
         });
         // Positive control: same production checker does reach the HTTP observer for a real loopback request.
@@ -110,7 +110,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
             Dispatcher.UIThread.RunJobs(); AboutSwap.Settle(runtime, source); Assert.True(checker.UpdateAvailable); Assert.Null(checker.LastError);
             Assert.Empty(toasts.Shown); Assert.DoesNotContain("updateChecker_notifiedVersion", runtime.Defaults.Writes);
             Assert.NotNull(runtime.Defaults.Object("updateChecker_release"));
-            Assert.Contains(row.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Nth 9.0.0 is ready to install. Checked " + SwiftFormatters.RelativeNamed(checker.LastCheckedAt!.Value) + ".");
+            Assert.Contains(row.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "nth 9.0.0 is ready to install. Checked " + SwiftFormatters.RelativeNamed(checker.LastCheckedAt!.Value) + ".");
             window.Close();
         });
     });

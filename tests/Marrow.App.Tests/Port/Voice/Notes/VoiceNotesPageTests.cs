@@ -66,7 +66,7 @@ public sealed class VoiceNotesPageTests
         var page = VoiceNotesPage.Locked;
         var note = VoiceNotes.Blocked;
 
-        Assert.Equal(("Microphone blocked. Allow Nth in ", "Privacy & security > Microphone"), (note.Before, note.Link));
+        Assert.Equal(("Microphone blocked. Allow nth in ", "Privacy & security > Microphone"), (note.Before, note.Link));
         Assert.Equal((page.Before, page.Link), (note.Before, note.Link));
         Assert.Equal(VoiceNoteDestination.PrivacyMicrophone, note.Destination);
         Assert.Equal(VoiceNoteCase.Blocked, note.Case);

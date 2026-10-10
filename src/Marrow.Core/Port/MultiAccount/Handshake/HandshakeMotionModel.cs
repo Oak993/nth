@@ -78,7 +78,7 @@ public sealed class HandshakeMotionModel : IDisposable
         var name = incoming?.Name ?? ""; var old = outgoing?.Name ?? "";
         standbyText = "Standby · " + name + " warms up in the background";
         linkingText = "Linking · " + old + " briefs " + name;
-        syncText = "In sync · " + name + " read the plan back; Nth checked it";
+        syncText = "In sync · " + name + " read the plan back; nth checked it";
         injectedText = "In sync · " + name;
         completeText = "Handshake complete · " + name + " is in sync";
         deferredText = "Continued on " + name + " · What was handed over";

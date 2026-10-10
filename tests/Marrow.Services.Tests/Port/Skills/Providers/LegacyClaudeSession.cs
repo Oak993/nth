@@ -453,7 +453,7 @@ public sealed class LegacyClaudeSession : ProviderSession
                     ("request_id", requestID),
                     // DEVIATION OD-0012 F1: upstream "Droppy Code does not support this request."; the port
                     // renames the app to "Marrow" here, everywhere else unchanged.
-                    ("error", "Nth does not support this request.")))));
+                    ("error", "nth does not support this request.")))));
             return;
         }
         var name = request["tool_name"]?.JSONValueString ?? "Tool"; // :618

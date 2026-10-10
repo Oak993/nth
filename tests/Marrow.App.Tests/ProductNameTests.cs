@@ -3,9 +3,9 @@ using Marrow.Core.Support;
 
 namespace Marrow.App.Tests;
 
-// OD-0135: the product is named Nth. The name the app shows (the main window title, AppInfo.Name, the Credential Manager
+// OD-0135: the product is named nth. The name the app shows (the main window title, AppInfo.Name, the Credential Manager
 // service of its keys) is read from the app assembly's own CFBundleDisplayName metadata; the fallback for a missing key is
-// "Nth" too, so no build can show upstream's "Droppy Code" or the old "Marrow".
+// "nth" too, so no build can show upstream's "Droppy Code" or the old "Marrow".
 [Trait("Decision", "OD-0135")]
 public sealed class ProductNameTests
 {
@@ -15,19 +15,19 @@ public sealed class ProductNameTests
     public void The_app_assembly_names_the_product_Nth_for_its_build_channel()
     {
 #if DEBUG
-        const string expected = "Nth Dev";
+        const string expected = "nth Dev";
 #else
-        const string expected = "Nth";
+        const string expected = "nth";
 #endif
         Assert.Equal(expected, AppInfo.FromAssembly(App, isDevelopment: false).Name);
-        Assert.Equal("Nth", App.GetCustomAttribute<AssemblyTitleAttribute>()?.Title);
+        Assert.Equal("nth", App.GetCustomAttribute<AssemblyTitleAttribute>()?.Title);
     }
 
     [Fact]
     public void An_assembly_without_the_metadata_still_reads_Nth()
     {
         var info = AppInfo.FromAssembly(typeof(ProductNameTests).Assembly, isDevelopment: false);
-        Assert.Equal("Nth", info.Name);
+        Assert.Equal("nth", info.Name);
         Assert.DoesNotContain("Droppy", info.Name, StringComparison.Ordinal);
         Assert.DoesNotContain("Marrow", info.Name, StringComparison.Ordinal);
     }
@@ -38,8 +38,8 @@ public sealed class ProductNameTests
         var repository = new DirectoryInfo(AppContext.BaseDirectory);
         while (!File.Exists(Path.Combine(repository.FullName, "Marrow.sln"))) repository = repository.Parent!;
         var source = File.ReadAllText(Path.Combine(repository.FullName, "src", "Marrow.App", "AssemblyInfo.cs"));
-        Assert.Contains("[assembly: AssemblyMetadata(\"CFBundleDisplayName\", \"Nth Dev\")]", source, StringComparison.Ordinal);
-        Assert.Contains("[assembly: AssemblyMetadata(\"CFBundleDisplayName\", \"Nth\")]", source, StringComparison.Ordinal);
+        Assert.Contains("[assembly: AssemblyMetadata(\"CFBundleDisplayName\", \"nth Dev\")]", source, StringComparison.Ordinal);
+        Assert.Contains("[assembly: AssemblyMetadata(\"CFBundleDisplayName\", \"nth\")]", source, StringComparison.Ordinal);
         Assert.DoesNotContain("\"CFBundleDisplayName\", \"Marrow", source, StringComparison.Ordinal);
     }
 }

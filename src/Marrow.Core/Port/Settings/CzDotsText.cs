@@ -13,7 +13,7 @@ public static class CzDotsText
     public const string SignatureGroup = "Signature dot colours";
     public const string Note = "The dots run along the bottom of the composer while a turn runs; touching this switches the preview to Running a turn.";
 
-    private const string AccentDetail = "Your accent colour, as the rest of Nth";
+    private const string AccentDetail = "Your accent colour, as the rest of nth";
     private const string ModelDetail = "The colour of the model in use: ";
 
     /// <summary>The Dot colour row's detail: accent and model say what they follow; custom names the picked swatch.</summary>

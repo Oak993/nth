@@ -1168,8 +1168,8 @@ public sealed class GitTests
         Assert.Equal("tree " + tree, lines[0]);
         Assert.Equal("parent " + head, lines[1]);
         // DEVIATION OD-0012 F1: "Marrow" <marrow@localhost>, not "Droppy Code" <droppy-code@localhost>.
-        Assert.StartsWith("author Nth <nth@localhost> ", lines[2], StringComparison.Ordinal);
-        Assert.StartsWith("committer Nth <nth@localhost> ", lines[3], StringComparison.Ordinal);
+        Assert.StartsWith("author nth <nth@localhost> ", lines[2], StringComparison.Ordinal);
+        Assert.StartsWith("committer nth <nth@localhost> ", lines[3], StringComparison.Ordinal);
         Assert.Equal("\nStart of the copy\n", string.Join('\n', lines[4..]));
         Assert.Equal("", repository.Git("for-each-ref", "--points-at", commit));
         Assert.Equal(head + "\n", repository.Git("rev-parse", "HEAD"));
@@ -1187,7 +1187,7 @@ public sealed class GitTests
         var commit = await new GitValue(repository.Root).CommitTree(tree, message: "m");
         var lines = repository.Git("cat-file", "commit", commit).Split('\n');
         Assert.Equal("tree " + tree, lines[0]);
-        Assert.StartsWith("author Nth <nth@localhost> ", lines[1], StringComparison.Ordinal);
+        Assert.StartsWith("author nth <nth@localhost> ", lines[1], StringComparison.Ordinal);
         Assert.DoesNotContain(lines, line => line.StartsWith("parent ", StringComparison.Ordinal));
     }
 
@@ -1750,10 +1750,10 @@ public sealed class GitTests
         var commit = repository.Git("rev-parse", @ref).Trim();
         var lines = repository.Git("cat-file", "commit", commit).Split('\n');
         Assert.Equal("tree " + expectedTree, lines[0]);
-        // DEVIATION OD-0012 F1, renamed by OD-0135: "Nth" <nth@localhost> and "Nth checkpoint". No parent line: lines[1] is the author.
-        Assert.StartsWith("author Nth <nth@localhost> ", lines[1], StringComparison.Ordinal);
-        Assert.StartsWith("committer Nth <nth@localhost> ", lines[2], StringComparison.Ordinal);
-        Assert.Equal("\nNth checkpoint\n", string.Join('\n', lines[3..]));
+        // DEVIATION OD-0012 F1, renamed by OD-0135: "nth" <nth@localhost> and "nth checkpoint". No parent line: lines[1] is the author.
+        Assert.StartsWith("author nth <nth@localhost> ", lines[1], StringComparison.Ordinal);
+        Assert.StartsWith("committer nth <nth@localhost> ", lines[2], StringComparison.Ordinal);
+        Assert.Equal("\nnth checkpoint\n", string.Join('\n', lines[3..]));
         Assert.Equal(head, repository.Git("rev-parse", "HEAD"));
         Assert.Equal(status, repository.Git("status", "--porcelain"));
         Assert.Equal(index, File.ReadAllBytes(repository.Child(".git", "index")));
@@ -1770,7 +1770,7 @@ public sealed class GitTests
         await new GitValue(repository.Root).CaptureCheckpoint(@ref);
         var lines = repository.Git("cat-file", "commit", @ref).Split('\n');
         Assert.StartsWith("tree ", lines[0], StringComparison.Ordinal);
-        Assert.StartsWith("author Nth <nth@localhost> ", lines[1], StringComparison.Ordinal);
+        Assert.StartsWith("author nth <nth@localhost> ", lines[1], StringComparison.Ordinal);
         Assert.Equal("a\n", repository.Git("cat-file", "-p", @ref + ":a.txt"));
     }
 

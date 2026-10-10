@@ -11,7 +11,7 @@ namespace Marrow.App.Tests;
 // how it is opened and merged). The forge CLIs are the offline stand-ins of tests/fixtures/forge-cli; no network is reached.
 public sealed class AppModelHydraMergeForgeTests
 {
-    private const string Opened = "Opened by Nth once its Hydra team finished.";
+    private const string Opened = "Opened by nth once its Hydra team finished.";
     private const string LongTitle = "Rework the Hydra merge pipeline so that every long chat title is cut at seventy-two characters";
 
     // One Swift Character made of two UTF-16 units: e and a combining acute accent.

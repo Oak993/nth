@@ -4,7 +4,7 @@ namespace Marrow.Services.Tests.Fixtures;
 
 /// <summary>
 /// The real Windows Credential Manager (<see cref="CredentialManagerBackend"/>) with the service part of every target name swapped for a unique test-only one, so a test drives the
-/// real Win32 calls without ever reading, writing or deleting the user's own "Nth" or (OD-0135) earlier-name "Marrow Code" credentials. Each real service given is swapped for its
+/// real Win32 calls without ever reading, writing or deleting the user's own "nth" or (OD-0135) earlier-name "Marrow Code" credentials. Each real service given is swapped for its
 /// own test service; a target outside every swapped service is refused, never forwarded.
 /// </summary>
 internal sealed class RenamedTargetCredentialBackend(params (string Real, string Test)[] services) : ICredentialBackend

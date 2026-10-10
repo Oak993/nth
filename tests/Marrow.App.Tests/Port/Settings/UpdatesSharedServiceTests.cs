@@ -21,7 +21,7 @@ public sealed class UpdatesSharedServiceTests(HeadlessSession headless)
         using var runtime = new TestRuntime();
         List<string> restarts = [];
         var claude = new ScriptedUpdateItem("cli:claude", "Claude Code", UpdateItemKind.ProviderCli, "2.1.283", "2.1.290");
-        var marrow = new ScriptedUpdateItem("marrow", "Nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { OnUpdate = _ => Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null)) };
+        var marrow = new ScriptedUpdateItem("marrow", "nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0") { OnUpdate = _ => Task.FromResult(new UpdateOutcome(true, "1.1.0", true, true, null)) };
         var service = new UpdateEverythingService([claude, marrow], () => restarts.Add("restart"));
         using var shared = UpdateEverythingService.OverrideShared(service);
         var page = new UpdatesSettingsPage();
@@ -34,7 +34,7 @@ public sealed class UpdatesSharedServiceTests(HeadlessSession headless)
             Assert.Equal(UpdatePillPhase.Available, service.State.Phase);
             runtime.OnMain(() => service.Perform(UpdatePillAction.UpdateEverything)); // the pill's button
             runtime.RunUntilIdle();
-            Assert.Equal(("2 updated", "Restart Nth"), (page.TitleText.Text, page.MainButton.Label));
+            Assert.Equal(("2 updated", "Restart nth"), (page.TitleText.Text, page.MainButton.Label));
             Assert.Equal(UpdatePillPhase.Restart, service.State.Phase);
             page.MainButton.Activate(); // the page's Restart Marrow is the service's restart
             runtime.RunUntilIdle();

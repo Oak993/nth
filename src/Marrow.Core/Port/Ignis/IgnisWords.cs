@@ -137,7 +137,7 @@ public static class IgnisWords
     public const string InfoMoneySavedName = "money saved";
     public const string InfoMoneySaved = "What this chat didn’t spend today thanks to Ignis, compared with no reuse and no tidy-ups.";
     public const string InfoWeekShareName = "share of your week";
-    public static string InfoWeekShare(double share) => "Of everything your plan allows this week, this chat has used " + Percent(share) + ". The full limits live in Nth’s usage panel.";
+    public static string InfoWeekShare(double share) => "Of everything your plan allows this week, this chat has used " + Percent(share) + ". The full limits live in nth’s usage panel.";
     public const string InfoChatCostName = "this chat’s cost";
     public static string InfoChatCost(decimal withoutIgnis) => "What this chat has cost on your API key so far. Without Ignis it would be about " + Money(withoutIgnis) + ".";
     public const string InfoModelPointsName = "model points";
@@ -154,7 +154,7 @@ public static class IgnisWords
         "Measured in tokens, the units models read and charge by (K = thousand). With warm quick memory this costs about " + Cents(warmCost) + " a message; cold, about " + Cents(coldCost) + ".";
     public const string InfoServers = "Connected servers (MCP) add their tool descriptions to every message, even when the tools aren’t used.";
     /// <summary>Built-in tools is the remainder of the first request's cache write (PLAN lead decision).</summary>
-    public const string InfoBuiltInTools = "An estimate: what the first message wrote to the quick memory beyond the parts Nth sends.";
+    public const string InfoBuiltInTools = "An estimate: what the first message wrote to the quick memory beyond the parts nth sends.";
 
     // ---- Details › Savings ----
     public const string TabsAccessibleName = "Ignis details";
@@ -272,7 +272,7 @@ public static class IgnisWords
     public const string GotIt = "Got it";
 
     /// <summary>The CLI keep-warm ping (PLAN lead decision). Sent only between tasks; its user item is hidden.</summary>
-    public const string PingText = "[Nth Ignis] Automatic keep-alive, not from the user. Use no tools or agents and change nothing. Reply exactly: ok";
+    public const string PingText = "[nth Ignis] Automatic keep-alive, not from the user. Use no tools or agents and change nothing. Reply exactly: ok";
 
     // ---- Settings › Ignis ----
     public const string SettingsTitle = "Ignis";
@@ -339,7 +339,7 @@ public static class IgnisWords
     public static string ModelPointsDetail(string version) => "Context sizes, price steps, cache prices and rebuild points for every model. Version " + version + ".";
     public const string UpdateNow = "Update now";
     public const string UpdateAutomatically = "Update automatically";
-    public const string UpdateAutomaticallyDetail = "Checked with Nth's own updates. Never sends anything to a model.";
+    public const string UpdateAutomaticallyDetail = "Checked with nth's own updates. Never sends anything to a model.";
     public const string UpdateAutomaticallyAccessibleName = "Update model points automatically";
     public const string ColumnModel = "Model";
     public const string ColumnCheapestPoint = "Cheapest point";

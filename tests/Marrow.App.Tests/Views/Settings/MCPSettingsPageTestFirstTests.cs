@@ -91,7 +91,7 @@ public sealed class MCPSettingsPageTestFirstTests(HeadlessSession headless)
                 // :37-62 nothing connected: lead card, Custom, one grid section per non-empty category, footer last.
                 AssertOrder(new[] { "lead", "custom" }.Concat(Categories).Append("footer"), page); Layout(page); AssertTwentyBetween(root);
                 var footer = Assert.IsType<TextBlock>(root.Children[^1]);
-                Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Nth itself.", footer.Text);
+                Assert.Equal("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through nth itself.", footer.Text);
                 // :61 .subheadline = 11; :62 Chrome.secondaryText = primaryText at opacity 0.7 (Chrome.swift:79, ED-062).
                 Assert.Equal(11, footer.FontSize); Colour(footer.Foreground, Chrome.PrimaryText.Opacity(0.7), footer);
                 // :51-52,17-19 each category is a two-column grid with 10 between the columns and 10 between the rows.

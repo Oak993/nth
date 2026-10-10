@@ -30,7 +30,7 @@ public static class MCPKeychain
     // :15, :39, :55 kSecAttrService as String: AppInfo.name
     private static string Service => DevDataRoot.CredentialService(AppInfo.Current.Name); // ED-212
 
-    // OD-0135: the service before the product was named Nth ("Marrow" / "Marrow Dev"), read only to carry a value over once.
+    // OD-0135: the service before the product was named nth ("Marrow" / "Marrow Dev"), read only to carry a value over once.
     private static string LegacyService => DevDataRoot.CredentialService(AppInfo.LegacyNameFor(AppInfo.Current.IsDevelopment));
 
     // :11-26

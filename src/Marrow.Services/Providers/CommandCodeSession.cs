@@ -1009,7 +1009,7 @@ public sealed class CommandCodeSession : ProviderSession, Marrow.Services.Port.S
             : JSONValue.FromDictionaryLiteral(
                 ("decision", "deny"),
                 // DEVIATION OD-0012 F1: upstream reads "The user declined this in Droppy Code. ...".
-                ("reason", "The user declined this in Nth. Do not retry it; take another approach or explain what you would need."));
+                ("reason", "The user declined this in nth. Do not retry it; take another approach or explain what you would need."));
         var file = SwiftPath.AppendingPathComponent(directory.Path, $"{id}.reply.json");
         var temporary = SwiftPath.AppendingPathComponent(directory.Path, $"{id}.reply.json.tmp");
         try

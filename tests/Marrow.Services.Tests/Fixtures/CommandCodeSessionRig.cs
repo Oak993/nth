@@ -76,7 +76,7 @@ public sealed class CommandCodeSessionRig : IDisposable
 
     public string WorkingDirectory { get; }
 
-    public string SupportDirectory => Path.Combine(DataRoot, "Nth", "CommandCode");
+    public string SupportDirectory => Path.Combine(DataRoot, "nth", "CommandCode");
 
     public string ApprovalsRoot => Path.Combine(SupportDirectory, "approvals");
 

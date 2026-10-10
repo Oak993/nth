@@ -103,7 +103,7 @@ public sealed class WindowsUpdateInstallBoundaryTests
         try
         {
             var error = Assert.Throws<UpdateInstallError>(() => new WindowsUpdateInstallBoundary().Verify(path));
-            Assert.StartsWith("The downloaded app is not signed by Nth. ", error.ErrorDescription, StringComparison.Ordinal);
+            Assert.StartsWith("The downloaded app is not signed by nth. ", error.ErrorDescription, StringComparison.Ordinal);
         }
         finally
         {

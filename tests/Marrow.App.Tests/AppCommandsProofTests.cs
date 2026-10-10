@@ -199,7 +199,7 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
             }
             var chord = new KeyChord(scanCode, ChordModifiers.Control);
             Assert.Equal(items[number - 1].Shortcut, chord.KeyboardShortcut);
-            Assert.Equal("Windows or Nth already uses this chord.", ShortcutStore.Shared.Current.Refusal(chord, AppShortcut.ShowMainWindow)); // :320-334 reserved test, OD-0008 B8.
+            Assert.Equal("Windows or nth already uses this chord.", ShortcutStore.Shared.Current.Refusal(chord, AppShortcut.ShowMainWindow)); // :320-334 reserved test, OD-0008 B8.
             ShortcutStore.Shared.Current.Set(new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Shift), AppShortcut.NextThread);
             Assert.Equal(items[number - 1].Shortcut, new AppCommands(model).Body[20 + number - 1].Shortcut);
             launch.Manager.ShowMain();

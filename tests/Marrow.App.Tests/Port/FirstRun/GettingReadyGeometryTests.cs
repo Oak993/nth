@@ -51,8 +51,8 @@ public sealed class GettingReadyGeometryTests(HeadlessSession headless)
     });
 
     /// <summary>The page's line under the title, laid out by Chrome 154 in Segoe UI Variable Text 12.5 px with normal tracking: one line
-    /// of 383.5 px in the 408 px box (OD-0135 text "Nth is preparing...", re-measured in Chrome 154 with a span width and canvas measureText 383.527; the old "Marrow" text measured 405.5 the same way).</summary>
-    private const double PageLineWidth = 383.5;
+    /// of 381.25 px in the 408 px box (OD-0135 amendment 1 text "nth is preparing...", re-measured in Chrome 154.0.8037.99 with a span width and canvas measureText, both 381.25; the old "Marrow" text measured 405.5 the same way).</summary>
+    private const double PageLineWidth = 381.25;
 
     [Fact] // GR-2.geometry
     [Trait("Decision", "ED-288")]

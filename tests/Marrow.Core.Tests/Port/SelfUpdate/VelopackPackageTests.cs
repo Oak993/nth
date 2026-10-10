@@ -16,7 +16,7 @@ public sealed class VelopackPackageTests
     }
 
     private const string Nuspec = "<?xml version=\"1.0\"?><package xmlns=\"http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd\"><metadata>"
-        + "<id>NthApp</id><version>1.8.0</version><title>Nth</title></metadata></package>";
+        + "<id>NthApp</id><version>1.8.0</version><title>nth</title></metadata></package>";
 
     [Fact]
     [Trait("Feature", "UE-1")]

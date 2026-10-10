@@ -36,7 +36,7 @@ public sealed class UpdatesTransitionAuditTests(HeadlessSession headless)
         {
             OnUpdate = _ => Task.FromResult(++attempts == 1 ? new UpdateOutcome(false, null, false, false, "failed") : new UpdateOutcome(true, "0.160.0", true, false, null)),
         };
-        var marrow = new ScriptedUpdateItem("marrow", "Nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0")
+        var marrow = new ScriptedUpdateItem("marrow", "nth", UpdateItemKind.Marrow, "1.0.0", "1.1.0")
         {
             OnUpdate = async progress => { report = progress; await marrowGate.Task; return new UpdateOutcome(true, "1.1.0", true, true, null); },
         };
@@ -111,7 +111,7 @@ public sealed class UpdatesTransitionAuditTests(HeadlessSession headless)
             page.MainButton.Activate(); // Restart Marrow
             runtime.RunUntilIdle();
             Run(700);
-            Assert.Equal("Restarting Nth…", page.TitleText.Text);
+            Assert.Equal("Restarting nth…", page.TitleText.Text);
 
             Assert.True(samples.Count > 20, "the story was sampled");
             // A line of text that is replaced hands over: its incoming copy must start low (it fades up) and the step is not counted across the hand-over, where the old copy becomes the outgoing one (series

@@ -366,7 +366,7 @@ public sealed class ACPSessionTests
         Assert.Equal(new JSONValue.Int(1), request["protocolVersion"]);
         Assert.Equal(["name", "title", "version"], request["clientInfo"]!.JSONValueObject!.Keys.OrderBy(k => k, StringComparer.Ordinal));
         Assert.Equal(new JSONValue.String("nth"), request["clientInfo"]!["name"]);
-        Assert.Equal(new JSONValue.String("Nth"), request["clientInfo"]!["title"]);
+        Assert.Equal(new JSONValue.String("nth"), request["clientInfo"]!["title"]);
         Assert.Equal(new JSONValue.String(AppInfo.Current.Version), request["clientInfo"]!["version"]);
         Assert.Equal(["fs", "terminal"], request["clientCapabilities"]!.JSONValueObject!.Keys.OrderBy(k => k, StringComparer.Ordinal));
         Assert.Equal(new JSONValue.Bool(false), request["clientCapabilities"]!["fs"]!["readTextFile"]);

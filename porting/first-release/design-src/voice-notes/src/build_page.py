@@ -56,7 +56,7 @@ CASES = [
     ('nonet', 'No network', 'The request to OpenAI cannot go out (V-17.6). Only the cloud engine needs the network while you speak.'),
 ]
 
-LOCKED = ('Microphone blocked. Allow Nth in ', 'Privacy & security > Microphone', 'privacy')
+LOCKED = ('Microphone blocked. Allow nth in ', 'Privacy & security > Microphone', 'privacy')
 
 # ------------------------------------------------------------------------------------------------ the four word sets
 # Each note: (text before the link, the link's words, where it goes). The link is always last, as in the locked note.
@@ -241,7 +241,7 @@ BODY = r"""
     <div class="dk-opts" role="group" aria-label="Options for CUDA">%(optsU)s</div>
     <div class="dk-notes">
       <div class="dk-note"><h3>The size: 644 MB</h3><p>The sum of the three pinned files in voice-pins.json: the Whisper.net CUDA 12 pack 1.9.1 (250,058,371 bytes, nuget.org), NVIDIA&#8217;s cuBLAS 12.4.2.65 (391,101,865 bytes) and CUDA runtime 12.4.99 (2,474,121 bytes), shown the way the model list shows sizes (V-9.2). The space it takes on disk is not measured yet (the pack&#8217;s own five files are 566 MB).</p></div>
-      <div class="dk-note"><h3>To confirm: when it starts working</h3><p>Whisper.net loads its native runtime once per process (VT-6 item 5), and the hardware check itself loads one. So after the download CUDA may only be used from Marrow&#8217;s next start; the Installed state here says &#8220;Restart Nth to use it&#8221; on that reading (<b>UN</b>, checked on the real PC, BUILD-PLAN section 4 item D). After that the GPU backend row reads &#8220;CUDA, working&#8221; (V-10.1).</p></div>
+      <div class="dk-note"><h3>To confirm: when it starts working</h3><p>Whisper.net loads its native runtime once per process (VT-6 item 5), and the hardware check itself loads one. So after the download CUDA may only be used from Marrow&#8217;s next start; the Installed state here says &#8220;Restart nth to use it&#8221; on that reading (<b>UN</b>, checked on the real PC, BUILD-PLAN section 4 item D). After that the GPU backend row reads &#8220;CUDA, working&#8221; (V-10.1).</p></div>
       <div class="dk-note"><h3>No speed claim</h3><p>Vulkan has not been timed against CUDA on your RTX 4080 yet (section 4 item D decides how strongly the offer is worded), so no look promises it is faster. The reason line and the model are the design&#8217;s examples (V-10.2, V-10.4). Shown only on an NVIDIA graphics card with a working probe (VT-17).</p></div>
     </div>
   </section>

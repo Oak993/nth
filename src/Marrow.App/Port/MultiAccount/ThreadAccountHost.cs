@@ -185,7 +185,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
         app.ApiKeys.BindPrivate(candidate.Session, account.Id);
         await using var privateSession = await HandshakeStandbySession.StartAsync(candidate.Session, candidate.Configuration, ct, CanTransfer,
             observeUsage: () => MainActor.Run(() => app.AccountRouting.ObserveHandshakeCost(candidate.Configuration.AccountId!.Value)));
-        return await privateSession.TextTurnAsync("[Nth Handshake] Write a short briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use only this recorded context:\n" + summary.Text, ct);
+        return await privateSession.TextTurnAsync("[nth Handshake] Write a short briefing for your successor: the goal, why decisions were made, what is next, and pitfalls. Take no actions. Use only this recorded context:\n" + summary.Text, ct);
     }
 
     public async Task<string?> RequestIncomingBriefingAsync(SwitchTarget target, HandoffSummary summary, CancellationToken ct)
@@ -313,7 +313,7 @@ public sealed class ThreadAccountHost(AppModel app, ThreadRuntime runtime, PillS
                 _ => final.Text,
             };
             if (package.Bring != Bring.AiSummary && !string.IsNullOrWhiteSpace(package.Briefing)) context += "\nOutgoing account briefing:\n" + package.Briefing;
-            var preamble = "[Nth Handshake] This conversation was handed over from another account. Treat the recorded context below as what was said so far; "
+            var preamble = "[nth Handshake] This conversation was handed over from another account. Treat the recorded context below as what was said so far; "
                 + "answer only the message that follows it.\n" + context;
             ct.ThrowIfCancellationRequested();
             var done = await MainActor.Run(() =>

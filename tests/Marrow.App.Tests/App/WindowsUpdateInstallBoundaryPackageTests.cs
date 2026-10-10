@@ -46,7 +46,7 @@ public sealed class WindowsUpdateInstallBoundaryPackageTests
     public void Verify_refuses_a_package_of_another_app_and_a_file_that_is_not_a_package()
     {
         var other = Assert.Throws<UpdateInstallError>(() => new WindowsUpdateInstallBoundary().Verify(Package("SomethingElse", "1.8.0")));
-        Assert.StartsWith("The downloaded app is not signed by Nth. ", other.ErrorDescription, StringComparison.Ordinal);
+        Assert.StartsWith("The downloaded app is not signed by nth. ", other.ErrorDescription, StringComparison.Ordinal);
         var junk = Path.Combine(Directory.CreateTempSubdirectory("aut-pkg-").FullName, "y.nupkg");
         File.WriteAllText(junk, "not a zip");
         Assert.Throws<UpdateInstallError>(() => new WindowsUpdateInstallBoundary().Verify(junk));

@@ -106,7 +106,7 @@ public sealed class ChatViewParityTests(HeadlessSession headless)
                 h.Main.OnMain(() => ChatGitFixtures.InvokeStatic(typeof(GitActionsMenu), "OpenPullRequest", model, git, directory));
                 h.Main.Loop.Run(() => ChatGitFixtures.Until(() => forge.Calls().Count == 1 && git.Status is not null && git.Activity is null));
                 h.Main.RunUntilIdle();
-                Assert.Equal(["pr", "create", "--title", "Update", "--body", "Opened from Nth."], Assert.Single(forge.Calls()).Arguments);
+                Assert.Equal(["pr", "create", "--title", "Update", "--body", "Opened from nth."], Assert.Single(forge.Calls()).Arguments);
                 Assert.Equal(0, opened);
                 Assert.Null(model.Alert);
                 // :1510 the push ran first: the branch reached the push destination before the request was opened.

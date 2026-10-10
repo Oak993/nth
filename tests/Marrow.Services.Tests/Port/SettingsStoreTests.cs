@@ -63,7 +63,7 @@ public sealed class SettingsStoreTests
     public void A_store_on_a_missing_file_is_empty_and_creates_nothing_until_the_first_write()
     {
         using var folder = new SettingsScratchFolder();
-        var dataFolder = folder.PathOf("Nth");
+        var dataFolder = folder.PathOf("nth");
         var path = Path.Combine(dataFolder, "UserDefaults.json");
 
         var store = new SettingsStore(path);
@@ -506,9 +506,9 @@ public sealed class SettingsStoreTests
     [Trait("Decision", "ED-156")]
     public void The_production_file_lives_in_the_Nth_folder_of_local_app_data()
     {
-        // OD-0008 C7, renamed by OD-0135: the port stores its data under %LOCALAPPDATA%\Nth, never the Electron app's folder.
+        // OD-0008 C7, renamed by OD-0135: the port stores its data under %LOCALAPPDATA%\nth, never the Electron app's folder.
         Assert.Equal(
-            "C:\\Users\\someone\\AppData\\Local\\Nth\\UserDefaults.json",
+            "C:\\Users\\someone\\AppData\\Local\\nth\\UserDefaults.json",
             SettingsStore.ProductionPath("C:\\Users\\someone\\AppData\\Local"));
     }
 

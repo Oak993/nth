@@ -22,8 +22,8 @@ public static class VoiceNotes
         new(VoiceNoteCase.CloudNoNetwork, "Can\u2019t reach OpenAI: no internet. Switch to this PC in ", "Voice typing > Engine", VoiceNoteDestination.VoiceTypingEngine),
     ];
 
-    /// <summary>V-14.6's locked note: "Microphone blocked. Allow Nth in " and the link "Privacy &amp; security &gt; Microphone" (ms-settings:privacy-microphone).</summary>
-    public static VoiceNote Blocked { get; } = new(VoiceNoteCase.Blocked, "Microphone blocked. Allow Nth in ", "Privacy & security > Microphone", VoiceNoteDestination.PrivacyMicrophone);
+    /// <summary>V-14.6's locked note: "Microphone blocked. Allow nth in " and the link "Privacy &amp; security &gt; Microphone" (ms-settings:privacy-microphone).</summary>
+    public static VoiceNote Blocked { get; } = new(VoiceNoteCase.Blocked, "Microphone blocked. Allow nth in ", "Privacy & security > Microphone", VoiceNoteDestination.PrivacyMicrophone);
 
     /// <summary>The eleven notes of set A, in the page's order.</summary>
     public static IReadOnlyList<VoiceNote> All { get; } = Set;
@@ -47,6 +47,6 @@ public static class VoiceNotes
     /// so the spoken version cannot drift from the shown one and no new wording is invented.
     /// </summary>
     public static string Announcement(VoiceNote note) => note.Case == VoiceNoteCase.Blocked
-        ? "The microphone is blocked. Allow Nth in Windows Settings, Privacy and security, Microphone."
+        ? "The microphone is blocked. Allow nth in Windows Settings, Privacy and security, Microphone."
         : note.Text.Replace(" > ", ", ", StringComparison.Ordinal) + ".";
 }

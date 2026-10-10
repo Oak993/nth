@@ -60,10 +60,10 @@ public sealed class ManualFallbackTests
         Assert.Equal("Open download page ↗", ManualFallbackWords.OpenPage);
         Assert.Equal("Open folder", ManualFallbackWords.OpenFolder);
         Assert.Equal("Check again", ManualFallbackWords.CheckAgain);
-        Assert.Equal("Nth checks its SHA-256 against the pinned one and installs it.", ManualFallbackWords.CheckingTool);
-        Assert.Equal("Nth checks every file against its pinned hash and installs it.", ManualFallbackWords.CheckingSet);
+        Assert.Equal("nth checks its SHA-256 against the pinned one and installs it.", ManualFallbackWords.CheckingTool);
+        Assert.Equal("nth checks every file against its pinned hash and installs it.", ManualFallbackWords.CheckingSet);
         Assert.Equal("Get ", ManualFallbackWords.Get);
         Assert.Equal("Put it in ", ManualFallbackWords.PutIn);
-        Assert.Equal("%LOCALAPPDATA%\\Nth\\addons\\downloads\\manual\\", ManualFallbackWords.Folder);
+        Assert.Equal("%LOCALAPPDATA%\\nth\\addons\\downloads\\manual\\", ManualFallbackWords.Folder);
     }
 }

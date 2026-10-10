@@ -88,7 +88,7 @@ public sealed class BaselineWire(SessionConfiguration configuration)
         ("clientCapabilities", ClientCapabilities),
         ("clientInfo", JSONValue.FromDictionaryLiteral(
             ("name", "nth"),
-            ("title", "Nth"),
+            ("title", "nth"),
             ("version", AppInfo.Current.Version))));
 
     public JSONValue ClientCapabilities // :156-165

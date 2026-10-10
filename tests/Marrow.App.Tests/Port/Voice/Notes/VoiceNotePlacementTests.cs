@@ -36,7 +36,7 @@ public sealed class VoiceNotePlacementTests
     [Trait("Rule", "R-TEST-4")] // Req V-14.5
     public void The_locked_notes_announcement_is_V_14_5s_string()
     {
-        Assert.Equal("The microphone is blocked. Allow Nth in Windows Settings, Privacy and security, Microphone.", VoiceNotes.Announcement(VoiceNotes.Blocked));
+        Assert.Equal("The microphone is blocked. Allow nth in Windows Settings, Privacy and security, Microphone.", VoiceNotes.Announcement(VoiceNotes.Blocked));
     }
 
     [Theory]

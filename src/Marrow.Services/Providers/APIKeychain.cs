@@ -113,7 +113,7 @@ public static class APIKeychain
         SecretStore.Shared.Current.Delete(service ?? Service, account);
     }
 
-    // The service is AppInfo.name ("Nth" / "Nth Dev" under OD-0135); LegacyService is the name before it ("Marrow" /
+    // The service is AppInfo.name ("nth" / "nth Dev" under OD-0135); LegacyService is the name before it ("Marrow" /
     // "Marrow Dev"), read only to carry a key over once (SecretStore.CopyMatchingCarryingOver). ED-212 applies to both.
     private static string Service => DevDataRoot.CredentialService(AppInfo.Current.Name);
     private static string LegacyService => DevDataRoot.CredentialService(AppInfo.LegacyNameFor(AppInfo.Current.IsDevelopment));

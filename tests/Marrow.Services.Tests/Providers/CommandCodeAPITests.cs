@@ -1120,7 +1120,7 @@ public sealed class CommandCodeAPITests
                   let answer: any = {}
                   try { answer = JSON.parse(raw) } catch {}
                   if (answer.decision === 'allow') return
-                  return {block: true, additionalContext: answer.reason || 'The user declined this in Nth.'}
+                  return {block: true, additionalContext: answer.reason || 'The user declined this in nth.'}
                 }
                 if (ctx && ctx.signal && ctx.signal.aborted) {
                   try { fs.unlinkSync(request) } catch {}
@@ -1132,7 +1132,7 @@ public sealed class CommandCodeAPITests
     private const string ModAfterOrphanPredicate = """
          || Date.now() - started > 6 * 60 * 60 * 1000) {
                   try { fs.unlinkSync(request) } catch {}
-                  return {block: true, additionalContext: 'Nth did not answer.'}
+                  return {block: true, additionalContext: 'nth did not answer.'}
                 }
                 await sleep(40)
               }
@@ -1203,9 +1203,9 @@ public sealed class CommandCodeAPITests
     {
         var mod = CommandCodeAPI.ApprovalMod;
 
-        Assert.Contains("additionalContext: answer.reason || 'The user declined this in Nth.'}", mod, StringComparison.Ordinal);
+        Assert.Contains("additionalContext: answer.reason || 'The user declined this in nth.'}", mod, StringComparison.Ordinal);
         Assert.Contains("additionalContext: 'The turn was stopped.'}", mod, StringComparison.Ordinal);
-        Assert.Contains("additionalContext: 'Nth did not answer.'}", mod, StringComparison.Ordinal);
+        Assert.Contains("additionalContext: 'nth did not answer.'}", mod, StringComparison.Ordinal);
         Assert.Contains("Date.now() - started > 6 * 60 * 60 * 1000", mod, StringComparison.Ordinal);
         Assert.Contains("await sleep(40)", mod, StringComparison.Ordinal);
         Assert.Contains(".replace(/[^A-Za-z0-9_.-]/g, '_')", mod, StringComparison.Ordinal);
@@ -1224,8 +1224,8 @@ public sealed class CommandCodeAPITests
 
         Assert.Equal("file", directory.Scheme);
         Assert.Contains("/local%20app%20data-", directory.AbsoluteString, StringComparison.Ordinal);
-        Assert.EndsWith("/Nth/CommandCode/", directory.AbsoluteString, StringComparison.Ordinal);
-        Assert.False(Directory.Exists(Path.Combine(localAppData, "Nth")));
+        Assert.EndsWith("/nth/CommandCode/", directory.AbsoluteString, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(Path.Combine(localAppData, "nth")));
         // The parameterless CommandCodeAPI.SupportDirectory property additionally resolves through
         // DevDataRoot.LocalApplicationData() (ED-212), which reads the process-wide MARROW_DEV_DATA_ROOT variable in
         // a Debug build; that case is covered, in the one collection that serializes every test touching that
@@ -1242,10 +1242,10 @@ public sealed class CommandCodeAPITests
 
         var url = CommandCodeAPI.InstallMod(localAppData);
 
-        var file = Path.Combine(localAppData, "Nth", "CommandCode", "marrow-approvals.ts");
+        var file = Path.Combine(localAppData, "nth", "CommandCode", "marrow-approvals.ts");
         Assert.Equal(Utf8(CommandCodeAPI.ApprovalMod), File.ReadAllBytes(file));
         Assert.Equal("marrow-approvals.ts", SwiftPath.LastPathComponent(url.Path));
-        Assert.EndsWith("/Nth/CommandCode/marrow-approvals.ts", url.AbsoluteString, StringComparison.Ordinal);
+        Assert.EndsWith("/nth/CommandCode/marrow-approvals.ts", url.AbsoluteString, StringComparison.Ordinal);
         Assert.Equal(new[] { "marrow-approvals.ts" }, Directory.GetFileSystemEntries(Path.GetDirectoryName(file)!).Select(Path.GetFileName));
     }
 
@@ -1255,7 +1255,7 @@ public sealed class CommandCodeAPITests
     {
         var localAppData = CommandCodeScratch.NewFolder("unchanged");
         CommandCodeAPI.InstallMod(localAppData);
-        var file = Path.Combine(localAppData, "Nth", "CommandCode", "marrow-approvals.ts");
+        var file = Path.Combine(localAppData, "nth", "CommandCode", "marrow-approvals.ts");
         var stamp = new DateTime(2001, 2, 3, 4, 5, 6, DateTimeKind.Utc);
         File.SetLastWriteTimeUtc(file, stamp);
 
@@ -1269,7 +1269,7 @@ public sealed class CommandCodeAPITests
     public void InstallMod_rewrites_a_file_whose_bytes_differ()
     {
         var localAppData = CommandCodeScratch.NewFolder("changed");
-        var folder = Path.Combine(localAppData, "Nth", "CommandCode");
+        var folder = Path.Combine(localAppData, "nth", "CommandCode");
         Directory.CreateDirectory(folder);
         var file = Path.Combine(folder, "marrow-approvals.ts");
         File.WriteAllBytes(file, Utf8(CommandCodeAPI.ApprovalMod + "\n"));
@@ -1285,7 +1285,7 @@ public sealed class CommandCodeAPITests
     {
         var localAppData = CommandCodeScratch.NewFolder("fails");
         // A directory where the file must go: reading it fails (so the bytes "differ") and the atomic write fails.
-        Directory.CreateDirectory(Path.Combine(localAppData, "Nth", "CommandCode", "marrow-approvals.ts"));
+        Directory.CreateDirectory(Path.Combine(localAppData, "nth", "CommandCode", "marrow-approvals.ts"));
 
         var error = Assert.ThrowsAny<Exception>(() => CommandCodeAPI.InstallMod(localAppData));
         Assert.IsNotType<NotImplementedException>(error);

@@ -42,7 +42,7 @@ public sealed class MarrowUpdateItemTests
     {
         using var runtime = new TestRuntime();
         var (item, _) = Make(runtime, new FakeSelfUpdateEngine());
-        Assert.Equal(("marrow", "Nth", UpdateItemKind.Marrow), (item.Id, item.Title, item.Kind));
+        Assert.Equal(("marrow", "nth", UpdateItemKind.Marrow), (item.Id, item.Title, item.Kind));
     }
 
     [Fact]

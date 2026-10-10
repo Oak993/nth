@@ -11,7 +11,7 @@ public sealed class UpdatesProjectorTests
         new(id, title, kind, state, installed, latest, progress, message, restart);
 
     private static UpdateRow Marrow(UpdateRowState state, string? installed = "1.0.0", string? latest = "1.1.0", double? progress = null, bool restart = false) =>
-        Row("marrow", "Nth", UpdateItemKind.Marrow, state, installed, latest, progress, null, restart);
+        Row("marrow", "nth", UpdateItemKind.Marrow, state, installed, latest, progress, null, restart);
 
     private static UpdateRow Claude(UpdateRowState state, string? installed = "2.1.283", string? latest = "2.1.290", string? message = null) =>
         Row("cli:claude", "Claude Code", UpdateItemKind.ProviderCli, state, installed, latest, null, message);
@@ -35,7 +35,7 @@ public sealed class UpdatesProjectorTests
         var page = UpdatesProjector.Project(AllCurrent(), Quiet("2 hours ago"));
         Assert.Equal(UpdatesPhase.Current, page.Header.Phase);
         Assert.Equal("Everything is up to date", page.Header.Title);
-        Assert.Equal("Checked 2 hours ago. Nth also keeps Claude Code and Codex current in the background.", page.Header.Detail);
+        Assert.Equal("Checked 2 hours ago. nth also keeps Claude Code and Codex current in the background.", page.Header.Detail);
         Assert.Equal(("Check now", UpdatesAction.Check, false, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet));
         Assert.False(page.Banner.Visible);
         Assert.All(page.Sections.SelectMany(s => s.Rows), r => Assert.Equal((RowStatus.Current, "Up to date"), (r.Status, r.StatusText)));
@@ -46,7 +46,7 @@ public sealed class UpdatesProjectorTests
     public void The_checked_time_is_left_out_when_nothing_was_checked_here_and_the_background_sentence_needs_a_provider_row()
     {
         var withoutTime = UpdatesProjector.Project(AllCurrent(), Quiet());
-        Assert.Equal("Nth also keeps Claude Code and Codex current in the background.", withoutTime.Header.Detail);
+        Assert.Equal("nth also keeps Claude Code and Codex current in the background.", withoutTime.Header.Detail);
         var onlyMarrow = UpdatesProjector.Project([Marrow(UpdateRowState.UpToDate, "1.1.0", "1.1.0")], Quiet("just now"));
         Assert.Equal("Checked just now.", onlyMarrow.Header.Detail);
         var empty = UpdatesProjector.Project([], Quiet());
@@ -61,7 +61,7 @@ public sealed class UpdatesProjectorTests
         var page = UpdatesProjector.Project(AllOut(), Quiet());
         Assert.Equal(UpdatesPhase.Available, page.Header.Phase);
         Assert.Equal("3 updates available", page.Header.Title);
-        Assert.Equal("Nth 1.1.0, Claude Code 2.1.290 and Codex 0.160.0.", page.Header.Detail);
+        Assert.Equal("nth 1.1.0, Claude Code 2.1.290 and Codex 0.160.0.", page.Header.Detail);
         Assert.Equal(("Update everything", UpdatesAction.UpdateAll, false, false), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet));
         var one = UpdatesProjector.Project([Claude(UpdateRowState.UpdateAvailable), Codex(UpdateRowState.UpToDate, "0.160.0", "0.160.0")], Quiet());
         Assert.Equal(("1 update available", "Claude Code 2.1.290."), (one.Header.Title, one.Header.Detail));
@@ -106,7 +106,7 @@ public sealed class UpdatesProjectorTests
         HashSet<string> run = ["cli:claude", "cli:codex", "marrow"];
         var page = UpdatesProjector.Project(rows, new UpdatesFlags(false, false, false, true, null, run));
         Assert.Equal(UpdatesPhase.Running, page.Header.Phase);
-        Assert.Equal(("Updating Codex… 2 of 3", "Keep working; Nth restarts only when you say so."), (page.Header.Title, page.Header.Detail));
+        Assert.Equal(("Updating Codex… 2 of 3", "Keep working; nth restarts only when you say so."), (page.Header.Title, page.Header.Detail));
         Assert.Equal(("Updating…", UpdatesAction.None, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy));
         var by = page.Sections.SelectMany(s => s.Rows).ToDictionary(r => r.Id);
         Assert.Equal((RowStatus.Updated, "Updated", false), (by["cli:claude"].Status, by["cli:claude"].StatusText, by["cli:claude"].ShowProgress));
@@ -115,7 +115,7 @@ public sealed class UpdatesProjectorTests
         var download = UpdatesProjector.Project([Marrow(UpdateRowState.Updating, progress: .42)], new UpdatesFlags(false, false, false, true, null, new HashSet<string> { "marrow" }));
         var marrow = download.Sections.Single().Rows.Single();
         Assert.Equal((RowStatus.Downloading, "Downloading 42%", true, (double?).42), (marrow.Status, marrow.StatusText, marrow.ShowProgress, marrow.Progress));
-        Assert.Equal("Updating Nth… 1 of 1", download.Header.Title);
+        Assert.Equal("Updating nth… 1 of 1", download.Header.Title);
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class UpdatesProjectorTests
         ];
         var page = UpdatesProjector.Project(rows, Quiet(runIds: new HashSet<string> { "cli:claude", "cli:codex", "marrow" }));
         Assert.Equal(UpdatesPhase.Failed, page.Header.Phase);
-        Assert.Equal(("Codex didn’t update", "Updated Nth and Claude Code. The fix is below."), (page.Header.Title, page.Header.Detail));
+        Assert.Equal(("Codex didn’t update", "Updated nth and Claude Code. The fix is below."), (page.Header.Title, page.Header.Detail));
         Assert.Equal(("Retry", UpdatesAction.Retry, false, false), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet));
         var codex = page.Sections.SelectMany(s => s.Rows).Single(r => r.Id == "cli:codex");
         Assert.Equal((RowStatus.DidNotUpdate, "Didn’t update", "0.157.1"), (codex.Status, codex.StatusText, codex.Installed));
@@ -173,15 +173,15 @@ public sealed class UpdatesProjectorTests
         ];
         var page = UpdatesProjector.Project(rows, Quiet());
         Assert.Equal(UpdatesPhase.Done, page.Header.Phase);
-        Assert.Equal(("3 updated", "Updated Nth, Claude Code and Codex."), (page.Header.Title, page.Header.Detail));
-        Assert.Equal(("Restart Nth", UpdatesAction.Restart, false, false), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet));
-        Assert.Equal((true, "Nth 1.1.0 is ready.", "Restart Nth to finish its update."), (page.Banner.Visible, page.Banner.Title, page.Banner.Detail));
+        Assert.Equal(("3 updated", "Updated nth, Claude Code and Codex."), (page.Header.Title, page.Header.Detail));
+        Assert.Equal(("Restart nth", UpdatesAction.Restart, false, false), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet));
+        Assert.Equal((true, "nth 1.1.0 is ready.", "Restart nth to finish its update."), (page.Banner.Visible, page.Banner.Title, page.Banner.Detail));
         var marrow = page.Sections.SelectMany(s => s.Rows).Single(r => r.Id == "marrow");
         Assert.Equal((RowStatus.RestartToFinish, "Restart to finish"), (marrow.Status, marrow.StatusText));
         var later = UpdatesProjector.Project(rows, new UpdatesFlags(false, false, true, false, null, null));
         Assert.False(later.Banner.Visible);
-        Assert.Equal("Updated Nth, Claude Code and Codex. Restart Nth to finish its update.", later.Header.Detail);
-        Assert.Equal("Restart Nth", later.Header.ButtonLabel);
+        Assert.Equal("Updated nth, Claude Code and Codex. Restart nth to finish its update.", later.Header.Detail);
+        Assert.Equal("Restart nth", later.Header.ButtonLabel);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public sealed class UpdatesProjectorTests
         var rows = new[] { Claude(UpdateRowState.Updated, "2.1.290", "2.1.290"), Marrow(UpdateRowState.Updated, "1.0.0", "1.1.0", restart: true) };
         var page = UpdatesProjector.Project(rows, new UpdatesFlags(false, true, false, true, null, null));
         Assert.Equal(UpdatesPhase.Restarting, page.Header.Phase);
-        Assert.Equal("Restarting Nth…", page.Header.Title);
+        Assert.Equal("Restarting nth…", page.Header.Title);
         Assert.Equal(("Restarting…", UpdatesAction.None, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy));
         Assert.False(page.Banner.Visible);
     }
@@ -219,7 +219,7 @@ public sealed class UpdatesProjectorTests
             Marrow(UpdateRowState.UpToDate, "1.1.0", "1.1.0"),
         ];
         var page = UpdatesProjector.Project(rows, Quiet());
-        Assert.Equal(["Nth", "Provider tools", "Developer tools", "Skills and tools"], page.Sections.Select(s => s.Title));
+        Assert.Equal(["nth", "Provider tools", "Developer tools", "Skills and tools"], page.Sections.Select(s => s.Title));
         Assert.Equal([["marrow"], ["cli:claude"], ["dev:git"], ["skills"]], page.Sections.Select(s => s.Rows.Select(r => r.Id).ToArray()));
         var all = page.Sections.SelectMany(s => s.Rows).ToDictionary(r => r.Id);
         Assert.Equal("The app", all["marrow"].Sub);

@@ -28,7 +28,7 @@ public sealed class MarrowUpdateItem(UpdateChecker checker, ISelfUpdateEngine en
 
     public string Id => "marrow";
 
-    public string Title => "Nth";
+    public string Title => "nth";
 
     public UpdateItemKind Kind => UpdateItemKind.Marrow;
 
@@ -49,7 +49,7 @@ public sealed class MarrowUpdateItem(UpdateChecker checker, ISelfUpdateEngine en
 
     public async Task<UpdateOutcome> Update(IProgress<double?> progress, CancellationToken cancellation)
     {
-        if (offeredRelease is not { } update) throw new InvalidOperationException("No newer Nth is known, so there is nothing to download.");
+        if (offeredRelease is not { } update) throw new InvalidOperationException("No newer nth is known, so there is nothing to download.");
         try
         {
             package = await engine.DownloadAsync(update.Version, percent => progress.Report(SelfUpdateProgress.Fraction(percent)), cancellation);

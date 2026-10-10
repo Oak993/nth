@@ -146,7 +146,7 @@ public sealed class ProcessPipe
                 if (value is null || readerRunning) return;
                 readerRunning = true;
             }
-            ProcessNative.StartBackground("Nth pipe reader", ReadLoop);
+            ProcessNative.StartBackground("nth pipe reader", ReadLoop);
         }
     }
 
@@ -443,7 +443,7 @@ public sealed class ProcessLauncher : IProcessControl
             launched = true;
             running = true;
         }
-        ProcessNative.StartBackground("Nth process watcher", Watch);
+        ProcessNative.StartBackground("nth process watcher", Watch);
     }
 
     /// <summary>Swift <c>waitUntilExit()</c>: returns once the process has exited (at once when it never ran).</summary>
@@ -934,7 +934,7 @@ internal static class ProcessNative
         var sender = CtrlBreakSender.Current;
         try
         {
-            StartBackground("Nth Ctrl+Break launch", () =>
+            StartBackground("nth Ctrl+Break launch", () =>
             {
                 try { sender(pid, reserved); }
                 catch (Exception error) when (SwiftTry.IsThrownError(error)) { reserved?.Dispose(); }
@@ -1091,7 +1091,7 @@ internal sealed class CtrlBreakHelper
     /// </summary>
     internal void Release(TimeSpan lifetime)
     {
-        ProcessNative.StartBackground("Nth Ctrl+Break helper", () => WaitAndRelease(lifetime));
+        ProcessNative.StartBackground("nth Ctrl+Break helper", () => WaitAndRelease(lifetime));
     }
 
     // The production signal launcher already runs on its own worker. Keep creation and

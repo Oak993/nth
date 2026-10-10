@@ -97,7 +97,7 @@ public sealed class MCPProbeTests
         var parameters = initBody["params"];
         Assert.Equal("2025-06-18", parameters?["protocolVersion"]?.JSONValueString);
         Assert.Equal(0, parameters?["capabilities"]?.JSONValueObject?.Count);
-        Assert.Equal("Nth", parameters?["clientInfo"]?["name"]?.JSONValueString);
+        Assert.Equal("nth", parameters?["clientInfo"]?["name"]?.JSONValueString);
         Assert.Equal("1.0", parameters?["clientInfo"]?["version"]?.JSONValueString);
         await init.Respond(200, "OK", Ascii("{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"serverInfo\":{}}}"), ("Content-Type", "application/json"));
 

@@ -103,7 +103,7 @@ public static class Program
             return 0;
         }
         using var instanceLock = singleInstanceLock;
-        // OD-0135: the product is named Nth. Once, before anything reads settings, logs, the library or the GPU program cache, the
+        // OD-0135: the product is named nth. Once, before anything reads settings, logs, the library or the GPU program cache, the
         // old "Marrow Code" data folder and .marrow state folder are COPIED to their new names (never moved; the old app may still run).
         LegacyDataCopy.CopyProductFolders(DevDataRoot.LocalApplicationData(), DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory, AppInfo.Current.IsDevelopment);
         DesktopPerformanceProbe.BeginStartup();
