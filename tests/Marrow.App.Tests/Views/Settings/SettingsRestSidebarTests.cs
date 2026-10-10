@@ -39,7 +39,7 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
             for (var index = 1; index < titles.Length; index++)
             {
                 var row = Nodes<SidebarRow>(view)[index]; Check(row, index, false); var button = Assert.Single(Nodes<Button>(row)); var shape = Assert.IsType<Border>(button.Content);
-                Hover(w, button); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06 * Animation.EaseOut(0.1).Progress(0.05))); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06));
+                Reveal(w, h, button); Hover(w, button); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06 * Animation.EaseOut(0.1).Progress(0.05))); Tick(h, 50); Ink(shape, shape.Background, Chrome.Overlay(0.06));
                 // Chrome.swift:729 the wash comes to the clicked row on Chrome.hover (easeOut 0.1 s), and the press look lets go over 0.1 s
                 // (ED-280): read the row once both are over (UI-SETTINGS-004).
                 Click(w, button); Tick(h, 150); row = Nodes<SidebarRow>(view)[index]; Check(row, index, true);
@@ -70,11 +70,11 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
     [Trait("Req", "UI-UPDATE-011")] // App/Views/Settings/SettingsView.swift:159-163; AboutUpdateViews.swift:527-535
     public void Update_dot_is_only_on_About_and_keeps_selected_corner_geometry_and_accent()
     {
-        With(() => new SettingsView(), (view, _, _, w) =>
+        With(() => new SettingsView(), (view, _, h, w) =>
         {
             Assert.Empty(Nodes<UpdateAvailableDot>(view));
             typeof(UpdateChecker).GetProperty("Update")!.SetValue(UpdateChecker.Shared, new AvailableUpdate { Version = "999.0.0", Tag = "v999.0.0", DownloadURL = SwiftURL.Create("https://fixture.invalid/download")!, PageURL = SwiftURL.Create("https://fixture.invalid/release")!, Notes = "" }); Drain(w);
-            var about = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("About")); Click(w, Assert.Single(Nodes<Button>(about)));
+            var about = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("About")); Reveal(w, h, about); Click(w, Assert.Single(Nodes<Button>(about)));
             var dot = Assert.Single(Nodes<UpdateAvailableDot>(view)); var parent = Nodes<SidebarRow>(view).Single(r => Nodes<UpdateAvailableDot>(r).Length == 1); Assert.Equal("About", Text(parent).Single());
             Assert.Equal(Avalonia.Layout.HorizontalAlignment.Right, dot.HorizontalAlignment); Assert.Equal(Avalonia.Layout.VerticalAlignment.Top, dot.VerticalAlignment);
             var circle = Assert.IsType<Avalonia.Controls.Shapes.Ellipse>(dot.Child); Assert.Equal(7, circle.Width); Assert.Equal(7, circle.Height); Ink(circle, circle.Fill, Chrome.Accent); var offset = Assert.IsType<TranslateTransform>(circle.RenderTransform); Assert.Equal(2.5, offset.X); Assert.Equal(-2.5, offset.Y);

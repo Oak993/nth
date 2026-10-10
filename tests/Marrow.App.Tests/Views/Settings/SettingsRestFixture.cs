@@ -33,6 +33,9 @@ public abstract class SettingsRestFixture(HeadlessSession headless)
     protected static void Drain(HostWindow window) { for (var i = 0; i < 5; i++) { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); } }
     protected static void Tick(AppModelHarness h, double ms) { h.Main.AdvanceMilliseconds(ms); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); }
     protected static Point At(Control control, HostWindow window, Point? local = null) => control.TranslatePoint(local ?? new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
+    /// <summary>OD-0134 (Ignis): with Ignis listed, the 580 pt window's sidebar scrolls to reach its last rows, as a person scrolls it. Scrolls the row into view and waits out the
+    /// sidebar's 150 ms scroll freeze (SettingsScrollTracker), so the next pointer event meets the row.</summary>
+    protected static void Reveal(HostWindow window, AppModelHarness h, Control control) { control.BringIntoView(); Drain(window); Tick(h, 160); Drain(window); }
     protected static void Hover(HostWindow window, Control control, Point? local = null) { window.MouseMove(At(control, window, local)); Drain(window); Assert.True(control.IsPointerOver); }
     protected static void Click(HostWindow window, Control control, Point? local = null)
     {
