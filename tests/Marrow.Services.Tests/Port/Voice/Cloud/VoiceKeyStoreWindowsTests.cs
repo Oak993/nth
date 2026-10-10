@@ -16,7 +16,9 @@ public sealed class VoiceKeyStoreWindowsTests
     public void V_T47_the_real_Credential_Manager_holds_the_key_as_one_generic_credential_and_gives_it_back()
     {
         var testService = "Marrow VT-16 test " + Guid.NewGuid().ToString("D");
-        var backend = new RenamedTargetCredentialBackend(VoiceKeyStore.Service, testService);
+        var legacyTestService = "Marrow VT-16 legacy test " + Guid.NewGuid().ToString("D");
+        // OD-0135: a read with no key under "Nth" also looks once under the earlier name "Marrow Code"; that lookup goes to its own throwaway service.
+        var backend = new RenamedTargetCredentialBackend((VoiceKeyStore.Service, testService), (VoiceKeyStore.LegacyService, legacyTestService));
         var store = new SecretStore(backend);
         var target = backend.Map(SecretStore.TargetName(VoiceKeyStore.Service, VoiceKeyStore.Account));
         var key = "sk-test-vt16-" + Guid.NewGuid().ToString("N");
@@ -42,11 +44,15 @@ public sealed class VoiceKeyStoreWindowsTests
                 Assert.Null(keys.Read());
                 Assert.Equal(1168, real.Read(target, out _));         // ERROR_NOT_FOUND: nothing left behind
             }
-            Assert.All(backend.Touched, t => Assert.StartsWith(testService + ":", t, StringComparison.Ordinal));
+            Assert.All(backend.Touched, t => Assert.True(t.StartsWith(testService + ":", StringComparison.Ordinal) || t.StartsWith(legacyTestService + ":", StringComparison.Ordinal), t));
+            Assert.Contains(backend.Touched, t => t.StartsWith(legacyTestService + ":", StringComparison.Ordinal)); // the earlier name was looked up, through the swap
+            Assert.Equal(1168, new CredentialManagerBackend().Read(backend.Map(SecretStore.TargetName(VoiceKeyStore.LegacyService, VoiceKeyStore.Account)), out _)); // and never written
         }
         finally
         {
             new CredentialManagerBackend().Delete(target);
+            new CredentialManagerBackend().Delete(target + SecretStore.CarriedMarkerSuffix);
+            new CredentialManagerBackend().Delete(backend.Map(SecretStore.TargetName(VoiceKeyStore.LegacyService, VoiceKeyStore.Account)));
         }
     }
 }
