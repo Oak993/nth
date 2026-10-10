@@ -12,7 +12,7 @@ namespace Marrow.App.Tests.Port.Ignis;
 // is a fake; nothing reaches a network or a model provider.
 public sealed class IgnisPointsUpdateRowTests
 {
-    private static ScriptedUpdateItem MarrowItem() => new("marrow", "Marrow", UpdateItemKind.Marrow, "1.0.0", "1.0.0");
+    private static ScriptedUpdateItem MarrowItem() => new("marrow", "nth", UpdateItemKind.Marrow, "1.0.0", "1.0.0");
 
     private static ScriptedUpdateItem Claude() => new("cli:claude", "Claude Code", UpdateItemKind.ProviderCli, "2.1.290", "2.1.293");
 
@@ -88,10 +88,10 @@ public sealed class IgnisPointsUpdateRowTests
         [
             new("cli:claude", "Claude Code", UpdateItemKind.ProviderCli, UpdateRowState.UpToDate, "2.1.293", "2.1.293", null, null, false),
             new(IgnisPointsUpdateItem.ItemId, IgnisWords.UpdatesRowTitle, UpdateItemKind.ModelPoints, UpdateRowState.UpdateAvailable, "2026.10.08", "2026.10.10", null, null, false),
-            new("marrow", "Marrow", UpdateItemKind.Marrow, UpdateRowState.UpToDate, "1.0.0", "1.0.0", null, null, false),
+            new("marrow", "nth", UpdateItemKind.Marrow, UpdateRowState.UpToDate, "1.0.0", "1.0.0", null, null, false),
         ];
         var page = UpdatesProjector.Project(rows, new UpdatesFlags(false, false, false, false, null, null));
-        Assert.Equal(["Marrow", "Provider tools"], page.Sections.Select(section => section.Title));
+        Assert.Equal(["nth", "Provider tools"], page.Sections.Select(section => section.Title));
         Assert.Equal(["marrow", IgnisPointsUpdateItem.ItemId], page.Sections[0].Rows.Select(row => row.Id));
         var points = page.Sections[0].Rows[1];
         Assert.Equal((IgnisWords.UpdatesRowTitle, IgnisWords.UpdatesRowDetail, "2026.10.08", "2026.10.10", "Update available", true),
