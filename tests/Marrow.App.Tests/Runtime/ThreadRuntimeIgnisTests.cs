@@ -13,6 +13,9 @@ namespace Marrow.App.Tests.Runtime;
 // scripted session (Fixtures/ThreadRuntimeScriptedSession.cs); the controller is a recorder; no provider is ever reached.
 public sealed class ThreadRuntimeIgnisTests
 {
+    // The finish chime is off: FinishChime caches its sound on first play, which belongs to the chime tests' collection.
+    private static ThreadRuntimeTurnRig Rig() => new(ProviderKind.Claude, settings: app => app.Settings.ChimeWhenFinished = false);
+
     private static void WaitForSends(ThreadRuntimeTurnRig rig, int count) =>
         rig.H.Main.Loop.RunUntil(() => rig.Session.Inputs.Count >= count, AppModelHarness.Bound);
 
@@ -32,7 +35,7 @@ public sealed class ThreadRuntimeIgnisTests
     [Fact]
     public void A_hidden_ping_is_a_notice_turn_that_ends_silently_and_leaves_the_chat_where_it_was()
     {
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         FirstTurn(rig);
         var before = rig.Thread;
         Assert.True(rig.H.Main.OnMain(() => Port(rig).IsBetweenTasks));
@@ -63,7 +66,7 @@ public sealed class ThreadRuntimeIgnisTests
     [Fact]
     public void An_ordinary_turn_ending_off_screen_still_marks_the_chat_unread()
     {
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         FirstTurn(rig);
         rig.Send("Now the lexer");
         rig.Complete();
@@ -73,7 +76,7 @@ public sealed class ThreadRuntimeIgnisTests
     [Fact]
     public void A_follow_up_typed_during_a_ping_is_sent_as_an_ordinary_turn_when_the_ping_ends()
     {
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         FirstTurn(rig);
         rig.H.Main.OnMain(() => Port(rig).SendHiddenPing());
         WaitForSends(rig, 2);
@@ -98,7 +101,7 @@ public sealed class ThreadRuntimeIgnisTests
     [Fact]
     public void A_chat_with_a_queued_follow_up_or_a_running_turn_is_not_between_tasks()
     {
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         rig.Session.SendScript = _ => new TaskCompletionSource().Task;
         _ = rig.StartTurn("Fix the parser");
         WaitForSends(rig, 1);
@@ -113,7 +116,7 @@ public sealed class ThreadRuntimeIgnisTests
     {
         var controller = new RecordingIgnisController();
         using var bound = IgnisSeams.Controller.Override(() => controller);
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         var usage = IgnisSamples.Usage(read: 40_000, write1h: 2_000);
         var resets = new DateTimeOffset(2026, 10, 11, 0, 0, 0, TimeSpan.Zero);
 
@@ -139,7 +142,7 @@ public sealed class ThreadRuntimeIgnisTests
     {
         var controller = new RecordingIgnisController();
         using var bound = IgnisSeams.Controller.Override(() => controller);
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         FirstTurn(rig);
         var compacts = 0;
         rig.Session.CompactScript = () =>
@@ -167,7 +170,7 @@ public sealed class ThreadRuntimeIgnisTests
     {
         var controller = new RecordingIgnisController();
         using var bound = IgnisSeams.Controller.Override(() => controller);
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         FirstTurn(rig);
         controller.Finished.Clear();
 
@@ -185,7 +188,7 @@ public sealed class ThreadRuntimeIgnisTests
     [Fact]
     public void The_users_own_compact_still_says_so()
     {
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         FirstTurn(rig);
         rig.Session.CompactScript = () =>
         {
@@ -202,7 +205,7 @@ public sealed class ThreadRuntimeIgnisTests
     [Fact]
     public void An_event_line_is_a_notice_with_the_events_item_id_appended_once()
     {
-        using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude);
+        using var rig = Rig();
         FirstTurn(rig);
         var @event = new IgnisEvent("e1", rig.InitialThread.Id, IgnisEventKind.WentCold, SwiftDate.Now, 0.21m, IgnisAmountKind.Lost);
         rig.H.Main.OnMain(() =>
