@@ -83,13 +83,15 @@ internal sealed class ModelListSearch
         Release(); // ED-NEW-stutterfix-8: rows held by the last search take the values they have reached, and fold on from there
         matches.Clear(); active = 0; keyboardActive = false;
         var words = (Field.Text ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        var above = 0.0; // the least height of the rows above this one at any frame of the fold (pairs left out)
+        // The rows above this one before and after the fold, and the spacing of those shown throughout (pairs left out): every fold of one
+        // search runs on one curve from one start, so the least top of a row at any frame is the lesser of its tops before and after.
+        double before = 0, after = 0, spacing = 0;
         for (var i = 0; i < rows.Count; i++)
         {
             var item = rows[i]; var shown = words.All(w => item.Text.Contains(w, StringComparison.OrdinalIgnoreCase));
             var from = item.Fold.Value; var to = shown ? 1.0 : 0.0;
             item.Row.IsHitTestVisible = shown;
-            if (HoldUnseenRows && from != to && above >= UnseenThreshold)
+            if (HoldUnseenRows && from != to && Math.Min(before, after) + spacing >= UnseenThreshold)
             {
                 // ED-NEW-stutterfix-8: never in the viewport while the fold runs; it takes its end state when the fold ends
                 (held ??= []).Add((i, from, to, false));
@@ -102,7 +104,8 @@ internal sealed class ModelListSearch
                 if (shown) { item.Row.IsVisible = true; matches.Add((item.Row, entries[i])); }
                 item.Fold.Set(to, Animation.TimingCurve(.25, .1, .25, 1, .34));
             }
-            if (to > 0) above += rowHeight * Math.Min(from, to) + RowSpacing;
+            before += rowHeight * from; after += rowHeight * to;
+            if (to > 0) spacing += RowSpacing;
         }
         if (held is not null) Hold();
         offset.Set(0, null);

@@ -7,6 +7,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Transformation;
 using Marrow.Core.Port;
@@ -33,6 +34,10 @@ public sealed class OpenRouterPicker : Decorator
     private readonly Grid countGrid;
     private readonly List<int> countOrder = [];
     private readonly DeferredRows? fill;
+    private readonly List<PickerFold> items = []; // the list's groups and rows, in list order, with their heights
+    private readonly List<double> heights = [];
+    private PickerHeldSpacer? spacer;
+    private readonly StackPanel list;
     private readonly ScrollViewer scroll;
     private readonly AnimatedScalar scrollOffset;
     private readonly PickerFold empty;
@@ -95,8 +100,7 @@ public sealed class OpenRouterPicker : Decorator
         Search.GotFocus += (_,_)=>field.BorderBrush=Brush(1,1,1,.22);
         Search.LostFocus += (_,_)=>field.BorderBrush=Brush(1,1,1,.12);
         stack.Children.Add(field);
-        var list = new StackPanel { Margin=new Thickness(0,0,0,2) };
-        var items = new List<Control>(); var heights = new List<double>(); // ED-NEW-stutterfix-2: the list's items, put in by DeferredRows past its first screens
+        list = new StackPanel { Margin=new Thickness(0,0,0,2) }; // ED-NEW-stutterfix-2: the list's items, put in by DeferredRows past its first screens
         foreach (var group in models.GroupBy(m=>m.Maker,StringComparer.Ordinal))
         {
             var section = new StackPanel { Orientation=Avalonia.Layout.Orientation.Horizontal, Spacing=7, Height=24, Margin=new Thickness(10,0) };
@@ -123,6 +127,7 @@ public sealed class OpenRouterPicker : Decorator
         contentHeight=models.Count*47+groups.Count*24+2;TargetListHeight = Math.Min(440,contentHeight);
         height = new AnimatedScalar(scroll,TargetListHeight,v=>{scroll.Height=v;UpdateMask();});
         topFade=new(scroll,0,_=>UpdateMask());bottomFade=new(scroll,contentHeight>440?22:0,_=>UpdateMask());
+        scroll.ScrollChanged += (_,e)=> { if (spacer is { IsHolding: true } && e.OffsetDelta.Y!=0 && scroll.Offset.Y>0) spacer.ReleaseAll(); }; // ED-NEW-stutterfix-8
         scroll.ScrollChanged += (_,_)=>Edges();
         Search.TextChanged += (_,_)=> { if (!changing) QueryChanged(); };
         Search.KeyDown += OnSearchKey;
@@ -147,13 +152,18 @@ public sealed class OpenRouterPicker : Decorator
     private void QueryChanged()
     {
         fill?.RealiseAll(); // ED-NEW-stutterfix-2: a search folds every row in the list
+        spacer?.ReleaseAll(); // ED-NEW-stutterfix-8: items held by the last search take the values they have reached, and fold on from there
         active=0; var words=Words;
+        var shown=new Dictionary<PickerFold,bool>(items.Count);
         foreach (var row in rows)
         {
             var haystack=$"{row.Model.Name} {row.Model.Id} {row.Model.Maker}".ToLowerInvariant();
-            row.Show(words.All(w=>haystack.Contains(w,StringComparison.Ordinal)));
+            shown[row]=words.All(w=>haystack.Contains(w,StringComparison.Ordinal));
         }
-        foreach (var g in groups) g.Fold.Show(rows.Any(r=>r.Model.Maker==g.Maker && r.Shown));
+        foreach (var g in groups) shown[g.Fold]=rows.Any(r=>r.Model.Maker==g.Maker && shown[r]);
+        var held=Unseen(shown);
+        foreach (var row in rows) row.Show(shown[row],Hold(held,row));
+        foreach (var g in groups) g.Fold.Show(shown[g.Fold],Hold(held,g.Fold));
         var count=Visible.Count(); var next=Count(count);
         if (shownCount!=next) { counts[shownCount].Set(false); CountLabel(count).Set(true); shownCount=next; }
         emptyLabel.Text=$"No models match “{Search.Text}”"; empty.Show(Keyed && count==0);
@@ -163,8 +173,34 @@ public sealed class OpenRouterPicker : Decorator
         contentHeight=count*47+groups.Count(g=>rows.Any(r=>r.Shown && r.Model.Maker==g.Maker))*24+(Keyed&&count==0?58:0)+2;TargetListHeight=Math.Min(440,contentHeight);
         height.Set(TargetListHeight,Ease);TargetScrollOffset=0;scrollOffset.Set(0,null); UpdateActive(); Edges();
     }
+    // ED-NEW-stutterfix-8: a search folds the items the viewport can show while the fold runs, as before. The folds of one search share one
+    // curve and one start, so an item's top at any frame lies between its tops before and after the fold (each item laid out at least as tall
+    // as its folded height): an item whose lesser top is past the tallest viewport and two rows is never seen. It folds on, hidden, and one
+    // spacer before the empty note stands for its height as layout rounds it, so the extent and the edges are those of the full fold; it shows
+    // again when its fold ends, or with the values reached when a key is pressed, the list is scrolled or the search changes.
+    internal static bool HoldUnseenRows = true; // tests compare with the plain fold
+    private HashSet<PickerFold>? Unseen(Dictionary<PickerFold,bool> shown)
+    {
+        if (!HoldUnseenRows) return null;
+        HashSet<PickerFold>? held=null; double before=0,after=0;
+        for (var k=0; k<items.Count; k++)
+        {
+            var item=items[k]; var from=item.FoldAmount; var to=shown[item]?1d:0d;
+            if (from!=to && Math.Min(before,after)>=MaximumListHeight+2*47) (held??=[]).Add(item);
+            before+=heights[k]*from; after+=heights[k]*to;
+        }
+        return held;
+    }
+    private PickerHeldSpacer? Hold(HashSet<PickerFold>? held,PickerFold item)
+    {
+        if (held is null || !held.Contains(item)) return null;
+        spacer??=new PickerHeldSpacer();
+        if (spacer.Parent is null) list.Children.Insert(list.Children.IndexOf(empty),spacer);
+        return spacer;
+    }
     private void OnSearchKey(object? sender, KeyEventArgs e)
     {
+        if (spacer is { IsHolding: true }) { spacer.ReleaseAll(); scroll.UpdateLayout(); } // ED-NEW-stutterfix-8: keys move through the items as laid out
         if (fill?.RealiseAll()==true) scroll.UpdateLayout(); // ED-NEW-stutterfix-2: rows just put in are laid out before one is scrolled to
         var visible=Visible.ToArray(); if (!Keyed || visible.Length==0) return;
         if (e.Key is Key.Down or Key.Up)
@@ -246,7 +282,7 @@ public sealed class PickerRow : PickerFold
         Button.PropertyChanged+=(_,e)=>{if(e.Property==Avalonia.Controls.Button.IsPressedProperty){pressed=Button.IsPressed;Paint();}};
         AutomationProperties.SetName(Button,model.Name); Child=Button;
     }
-    internal new void Show(bool shown) { Shown=shown; Button.IsHitTestVisible=shown; base.Show(shown); }
+    internal new void Show(bool shown,PickerHeldSpacer? hold=null) { Shown=shown; Button.IsHitTestVisible=shown; base.Show(shown,hold); }
     internal void SetActive(bool active,bool keyed){this.active=active;this.keyed=keyed;Paint();}
     private void Paint()
     {var ease=Animation.TimingCurve(.25,.1,.25,1,.12);background.Set(pressed?.14:active||hovered&&!keyed?.1:0,ease);pressedScale.Set(pressed?.99:1,ease);}
@@ -260,19 +296,31 @@ public sealed class PickerRow : PickerFold
 public class PickerFold : Decorator
 {
     private readonly AnimatedScalar fold,opacity,scale;
+    private PickerHeldSpacer? holder; // ED-NEW-stutterfix-8: folding hidden, its height in the holder
+    private double foldTarget;
     public double FoldAmount=>fold.Value;
     public double FoldOpacity=>opacity.Value;
+    internal bool Held=>holder is not null;
     public PickerFold(Control? child,bool shown)
     {
         Child=child; ClipToBounds=true;
-        fold=new AnimatedScalar(this,shown?1:0,_=>InvalidateMeasure());
-        opacity=new AnimatedScalar(this,shown?1:0,v=>Opacity=v);
-        scale=new AnimatedScalar(this,shown?1:.96,v=> { if(Child is {} c)c.RenderTransform=new ScaleTransform(v,v); });
+        fold=new AnimatedScalar(this,shown?1:0,v=> { if(holder is {} h){h.InvalidateMeasure(); if(v==foldTarget)Unhold();} else InvalidateMeasure(); });
+        opacity=new AnimatedScalar(this,shown?1:0,v=> { if(holder is null)Opacity=v; });
+        scale=new AnimatedScalar(this,shown?1:.96,v=> { if(holder is null && Child is {} c)c.RenderTransform=new ScaleTransform(v,v); });
     }
-    internal void Show(bool shown)
+    internal void Show(bool shown,PickerHeldSpacer? hold=null)
     {
+        foldTarget=shown?1:0;
         fold.Set(shown?1:0,Animation.TimingCurve(.25,.1,.25,1,.34));
         opacity.Set(shown?1:0,Animation.Linear(.34)); scale.Set(shown?1:.96,Animation.TimingCurve(.25,.1,.25,1,.34));
+        if (hold is not null && fold.Value!=foldTarget) { holder=hold; IsVisible=false; hold.Add(this); }
+    }
+    // Shows again with the values its folds have reached, as the plain fold has drawn them.
+    internal void Unhold()
+    {
+        if (holder is not {} h) return;
+        holder=null; h.Remove(this);
+        IsVisible=true; Opacity=opacity.Value; if(Child is {} c)c.RenderTransform=new ScaleTransform(scale.Value,scale.Value); InvalidateMeasure();
     }
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -296,5 +344,26 @@ internal sealed class PickerCount : Decorator
     {
         opacity.Set(shown?1:0,Animation.TimingCurve(.25,.1,.25,1,shown?.16:.09).Delay(shown?.08:0));
         position.Set(shown?0:3,Animation.TimingCurve(shown?.32:.25,shown?.72:.1,shown?0:.25,1,shown?.24:.18).Delay(shown?.08:0));
+    }
+}
+
+// ED-NEW-stutterfix-8: the height the held folds of a search add to the list at each frame, each as layout rounds a fold's height.
+internal sealed class PickerHeldSpacer : Control
+{
+    private readonly List<(PickerFold Fold, double Height)> held = [];
+    public bool IsHolding => held.Count > 0;
+    public PickerHeldSpacer() { IsHitTestVisible = false; }
+    internal void Add(PickerFold fold) { held.Add((fold, fold.Child?.DesiredSize.Height is > 0 and var h ? h : fold is PickerRow ? 47 : 24)); InvalidateMeasure(); }
+    internal void Remove(PickerFold fold)
+    {
+        held.RemoveAll(x => x.Fold == fold); InvalidateMeasure();
+        if (held.Count == 0 && Parent is Panel panel) panel.Children.Remove(this);
+    }
+    internal void ReleaseAll() { foreach (var (fold, _) in held.ToArray()) fold.Unhold(); }
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var scale = LayoutHelper.GetLayoutScale(this); var sum = 0.0;
+        foreach (var (fold, height) in held) sum += fold.UseLayoutRounding ? LayoutHelper.RoundLayoutValueUp(height * fold.FoldAmount, scale) : height * fold.FoldAmount;
+        return new Size(0, sum);
     }
 }
