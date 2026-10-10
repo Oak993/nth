@@ -11,6 +11,10 @@ namespace Marrow.Core.Port.Ignis;
 /// the environment the CLI inherits and its working directory (for the read-only check of the user's Claude settings).</summary>
 public sealed record IgnisLifetimeQuery(ProviderKind Provider, string? MainModel, Guid? ThreadID, IReadOnlyDictionary<string, string> Environment, string? WorkingDirectory);
 
+/// <summary>What a pi launch asks Ignis about its prompt-cache retention (ED-NEW-ignis-integration): the chat, the model it launches on
+/// ("provider/id" as pi names it) and the environment pi inherits.</summary>
+public sealed record IgnisPiRetentionQuery(Guid? ThreadID, string? Model, IReadOnlyDictionary<string, string> Environment);
+
 /// <summary>What a provider session asks when it builds its helper agents (Claude --agents JSON, the scout entry only).</summary>
 public sealed record IgnisHelperQuery(ProviderKind Provider, string? MainModel, Guid? ThreadID = null);
 
@@ -49,6 +53,12 @@ public static class IgnisSeams
     /// (unbound, or Ignis has no choice): nothing is set and every CLI default stays.
     /// </summary>
     public static Ambient<Func<IgnisLifetimeQuery, Engine.IgnisLifetimeChoice?>> CacheLifetimes { get; } = new(_ => null);
+
+    /// <summary>
+    /// pi's prompt-cache retention for one launch (ED-NEW-ignis-integration): the verdict of the same gap rule that chooses Claude's
+    /// lifetime, over the gaps learned for pi. null (unbound, or Ignis has no choice): nothing is set.
+    /// </summary>
+    public static Ambient<Func<IgnisPiRetentionQuery, Engine.IgnisPiRetentionVerdict?>> PiRetention { get; } = new(_ => null);
 
     /// <summary>
     /// Whether Ignis is on (any mode but Off) for a chat, so a session nth drives may add its request-level cache levers

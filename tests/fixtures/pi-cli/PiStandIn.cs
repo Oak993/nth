@@ -7,7 +7,7 @@
 //   argv.txt          written by the stand-in: every argument, NUL-separated.
 //   cwd.txt           written by the stand-in: its working directory.
 //   env-<KEY>.txt     written by the stand-in for each of PI_SKIP_VERSION_CHECK, DROPPY_CODE_PI_GATE,
-//                     DROPPY_CODE_MCP_BRIDGE and DROPPY_CODE_MCP_CONFIG that is set: the value.
+//                     DROPPY_CODE_MCP_BRIDGE, DROPPY_CODE_MCP_CONFIG and PI_CACHE_RETENTION that is set: the value.
 //   stdin-<m>.txt     written by the stand-in: the raw text of the m-th stdin line (0-based).
 //   reply-<m>.jsonl   read by the stand-in: text written to stdout right after the m-th stdin line (missing: none).
 //   eof.txt           written by the stand-in when its stdin closes.
@@ -38,7 +38,7 @@ internal static class PiStandIn
         }
         Write("argv.txt", argv.ToArray());
         Write("cwd.txt", new UTF8Encoding(false).GetBytes(Environment.CurrentDirectory));
-        foreach (string key in new string[] { "PI_SKIP_VERSION_CHECK", "DROPPY_CODE_PI_GATE", "DROPPY_CODE_MCP_BRIDGE", "DROPPY_CODE_MCP_CONFIG" })
+        foreach (string key in new string[] { "PI_SKIP_VERSION_CHECK", "DROPPY_CODE_PI_GATE", "DROPPY_CODE_MCP_BRIDGE", "DROPPY_CODE_MCP_CONFIG", "PI_CACHE_RETENTION" })
         {
             string value = Environment.GetEnvironmentVariable(key);
             if (value != null) Write("env-" + key + ".txt", new UTF8Encoding(false).GetBytes(value));

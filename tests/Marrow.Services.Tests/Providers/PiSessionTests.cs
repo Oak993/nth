@@ -1,5 +1,7 @@
 using System.Threading;
 using Marrow.Core.Models;
+using Marrow.Core.Port.Ignis;
+using Marrow.Core.Port.Ignis.Engine;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Models;
@@ -85,15 +87,31 @@ public sealed class PiSessionTests
         TestRuntime runtime, PiScript script, string? resumeID = null, string? model = null, string? effort = null,
         RuntimeMode runtimeMode = RuntimeMode.Supervised, InteractionMode interactionMode = InteractionMode.Build,
         string stateData = "{\"model\":{\"contextWindow\":128000}}", string commandsData = "{\"commands\":[]}",
-        Action? prepareStorage = null)
+        Action? prepareStorage = null, Func<IDisposable>? scope = null)
     {
         using var storage = new StorageScratchFolder(); // MCPPaths.ClaudeConfigURL reads Storage.Root (R-TEST-9)
         prepareStorage?.Invoke();
         script.Reply(0, "{\"type\":\"response\",\"id\":\"droppy-1\",\"data\":" + stateData + "}");
         script.Reply(1, "{\"type\":\"response\",\"id\":\"droppy-2\",\"data\":" + commandsData + "}");
         var (session, events) = Make(Config(script, resumeID: resumeID, model: model, effort: effort, runtimeMode: runtimeMode, interactionMode: interactionMode));
-        var id = runtime.Loop.Run(() => session.Start(), TimeSpan.FromSeconds(30));
+        // PORT-ONLY: `scope` opens an Ambient override on the loop's own thread (the test thread's async flow does not reach it).
+        var id = runtime.Loop.Run(async () =>
+        {
+            using var overrides = scope?.Invoke();
+            return await session.Start();
+        }, TimeSpan.FromSeconds(30));
         return (session, events, script, id);
+    }
+
+    private static IDisposable Both(IDisposable first, IDisposable second) => new Pair(first, second);
+
+    private sealed class Pair(IDisposable first, IDisposable second) : IDisposable
+    {
+        public void Dispose()
+        {
+            second.Dispose();
+            first.Dispose();
+        }
     }
 
     private static JSONValue Json(string text) => JSONValue.Parse(text)!;
@@ -256,6 +274,31 @@ public sealed class PiSessionTests
         Assert.NotNull(startedScript.Environment("DROPPY_CODE_MCP_BRIDGE"));
         Assert.StartsWith("file://", startedScript.Environment("DROPPY_CODE_MCP_BRIDGE"), StringComparison.Ordinal);
         Assert.Null(startedScript.Environment("DROPPY_CODE_MCP_CONFIG"));
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0134")]
+    public async Task Start_adds_long_cache_retention_only_when_ignis_is_on_and_its_gap_rule_allows_it()
+    {
+        // PORT-ONLY (ED-NEW-ignis-integration): the launch model reaches the gap rule and its verdict decides the variable.
+        IgnisPiRetentionQuery? asked = null;
+        using var runtime = new TestRuntime();
+        var (_, _, longScript, _) = await Started(runtime, new PiScript("retention-long"), model: "openai/gpt-5.1", scope: () => Both(
+            IgnisSeams.IsOn.Override((_, _) => true),
+            IgnisSeams.PiRetention.Override(query => { asked = query; return new IgnisPiRetentionVerdict(IgnisPiRetentionReason.LongerFree, "openai"); })));
+        Assert.Equal("long", longScript.Environment("PI_CACHE_RETENTION"));
+        Assert.Equal("openai/gpt-5.1", asked!.Model);
+
+        using var runtimeB = new TestRuntime();
+        var (_, _, shortScript, _) = await Started(runtimeB, new PiScript("retention-short"), model: "anthropic/claude-sonnet-4-5", scope: () => Both(
+            IgnisSeams.IsOn.Override((_, _) => true),
+            IgnisSeams.PiRetention.Override(_ => new IgnisPiRetentionVerdict(IgnisPiRetentionReason.TooFewGaps, "anthropic", 3))));
+        Assert.Null(shortScript.Environment("PI_CACHE_RETENTION"));
+
+        // Ignis on but the gap rule unbound: nothing is set either.
+        using var runtimeC = new TestRuntime();
+        var (_, _, unboundScript, _) = await Started(runtimeC, new PiScript("retention-unbound"), model: "openai/gpt-5.1", scope: () => IgnisSeams.IsOn.Override((_, _) => true));
+        Assert.Null(unboundScript.Environment("PI_CACHE_RETENTION"));
     }
 
     [Fact]
@@ -887,6 +930,42 @@ public sealed class PiSessionTests
         events.Clear();
         session.HandleUpdate(Json("{\"usage\":{}}"));
         Assert.Empty(events.OfType<ProviderEvent.Usage>()); // zero usage emits nothing
+    }
+
+    // ---- PORT-ONLY: Ignis (ED-NEW-ignis-integration): pi's cache numbers, so Ignis learns pi's idle gaps ----
+
+    [Fact]
+    [Trait("Decision", "OD-0134")]
+    public void HandleMessageEnd_reports_the_assistant_messages_cache_numbers_for_ignis()
+    {
+        var (session, events) = Make(new SessionConfiguration
+        {
+            Provider = ProviderKind.Pi,
+            WorkingDirectory = FileUrl(Path.GetTempPath()),
+            Environment = ValueMap<string, string>.Empty,
+            RuntimeMode = RuntimeMode.Supervised,
+            InteractionMode = InteractionMode.Build,
+            Model = "anthropic/claude-sonnet-4-5",
+        });
+        session.HandleMessageEnd(Json("{\"role\":\"assistant\",\"provider\":\"openai\",\"model\":\"gpt-5.1\",\"content\":[],\"usage\":{\"input\":1200,\"output\":300,\"cacheRead\":40000,\"cacheWrite\":800}}"));
+        var usage = Assert.Single(events.OfType<ProviderEvent.CacheUsage>()).Value;
+        // The message's own provider and model name the upstream; pi gives no write lifetime, so the writes are "unknown TTL".
+        Assert.Equal((ProviderKind.Pi, "openai/gpt-5.1", null, 1200L, 40000L, 0L, 0L, 800L, 300L, true), (usage.Provider, usage.Model, usage.AgentID, usage.UncachedInput, usage.CacheRead, usage.CacheWrite5m, usage.CacheWrite1h, usage.CacheWriteUnknownTtl, usage.Output, usage.Reported));
+        Assert.Equal(42000, usage.TotalInput);
+
+        // A message that names no model falls back to the session's; the *Tokens spellings are read like the usage panel's.
+        events.Clear();
+        session.HandleMessageEnd(Json("{\"role\":\"assistant\",\"content\":[],\"usage\":{\"inputTokens\":10,\"outputTokens\":2,\"cacheReadTokens\":0,\"cacheWriteTokens\":5}}"));
+        var fallback = Assert.Single(events.OfType<ProviderEvent.CacheUsage>()).Value;
+        Assert.Equal(("anthropic/claude-sonnet-4-5", 10L, 0L, 5L, 2L), (fallback.Model, fallback.UncachedInput, fallback.CacheRead, fallback.CacheWriteUnknownTtl, fallback.Output));
+
+        // No cache fields, no tokens at all, a non-assistant message: nothing for Ignis.
+        events.Clear();
+        session.HandleMessageEnd(Json("{\"role\":\"assistant\",\"content\":[],\"usage\":{\"input\":10,\"output\":2}}"));
+        session.HandleMessageEnd(Json("{\"role\":\"assistant\",\"content\":[],\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0}}"));
+        session.HandleMessageEnd(Json("{\"role\":\"assistant\",\"content\":[]}"));
+        session.HandleMessageEnd(Json("{\"role\":\"user\",\"usage\":{\"input\":10,\"cacheRead\":5}}"));
+        Assert.Empty(events.OfType<ProviderEvent.CacheUsage>());
     }
 
     // ---- PR-PROVCLI-290 ----

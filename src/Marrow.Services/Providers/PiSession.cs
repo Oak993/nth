@@ -29,13 +29,18 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
     internal const string IgnisCacheRetentionVariable = "PI_CACHE_RETENTION";
 
     /// <summary>
-    /// PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime): adds PI_CACHE_RETENTION=long to the launch environment while Ignis
-    /// is on for the chat, unless the user set the variable (the dictionary ignores letter case, as Windows does).
+    /// PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-runtime, gated by ED-NEW-ignis-integration): adds PI_CACHE_RETENTION=long to the
+    /// launch environment while Ignis is on for the chat and Ignis's gap rule (IgnisPiRetention, the Claude one-hour rule over
+    /// pi's learned gaps; OpenAI upstreams always pay) says the longer lifetime pays. A value the user set is never replaced
+    /// (the dictionary ignores letter case, as Windows does). <paramref name="model"/> is the launch model, "provider/id".
     /// </summary>
-    internal static void WithIgnisCacheRetention(Dictionary<string, string> environment, Guid? ignisThreadID)
+    internal static void WithIgnisCacheRetention(Dictionary<string, string> environment, Guid? ignisThreadID, string? model = null)
     {
-        if (global::Marrow.Core.Port.Ignis.IgnisSeams.IsOn.Current(ProviderKind.Pi, ignisThreadID) && !environment.ContainsKey(IgnisCacheRetentionVariable))
-            environment[IgnisCacheRetentionVariable] = "long";
+        if (environment.ContainsKey(IgnisCacheRetentionVariable)) return;
+        if (!global::Marrow.Core.Port.Ignis.IgnisSeams.IsOn.Current(ProviderKind.Pi, ignisThreadID)) return;
+        var verdict = global::Marrow.Core.Port.Ignis.IgnisSeams.PiRetention.Current(new global::Marrow.Core.Port.Ignis.IgnisPiRetentionQuery(ignisThreadID, model, environment));
+        if (verdict is { SetsLong: true })
+            environment[IgnisCacheRetentionVariable] = global::Marrow.Core.Port.Ignis.Engine.IgnisPiRetention.Long;
     }
 
     // PORT-ONLY: SK-11e / WU-10 and DL-12. Null for both means today's argv, environment and behaviour exactly.
@@ -168,8 +173,9 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         environment["PI_SKIP_VERSION_CHECK"] = "1";
         // DEVIATION (OD-0134 Ignis, ED-NEW-ignis-runtime): no Swift counterpart. While Ignis is on for the chat, pi's own
         // documented cache lever (PI_CACHE_RETENTION=long: "extended prompt cache (Anthropic: 1h, OpenAI: 24h)", pi-coding-agent
-        // README) instead of pings; a value the user set is kept. It changes only how long the provider keeps the prefix.
-        WithIgnisCacheRetention(environment, configuration.IgnisThreadID);
+        // README) instead of pings, only where Ignis's gap rule says the longer lifetime pays; a value the user set is kept. It
+        // changes only how long the provider keeps the prefix.
+        WithIgnisCacheRetention(environment, configuration.IgnisThreadID, model);
         if (!textOnlyHead && SwiftTry.Optional(() => localApplicationData is { } bridgeAppData
                 ? MCPBridge.InstallBridge(bridgeAppData)
                 : MCPBridge.InstallBridge()) is { } bridge)
@@ -641,6 +647,29 @@ public sealed class PiSession : ProviderSession, IStandbyInjectionSession, Marro
         stream.EndMessage(); // :372
         if (message["stopReason"]?.JSONValueString == "error") // :373-374
             turnError = message["errorMessage"]?.JSONValueString ?? "Pi reported an error.";
+        if (CacheUsageOf(message, model, contextWindow) is { } cache) OnEvent?.Invoke(new ProviderEvent.CacheUsage(cache)); // PORT-ONLY (ED-NEW-ignis-integration)
+    }
+
+    /// <summary>
+    /// PORT-ONLY (OD-0134 Ignis, ED-NEW-ignis-integration): one finished assistant message's cache numbers, so Ignis learns pi's
+    /// idle gaps. pi reports input, output, cacheRead and cacheWrite (no write lifetime: the writes are "unknown TTL", priced
+    /// at the 5-minute premium); the model is "provider/id" from the message, else the session's. Null when the message has
+    /// no cache numbers or no tokens at all.
+    /// </summary>
+    internal static global::Marrow.Core.Port.Ignis.IgnisTurnUsage? CacheUsageOf(JSONValue message, string? sessionModel, long? window)
+    {
+        if (message["usage"] is not { IsNull: false } usage) return null;
+        var read = usage["cacheRead"]?.JSONValueInt ?? usage["cacheReadTokens"]?.JSONValueInt;
+        var written = usage["cacheWrite"]?.JSONValueInt ?? usage["cacheWriteTokens"]?.JSONValueInt;
+        if (read is null && written is null) return null;
+        var input = usage["input"]?.JSONValueInt ?? usage["inputTokens"]?.JSONValueInt ?? 0;
+        var output = usage["output"]?.JSONValueInt ?? usage["outputTokens"]?.JSONValueInt ?? 0;
+        if (input + (read ?? 0) + (written ?? 0) <= 0) return null;
+        var upstream = message["provider"]?.JSONValueString;
+        var modelID = message["model"]?.JSONValueString;
+        var named = modelID is { Length: > 0 } ? upstream is { Length: > 0 } ? upstream + "/" + modelID : modelID : sessionModel;
+        return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Pi, named, null, Math.Max(0, input), Math.Max(0, read ?? 0), 0, 0, Math.Max(0, written ?? 0),
+            Math.Max(0, output), null, window, true);
     }
 
     /// <summary>The live argv with the bundle appended when a launch is set; the same list otherwise.</summary>

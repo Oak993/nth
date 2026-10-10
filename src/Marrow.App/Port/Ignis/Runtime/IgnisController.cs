@@ -249,7 +249,7 @@ public sealed class IgnisController : IIgnisController
             if (saved > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Saved, IgnisSource.Reuse, saved));
             if (chat.PingSinceUserTurn && usage.CacheRead > 0)
             {
-                var kept = engine.RebuildPremium(points, usage.CacheRead);
+                var kept = engine.RebuildPremium(points, usage.CacheRead, chat.Ttl);
                 if (kept > 0m) Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Saved, IgnisSource.KeptWarm, kept, Count: 0));
             }
             else if (longerMain && gap is { } idleGap && chat.ContextUsed is { } prefix)
@@ -419,6 +419,28 @@ public sealed class IgnisController : IIgnisController
             Changed?.Invoke(thread);
         }
         return choice;
+    }
+
+    /// <summary>
+    /// pi's prompt-cache retention for a launch (IgnisSeams.PiRetention, ED-NEW-ignis-integration): the same gap rule as the Claude
+    /// lifetimes over what Ignis learned of pi's idle gaps, priced on the Anthropic model pi launches on (OpenAI upstreams
+    /// always pay). The verdict says why when pi is left alone.
+    /// </summary>
+    public IgnisPiRetentionVerdict ChoosePiRetention(IgnisPiRetentionQuery query)
+    {
+        var preferences = Settings.Value;
+        var mode = query.ThreadID is { } id ? Settings.ForChat(id).Mode : preferences.DefaultMode;
+        var verdict = IgnisPiRetention.Decide(new IgnisPiRetentionInput
+        {
+            Provider = ProviderKind.Pi,
+            Mode = mode,
+            Environment = query.Environment,
+            Model = query.Model,
+            Samples = gaps.Samples(ProviderKind.Pi, IgnisCacheBucket.Main),
+            PointsFor = model => Points.Find(ProviderKind.Claude, model),
+        });
+        Log.Info("pi cache retention for " + (query.ThreadID?.ToString("D") ?? "a chat") + ": " + verdict.Reason + " (" + verdict.Gaps.ToString(System.Globalization.CultureInfo.InvariantCulture) + " gaps)");
+        return verdict;
     }
 
     public void TurnFinished(Guid thread)
@@ -613,7 +635,7 @@ public sealed class IgnisController : IIgnisController
         decimal? lost = null;
         if (chat.CacheReported && chat.ContextUsed is { } context && context > 0 && PointsOf(chat) is { } points)
         {
-            lost = engine.RebuildPremium(points, context);
+            lost = engine.RebuildPremium(points, context, chat.Ttl);
             if (lost > 0m) Ledger.Record(new IgnisLedgerEntry(at, thread, IgnisLedgerKind.Lost, null, lost.Value));
         }
         Record(thread, chat, new IgnisEvent(NewEventID(), thread, IgnisEventKind.WentCold, at, lost, IgnisAmountKind.Lost));

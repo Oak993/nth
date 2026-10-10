@@ -34,6 +34,7 @@ public static class IgnisRuntimeStartup
         BindSessionHooks();
         IgnisSeams.HelperAgents.SetProcessDefault(query => HelperModel(IgnisSeams.Controller.Current(), query));
         IgnisSeams.CacheLifetimes.SetProcessDefault(query => (IgnisSeams.Controller.Current() as IgnisController)?.ChooseCacheLifetimes(query));
+        IgnisSeams.PiRetention.SetProcessDefault(query => (IgnisSeams.Controller.Current() as IgnisController)?.ChoosePiRetention(query));
         IgnisSeams.IsOn.SetProcessDefault((provider, thread) => IsOn(IgnisSeams.Controller.Current(), thread));
         IgnisSeams.Controller.SetProcessDefault(Running);
         Marrow.App.Port.Ignis.Views.IgnisViews.Bind(Running);
