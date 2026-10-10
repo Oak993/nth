@@ -348,6 +348,22 @@ public sealed class NthSitesBTests(HeadlessSession headless)
     });
 
     [Fact]
+    public void A_popover_rows_bar_is_drawn_only_while_its_slot_is_open() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        Marrow.Core.Port.Updates.UpdatePillRow Row(Marrow.Core.Port.Updates.UpdateRowState state, double? progress) =>
+            new("c", "Claude Code", Marrow.Core.Port.Updates.UpdateItemKind.ProviderCli, state, "1.0.0", "1.1.0", true, "Status", progress, null);
+        var waiting = new UpdateRowView(Row(Marrow.Core.Port.Updates.UpdateRowState.Queued, null));
+        Assert.False(waiting.Bar.IsVisible); // a shut slot draws no light
+        Assert.False(waiting.BarOpen);
+        var updating = new UpdateRowView(Row(Marrow.Core.Port.Updates.UpdateRowState.Updating, .3));
+        Assert.True(updating.Bar.IsVisible);
+        Assert.True(updating.BarOpen);
+        Assert.Equal(.3, updating.Bar.Target);
+        Assert.Equal(3, updating.Bar.Bar.Height);
+    });
+
+    [Fact]
     public void The_voice_preparation_ring_is_the_18_px_nth_ring() => headless.OnUiThread(() =>
     {
         var ring = new VoicePreparationRing();

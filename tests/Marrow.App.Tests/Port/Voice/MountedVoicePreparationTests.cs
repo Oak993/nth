@@ -56,7 +56,8 @@ public sealed class MountedVoicePreparationTests(HeadlessSession headless)
                 var ring = LogicalQuery.SelfAndDescendants<VoicePreparationRing>(Pill(view)).Single();
                 Assert.Equal(18, ring.Bounds.Width); // the nth ring at 18 (motion pack step 4: 14, 18 or 20), where the locked qring was 16
                 Assert.Equal(18, ring.Bounds.Height);
-                Assert.Equal(.36, ring.Fraction, 6);
+                Assert.Equal(.36, ring.Ring.Value, 6); // the arc is heading for the measured fraction; the nth ring springs there (motion pack step 3 spring), so the drawn arc is a hair short of it
+                Assert.Equal(.36, ring.Fraction, 2);
                 var point = ring.TranslatePoint(default, window)!.Value;
                 var crop = new Avalonia.Rect(point, ring.Bounds.Size);
                 var painted = PreviewPixels.Region(window, crop);
@@ -91,7 +92,8 @@ public sealed class MountedVoicePreparationTests(HeadlessSession headless)
                 rig.PumpWindow(window);
                 rig.Elapse(window, .4);
                 Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(Pill(view)), text => text.Text == "315 of 874 MB");
-                Assert.Equal(.36, ring.Fraction, 6);
+                Assert.Equal(.36, ring.Ring.Value, 6); // a stale report moves nothing
+                Assert.Equal(.36, ring.Fraction, 3); // the spring has all but arrived
                 rig.Main.OnMain(models.Complete);
                 rig.Main.Loop.RunUntil(() => !view.Voice.Preparing);
                 rig.Elapse(window, .8);

@@ -216,7 +216,8 @@ internal sealed class UpdateRowView : Decorator
         Grid.SetColumn(statusLine, 3);
 
         barHost.Child = new Border { Margin = new Thickness(30, 6, 0, 0), Child = bar };
-        fold = new AnimatedScalar(this, 0, value => barHost.Height = BarSlot * value);
+        bar.IsVisible = false; // the slot is shut: a shut slot draws no light
+        fold = new AnimatedScalar(this, 0, value => { barHost.Height = BarSlot * value; bar.IsVisible = value > 0; });
         Child = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(14, 6, 12, 6), Children = { line, barHost } };
         Apply(row);
     }

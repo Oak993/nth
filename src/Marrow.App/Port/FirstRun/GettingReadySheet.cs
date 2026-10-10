@@ -113,7 +113,7 @@ public static class GettingReadyLook
     internal static Animation Arrive(double seconds) => Animation.TimingCurve(0.2, 0.8, 0.2, 1, seconds);
 
     /// <summary>The percentage beside the bar (step 15): mono 11 px, 34 px wide, right-aligned, with a 10 px gap.</summary>
-    public const double PercentWidth = 34, PercentGap = 10, PercentSize = 11;
+    public const double PercentWidth = 34, PercentGap = 10, PercentSize = 11, PercentHeight = 14;
 
     private sealed record CubicInOut(double Seconds) : Animation
     {
@@ -290,14 +290,15 @@ public sealed class GettingReadySheet : Decorator, IFirstRunScreen
         list.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
         list.Margin = new Thickness(0, 0, 0, GettingReadyLook.ListBottom);
         BuildRows(plan);
-        // step 15: the 4 px nth bar (step 3 option B) with the percentage in mono beside it, 10 px apart, the percentage 34 px wide and right-aligned. The row is the bar's 4 px high (the sheet keeps the
-        // height it was measured at); the 11 px figure is centred on the bar and passes over the margins around it.
+        // step 15: the 4 px nth bar (step 3 option B) with the percentage in mono beside it, 10 px apart, the percentage 34 px wide and right-aligned. The row is as tall as the 14 px figure but takes only the
+        // bar's 4 px of the sheet's height (a -5 px margin each side): the sheet keeps the height it was measured at, and the figure, centred on the bar, passes over the margins around it.
         percent.SetValue(TextElement.FontFamilyProperty, new FontFamily("Cascadia Mono,Consolas,monospace"));
         percent.SetValue(TextElement.FontSizeProperty, GettingReadyLook.PercentSize);
         percent.SetTextInstantly("0%");
         percent.Foreground = new SolidColorBrush(WaitingInk(percent));
         percent.ActualThemeVariantChanged += (_, _) => percent.Foreground = new SolidColorBrush(WaitingInk(percent));
-        barRow = new Grid { Height = GettingReadyLook.BarHeight, ColumnDefinitions = new ColumnDefinitions($"*,{GettingReadyLook.PercentGap},{GettingReadyLook.PercentWidth}") };
+        percent.Height = GettingReadyLook.PercentHeight;
+        barRow = new Grid { Height = GettingReadyLook.PercentHeight, Margin = new Thickness(0, -(GettingReadyLook.PercentHeight - GettingReadyLook.BarHeight) / 2), ColumnDefinitions = new ColumnDefinitions($"*,{GettingReadyLook.PercentGap},{GettingReadyLook.PercentWidth}") };
         Grid.SetColumn(percent, 2);
         barRow.Children.Add(bar);
         barRow.Children.Add(percent);
