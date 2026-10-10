@@ -34,6 +34,12 @@ public sealed class WindowsToastPlatform : IWindowsToastPlatform
         registry.SetValue(name, value, RegistryValueKind.String);
     }
 
+    public void DeleteRegistryTree(string key)
+    {
+        try { Registry.CurrentUser.DeleteSubKeyTree(key, throwOnMissingSubKey: false); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
+    }
+
     public void Show(string appId, string tag, string xml)
     {
         var document = new XmlDocument();
