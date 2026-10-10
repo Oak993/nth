@@ -68,7 +68,7 @@ internal static class GlassMaterial
             };
             owner.AttachedToVisualTree += (_, _) => { requested = false; Queue(); };
             owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); StopTurn(); requested = false; };
-            owner.LayoutUpdated += (_, _) => Queue();
+            owner.LayoutUpdated += (_, _) => { if (!LayoutIndifferent()) Queue(); };
             owner.PropertyChanged += (_, _) => Queue();
             owner.ActualThemeVariantChanged += (_, _) => Queue();
         }
@@ -102,6 +102,35 @@ internal static class GlassMaterial
             if (turns.Turning != 0 || !turns.Owed) return;
             turns.Owed = false;
             foreach (var visual in top.GetVisualDescendants()) visual.InvalidateVisual();
+        }
+
+        // ED-NEW-stutterfix-4: a layout pass anywhere in a window synchronised each of its pieces (a keystroke in the composer did so for each of the
+        // main window's ~44: 1,936 synchronisations for 43 keys), and a lone piece's synchronisation, when nothing it is drawn with had changed, computed
+        // the same state and sent nothing. A lone piece (one drawing its own material, in no container) now skips a layout pass when what it was last
+        // synchronised with that changes without telling it is as it was: its render transform's value (changed in place), its fill's colour (changed
+        // in place), its tint as resolved (the accent), its having no container, and its material's copy of its composition visual. The rest of what it is
+        // drawn with raises its PropertyChanged or ActualThemeVariantChanged (bounds, opacity, visibility, transform replaced, effect, fill replaced,
+        // corners), each of which queues it as before; the window's renderer step (WindowHook) puts its material back after Avalonia's re-synchronisation.
+        // A window without that step, a container, and a piece drawn by a container keep to every layout pass. What is drawn, and when, is unchanged.
+        private (Matrix Local, Color? Fill, Color Tint)? alone;
+
+        private (Matrix Local, Color? Fill, Color Tint) Unannounced()
+        {
+            var fill = owner switch { Border border => border.Background, SwiftShapeBorder shape => shape.Background, _ => null } as ISolidColorBrush;
+            var e = SwiftGlass.GetEffect(owner);
+            var tint = e?.TintColor?.Opacity(e.TintOpacity ?? 1).Resolve(owner.ActualThemeVariant) ?? Colors.Transparent;
+            return (LocalTransform(owner), fill?.Color, tint);
+        }
+
+        private bool LayoutIndifferent()
+        {
+            if (alone is not { } kept || material is not { } m || parent is null || ElementComposition.GetElementVisual(owner) is not { } v) return false;
+            if (TopLevel.GetTopLevel(owner) is not { } top || !windows.TryGetValue(top, out var hook) || !hook.Installed) return false;
+            if (SwiftGlass.GetContainerSpacing(owner) is not null || ContainerOf(owner) is not null) return false;
+            if (m.Offset != v.Offset || m.Translation != v.Translation || m.Size != v.Size || m.AnchorPoint != v.AnchorPoint || m.CenterPoint != v.CenterPoint
+                || m.Scale != v.Scale || m.RotationAngle != v.RotationAngle || m.Orientation != v.Orientation || m.Opacity != v.Opacity || m.Visible != v.Visible
+                || !ReferenceEquals(m.OpacityMask, v.OpacityMask)) return false;
+            return Unannounced() == kept;
         }
 
         public void Queue()
@@ -204,9 +233,11 @@ internal static class GlassMaterial
         private void Synchronize()
         {
             using var probe = InteractionProbe.Begin("glass.sync");
+            SynchronizedForTests?.Invoke(owner);
             requested = false;
             var spacing = SwiftGlass.GetContainerSpacing(owner);
             var ownEffect = SwiftGlass.GetEffect(owner);
+            alone = null;
             BindInput(ownEffect?.IsInteractive == true);
             if (spacing is null && ContainerOf(owner) is { } group)
             {
@@ -257,6 +288,7 @@ internal static class GlassMaterial
             if (spacing is null)
             {
                 if (RegionFor(owner, LocalTransform(owner), 1) is { } r) regions.Add(r);
+                alone = Unannounced();
             }
             else
             {
@@ -423,6 +455,8 @@ internal static class GlassMaterial
         public readonly HashSet<Attachment> Pending = [];
         public readonly List<Attachment> Later = [];
         private readonly List<Attachment> pass = [];
+        /// <summary>Whether the step runs after the window's renderer update (Install found the member it names).</summary>
+        public bool Installed;
         public void Repair()
         {
             if (Pending.Count > 0) TraceForTests?.Invoke($"renderer step with {Pending.Count} pending");
@@ -475,6 +509,7 @@ internal static class GlassMaterial
             var update = renderer?.GetType().GetField("_update", BindingFlags.Instance | BindingFlags.NonPublic);
             if (renderer is null || update?.GetValue(renderer) is not Action original) return;
             update.SetValue(renderer, new Action(() => { TraceForTests?.Invoke("renderer update"); original(); hook.Repair(); }));
+            hook.Installed = true;
             // An update already queued holds the old delegate: one more step, after it, in the next composition update.
             if (ElementComposition.GetElementVisual(top)?.Compositor is { } compositor) compositor.RequestCompositionUpdate(() => { TraceForTests?.Invoke("extra step"); hook.Repair(); });
             TraceForTests?.Invoke("hook installed");
@@ -552,6 +587,8 @@ internal static class GlassMaterial
 
     // Test-only (InternalsVisibleTo): the first-frame steps (a piece's first synchronisation, the first draw), for the native first-frame test.
     internal static volatile Action<string>? TraceForTests;
+    /// <summary>Called with a piece's owner each time it synchronises (tests).</summary>
+    internal static Action<Control>? SynchronizedForTests;
 
     // Sent before a material leaves its parent: its handler gives up the backdrop it keeps (disposed at the next render, where the GPU context is current).
     private sealed class Released { public static readonly Released Message = new(); }
