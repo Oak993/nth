@@ -130,6 +130,15 @@ public class OpenAICompatibleSession : ProviderSession
     private bool interrupted;                               // :48
     private bool isStopping;                                // :49
     private bool approveAllRemaining;                       // :50
+    // DEVIATION (OD-0134 Ignis): no Swift counterparts. The day the system prompt's date line names (pinned so the
+    // prompt prefix stays byte-identical while the cache can still be warm), when the last request went out, the last
+    // turn's effort (keep-warm and tidy-up requests reuse it), the keep-warm or tidy-up request in flight, and that
+    // request's one change to the payload RequestPayload built.
+    private string? promptDay;
+    private DateTimeOffset? lastRequestAt;
+    private string? lastEffort;
+    private Task<bool>? ignisMaintenance;
+    private Action<Dictionary<string, JSONValue>>? ignisPayloadEdit;
 
     private TaskHandle<bool>? sendTask;                     // :53. Task<Void, Error> stood in as TaskHandle<bool>.
     private TaskHandle<StreamRound>? roundTask;              // :54
@@ -320,12 +329,15 @@ public class OpenAICompatibleSession : ProviderSession
             await FinishInterrupted(); // :283
             return;
         }
+        // DEVIATION (OD-0134 Ignis): a keep-warm or tidy-up request still in flight finishes before the turn's own.
+        if (ignisMaintenance is { } maintenance) await maintenance; // never throws: RunIgnisRequest answers false instead
         if (sessionID is null || isStopping) throw new ProviderError(new ProviderError.Case.NotRunning());   // :286
         if (OpenAICompatibleSessionConfig.RequiresAPIKey && ApiKey.Length == 0 && KeyRotation is null) throw new ProviderError(new ProviderError.Case.NotInstalled(OpenAICompatibleSessionConfig.Kind)); // :287; ED-410
         turnAccountRevision = apiAccountRevision;
         runtimeMode = input.RuntimeMode;             // :288
         interactionMode = input.InteractionMode;     // :289
         if (input.Model is { Length: > 0 } model) currentModel = ModelForInput(model); // :290; ED-410
+        lastEffort = input.Effort; // DEVIATION (OD-0134 Ignis)
         interrupted = false;         // :291
         approveAllRemaining = false; // :292
         // A turn that resumes after AGENTS.md or CLAUDE.md changed gets the new rules; the files
@@ -553,6 +565,101 @@ public class OpenAICompatibleSession : ProviderSession
         await Task.CompletedTask;
     }
 
+    // DEVIATION (OD-0134 Ignis): no Swift counterpart. Keeps the provider's prompt cache warm between tasks: the very
+    // payload the next turn would send (same system prompt, history, tools and model) plus one keep-alive user message,
+    // capped at one output token. Neither the message nor the reply enters the history and no turn event is raised;
+    // the request's spend and cache usage are reported like any other. False: not sent (a turn is running, the
+    // session is stopped, there is no history yet) or the provider answered with an error.
+    public Task<bool> KeepWarm()
+    {
+        if (!CanRunIgnisRequest()) return Task.FromResult(false);
+        var ping = JSONValue.FromDictionaryLiteral(("role", "user"), ("content", global::Marrow.Core.Port.Ignis.IgnisWords.PingText));
+        return RunIgnisRequest(payload =>
+        {
+            payload["messages"] = JSONValue.FromArrayLiteral([.. messages, ping]);
+            payload["max_tokens"] = new JSONValue.Int(1);
+        }, _ => true);
+    }
+
+    // DEVIATION (OD-0134 Ignis): no Swift counterpart. Rebuilds the history shorter at its cheapest point, between
+    // tasks: one summary request on the chat's own model (the history before the kept turns, so it reads the cached
+    // prefix), then system prompt + the summary + the last keepTurns turns word for word. A turn starts at a user
+    // message, so every kept tool call keeps its result. Silent: no notices. False: nothing to tidy, not sent, or the
+    // provider gave no summary (the history is then left exactly as it was).
+    public Task<bool> Tidy(int keepTurns)
+    {
+        if (!CanRunIgnisRequest()) return Task.FromResult(false);
+        var turnStarts = Enumerable.Range(1, messages.Count - 1).Where(index => messages[index]["role"]?.JSONValueString == "user").ToList();
+        var keep = Math.Max(0, keepTurns);
+        if (turnStarts.Count <= keep) return Task.FromResult(false);
+        var cut = keep == 0 ? messages.Count : turnStarts[turnStarts.Count - keep];
+        var before = messages.ToList();
+        var system = messages[0];
+        var older = messages.Skip(1).Take(cut - 1).ToList();
+        var kept = messages.Skip(cut).ToList();
+        var ask = JSONValue.FromDictionaryLiteral(("role", "user"), ("content", IgnisTidySummaryRequest));
+        return RunIgnisRequest(payload =>
+        {
+            payload["messages"] = JSONValue.FromArrayLiteral([system, .. older, ask]);
+            if (payload.ContainsKey("tools")) payload["tool_choice"] = "none";
+        }, round =>
+        {
+            if (round.Content.Trimmed() is not { Length: > 0 } summary || !messages.SequenceEqual(before)) return false; // the history moved meanwhile: leave it
+            messages = [messages[0],
+                JSONValue.FromDictionaryLiteral(("role", "user"), ("content", IgnisTidySummaryHeader + summary)),
+                AssistantTurn(IgnisTidySummaryAcknowledgement, "", []),
+                .. kept];
+            SanitizeHistory();
+            return true;
+        });
+    }
+
+    internal const string IgnisTidySummaryRequest =
+        "[Marrow Ignis] Automatic tidy-up, not from the user. Use no tools. Summarize the conversation so far for your own later use: the task, the decisions made, the files and paths involved, the state of the work and anything still open. Reply with the summary only.";
+    internal const string IgnisTidySummaryHeader = "[Summary of the earlier conversation]\n";
+    internal const string IgnisTidySummaryAcknowledgement = "Understood. I will continue from this summary and the messages after it.";
+
+    private bool CanRunIgnisRequest() =>
+        sendTask is null && ignisMaintenance is null && sessionID is not null && !isStopping && messages.Count >= 2
+        && messages[0]["role"]?.JSONValueString == "system";
+
+    // One keep-warm or tidy-up request through StreamOneRound (key rotation, price reservation and retries included),
+    // with tools so the cached prefix matches the next turn's. A turn sent meanwhile waits for it (PerformTurn).
+    private Task<bool> RunIgnisRequest(Action<Dictionary<string, JSONValue>> edit, Func<StreamRound, bool> finish)
+    {
+        async Task<bool> Run()
+        {
+            interrupted = false;
+            ignisPayloadEdit = edit;
+            try
+            {
+                var round = await StreamOneRound(currentModel, lastEffort, true);
+                ignisPayloadEdit = null;
+                ReportUsage(round);
+                if (round.RawError is { Length: > 0 } || round.StatusCode != 200) return false;
+                return finish(round);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            finally
+            {
+                ignisPayloadEdit = null;
+            }
+        }
+        // A main-actor task, as Send's turn is, so StreamOneRound's cancellation checks and Stop() apply to it.
+        var task = MainActor.SpawnThrowing<bool>(Run).Value;
+        ignisMaintenance = task;
+        return Finish();
+
+        async Task<bool> Finish()
+        {
+            try { return await task; }
+            finally { if (ReferenceEquals(ignisMaintenance, task)) ignisMaintenance = null; }
+        }
+    }
+
     // :471-482
     public void Stop()
     {
@@ -580,9 +687,23 @@ public class OpenAICompatibleSession : ProviderSession
             OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :490
             Marrow.Services.Store.TokenLedger.Shared.Current.Record(usage.UsedTokens); // :491
         }
+        // DEVIATION (OD-0134 Ignis): the request's cache usage, for Ignis; no Swift counterpart.
+        if (round.TokenUsage is { } tokens) OnEvent?.Invoke(new ProviderEvent.CacheUsage(CacheUsageOf(tokens, round.Usage)));
         if (round.TokenUsage is not { HasSpend: true } reported) return; // :493
         OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(
             OpenAICompatibleSessionConfig.Kind, reported.Total, reported.Input, reported.Output, reported.CachedInput, currentModel))); // :494-501
+    }
+
+    // DEVIATION (OD-0134 Ignis): no Swift counterpart. prompt_tokens counts the cached part too (OpenAI and DeepSeek
+    // alike), so the uncached bucket is input - cached. These APIs bill no cache-write premium, so the write buckets
+    // stay 0. No cached_tokens / prompt_cache_hit_tokens in the usage: "not reported".
+    private global::Marrow.Core.Port.Ignis.IgnisTurnUsage CacheUsageOf(ReportedTokenUsage tokens, ContextUsage? context)
+    {
+        var kind = OpenAICompatibleSessionConfig.Kind;
+        if (tokens.CachedInput is not { } cached)
+            return global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(kind, currentModel, null, context?.UsedTokens, context?.WindowTokens);
+        return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(kind, currentModel, null, Math.Max(0, (tokens.Input ?? 0) - cached), Math.Max(0, cached),
+            0, 0, 0, tokens.Output ?? 0, context?.UsedTokens, context?.WindowTokens, true);
     }
 
     private void AccountRequestSpend(StreamRound round)
@@ -749,6 +870,7 @@ public class OpenAICompatibleSession : ProviderSession
             RefreshSystemPrompt();
         }
         var payload = RequestPayload(model, effort, withTools); // :511. A refusal retries this same payload.
+        ignisPayloadEdit?.Invoke(payload); // DEVIATION (OD-0134 Ignis): a keep-warm or tidy-up request's one change.
         ProviderToolBillingGuard.Validate(OpenAICompatibleSessionConfig.Kind, payload); // RR-50: before reservation, for capped and uncapped heads.
         var attempt = 0; // :516
         while (true) // :517
@@ -797,6 +919,7 @@ public class OpenAICompatibleSession : ProviderSession
             dispatchPrice = capped ? price : null;
             dispatchEstimatorQuote = capped ? estimatorQuote : null;
             dispatchRequiresPrice = capped;
+            lastRequestAt = SwiftDate.Now; // DEVIATION (OD-0134 Ignis): the date line keeps its day while the cache can be warm.
             var task = MainActor.SpawnThrowing<StreamRound>(() => PerformStreamAttempt(payload)); // :524
             roundTask = task; // :525
             try
@@ -1956,7 +2079,21 @@ public class OpenAICompatibleSession : ProviderSession
             "  line, however long, so a copied reply keeps its full line length wherever it is pasted.\n" +
             "  Lines inside a fenced code block keep their own breaks.\n" +
             "- If a tool result shows the user declined an action, do not retry it: ask how to proceed.\n" +
-            $"- Today's date is {FoundationISO8601.Format(SwiftDate.Now)}.\n\n{appendedPolicy}"; // :1211-1213
+            $"- Today's date is {PromptDay()}.\n\n{appendedPolicy}"; // :1211-1213; DEVIATION (OD-0134 Ignis): date only, see PromptDay
+    }
+
+    // DEVIATION (OD-0134 Ignis): Swift's date line is the full ISO 8601 time to the second, rebuilt every turn, so no
+    // two requests ever shared a cached system prompt. The line now names the day only (UTC, yyyy-MM-dd) and keeps
+    // the session's day: it moves to a new day only once no request has gone out for an hour (the longest cache
+    // TTL), so a day change never breaks a cache that can still be warm.
+    private string PromptDay()
+    {
+        var now = SwiftDate.Now;
+        var today = now.UtcDateTime.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        if (promptDay is null || (!string.Equals(promptDay, today, StringComparison.Ordinal)
+            && (lastRequestAt is not { } last || now - last >= TimeSpan.FromHours(1))))
+            promptDay = today;
+        return promptDay;
     }
 
     // :1215-1233
@@ -2013,7 +2150,10 @@ public class OpenAICompatibleSession : ProviderSession
         if (turnStart < 0) turnStart = body.Count;
         var current = body.Skip(turnStart).ToList(); // :1255
         var earlierAll = body.Take(turnStart).ToList();
-        var earlier = earlierAll.Skip(Math.Max(0, earlierAll.Count - Math.Max(0, 50 - current.Count))).ToList(); // :1256
+        // DEVIATION (OD-0134 Ignis): Swift keeps a 50-message body, so past 60 every turn slid the window by a message
+        // or two and no cached prefix survived. Trimming to 40 lets the history grow 20 messages on one stable prefix
+        // before the next cut.
+        var earlier = earlierAll.Skip(Math.Max(0, earlierAll.Count - Math.Max(0, 40 - current.Count))).ToList(); // :1256
         messages = (system is not null ? new List<JSONValue> { system } : []).Concat(earlier).Concat(current).ToList(); // :1257
     }
 
