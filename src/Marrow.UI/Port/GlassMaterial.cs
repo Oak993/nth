@@ -66,11 +66,20 @@ internal static class GlassMaterial
                 queued = false;
                 ElementComposition.GetElementVisual(this.owner)?.Compositor.RequestCompositionUpdate(synchronize);
             };
-            owner.AttachedToVisualTree += (_, _) => { requested = false; Queue(); };
+            owner.AttachedToVisualTree += (_, _) => { if (InteractionProbe.On) InteractionProbe.Count(ProbeName(owner)); requested = false; Queue(); };
             owner.DetachedFromVisualTree += (_, _) => { RemoveMaterial(); UnbindInput(); Unwatch(); StopTurn(); requested = false; };
-            owner.LayoutUpdated += (_, _) => { if (!LayoutIndifferent()) Queue(); };
-            owner.PropertyChanged += (_, _) => Queue();
-            owner.ActualThemeVariantChanged += (_, _) => Queue();
+            owner.LayoutUpdated += (_, _) =>
+            {
+                var indifferent = LayoutIndifferent(out var why);
+                if (InteractionProbe.On) InteractionProbe.Count(why);
+                if (!indifferent) Queue();
+            };
+            owner.PropertyChanged += (_, e) =>
+            {
+                if (InteractionProbe.On) InteractionProbe.Count("glass.queue.property." + e.Property.Name);
+                Queue();
+            };
+            owner.ActualThemeVariantChanged += (_, _) => { InteractionProbe.Count("glass.queue.theme"); Queue(); };
         }
 
         // The window is redrawn whole once, a frame after an eased turnover of its glass has ended. The turnover is drawn by partial redraws, the glass's
@@ -122,15 +131,22 @@ internal static class GlassMaterial
             return (LocalTransform(owner), fill?.Color, tint);
         }
 
-        private bool LayoutIndifferent()
+        // `why` names the outcome for InteractionProbe (constant strings).
+        private bool LayoutIndifferent(out string why)
         {
+            why = "glass.layout.queue.not-lone";
             if (alone is not { } kept || material is not { } m || parent is null || ElementComposition.GetElementVisual(owner) is not { } v) return false;
+            why = "glass.layout.queue.no-step";
             if (TopLevel.GetTopLevel(owner) is not { } top || !windows.TryGetValue(top, out var hook) || !hook.Installed) return false;
+            why = "glass.layout.queue.container";
             if (SwiftGlass.GetContainerSpacing(owner) is not null || ContainerOf(owner) is not null) return false;
+            why = "glass.layout.queue.visual";
             if (m.Offset != v.Offset || m.Translation != v.Translation || m.Size != v.Size || m.AnchorPoint != v.AnchorPoint || m.CenterPoint != v.CenterPoint
                 || m.Scale != v.Scale || m.RotationAngle != v.RotationAngle || m.Orientation != v.Orientation || m.Opacity != v.Opacity || m.Visible != v.Visible
                 || !ReferenceEquals(m.OpacityMask, v.OpacityMask)) return false;
-            return Unannounced() == kept;
+            var same = Unannounced() == kept;
+            why = same ? "glass.layout.skip" : "glass.layout.queue.unannounced";
+            return same;
         }
 
         public void Queue()
@@ -146,6 +162,14 @@ internal static class GlassMaterial
         }
 
         private bool synchronizedOnce;
+        // ED-NEW-stutterfix-1: the name a piece is counted under when it is attached (InteractionProbe on only): its type and its first ancestors'.
+        private static string ProbeName(Control control)
+        {
+            var name = new StringBuilder("glass.attached.");
+            Visual? visual = control;
+            for (var i = 0; i < 4 && visual is not null; i++, visual = visual.GetVisualParent()) name.Append(visual.GetType().Name).Append('<');
+            return name.ToString();
+        }
 
         // Run by the window's renderer step (WindowHook.Repair), after the renderer's update and before the frame is committed.
         internal void SynchronizeFirst(WindowHook hook)
@@ -243,6 +267,7 @@ internal static class GlassMaterial
             {
                 RemoveMaterial();
                 synchronizedOnce = true; // the container draws it
+                InteractionProbe.Count("glass.queue.by-piece");
                 AttachmentFor(group).Queue();
                 return;
             }
