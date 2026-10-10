@@ -1309,6 +1309,7 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
         {
             case Target.Lead:
                 OnEvent?.Invoke(new ProviderEvent.Usage(new ContextUsage { UsedTokens = used, WindowTokens = usage["modelContextWindow"]?.JSONValueInt })); // :602
+                OnEvent?.Invoke(new ProviderEvent.CacheUsage(CacheUsageOf(usage, activeModel, null))); // DEVIATION (OD-0134 Ignis): no Swift counterpart.
                 if (usage["total"]?["totalTokens"]?.JSONValueInt is { } total && total > 0) // :610
                 {
                     var (next, spend) = spendTracker.Spend(total, Math.Max(0, total - used)); // :611
@@ -1335,8 +1336,25 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
                     RecordCodexSpend(used, head, headModel, head); // :626
                 }
                 OnEvent?.Invoke(new ProviderEvent.AgentProgress(head, null, null, headTotal > 0 ? headTotal : used, null)); // :628
+                OnEvent?.Invoke(new ProviderEvent.CacheUsage(CacheUsageOf(usage, headModel, head))); // DEVIATION (OD-0134 Ignis): no Swift counterpart.
                 break;
         }
+    }
+
+    // DEVIATION (OD-0134 Ignis): no Swift counterpart. One request's cache usage from tokenUsage.last: inputTokens counts
+    // the cached part too (OpenAI's convention), so the uncached bucket is inputTokens - cachedInputTokens; Codex has
+    // no cache-write premium, so the write buckets stay 0. Without cachedInputTokens the usage is "not reported".
+    internal static global::Marrow.Core.Port.Ignis.IgnisTurnUsage CacheUsageOf(JSONValue tokenUsage, string? model, string? agentID)
+    {
+        var last = tokenUsage["last"];
+        long? window = tokenUsage["modelContextWindow"]?.JSONValueInt;
+        long? used = last?["totalTokens"]?.JSONValueInt;
+        if (last?["cachedInputTokens"]?.JSONValueInt is not { } cached)
+            return global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Codex, model, agentID, used, window);
+        var input = last["inputTokens"]?.JSONValueInt ?? 0;
+        var output = last["outputTokens"]?.JSONValueInt ?? 0;
+        return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Codex, model, agentID,
+            Math.Max(0, input - cached), Math.Max(0, cached), 0, 0, 0, output, used, window, true);
     }
 
     // :671-677
