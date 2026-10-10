@@ -207,9 +207,18 @@ public sealed class SwiftImage : Control
     }
 
     /// <summary><c>Image(_ name:)</c> for an asset-catalogue image.</summary>
-    public static SwiftImage Named(string name) => Assets.Value.TryGetValue(name, out var asset)
+    public static SwiftImage Named(string name) => (Assets.Value.TryGetValue(name, out var listed) ? listed : TourAsset(name)) is { } asset
         ? new SwiftImage(null, name, null, asset.Icon, asset.Bitmap, asset.Bitmap2x, asset.Intent, asset.Paints)
         : new SwiftImage(null, name, null, null, null, null, ImageRenderingMode.Original);
+
+    // RR-22 (OD-0027): the eight welcome-tour pictures retaken from Windows Marrow (Assets/Images/tour-*.png and @2x, made by
+    // porting/tools/make_tour_assets.py from the native gallery's GalleryTourScenes). Large photos, so each is decoded the first
+    // time the tour shows its page, not with the asset catalogue on the app's first image lookup.
+    private static readonly string[] TourPictures = ["tour-welcome", "tour-hydra", "tour-pairs", "tour-slider", "tour-threads", "tour-recipes", "tour-panels", "tour-themes"];
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Asset> TourAssets = new(StringComparer.Ordinal);
+
+    private static Asset? TourAsset(string name) => Array.IndexOf(TourPictures, name) < 0 ? null
+        : TourAssets.GetOrAdd(name, picture => new Asset(null, LoadBitmap(picture + ".png"), LoadBitmap(picture + "@2x.png"), ImageRenderingMode.Original));
 
     /// <summary>The <c>.font</c> a control passes down to the symbols inside it.</summary>
     public static SwiftFont? GetFont(Control control) => control.GetValue(FontProperty);

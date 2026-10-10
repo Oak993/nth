@@ -425,6 +425,37 @@ public sealed class HydraChargeLayerViewTests(HeadlessSession headless)
         });
     }
 
+    // ThemeManager is set from any actor and posts DidChange on the setter's thread (AppTheme.cs); every other observer turns on
+    // its own control's thread. The charge's observer recoloured the view on the setter's thread, so a theme set off the UI thread
+    // while a charge was alive threw out of the setter ("a different thread owns it") and the observers after it never heard it.
+    [Fact]
+    [Trait("Req", "PR-HYDRA-243")] // HydraButton.swift:530-533, on the view's own thread
+    public void A_theme_change_from_another_thread_recolors_the_charge_on_its_own_thread()
+    {
+        Run((_, _) =>
+        {
+            var previous = ThemeManager.Current;
+            try
+            {
+                ThemeManager.Current = AppTheme.System;
+                var view = Configured(Accent);
+                var window = Host(view);
+                var recolors = view.RecolorCount;
+
+                var change = Task.Run(() => ThemeManager.Current = AppTheme.Dracula);
+                Assert.True(change.Wait(TimeSpan.FromSeconds(5)));
+                change.GetAwaiter().GetResult(); // the setter completes: no observer threw on its thread
+                Assert.Equal(recolors, view.RecolorCount); // nothing recoloured off the view's thread
+
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Same(Marrow.UI.Chrome.Chrome.AccentNSColor, view.StoredAccent);
+                Assert.Equal(recolors + 1, view.RecolorCount);
+                window.Close();
+            }
+            finally { ThemeManager.Current = previous; }
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-HYDRA-243")] // HydraButton.swift:530-533 not gated on having a window
     public void A_theme_change_reaches_a_view_that_is_not_in_a_window()

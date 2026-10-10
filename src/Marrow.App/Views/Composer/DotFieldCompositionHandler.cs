@@ -50,6 +50,7 @@ internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandle
     public override Rect GetRenderBounds() => state?.RenderBounds ?? default;
     public override void OnRender(ImmediateDrawingContext context)
     {
+        using var work = Marrow.UI.Port.AuroraBootTrace.Begin("Working dots: compositor draw");
         if (IsStopped || state is not { } current) return;
         var frame = current.Sample();
         frame.Draw(context);

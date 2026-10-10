@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -27,6 +28,7 @@ public sealed class BootStageWindow
     private bool warmTried;
     private bool cloaked;
     private bool following;
+    private readonly IDisposable idleHold;
 
     /// <summary>The stage control (for tests).</summary>
     internal AuroraBootStage Stage => stage;
@@ -78,10 +80,16 @@ public sealed class BootStageWindow
             if (stageWindow.TryGetPlatformHandle()?.Handle is { } handle and not 0)
                 SetWindowLongPtr(handle, GwlExStyle, GetWindowLongPtr(handle, GwlExStyle) | ClickThrough);
         };
+        DesktopPerformanceProbe.ObserveWindow(main, "main");
+        DesktopPerformanceProbe.ObserveWindow(stageWindow, "boot stage");
         stage.FrameChanged += OnFrame;
         stage.MainWindowShown += (_, _) => ShowMain();
-        stage.Closed += (_, _) => Finish();
+        // T44: HWND destruction performs a synchronous compositor commit. Never reenter it from RenderCore.
+        stage.Closed += (_, _) => Dispatcher.UIThread.Post(Finish, DispatcherPriority.Background);
         stageWindow.Closed += (_, _) => FinishWithoutClosing();
+        // ED-NEW-launch-fix (6): the idle warm-ups (the model chips') compile nothing on the render thread while B draws; a
+        // stage that is not shown (closed, never opened) holds nothing
+        idleHold = Marrow.App.Views.Composer.GpuWarmup.HoldIdle(() => stageWindow.IsVisible);
     }
 
     /// <summary>The main window cloaked early (ED-236); false until then, and for good where it cannot be cloaked (tests).</summary>
@@ -100,7 +108,11 @@ public sealed class BootStageWindow
     }
 
     /// <summary>OD-0113: bootstrap and preparation are ready; B can begin its grow after its launch.</summary>
-    public void Ready() => stage.Ready();
+    public void Ready()
+    {
+        using var work = AuroraBootTrace.Begin("Boot: initialization ready");
+        stage.Ready();
+    }
 
     /// <summary>The final window layout, in stage coordinates.</summary>
     internal static BootWindowLayout Layout(Rect frame)
@@ -119,7 +131,7 @@ public sealed class BootStageWindow
     {
         using var work = AuroraBootTrace.Begin("Boot: UI cloaked show");
         warmTried = true;
-        if (main.IsVisible) return;
+        if (!stageWindow.IsVisible || main.IsVisible) return;
         var activated = main.ShowActivated;
         main.ShowActivated = false;
         try
@@ -155,8 +167,16 @@ public sealed class BootStageWindow
         Apply(stage.Frame);
     }
 
+    // T44: content attached after the first stage frame inherits the current clip/fade while cloaked.
+    internal void ContentReady()
+    {
+        following = false;
+        Follow();
+    }
+
     private void ShowMain()
     {
+        using var work = AuroraBootTrace.Begin("Boot: hand-over");
         warmTried = true; // the hand-over is here: no early show after it
         if (!following && main.Content is Control hiddenContent) hiddenContent.Opacity = 0;
         if (cloaked)
@@ -173,7 +193,11 @@ public sealed class BootStageWindow
 
     private void OnFrame(object? sender, EventArgs e)
     {
-        if (!warmTried && WarmDue()) WarmMain();
+        if (!warmTried && WarmDue())
+        {
+            warmTried = true;
+            Dispatcher.UIThread.Post(WarmMain, DispatcherPriority.Background);
+        }
         if (following) Apply(stage.Frame);
     }
 
@@ -191,6 +215,8 @@ public sealed class BootStageWindow
 
     private void Finish()
     {
+        using var work = AuroraBootTrace.Begin("Boot: finish");
+        idleHold.Dispose(); // ED-NEW-launch-fix (6)
         stage.FrameChanged -= OnFrame;
         presentation.Restore();
         if (cloaked)
@@ -209,6 +235,7 @@ public sealed class BootStageWindow
 
     private void FinishWithoutClosing()
     {
+        idleHold.Dispose(); // ED-NEW-launch-fix (6)
         stage.FrameChanged -= OnFrame; presentation.Restore();
         if (cloaked) { cloaked = false; cloak(main, false); }
         if (content is not null) { content.Opacity = 1; content.RenderTransform = null; content.Clip = null; }

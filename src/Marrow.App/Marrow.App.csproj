@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Directory.Release.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\Marrow.Core\Marrow.Core.csproj" />
@@ -16,11 +17,16 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- ST-0 / ED-248: the test host has its own runtimeconfig. -->
-    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <!-- T44 / ED-NEW-T44: background workstation GC for the latency-sensitive desktop process. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <!-- Owner finding F6 (2026-10-08): the installed app felt laggy, first animations stuttered. A published build is
+         precompiled (ReadyToRun) so screens, animations and Skia paths do not JIT on first use; TieredPGO stays on. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <TieredPGO>true</TieredPGO>
     <!-- OD-0112: icon D Aurora, generated from the locked Canvas source by porting/tools/generate_app_icon_d.py. -->
     <ApplicationIcon>Assets/icon.ico</ApplicationIcon>
+    <AssemblyTitle>Marrow</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>

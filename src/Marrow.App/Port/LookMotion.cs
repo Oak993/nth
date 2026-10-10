@@ -36,15 +36,17 @@ internal sealed class LookMotion
     private bool waiting;
     private readonly Action<TimeSpan> frame;
 
-    public LookMotion(Control owner)
+    public LookMotion(Control owner, bool preserveFrameProgress = false)
     {
         this.owner = owner;
+        PreserveFrameProgress = preserveFrameProgress;
         frame = Tick;
         owner.DetachedFromVisualTree += (_, _) => Settle();
     }
 
     /// <summary>Runs after the values moved, once per frame: the card draws what they now hold.</summary>
     public event Action? Frame;
+    internal bool PreserveFrameProgress { get; }
 
     /// <summary>Whether transitions are stilled now (Reduce Motion, or no frame clock to run them).</summary>
     public bool Still => !FrameClock.IsBound || EnvironmentValues.GetAccessibilityReduceMotion(owner) || Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion; // the system setting too, as AnimatedScalar reads it (VT-12)
@@ -92,6 +94,7 @@ internal abstract class LookValue(LookMotion motion)
     private ContinuousInstant start;
     private double delay;
     private Animation? curve;
+    private ContinuousInstant previousFrame;
 
     protected LookMotion Motion { get; } = motion;
 
@@ -111,6 +114,7 @@ internal abstract class LookValue(LookMotion motion)
         curve = animation;
         delay = delaySeconds;
         start = SwiftClock.Now;
+        previousFrame = start;
         IsMoving = true;
         Motion.Add(this);
     }
@@ -119,6 +123,12 @@ internal abstract class LookValue(LookMotion motion)
     internal bool Step(ContinuousInstant now)
     {
         if (!IsMoving) return true;
+        // T46: a stalled main thread must not consume an unpainted part of the pill transition. After a >50ms gap,
+        // resume at the next 60Hz step of the same curve. Ordinary cadence keeps the exact CSS wall-clock timing.
+        var gap = now - previousFrame;
+        if (Motion.PreserveFrameProgress && gap > TimeSpan.FromMilliseconds(50))
+            start += gap - TimeSpan.FromSeconds(1.0 / 60);
+        previousFrame = now;
         var elapsed = now - start;
         var span = TimeSpan.FromSeconds(delay + curve!.Duration);
         if (elapsed.Ticks + TimeSpan.TicksPerMillisecond >= span.Ticks)

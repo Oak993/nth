@@ -60,6 +60,18 @@ public static class Program
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
         RunVelopackHook(AppContext.BaseDirectory);
+        // ED-NEW-T44: an explicitly marked copied profile, including Release, never the owner's live roots.
+        if (args.Contains("--performance-profile", StringComparer.Ordinal))
+        {
+            var profile = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+            if (string.IsNullOrWhiteSpace(profile) || !Path.IsPathFullyQualified(profile)
+                || !File.Exists(Path.Combine(profile, ".marrow-performance-profile"))) return 2;
+            var root = Path.GetFullPath(profile);
+            var live = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+            if (string.Equals(root.TrimEnd(Path.DirectorySeparatorChar), live.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
+                || root.StartsWith(Path.Combine(live, "Marrow Code"), StringComparison.OrdinalIgnoreCase)) return 2;
+            DevDataRoot.PerformanceRoot.SetProcessDefault(root);
+        }
         // ED-NEW-models-palette-11: offline, owner-local pack generator. It runs right after the Velopack hook (ED-235: nothing
         // but the SK-17 relay may precede the hook; a normal launch returns from the hook at once) and before every other
         // desktop or data binding: the single-instance lock, toast identity, settings and the app lifetime.
@@ -91,6 +103,9 @@ public static class Program
             return 0;
         }
         using var instanceLock = singleInstanceLock;
+        DesktopPerformanceProbe.BeginStartup();
+        var bindingWork = AuroraBootTrace.Begin("Startup: desktop bindings");
+        Marrow.App.Port.ModelsPalette.PaletteStartup.Begin(); // ED-622: overlap verified pack loading with desktop bindings.
         using var reopen = ReopenSignal.Create(DroppyCodeApp.ReopenSignalName);
         WindowsToastStartup.Bind(); // ED-220: process AUMID/our per-user scheme before any window exists
 
@@ -109,30 +124,36 @@ public static class Program
         // (SwiftTrapException, "StoragePaths.Locations is not bound...") on first access if this is missed.
         Storage.Locations.SetProcessDefault(StorageLocations.CreateProduction());
         StoragePaths.Locations.SetProcessDefault(StoragePathsLocations.CreateProduction());
+        Marrow.App.Views.Composer.GpuProgramCache.PrepareAtLaunch(); // ED-NEW-launch-fix (1): the kept GPU programs read on the pool before Boot B's first frame
+        Marrow.UI.Port.AuroraBootGpu.ContextReady = gpu => { Marrow.App.Views.Composer.GpuProgramCache.ForContext(gpu); _ = Marrow.App.Views.Composer.GlassVariantPreparation.Start(); }; // installed before anything links; ED-NEW-launch-fix (A): the glass variants made on a worker, awaited by nothing
+        _ = LoginEnvironment.Load(); // OD-0133: the provider refresh's environment read on the pool now (single-flight), not when bootstrap reaches it
         // SK-13 / ED-326 (6)(a): ONE skills pipeline per data root, SK-9's generations bound to it. A host that cannot open leaves the seam unbound and the app starts.
         var skills = SkillsStartup.Bind(SkillsDataRoot.Resolve());
         Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.Bind(); // T11 step 2: Settings > Models (accounts) and Settings > Pills read the running AppModel
         Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Bind(); // step 3a: the composer shows the account capsule
         if (skills is not null) SkillsUpdateRows.Attach(skills); // SK-16: the installed items are the Updates page's "Skills and tools" rows (ED-343's hook)
-        Marrow.App.Port.ModelsPalette.PaletteStartup.Prepare(); // ED-622: verified tables, off UI, before any window/model.
 
         var lifetime = new ClassicDesktopStyleApplicationLifetime
         {
             Args = args,
             ShutdownMode = ShutdownMode.OnExplicitShutdown,
         };
+        bindingWork.Dispose();
         AuroraBootWarmup.Register(); // OD-0113: the imported renderer joins the same awaited preparation
         AuroraLoaderWarmup.Register(); // OD-0113 / OD-0108: before the first preparation plan or GPU warm-up
         Marrow.App.Port.MultiAccount.Handshake.HandshakeGpuProgram.EnsureRegistered(); // MA-4-2: prime the filament gradient and bloom before a live Handshake.
-        MarrowApplication.BuildAvaloniaApp().SetupWithLifetime(lifetime);
+        using (AuroraBootTrace.Begin("Startup: Avalonia setup"))
+            MarrowApplication.BuildAvaloniaApp().SetupWithLifetime(lifetime);
         // ED-065, R-ISO-1: the main actor is Avalonia's UI thread, bound before any window and before the hang
         // watchdog's first ping (HangWatchdog.swift:52) posts to it.
         MainActor.Bind(AvaloniaMainExecutor.Instance);
+        DesktopPerformanceProbe.Start();
         // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
         InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
 
         var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
-        using var notifications = DroppyCodeApp.ListenForNotificationArguments(shell.Delegate);
+        var launchReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var notifications = DroppyCodeApp.ListenForNotificationArguments(shell.Delegate, launchReady.Task);
 
         DroppyCodeApp.RunPrologue(); // DroppyCodeApp.swift:7-19
 
@@ -143,16 +164,25 @@ public static class Program
         // any window exists (PR-LAUNCH-001).
         FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(new AvaloniaWindow()));
 
-        lifetime.Startup += (_, _) =>
-        {
-            Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
-            shell.FinishLaunching();
-            skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
-            DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
-            reopen.Listen(() => shell.Reopen(lifetime.Windows));
-        };
+        lifetime.Startup += (_, _) => FinishStartup(shell, launchReady, skills, args, reopen, lifetime);
         lifetime.ShutdownRequested += (_, e) => shell.ShutdownRequested(e);
         lifetime.Exit += (_, _) => {shell.Delegate.Model?.StopPaletteChecks();shell.WillTerminate();};
         return lifetime.Start(args);
     }
+
+    private static async void FinishStartup(AppShell shell, TaskCompletionSource launchReady, SkillsHost? skills, string[] args, ReopenSignal reopen, IClassicDesktopStyleApplicationLifetime lifetime)
+    {
+        shell.PrepareBoot();
+        // Even a cached pack must let the first stage layout/paint run before model/content work.
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => { }, Avalonia.Threading.DispatcherPriority.Background);
+        await Marrow.App.Port.ModelsPalette.PaletteStartup.PrepareAsync(); // ED-622: verified authority before any model/content.
+        if (shell.HasTerminated) return;
+        Marrow.App.Port.MultiAccount.Thread.ThreadPortSeams.Bind(Marrow.App.Window.WindowManager.Shared.Model);
+        shell.FinishLaunching();
+        launchReady.TrySetResult();
+        skills?.CollectInBackground(); // SK-13: the startup GC runs on the pool once the main window is up, never on the launch path (single-instance lock is already held)
+        DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
+        reopen.Listen(() => shell.Reopen(lifetime.Windows));
+    }
+
 }

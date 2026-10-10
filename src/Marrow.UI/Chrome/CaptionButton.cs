@@ -220,6 +220,8 @@ public sealed class CaptionButton : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
+        // OD-0044's entire 46 x 40 button is a native hit region, including between the glyph's strokes.
+        context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
         var darkness = Darkness;
         var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
         var enabled = IsEffectivelyEnabled;

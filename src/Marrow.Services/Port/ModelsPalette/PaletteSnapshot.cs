@@ -23,13 +23,24 @@ public sealed record PaletteSnapshot(string Digest,long Boundary,FrozenDictionar
         var word=PaletteIntensity.Word(effort);word=word switch {null or "off" or "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max"=>word,_=>"medium"};
         return Shades.GetValueOrDefault(new(modelId,word,light));
     }
-    internal static PaletteSnapshot Create(long boundary,IEnumerable<PaletteModel> models,string packVersion="source1")
+    internal static PaletteSnapshot Create(long boundary,IEnumerable<PaletteModel> models,string packVersion="source1",PaletteSnapshot? previous=null)
     {
         var map=models.OrderBy(m=>m.Id,StringComparer.Ordinal).ToFrozenDictionary(m=>m.Id,StringComparer.Ordinal);
+        var canonical="AC3-S2-D3-IR3\n"+packVersion+"\n"+boundary.ToString(CultureInfo.InvariantCulture)+"\n"+string.Join('\n',map.Values.OrderBy(m=>m.Id,StringComparer.Ordinal).Select(m=>string.Join('|',m.Id,m.Maker,m.State is PaletteState.Pending or PaletteState.Router?m.State.ToString():"decided",m.Palette.Key,string.Join(',',m.Palette.Stops),m.Position.Strength.ToString("R",CultureInfo.InvariantCulture),m.Position.Level.ToString(CultureInfo.InvariantCulture))));
+        var digest=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        // T44: no gradient arithmetic or shade tables for an unchanged publication.
+        if(previous?.Digest==digest)return previous;
         var tables=new Dictionary<PaletteShadeKey,PaletteShade>();
         var shared=new Dictionary<(PaletteAnchor,double,string?,bool),PaletteShade>();
+        if(previous is not null)
+            foreach(var p in previous.Shades)
+            {
+                var model=previous.Models[p.Key.ModelId];
+                shared.TryAdd((model.Palette,model.Position.Strength,p.Key.Effort,p.Key.Light),p.Value);
+            }
         string?[] words=[null,"off","none","minimal","low","medium","high","xhigh","max"];
-        foreach(var m in map.Values)foreach(var word in words)foreach(var light in new[]{false,true})
+        bool[] themes=[false,true];
+        foreach(var m in map.Values)foreach(var word in words)foreach(var light in themes)
         {
             var key=(m.Palette,m.Position.Strength,word,light);
             if(!shared.TryGetValue(key,out var shade))
@@ -47,8 +58,7 @@ public sealed record PaletteSnapshot(string Digest,long Boundary,FrozenDictionar
             }
             tables.Add(new(m.Id,word,light),shade);
         }
-        var canonical="AC3-S2-D3-IR3\n"+packVersion+"\n"+boundary.ToString(CultureInfo.InvariantCulture)+"\n"+string.Join('\n',map.Values.OrderBy(m=>m.Id,StringComparer.Ordinal).Select(m=>string.Join('|',m.Id,m.Maker,m.State is PaletteState.Pending or PaletteState.Router?m.State.ToString():"decided",m.Palette.Key,string.Join(',',m.Palette.Stops),m.Position.Strength.ToString("R",CultureInfo.InvariantCulture),m.Position.Level.ToString(CultureInfo.InvariantCulture))));
-        return new(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))),boundary,map,tables.ToFrozenDictionary())
+        return new(digest,boundary,map,tables.ToFrozenDictionary())
         {Makers=map.Values.GroupBy(m=>m.Maker,StringComparer.Ordinal).ToFrozenDictionary(g=>g.Key,g=>new PaletteMaker(g.Key,MakerName(g.Key,g.Select(m=>m.Name)),g.OrderByDescending(m=>m.Position.Strength).ThenBy(m=>m.Id,StringComparer.Ordinal).First().Palette.Stops[1],g.Count()),StringComparer.Ordinal)};
     }
     private static string MakerName(string id,IEnumerable<string> names)=>id switch

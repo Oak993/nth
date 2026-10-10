@@ -1,0 +1,13 @@
+# T39 remaining release validation
+
+These are unmet acceptance checks, not authorization to build/run an installer, sign or publish. T39 only prepares inputs/scripts and builds the application/test dependencies. Run against the final integrated revision; another input or HEAD change invalidates prior receipts.
+
+1. Windows locked dependency/tool restore (including native AOT tooling), then the four complete unfiltered Core/Services/UI/App suites with raw logs, TRX, discovery, commands, environment and exact-revision binding. Repeat the 8 AutoContinue and 3 installed-release-notes cases blocked by Linux's missing icu.dll. Preserve all original assertions and references.
+2. Resolve the genuine SwiftFont line-box gap using real Windows font measurements and the governing source/OD evidence; keep Gate C failing until it is resolved. The scanner and the genuine marker are unchanged in T39.
+3. Gate A against the pristine B3 checkout, and C/D real production interaction, source/reference visual captures, persistence/restart, failure/cancellation and end-to-end receipts for all applicable PR/UI IDs and the 136 first-release obligations. Missing macOS reference access and UNK-0011 source ambiguities remain explicit.
+4. After separately authorized packaging: clean Windows 11 x64 prerequisite checks for vcredist143-x64, Whisper CPU/Vulkan native load, final VAD/test-clip/legal resources, and a manifest of actual final artifact path/hash/configuration/runtime/version/time. T39 did not create these artifacts.
+5. Final app/setup PE inspection with inspect-release-metadata.ps1; retain both inspected EXEs and matching assemblies as exact package-build artifacts. App Release PE was checked on Linux, but setup PE remains unverified because setup was not built. Gate E/F require canonical metadata, x64 headers, copyright and exact inspected package hash.
+6. Gate E real same-artifact clean install, launch, native load, close/child cleanup, second launch, upgrade, same-version no-payload, downgrade refusal and uninstall/data-retention receipts; fixture-only or earlier-revision checks cannot pass.
+7. Gate F independent final source/product parity review, all deviations and imported ODs, and passing antecedent A..E. OD-0029/0030 remain reserved/not imported. Live release/update evidence remains UNK-0009 BLOCKED_ON_ACCESS; publication was prohibited and not attempted.
+
+T39 result: RR-23 / RR-35 / RR-42 input and tracking work DONE; RR-25 BLOCKED on genuine font marker, RR-26 BLOCKED on final semantic acceptance evidence (runners complete), RR-43 BLOCKED on final setup/package PE proof (metadata inputs and app PE complete). **NOT READY**.

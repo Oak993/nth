@@ -2140,7 +2140,7 @@ internal static class WindowsShellForCommands
     // system directory (System32\WindowsPowerShell\v1.0\powershell.exe ships with every supported
     // Windows 11 install).
     internal static string Resolve(IReadOnlyDictionary<string, string>? environment) =>
-        LoginEnvironment.Which("pwsh.exe", environment)
-        ?? LoginEnvironment.Which("powershell.exe", environment)
+        LoginEnvironment.WhichLaunchable("pwsh.exe", environment) // a Store PowerShell cannot join the job (WhichLaunchable)
+        ?? LoginEnvironment.WhichLaunchable("powershell.exe", environment)
         ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
 }

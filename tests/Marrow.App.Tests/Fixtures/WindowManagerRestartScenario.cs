@@ -131,7 +131,7 @@ internal static class WindowManagerRestartScenario
             RequireHeadlessGeometry(settings);
             Assert.Equal("Settings", settings.Title);
             Assert.False(settings.CanResize);
-            Assert.False(settings.CanMaximize);
+            Assert.True(settings.CanMaximize); // T45 owner caption override persists on reopening.
             Assert.True(settings.CanMinimize);
             Assert.True(settings.IsVisible);
             Assert.Equal(ThemeVariant.Dark, application.RequestedThemeVariant);

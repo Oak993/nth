@@ -124,7 +124,7 @@ public sealed class ModelEffortButton : Decorator
             presented = !presented;
             button.Chip(presented); // :114 .buttonStyle(.chip(active: isPresented)).
             lockedWidth = presented ? naturalWidth : null; frame.Width = compact ? double.NaN : lockedWidth ?? double.NaN; // :108-117
-            if (presented)
+            if (presented && popup.Child is null)
             {
                 popup.VerticalOffset = inputs.Thread.Provider == ProviderKind.OpenRouter ? -Marrow.App.Port.ModelsPalette.OpenRouterPicker.ChipClearance : 0; // ED-623.
                 var panel = openPanel = new ModelEffortPanel(inputs.Thread.Id, inputs.HasHistory);
@@ -133,7 +133,6 @@ public sealed class ModelEffortButton : Decorator
                 Popovers.SetClosePopover(content, () => Presentation.Presenter.Current.SetPresented(popup, false));
                 popup.Child = content;
             }
-            else { popup.Child = null; openPanel = null; }
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         button.Focusable = false; popup.PlacementTarget = button; // :115,120
@@ -432,7 +431,19 @@ public sealed class ModelList : Decorator
             var back = PlainControls.Button(new Border { Width = 20, Height = 20, Background = Brushes.Transparent, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299, :294 .contentShape(.rect): the whole frame takes the press
             var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(8, 8, 8, 4), Children = { back, EffortView.Text("Select model", SwiftFont.Body, Chrome.SecondaryText) } };
             var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + Math.Max(entries.Count, 1) * (rowHeight + 1), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-            Child = new Border { Padding = new Thickness(6), Child = new StackPanel { Spacing = 0, Children = { header, scroll } } }; // :348-353
+            // Owner task T46: keep the source rows, pair order and disabled-provider guards; add model/maker search above them.
+            Marrow.App.Port.ModelsPalette.PickerScroll.Apply(scroll);
+            var stack = new StackPanel { Spacing = 0, Children = { header } };
+            if (entries.Count > 0)
+            {
+                var previousSearch = Child?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault();
+                var search = new Marrow.App.Port.ModelsPalette.ModelListSearch(scroll, entries, rows.Children.OfType<ModelListRow>().ToArray(), rowHeight, pairsHeight, onChoose);
+                stack.Children.Add(search.Control);
+                search.Field.Text = previousSearch?.Text;
+                if (previousSearch?.IsFocused == true) MainActor.Post(() => search.Field.Focus());
+            }
+            stack.Children.Add(scroll);
+            Child = new Border { Padding = new Thickness(6), Child = stack }; // :348-353
         });
         this.Task(() => 0, async _ =>
         {
@@ -939,6 +950,7 @@ public sealed partial class EffortSlider : Decorator
     private sealed record JewelScene(JewelMaterial Material, TrackEffect? Effect, StrikeGeometry? Geometry, double Gain,
         bool Reduce, bool Dark, double Scaling, double X, double Width, SKColor[] Along, float Lift);
     internal bool JewelPaused => ReduceMotion || !FrontMonitor.Shared.Current.IsVisible;
+    internal bool JewelInteracting => held || !offset.AtRest(0) || !scale.AtRest(1) || fadeFromMaterial is not null;
 
 
     public EffortSlider(int count, Binding<int> index, string accessibilityTitle, bool fastMode = false, EffortBrand brand = EffortBrand.Purple, EffortPairBrand? pair = null,
@@ -1004,6 +1016,7 @@ public sealed partial class EffortSlider : Decorator
             if (currentEffect is not null) currentEffect.Opacity = 1;
         };
         PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) RequestFrame(); };
+        ActualThemeVariantChanged += (_, _) => _ = PaletteTheme; AttachedToVisualTree += (_, _) => _ = PaletteTheme; // the render thread's theme copy (EffortSliderPalette)
         this.Track(() => FrontMonitor.Shared.Current.IsVisible, visible => { if (visible) RequestFrame(); });
         this.Track(() => index.Value, _ => IndexChanged());
     }
@@ -1134,7 +1147,8 @@ public sealed partial class EffortSlider : Decorator
         var now = SwiftClock.Now;
         // jewel-knob.html:867-871: drawn only on the refreshes the page's frame gate passes (KnobFrameGate: evenly paced,
         // about 60 a second on any display); the tube keeps its own 1/60 s timeline (ED-232)
-        if (!gate.Draw((now - born).TotalMilliseconds)) { RequestFrame(); return; }
+        if (!(JewelInteracting && RenderFrameSource.DecorationTimeFor(orbView) is not null)
+            && !gate.Draw((now - born).TotalMilliseconds)) { RequestFrame(); return; }
         // jewel-knob.html:813 tick(): the springs move by the time since the last drawn frame, at most 50 ms (after a stall
         // the knob goes on from where it was)
         var dt = lastFrame is { } previous ? Math.Min(MaxStep, Math.Max(0, (now - previous).TotalSeconds)) : 0;
@@ -1208,7 +1222,7 @@ public sealed partial class EffortSlider : Decorator
         orbView.InvalidateVisual();
     }
 
-    internal void ResolveJewel(float[] into) => ResolveJewel(into, (SwiftClock.Now - born).TotalSeconds, SwiftDate.Now);
+    internal void ResolveJewel(float[] into) => ResolveJewel(into, orbView.DecorationElapsed ?? (SwiftClock.Now - born).TotalSeconds, SwiftDate.Now);
 
     private void ResolveJewel(float[] into, double time, DateTimeOffset date)
     {
@@ -1395,10 +1409,10 @@ public sealed class JewelKnobView : Control
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
         if (FrameClock.Source.Current is IRenderFrameSourceProvider)
         {
-            timeline = new AnimationTimeline(() => new AnimationTimelineSchedule(1.0 / 60, owner.JewelPaused), _ =>
+            timeline = new AnimationTimeline(() => new AnimationTimelineSchedule(1.0 / 60, owner.JewelPaused, Ambient: true), _ =>
             {
                 if (!RenderFrameSource.InvalidateTicking()) InvalidateVisual();
-            }, this);
+            }, this, () => owner.JewelInteracting);
             AttachedToVisualTree += (_, _) => timeline.Appear();
             DetachedFromVisualTree += (_, _) => timeline.Disappear();
             PropertyChanged += (_, change) =>
@@ -1409,6 +1423,7 @@ public sealed class JewelKnobView : Control
     }
 
     private readonly AnimationTimeline? timeline;
+    internal double? DecorationElapsed => RenderFrameSource.DecorationTimeFor(this)?.TotalSeconds;
     private JewelKnobOperation? live;
     internal bool OnRenderThread => timeline?.Source is RenderFrameSource;
 
@@ -1873,6 +1888,7 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
     private readonly DateTimeOffset startedAt = SwiftDate.Now;
     private readonly EffectCanvas canvas;
     private double time; // seconds since the track appeared, as of its last draw (written where the timeline drew)
+    private volatile bool hasDecoration;
     private long draws;
     /// <param name="look">:1040 <c>let look: TrackLook</c>.</param>
     // :1045-1072 body
@@ -1890,14 +1906,19 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
         // operation at the new time (LiquidTrack.Live). Main records the track again only when what it draws changes.
         this.TimelineView(() => new AnimationTimelineSchedule(
             1.0 / 60, // :1049 (30 for a solo supercharged track); DEVIATION OD-0051: that track is now liquid and runs at 60
-            EnvironmentValues.GetAccessibilityReduceMotion(this) || !FrontMonitor.Shared.Current.IsVisible), date =>
+            EnvironmentValues.GetAccessibilityReduceMotion(this) || !FrontMonitor.Shared.Current.IsVisible, Ambient: true), date =>
         {
-            Volatile.Write(ref time, (date - startedAt).TotalSeconds);
+            if (RenderFrameSource.DecorationTimeFor(this) is { } phase)
+            {
+                hasDecoration = true; Volatile.Write(ref time, phase.TotalSeconds);
+            }
+            else Volatile.Write(ref time, (date - startedAt).TotalSeconds);
             Interlocked.Increment(ref draws);
             if (!RenderFrameSource.InvalidateTicking()) canvas.InvalidateVisual();
-        }, onRenderThread: true); // :1049-1068
+        }, onRenderThread: true, ambientInteraction: () => AmbientTransition); // :1049-1068
         // OD-0073: Reduce Motion turned on or off at run time shows the fast look's still (or lets it run) at once
-        PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) canvas.InvalidateVisual(); };
+        PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) { _ = PaletteReduceMotion; canvas.InvalidateVisual(); } }; // also refreshes the render thread's copy (TrackEffectPalette)
+        AttachedToVisualTree += (_, _) => _ = PaletteReduceMotion;
         // ED-248 review 2: what the track draws is recorded again when the theme or the size changes (no longer every frame)
         ActualThemeVariantChanged += (_, _) => canvas.InvalidateVisual();
         canvas.SizeChanged += (_, _) => canvas.InvalidateVisual();
@@ -1928,9 +1949,19 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
     internal TrackLook Look => look;
 
     /// <summary>This effect's clock at <paramref name="date"/>, s (the Strike's time: the knob reads its lightning on it).</summary>
-    internal double TimeAt(DateTimeOffset date) => (date - startedAt).TotalSeconds;
+    internal double TimeAt(DateTimeOffset date) => (date - startedAt).TotalSeconds - DecorationOffset;
+    private double DecorationOffset
+    {
+        get
+        {
+            var phase = RenderFrameSource.DecorationTimeFor(this)?.TotalSeconds ?? (hasDecoration ? Time : (double?)null);
+            return phase is { } elapsed ? (SwiftDate.Now - startedAt).TotalSeconds - elapsed : 0;
+        }
+    }
+    internal bool WantsInteractionFrames => AmbientTransition;
 
     private (LiquidSpec Spec, StrikeTint Tint, DateTimeOffset Start, double Duration)? fade;
+    private double fadeStartAt;
     private SkiaSharp.SKColor[] fadeGradient = [];
     private (LiquidSpec Spec, int Pixels, ThemeVariant Theme)? fadeGradientFor;
 
@@ -1942,7 +1973,8 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
     internal void FadeFrom(LiquidSpec spec, StrikeTint tint, DateTimeOffset start, double duration, StrikeInk? ink = null)
     {
         fade = (spec, tint, start, duration);
-        if (ink is { } from) { inkFrom = from; inkStart = (start - startedAt).TotalSeconds+mixPageOrigin; }
+        fadeStartAt = TimeAt(start);
+        if (ink is { } from) { inkFrom = from; inkStart = TimeAt(start)+mixPageOrigin; }
     }
 
     /// <summary>How far a colour fade has gone at this effect's <paramref name="time"/> (1: none, or done).</summary>
@@ -1951,7 +1983,7 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
         if (fade is not { } f) return 1;
         // under reduce motion 0.2 s, as the knob's (read here: the effect may be made before it is in the tree)
         var duration = EnvironmentValues.GetAccessibilityReduceMotion(this) ? 0.2 : f.Duration;
-        var u = Math.Clamp((startedAt.AddSeconds(time) - f.Start).TotalSeconds / duration, 0, 1);
+        var u = Math.Clamp((time - fadeStartAt) / duration, 0, 1);
         return u * u * (3 - 2 * u);
     }
 
@@ -1994,6 +2026,11 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
 
     /// <summary>The track's time as of its last draw, seconds since it appeared.</summary>
     internal double Time => Volatile.Read(ref time);
+    private bool AmbientTransition => Volatile.Read(ref scene) is { } s
+        && (Time + mixPageOrigin < s.IntentTime + .6
+            || s.FromGradient is not null && Time + mixPageOrigin < s.FadeStart + s.FadeDuration
+            || s.InkFrom is not null && Time + mixPageOrigin < s.InkStart + .6
+            || PaletteTransitionActive);
 
     private StrikeChannels? strikes;
     private LiquidTrack.LiquidLayers? layers;
@@ -2213,12 +2250,16 @@ public sealed partial class TrackEffect : Decorator, LiquidTrack.ILiveSource
                 fadeGradient = LiquidTrack.GradientFor(f.Spec, row.Length, theme);
             }
             fromRow = fadeGradient; fromTint = f.Tint;
-            colourStart = (f.Start - startedAt).TotalSeconds+mixPageOrigin;
+            colourStart = fadeStartAt+mixPageOrigin;
             colourDuration = EnvironmentValues.GetAccessibilityReduceMotion(this) ? 0.2 : f.Duration;
         }
         var next = new Scene(size, track, spec, row, still ? null : Bubbles(track, size.Height), darkBubbles,
             layers.StrandColors(spec, theme), fast, still, fast ? strikes : null, StrikeGeometryFor(size), StrikeTint.For(look.Brand), StrikeSeed, layers, fromRow, fromTint, colourStart, colourDuration, TimeAt(SwiftDate.Now)+mixPageOrigin, StrikeInk.Of(JewelLiquid.Of(look.Brand)), inkFrom, inkStart);
-        if (scene is null || !scene.Equals(next)) Volatile.Write(ref scene, next); // (records compare their lists by reference)
+        if (scene is null || !scene.Equals(next))
+        {
+            Volatile.Write(ref scene, next); // (records compare their lists by reference)
+            RenderFrameSource.WakeAmbientFor(this);
+        }
     }
 
     private sealed class EffectCanvas(TrackEffect owner) : Control

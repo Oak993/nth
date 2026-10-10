@@ -7,17 +7,24 @@ namespace Marrow.UI.Port;
 
 internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
 {
+    private readonly Action invalidate, register;
+    internal AuroraBootHandler(Action? invalidate = null, Action? register = null)
+    {
+        this.invalidate = invalidate ?? Invalidate;
+        this.register = register ?? RegisterForNextAnimationFrameUpdate;
+    }
     private readonly AuroraBootPainter painter = new();
     private AuroraBootSnapshot? snapshot;
     private bool stopped, requested, drawn = true;
     private AuroraBootSequence? sequence;
+    private SkiaSharp.GRContext? gpu; // the GPU context the app's hook last saw (AuroraBootGpu)
     public override void OnMessage(object message)
     {
         if (message is AuroraBootSnapshot next)
         {
             if (snapshot is not { } old || old.Window != next.Window || old.ReduceMotion != next.ReduceMotion)
                 sequence = new AuroraBootSequence(next.Window, next.ReduceMotion);
-            snapshot = next; Invalidate(); Request();
+            snapshot = next; invalidate(); Request();
         }
         else if (message is false) { stopped = true; painter.Dispose(); }
     }
@@ -26,13 +33,14 @@ internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
     {
         requested = false;
         if (stopped || snapshot is null) return;
-        Invalidate();
+        invalidate();
         if (drawn) Request();
     }
     private void Request()
     {
         if (requested || stopped) return;
-        requested = true; drawn = false; RegisterForNextAnimationFrameUpdate();
+        if (snapshot is { } s && sequence!.At(s.Clock.GetElapsedTime(s.Started).TotalSeconds, s.ReadyAt).StageClosed) return;
+        requested = true; drawn = false; register();
     }
     public override void OnRender(ImmediateDrawingContext context)
     {
@@ -46,6 +54,7 @@ internal sealed class AuroraBootHandler : CompositionCustomVisualHandler
         long drawingBytes;
         using (var lease = feature.Lease())
         {
+            AuroraBootGpu.Arrive(ref gpu, lease.GrContext, AuroraBootGpu.ContextReady); // ED-NEW-launch-fix (1): before the first link
             var startBytes = GC.GetAllocatedBytesForCurrentThread();
             painter.Draw(lease.SkCanvas, s.Size, s.Window, frame, elapsed, s.Dark, s.ReduceMotion, lease.CurrentOpacity, lease.GrContext);
             drawingBytes = GC.GetAllocatedBytesForCurrentThread() - startBytes;

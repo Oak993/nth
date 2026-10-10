@@ -170,6 +170,9 @@ public class MorphingTextBlock : TextBlock
     private IFrameSource? driftFrames;
     private Action<TimeSpan>? driftCallback;
     private bool drifting;
+    private AmbientMotionController? driftAmbient;
+    private double? driftAmbientLast;
+    private bool driftPending;
 
     /// <summary>Where the drift is in its loop, 0 to 1: one phase at rest and through a change.</summary>
     internal double DriftPhase => driftPeriod > 0 ? driftSeconds / driftPeriod % 1 : 0;
@@ -292,6 +295,7 @@ public class MorphingTextBlock : TextBlock
         watched.Clear();
         attached = false;
         UpdateDrift();
+        driftAmbient?.Dispose(); driftAmbient = null; driftAmbientLast = null;
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -305,6 +309,11 @@ public class MorphingTextBlock : TextBlock
             watched.Add(ancestor);
         }
         attached = true;
+        if (AmbientWindowState.Acquire(this) is { } ambientWindow)
+        {
+            driftAmbient = new(ambientWindow, this);
+            driftAmbient.Bind(RequestDriftFrame);
+        }
         UpdateDrift();
     }
 
@@ -392,24 +401,43 @@ public class MorphingTextBlock : TextBlock
         if (active)
         {
             driftLast = null;
+            driftAmbientLast = null;
             driftFrames = FrameClock.Source.Current;
             driftCallback ??= OnDriftFrame;
-            driftFrames.RequestFrame(driftCallback);
+            RequestDriftFrame();
         }
-        else if (driftCallback is not null) driftFrames?.CancelFrame(driftCallback);
+        else if (driftCallback is not null) { driftFrames?.CancelFrame(driftCallback); driftPending = false; }
+    }
+
+    private void RequestDriftFrame()
+    {
+        var now = SwiftClock.Provider.Current.GetTimestamp() / (double)SwiftClock.Provider.Current.TimestampFrequency;
+        driftAmbient?.Sample(now, false);
+        if (!drifting || driftPending || (driftAmbient is not null && !driftAmbient.Request(now, false))) return;
+        driftPending = true;
+        driftFrames!.RequestFrame(driftCallback!);
     }
 
     private void OnDriftFrame(TimeSpan _)
     {
+        driftPending = false;
         if (!drifting) return;
         var now = SwiftClock.Now;
+        if (driftAmbient is not null)
+        {
+            driftAmbient.Sample(now.Ticks / (double)TimeSpan.TicksPerSecond, false);
+            if (!driftAmbient.Available) return;
+            var phaseTime = driftAmbient.Clock.Time;
+            if (driftAmbientLast is { } previous) driftSeconds = (driftSeconds + Math.Max(0, phaseTime - previous)) % driftPeriod;
+            driftAmbientLast = phaseTime;
+        }
         // A long gap (a stalled frame) moves it on by at most a tenth of a second, never a lurch.
-        if (driftLast is { } last) driftSeconds = (driftSeconds + Math.Min(0.1, Math.Max(0, (now - last).TotalSeconds))) % driftPeriod;
+        else if (driftLast is { } last) driftSeconds = (driftSeconds + Math.Min(0.1, Math.Max(0, (now - last).TotalSeconds))) % driftPeriod;
         driftLast = now;
         // At rest only the brushes' translations move; a change draws every frame anyway and reads the phase itself.
         if (morph is null) MoveDrift();
         else InvalidateVisual();
-        driftFrames!.RequestFrame(driftCallback!);
+        RequestDriftFrame();
     }
 
     private static double Elapsed(Morph state) => (SwiftClock.Now - state.Start).TotalSeconds;

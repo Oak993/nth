@@ -46,11 +46,11 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
                     defaultEffort: "high", fastTier: supportsFast ? "fast" : null)]) : ValueList<ModelOption>.Empty, ProviderKind.Claude);
             model.Settings.AddToModelList(Pin);
         });
-        var host = new Border();
+        var host = new Border { Background = Brushes.Transparent };
         AppEnvironment.SetAppModel(host, model);
         var page = new ModelsSettingsPage("");
         host.Child = page;
-        var window = new AvaloniaWindow { Content = host, Width = 500, Height = 400 };
+        var window = new AvaloniaWindow { Content = host, Width = 500, Height = 400, Background = Brushes.Transparent };
         if (realPopup) SettingsProviderPopupLayers.Install(window);
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -286,10 +286,13 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         Assert.True(rig.Model.Settings.Preference(Pin.Provider, Pin.ModelID).FastMode);
         rig.Main.OnMain(() =>
         {
+            Assert.NotNull(window.InputHitTest(new Point(2, 2))); // a real routed outside press, including without Avalonia's blocking overlay
             window.MouseDown(new Point(2, 2), MouseButton.Left, RawInputModifiers.None);
             window.MouseUp(new Point(2, 2), MouseButton.Left, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
         });
+        Assert.True(popup.IsOpen); // T45: the close transition runs before the endpoint assertions below
+        rig.FinishAnimations();
         Assert.False(popup.IsOpen);
         Assert.Null(popup.Child);
         Assert.True(rig.Model.Settings.Preference(Pin.Provider, Pin.ModelID).FastMode);

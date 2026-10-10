@@ -90,6 +90,20 @@ public sealed partial class AppModel : MainActorModel
     private TaskHandle? saveTask; // AppModel.swift:110
     private ContinuousInstant? lastLibrarySave; // AppModel.swift:111 (B3, PR-STORE-015/PR-LAUNCH-076)
     private TaskHandle? hydraMergeSweepTask; // AppModel.swift:112-117
+
+    // PORT-ONLY (OD-0133): what the launch's boot hand-over waits for, the bootstrap up to its provider refresh
+    private readonly TaskCompletionSource launchReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>
+    /// PORT-ONLY (OD-0133, amending OD-0108 for provider checks only): completes when <see cref="Bootstrap"/> reaches the
+    /// provider refresh, everything before it done (recent documents, keychain, login environment, Hydra). The boot hand-over
+    /// waits for this, not for the refresh, the sign-in checks and the catalogs after it: they finish after the window shows,
+    /// as on the Mac (AppDelegate.swift:27 runs bootstrap in a Task after the window is shown).
+    /// </summary>
+    public Task LaunchReady => launchReady.Task;
+
+    /// <summary>Completes <see cref="LaunchReady"/> (<see cref="Bootstrap"/>; the launch tests' scripted bootstraps).</summary>
+    internal void MarkLaunchReady() => launchReady.TrySetResult();
     private bool persistenceEnabled = true; // AppModel.swift:118
     private HashSet<Guid> sessionsToRelease = []; // AppModel.swift:1008
     private bool libraryLoadFailed; // DEVIATION OD-0008: protect library.json after a failed load.
@@ -309,12 +323,12 @@ public sealed partial class AppModel : MainActorModel
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: login environment"))
         await LoginEnvironment.Load(); // AppModel.swift:245
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra copy sweep (UI)"))
-        SweepHydraCopies(); // AppModel.swift:247
+        if (PerformanceProfileMaintenance.Allowed) SweepHydraCopies(); // AppModel.swift:247; explicit diagnostics cannot mutate copied real project paths.
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: Hydra merge resumption"))
-        await ResumeHydraMerges(); // AppModel.swift:248-249
+        if (PerformanceProfileMaintenance.Allowed) await ResumeHydraMerges(); // AppModel.swift:248-249
         hydraMergeSweepTask?.Cancel(); // AppModel.swift:254
         var weakSelf = new WeakReference<AppModel>(this);
-        hydraMergeSweepTask = MainActor.Spawn(async () =>
+        if (PerformanceProfileMaintenance.Allowed) hydraMergeSweepTask = MainActor.Spawn(async () =>
         {
             while (true)
             {
@@ -323,6 +337,7 @@ public sealed partial class AppModel : MainActorModel
                 await model.ResumeHydraMerges(); // AppModel.swift:259
             }
         }); // AppModel.swift:255-261
+        MarkLaunchReady(); // OD-0133: the hand-over need not wait for what follows
         using (Marrow.UI.Port.AuroraBootTrace.Begin("Bootstrap: provider refresh"))
         await Providers.RefreshAll(); // AppModel.swift:263
         StartAccountReports(); // OD-0114: Settings can read each connected account before a chat opens.
@@ -339,7 +354,7 @@ public sealed partial class AppModel : MainActorModel
         // fails outright. Their own updaters run here, in the background, at most every twelve hours; a
         // newer version reloads its catalog. (PR-LAUNCH-085, new at B3)
         var providers = Providers; // AppModel.swift:278 Swift: `Task { [providers] in ... }` captures only the registry, not self (R-ISO-4)
-        _ = MainActor.Spawn(async () =>
+        if (PerformanceProfileMaintenance.Allowed) _ = MainActor.Spawn(async () =>
         {
             foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex }) // AppModel.swift:279
             {

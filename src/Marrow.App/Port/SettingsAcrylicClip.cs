@@ -44,9 +44,12 @@ internal sealed class SettingsAcrylicClip : IDisposable
         lock (sync)
         {
             if (disposed) return;
-            offset(new Vector2((float)(inset * scale)));
-            size(new Vector2((float)(client.Width * scale), (float)(client.Height * scale)));
-            radius(new Vector2((float)(8 * scale)));
+            var shell = window.Content as SettingsShell;
+            var currentInset = shell?.Inset ?? inset;
+            var currentClient = shell is null ? client : new Size(shell.Client.Width, shell.Client.Height);
+            offset(new Vector2((float)(currentInset * scale)));
+            size(new Vector2((float)(currentClient.Width * scale), (float)(currentClient.Height * scale)));
+            radius(new Vector2((float)((shell?.ClipRadius ?? 8) * scale)));
         }
     }
 

@@ -43,10 +43,13 @@ internal static class ChatSheetPresentation
         var popup = new Popup { PlacementTarget = anchor, Placement = PlacementMode.Center, IsLightDismissEnabled = false };
         PopoverHost.SetIsSheet(popup, true); // a SwiftUI .sheet: no popover tip (OD-0095), ED-238's panel on its top-level
         var closed = false;
+        var cleaned = false;
         EventHandler<VisualTreeAttachmentEventArgs>? detached = null;
         Action release = static () => { };
         void Cleanup()
         {
+            if (cleaned) return;
+            cleaned = true;
             release(); release = static () => { };
             if (anchor is not null && detached is not null) anchor.DetachedFromVisualTree -= detached;
             popup.Child = null;
@@ -57,12 +60,12 @@ internal static class ChatSheetPresentation
             if (closed) return;
             closed = true;
             try { presenter.SetPresented(popup, false); }
-            finally { Cleanup(); }
+            finally { if (!popup.IsOpen) Cleanup(); }
         }
         popup.Child = content(Dismiss);
         popup.Child.SetValue(PopoverAppear.StillProperty, still);
         popup.Child.SetValue(DismissProperty, Dismiss);
-        popup.Closed += (_, _) => { if (!closed) { closed = true; Cleanup(); } };
+        popup.Closed += (_, _) => { closed = true; Cleanup(); };
         if (anchor is not null) { detached = (_, _) => Dismiss(); anchor.DetachedFromVisualTree += detached; }
         // the window's Escape closes the sheet before what holds the keyboard under it acts on it (SheetKeyboard)
         if (anchor is not null && TopLevel.GetTopLevel(anchor) is { } owner) release = SheetKeyboard.Take(owner, popup.Child, _ => false, Dismiss, blockUnder: false);

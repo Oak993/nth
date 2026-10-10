@@ -95,7 +95,12 @@ public sealed class WindowManagerHighRiskTests(HeadlessSession headless)
                 NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONUP, HTMAXBUTTON);
                 NativeMessageWindow.Pump(settingsNative.Handle);
                 Dispatcher.UIThread.RunJobs();
-                Assert.Equal(WindowState.Normal, settings.WindowState); // :81 resizable: false, so zoom is inert
+                Assert.Equal(WindowState.Maximized, settings.WindowState); // T45 owner caption override.
+                NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONDOWN, HTMAXBUTTON);
+                NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONUP, HTMAXBUTTON);
+                NativeMessageWindow.Pump(settingsNative.Handle);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(WindowState.Normal, settings.WindowState);
 
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONDOWN, HTCLOSE);
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONUP, HTCLOSE);

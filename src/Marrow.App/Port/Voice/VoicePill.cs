@@ -67,7 +67,7 @@ internal sealed class VoicePill : Panel
 
     public VoicePill()
     {
-        motion = new LookMotion(this);
+        motion = new LookMotion(this, preserveFrameProgress: true);
         // The CSS width/anchor and the cap's mask are fractional throughout an ease. Rounding only the laid-out
         // body gives it a different silhouette from its clip, including while a size spring is running.
         UseLayoutRounding = false;

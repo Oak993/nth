@@ -16,6 +16,22 @@ public sealed class GalleryNativeTests(WindowManagerNativeSession native)
 
     [Fact]
     [Trait("Decision", "ED-236")]
+    public void Gallery_welcome_tour_pictures()
+    {
+        if (!GalleryRun.Enabled) return;
+        Capture(GalleryTourScenes.TourFirst, nameof(Gallery_welcome_tour_pictures)); // RR-22: welcome, Hydra, panels, pairs, slider at 2x (GalleryTourScenes)
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    public void Gallery_welcome_tour_pictures_continued()
+    {
+        if (!GalleryRun.Enabled) return;
+        Capture(GalleryTourScenes.TourSecond, nameof(Gallery_welcome_tour_pictures_continued)); // RR-22: threads, four themes, recipes at 2x
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-236")]
     public void Gallery_main_window_welcome_page_of_an_empty_library()
     {
         if (!GalleryRun.Enabled) return;

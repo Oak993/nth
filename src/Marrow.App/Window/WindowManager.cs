@@ -65,7 +65,9 @@ public sealed class WindowManager
     internal static IDisposable OverrideShared(WindowManager manager) => SharedAmbient.Override(manager);
 
     // :13 let model = AppModel()
-    public AppModel Model { get; }
+    private readonly Lazy<AppModel> model = new(() => new AppModel());
+    public AppModel Model => model.Value;
+    internal bool HasCreatedModel => model.IsValueCreated;
 
     private AvaloniaWindow? mainWindow; // :15
     private AvaloniaWindow? settingsWindow; // :16
@@ -135,19 +137,26 @@ public sealed class WindowManager
     internal AvaloniaWindow? SettingsWindow => settingsWindow;
 
     // The implicit init of the Swift singleton (module-internal in Swift): `model` (:13) is made here.
-    internal WindowManager() => Model = new AppModel();
+    internal WindowManager() { }
 
     /// <summary>
     /// PORT-ONLY (OD-0018, ED-103): makes the main window as showMain would (:27-28), frame restored, without showing
     /// it, so the launch's boot sequence can be laid out on it before it appears.
     /// </summary>
-    internal AvaloniaWindow PrepareMain() => mainWindow ??= MakeMainWindow();
+    internal AvaloniaWindow PrepareMainShell() => mainWindow ??= MakeMainWindowCore(deferContent: true);
+    internal AvaloniaWindow PrepareMain()
+    {
+        var window = mainWindow ??= MakeMainWindow();
+        if (window.Content is null) AttachContent(window, MainContent);
+        return window;
+    }
 
     // :26-30 func showMain()
     public void ShowMain()
     {
-        var window = mainWindow ?? MakeMainWindow(); // :27
+        var window = PrepareMain(); // :27
         mainWindow = window; // :28
+        if (settingsWindow is SecondaryWindow settings) settings.SetMainOwner(window);
         Present(window); // :29
     }
 
@@ -267,7 +276,17 @@ public sealed class WindowManager
     // :59 the ordering front of makeKeyAndOrderFront, without its activation (Present; the Settings open, ED-249).
     private void ShowRestoring(AvaloniaWindow window)
     {
-        window.Show();
+        if (ReferenceEquals(window, settingsWindow) && window is SecondaryWindow settings)
+        {
+            // Owner instruction, 2026-10-08 (ED-NEW-T45): Settings cannot be lost
+            // behind Main. Show(owner) installs native ownership before display;
+            // reapply after cached Hide, which Avalonia clears. A Settings-first
+            // open gains its owner when ShowMain first realises the main window.
+            if (mainWindow is { IsVisible: true } main) window.Show(main);
+            else window.Show();
+            settings.SetMainOwner(mainWindow);
+        }
+        else window.Show();
         // OD-0038: a minimised window is restored to the state it had before it was minimised (normal or maximised),
         // for the second launch and the reopen alike. Whether makeKeyAndOrderFront alone deminiaturizes is UNVERIFIED
         // (OD-0001); the owner ruled it does here.
@@ -279,17 +298,19 @@ public sealed class WindowManager
     private readonly ConditionalWeakTable<AvaloniaWindow, StrongBox<WindowState>> restoredStates = new();
 
     // :62-72 private func makeMainWindow() -> NSWindow
-    private AvaloniaWindow MakeMainWindow()
+    private AvaloniaWindow MakeMainWindow() => MakeMainWindowCore(deferContent: false);
+
+    private AvaloniaWindow MakeMainWindowCore(bool deferContent)
     {
-        var window = MakeWindow(AppInfo.Current.Name, Size.Main, resizable: true, MainContent, windowClass: () => new ThreadWindow()); // :63
-        var model = new WeakReference<AppModel>(Model); // [weak model]
+        var window = MakeWindow(AppInfo.Current.Name, Size.Main, resizable: true, MainContent, windowClass: () => new ThreadWindow(), deferContent: deferContent); // :63
+        var owner = new WeakReference<WindowManager>(this);
         (window as ThreadWindow)?.SelectThread = offset => // :64
         {
-            if (model.TryGetTarget(out var target)) target.SelectThread(offset);
+            if (owner.TryGetTarget(out var target)) target.Model.SelectThread(offset);
         };
         (window as ThreadWindow)?.SelectThreadNumber = number => // :65
         {
-            if (model.TryGetTarget(out var target)) target.SelectThreadNumber(number);
+            if (owner.TryGetTarget(out var target)) target.Model.SelectThreadNumber(number);
         };
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
@@ -308,7 +329,7 @@ public sealed class WindowManager
     // :80-84 private func makeSettingsWindow() -> NSWindow
     private AvaloniaWindow MakeSettingsWindow()
     {
-        var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow()); // :81
+        var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow { AllowsCaptionMaximize = true }); // :81; ED-NEW-T45 owner caption override
         if (settingsView is not null) SettingsShell.Install(window);
         WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
         // DEVIATION OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, every colour in it
@@ -318,7 +339,7 @@ public sealed class WindowManager
     }
 
     // :86-110 private func makeWindow<Content: View>(title:size:resizable:windowClass:content:) -> NSWindow
-    private AvaloniaWindow MakeWindow(string title, Avalonia.Size size, bool resizable, Func<Control> content, Func<AvaloniaWindow>? windowClass = null)
+    private AvaloniaWindow MakeWindow(string title, Avalonia.Size size, bool resizable, Func<Control> content, Func<AvaloniaWindow>? windowClass = null, bool deferContent = false)
     {
         // :95-96 windowClass.init(contentRect: frame, styleMask: style, backing: .buffered, defer: false): an Avalonia
         // window makes its platform window in its constructor (not deferred) and draws through its own buffer, so
@@ -377,14 +398,22 @@ public sealed class WindowManager
         WindowChrome.Configure(window); // :101
         // ED-063: SetNonClientHitTestResult declares the app-drawn caption controls, but Windows does not execute
         // their commands for an Avalonia full-decoration window. Keep the hook with the window for its full lifetime.
-        Win32Properties.AddWndProcHookCallback(window, (nint hWnd, uint message, nint wParam, nint lParam, ref bool handled) =>
+        NativeWindowHooks.Add(window, (nint hWnd, uint message, nint wParam, nint lParam, ref bool handled) =>
             HandleNativeWindowMessage(window, hWnd, message, wParam, lParam, ref handled));
 
+        if (!deferContent) AttachContent(window, content);
+        return window; // :109
+    }
+
+    private void AttachContent(AvaloniaWindow window, Func<Control> content)
+    {
         var liveResize = new WindowLiveResize(window); // :103
         var hosting = new FrameHostingView(new HostedRoot(Model, liveResize, content())); // :104
         // :105 hosting.frame = frame, :106 NSView(frame: frame): the plain container fills the client area and lays
         // its one child out over the whole of it.
         var container = new Panel();
+        container.Track(() => Model.Settings.AppZoom, percent =>
+            WindowChrome.SetCaptionScale(window, AppZoom.Normalized(percent is >= int.MinValue and <= int.MaxValue ? (int)percent : 100) / 100.0));
         container.Children.Add(hosting); // :107
         container.Children.Add(WindowChrome.CaptionLayer(window)); // OD-0044: the caption buttons over the content
         window.Content = container; // :108
@@ -395,7 +424,6 @@ public sealed class WindowManager
         // key-down, as SwiftUI re-reads the Commands body, over this manager's model (:13). Views that monitor the window's
         // keys register when they attach, after this, so they still see a key-down first, as a local monitor does.
         _ = MenuKeyEquivalents.Attach(window, (positional, typed) => new AppCommands(Model).PerformKeyDown(positional, typed));
-        return window; // :109
     }
 
     /// <summary>
@@ -418,8 +446,16 @@ public sealed class WindowManager
             captionStates.Add(window, state);
         }
 
+        if (message == WM_NCLBUTTONDOWN) PopoverHost.DismissOutside(window);
         switch (message)
         {
+            case WM_NCHITTEST:
+            {
+                var point = new PixelPoint(unchecked((short)(lParam.ToInt64() & 0xffff)), unchecked((short)((lParam.ToInt64() >> 16) & 0xffff)));
+                var caption = WindowChrome.CaptionHitTest(window, window.PointToClient(point));
+                if (caption != 0) { handled = true; return caption; }
+                break;
+            }
             // OD-0044: the caption buttons' hover (Turn pulse) follows the non-client pointer: WM_NCMOUSEMOVE names the
             // hit-test value under it, and WM_NCMOUSELEAVE (asked for once per entry with TrackMouseEvent) ends it.
             case WM_NCMOUSEMOVE:
@@ -748,7 +784,7 @@ public sealed class WindowLiveResize : MainActorModel
     public WindowLiveResize(AvaloniaWindow window)
     {
         this.window = window;
-        Win32Properties.AddWndProcHookCallback(window, WndProc);
+        NativeWindowHooks.Add(window, WndProc);
     }
 
     // :133-138 the two observations, on the window's own (main) thread: MainActor.assumeIsolated.
@@ -817,21 +853,42 @@ internal sealed class HostedRoot : ThemeVariantScope
 /// from: a window's root, and a chat column hosted on its own inside the main window (see <c>ThreadColumns</c>).</summary>
 /// <param name="Model">:166 <c>let model: AppModel</c>.</param>
 /// <param name="LiveResize">:167 <c>let liveResize: WindowLiveResize</c>.</param>
-public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResize)
+public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResize, bool Zooms = true)
 {
     // :169-178 func body(content: Content) -> some View
     public Control Body(Control content)
     {
         AppEnvironment.SetAppModel(content, Model); // :171 .environment(model)
         AppEnvironment.SetWindowLiveResize(content, LiveResize); // :172 .environment(liveResize)
+        // ED-NEW-T45: Settings' fixed frame describes the visible card. Its inner layout must fit the zoom proposal.
+        void FitSettings(long percent)
+        {
+            if (!Zooms || content is not SettingsView settings) return;
+            var scale = AppZoom.Normalized(Percent(percent)) / 100.0;
+            settings.UseLayoutRounding = false; // round after scaling, rather than rounding the inverse frame's fractional size
+            var viewport = TopLevel.GetTopLevel(settings)?.Content is SettingsShell shell
+                ? new Avalonia.Size(shell.Client.Width, shell.Client.Height) : new Avalonia.Size(780, 580);
+            settings.Width = viewport.Width / scale;
+            settings.Height = viewport.Height / scale;
+        }
+        FitSettings(Model.Settings.AppZoom);
         // :173-175 The zoom in Settings scales the whole app: every window root and every chat column carries it, so the
         // sidebar, settings and composer move together.
-        var zoomed = new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content);
+        // Lead (native gallery at 200 %, 2026-10-08): on the Mac a chat column is an NSHostingView of its own, which the window
+        // root's scaleEffect does not reach, so the column applies the zoom itself. Here the column is a child of the window root's
+        // already zoomed tree, and zooming it again drew the chat at the square of the setting (4x at 200 %). The column passes
+        // Zooms: false and takes the root's zoom; the environment and the theme tint stay its own.
+        var zoomed = Zooms ? new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content) : content;
         Popovers.SetIsCapsuleButtonBorderShape(zoomed, true); // :176 .buttonBorderShape(.capsule)
         var tinted = new ThemeTint(Model.Settings.Theme, Model.Settings.Accent).Body(zoomed); // :177
+        if (Zooms && content is SettingsView) tinted.SizeChanged += (_, _) => FitSettings(Model.Settings.AppZoom);
         // The body reads model.settings.appZoom (:175) and model.settings.theme (:177), so SwiftUI evaluates it again
         // when either changes; AppZoomModifier keeps its layout and ThemeTint its view when they are evaluated again.
-        tinted.Track(() => Model.Settings.AppZoom, percent => new AppZoomModifier(Percent(percent)).Body(content));
+        if (Zooms) tinted.Track(() => Model.Settings.AppZoom, percent =>
+        {
+            FitSettings(percent);
+            new AppZoomModifier(Percent(percent)).Body(content);
+        });
         tinted.Track(() => (Model.Settings.Theme, Model.Settings.Accent), pair => new ThemeTint(pair.Theme, pair.Accent).Body(zoomed)); // and the accent (OD-0088)
         return tinted;
     }

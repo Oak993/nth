@@ -260,20 +260,45 @@ public static class GpuWarmup
     public static IDisposable AddActivity(Func<bool> isAnimating)
     {
         ArgumentNullException.ThrowIfNull(isAnimating);
-        var activity = new Activity(isAnimating);
+        var activity = new Activity(isAnimating, activities);
         lock (activities) activities.Add(activity);
         return activity;
     }
 
     // removed by identity: two registrations of equal delegates are two activities
-    private sealed class Activity(Func<bool> isAnimating) : IDisposable
+    private sealed class Activity(Func<bool> isAnimating, List<Activity> list) : IDisposable
     {
         public bool IsAnimating() => isAnimating();
-        public void Dispose() { lock (activities) activities.Remove(this); }
+        public void Dispose() { lock (list) list.Remove(this); }
     }
 
     /// <summary>Registrations not yet disposed (tests).</summary>
     internal static int ActivityCount { get { lock (activities) return activities.Count; } }
+
+    private static readonly List<Activity> holds = [];
+
+    /// <summary>
+    /// ED-NEW-launch-fix (6): while <paramref name="holding"/> answers true (read on the UI thread), the idle fallback does not
+    /// step at all, not even once its cap ran out: Boot B holds it until it finishes, so the render thread compiles nothing of
+    /// the idle warm-ups while Boot B draws (its own awaited preparation, WarmAsync, is not held). Disposing the result lets go
+    /// (once); a hold whose window has gone answers false, so a hold never left behind can stop the fallback for good.
+    /// </summary>
+    internal static IDisposable HoldIdle(Func<bool> holding)
+    {
+        ArgumentNullException.ThrowIfNull(holding);
+        var hold = new Activity(holding, holds);
+        lock (holds) holds.Add(hold);
+        return hold;
+    }
+
+    /// <summary>True while a hold (<see cref="HoldIdle"/>) answers true.</summary>
+    internal static bool Held()
+    {
+        lock (holds)
+            foreach (var hold in holds)
+                if (hold.IsAnimating()) return true;
+        return false;
+    }
 
     /// <summary>True when something on screen animates: a frame-clock request is waiting (on <paramref name="frames"/>, the
     /// frame clock's source by default), an Avalonia transition or animation runs, or a registered activity runs.</summary>
@@ -604,12 +629,13 @@ public static class GpuWarmup
             while (calm < 2)
             {
                 if (hurry) return false; // WarmAsync joined: step now
-                if (DateTime.UtcNow - since >= IdleCap) return true;
+                var held = Held(); // Boot B draws (ED-NEW-launch-fix (6)): no step, not even at the cap
+                if (!held && DateTime.UtcNow - since >= IdleCap) return true;
                 var frame = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 top.RequestAnimationFrame(_ => frame.TrySetResult());
                 try { await frame.Task.WaitAsync(IdleCap, cancellation); }
-                catch (TimeoutException) { return true; } // no frame at all (a closed or hidden window): the cap
-                calm = Animating(frames) ? 0 : calm + 1;
+                catch (TimeoutException) { if (Held()) continue; return true; } // no frame at all (a closed or hidden window): the cap
+                calm = held || Animating(frames) ? 0 : calm + 1;
                 // a timer's turn between checks: where frames come back at once (nothing drawn, a headless test's job queue)
                 // the loop leaves the dispatcher free instead of spinning it until the cap
                 await Task.Delay(1, cancellation);

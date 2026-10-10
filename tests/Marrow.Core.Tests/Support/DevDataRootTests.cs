@@ -14,6 +14,21 @@ namespace Marrow.Core.Tests.Support;
 [Collection("Dev data root env")]
 public sealed class DevDataRootTests
 {
+    [Fact]
+    [Trait("Decision", "ED-212")]
+    public void An_explicit_performance_profile_isolates_disk_mutex_and_credentials_in_every_configuration()
+    {
+        var root = Directory.CreateTempSubdirectory("marrow-performance-profile-").FullName;
+        try
+        {
+            using var profile = DevDataRoot.PerformanceRoot.Override(root);
+            Assert.Equal(root, DevDataRoot.LocalApplicationData());
+            Assert.True(DevDataRoot.IsRedirected);
+            Assert.NotEqual("Local\\Marrow.SingleInstance", DevDataRoot.KernelObjectName("Local\\Marrow.SingleInstance"));
+            Assert.NotEqual("Marrow", DevDataRoot.CredentialService("Marrow"));
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
     private static void WithVariable(string? value, Action body)
     {
         var previous = Environment.GetEnvironmentVariable(DevDataRoot.VariableName);

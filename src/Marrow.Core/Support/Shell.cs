@@ -737,6 +737,39 @@ public static class LoginEnvironment
     }
 
     /// <summary>
+    /// PORT-ONLY (owner PC, 2026-10-08): <see cref="Which(string, IReadOnlyDictionary{string, string}?)"/> for a program
+    /// the port itself launches through ProcessLauncher, whose child joins its job in the attribute list at creation
+    /// (ADR-0002, R-PROC-1). Windows refuses that attribute for a Microsoft Store app: its execution alias
+    /// (%LOCALAPPDATA%\Microsoft\WindowsApps, a reparse point) and its packaged executable (Program Files\WindowsApps)
+    /// both fail with ERROR_ACCESS_DENIED, which left the terminal and run_command unable to start on a PC whose
+    /// PowerShell 7 came from the Store. Such entries are skipped and the next match on PATH wins.
+    /// </summary>
+    public static string? WhichLaunchable(string name, IReadOnlyDictionary<string, string>? environment = null)
+    {
+        IReadOnlyDictionary<string, string> searched = environment ?? SearchedCurrent();
+        var pathExt = PathExt(searched);
+        var path = searched.TryGetValue("PATH", out var value) ? value : AugmentedPath(null, HomeDirectory);
+        foreach (var folder in path.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (ProcessLauncher.Which(name, folder, pathExt, HomeDirectory) is { } found && !IsStorePackaged(found)) return found;
+        }
+        return null;
+    }
+
+    /// <summary>A Store app's execution alias or packaged executable (see <see cref="WhichLaunchable"/>).</summary>
+    public static bool IsStorePackaged(string executable)
+    {
+        try
+        {
+            var full = Path.GetFullPath(executable);
+            if (full.Contains(Path.DirectorySeparatorChar + "WindowsApps" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return true;
+            return File.GetAttributes(full).HasFlag(FileAttributes.ReparsePoint)
+                && (Path.GetDirectoryName(full) ?? "").EndsWith(Path.Join("Microsoft", "WindowsApps"), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>
     /// ED-171: the PATHEXT of the environment which searches, its name looked up case-insensitively; when that is
     /// absent or empty, the app process's own PATHEXT; when that is absent or empty too, ".COM;.EXE;.BAT;.CMD".
     /// </summary>

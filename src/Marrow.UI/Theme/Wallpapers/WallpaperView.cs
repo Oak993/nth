@@ -17,6 +17,7 @@ public sealed class WallpaperView : Control
         AvaloniaProperty.Register<WallpaperView, WallpaperSelection>(nameof(Selection), new());
     public WallpaperSelection Selection { get => GetValue(SelectionProperty); set => SetValue(SelectionProperty, value); }
     private CompositionCustomVisual? visual;
+    private AmbientMotionController? ambient;
     private Window? window;
     private IPlatformSettings? platform;
     // This window's own place on the screen, for Perspective; the render thread reads it.
@@ -64,7 +65,10 @@ public sealed class WallpaperView : Control
         wakes = new WallpaperWakeSource(environment, () => Avalonia.Threading.Dispatcher.UIThread.Post(() => visual?.SendHandlerMessage(WallpaperWake.Instance)));
         platform = Application.Current?.PlatformSettings;
         if (platform is not null) platform.ColorValuesChanged += AccentChanged;
-        visual = host.Compositor.CreateCustomVisual(new WallpaperVisualHandler());
+        var availability = AmbientWindowState.Acquire(this);
+        ambient = availability is null ? null : new(availability);
+        visual = host.Compositor.CreateCustomVisual(new WallpaperVisualHandler(ambient));
+        ambient?.Bind(visual);
         ElementComposition.SetElementChildVisual(this, visual); Send();
     }
 
@@ -107,6 +111,7 @@ public sealed class WallpaperView : Control
         if (platform is not null) platform.ColorValuesChanged -= AccentChanged;
         platform = null; wakes?.Dispose(); wakes = null; environment = null;
         visual?.SendHandlerMessage(WallpaperVisualStop.Instance);
+        ambient?.Dispose(); ambient = null;
         ElementComposition.SetElementChildVisual(this, null); visual = null; window = null;
     }
 }

@@ -324,12 +324,18 @@ public sealed class ShellTests
     {
         using var runtime = new TestRuntime();
         var armed = Path.Join(ProcessTestFolders.Create("shell kill"), "armed");
-        var run = ShellScripts.Run(ShellScripts.BreakChild(exitsOnBreak: false, armed));
+        var received = Path.Join(Path.GetDirectoryName(armed)!, "received");
+        var run = ShellScripts.Run(ShellScripts.BreakChild(exitsOnBreak: false, armed, received));
         await WaitForArmed(run, armed);
         Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(120))), "no deadline was armed");
         runtime.Advance(TimeSpan.FromSeconds(120));
-        // The graceful step has been sent once the one-second kill is scheduled (Shell.swift:112-113).
+        // The deadline starts when the stop is requested (Shell.swift:112-113).
+        // Keep fake time frozen until the real child has received and flushed the signal.
+        // Scheduling the kill does not prove asynchronous helper startup has finished.
         Assert.True(Eventually(() => runtime.Time.TimerDeadlines.Contains(TimeSpan.FromSeconds(121))), "the kill was never scheduled");
+        Assert.True(Eventually(() => File.Exists(received) || run.IsCompleted), "the child never received the graceful signal");
+        if (run.IsCompleted) await run;
+        Assert.True(File.Exists(received), "the child never received the graceful signal");
         Assert.False(SpinWait.SpinUntil(() => run.IsCompleted, TimeSpan.FromMilliseconds(500)), "the child ended on the stop request");
         runtime.Advance(TimeSpan.FromSeconds(1) - TimeSpan.FromTicks(1));
         Assert.False(run.IsCompleted);

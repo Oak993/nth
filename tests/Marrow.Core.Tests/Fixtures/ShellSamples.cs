@@ -52,7 +52,7 @@ public static class ShellScripts
     /// true, so the event is handled and the child keeps sleeping until it is killed. Handlers run last-registered
     /// first, so this one runs before powershell.exe's own (the shape of <see cref="ProcessScripts.CtrlBreakCooperating"/>).
     /// </summary>
-    public static string BreakChild(bool exitsOnBreak, string armedFile) =>
+    public static string BreakChild(bool exitsOnBreak, string armedFile, string? receivedFile = null) =>
         """
         Add-Type -TypeDefinition @'
         using System;
@@ -64,9 +64,11 @@ public static class ShellScripts
             [DllImport("kernel32.dll")] private static extern void ExitProcess(uint code);
             private static Handler keep;
             private static bool exits;
-            public static void Arm(bool exitsOnBreak)
+            private static string received;
+            public static void Arm(bool exitsOnBreak, string receivedFile)
             {
                 exits = exitsOnBreak;
+                received = receivedFile;
                 keep = OnSignal;
                 SetConsoleCtrlHandler(keep, true);
             }
@@ -75,13 +77,14 @@ public static class ShellScripts
                 if (type != 1) return false;
                 Console.Out.Write(exits ? "BREAK-SEEN" : "BREAK-IGNORED");
                 Console.Out.Flush();
+                if (!string.IsNullOrEmpty(received)) System.IO.File.WriteAllText(received, "seen");
                 if (exits) ExitProcess(131);
                 return true;
             }
         }
         '@
         """ +
-        $"\n[MarrowShellBreakFixture]::Arm(${(exitsOnBreak ? "true" : "false")})\n" +
+        $"\n[MarrowShellBreakFixture]::Arm(${(exitsOnBreak ? "true" : "false")}, {(receivedFile is null ? "$null" : "'" + receivedFile.Replace("'", "''", StringComparison.Ordinal) + "'")})\n" +
         $"[IO.File]::WriteAllText('{armedFile.Replace("'", "''", StringComparison.Ordinal)}', 'armed')\n" +
         "Start-Sleep 120\n";
 

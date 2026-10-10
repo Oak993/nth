@@ -63,7 +63,12 @@ internal sealed class PaletteStore
     private static string Digest(string text)=>Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     private JsonDocument? Read(string path)
     {
-        try{var body=JsonDocument.Parse(File.ReadAllBytes(path));pendingReads.Remove(path);return body;}
+        try{return ReadBytes(path) is {} bytes?JsonDocument.Parse(bytes):null;}
+        catch(JsonException){Quarantine(path);return null;}
+    }
+    private byte[]? ReadBytes(string path)
+    {
+        try{var bytes=File.ReadAllBytes(path);pendingReads.Remove(path);return bytes;}
         catch(FileNotFoundException){pendingReads.Remove(path);return null;}catch(DirectoryNotFoundException){pendingReads.Remove(path);return null;}
         catch(JsonException){pendingReads.Remove(path);Quarantine(path);return null;}catch(IOException){pendingReads.Add(path);return null;}catch(UnauthorizedAccessException){pendingReads.Add(path);return null;}
     }
@@ -74,14 +79,20 @@ internal sealed class PaletteStore
     public void SaveSnapshot(PaletteSnapshot snapshot)=>Write(SnapshotPath,PaletteSnapshotCodec.Export(snapshot),false);
     public PaletteSnapshot? LoadSnapshot()
     {
-        using var body=Read(SnapshotPath);if(body is null||!Schema(body.RootElement,SnapshotPath))return null;
-        try{return PaletteSnapshotCodec.Import(body.RootElement.GetProperty("data").Deserialize<PaletteSnapshotCodec.Data>()!);}
+        var bytes=ReadBytes(SnapshotPath);if(bytes is null)return null;
+        try
+        {
+            var envelope=PaletteJsonEnvelope.Read(bytes);
+            if(envelope.Schema>1){readOnly.Add(SnapshotPath);return null;}
+            if(envelope.Schema!=1||envelope.Data is not {} data||envelope.Hash!=PaletteJsonEnvelope.Digest(data.Span)){Quarantine(SnapshotPath);return null;}
+            return PaletteSnapshotCodec.Import(JsonSerializer.Deserialize<PaletteSnapshotCodec.Data>(data.Span)!);
+        }
         catch(Exception e) when(e is JsonException or InvalidDataException or ArgumentException or NullReferenceException){Quarantine(SnapshotPath);return null;}
     }
     private void Write<T>(string path,T data,bool previous)
     {
         if(readOnly.Contains(path))return;
-        var body=JsonSerializer.Serialize(data);var encoded=Encoding.UTF8.GetBytes("{\"schema\":1,\"hash\":\""+Digest(body)+"\",\"data\":"+body+"}");
+        var encoded=PaletteJsonEnvelope.Encode(data);
         WriteEncoded(path,encoded,previous);
     }
     public void RetryPendingWrites()

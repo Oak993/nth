@@ -241,7 +241,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         var settings = ShowSettings(harness, manager, new Border());
         Assert.True(main.CanResize);
         Assert.False(settings.CanResize);
-        Assert.False(settings.CanMaximize); // no .resizable: the zoom control is inert
+        Assert.True(settings.CanMaximize); // T45 owner override: Settings caption maximize activates, without a resize border.
         foreach (var window in new[] { main, settings })
         {
             Assert.True(window.CanMinimize); // .miniaturizable
@@ -1027,7 +1027,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         Assert.Equal("Settings", window.Title); // :81, :97
         Assert.Equal(new Size(780, 580), window.ClientSize); // :21, :95-96 the content rect
         Assert.False(window.CanResize); // :94 .resizable is inserted only when asked, and :81 passes false
-        Assert.False(window.CanMaximize); // so the zoom control is inert (PR-WIN-007)
+        Assert.True(window.CanMaximize); // T45 owner caption override; normal size and CanResize stay pinned.
         Assert.True(window.CanMinimize); // :93 .miniaturizable
 
         // Fixed: a close and a reopen bring back the same size and the same style.

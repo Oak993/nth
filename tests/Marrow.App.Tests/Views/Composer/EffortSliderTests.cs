@@ -246,7 +246,7 @@ public sealed class EffortSliderTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:496, :501
-    public void EffortPairLook_caption_names_the_heads_effort_when_the_pair_sets_one()
+    public void EffortPairLook_caption_names_the_heads_effort_when_the_pair_sets_one() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
         runtime.OnMain(() =>
@@ -258,11 +258,11 @@ public sealed class EffortSliderTests(HeadlessSession headless)
             Assert.Equal("extra high", look.HeadsEffort); // effortTitle("xhigh") = "Extra High", lowercased
             Assert.Equal("The lead's effort · heads run at extra high effort", look.Caption);
         });
-    }
+    });
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:196, :496
-    public void EffortPairLook_falls_back_to_the_resolved_launch_effort_when_the_pair_sets_none()
+    public void EffortPairLook_falls_back_to_the_resolved_launch_effort_when_the_pair_sets_none() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
         runtime.OnMain(() =>
@@ -274,11 +274,11 @@ public sealed class EffortSliderTests(HeadlessSession headless)
             Assert.Equal("medium", look.HeadsEffort);
             Assert.Equal("The lead's effort · heads run at medium effort", look.Caption);
         });
-    }
+    });
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:502
-    public void EffortPairLook_caption_says_heads_keep_their_own_when_neither_is_set()
+    public void EffortPairLook_caption_says_heads_keep_their_own_when_neither_is_set() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
         runtime.OnMain(() =>
@@ -290,11 +290,11 @@ public sealed class EffortSliderTests(HeadlessSession headless)
             Assert.Null(look.HeadsEffort);
             Assert.Equal("The lead's effort · heads keep their own", look.Caption);
         });
-    }
+    });
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-115")] // EffortSlider.swift:494-495; HydraButton.swift:648-711 HydraPairSummary
-    public void EffortPairLook_title_and_brand_delegate_to_the_established_pair_helpers()
+    public void EffortPairLook_title_and_brand_delegate_to_the_established_pair_helpers() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
         runtime.OnMain(() =>
@@ -306,7 +306,7 @@ public sealed class EffortSliderTests(HeadlessSession headless)
             Assert.Equal("Night shift", look.Title); // HydraPairSummary.Title: pair.CustomName ?? ModelsTitle(...)
             Assert.Equal(4, look.Brand.Colors.Count); // PR-COMPOSER-130: first four roster persona colours
         });
-    }
+    });
 
     // ---- RoundIconButton, :685-708 ----
 

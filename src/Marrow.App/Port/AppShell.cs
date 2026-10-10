@@ -30,12 +30,14 @@ public sealed class AppShell : ITerminationSender
     /// <summary>PORT-ONLY seam: what puts a window procedure hook on the main window, Avalonia's own (a headless window has no
     /// Win32 window procedure, so a test records the hook and calls it as Windows would, to prove it is installed).</summary>
     internal static Ambient<Action<TopLevel, Win32Properties.CustomWndProcHookCallback>> AddWindowProcedureHook { get; } =
-        new((window, hook) => Win32Properties.AddWndProcHookCallback(window, hook));
+        new((window, hook) => NativeWindowHooks.Add(window, hook));
 
     private readonly Action exit;
     private readonly Action afterWillTerminate;
     private bool terminationPending;
     private bool terminated;
+    private bool mainHooksAttached;
+    internal bool HasTerminated => terminated;
 
     /// <param name="appDelegate">The application's delegate (DroppyCodeApp.swift:5, @NSApplicationDelegateAdaptor).</param>
     /// <param name="exit">Ends the app: in the app, the desktop lifetime's Shutdown, which closes every window and raises
@@ -52,6 +54,13 @@ public sealed class AppShell : ITerminationSender
     /// <summary>NSApp.delegate.</summary>
     public AppDelegate Delegate { get; }
 
+    internal void PrepareBoot()
+    {
+        WindowManager.Shared.MainWindowClose = () => MainActor.Post(Terminate);
+        Delegate.PrepareBoot();
+        AttachMainWindowHooks();
+    }
+
     /// <summary>
     /// NSApplication.finishLaunching: from now on the main window's own close is terminate(_:) (OD-0008 C1, C2), then the
     /// delegate's applicationDidFinishLaunching(_:) (:9-34), then the session-end hook on the main window it showed.
@@ -63,9 +72,16 @@ public sealed class AppShell : ITerminationSender
         // shutdown never destroys the window from inside it (Window.HandleClosing, Avalonia 12.1.2).
         windows.MainWindowClose = () => MainActor.Post(Terminate);
         Delegate.ApplicationDidFinishLaunching();
+        AttachMainWindowHooks();
+    }
+
+    private void AttachMainWindowHooks()
+    {
+        if (mainHooksAttached) return;
         // ED-004 (2): WM_ENDSESSION comes to every top-level window; the main window is the app's one lasting window.
-        if (windows.MainWindow is { } main)
+        if (WindowManager.Shared.MainWindow is { } main)
         {
+            mainHooksAttached = true;
             AddWindowProcedureHook.Current(main, WndProc);
             // ED-219: the badge computed while the delegate launched had no window to sit on yet.
             (TaskbarBadge.Overlay.Current as WindowsTaskbarOverlay)?.Reapply();

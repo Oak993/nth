@@ -132,14 +132,28 @@ public sealed class WindowManagerNativeCentringTests(WindowManagerNativeSession 
         Assert.IsType<Marrow.App.Views.Settings.SettingsView>(typeof(WindowManager)
             .GetField("settingsView", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
 
-        // the Settings window is 780 x 580 points of client area, and its HWND carries the same strip as the main window's
+        // RR-37 (OD-0074/0076): the Settings window is 780 x 580 points of visible card inside a transparent shadow space
+        // (SettingsShell.ShadowSpace on every side) that draws the locked CSS shadow; the HWND's client area is the card and
+        // that space, and the HWND has no invisible strip of its own (DWM's frame is off: the shell draws the shadow)
         var scale = shown.Dpi / 96.0;
-        Assert.Equal((int)Math.Round(780 * scale), shown.Client.Width);
-        Assert.Equal((int)Math.Round(580 * scale), shown.Client.Height);
-        var strip = (mainReading.Frame.Width - mainReading.Client.Width) / 2;
-        Assert.Equal(strip, (shown.Frame.Width - shown.Client.Width) / 2);
-        // expected from native readings alone: the Swift arithmetic on the frames that show, clamped into the working area
-        var expected = G.Expected(mainReading, shown.Frame.Width, shown.Frame.Height, strip, shown.Dpi, primary.Bounds, owner.Work);
-        Assert.Equal(expected.Origin, shown.Origin);
+        var (inset, card) = native.OnUi(() => settings.Content is SettingsShell shell ? (shell.Inset, shell.Client.Bounds) : (0, default));
+        Assert.Equal(SettingsShell.ShadowSpace, inset);
+        Assert.Equal(new Rect(inset, inset, 780, 580), card);
+        Assert.Equal((int)Math.Round((780 + 2 * inset) * scale), shown.Client.Width);
+        Assert.Equal((int)Math.Round((580 + 2 * inset) * scale), shown.Client.Height);
+        Assert.Equal(shown.Client.Width, shown.Frame.Width);
+        Assert.Equal(shown.Client.Height, shown.Frame.Height);
+        // expected from native readings alone: the Swift arithmetic (:46 main.frame, the VISIBLE main window: its HWND less
+        // the invisible strip on the left, right and bottom; DWM's extended frame bounds add back Windows 11's 1 px border)
+        // on the visible card (no strip), clamped into the working area, and the HWND that origin less the shadow space
+        var mainStrip = (mainReading.Frame.Width - mainReading.Client.Width) / 2;
+        var mainVisible = mainReading.Frame with { Left = mainReading.Frame.Left + mainStrip, Right = mainReading.Frame.Right - mainStrip,
+            Bottom = mainReading.Frame.Bottom - mainStrip };
+        var dwm = native.OnUi(() => G.ReadVisibleBounds((nint)mainReading.Handle)).VisibleBounds!;
+        Assert.Equal(mainVisible with { Left = mainVisible.Left - 1, Right = mainVisible.Right + 1, Bottom = mainVisible.Bottom + 1 }, dwm);
+        var insetPixels = (int)Math.Round(inset * scale);
+        var expected = G.Expected(mainReading with { Frame = mainVisible }, shown.Client.Width - 2 * insetPixels,
+            shown.Client.Height - 2 * insetPixels, 0, shown.Dpi, primary.Bounds, owner.Work);
+        Assert.Equal(new NativePlacementPoint(expected.Origin.X - insetPixels, expected.Origin.Y - insetPixels), shown.Origin);
     }, factType: typeof(WindowManagerNativeCentringTests));
 }

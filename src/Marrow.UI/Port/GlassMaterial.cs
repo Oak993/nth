@@ -24,7 +24,7 @@ using SkiaSharp;
 
 namespace Marrow.UI.Port;
 
-internal static class GlassMaterial
+internal static partial class GlassMaterial
 {
     private static readonly ConditionalWeakTable<Control, Attachment> attachments = new();
     public static void Attach(Control control) => AttachmentFor(control).Queue();
@@ -810,7 +810,7 @@ internal static class GlassMaterial
     // ED-320 16 (frame cost): the kept pixels live in one surface the material keeps, and only the region's pixels are copied out of the
     // window's surface (a whole snapshot of it, written to right after, made Skia copy the whole window every frame); the blur's own surface is kept too.
     // Both are made again when their size, the window's surface or the GPU context changes, and given up when the material leaves (Released).
-    private sealed class Backdrop
+    private sealed partial class Backdrop
     {
         private static readonly ConcurrentQueue<IDisposable> released = new();
         private SKSurface? kept, blurred;

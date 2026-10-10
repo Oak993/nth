@@ -42,6 +42,7 @@ public sealed class SkillsOfferTimelineNativeTests(HeadlessSession headless)
     public void A_chat_with_an_offer_flow_draws_its_card_and_caption_inline_in_the_reply_after_the_rows_and_the_card_shows_an_offer_made_for_it() => headless.OnUiThread(() =>
     {
         LoadLogin();
+        using var frames = Marrow.UI.Port.FrameClock.Source.Override(new Marrow.UI.Port.ManualFrameSource()); // the timeline's animations ask for frames; Marrow.App binds the clock at start-up
         using var reduce = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false });
         using var r = new SkillsOfferRig();
         var (timeline, window) = MountTimeline(r.Turn);
@@ -66,6 +67,7 @@ public sealed class SkillsOfferTimelineNativeTests(HeadlessSession headless)
     public void A_chat_without_an_offer_flow_draws_no_card_or_caption() => headless.OnUiThread(() =>
     {
         LoadLogin();
+        using var frames = Marrow.UI.Port.FrameClock.Source.Override(new Marrow.UI.Port.ManualFrameSource()); // the timeline's animations ask for frames; Marrow.App binds the clock at start-up
         using var reduce = Marrow.UI.Chrome.Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = false });
         using var h = new ThreadRuntimeTurnRig();
         var (timeline, window) = MountTimeline(h);

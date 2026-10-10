@@ -211,6 +211,33 @@ public sealed class GettingReadyLaunchTests(HeadlessSession headless)
         });
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Decision", "ED-288")]
+    public void A_boot_shell_accepts_the_real_root_with_the_preparation_sheet_already_wrapped(bool prepared) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        harness.Main.OnMain(() =>
+        {
+            var manager = new WindowManager();
+            var shell = manager.PrepareMainShell();
+            try
+            {
+                Assert.Null(shell.Content);
+                Assert.False(manager.HasCreatedModel);
+                manager.MainContent = () => new RootView();
+                var launch = GettingReadyLaunch.Arm(manager, Preparation(prepared).Preparation);
+                Assert.Same(shell, manager.PrepareMain());
+                var root = LogicalQuery.SelfAndDescendants<RootView>((Control)shell.Content!).Single();
+                Assert.Same(launch.Sheet, root.GettingReady);
+                Assert.Equal(prepared, root.GettingReady is null);
+                Assert.Same(manager.Model, AppEnvironment.GetAppModel(root));
+            }
+            finally { shell.Close(); manager.Model.StopPaletteChecks(); }
+        });
+    });
+
     [Fact] // GR-2.launch
     [Trait("Decision", "ED-288")]
     public void Arm_puts_the_hook_in_front_of_the_window_managers_main_content() => headless.OnUiThread(() =>

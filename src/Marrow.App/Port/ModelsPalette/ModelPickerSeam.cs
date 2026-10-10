@@ -18,12 +18,13 @@ public static class ModelPickerSeam
         var models=entries.Select(e=>
         {
             var maker=Makers.Resolve(e.Provider.Id,e.Option.Id,PaletteSourcePack.Default.Baseline);
-            var name=maker.Maker switch {"anthropic"=>"Anthropic","openai"=>"OpenAI","google"=>"Google","meta"=>"Meta","deepseek"=>"DeepSeek","x-ai"=>"xAI","mistralai"=>"Mistral AI","moonshotai"=>"Moonshot AI","qwen"=>"Qwen",var x=>x};
+            var name=MakerName(maker.Maker);
             var enabled=!hasHistory||allowedProvider is null||e.Provider==allowedProvider;
             return new PickerModel(e.Id,e.Option.ShortName,name,colour(e),enabled,enabled?e.Option.Id+" · "+e.Provider.DisplayName:"New chats only");
         }).ToArray();
         return new(models,leadingPair?"":selected?.Id??"",id=>choose(choices[id]),back);
     }
+    internal static string MakerName(string maker) => maker switch {"anthropic"=>"Anthropic","openai"=>"OpenAI","google"=>"Google","meta"=>"Meta","deepseek"=>"DeepSeek","x-ai"=>"xAI","mistralai"=>"Mistral AI","moonshotai"=>"Moonshot AI","qwen"=>"Qwen",var x=>x};
     /// <summary>The approved card ends 10px above the chip throughout its height easing.</summary>
     public static void Place(Popup popup)
     {popup.Placement=PlacementMode.Top;popup.VerticalOffset=-OpenRouterPicker.ChipClearance;}

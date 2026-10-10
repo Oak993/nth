@@ -517,8 +517,9 @@ public sealed class ComposerView : Decorator
             layers.Children.Insert(1, new VoiceGlowLayer(voice));
             pillSlot = new VoicePillSlot(voice);
             layers.Children.Insert(2, pillSlot);
-            insetRight = new AnimatedScalar(this, 0, inset => textColumn.Margin = new Thickness(0, 4, inset, 4));
-            pillSlot.InsetTargetChanged += target => insetRight.Set(target, LookCurve.Ez(0.42)); // V-12.6: the text's right edge eases over 0.42 s ez
+            insetRight = new AnimatedScalar(this, 0, inset => { textColumn.Margin = new Thickness(0, 4, inset, 4); FadeBesidePill(inset); });
+            textColumn.SizeChanged += (_, _) => FadeBesidePill(textColumn.Margin.Right);
+            pillSlot.InsetTargetChanged += target => insetRight.Set(target, LookCurve.Ez(0.42), preserveFrameProgress: true); // T46: keep inset and pill on the same clock, including stalled paint callbacks.
             question = new VoiceLanguageQuestion();
             questionHost.Children.Add(question);
             root.Children.Add(questionHost);
@@ -598,6 +599,19 @@ public sealed class ComposerView : Decorator
 
     protected override Size ArrangeOverride(Size finalSize)
     {
+        // T46 item 3: keep the existing row's height; centre a genuine single line, but keep source bottom
+        // alignment while wrapped text, chips, attachments or notices grow the column upward.
+        var singleLine = textColumn.IsSingleLine && (askOthers is null || askOthers.DesiredSize.Height <= 28);
+        textColumn.AlignSingleLine(singleLine);
+        if (askOthers is not null) askOthers.VerticalAlignment = singleLine ? VerticalAlignment.Center : VerticalAlignment.Bottom;
+        if (controls is not null) controls.VerticalAlignment = singleLine ? VerticalAlignment.Center : VerticalAlignment.Bottom;
+        if (insideAttach is not null)
+        {
+            insideAttach.VerticalAlignment = singleLine ? VerticalAlignment.Center : VerticalAlignment.Bottom;
+            insideAttach.Margin = new Thickness(8, 0, 0, singleLine ? 0 : 8);
+        }
+        if (outsideAttach is not null) Canvas.SetBottom(outsideAttach, singleLine ? finalSize.Height / 2 - 18 : 4);
+        PlaceInlineComposer(singleLine && voice is not null ? 1 : 0);
         var size = base.ArrangeOverride(finalSize);
         root.Arrange(new Rect(finalSize));
         return size;
@@ -672,7 +686,10 @@ public sealed class ComposerView : Decorator
             SetRecentDownloadsPicker(update.RecentDownloadsPicker);
             return;
         }
-        if (controls is { } previous) row.Children.Remove(previous);
+        if (controls is { } previous)
+        {
+            row.Children.Remove(previous);
+        }
         controls = null;
         if (inputs is not { } value)
         {
@@ -690,7 +707,9 @@ public sealed class ComposerView : Decorator
             voice: voice)
         {
             Margin = new Thickness(8, 0, 0, 0), // :145 spacing: 8
+            HorizontalAlignment = HorizontalAlignment.Right, // :145-178 trailing padding; fixed fractional width must not centre in a rounded Auto column
             VerticalAlignment = VerticalAlignment.Bottom,
+            UseLayoutRounding = false, // T46: a half-pixel row centre must not round before its glyphs rasterise
         };
         Grid.SetColumn(made, 1);
         row.Children.Add(made);
@@ -703,6 +722,17 @@ public sealed class ComposerView : Decorator
         }
         MakeAttachButtons(value.RecentDownloadsPicker);
         ShowAttach(true);
+    }
+
+    // T46 / OD-0132: the former bottom-aligned controls sat one point below the ordinary composer's centre.
+    // Centre the single-line contents and retain their approved window anchor by moving the unchanged outline one point.
+    private readonly TranslateTransform inlineComposerPlacement = new();
+
+    private void PlaceInlineComposer(double inset)
+    {
+        inlineComposerPlacement.Y = inset;
+        if (inset != 0 || ReferenceEquals(RenderTransform, inlineComposerPlacement)) RenderTransform = inlineComposerPlacement;
+        pillSlot?.InvalidateArrange();
     }
 
     // ---- the attachment button at the pill's left (voice-SPEC V-14.1; owner-ruled, OD-0091 and OD-0086) ----
@@ -728,7 +758,7 @@ public sealed class ComposerView : Decorator
             VerticalAlignment = VerticalAlignment.Bottom,
             Margin = new Thickness(8, 0, 0, 8), // 8 from the left, on the controls row's bottom line (the pill pads 8)
         };
-        outsideAttach = new ComposerAttachButton(ComposerAttachPlace.Outside, recentDownloadsPicker, showingRecents, onAttach, ChooseFiles);
+        outsideAttach = new ComposerAttachButton(ComposerAttachPlace.Outside, recentDownloadsPicker, showingRecents, onAttach, ChooseFiles) { UseLayoutRounding = false };
         // in the margin the pill gave up, centred on the last line of a one-line pill: 22 up from its foot, so 4 clear of the 36 point circle's own
         Canvas.SetLeft(outsideAttach, -OutsideAttachWidth);
         Canvas.SetBottom(outsideAttach, 4);
@@ -1003,6 +1033,24 @@ public sealed class ComposerView : Decorator
     }
 
     // :275-288. Internal for this unit's tests (InternalsVisibleTo Marrow.App.Tests); private in Swift.
+    // OD-0130 (owner finding F5, 2026-10-08): "the text gets cut off right there; it should fade smoothly as it nears the pill". While the
+    // voice pill has pushed the text column's right edge in (V-12.6's inset), the column's last 24 points fade to nothing instead of
+    // ending in a hard clip; at rest (no inset) the column carries no mask, so typing is unaffected.
+    private const double PillFadeWidth = 24;
+
+    private void FadeBesidePill(double inset)
+    {
+        var width = textColumn.Bounds.Width;
+        if (inset < 0.5 || width <= PillFadeWidth) { textColumn.OpacityMask = null; return; }
+        var start = (width - PillFadeWidth) / width;
+        textColumn.OpacityMask = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+            GradientStops = { new GradientStop(Colors.Black, 0), new GradientStop(Colors.Black, start), new GradientStop(Colors.Transparent, 1) },
+        };
+    }
+
     internal string Placeholder(ChatThread? thread)
     {
         if (thread is null) return ""; // :276
@@ -1502,6 +1550,10 @@ internal sealed class ComposerTextColumn : Decorator
     /// <summary>PORT-ONLY (voice-SPEC V-8.3, VT-11): the layer that draws live dictation over the editor.</summary>
     internal DictationLayer Dictation => textView.Dictation;
 
+    internal bool IsSingleLine => textView.Height <= 22 && clip.Height <= 22 && stack.Children.Take(stack.Children.Count - 1).All(child => child.DesiredSize.Height <= .001);
+
+    internal void AlignSingleLine(bool singleLine) => stack.VerticalAlignment = singleLine ? VerticalAlignment.Center : VerticalAlignment.Stretch;
+
     // The parent's body run again with new values for :544 placeholder and :546 attachmentNotice (R-VIEW-1).
     internal void Update(string placeholder, string? attachmentNotice)
     {
@@ -1795,8 +1847,9 @@ internal sealed class ComposerControls : Decorator
         // PORT-ONLY (OD-0115 composer=A, step 3a): the account capsule, only with a second account of the service or a pill relay; it sits before the model chip
         if (Marrow.App.Port.MultiAccount.Capsule.ComposerCapsuleSeams.Offer.Current(runtime) is { } capsuleSlot) { capsuleSlot.VerticalAlignment = VerticalAlignment.Center; row.Children.Add(Marrow.App.Port.MultiAccount.Handshake.HandshakeCapsuleHost.With(Marrow.App.Port.MultiAccount.Link.LinkComposerHost.With(capsuleSlot, runtime), capsuleSlot, runtime)); }
         row.Children.Add(slot = new ModelEffortSlot(runtime, thread, compact)); // :647
-        if (!compact) row.Children.Add(meter = new ContextMeter(runtime, thread.Provider, headsProvider)); // :650-651
-        row.Children.Add(send = new SendButton(runtime, goesToHead, queueGoesToHead, onSend)); // :653
+        if (!compact) row.Children.Add(meter = new ContextMeter(runtime, thread.Provider, headsProvider) { UseLayoutRounding = false }); // :650-651; retain the odd 27pt ring's half-point centre at fractional DPI
+        row.Children.Add(send = new SendButton(runtime, goesToHead, queueGoesToHead, onSend) { UseLayoutRounding = false }); // :653; keep its painted disc centred at fractional DPI
+        foreach (var child in row.Children) child.VerticalAlignment = VerticalAlignment.Center; // :626 HStack's default centre alignment
         Child = row;
     }
 
@@ -1953,7 +2006,7 @@ internal sealed class ContextMeter : Decorator
                 button.HorizontalAlignment = HorizontalAlignment.Left; // :717-728 the label keeps its padded natural width
                 button.Padding = new Thickness(6, 5); // :726-728 rectangular hit area
                 popup = new Popup { PlacementTarget = button, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true }; // :737
-                popup.Closed += (_, _) => state.IsPresented = false;
+                popup.Closed += (_, _) => { popup.Child = null; state.IsPresented = false; };
             }
             else button.Content = ring;
             if (!inTree)
@@ -1977,9 +2030,8 @@ internal sealed class ContextMeter : Decorator
         {
             if (popup is null || shown == presented) return;
             presented = shown;
-            if (shown) popup.Child = Content(runtime.Usage, AppEnvironment.GetAppModel(this));
+            if (shown && popup.Child is null) popup.Child = Content(runtime.Usage, AppEnvironment.GetAppModel(this));
             Presentation.Presenter.Current.SetPresented(popup, shown);
-            if (!shown) popup.Child = null;
         });
         DetachedFromVisualTree += (_, _) => { if (presented && popup is not null) Presentation.Presenter.Current.SetPresented(popup, false); };
 

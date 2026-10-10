@@ -77,7 +77,7 @@ public static class PortControlThemes
     // vertical, square corners (the Inspect panel lists none), fill Dark #262626@0.8 / Light #E7E7E7@0.85, shadows
     // 0 0 2 #000000@0.4 and 0 2 8 #000000@0.2 and, in Dark, an inner 0.6 hairline #FFFFFF@0.15; the text SF Pro Medium 11 /
     // 13 (the port's own family), Dark #FFFFFF@0.96 (Labels Dark Vibrant 1 Primary, plus lighter), Light #4C4C4C (plus
-    // darker; both drawn in normal blending). Not drawn: the kit's 45-point background blur behind the card (a tooltip
+    // darker; both drawn in normal blending). ToolTipBackdrop supplies the kit's 45-point background blur behind the card (a tooltip
     // is its own popup; OD-0005 governs materials). The card keeps 8 / 8 / 8 / 10 points round it inside the tip so the
     // popup does not clip its shadows (ENGINEERING DECISION).
     private static readonly SwiftColor TipFill = SwiftColor.Dynamic(SwiftColor.Rgb(0xE7E7E7).Opacity(0.85), SwiftColor.Rgb(0x262626).Opacity(0.8));
@@ -112,13 +112,37 @@ public static class PortControlThemes
         }
         card.ActualThemeVariantChanged += (_, _) => Shadows();
         Shadows();
-        return card;
+        return new Panel { Children = { new ToolTipBackdrop(card), card } };
     });
 
-    /// <summary>The ToolTip default theme: the system tooltip card.</summary>
+    // Owner finding F4 (2026-10-08, installed build): hovering a title-bar button showed the dark tip card inside a white
+    // square. A ToolTip is shown in a Popup of its own, and on Windows that Popup is a PopupRoot window whose default
+    // Background is opaque white (PopupRoot's static constructor; PopoverHost.cs note 2 says the same of popovers). The
+    // card above assumes a clear surround, so the tip's top-level gets no fill at all and a transparent surface, as a
+    // tipped popover's does (PopoverHost.Register), the moment the tip is put in it, before the window is shown.
+    private static readonly AttachedProperty<bool> ClearsTipSurroundProperty =
+        AvaloniaProperty.RegisterAttached<ToolTip, bool>("ClearsTipSurround", typeof(PortControlThemes));
+
+    static PortControlThemes()
+    {
+        ClearsTipSurroundProperty.Changed.AddClassHandler<ToolTip>((tip, change) =>
+        {
+            if (change.NewValue is not true) return;
+            void Clear()
+            {
+                if (TopLevel.GetTopLevel(tip) is not PopupRoot root) return;
+                root.Background = null;
+                root.TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
+            }
+            tip.AttachedToVisualTree += (_, _) => Clear();
+            Clear();
+        });
+    }
+
+    /// <summary>The ToolTip default theme: the system tooltip card, in a clear top-level.</summary>
     public static ControlTheme ToolTipTheme { get; } = new(typeof(ToolTip))
     {
-        Setters = { new Setter(TemplatedControl.TemplateProperty, TipTemplate) },
+        Setters = { new Setter(TemplatedControl.TemplateProperty, TipTemplate), new Setter(ClearsTipSurroundProperty, true) },
     };
 
     // Slider(...).controlSize(.small) (SettingsView.swift:532-534 transparency, WallpaperCard.swift:133-139 softness): drew
@@ -236,6 +260,11 @@ public static class PortControlThemes
         SoftScroll.Install(); // OD-0071 (ED-246): a ScrollViewer marked SoftScroll.IsEnabled (the chat timeline's, ED-333) scrolls softly
         application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
+        // ED-NEW-T45: every .help site uses a long dwell, including after a previous tag.
+        application.Styles.Add(new Style(selector => selector.Is<Control>())
+        {
+            Setters = { new Setter(ToolTip.ShowDelayProperty, 1500), new Setter(ToolTip.BetweenShowDelayProperty, 0) },
+        });
         application.Resources[typeof(Slider)] = SliderTheme;
         RegisterPrimaryTextDefault(application);
         GreyscaleText.Register(application); // OD-0099 Q-TEXT A: text is greyscale everywhere (GreyscaleText.cs)

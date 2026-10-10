@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
@@ -79,9 +80,15 @@ public sealed class AboutUpdateViewsRealPopupTests(HeadlessSession headless) : S
 
         // A press outside closes it and clears the presented card.
         var outside = new Point(4, 4);
+        Assert.IsType<Border>(window.Content).Background = Avalonia.Media.Brushes.Transparent;
+        Drain(window); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Assert.NotNull(window.InputHitTest(outside));
         Assert.False(new Rect(top, content.Bounds.Size).Contains(outside));
         window.MouseDown(outside, Avalonia.Input.MouseButton.Left);
         window.MouseUp(outside, Avalonia.Input.MouseButton.Left);
+        Drain(window);
+        Assert.True(popup.IsOpen); // T45: preserve the closing frames rather than cutting the panel away
+        Tick(h, 200);
         Drain(window);
         Assert.False(popup.IsOpen);
         Assert.Null(Presented(cards));

@@ -44,7 +44,7 @@ internal sealed class SettingsNativePresentation : IDisposable
         var surface = Field(platform, "_glSurface");
         if (surface?.GetType().FullName != "Avalonia.Win32.WinRT.Composition.WinUiCompositedWindowSurface") return null;
         var presentation = Bind(platform);
-        if (presentation is not null && window.Content is SettingsShell { Inset: > 0 } shell)
+        if (presentation is not null && window.Content is SettingsShell { IsNative: true } shell)
         {
             var native = Field(Field(platform, "_glSurface"), "_window");
             try

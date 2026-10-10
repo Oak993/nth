@@ -776,38 +776,42 @@ public sealed class HydraWorkingTitle : Decorator
 
         Child = new Grid { Children = { label } };
 
+        // Lead (native gallery, 2026-10-08): a finished head's title is not ticking, so a theme change left it in the old
+        // theme's colour (white on the light panel). It is painted again whenever the theme changes.
+        void Paint(DateTimeOffset date)
+        {
+            var referenceDate = new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var now = (date - referenceDate).TotalSeconds;
+            var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
+            var animates = isRunning && !reduceMotion;
+            var phase = Math.Min((now % (Sweep + SweepRest)) / Sweep, 1);
+            var centre = animates ? -Reach + phase * (1 + 2 * Reach) : 0.5;
+            var dip = animates ? 0.6 : 1.0;
+            var breath = animates ? 0.5 + 0.5 * Math.Sin(now / Breath * 2 * Math.PI) : 1.0;
+            label.Opacity = animates ? 0.86 + 0.14 * breath : 1;
+            var primary = Chrome.PrimaryText.Resolve(ActualThemeVariant);
+            label.Foreground = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(primary, 0),
+                    new GradientStop(primary, (float)Math.Clamp(centre - Reach, 0, 1)),
+                    new GradientStop(Color.FromArgb((byte)(primary.A * dip), primary.R, primary.G, primary.B), (float)Math.Clamp(centre, 0, 1)),
+                    new GradientStop(primary, (float)Math.Clamp(centre + Reach, 0, 1)),
+                    new GradientStop(primary, 1),
+                },
+            };
+        }
         Child.TimelineView(
             () => new AnimationTimelineSchedule(
                 1.0 / 20.0,
                 !isRunning ||
                 EnvironmentValues.GetAccessibilityReduceMotion(this) ||
                 ScrollActivity.Shared.Current.IsScrolling),
-            date =>
-            {
-                var referenceDate = new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero);
-                var now = (date - referenceDate).TotalSeconds;
-                var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
-                var animates = isRunning && !reduceMotion;
-                var phase = Math.Min((now % (Sweep + SweepRest)) / Sweep, 1);
-                var centre = animates ? -Reach + phase * (1 + 2 * Reach) : 0.5;
-                var dip = animates ? 0.6 : 1.0;
-                var breath = animates ? 0.5 + 0.5 * Math.Sin(now / Breath * 2 * Math.PI) : 1.0;
-                label.Opacity = animates ? 0.86 + 0.14 * breath : 1;
-                var primary = Chrome.PrimaryText.Resolve(label.ActualThemeVariant);
-                label.Foreground = new LinearGradientBrush
-                {
-                    StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
-                    EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
-                    GradientStops =
-                    {
-                        new GradientStop(primary, 0),
-                        new GradientStop(primary, (float)Math.Clamp(centre - Reach, 0, 1)),
-                        new GradientStop(Color.FromArgb((byte)(primary.A * dip), primary.R, primary.G, primary.B), (float)Math.Clamp(centre, 0, 1)),
-                        new GradientStop(primary, (float)Math.Clamp(centre + Reach, 0, 1)),
-                        new GradientStop(primary, 1),
-                    },
-                };
-            });
+            Paint);
+        ActualThemeVariantChanged += (_, _) => Paint(DateTimeOffset.UtcNow);
     }
 }
 

@@ -29,6 +29,23 @@ namespace Marrow.App;
 /// UNUserNotificationCenterDelegate</c>.</summary>
 public sealed class AppDelegate
 {
+    private BootStageWindow? preparedBoot;
+    private Action? showPreparedMain;
+
+    public AppDelegate() => StartBoot = StartDefaultBoot;
+
+    // T44: the restored shell and approved stage precede palette/model/content initialization.
+    internal void PrepareBoot() => preparedBoot ??= BootStageWindow.Start(
+        WindowManager.Shared.PrepareMainShell(), ReduceMotion(), () => showPreparedMain?.Invoke());
+
+    private BootStageWindow StartDefaultBoot(WindowManager windows, Action show)
+    {
+        if (preparedBoot is not { } boot) return BootStageWindow.Start(windows.PrepareMain(), ReduceMotion(), show);
+        windows.PrepareMain(); // GettingReadyLaunch has wrapped the factory before content is attached.
+        boot.ContentReady();
+        showPreparedMain = show;
+        return boot;
+    }
     // :7 var model: AppModel?
     public AppModel? Model { get; set; }
 
@@ -90,9 +107,14 @@ public sealed class AppDelegate
         }
         MainActor.Spawn(async () => // :27 Task { await windows.model.bootstrap() }
         {
-            await BootstrapModel(windows.Model);
+            var bootstrap = BootstrapModel(windows.Model);
+            // OD-0133 (amending OD-0108 for provider checks only): B waits for the bootstrap up to its provider refresh
+            // (AppModel.LaunchReady), or for all of it where it ends first; the refresh, the sign-in checks and the catalogs
+            // finish after the window shows. A bootstrap that fails before then still never reveals the window, as before.
+            await await Task.WhenAny(bootstrap, windows.Model.LaunchReady);
             if (boot is not null) await firstRunDone.Task;
-            boot?.Ready(); // OD-0108 / OD-0113: bootstrap AND preparation must finish before B reveals the window
+            boot?.Ready(); // OD-0108 / OD-0113: bootstrap (to its provider refresh) AND preparation must finish before B reveals the window
+            await bootstrap;
         });
         UpdateChecker.Shared.StartBackgroundChecks(); // :28
         UpdateEverythingProduction.Configure(windows.Model); // UE-5 (OD-0100): Update everything's items and its background check; no Swift twin
@@ -111,8 +133,7 @@ public sealed class AppDelegate
 
     // PORT-ONLY (OD-0018, ED-103): the boot sequence, or a plain show when there is no stage to run. Settable only so the
     // launch tests, which run headless and record the main window, can keep the plain show; nothing in the app sets it.
-    internal Func<WindowManager, Action, BootStageWindow?> StartBoot { get; set; } = (windows, show) =>
-        BootStageWindow.Start(windows.PrepareMain(), ReduceMotion(), show);
+    internal Func<WindowManager, Action, BootStageWindow?> StartBoot { get; set; }
 
     // ED-103 (6): Windows' "Animation effects" setting off is reduce motion (as AttachmentFlightPlatform reads it).
     private static bool ReduceMotion() =>

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Rendering.Composition;
@@ -38,6 +39,27 @@ public sealed class RenderFrameSource : IRefreshFrameSource, IDisposable
     private readonly DisplayRefreshCounter refreshCounter = new();
     private long refresh;
     private bool disposed;
+    private AmbientMotionController? ambient;
+    private TimeSpan decorationCarry;
+    private static readonly ConditionalWeakTable<Control, RenderFrameSource> AmbientSources = new();
+    /// <summary>The host's paused decoration phase, when it opted into the owner ambient policy.</summary>
+    public static TimeSpan? DecorationTimeFor(Control host) => AmbientSources.TryGetValue(host, out var source) ? source.DecorationTime : null;
+    public TimeSpan? DecorationTime => ambient is null ? null : decorationCarry + TimeSpan.FromSeconds(ambient.Clock.Time);
+    private Func<bool>? ambientInteraction;
+
+    internal void EnableAmbientMotion(Func<bool>? interaction, TimeSpan carry)
+    {
+        if (ambient is not null || AmbientWindowState.Acquire(host) is not { } window) return;
+        ambient = new(window, host);
+        ambientInteraction = interaction;
+        decorationCarry = carry;
+        AmbientSources.Remove(host); AmbientSources.Add(host, this);
+        ambient.Bind(visual);
+    }
+    public static void WakeAmbientFor(Control host)
+    {
+        if (AmbientSources.TryGetValue(host, out var source)) source.visual.SendHandlerMessage(Ticker.Wake);
+    }
 
     private RenderFrameSource(Control host, Compositor compositor)
     {
@@ -127,6 +149,8 @@ public sealed class RenderFrameSource : IRefreshFrameSource, IDisposable
             pending.Clear();
         }
         host.SizeChanged -= OnSizeChanged;
+        ambient?.Dispose(); ambient = null;
+        if (AmbientSources.TryGetValue(host, out var source) && ReferenceEquals(source, this)) AmbientSources.Remove(host);
         if (ReferenceEquals(ElementComposition.GetElementChildVisual(host), visual)) ElementComposition.SetElementChildVisual(host, null);
     }
 
@@ -253,15 +277,35 @@ public sealed class RenderFrameSource : IRefreshFrameSource, IDisposable
     private sealed class Ticker(RenderFrameSource owner) : CompositionCustomVisualHandler
     {
         internal static readonly object Wake = new();
+        private bool registered;
+
+        private void Request()
+        {
+            if (registered) return;
+            if (owner.ambient is { } ambient && !ambient.Request(ambient.Now, owner.ambientInteraction?.Invoke() == true)) return;
+            lock (owner.sync) { if (owner.disposed || owner.pending.Count == 0) return; }
+            registered = true;
+            RegisterForNextAnimationFrameUpdate();
+        }
 
         public override void OnMessage(object message)
         {
-            if (ReferenceEquals(message, Wake)) RegisterForNextAnimationFrameUpdate();
+            if (ReferenceEquals(message, Wake) || ReferenceEquals(message, owner.ambient))
+            {
+                if (owner.ambient is { } ambient) ambient.Sample(ambient.Now, owner.ambientInteraction?.Invoke() == true);
+                Request();
+            }
         }
 
         public override void OnAnimationFrameUpdate()
         {
-            if (owner.Tick()) RegisterForNextAnimationFrameUpdate();
+            registered = false;
+            if (owner.ambient is { } ambient)
+            {
+                ambient.Sample(ambient.Now, owner.ambientInteraction?.Invoke() == true);
+                if (!ambient.Available) return;
+            }
+            if (owner.Tick()) Request();
         }
 
         public override void OnRender(ImmediateDrawingContext drawingContext) { } // draws nothing: it only marks the host's area

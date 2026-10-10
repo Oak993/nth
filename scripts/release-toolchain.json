@@ -1,0 +1,8 @@
+{
+  "dotnetSdk": "10.0.401",
+  "dotnetRuntime": "10.0.12",
+  "powerShell": "7.6.6",
+  "node": "24.19.0",
+  "vpk": "1.2.161",
+  "vpkNugetSha512": "NZ9I8Fbwlz4bHPlxvWeGKx3TXCEUf4AdPHhUHidppgM3CKVt1bGAHHrdBjCjY0S1uokpl60vA889wAzO2/ixmw=="
+}

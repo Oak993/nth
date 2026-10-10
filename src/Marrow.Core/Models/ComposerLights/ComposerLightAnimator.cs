@@ -230,13 +230,13 @@ public sealed class ComposerLightAnimator
     /// Moves the light to <paramref name="now"/> (seconds, monotonic) and fills <see cref="Aura"/> and the drawn
     /// <see cref="Slots"/>. Returns true while anything moves (the next frame is wanted).
     /// </summary>
-    public bool Advance(double now)
+    public bool Advance(double now, double motionScale = 1)
     {
         var dt = double.IsNaN(last) ? 0 : now - last;
         last = now;
         var b = settings.Beam;
         var beamDark = BeamDark(b);
-        clock.Advance(dt, reduce, settings.Aura.Speed, settings.Aura.Breathing, BorderBeamMath.Duration(b, w, h, ComposerRadius),
+        clock.Advance(dt * motionScale, reduce, settings.Aura.Speed, settings.Aura.Breathing, BorderBeamMath.Duration(b, w, h, ComposerRadius),
             b.StaticColors || b.Palette == BeamPalette.Mono, !beamDark, b.Radius ?? ComposerRadius);
         Produce(now);
         if (reduce) return false;

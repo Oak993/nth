@@ -28,6 +28,12 @@ public sealed partial class PaletteEngine : Actor,IDisposable
     private readonly HashSet<string> observed=new(StringComparer.Ordinal);
     private readonly Dictionary<string,(long Tick,int Failures)> backoff=new(StringComparer.Ordinal);
     private StoredMarket? market,unpublished;
+    private StoredMarket? rowsMarket, factsMarket;
+    private PublicModelCatalogueEntry[] cachedRows=[];
+    private List<ModelPaletteFact>? cachedFacts;
+    private PaletteSourcePack? factsPack;
+    private PaletteReleasePack? factsRelease;
+    private readonly Dictionary<string,(ModelPaletteFact[] Facts,PaletteAnchor Palette,MakerLineup Lineup)> cachedLineups=new(StringComparer.Ordinal);
     private PublicModelCatalogueSnapshot? prefetch;
     private JsonDocument? providers;
     private long providersDay=-1,serverSeconds,serverTick;
@@ -246,11 +252,20 @@ public sealed partial class PaletteEngine : Actor,IDisposable
     private static string EvidenceHash(SeedEvidence[] e)=>Hash(string.Join('\n',e.Select(x=>x.Source+"|"+x.Sha256)));
     private StoredMarket? EffectiveMarket=>market is {} m&&m.Window>(releasePack?.Market?.Boundary??-1)?m:null;
     private long EffectiveBoundary=>EffectiveMarket?.Window??releasePack?.Market?.Boundary??-1;
-    private PublicModelCatalogueEntry[] PublicRows()=>EffectiveMarket is {} m?PublicModelCatalogue.Parse(m.Body)?.Models.ToArray()??[]:[];
+    private PublicModelCatalogueEntry[] PublicRows()
+    {
+        var effective=EffectiveMarket;
+        if(ReferenceEquals(rowsMarket,effective))return cachedRows;
+        rowsMarket=effective;
+        return cachedRows=effective is {} m?PublicModelCatalogue.Parse(m.Body)?.Models.ToArray()??[]:[];
+    }
     private List<ModelPaletteFact> Facts()
     {
+        var effective=EffectiveMarket;
+        if(cachedFacts is not null&&ReferenceEquals(factsMarket,effective)&&ReferenceEquals(factsPack,pack)&&ReferenceEquals(factsRelease,releasePack))return cachedFacts;
+        factsMarket=effective;factsPack=pack;factsRelease=releasePack;
         var result=pack.Baseline.Select(f=>f with {Maker=AliasMaker(f.Maker)}).GroupBy(f=>f.Id,StringComparer.Ordinal).ToDictionary(g=>g.Key,g=>g.First(),StringComparer.Ordinal);
-        if(EffectiveMarket is not {} m)return result.Values.ToList();
+        if(effective is not {} m)return cachedFacts=result.Values.ToList();
         var generated=m.Date-m.Age;var cutoff=m.Window*21600-1800;
         foreach(var row in PublicRows())
         {
@@ -265,7 +280,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
             if(x.TryGetProperty("context_length",out var ctx)&&ctx.ValueKind==JsonValueKind.Number)ctx.TryGetInt64(out context);
             result[row.Id]=new(row.Id,AliasMaker(row.Maker),price,created,context,eligible);
         }
-        return result.Values.ToList();
+        return cachedFacts=result.Values.ToList();
     }
     private (string Key,string Org,string? Name,string InputDigest) SeedInputs(string maker,IReadOnlyList<ModelPaletteFact> facts,IReadOnlyList<PublicModelCatalogueEntry> rows)
     {
@@ -317,7 +332,20 @@ public sealed partial class PaletteEngine : Actor,IDisposable
             }
             return palettes[maker]=(pack.Neutral,PaletteState.Pending,false);
         }
-        var lineups=LineupRanker.Build(facts,m=>For(m).Palette);var models=new List<PaletteModel>();
+        var lineups=new Dictionary<string,MakerLineup>(StringComparer.Ordinal);
+        foreach(var group in facts.GroupBy(f=>f.Maker,StringComparer.Ordinal))
+        {
+            var members=group.ToArray();var palette=For(group.Key).Palette;
+            if(!cachedLineups.TryGetValue(group.Key,out var cached)||cached.Palette!=palette||!members.SequenceEqual(cached.Facts))
+            {
+                var built=LineupRanker.Build(members,_=>palette);
+                if(!built.TryGetValue(group.Key,out var lineup))continue;
+                cached=(members,palette,lineup);cachedLineups[group.Key]=cached;
+            }
+            lineups[group.Key]=cached.Lineup;
+        }
+        foreach(var removed in cachedLineups.Keys.Except(lineups.Keys,StringComparer.Ordinal).ToArray())cachedLineups.Remove(removed);
+        var models=new List<PaletteModel>();
         var ids=facts.Where(f=>f.Eligible).Select(f=>f.Id).Concat(prefetch?.Models.Select(m=>m.Id)??[]).Concat(observed).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
         foreach(var id in ids)
         {
@@ -326,7 +354,7 @@ public sealed partial class PaletteEngine : Actor,IDisposable
             var p=For(maker);var position=lineups.TryGetValue(maker,out var lineup)?lineup.Lookup(id):new ModelPalettePosition(.5,1,1);
             models.Add(new(id,maker,names.GetValueOrDefault(id,observedNames.GetValueOrDefault(id,id)),p.State,p.Palette,position,p.Crowded));
         }
-        return PaletteSnapshot.Create(EffectiveBoundary,models,releasePack is {} release?"pack.v"+release.Version:pack.Version);
+        return PaletteSnapshot.Create(EffectiveBoundary,models,releasePack is {} release?"pack.v"+release.Version:pack.Version,Current);
     }
     private void Publish()
     {

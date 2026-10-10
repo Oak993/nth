@@ -65,7 +65,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 Settle(menus[^1]);
                 // :38-54 only the LAST CLOSED fence is copied: the opened-but-never-closed one at the end yields nothing.
                 Assert.Equal("last block", window.Clipboard!.TryGetTextAsync().GetAwaiter().GetResult());
-                Assert.True(items[2].IsConfirmed);
+                Assert.True(items[2].IsConfirmed, "Copy last code block must confirm after the real item click.");
                 Assert.Equal("Copied", Title(items[2]));
                 ClickItem(menus[^1], items[3]);
             });
@@ -73,7 +73,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
             {
                 Settle(menus[^1]);
                 // :1406-1410 Add to reply confirms with Added and quotes the reply into the chat box's draft.
-                Assert.True(items[3].IsConfirmed);
+                Assert.True(items[3].IsConfirmed, "Add to reply must confirm after the real item click.");
                 Assert.Equal("Added", Title(items[3]));
                 Assert.Equal([CodedReply], h.Runtime.Draft.Quotes.Select(quote => quote.Text));
                 // Opening the same menu again and adding the same reply again adds nothing (:1408).
@@ -113,9 +113,12 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     {
         RightClick(window, on);
         var popup = presenter.Calls.Last(call => call.Presented).Popup;
-        Assert.True(popup.IsOpen);
+        Assert.True(popup.IsOpen, "The real secondary click must present the popup before its content is mounted separately.");
         var content = popup.Child!;
         popup.Child = null;
+        // This fixture transports the content to its own menu window; the original empty popup must release its overlay.
+        presenter.SetPresented(popup, false);
+        Assert.False(popup.IsOpen);
         var menu = new AvaloniaWindow { Content = content, Width = 400, Height = 400 };
         menu.Show();
         Settle(menu);
