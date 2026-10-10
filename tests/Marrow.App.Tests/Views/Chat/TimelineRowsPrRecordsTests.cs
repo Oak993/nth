@@ -60,18 +60,21 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Equal(symbol, ToolPresentation.Symbol(kind));
 
     // ---- PR-CHAT-099: ToolStatusIcon - a mini spinner while running, a red cross when failed, a raised hand when
-    // declined, the kind's (or an override) glyph when completed, all in a caption-size 16-point-wide column (:2067-2092) ----
+    // declined, the kind's (or an override) glyph when completed, all in a caption-size 16-point-wide column (:2067-2092).
+    // OD-0136 amendment 2, step 8 (tool call): running is the 14 px spinner of the nth status slot and completed is its tick (a read of an image keeps its photo glyph) ----
 
     [Fact]
     [Trait("Req", "PR-CHAT-099")]
-    public void Running_shows_an_indeterminate_progress_control() => headless.OnUiThread(() =>
+    public void Running_shows_the_working_status_mark() => headless.OnUiThread(() =>
     {
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "run", ToolCallStatus = ToolCall.Status.Running };
         var icon = new ToolStatusIcon(call);
         var column = Assert.IsType<Border>(icon.Child);
         Assert.Equal(TimelineMetrics.IconWidth, column.Width);
-        Assert.IsType<ProgressBar>(column.Child);
-        Assert.True(((ProgressBar)column.Child!).IsIndeterminate);
+        var mark = Assert.IsType<Marrow.UI.Port.Nth.NthStatusMark>(column.Child);
+        Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Working, mark.Status);
+        Assert.Equal(Marrow.UI.Port.Nth.NthDoneMark.Tick, mark.DoneMark);
+        Assert.Equal(14, mark.MarkSize);
     });
 
     [Fact]
@@ -100,12 +103,14 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-099")]
-    public void Completed_shows_the_kinds_own_glyph_unless_an_override_is_given() => headless.OnUiThread(() =>
+    public void Completed_shows_the_done_tick_unless_an_override_glyph_is_given() => headless.OnUiThread(() =>
     {
         var call = new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = "read", ToolCallStatus = ToolCall.Status.Completed };
-        var plain = (SwiftImage)((Border)new ToolStatusIcon(call).Child!).Child!;
-        Assert.Equal("doc.text", plain.SymbolName); // the kind's own glyph (:2222-2233), no override given
-        Assert.Equal(ChromeTokens.SecondaryText.Resolve(plain.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(plain.Foreground).Color);
+        // The kind's own glyph (:2222-2233, "doc.text" for a read) was the done look; step 8 draws the tick, in place (a row made already done does not replay it).
+        var plain = Assert.IsType<Marrow.UI.Port.Nth.NthStatusMark>(((Border)new ToolStatusIcon(call).Child!).Child);
+        Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Done, plain.Status);
+        Assert.Equal(Marrow.UI.Port.Nth.NthDoneMark.Tick, plain.DoneMark);
+        Assert.True(double.IsNegativeInfinity(Assert.IsType<Marrow.UI.Port.Nth.NthStatusState>(plain.Snapshot().State).ChangedAt));
 
         var overridden = (SwiftImage)((Border)new ToolStatusIcon(call, symbol: "photo").Child!).Child!;
         Assert.Equal("photo", overridden.SymbolName); // :1784 a read that looked at an image uses the photo glyph
@@ -2566,9 +2571,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             // :2335-2337 only a proposed plan draws the attention dots.
             Assert.Equal([false, true, false, false], cards.Select(card => card.GetVisualDescendants().OfType<DotFieldControl>().Any()));
             // :2272-2276 the spinner while drafting, the clipboard in the tint otherwise.
-            var spinner = Assert.Single(cards[0].GetVisualDescendants().OfType<WorkingSpinner>());
-            Assert.Equal(14, spinner.Width);
-            Assert.Equal(3.0, (double)Field(spinner.Child!, "cellSize")!); // :2274 WorkingSpinner(cellSize: 3)
+            var spinner = Assert.Single(cards[0].GetVisualDescendants().OfType<Marrow.UI.Port.Nth.NthStatusMark>()); // OD-0136 amendment 2, step 8: the 14 px spinner of the nth status slot (was the 3-cell working spinner)
+            Assert.Equal(18, Assert.IsType<Border>(spinner.Parent).Width); // ChatBadge gives its glyph an 18 x 18 frame (:26); the spinner inside is 14 Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Working, spinner.Status); Assert.Equal(14, spinner.MarkSize);
             Assert.DoesNotContain("list.bullet.clipboard", Symbols(cards[0]));
             var clipboard = cards[1].GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "list.bullet.clipboard");
             Assert.Equal(Resolved(ChromeTokens.Accent, clipboard), BrushColor(clipboard.Foreground));

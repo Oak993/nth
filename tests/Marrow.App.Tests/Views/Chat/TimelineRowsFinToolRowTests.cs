@@ -49,10 +49,13 @@ public sealed class TimelineRowsFinToolRowTests(HeadlessSession headless)
             {
                 // ---- a row with output: the icon column (16), the text 8 points on (callout, .secondary), a right chevron 8 after it.
                 var icon = Assert.Single(Mounted<ToolStatusIcon>(output));
-                var glyph = Assert.Single(Mounted<SwiftImage>(icon));
+                // OD-0136 amendment 2, step 8: a completed call's icon is the nth status slot's tick (the kind's glyph, "terminal" here, was the done look)
+                Assert.Empty(Mounted<SwiftImage>(icon));
+                var tick = Assert.Single(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(icon));
                 var text = Label(output);
                 var chevron = Assert.Single(Mounted<SwiftImage>(output), image => image.SymbolName == "chevron.right");
-                Assert.Equal("terminal", glyph.SymbolName);
+                Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Done, tick.Status);
+                Assert.True(double.IsNegativeInfinity(Assert.IsType<Marrow.UI.Port.Nth.NthStatusState>(tick.Snapshot().State).ChangedAt)); // a row made done shows it in place
                 Assert.Equal(16, Mounted<Border>(icon).First().Width);
                 Assert.Equal(Left(output, window), Left(icon, window), 0.5);
                 Assert.Equal("Ran npm test", text.FullText);
@@ -60,8 +63,6 @@ public sealed class TimelineRowsFinToolRowTests(HeadlessSession headless)
                 Face(text, 12, FontWeight.Normal, ".chat(.callout)");
                 Paints(text.Foreground, SwiftColor.Secondary, text, "plain row text is .secondary (:1793)");
                 Assert.Equal(1, text.LineLimit);
-                FontOf(glyph, 10, FontWeight.Normal); // :2089 .font(.chat(.caption))
-                Paints(glyph.Foreground, ChromeTokens.SecondaryText, glyph, "completed glyph");
                 FontOf(chevron, 10, FontWeight.SemiBold); // :1807 caption2 semibold
                 Paints(chevron.Foreground, ChromeTokens.SecondaryText, chevron, "chevron");
                 Assert.Equal(8, Left(chevron, window) - (Left(text, window) + text.Bounds.Width), 0.5);
@@ -83,7 +84,8 @@ public sealed class TimelineRowsFinToolRowTests(HeadlessSession headless)
                 Assert.Empty(Mounted<Button>(plain));
                 Assert.DoesNotContain(Mounted<SwiftImage>(plain), image => image.SymbolName is "chevron.down" or "chevron.right");
                 // ---- :2072-2091 the status icon: a spinner, a red cross, a raised hand, the kind's glyph.
-                Assert.Single(Mounted<Avalonia.Controls.ProgressBar>(running));
+                Assert.Empty(Mounted<Avalonia.Controls.ProgressBar>(running));
+                Assert.Equal(Marrow.UI.Port.Nth.NthStatus.Working, Assert.Single(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(running)).Status);
                 Assert.Empty(Mounted<SwiftImage>(Assert.Single(Mounted<ToolStatusIcon>(running))));
                 var cross = Assert.Single(Mounted<SwiftImage>(failed), image => image.SymbolName == "xmark.circle.fill");
                 Paints(cross.Foreground, ChromeTokens.Danger, cross, "failed glyph");

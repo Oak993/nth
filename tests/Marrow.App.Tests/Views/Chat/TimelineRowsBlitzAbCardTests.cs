@@ -78,12 +78,12 @@ public sealed class TimelineRowsBlitzAbCardTests(HeadlessSession headless)
                         // :2272-2277 the glyph: the working spinner in a 14-point frame while drafting, else the tinted clipboard.
                         if (state == ProposedPlan.State.Drafting)
                         {
-                            Assert.Single(Mounted<WorkingSpinner>(card));
+                            Assert.Single(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(card)); // OD-0136 amendment 2, step 8: the nth status slot's spinner
                             Assert.DoesNotContain("list.bullet.clipboard", Symbols(card));
                         }
                         else
                         {
-                            Assert.Empty(Mounted<WorkingSpinner>(card));
+                            Assert.Empty(Mounted<Marrow.UI.Port.Nth.NthStatusMark>(card));
                             var clip = Assert.Single(Mounted<SwiftImage>(card), image => image.SymbolName == "list.bullet.clipboard");
                             BlitzAbRender.InkIsColour(frame, BlitzAbRender.BoxIn(clip, window), fill, ChromeTokens.Accent.Resolve(theme), $"{state} clipboard in {theme}", most: 1.6);
                         }

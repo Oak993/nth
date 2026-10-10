@@ -23,6 +23,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
+using Marrow.UI.Port.Nth;
 
 // Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859.
 // All six parts, including the inherited cloud bodies, audited against the pinned 1.7.0 source.
@@ -2428,6 +2429,9 @@ public sealed class ToolRow : Decorator
     // actions and the anchor, never by the body, so a plain field (R-VIEW-2).
     private readonly AttachmentPreviewSlot preview = new();
 
+    // PORT-ONLY (OD-0136 amendment 2, step 8): the status slot and the shining label, kept across this row's bodies (see NthToolRowParts).
+    private readonly NthToolRowParts parts = new();
+
     /// <param name="entry">:1638 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="runtime">:1639 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="workingDirectory">:1640 <c>var workingDirectory: String?</c>.</param>
@@ -2614,16 +2618,32 @@ public sealed class ToolRow : Decorator
         else if (mcp is { } server) // :1781-1782
             run.Children.Add(new MCPGlyph(server.Entry, size: 18, isRunning: running, status: call.ToolCallStatus));
         else // :1783-1784 a read that looked at an image wears the photo glyph
-            run.Children.Add(new ToolStatusIcon(call, symbol: imagePath is not null && call.ToolCallKind == ToolCall.Kind.Read ? "photo" : null));
+            run.Children.Add(new ToolStatusIcon(call, symbol: imagePath is not null && call.ToolCallKind == ToolCall.Kind.Read ? "photo" : null, mark: parts.Mark));
 
         // :1786-1795 one text run after the icon, so the row reads as icon + space + text.
         var text = head is { } sent ? (running ? "Sending out" : "Sent out") + " " + sent.Persona.Name + ": " + call.Title // :1788
             : departing is { } away ? DepartureLabel(call, away.Name, away.Task) // :1789
             : mcp is { } tool ? ToolPresentation.McpLabel(tool.Entry, tool.Tool, running) // :1790
             : ToolPresentation.Label(call); // :1791
-        var label = new MiddleTruncatingTextBlock { FullText = text, MaxLines = 1 }; // :1794-1795
-        (isBadge ? ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium) : ChatFont.Chat(SwiftFont.TextStyle.Callout)).Apply(label); // :1792
-        label.Foreground = (isBadge ? Chrome.PrimaryText.Opacity(0.9) : SwiftColor.Secondary).Brush(label); // :1793
+        TextBlock label;
+        if (!isBadge && (running || parts.Label is not null))
+        {
+            // PORT-ONLY (OD-0136 amendment 2, step 8): a plain row seen running wears the shining label, which the next bodies of this row take over, so the light stops
+            // and the colour steps from --text to --text2 when the call is done. A row made already done has the plain label below.
+            var fresh = parts.Label is null;
+            var shine = parts.Label ??= new NthToolLabel { MaxLines = 1 };
+            NthToolRow.TakeOut(shine);
+            shine.FullText = text;
+            ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(shine); // :1792
+            shine.Rest(running, animate: !fresh);
+            label = shine;
+        }
+        else
+        {
+            label = new MiddleTruncatingTextBlock { FullText = text, MaxLines = 1 }; // :1794-1795
+            (isBadge ? ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium) : ChatFont.Chat(SwiftFont.TextStyle.Callout)).Apply(label); // :1792
+            label.Foreground = (isBadge ? Chrome.PrimaryText.Opacity(0.9) : SwiftColor.Secondary).Brush(label); // :1793
+        }
         run.Children.Add(label);
         if (ToolPresentation.Stats(call) is { } stats) // :1796-1798
             run.Children.Add(new DiffStatLabel { Additions = stats.Additions, Deletions = stats.Deletions });
@@ -2922,16 +2942,20 @@ public sealed class ToolStatusIcon : Decorator
     /// <param name="symbol">:2069-2070 <c>var symbol: String?</c>: stands in for the kind's symbol (a photo for a read
     /// that looked at one).</param>
     // :2072-2091 body. PR-CHAT-099.
-    public ToolStatusIcon(ToolCall call, string? symbol = null)
+    /// <param name="mark">PORT-ONLY (OD-0136 amendment 2, step 8): the row's status slot from its last body, so the tick draws in when the call completes while on screen;
+    /// a new slot (a row made already done) shows its state in place.</param>
+    public ToolStatusIcon(ToolCall call, string? symbol = null, NthStatusMark? mark = null)
     {
         Control icon = call.ToolCallStatus switch
         {
-            // :2075-2077 ProgressView().controlSize(.mini): the mini spinner is 10 x 10 pt, centred in the 16 pt icon column
-            // (2-chat-use.mov 145.0-145.6 s, the usage popover's own .mini control, UsageViews.swift:22; crop 1894,1148,64x64: 10x10 px; PR-CHAT-099).
-            ToolCall.Status.Running => new ProgressBar { IsIndeterminate = true, Width = 10, Height = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            // :2075-2077 the running mark was a 10 x 10 pt mini ProgressView in the 16 pt icon column (PR-CHAT-099); step 8 of the nth motion pack: the 14 px
+            // spinner, in the 16 px status slot that also draws the done tick.
+            ToolCall.Status.Running => Mark(mark, NthStatus.Working),
             ToolCall.Status.Failed => Glyph("xmark.circle.fill", Chrome.Danger), // :2078-2080
             ToolCall.Status.Declined => Glyph("hand.raised.slash", Chrome.Warning), // :2081-2083
-            ToolCall.Status.Completed => Glyph(symbol ?? ToolPresentation.Symbol(call.ToolCallKind), Chrome.SecondaryText), // :2084-2086
+            // :2084-2086 the kind's symbol was the done look; step 8: the tick. A read that looked at an image keeps its photo glyph (:1783-1784, a marker of what the row opens).
+            ToolCall.Status.Completed when symbol is not null => Glyph(symbol, Chrome.SecondaryText),
+            ToolCall.Status.Completed => Mark(mark, NthStatus.Done),
         };
         var column = new Border { Width = TimelineMetrics.IconWidth, Child = icon }; // :2090 .frame(width: TimelineMetrics.iconWidth)
         var font = ChatFont.Chat(SwiftFont.TextStyle.Caption); // :2089 .font(.chat(.caption))
@@ -2944,6 +2968,15 @@ public sealed class ToolStatusIcon : Decorator
             var image = SwiftImage.SystemName(name);
             image.Foreground = color.Brush(image);
             return image;
+        }
+
+        // The status is set while the slot is still in its last body (so a change animates), then it is taken out for this one.
+        static NthStatusMark Mark(NthStatusMark? kept, NthStatus status)
+        {
+            var mark = kept ?? NthToolRow.NewMark();
+            mark.Status = status;
+            NthToolRow.TakeOut(mark);
+            return mark;
         }
     }
 }
@@ -3285,7 +3318,7 @@ public sealed class PlanCard : Decorator
             var plan = item.Value;
             var box = state;
             Control Glyph() => plan.ProposedPlanState == ProposedPlan.State.Drafting
-                ? new Border { Child = new WorkingSpinner(3) { Width = 14 }, Width = 14 }
+                ? new Border { Child = new NthStatusMark { Status = NthStatus.Working, MarkSize = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }, Width = 14 } // PORT-ONLY (OD-0136 amendment 2, step 8): the 14 px spinner, as a tool row's
                 : SwiftImage.SystemName("list.bullet.clipboard").ForegroundStyle(Chrome.Accent);
             // :2265 the same ChatBadge across every render of this card: its coordinator is the badge's @State
             // (ChatBadge.swift:20), so an open plan popover outlives the plan's updates (PR-CHAT-113).
