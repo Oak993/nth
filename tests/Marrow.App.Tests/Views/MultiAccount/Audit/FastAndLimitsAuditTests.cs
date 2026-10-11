@@ -33,11 +33,11 @@ public sealed class FastAndLimitsAuditTests(HeadlessSession headless)
         Control? pop = null, defaults = null, editor = null; AccountCapsule? capsule = null;
         MultiAccountHarness.Run(headless, rig, () =>
         {
-            var context = new MultiAccountContext(rig.Model, rig.PillsModel, rig.Editor, _ => models, () => { }, _ => { }, _ => { });
+            var context = new MultiAccountContext(rig.Model, rig.PillsModel, rig.Editor, _ => models, () => { });
             pop = new AccountPopover(popModel); defaults = new AccountDefaultsPanel(rig.Accounts, a.Id, rig.Accounts.DefaultName(a.Id), models);
             editor = new PillEditorView(context, rig.Editor(pill.Id), () => { });
             capsule = new AccountCapsule("plain"); capsule.Apply(capsuleModel.For(new CapsuleSubject(ProviderKind.Claude, a.Id, null, false, null))!, false);
-            return new StackPanel { Children = { pop, defaults, editor, new ModelsAccountsView(rig.Model, _ => { }, _ => { }), new MultiAccountUsageView(usageModel), capsule } };
+            return new StackPanel { Children = { pop, defaults, editor, new ProvidersAccountsPreview(rig.Model, ProviderKind.Claude), new MultiAccountUsageView(usageModel), capsule } /* OD-0139: the accounts are on Settings > Providers */ };
         }, h =>
         {
             Assert.DoesNotContain(h.Words(), word => word.Contains("Fast", StringComparison.OrdinalIgnoreCase));
@@ -62,7 +62,7 @@ public sealed class FastAndLimitsAuditTests(HeadlessSession headless)
         rig.Usage[a.Id] = new(.12, null, .4, rig.Clock.GetUtcNow().AddDays(1), noFive, service == ProviderKind.Local);
         var port = new FakeThreadAccountPort(rig, service); using var pop = new AccountPopoverModel(port, rig.Accounts); using var usage = new UsagePanelModel(port, [port]);
         var capsule = new ComposerCapsuleModel(rig.Accounts, rig.Pills, rig.IsConnected, id => rig.Usage.GetValueOrDefault(id));
-        MultiAccountHarness.Run(headless, rig, () => new StackPanel { Children = { new AccountPopover(pop), new MultiAccountUsageView(usage), new ModelsAccountsView(rig.Model, _ => { }, _ => { }) } }, h =>
+        MultiAccountHarness.Run(headless, rig, () => new StackPanel { Children = { new AccountPopover(pop), new MultiAccountUsageView(usage), new ProvidersAccountsPreview(rig.Model, service) } }, h =>
         {
             Assert.Equal(noFive, port.Accounts[0].NoFiveHour);
             Assert.Equal(noFive, (service == ProviderKind.Local ? rig.Model.LocalBlock : rig.Model.Blocks.Single(s => s.Service == service)).Rows[0].NoFiveHour);

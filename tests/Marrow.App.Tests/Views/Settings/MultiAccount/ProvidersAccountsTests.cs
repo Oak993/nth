@@ -13,12 +13,14 @@ using Marrow.UI.Port.Settings;
 
 namespace Marrow.App.Tests.Views.Settings.MultiAccount;
 
-// MA-8 (T11 step 2): Settings > Models with several accounts: the accounts, "When an account runs out" with its indented rows and the Handshake group, in grouped rows with the port's own switch; the owner-approved page's words.
+// MA-8 (T11 step 2), moved from Settings > Models to Settings > Providers by OD-0139 (ED-NEW-providersmerge-1): a service's accounts in its own card (one account: only "Add another account"; several: the list in the order
+// nth uses them, its heading and the page's line on the order), and "When an account runs out" with its indented rows and the Handshake group at the page's foot, in grouped rows with the port's own switch; the owner-approved
+// page's words. These were ModelsAccountsViewTests; each assertion keeps its strength or says more about the new place.
 [Collection("Headless")]
-public sealed class ModelsAccountsViewTests(HeadlessSession headless)
+public sealed class ProvidersAccountsTests(HeadlessSession headless)
 {
-    private void Run(AccountsRig rig, Action<MultiAccountHarness, ModelsAccountsView> check, bool motion = false, bool reduceMotion = false) =>
-        MultiAccountHarness.Run(headless, rig, () => new ModelsAccountsView(rig.Model, _ => { }, _ => { }), h => check(h, (ModelsAccountsView)h.Page), motion, reduceMotion);
+    private void Run(AccountsRig rig, Action<MultiAccountHarness, ProvidersAccountsPreview> check, bool motion = false, bool reduceMotion = false) =>
+        MultiAccountHarness.Run(headless, rig, () => new ProvidersAccountsPreview(rig.Model, ProviderKind.Claude), h => check(h, (ProvidersAccountsPreview)h.Page), motion, reduceMotion);
 
     private static AccountsRig One()
     {
@@ -37,16 +39,22 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Feature", "MA-8")]
     [Trait("Rule", "R-TEST-4")]
-    public void One_account_shows_its_block_with_no_list_and_none_of_the_multi_account_groups() => Run(One(), (h, view) =>
+    public void One_account_shows_only_the_add_row_in_its_card_with_no_list_and_none_of_the_multi_account_groups() => Run(One(), (h, view) =>
     {
         var block = Assert.Single(view.Blocks).Value;
-        Assert.Equal(("Claude Code", MultiAccountWords.One("Max")), (block.TitleShown, block.SummaryShown));
+        Assert.Equal((MultiAccountWords.AccountsHeading, MultiAccountWords.One("Max")), (block.TitleShown, block.SummaryShown));
+        Assert.True(block.Shown);
+        Assert.False(block.HeadingOpen); // the card's own status row says it is signed in
         Assert.False(block.ListOpen);
+        Assert.True(block.AddOpen);
+        Assert.False(block.FootOpen);
         Assert.False(view.RunOpen);
         Assert.False(view.HandshakeOpen);
         var words = h.Words();
-        Assert.Contains(MultiAccountWords.AccountsHeading, words);
-        Assert.Contains(MultiAccountWords.AccountsFoot, words);
+        Assert.Contains(MultiAccountWords.AddAnother, words);
+        Assert.DoesNotContain(MultiAccountWords.AccountsHeading, words);
+        Assert.DoesNotContain(MultiAccountWords.AccountsFoot, words);
+        Assert.DoesNotContain(MultiAccountWords.One("Max"), words);
         Assert.DoesNotContain(MultiAccountWords.RunHeading, words);
         Assert.DoesNotContain(MultiAccountWords.HandshakeHeading, words);
     });
@@ -58,13 +66,16 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
     {
         var block = Assert.Single(view.Blocks).Value;
         Assert.True(block.ListOpen);
+        Assert.True(block.HeadingOpen);
+        Assert.True(block.FootOpen);
         Assert.Equal(MultiAccountWords.Several(2), block.SummaryShown);
         Assert.Equal(["Claude Max 1", "Claude Max 2"], block.Rows.Values.OrderBy(r => r.View.Number).Select(r => r.NameShown));
         Assert.True(view.RunOpen);
         Assert.True(view.HandshakeOpen);
         var words = h.Words();
-        foreach (var expected in new[] { MultiAccountWords.RunHeading, MultiAccountWords.RunFoot, MultiAccountWords.RunTitle, MultiAccountWords.RunNone, MultiAccountWords.HandshakeHeading, MultiAccountWords.HandshakeFoot, MultiAccountWords.UseHandshake, MultiAccountWords.UseHandshakeOff, MultiAccountWords.AddAnother })
+        foreach (var expected in new[] { MultiAccountWords.AccountsHeading, MultiAccountWords.Several(2), MultiAccountWords.AccountsFoot, MultiAccountWords.RunHeading, MultiAccountWords.RunFoot, MultiAccountWords.RunTitle, MultiAccountWords.RunNone, MultiAccountWords.HandshakeHeading, MultiAccountWords.HandshakeFoot, MultiAccountWords.UseHandshake, MultiAccountWords.UseHandshakeOff, MultiAccountWords.AddAnother })
             Assert.Contains(expected, words);
+        Assert.Equal(2, h.Find(id => id.StartsWith("account-grip-", StringComparison.Ordinal)).Count()); // the order is in reach: a grip on each row
     });
 
     [Fact]
@@ -76,8 +87,10 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
         h.Rig.Model.Refresh();
         h.Settle();
         Assert.True(view.Blocks.Values.Single().ListOpen);
+        Assert.True(view.Blocks.Values.Single().HeadingOpen);
         Assert.True(view.RunOpen);
         Assert.Contains(MultiAccountWords.RunHeading, h.Words());
+        Assert.Contains(MultiAccountWords.AccountsFoot, h.Words());
     });
 
     [Fact]
@@ -212,6 +225,18 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
     {
         Assert.True(h.Press("service-add-" + ProviderKind.Claude.Id));
         Assert.Equal([ProviderKind.Claude], h.Rig.Actions.Added);
+        Assert.Single(h.Find(id => id.StartsWith("service-add-", StringComparison.Ordinal))); // one add action for the service
+    });
+
+    [Fact]
+    [Trait("Feature", "MA-8")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_sign_in_that_fails_says_why_under_the_add_row() => Run(One(), (h, view) =>
+    {
+        h.Rig.Actions.AddFails = "Claude Code did not finish signing in.";
+        Assert.True(h.Press("service-add-" + ProviderKind.Claude.Id));
+        h.Until(() => h.Words().Contains("Claude Code did not finish signing in."));
+        Assert.Equal("Claude Code did not finish signing in.", view.Block(ProviderKind.Claude).AddStatusShown);
     });
 
     [Fact]
@@ -280,5 +305,24 @@ public sealed class ModelsAccountsViewTests(HeadlessSession headless)
         var row = view.Blocks.Values.Single().Rows[id];
         Assert.Equal(MultiAccountWords.WeekText(12, "Sun 4:00 PM"), row.UsageShown);
         Assert.Equal(0.12, row.Bar.Target, 6);
+        Assert.Contains(MultiAccountWords.WeekText(12, "Sun 4:00 PM"), h.Words());
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-providersmerge-1")]
+    public void A_part_off_screen_does_not_listen_to_the_model_and_catches_up_when_it_is_back() => Run(One(), (h, view) =>
+    {
+        var block = view.Block(ProviderKind.Claude);
+        var stack = (StackPanel)view.Child!;
+        stack.Children.Remove(block);
+        h.Settle();
+        h.Rig.ConnectAnother(ProviderKind.Claude, "Max");
+        h.Rig.Model.Refresh();
+        h.Settle();
+        Assert.False(block.ListOpen); // detached: no redraw (and no handler kept on the app-long model)
+        stack.Children.Insert(0, block);
+        h.Settle();
+        Assert.True(block.ListOpen);
+        Assert.Equal(2, block.Rows.Count);
     });
 }

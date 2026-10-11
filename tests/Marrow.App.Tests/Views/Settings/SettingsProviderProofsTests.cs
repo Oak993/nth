@@ -230,7 +230,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     public void Providers_sidebar_matches_every_keyword_in_source_order_and_click_mounts_the_page() => WithView(() => new SettingsView(), (view, _, _) =>
     {
         // :72 quoted, including B3 Go, spark and coding-plan terms; match every term through real shell search.
-        var words = "codex|claude|cursor|opencode|opencode zen|opencode go|zen|grok|deepseek|meta|muse|spark|zai|z.ai|glm|coding plan|devin|cognition|antigravity|agy|google|gemini|copilot|github|command code|commandcode|cmd|binary|path|sign in|login|api key|usage|limits|limit|plan|quota|credits|balance".Split('|');
+        var words = ("codex|claude|cursor|opencode|opencode zen|opencode go|zen|grok|deepseek|meta|muse|spark|zai|z.ai|glm|coding plan|devin|cognition|antigravity|agy|google|gemini|copilot|github|command code|commandcode|cmd|binary|path|sign in|login|api key|usage|limits|limit|plan|quota|credits|balance"
+            + "|account|accounts|key|keys|handshake|order|local server").Split('|'); // PORT-ONLY (OD-0139): every login is kept on this page now; the port's words follow the source's 39
         Assert.Equal(words, SettingsPage.Providers.Keywords); Assert.Equal(SettingsPage.Providers, UpstreamSettingsPages.All[3]); /* SA-1: upstream index, the port-added pages taken out */
         foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark }) Assert.Equal(new SwiftColor(0.040, 0.478, 1.000).Resolve(theme), SettingsPage.Providers.Tint.Resolve(theme));
         var sidebar = Field<Control>(view, "sidebar"); var field = Assert.Single(Nodes<TextBox>(sidebar));

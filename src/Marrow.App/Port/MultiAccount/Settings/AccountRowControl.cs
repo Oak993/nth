@@ -1,5 +1,6 @@
 // PORT-ONLY: T11 step 2. One account's row in the list of a service, as the page draws it: a grip (drag to reorder, or Alt+Up and Alt+Down), its number, its name (tap to rename, up to 24 characters), one grey line (plan, the Handshake point
 // when it differs, a custom name, off, out until), its week bar, the port's own switch (on = used; off = signed in, never used) and a ⋯ menu (Rename, Move up / top / down, Handshake at…, Sign out of this account).
+// OD-0139: an API key's row is the same row, its grey line the masked key with an eye that shows the whole key (and hides it again), the credits left where the bar is, and Remove this key in its ⋯ menu.
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -37,6 +38,9 @@ internal sealed class AccountRowControl : Decorator
     private readonly TextBlock nameText;
     private readonly StackPanel usageBox;
     private readonly StackPanel words;
+    private readonly Button? eye;
+    private readonly Border? eyeLabel;
+    private bool revealed;
     private readonly Action openHandshake;
     private readonly SettingsSwitch toggle;
     private readonly OpacityTransition dragFade;
@@ -85,7 +89,19 @@ internal sealed class AccountRowControl : Decorator
         this.openHandshake = openHandshake;
         var more = new Panel { Width = 22, Height = 22, VerticalAlignment = VerticalAlignment.Center, Children = { moreButton, handshakeHost } };
 
-        words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { nameSlot, subtitle } };
+        Control line = subtitle;
+        if (first.IsKey)
+        {
+            eyeLabel = new Border { Background = Brushes.Transparent, Padding = new Thickness(2, 0) };
+            eye = PlainControls.Button(eyeLabel, ToggleReveal);
+            eye.Focusable = true;
+            eye.Cursor = new Cursor(StandardCursorType.Hand);
+            eye.VerticalAlignment = VerticalAlignment.Center;
+            eye.Named(MultiAccountWords.ShowKey, "key-eye-" + id.ToString("N"));
+            ShowEye();
+            line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { subtitle, eye } };
+        }
+        words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { nameSlot, line } };
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,18,*,Auto,44,22"), ColumnSpacing = 8, Height = RowHeight };
         grip.VerticalAlignment = VerticalAlignment.Center;
         foreach (var (control, column) in new (Control, int)[] { (grip, 0), (numberText, 1), (words, 2), (usageBox, 3), (toggle, 4), (more, 5) })
@@ -120,6 +136,30 @@ internal sealed class AccountRowControl : Decorator
 
     internal LibraryBar Bar => bar;
 
+    /// <summary>The eye of a key's row (null for an account).</summary>
+    internal Button? Eye => eye;
+
+    internal bool Revealed => revealed;
+
+    private void ToggleReveal()
+    {
+        revealed = !revealed;
+        ShowEye();
+        subtitle.SetText(Line(view));
+    }
+
+    private void ShowEye()
+    {
+        if (eye is null || eyeLabel is null) return;
+        eyeLabel.Child = LibraryUi.Glyph(revealed ? "eye.slash" : "eye", 11, ChromeTokens.SecondaryText);
+        var tip = revealed ? MultiAccountWords.HideKey : MultiAccountWords.ShowKey;
+        ToolTip.SetTip(eye, tip);
+        AutomationProperties.SetName(eye, tip);
+    }
+
+    /// <summary>The grey line: the whole key while the eye shows it (its own line again once the key is gone), else the model's line.</summary>
+    private string Line(AccountRowView row) => revealed && model.RevealKey(id) is { Length: > 0 } whole ? whole : row.Subtitle;
+
     internal void Apply(AccountRowView next, bool animate = true)
     {
         view = next;
@@ -127,7 +167,7 @@ internal sealed class AccountRowControl : Decorator
         if (!renaming) nameText.Text = next.Name;
         AutomationProperties.SetName(nameButton, next.Name);
         AutomationProperties.SetName(toggle, "Use " + next.Name);
-        subtitle.SetText(next.Subtitle);
+        subtitle.SetText(Line(next));
         usageBox.IsVisible = next.UsageText.Length > 0 || next.WeekFraction is not null;
         usage.SetText(next.UsageText);
         bar.Set(next.WeekFraction ?? 0, animate);
@@ -143,6 +183,7 @@ internal sealed class AccountRowControl : Decorator
             case "rename": StartRename(); break;
             case "up" or "top" or "down": model.Do(id, key); break;
             case "signout": _ = model.SignOutAsync(id); break;
+            case "remove": _ = model.RemoveKeyAsync(id); break;
             case "handshake": openHandshake(); break;
         }
     }

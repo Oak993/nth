@@ -1,4 +1,4 @@
-// PORT-ONLY: MA-8 (T11 step 2). A page of Settings > Models or Settings > Pills in a headless window over the foundations' real stores (in memory) and a recording sign-in: no CLI, network or model. The window's content is the plain panel the app's
+// PORT-ONLY: MA-8 (T11 step 2). A part of Settings > Providers (the accounts, OD-0139) or Settings > Pills in a headless window over the foundations' real stores (in memory) and a recording sign-in: no CLI, network or model. The window's content is the plain panel the app's
 // windows have; time and frames can be taken by hand for the transition tests (the pattern of LibraryPageHarness).
 using Avalonia;
 using Avalonia.Automation;
@@ -31,7 +31,7 @@ internal sealed class MultiAccountHarness : IDisposable
         runOut = !motion;
         Frames = new ManualFrameSource();
         scopes.Add(FrameClock.Source.Override(Frames));
-        var context = new MultiAccountContext(rig.Model, rig.PillsModel, rig.Editor, models ?? (_ => []), () => OpenedModels++, service => UsageOpened.Add(service), service => KeysOpened.Add(service));
+        var context = new MultiAccountContext(rig.Model, rig.PillsModel, rig.Editor, models ?? (_ => []), () => OpenedProviders++);
         scopes.Add(MultiAccountSettingsSeams.Context.Override(new MultiAccountOffer(_ => context)));
         Page = make();
         var margin = new Border { Padding = new Thickness(24), Child = Page };
@@ -49,9 +49,7 @@ internal sealed class MultiAccountHarness : IDisposable
     public Control Page { get; }
     public Panel Root { get; }
     public Avalonia.Controls.Window Window { get; }
-    public int OpenedModels { get; private set; }
-    public List<ProviderKind> UsageOpened { get; } = [];
-    public List<ProviderKind> KeysOpened { get; } = [];
+    public int OpenedProviders { get; private set; }
 
     public static void Run(HeadlessSession headless, AccountsRig rig, Func<Control> make, Action<MultiAccountHarness> check, bool motion = false, bool reduceMotion = false, Func<ProviderKind, IReadOnlyList<ModelOption>>? models = null)
     {

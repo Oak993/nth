@@ -7,7 +7,8 @@ using Marrow.Core.Port.MultiAccount.Settings;
 
 namespace Marrow.Testing.MultiAccountSettings;
 
-/// <summary>An account store, the decision store and the Models page's model over them, with nothing connected until a test connects it (MA-8 fixtures, shared by the Core and App tests).</summary>
+/// <summary>An account store, the decision store and the accounts model of Settings > Providers over them, with nothing connected until a test connects it (MA-8 fixtures, shared by the Core and App tests).
+/// An API key kept in the fake vault connects its account, as a stored key does in the app (AppModel.IsAccountConnected).</summary>
 public sealed class AccountsRig
 {
     private readonly HashSet<Guid> connected = [];
@@ -21,7 +22,7 @@ public sealed class AccountsRig
         Clock = new ManualTimeProvider();
         PillsExist = pills;
         Pills = new PillStore();
-        Model = new AccountsSettingsModel(Accounts, Decisions, Handshake, a => connected.Contains(a.Id), () => PillsExist || Pills.Pills.Count > 0, Actions, id => Usage.GetValueOrDefault(id), Clock, TimeZoneInfo.Utc, id => Credits.TryGetValue(id, out var left) ? left : null);
+        Model = new AccountsSettingsModel(Accounts, Decisions, Handshake, IsConnected, () => PillsExist || Pills.Pills.Count > 0, Actions, id => Usage.GetValueOrDefault(id), Clock, TimeZoneInfo.Utc, id => Credits.TryGetValue(id, out var left) ? left : null);
         PillsModel = new PillsSettingsModel(Pills, Accounts, a => connected.Contains(a.Id));
     }
 
@@ -38,7 +39,7 @@ public sealed class AccountsRig
     public PillStore Pills { get; }
     public PillsSettingsModel PillsModel { get; }
 
-    public bool IsConnected(Account account) => connected.Contains(account.Id);
+    public bool IsConnected(Account account) => connected.Contains(account.Id) || account.Service.IsAPIKeyBased && !string.IsNullOrWhiteSpace(Actions.KeySecret(account.Id));
 
     public PillEditorModel Editor(Guid pill) => new(Pills, Accounts, a => connected.Contains(a.Id), (service, model) => model is null ? "" : service.Id + ":" + model, pill);
 

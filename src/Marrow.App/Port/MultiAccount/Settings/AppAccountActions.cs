@@ -1,4 +1,4 @@
-// PORT-ONLY: T11 step 2 (ENGINEERING DECISION, ED-449). The Models page's "Add another account" and "Sign out", over the provider registry's account sign-in (ProviderRegistry.SignIn(Guid)). A sign-in that fails leaves no
+// PORT-ONLY: T11 step 2 (ENGINEERING DECISION, ED-449). Settings > Providers' "Add another account" and "Sign out" (on Settings > Models before OD-0139), over the provider registry's account sign-in (ProviderRegistry.SignIn(Guid)). A sign-in that fails leaves no
 // half-made account behind. Signing out of an account Marrow made removes it and the private folder Marrow made for it (that is where its sign-in is kept); the original account's sign-in belongs to the CLI and is never touched here.
 using Marrow.Core.Accounts;
 using Marrow.Core.Models;
@@ -50,6 +50,35 @@ internal sealed class AppAccountActions(AppModel model) : IAccountActions
         catch (IOException) { /* the account is gone from Marrow; a folder that cannot be deleted now is left */ }
         catch (UnauthorizedAccessException) { }
         return Task.CompletedTask;
+    }
+
+    /// <summary>OD-0139 (ED-NEW-providersmerge-1): the original account's key is the provider's one key of older builds (the card's "API key" box, AppSettings); a further key is kept beside it in the
+    /// Credential Manager under its own account name (APIKeychain.Key(Account)), where the engine reads it (ProviderRegistry.ApiKey, AccountKeyStore).</summary>
+    public string? KeySecret(Guid accountId)
+    {
+        if (model.Settings.Accounts.Accounts.FirstOrDefault(a => a.Id == accountId) is not { Service.IsAPIKeyBased: true } account) return null;
+        var key = account.UsesLegacyCredentials ? model.Settings.ApiKey(account.Service) : APIKeychain.Key(account, "");
+        return string.IsNullOrWhiteSpace(key) ? null : key.Trim();
+    }
+
+    public async Task<string?> StoreKeyAsync(Guid accountId, string secret)
+    {
+        var account = model.Settings.Accounts.Get(accountId);
+        if (!account.Service.IsAPIKeyBased) return account.Service.DisplayName + " does not use API keys.";
+        if (!account.UsesLegacyCredentials) return APIKeychain.SetKey(secret, account) ? null : AppSettings.CredentialRefusalLine;
+        model.Settings.SetAPIKeyInput(secret, account.Service);
+        if (model.Settings.APIKeyRefusal(account.Service) is { } refused) return refused;
+        await model.Providers.Refresh(account.Service);
+        return null;
+    }
+
+    public async Task ForgetKeyAsync(Guid accountId)
+    {
+        var account = model.Settings.Accounts.Get(accountId);
+        if (!account.Service.IsAPIKeyBased) return;
+        if (!account.UsesLegacyCredentials) { APIKeychain.SetKey("", account); return; } // an empty key deletes the item
+        model.Settings.SetAPIKeyInput("", account.Service);
+        await model.Providers.Refresh(account.Service);
     }
 
     /// <summary>The week and 5-hour windows the service reported for the account, or null when it reported none.</summary>

@@ -1,4 +1,4 @@
-// PORT-ONLY: T11 step 2 (OD-0114..OD-0117). The words of Settings > Models (accounts, "When an account runs out", Handshake) and Settings > Pills, exactly as the owner-approved page
+// PORT-ONLY: T11 step 2 (OD-0114..OD-0117; moved to Settings > Providers by OD-0139). The words of the accounts part of Settings > Providers (accounts, "When an account runs out", Handshake) and Settings > Pills, exactly as the owner-approved page
 // porting/first-release/design-src/multi-account/multi-account.html writes them. The three strings of the disabled Pills page (OD-0117) are the only ones the page does not have: ENGINEERING DECISION
 // (ED-449), written in the page's voice from the owner's description.
 namespace Marrow.Core.Port.MultiAccount.Settings;
@@ -48,6 +48,22 @@ public static class MultiAccountWords
         + " on " + where + " \u00b7 " + models + (models == 1 ? " model" : " models") + " added";
     public static string LocalNotFound(string where) => "No server found at " + where + ". Check the address and that the server is running.";
     public const string LocalBadAddress = "Use an address like http://localhost:1234";
+
+    // ---- Providers: the accounts and keys inside each service's card (OD-0139, ED-NEW-providersmerge-1; lead-proposed words in the page's voice)
+    public const string LocalModelsHeading = "Local models";
+    public const string KeysFoot = "nth uses your keys from the top down: when a key runs out of credits or hits its rate limit, the next one takes over. Drag to change the order.";
+    public const string AddKey = "Add another key";
+    public const string KeyInputLabel = "New API key";
+    public const string KeyPlaceholder = "sk-…";
+    public const string KeySave = "Add";
+    public const string KeyNote = "Stored in your Credential Manager, beside your first key.";
+    public const string RemoveKey = "Remove this key";
+    public const string ShowKey = "Show this key";
+    public const string HideKey = "Hide this key";
+    public const string KeyEmpty = "Paste a key first.";
+    public const string KeyTwice = "This key is already in the list.";
+    public static string KeyMasked(string? last4) => last4 is { Length: > 0 } ? "•••• " + last4 : "••••••••";
+    public static string KeyCredits(double left) => "$" + left.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " of credits left";
 
     // ---- Models: "Show an example" (the page's sheet, in its words)
     public const string HandedFullIntro = "The full conversation, word for word.";
@@ -138,7 +154,7 @@ public static class MultiAccountWords
     // ---- Pills when fewer than two accounts or services are connected (OD-0117; ENGINEERING DECISION wording)
     public const string DisabledWhat = "A pill is a chain of accounts and models that nth moves through when one runs out.";
     public const string DisabledNeed = "Pills turn on once a second account or service is connected.";
-    public const string DisabledButton = "Models";
+    public const string DisabledButton = "Providers"; // OD-0139: accounts are connected in Settings > Providers
 
     // ---- the pill editor
     public const string EditorTitle = "Pill editor";
@@ -163,7 +179,7 @@ public static class MultiAccountWords
     public const string EarlierSettings = "Like in Settings";
     public const string EarlierGo = "Go back to it";
     public const string EarlierStay = "Stay where I am";
-    public const string EarlierSettingsDescription = "This pill does what Settings › Models says.";
+    public const string EarlierSettingsDescription = "This pill does what Settings › Providers says.";
     public const string EarlierGoDescription = "The pill returns to the earlier step as soon as it has room.";
     public const string EarlierStayDescription = "The pill stays on its current step until that one runs out.";
     public static string StepCount(int steps, int services) => steps + " steps · " + services + (services > 1 ? " services" : " service");

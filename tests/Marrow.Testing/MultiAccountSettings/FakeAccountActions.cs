@@ -3,7 +3,8 @@ using Marrow.Core.Port.MultiAccount.Settings;
 
 namespace Marrow.Testing.MultiAccountSettings;
 
-/// <summary>Records the sign-in and sign-out the Models page asks for; nothing is launched (MA-8 fixtures, shared by the Core and App tests).</summary>
+/// <summary>Records the sign-in and sign-out Settings > Providers asks for; nothing is launched (MA-8 fixtures, shared by the Core and App tests). <see cref="Vault"/> stands in for the Credential Manager
+/// the app keeps API keys in (OD-0139).</summary>
 public sealed class FakeAccountActions : IAccountActions
 {
     public List<ProviderKind> Added { get; } = [];
@@ -31,6 +32,29 @@ public sealed class FakeAccountActions : IAccountActions
     public Task SignOutAsync(Guid id)
     {
         SignedOut.Add(id);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>The keys kept, by account (the Credential Manager of the app).</summary>
+    public Dictionary<Guid, string> Vault { get; } = [];
+
+    /// <summary>When set, a key is not kept and this line says why.</summary>
+    public string? StoreFails { get; set; }
+
+    public List<Guid> Forgotten { get; } = [];
+
+    public string? KeySecret(Guid accountId) => Vault.GetValueOrDefault(accountId);
+
+    public Task<string?> StoreKeyAsync(Guid accountId, string secret)
+    {
+        if (StoreFails is null) Vault[accountId] = secret;
+        return Task.FromResult(StoreFails);
+    }
+
+    public Task ForgetKeyAsync(Guid accountId)
+    {
+        Forgotten.Add(accountId);
+        Vault.Remove(accountId);
         return Task.CompletedTask;
     }
 }

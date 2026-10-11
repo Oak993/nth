@@ -1,13 +1,15 @@
-// PORT-ONLY: T11 step 2. One connected service's block in Settings > Models > Accounts: its mark, name and a one-line summary ("Signed in · Max plan" with its week bar for one account; "2 accounts · the same order as the composer's popover" for
-// several), a ⋯ menu (Add another account, Usage details, Sign out) and, for several accounts, the list that folds open under it (OD-0076) with "Add another account" at its foot. One account looks as it does today: no list, no name.
+// PORT-ONLY: T11 step 2; OD-0139 (ED-NEW-providersmerge-1). The accounts of one service inside its own card on Settings > Providers, the one place for every login (they were a block of their own on Settings > Models). One account
+// looks as the card did: nothing but the quiet "Add another account" row at the card's foot. Several fold a list open (OD-0076): a small heading with the service's summary ("2 accounts · the same order as the composer's popover"), the
+// rows in the order nth uses them (drag, Alt+Up and Alt+Down, the ⋯ menu; the composer's popover shows the same order), the add row and the page's grey line on the order. A service kept by API keys lists its keys the same way
+// under "Keys and order" (each row the masked key with its eye, the credits left, its switch and ⋯ with Remove this key) and adds a key in a box that folds open under "Add another key". Local lists the local models found and
+// keeps "Add a local server". The service's own ⋯ menu, its usage jump and "Keys and order" button are gone: the card above already shows the service's usage and status.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Marrow.App.Port.Skills.Pages;
-using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
 using Marrow.Core.Port.MultiAccount.Settings;
-using Marrow.UI.Common;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Port.Settings;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
@@ -18,118 +20,171 @@ internal sealed class ServiceBlockControl : Decorator
 {
     private readonly AccountsSettingsModel model;
     private readonly ModelPulse pulse;
-    private readonly Action<ProviderKind> usageDetails;
-    private readonly Action<ProviderKind> openKeys;
-    private readonly Button? keysButton;
-    private readonly LocalServerBox? serverBox;
+    private readonly Func<bool> addAllowed;
     private readonly ProviderKind service;
+    private readonly bool keys;
+    private readonly bool local;
     private readonly CzCrossfadeText title;
     private readonly CzCrossfadeText summary = new("") { FontSize = 12, Secondary = true };
-    private readonly LibraryBar mini = new() { Width = 110 };
-    private readonly CzCrossfadeText miniText = new("") { FontSize = 11.5, Secondary = true };
-    private readonly StackPanel miniBox;
     private readonly StackPanel list = new() { Spacing = 0 };
+    private readonly CzFoldRow blockFold;
+    private readonly CzFoldRow headFold;
     private readonly CzFoldRow listFold;
+    private readonly CzFoldRow addFold;
+    private readonly CzFoldRow footFold;
+    private readonly CzCrossfadeText addStatus = new("") { FontSize = 12, Secondary = true, Wrap = true };
+    private readonly CzFoldRow addStatusFold;
     private readonly Dictionary<Guid, AccountRowControl> rows = [];
-    private readonly Control addRow;
-    private readonly Control addHost;
-    private ServiceBlockView view;
+    private readonly Button? addButton;
+    private readonly Border addHost = new();
+    private readonly Control? addGhost;
+    private readonly KeyAddBox? keyBox;
+    private readonly LocalServerBox? serverBox;
+    private ServiceBlockView? view;
+    private bool adding;
 
-    internal ServiceBlockControl(AccountsSettingsModel model, ServiceBlockView first, ModelPulse pulse, Action<ProviderKind> usageDetails, Action<ProviderKind> openKeys)
+    /// <param name="addAllowed">Whether the card offers its add row now (Settings > Providers: the service is signed in; its "Sign in" row is the way to the first account). Always, when not given.</param>
+    internal ServiceBlockControl(AccountsSettingsModel model, ProviderKind service, Func<bool>? addAllowed = null)
     {
         this.model = model;
-        this.pulse = pulse;
-        this.usageDetails = usageDetails;
-        this.openKeys = openKeys;
-        service = first.Service;
-        view = first;
-        title = new CzCrossfadeText(first.Title) { FontSize = 14, FontWeight = Avalonia.Media.FontWeight.Medium };
-        var mark = new ProviderIcon { Provider = service, Size = 22, Width = 22, Height = 22, VerticalAlignment = VerticalAlignment.Center };
-        miniBox = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { mini, miniText } };
-        var more = MenuPopover.More("More for " + first.Title, "service-more-" + service.Id, () => model.BlockMenu(service), Pick);
-        more.VerticalAlignment = VerticalAlignment.Center;
-        var words = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, summary } };
-        if (first.ActionLabel is { } label)
+        this.service = service;
+        this.addAllowed = addAllowed ?? (() => true);
+        keys = service.IsAPIKeyBased;
+        local = service == ProviderKind.Local;
+        // the part listens to the model only while it is on screen: a card is built again each time Settings opens its Providers page, the model lives as long as the app
+        pulse = new ModelPulse(changed =>
         {
-            keysButton = LibraryButtons.Make(label, () => openKeys(service), ButtonLook.Plain, "service-keys-" + service.Id);
-            keysButton.VerticalAlignment = VerticalAlignment.Center;
-        }
-        var head = new Grid { ColumnDefinitions = new ColumnDefinitions("36,*,Auto,Auto,22"), ColumnSpacing = 10, MinHeight = 56, Margin = new Thickness(0, 0) };
-        Grid.SetColumn(words, 1);
-        Grid.SetColumn(miniBox, 2);
-        Grid.SetColumn(more, 4);
-        foreach (var part in new Control[] { mark, words, miniBox, more }) head.Children.Add(part);
-        if (keysButton is not null)
-        {
-            Grid.SetColumn(keysButton, 3);
-            head.Children.Add(keysButton);
-        }
-        var header = new Border { Padding = new Thickness(16, 6, 12, 6), Child = head };
+            AttachedToVisualTree += (_, _) => { model.Changed += changed; pulse!.Bump(); }; // assigned by then: attaching comes after construction
+            DetachedFromVisualTree += (_, _) => model.Changed -= changed;
+        });
 
-        addRow = AddRow();
-        addHost = new Border { Child = addRow };
-        listFold = new CzFoldRow(new StackPanel { Children = { list, addHost } }, first.Several);
-        var body = new StackPanel { Children = { header, listFold } };
-        if (first.ServerBox)
+        title = new CzCrossfadeText(Heading()) { FontSize = 13, FontWeight = Avalonia.Media.FontWeight.Medium };
+        var head = new Border { Padding = new Thickness(16, 10, 16, 2), Child = new StackPanel { Spacing = 1, Children = { title, summary } } };
+        headFold = new CzFoldRow(head, false);
+        listFold = new CzFoldRow(list, false);
+
+        // a service that can never add (Local, a one-account service) has no add row at all; one that cannot add now keeps a look-alike that folds away, the button itself leaves at once
+        // (it is not offered: not a control a person or a screen reader can reach)
+        if (keys ? AccountsSettingsModel.CanAddKey(service) : AccountsSettingsModel.CanAdd(service))
+        {
+            var words = keys ? MultiAccountWords.AddKey : MultiAccountWords.AddAnother;
+            addButton = keys ? AddRowButton(words, "service-add-key-" + service.Id, () => keyBox!.Toggle()) : AddAnotherButton(service, () => _ = Add());
+            addButton.HorizontalAlignment = HorizontalAlignment.Left;
+            addGhost = new Border { IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Left, Child = AddRowLook(words) };
+            addHost.Child = addGhost;
+        }
+        var addPart = new StackPanel { Children = { addHost } };
+        addStatusFold = new CzFoldRow(new Border { Padding = new Thickness(16, 0, 16, 10), Child = addStatus }, false);
+        addPart.Children.Add(addStatusFold);
+        if (keys)
+        {
+            keyBox = new KeyAddBox(model, service);
+            addPart.Children.Add(keyBox);
+        }
+        addFold = new CzFoldRow(addPart, false);
+
+        var foot = LibraryUi.Text(keys ? MultiAccountWords.KeysFoot : MultiAccountWords.AccountsFoot, 12, secondary: true, wrap: true);
+        footFold = new CzFoldRow(new Border { Padding = new Thickness(16, 0, 16, 12), Child = foot }, false);
+
+        var body = new StackPanel { Children = { new ChromeRowDivider(), headFold, listFold, addFold, footFold } };
+        if (local)
         {
             serverBox = new LocalServerBox(model);
             body.Children.Add(serverBox);
         }
-        Child = body;
-        Apply(first, animate: false);
+        blockFold = new CzFoldRow(body, false);
+        Child = blockFold;
+        this.Track(() => (pulse.Revision, this.addAllowed()), _ => Apply(model.BlockFor(service)));
+        Apply(model.BlockFor(service), animate: false);
     }
 
     internal ProviderKind Service => service;
 
-    internal ServiceBlockView View => view;
+    internal ServiceBlockView? View => view;
+
+    /// <summary>Whether anything of the part shows in the card.</summary>
+    internal bool Shown => blockFold.Open;
+
+    internal bool HeadingOpen => headFold.Open;
 
     internal bool ListOpen => listFold.Open;
 
     internal double ListFraction => listFold.Fraction;
 
+    internal bool AddOpen => addFold.Open;
+
+    internal bool FootOpen => footFold.Open;
+
     internal IReadOnlyDictionary<Guid, AccountRowControl> Rows => rows;
 
     internal string SummaryShown => summary.Text;
 
-    internal LocalServerBox? ServerBox => serverBox;
-
-    internal Button? KeysButton => keysButton;
-
     internal string TitleShown => title.Text;
 
-    private Control AddRow() => AddAnotherButton(service, () => _ = model.AddAsync(service));
+    internal string AddStatusShown => addStatus.Text;
 
-    /// <summary>The quiet "Add another account" row: the accent plus and the accent words, a plain button the width of its words. Settings > Providers draws the same row in the service's card (ED-NEW-providers-add-1).</summary>
-    internal static Button AddAnotherButton(ProviderKind service, Action add)
+    internal LocalServerBox? ServerBox => serverBox;
+
+    internal KeyAddBox? KeyBox => keyBox;
+
+    private string Heading() => keys ? MultiAccountWords.KeysAndOrder : local ? MultiAccountWords.LocalModelsHeading : MultiAccountWords.AccountsHeading;
+
+    private async Task Add()
     {
-        var plus = LibraryUi.Glyph("plus", 12, ChromeTokens.Accent, SwiftFont.Weight.Medium);
-        var text = LibraryUi.Text(MultiAccountWords.AddAnother, 13, weight: SwiftFont.Weight.Medium);
-        text.Foreground = ChromeTokens.Accent.Brush(text);
-        var button = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(16, 10), Children = { plus, text } }, add);
+        if (adding) return;
+        adding = true;
+        try
+        {
+            addStatus.SetText("");
+            addStatusFold.Open = false;
+            if (await model.AddAsync(service) is { } problem) { addStatus.SetText(problem); addStatusFold.Open = true; }
+        }
+        finally { adding = false; }
+    }
+
+    /// <summary>The quiet "Add another account" row: the accent plus and the accent words, a plain button the width of its words.</summary>
+    internal static Button AddAnotherButton(ProviderKind service, Action add) => AddRowButton(MultiAccountWords.AddAnother, "service-add-" + service.Id, add);
+
+    /// <summary>A quiet add row of a card (the accent plus and words): "Add another account", "Add another key".</summary>
+    internal static Button AddRowButton(string words, string id, Action add)
+    {
+        var button = PlainControls.Button(AddRowLook(words), add);
         button.Focusable = true;
         button.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
-        button.Named(MultiAccountWords.AddAnother, "service-add-" + service.Id);
+        button.Named(words, id);
         return button;
     }
 
-    internal void Apply(ServiceBlockView next, bool animate = true)
+    /// <summary>What an add row shows: the accent plus and the accent words.</summary>
+    private static StackPanel AddRowLook(string words)
+    {
+        var plus = LibraryUi.Glyph("plus", 12, ChromeTokens.Accent, SwiftFont.Weight.Medium);
+        var text = LibraryUi.Text(words, 13, weight: SwiftFont.Weight.Medium);
+        text.Foreground = ChromeTokens.Accent.Brush(text);
+        return new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(16, 10), Children = { plus, text } };
+    }
+
+    internal void Apply(ServiceBlockView? next, bool animate = true)
     {
         view = next;
-        title.SetText(next.Title);
-        summary.SetText(next.Summary);
-        listFold.Open = next.Several;
-        addHost.IsVisible = next.CanAdd;
-        miniBox.IsVisible = !next.Several && next.MiniFraction is not null;
-        mini.Set(next.MiniFraction ?? 0, animate);
-        miniText.SetText(next.MiniText);
-        foreach (var gone in rows.Keys.Where(k => next.Rows.All(r => r.Id != k)).ToArray())
+        var listed = next?.Rows ?? [];
+        var canAdd = next is not null && (keys ? next.CanAddKey : next.CanAdd) && addAllowed();
+        title.SetText(Heading());
+        summary.SetText(next?.Summary ?? "");
+        headFold.Open = listed.Count > 0 || local;
+        listFold.Open = listed.Count > 0;
+        if (addButton is not null) addHost.Child = canAdd ? addButton : addGhost;
+        addFold.Open = canAdd;
+        footFold.Open = !local && listed.Count > 1;
+        blockFold.Open = local || listed.Count > 0 || canAdd;
+        foreach (var gone in rows.Keys.Where(k => listed.All(r => r.Id != k)).ToArray())
         {
             list.Children.Remove(rows[gone]);
             rows.Remove(gone);
         }
-        for (var i = 0; i < next.Rows.Count; i++)
+        for (var i = 0; i < listed.Count; i++)
         {
-            var row = next.Rows[i];
+            var row = listed[i];
             if (!rows.TryGetValue(row.Id, out var control))
             {
                 rows[row.Id] = control = new AccountRowControl(model, row, pulse, (id, target, _) => model.MoveTo(id, target));
@@ -141,16 +196,6 @@ internal sealed class ServiceBlockControl : Decorator
                 list.Children.Remove(control);
                 list.Children.Insert(Math.Min(i, list.Children.Count), control);
             }
-        }
-    }
-
-    internal void Pick(string key)
-    {
-        switch (key)
-        {
-            case "add": _ = model.AddAsync(service); break;
-            case "usage": usageDetails(service); break;
-            case "signout": break; // disabled with one account: the last one is signed out in the service's own app
         }
     }
 }

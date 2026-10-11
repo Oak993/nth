@@ -1,4 +1,4 @@
-// PORT-ONLY: T11 step 2 (OD-0114..OD-0117). Where the Models sections and the Pills page get their models. A test overrides it; the app's default builds them once per AppModel over the foundations (AccountStore, AccountDecisionStore, PillStore).
+// PORT-ONLY: T11 step 2 (OD-0114..OD-0117). Where the accounts of Settings > Providers (OD-0139) and the Pills page get their models. A test overrides it; the app's default builds them once per AppModel over the foundations (AccountStore, AccountDecisionStore, PillStore).
 using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Marrow.Core.Models;
@@ -13,9 +13,7 @@ internal sealed class MultiAccountContext(
     PillsSettingsModel pills,
     Func<Guid, PillEditorModel> editor,
     Func<ProviderKind, IReadOnlyList<ModelOption>> models,
-    Action openModels,
-    Action<ProviderKind> openUsage,
-    Action<ProviderKind> openKeys)
+    Action openProviders)
 {
     public AccountsSettingsModel Accounts { get; } = accounts;
     public PillsSettingsModel Pills { get; } = pills;
@@ -24,14 +22,9 @@ internal sealed class MultiAccountContext(
     /// <summary>The models a service offers (for a pill step's model and effort).</summary>
     public Func<ProviderKind, IReadOnlyList<ModelOption>> Models { get; } = models;
 
-    /// <summary>The Pills page's button: Settings > Models.</summary>
-    public Action OpenModels { get; } = openModels;
-
-    /// <summary>"Usage details": the usage panel of the service.</summary>
-    public Action<ProviderKind> OpenUsage { get; } = openUsage;
-
-    /// <summary>"Keys and order": where the service's keys are kept (Settings > Providers, that service's section).</summary>
-    public Action<ProviderKind> OpenKeys { get; } = openKeys;
+    /// <summary>The Pills page's button: Settings > Providers, where accounts are connected (OD-0139). The "Usage details" and "Keys and order" jumps of the Models page went with it: usage and keys are in the
+    /// service's own card now.</summary>
+    public Action OpenProviders { get; } = openProviders;
 }
 
 /// <summary>Resolves the context for a control in the tree; a holder so a test can say "none".</summary>

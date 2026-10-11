@@ -114,7 +114,9 @@ public static class SettingsPageExtensions
             SettingsPage.Appearance => new[] { "appearance", "theme", "transparency", "transparent", "opacity", "glass", "dark", "light", "accent", "tint", "catppuccin", "dracula", "tokyo", "nord", "gruvbox", "solarized", "github", "claude", "codex", "cursor", "matrix", "text", "size", "font", "zoom", "wallpaper", "sidebar" },
             SettingsPage.Models => new[] { "model", "effort", "reasoning", "fast", "slider", "picker" },
             SettingsPage.Hydra => new[] { "hydra", "heads", "subagents", "sub-agents", "agents", "team", "orchestrator", "worker", "pair", "pairs", "parallel", "delegate", "queue" },
-            SettingsPage.Providers => new[] { "codex", "claude", "cursor", "opencode", "opencode zen", "opencode go", "zen", "grok", "deepseek", "meta", "muse", "spark", "zai", "z.ai", "glm", "coding plan", "devin", "cognition", "antigravity", "agy", "google", "gemini", "copilot", "github", "command code", "commandcode", "cmd", "binary", "path", "sign in", "login", "api key", "usage", "limits", "limit", "plan", "quota", "credits", "balance" },
+            SettingsPage.Providers => new[] { "codex", "claude", "cursor", "opencode", "opencode zen", "opencode go", "zen", "grok", "deepseek", "meta", "muse", "spark", "zai", "z.ai", "glm", "coding plan", "devin", "cognition", "antigravity", "agy", "google", "gemini", "copilot", "github", "command code", "commandcode", "cmd", "binary", "path", "sign in", "login", "api key", "usage", "limits", "limit", "plan", "quota", "credits", "balance",
+                // PORT-ONLY (OD-0139): every login is kept here now, accounts, API keys and their order, the Handshake ("login" and "sign in" are the source's own above)
+                "account", "accounts", "key", "keys", "handshake", "order", "local server" },
             SettingsPage.Mcp => new[] { "mcp", "model context protocol", "servers", "tools", "connect", "integrations", "github", "playwright", "notion", "linear", "slack", "figma", "supabase", "stripe", "resend", "email", "context7", "sentry", "postgres", "browser", "netlify", "deploy", "hosting" },
             SettingsPage.SourceControl => new[] { "git", "commit", "pull request", "titles", "text generation" },
             SettingsPage.Shortcuts => new[] { "keyboard", "keys" }, SettingsPage.Archive => new[] { "archived", "restore" }, SettingsPage.About => new[] { "version", "license" },
@@ -159,7 +161,8 @@ public sealed class SettingsNavigation : MainActorModel
         set => Set(ref requestedPage, value);
     }
 
-    // PORT-ONLY (T11 step 2): a provider's section of the Providers page asked for from outside ("Usage details", "Keys and order"); set before RequestedPage, read and used up when the Providers page is built.
+    // PORT-ONLY (T11 step 2): a provider's section of the Providers page asked for from outside; set before RequestedPage, read and used up when the Providers page is built. (Models' "Usage details" and
+    // "Keys and order" asked for it until OD-0139 moved the accounts into the Providers cards.)
     private ProviderKind? requestedProvider;
 
     public ProviderKind? RequestedProvider
@@ -780,6 +783,11 @@ internal sealed class ProvidersSettingsPage : Decorator
     /// <summary>The service the page was asked to bring into view, once it has (PORT-ONLY, T11 step 2).</summary>
     internal ProviderKind? Revealed { get; private set; }
 
+    private Marrow.App.Port.MultiAccount.Settings.AccountRulesView? rules;
+
+    /// <summary>The account-wide group at the foot of the page (PORT-ONLY, OD-0139); null until the accounts are known.</summary>
+    internal Marrow.App.Port.MultiAccount.Settings.AccountRulesView? Rules => rules;
+
     internal bool IsOpen(ProviderKind provider) => shown is { } view && view.Expansion.TryGetValue(provider, out var open) && open;
 
     // :592-614 body
@@ -788,7 +796,7 @@ internal sealed class ProvidersSettingsPage : Decorator
         var state = new ViewState();
         shown = state;
         var stack = new StackPanel { Spacing = Chrome.SectionSpacing }; Child = stack; // :598-600
-        // PORT-ONLY (T11 step 2): a service asked for by "Usage details" or "Keys and order" is opened and brought into view; the request is used up here
+        // PORT-ONLY (T11 step 2): a service asked for from outside is opened and brought into view; the request is used up here
         var wanted = SettingsNavigation.Shared.RequestedProvider;
         if (wanted is { } asked)
         {
@@ -802,6 +810,13 @@ internal sealed class ProvidersSettingsPage : Decorator
         {
             bool Configured(ProviderKind provider) => AppEnvironment.GetAppModel(this).Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; // :593-597
             sections.Apply(SwiftEnum<ProviderKind>.AllCases.Where(Configured).Concat(SwiftEnum<ProviderKind>.AllCases.Where(provider => !Configured(provider))).ToArray()); // :604
+            // PORT-ONLY (OD-0139, ED-NEW-providersmerge-1): "When an account runs out" and the Handshake, the settings of every account, under the providers (they were Models' lower half). The rows above
+            // keep their places (ForEach places them from the top); folded, the group is the page's bottom space between sections and nothing more.
+            if (rules is null && Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is { } context)
+            {
+                rules = new Marrow.App.Port.MultiAccount.Settings.AccountRulesView(context.Accounts);
+                stack.Children.Add(rules);
+            }
             if (wanted is { } reveal && stack.Children.OfType<ProviderSettingsSection>().FirstOrDefault(section => section.Provider == reveal) is { } target)
             {
                 wanted = null;
@@ -838,6 +853,9 @@ internal sealed class ProviderSettingsSection : Decorator
 {
     private readonly ProviderKind provider;
     internal ProviderKind Provider => provider; // PORT-ONLY (T11 step 2)
+    private Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl? accountsPart;
+    /// <summary>PORT-ONLY (OD-0139): the service's accounts or keys at the foot of its card; null without the accounts.</summary>
+    internal Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl? AccountsPart => accountsPart;
     private ChromeRevealLayout? revealLayout;
     /// <summary>PORT-ONLY (ED-NEW-providers-reveal-1): the card is fully open and its fold has finished.</summary>
     internal bool IsOpenAndSettled => revealLayout is { Fraction: >= 1 };
@@ -903,6 +921,7 @@ internal sealed class ProviderSettingsSection : Decorator
                     state.ApiKey = value;
                     if (SwiftString.Equal(value, model.Settings.ApiKeyInput(provider))) return; // :786
                     model.Settings.SetAPIKeyInput(value, provider); keyCheck?.Cancel(); // :787-788
+                    Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this)?.Accounts.Refresh(); // PORT-ONLY (OD-0139): the key list below shows the first key's last characters
                     keyCheck = MainActor.Spawn(async () => { await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(600)); if (SwiftTask.IsCancelled) return; await model.Providers.Refresh(provider); await model.Providers.LoadCatalog(provider, force: true); }); // :789-794
                 }));
                 keyField.PasswordChar = '\u2022'; keyField.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(keyField); // :700-707
@@ -937,18 +956,14 @@ internal sealed class ProviderSettingsSection : Decorator
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
                 else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => SettingsGlassButtons.Text("Login", () => Marrow.App.Port.ProviderLoginWatch.Open(model.Providers, provider), labelHeight: Chrome.RowButtonLabelHeight), "Click here to login again.")); } // :638-641,747-756
             });
-            // PORT-ONLY (ED-NEW-providers-add-1): a signed-in service that keeps several accounts offers Settings > Models' quiet "Add another account" row at the foot of its own card,
-            // and it runs the same sign-in (AccountsSettingsModel.AddAsync). Local (servers, in its own box) and the key-based services (Keys and order) never show it.
-            if (Marrow.Core.Port.MultiAccount.Settings.AccountsSettingsModel.CanAdd(provider) && Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is { } accounts)
+            // PORT-ONLY (OD-0139, ED-NEW-providersmerge-1): Providers is the one place for every login. The service's accounts close its card: one account adds only the quiet "Add another account" row
+            // (ED-NEW-providers-add-1; offered once the service is signed in, its "Sign in" row being the way to the first), several fold open their list in the order nth uses them, an API-key service lists
+            // its further keys under "Keys and order" with "Add another key", and Local lists its models with "Add a local server". Nothing is drawn without the accounts (a test of another part).
+            if (Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is { } accounts)
             {
-                var addSlot = new StackPanel(); cardRows.Children.Add(addSlot);
-                var add = Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl.AddAnotherButton(provider, () => _ = accounts.Accounts.AddAsync(provider));
-                add.HorizontalAlignment = HorizontalAlignment.Left;
-                addSlot.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; }, signedIn =>
-                {
-                    addSlot.Children.Clear();
-                    if (signedIn) { addSlot.Children.Add(new ChromeRowDivider()); addSlot.Children.Add(add); }
-                });
+                accountsPart = new Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl(accounts.Accounts, provider,
+                    () => { _ = model.Providers.Statuses; return provider.IsAPIKeyBased || provider == ProviderKind.Local || model.Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; });
+                cardRows.Children.Add(accountsPart);
             }
         });
     }

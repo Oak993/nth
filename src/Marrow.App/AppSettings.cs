@@ -362,7 +362,7 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
     }
 
     // OD-0012 E5: the one line shown under a key field whose key the protected store refused.
-    private const string CredentialRefusalLine = "Credential Manager did not accept this key, so it was not saved.";
+    internal const string CredentialRefusalLine = "Credential Manager did not accept this key, so it was not saved.";
 
     // :402-403
     private bool didReadKeychain;
