@@ -132,12 +132,15 @@ public enum PcActions
 
 /// <summary>
 /// One accessibility element as the reader hands it over: its UIA RuntimeId (as text), its localized control type, name,
-/// AutomationId, value, states, supported actions, live bounds in physical screen pixels and its children.
+/// AutomationId, value, shortcut, states, supported actions, live bounds in physical screen pixels and its children.
 /// </summary>
 public sealed record PcUiNode(string RuntimeId, string Role, string Name)
 {
     public string? AutomationId { get; init; }
     public string? Value { get; init; }
+
+    /// <summary>The element's own keyboard shortcut (UIA AcceleratorKey, such as "Ctrl+S"), if it shows one.</summary>
+    public string? Shortcut { get; init; }
     public PcStates States { get; init; }
     public PcActions Actions { get; init; }
     public PcRect Bounds { get; init; }

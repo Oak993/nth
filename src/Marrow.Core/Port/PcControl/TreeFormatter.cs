@@ -129,6 +129,7 @@ public static class TreeFormatter
         if (states.Count > 0) text.Append(" {").Append(string.Join(", ", states)).Append('}');
         if (!node.Has(PcStates.Password) && Clean(node.Value, ValueCap) is { Length: > 0 } value && value != name)
             text.Append(" value=").Append(PcWindowLine.Quote(value));
+        if (Clean(node.Shortcut, 40) is { Length: > 0 } shortcut) text.Append(" keys=").Append(PcWindowLine.Quote(shortcut));
         var actions = ActionNames(node);
         if (actions.Count > 0) text.Append(" actions: ").Append(string.Join(", ", actions));
         if (list is { } counts && counts.Total != counts.Shown)

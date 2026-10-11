@@ -6132,3 +6132,12 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 3. INPUT: events are planned by the pure PcInputPlan and sent through ISendInput; the real sink (Win32SendInput) is never used by automated tests. Fewer events inserted than planned (another desktop, UIPI) is an error, not a silent partial action. A stopped drag always releases the button and the modifiers.
 4. TEST LAYOUT: tests of Native/ classes live in tests/Marrow.Services.Tests/Port/PcControl/ (namespace ...Tests.Port.PcControl), not in a Native folder, because the test filter FullyQualifiedName!~Native keeps out the tests that need real Windows; a test with Native in its name is one that must not run without the owner's go-ahead.
 
+## ED-NEW-pcctl-4
+2026-10-11 - Tactus reads and drives windows through UI Automation's COM client (OD-0140, OD-0141, ED-NEW-pcctl-1; DESIGN.md 3.1, 3.3). ENGINEERING DECISION. PORT-ONLY (no Swift counterpart).
+1. CLIENT: CUIAutomation8 as IUIAutomation2, declared with [ComImport] from the documented vtable order (UiaInterop.cs, written from the SDK's slot order; no generated code from any other product). Connection and transaction timeouts are 2 s; the reader gives up on a call after 4 s (error timeout), so a hung app never freezes nth.
+2. ONE CACHE REQUEST: the whole control-view subtree is fetched in one cross-process call with the properties a tree line needs (RuntimeId, bounds, control type, name, AutomationId, AcceleratorKey, focus, enabled, password, offscreen, value, range value, scroll, expand/collapse, selection, toggle) and every pattern's availability flag; a state counts only when its pattern is available. At most 6000 nodes are read.
+3. ELEMENTS: an element is found again by its RuntimeId (dotted text) under its own window, never by a stale COM pointer. A password field never carries its value.
+4. PATTERNS, NOT POINTER: element actions go through Invoke, Toggle, SelectionItem, ExpandCollapse, Value, RangeValue, Scroll, ScrollItem and Window patterns; HRESULTs map to stable error codes (not enabled -> disabled, not available -> stale_element, timeout -> timeout).
+5. THREADS: see ED-NEW-pcctl-6 (one MTA worker per window).
+6. TESTS: the pure mapping (UiaNodes, UiaPatterns.Outcome) is unit tested from property dictionaries; UIA itself is never called by automated tests. The interface IIDs and vtable slots must be checked by the native smoke test before release (unit 8+).
+

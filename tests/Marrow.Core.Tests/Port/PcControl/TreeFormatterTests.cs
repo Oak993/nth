@@ -168,6 +168,13 @@ public sealed class TreeFormatterTests
     }
 
     [Fact]
+    public void A_shortcut_the_element_shows_is_written_as_keys()
+    {
+        var save = N("1", "menu item", "Save", PcStates.None, PcActions.Invoke) with { Shortcut = "Ctrl+S" };
+        Assert.Equal("menu item \"Save\" keys=\"Ctrl+S\"", TreeFormatter.Body(save));
+    }
+
+    [Fact]
     public void Repeated_or_missing_runtime_ids_still_get_distinct_keys()
     {
         var tree = TreeFormatter.Format(Window(N("", "button", "A"), N("", "button", "B"), N("x", "button", "C"), N("x", "button", "D")));
