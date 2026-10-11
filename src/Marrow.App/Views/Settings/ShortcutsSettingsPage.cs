@@ -159,7 +159,8 @@ public sealed class FixedShortcutsCard : Decorator
         ("Steer a chat", "While a turn runs, stops it and sends right away.", "Return"), // :71
         ("Recall an earlier prompt", "Works in an empty composer.", "↑"), // :72
         ("Approve a request", "Allows what the agent asked for.", "Ctrl+Return"), // :73
-        ("Jump to a thread", "Selects one of the first nine threads.", "Ctrl+1–9"), // :74 U+2013 EN DASH
+        // PORT-ONLY (ED-NEW-session-hotkeys): the hold-Ctrl numbers and the number pad join the source's detail.
+        ("Jump to a thread", "Selects one of the first nine threads. Hold Ctrl to see their numbers; the number pad works too.", "Ctrl+1–9"), // :74 U+2013 EN DASH
     ];
 
     public FixedShortcutsCard()
