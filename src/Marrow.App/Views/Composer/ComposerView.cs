@@ -503,6 +503,7 @@ public sealed class ComposerView : Decorator
         fadePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         scalePlace = new AnimatedScalar(this, 0, _ => ApplyAttachPlace());
         askOthers = Marrow.App.Port.MultiAccount.Opinions.AskOthersComposerMount.Install(textColumn, runtime);
+        if (askOthers is not null) ApplyAttachPlace(); // its place beside the attach button (ED-NEW-voicefix-ui-6)
         if (askOthers is not null) askOthers.Sent += (_, _) =>
         {
             // A confirmation may finish after the user edits the draft. Clear only the draft actually submitted.
@@ -785,6 +786,10 @@ public sealed class ComposerView : Decorator
     // The text starts 14 in from the pill's edge; the button inside it takes 34 and 6 more.
     private const double InsideAttachInset = 34;
 
+    // ED-NEW-voicefix-ui-6: ink gaps measured at 100% and 125% were 23.2/24 points attach glyph to ask-others glyph and 7.2/7 ask-others glyph to text; moving the
+    // ask-others glyph this far left makes the two gaps equal (15 to 15.5 points) at both scales.
+    internal const double AskOthersPull = 8.25;
+
     private void MakeAttachButtons(bool recentDownloadsPicker)
     {
         if (insideAttach is not null)
@@ -826,6 +831,10 @@ public sealed class ComposerView : Decorator
         var shown = attachShown && insideAttach is not null && outsideAttach is not null;
         Margin = new Thickness(shown ? OutsideAttachWidth * widthPlace.Value : 0, Margin.Top, Margin.Right, Margin.Bottom);
         padded.Padding = new Thickness(14 + (shown ? InsideAttachInset * (1 - insetPlace.Value) : 0), 8, 8, 8);
+        // ED-NEW-voicefix-ui-6 (owner 2026-10-11): beside the inside attach button the ask-others button sits AskOthersPull to the left of the text's start, so its
+        // glyph is as far from the attach glyph as from the text; the text keeps its place
+        var pull = shown ? AskOthersPull * (1 - insetPlace.Value) : 0;
+        if (askOthers is not null) askOthers.Margin = new Thickness(-pull, 0, pull, 0);
         if (!shown)
         {
             if (insideAttach is not null) layers!.Children.Remove(insideAttach);
@@ -1083,8 +1092,11 @@ public sealed class ComposerView : Decorator
     private void FadeBesidePill(double inset)
     {
         var width = textColumn.Bounds.Width;
-        if (inset < 0.5 || width <= PillFadeWidth) { textColumn.OpacityMask = null; return; }
-        var start = (width - PillFadeWidth) / width;
+        if (inset < 0.5) { textColumn.OpacityMask = null; return; }
+        // ED-NEW-voicefix-ui-2: a column no wider than the fade (a narrow window, the pill open) fades from its left edge, and one the pill has squeezed to
+        // nothing shows nothing (its content would only run on under the pill); both used to drop the mask and draw at full strength up to and under the pill
+        if (width <= 0) { textColumn.OpacityMask = new SolidColorBrush(Colors.Transparent); return; }
+        var start = Math.Max(0, (width - PillFadeWidth) / width);
         textColumn.OpacityMask = new LinearGradientBrush
         {
             StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),

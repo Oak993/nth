@@ -140,8 +140,21 @@ internal sealed class DictationLayer : Control
         switch (update.Kind)
         {
             case TranscriptUpdateKind.Live or TranscriptUpdateKind.Final:
-                foreach (var scheduled in update.Ops) Queue(now + scheduled.At, scheduled.Op);
+            {
+                // ED-NEW-voicefix-ui-4: each batch is the difference from the words as they stand after every operation the session sent before it. The session
+                // paces its adds (V-7.5), so an earlier batch's adds can still be waiting when the next batch arrives with its revises, removes and confirms at
+                // once; run before those adds, they named words not there yet and were lost, and the late add then drew a stale word ("but") over the new text.
+                // No operation runs before one sent ahead of it: each waits at least until the one before it is due; the adds keep their own pace.
+                var floor = pending.Count > 0 ? pending[^1].Due : now;
+                foreach (var scheduled in update.Ops)
+                {
+                    var due = now + scheduled.At;
+                    if (due < floor) due = floor;
+                    Queue(due, scheduled.Op);
+                    floor = due;
+                }
                 break;
+            }
             case TranscriptUpdateKind.Landing:
                 FlushForLanding(now);
                 foreach (var scheduled in update.Ops) Queue(now + scheduled.At, scheduled.Op);

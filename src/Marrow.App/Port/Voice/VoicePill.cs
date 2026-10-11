@@ -81,6 +81,8 @@ internal sealed class VoicePill : Panel
         IsHitTestVisible = false;
         ClipToBounds = false;
         body = new Border { IsHitTestVisible = false }.Capsule(RoundedCornerStyle.Circular);
+        // ED-NEW-voicefix-ui-1 (OD-0132): the pill's glass is its own piece, never merged into the composer's container, so the composer's outline holds still while it opens
+        SwiftGlass.SetStandsAlone(body, true);
         Cross = new VoiceCross(VoiceCrossLook.Disc) { RenderTransformOrigin = RelativePoint.Center };
         Cross.RenderTransform = new TransformGroup { Children = { Cross.PressTransform, crossTransform } };
         material.Children.Add(body);
