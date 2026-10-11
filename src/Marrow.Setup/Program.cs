@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Marrow.App.Port;
 using Marrow.Core.Support;
+using Marrow.Setup.Support;
+using Microsoft.Win32;
 
 namespace Marrow.Setup;
 
@@ -21,7 +24,9 @@ public static class Program
         var host = new Win32InstallerHost();
         try
         {
-            return InstallerGate.Run(host, Identity(), args);
+            var identity = Identity();
+            host.InstallRoot = identity.DefaultInstallRoot;
+            return InstallerGate.Run(host, identity, args);
         }
         catch (Exception error)
         {
@@ -43,6 +48,9 @@ public static class Program
     {
         private const uint MbOk = 0x0, MbIconWarning = 0x30, MbIconInformation = 0x40, MbSetForeground = 0x10000;
 
+        /// <summary>The root Setup.exe installs into; the post-exit steps run there.</summary>
+        public string? InstallRoot { get; set; }
+
         public void ShowMessage(string caption, string text, bool warning) =>
             _ = MessageBoxW(IntPtr.Zero, text, caption, MbOk | MbSetForeground | (warning ? MbIconWarning : MbIconInformation));
 
@@ -59,6 +67,13 @@ public static class Program
                 foreach (var argument in arguments) start.ArgumentList.Add(argument);
                 using var process = Process.Start(start) ?? throw new InvalidOperationException("Velopack's Setup.exe did not start.");
                 process.WaitForExit();
+                // Unit U5 (PLAN.md 8, item 1; 8a): Start's AppUserModelID, the desktop shortcut's alignment and the uninstall
+                // entry, which Velopack writes after the install hook. The real shell and HKCU are bound here only.
+                if (process.ExitCode == 0 && InstallRoot is { } root)
+                {
+                    using var shell = new ShellLinks();
+                    AfterSetupExit.Run(shell, new RegistryUserHive(Registry.CurrentUser), root, resultPath: null);
+                }
                 return process.ExitCode;
             }
             finally

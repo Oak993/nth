@@ -35,6 +35,7 @@
     <Compile Include="..\Marrow.Testing\Traceability.cs" Link="Linked\Traceability.cs" />
     <Compile Include="..\Marrow.Testing\ManualTimeProvider.cs" Link="Linked\ManualTimeProvider.cs" />
     <Compile Include="..\Marrow.Testing\FakeShellLinks.cs" Link="Linked\FakeShellLinks.cs" />
+    <Compile Include="..\Marrow.Testing\FakeUserRegistry.cs" Link="Linked\FakeUserRegistry.cs" />
   </ItemGroup>
 
 </Project>
