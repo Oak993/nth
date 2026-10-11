@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Automation;
 using Avalonia.Layout;
+using Avalonia.VisualTree;
 using Avalonia.Input;
 using Avalonia.Media;
 using Marrow.Core.Models;
@@ -805,9 +806,30 @@ internal sealed class ProvidersSettingsPage : Decorator
             {
                 wanted = null;
                 Revealed = reveal;
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => target.BringIntoView());
+                ScrollToTop(target);
             }
         });
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-providers-reveal-1): the asked-for section is scrolled to where a page's first section sits at rest, just under the chrome row, and kept there while its card
+    /// folds open (the page's height grows under it). A bare BringIntoView, posted while the page had not been laid out, did nothing: "Keys and order" landed at the top of the page. The page's
+    /// own scroll is left to the person the moment they move it.</summary>
+    private void ScrollToTop(ProviderSettingsSection target)
+    {
+        double? placed = null;
+        EventHandler? onLayout = null;
+        onLayout = (_, _) =>
+        {
+            if (target.FindAncestorOfType<ScrollViewer>() is not { } scroll || scroll.Viewport.Height <= 0 || target.Bounds.Height <= 0 || target.TranslatePoint(default, scroll) is not { } at) return;
+            if (placed is { } last && Math.Abs(scroll.Offset.Y - last) > 0.5) { LayoutUpdated -= onLayout; return; } // the person scrolled: the page is theirs
+            var top = Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16; // the page's own top margin under the chrome row (RebuildDetail)
+            var offset = Math.Clamp(scroll.Offset.Y + at.Y - top, 0, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height));
+            if (Math.Abs(offset - scroll.Offset.Y) > 0.5) scroll.Offset = scroll.Offset.WithY(offset);
+            placed = scroll.Offset.Y;
+            if (target.IsOpenAndSettled) LayoutUpdated -= onLayout; // open and laid out at its full height: in place for good
+        };
+        LayoutUpdated += onLayout;
+        InvalidateMeasure();
     }
 }
 
@@ -816,6 +838,9 @@ internal sealed class ProviderSettingsSection : Decorator
 {
     private readonly ProviderKind provider;
     internal ProviderKind Provider => provider; // PORT-ONLY (T11 step 2)
+    private ChromeRevealLayout? revealLayout;
+    /// <summary>PORT-ONLY (ED-NEW-providers-reveal-1): the card is fully open and its fold has finished.</summary>
+    internal bool IsOpenAndSettled => revealLayout is { Fraction: >= 1 };
     private TaskHandle? keyCheck; // :627
     // :624-626
     private sealed class ViewState : MainActorModel
@@ -834,6 +859,7 @@ internal sealed class ProviderSettingsSection : Decorator
         var state = new ViewState();
         var cardRows = new StackPanel();
         var reveal = new ChromeRevealLayout(0) { ClipToBounds = true, Children = { new ChromeCard(() => cardRows) } }; // :648-649,763
+        revealLayout = reveal;
         var motion = new SettingsScalarAnimation(reveal, 0, value => reveal.Fraction = value);
         Child = new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { new CollapsibleProviderHeader(provider, isExpanded, "provider settings"), reveal } }; // :646-647
         this.Track(() => isExpanded.Value, expanded => // :764-766
@@ -911,6 +937,19 @@ internal sealed class ProviderSettingsSection : Decorator
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
                 else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => SettingsGlassButtons.Text("Login", () => Marrow.App.Port.ProviderLoginWatch.Open(model.Providers, provider), labelHeight: Chrome.RowButtonLabelHeight), "Click here to login again.")); } // :638-641,747-756
             });
+            // PORT-ONLY (ED-NEW-providers-add-1): a signed-in service that keeps several accounts offers Settings > Models' quiet "Add another account" row at the foot of its own card,
+            // and it runs the same sign-in (AccountsSettingsModel.AddAsync). Local (servers, in its own box) and the key-based services (Keys and order) never show it.
+            if (Marrow.Core.Port.MultiAccount.Settings.AccountsSettingsModel.CanAdd(provider) && Marrow.App.Port.MultiAccount.Settings.MultiAccountSettingsSeams.For(this) is { } accounts)
+            {
+                var addSlot = new StackPanel(); cardRows.Children.Add(addSlot);
+                var add = Marrow.App.Port.MultiAccount.Settings.ServiceBlockControl.AddAnotherButton(provider, () => _ = accounts.Accounts.AddAsync(provider));
+                add.HorizontalAlignment = HorizontalAlignment.Left;
+                addSlot.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider).ProviderStatusAuth is ProviderStatus.Auth.SignedIn; }, signedIn =>
+                {
+                    addSlot.Children.Clear();
+                    if (signedIn) { addSlot.Children.Add(new ChromeRowDivider()); addSlot.Children.Add(add); }
+                });
+            }
         });
     }
 

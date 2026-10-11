@@ -36,7 +36,7 @@ public sealed class UpdatesProjectorTests
         Assert.Equal(UpdatesPhase.Current, page.Header.Phase);
         Assert.Equal("Everything is up to date", page.Header.Title);
         Assert.Equal("Checked 2 hours ago. nth also keeps Claude Code and Codex current in the background.", page.Header.Detail);
-        Assert.Equal(("Check now", UpdatesAction.Check, false, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet));
+        Assert.Equal(("Check for updates", UpdatesAction.Check, false, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet)); // ED-NEW-providers-updates-1 (was U1's "Check now")
         Assert.False(page.Banner.Visible);
         Assert.All(page.Sections.SelectMany(s => s.Rows), r => Assert.Equal((RowStatus.Current, "Up to date"), (r.Status, r.StatusText)));
     }
@@ -140,7 +140,7 @@ public sealed class UpdatesProjectorTests
         var page = UpdatesProjector.Project(rows, Quiet(runIds: new HashSet<string> { "cli:claude", "cli:codex", "marrow" }));
         Assert.Equal(UpdatesPhase.Failed, page.Header.Phase);
         Assert.Equal(("Codex didn’t update", "Updated nth and Claude Code. The fix is below."), (page.Header.Title, page.Header.Detail));
-        Assert.Equal(("Retry", UpdatesAction.Retry, false, false), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet));
+        Assert.Equal(("Check for updates", UpdatesAction.Check, false, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonBusy, page.Header.ButtonQuiet)); // ED-NEW-providers-updates-1: only a failure left, the header checks again; Retry is the row's
         var codex = page.Sections.SelectMany(s => s.Rows).Single(r => r.Id == "cli:codex");
         Assert.Equal((RowStatus.DidNotUpdate, "Didn’t update", "0.157.1"), (codex.Status, codex.StatusText, codex.Installed));
         Assert.Equal(("Codex is still 0.157.1 after its updater ran. Retry, or run ", "codex update", " in a terminal."), (codex.FailureLead, codex.FailureCommand, codex.FailureTail));
@@ -190,7 +190,7 @@ public sealed class UpdatesProjectorTests
     {
         var page = UpdatesProjector.Project([Claude(UpdateRowState.Updated, "2.1.290", "2.1.290"), Codex(UpdateRowState.UpToDate, "0.160.0", "0.160.0")], Quiet());
         Assert.Equal(("1 updated", "Updated Claude Code."), (page.Header.Title, page.Header.Detail));
-        Assert.Equal(("Check now", UpdatesAction.Check, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonQuiet));
+        Assert.Equal(("Check for updates", UpdatesAction.Check, true), (page.Header.ButtonLabel, page.Header.Action, page.Header.ButtonQuiet)); // ED-NEW-providers-updates-1 (was U1's "Check now")
         Assert.False(page.Banner.Visible);
     }
 
@@ -254,5 +254,21 @@ public sealed class UpdatesProjectorTests
         Assert.Equal("1 day ago", UpdatesProjector.Age(TimeSpan.FromHours(25)));
         Assert.Equal("3 days ago", UpdatesProjector.Age(TimeSpan.FromDays(3.2)));
         Assert.Equal("just now", UpdatesProjector.Age(TimeSpan.FromMinutes(-5)));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-NEW-providers-updates-1")] // the owner's rule: "Update everything" while an update waits, otherwise "Check for updates"; Retry stays on the failed row
+    public void The_header_button_is_Update_everything_while_an_update_waits_and_Check_for_updates_otherwise()
+    {
+        var mixed = UpdatesProjector.Project([Claude(UpdateRowState.UpdateAvailable), Codex(UpdateRowState.Failed, message: "failed")], Quiet());
+        Assert.Equal((UpdatesPhase.Failed, "Update everything", UpdatesAction.UpdateAll, false, false), (mixed.Header.Phase, mixed.Header.ButtonLabel, mixed.Header.Action, mixed.Header.ButtonBusy, mixed.Header.ButtonQuiet));
+        Assert.True(mixed.Sections.SelectMany(s => s.Rows).Single(r => r.Id == "cli:codex").CanRetry);
+        var failedOnly = UpdatesProjector.Project([Claude(UpdateRowState.UpToDate, "2.1.290", "2.1.290"), Codex(UpdateRowState.Failed, message: "failed")], Quiet());
+        Assert.Equal((UpdatesPhase.Failed, "Check for updates", UpdatesAction.Check, false, true), (failedOnly.Header.Phase, failedOnly.Header.ButtonLabel, failedOnly.Header.Action, failedOnly.Header.ButtonBusy, failedOnly.Header.ButtonQuiet));
+        Assert.True(failedOnly.Sections.SelectMany(s => s.Rows).Single(r => r.Id == "cli:codex").CanRetry);
+        var doneWithOneWaiting = UpdatesProjector.Project([Claude(UpdateRowState.Updated, "2.1.290", "2.1.290"), Codex(UpdateRowState.UpdateAvailable)], Quiet());
+        Assert.Equal((UpdatesPhase.Done, "Update everything", UpdatesAction.UpdateAll), (doneWithOneWaiting.Header.Phase, doneWithOneWaiting.Header.ButtonLabel, doneWithOneWaiting.Header.Action));
+        foreach (var page in new[] { mixed, failedOnly, doneWithOneWaiting, UpdatesProjector.Project(AllCurrent(), Quiet()) })
+            Assert.NotEqual("Retry", page.Header.ButtonLabel);
     }
 }

@@ -18,7 +18,7 @@ public sealed class LeadDevToolRulingTests
         replay.Add(TrialHFixtures.Command("04-git-list"), missing ? new(WingetUpdater.NoInstalledPackage, "", "") : new(-1, "", "inventory unavailable"));
         var outcome = await new WingetUpdater("Git.Git", "Git", replay.Run).Update(new DevToolProgress(), default);
         Assert.False(outcome.Succeeded); Assert.Null(outcome.NewVersion);
-        Assert.Equal("Git is in use by another app. Close it and try again.", outcome.Message); replay.Complete();
+        Assert.Equal("Git Bash is running. Close it and try again.", outcome.Message); replay.Complete(); // ED-NEW-providers-git-1: the installer's own list (bash.exe, tail.exe, grep.exe...) names what holds Git
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public sealed class LeadDevToolRulingTests
         await runner.UpdateEverything();
         var row = Assert.Single(runner.Rows);
         Assert.Equal(UpdateRowState.Failed, row.State);
-        Assert.Equal("Git is in use by another app. Close it and try again.", row.Message);
+        Assert.Equal("Git Bash is running. Close it and try again.", row.Message); // ED-NEW-providers-git-1
         // Retry launches exactly one fresh witnessed command; it does not stop any holding process.
         replay.Add("04-git-list"); replay.Add(TrialHFixtures.Command("07-git-upgrade"), upgrade); replay.Add("04-git-list"); replay.Add("04-git-list");
         await runner.Retry(row.Id);
@@ -67,7 +67,7 @@ public sealed class LeadDevToolRulingTests
         var replay = new TrialHReplay(); replay.Add("04-git-list"); replay.Add("07-git-upgrade"); replay.Add("04-git-list");
         var result = await new WingetUpdater("Git.Git", "Git", replay.Run).Update(new DevToolProgress(), default);
         Assert.Contains("Installer failed", result.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("in use by another app", result.Message, StringComparison.Ordinal); replay.Complete();
+        Assert.DoesNotContain("in use by another app", result.Message, StringComparison.Ordinal); Assert.DoesNotContain(" running", result.Message, StringComparison.Ordinal); replay.Complete();
     }
 
     [Fact]

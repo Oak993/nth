@@ -1423,8 +1423,9 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
             : binaryPaths.Mutating(map => map[key] = trimmed);
     }
 
-    // :882-884. Swift: isEnabled(_:).
-    public bool IsEnabled(ProviderKind provider) => !disabledProviders.Contains(SwiftEnum<ProviderKind>.RawValue(provider));
+    // :882-884. Swift: isEnabled(_:). It reads the observed property, as Swift's @Observable read of disabledProviders does: the Providers page's switch
+    // tracks this read, and reading the backing field left the switch unobserved, so a click changed the setting but never moved the knob (ED-NEW-providers-switch-1).
+    public bool IsEnabled(ProviderKind provider) => !DisabledProviders.Contains(SwiftEnum<ProviderKind>.RawValue(provider));
 
     // :886-889. Swift: setEnabled(_:for:).
     public void SetEnabled(bool enabled, ProviderKind provider)

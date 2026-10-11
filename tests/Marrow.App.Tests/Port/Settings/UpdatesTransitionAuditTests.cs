@@ -102,7 +102,8 @@ public sealed class UpdatesTransitionAuditTests(HeadlessSession headless)
             runtime.RunUntilIdle();
             Run(700);
             Assert.Equal("Codex didn’t update", page.TitleText.Text);
-            page.MainButton.Activate(); // Retry
+            Assert.Equal("Check for updates", page.MainButton.Label); // ED-NEW-providers-updates-1: with only a failure left the header checks again; Retry is the row's
+            page.RowControl("cli:codex").RetryButton.Activate(); // Retry
             runtime.RunUntilIdle();
             Run(700);
             Assert.Equal("3 updated", page.TitleText.Text);

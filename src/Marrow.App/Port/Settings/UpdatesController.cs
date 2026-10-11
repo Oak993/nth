@@ -57,7 +57,7 @@ internal sealed class UpdatesController
         giveUp = null;
     }
 
-    /// <summary>The main button, whatever it says now: Check now, Update everything, Retry or Restart Marrow; nothing while it is busy.</summary>
+    /// <summary>The main button, whatever it says now: Check for updates, Update everything or Restart nth (ED-NEW-providers-updates-1); nothing while it is busy.</summary>
     public Task Press()
     {
         switch (Compose().Header.Action)

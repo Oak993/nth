@@ -97,12 +97,15 @@ internal sealed class ServiceBlockControl : Decorator
 
     internal string TitleShown => title.Text;
 
-    private Control AddRow()
+    private Control AddRow() => AddAnotherButton(service, () => _ = model.AddAsync(service));
+
+    /// <summary>The quiet "Add another account" row: the accent plus and the accent words, a plain button the width of its words. Settings > Providers draws the same row in the service's card (ED-NEW-providers-add-1).</summary>
+    internal static Button AddAnotherButton(ProviderKind service, Action add)
     {
         var plus = LibraryUi.Glyph("plus", 12, ChromeTokens.Accent, SwiftFont.Weight.Medium);
         var text = LibraryUi.Text(MultiAccountWords.AddAnother, 13, weight: SwiftFont.Weight.Medium);
         text.Foreground = ChromeTokens.Accent.Brush(text);
-        var button = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(16, 10), Children = { plus, text } }, () => _ = model.AddAsync(service));
+        var button = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(16, 10), Children = { plus, text } }, add);
         button.Focusable = true;
         button.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
         button.Named(MultiAccountWords.AddAnother, "service-add-" + service.Id);

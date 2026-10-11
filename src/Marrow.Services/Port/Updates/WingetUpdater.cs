@@ -15,12 +15,17 @@ public sealed class WingetUpdater : IUpdateItem
     private readonly string packageId;
     private readonly Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>> run;
     private readonly IReadOnlyList<string> query;
+    private readonly Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>>? gitLocks;
 
-    public WingetUpdater(string id, string title, Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, IReadOnlyList<string>? query = null)
+    /// <param name="gitLocks">Git only (ED-NEW-providers-git-1): what holds Git for Windows right now. When given, an update (and so its Retry) looks first and, while anything holds Git,
+    /// says what without starting winget; after the installer itself refuses, it names what is running. Null: no look (the installer's own list still names the processes).</param>
+    public WingetUpdater(string id, string title, Func<DevToolCommand, CancellationToken, Task<DevToolCommandResult>>? run = null, IReadOnlyList<string>? query = null,
+        Func<CancellationToken, Task<IReadOnlyList<GitLockingProcess>>>? gitLocks = null)
     {
         ValidateId(id);
         packageId = id; Title = title; this.run = run ?? DevToolProcess.Refuse;
         this.query = query?.ToArray() ?? ["--id", id, "-e"];
+        this.gitLocks = id == "Git.Git" ? gitLocks : null;
     }
     public string Id => "dev:" + packageId;
     public string Title { get; }
@@ -80,6 +85,20 @@ public sealed class WingetUpdater : IUpdateItem
 
     internal static string Failure(DevToolCommandResult result) => $"Updater exit {result.ExitCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "unavailable"}: {(result.Stdout + result.Stderr).Trim()}";
 
+    private async Task<IReadOnlyList<GitLockingProcess>> Holding(CancellationToken cancellation)
+    {
+        try { return await gitLocks!(cancellation); }
+        catch (Exception error) when (error is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception) { return []; } // an unreadable look never blocks the update
+    }
+
+    // What the installer listed, with the apps that started it when the live look can still see them.
+    private async Task<string> InUseMessage(string log, CancellationToken cancellation)
+    {
+        var listed = GitInUse.NamesFromLog(log);
+        if (gitLocks is not null && await Holding(cancellation) is { Count: > 0 } live) return GitInUse.Message(live);
+        return GitInUse.Message(listed.Select(name => new GitLockingProcess(name)).ToList());
+    }
+
     public async Task<UpdateOutcome> Update(IProgress<double?> progress, CancellationToken cancellation)
     {
         cancellation.ThrowIfCancellationRequested();
@@ -87,12 +106,14 @@ public sealed class WingetUpdater : IUpdateItem
         if (before is null) return new(false, null, false, false, "The tool is no longer installed.");
         if (before.Source != "winget") return new(false, before.Version, false, false, "This installed tool is not matched to the winget source.");
         if (!HasTrial(packageId)) return new(false, before.Version, false, false, "This installed tool's upgrade has not been supervised and recorded.");
+        if (gitLocks is not null && await Holding(cancellation) is { Count: > 0 } holding)
+            return new(false, before.Version, false, false, GitInUse.Message(holding)); // the installer would refuse: nothing is started
         progress.Report(null);
         var result = await run(UpgradeCommand(packageId), cancellation);
         var inUse = packageId == "Git.Git" && result.ExitCode is not (null or 0)
             && result.InstallerLog is { } log && log.Contains("The following process(es) use Git for Windows", StringComparison.Ordinal)
             && log.Contains("Defaulting to Cancel", StringComparison.Ordinal) && log.Contains("aborting", StringComparison.Ordinal);
-        var inUseMessage = "Git is in use by another app. Close it and try again.";
+        var inUseMessage = inUse ? await InUseMessage(result.InstallerLog!, cancellation) : "";
         WingetPackage? after;
         try { after = await Installed(cancellation); }
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException)

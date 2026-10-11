@@ -50,7 +50,7 @@ public sealed class UpdatesControllerTests
         using var runtime = new TestRuntime();
         var controller = Make(out _, []);
         runtime.Loop.Run(controller.Attach);
-        Assert.Equal(("Everything is up to date", "Check now"), (controller.View.Header.Title, controller.View.Header.ButtonLabel));
+        Assert.Equal(("Everything is up to date", "Check for updates", UpdatesAction.Check), (controller.View.Header.Title, controller.View.Header.ButtonLabel, controller.View.Header.Action)); // ED-NEW-providers-updates-1 (was U1's "Check now")
         Assert.Empty(controller.View.Sections);
     }
 
@@ -121,8 +121,9 @@ public sealed class UpdatesControllerTests
     }
 
     [Fact]
-    [Trait("Decision", "ED-308")] // a failure keeps the others' results; the button becomes Retry and runs only what failed
-    public void A_failed_item_is_retried_alone_by_the_button_and_the_others_are_not_run_again()
+    [Trait("Decision", "ED-308")] // a failure keeps the others' results; its row's Retry runs only what failed
+    [Trait("Decision", "ED-NEW-providers-updates-1")] // the header no longer says Retry: with nothing waiting it is "Check for updates"
+    public void A_failed_item_is_retried_alone_by_its_rows_Retry_and_the_others_are_not_run_again()
     {
         using var runtime = new TestRuntime();
         var claude = Claude();
@@ -132,10 +133,10 @@ public sealed class UpdatesControllerTests
         var controller = Make(out _, [], claude, codex);
         runtime.Loop.Run(controller.Attach);
         runtime.Loop.Run(controller.Press);
-        Assert.Equal((UpdatesPhase.Failed, "Codex didn’t update", "Retry"), (controller.View.Header.Phase, controller.View.Header.Title, controller.View.Header.ButtonLabel));
+        Assert.Equal((UpdatesPhase.Failed, "Codex didn’t update", "Check for updates", UpdatesAction.Check), (controller.View.Header.Phase, controller.View.Header.Title, controller.View.Header.ButtonLabel, controller.View.Header.Action));
         Assert.Equal("Updated Claude Code. The fix is below.", controller.View.Header.Detail);
         Assert.True(RowOf(controller, "cli:codex").CanRetry);
-        runtime.Loop.Run(controller.Press);
+        runtime.Loop.Run(() => controller.RetryRow("cli:codex"));
         Assert.Equal(UpdatesPhase.Done, controller.View.Header.Phase);
         Assert.Equal((1, 2), (claude.Updates, codex.Updates));
     }

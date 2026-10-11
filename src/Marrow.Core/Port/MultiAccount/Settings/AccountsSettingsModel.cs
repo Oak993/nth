@@ -71,7 +71,7 @@ public sealed class AccountsSettingsModel
         }
         else summary = several ? MultiAccountWords.Several(list.Count) : MultiAccountWords.One(list[0].Plan);
         return new ServiceBlockView(service, local ? MultiAccountWords.LocalTitle : ServiceNames.Title(service), summary, several,
-            AccountCapabilities.SupportsMultipleAccounts(service) && !local && !keys, rows, several || first is null ? null : first.WeekFraction, several || first is null ? "" : first.UsageText,
+            CanAdd(service), rows, several || first is null ? null : first.WeekFraction, several || first is null ? "" : first.UsageText,
             ServerBox: local, ActionLabel: keys ? MultiAccountWords.KeysAndOrder : null);
     }
 
@@ -175,10 +175,14 @@ public sealed class AccountsSettingsModel
         }
     }
 
+    /// <summary>Whether "Add another account" is offered for the service: it keeps several accounts, and it is neither Local (its servers are added in its own box) nor kept by API keys (Keys and order).
+    /// Settings > Models (the block's menu and its list) and Settings > Providers (the service's card, ED-NEW-providers-add-1) both ask this.</summary>
+    public static bool CanAdd(ProviderKind service) => AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local && !service.IsAPIKeyBased;
+
     public IReadOnlyList<MenuEntry> BlockMenu(ProviderKind service)
     {
         var list = Connected(service);
-        var canAdd = AccountCapabilities.SupportsMultipleAccounts(service) && service != ProviderKind.Local && !service.IsAPIKeyBased;
+        var canAdd = CanAdd(service);
         if (list.Count < 2)
         {
             var one = new List<MenuEntry> { new("usage", MultiAccountWords.UsageDetails), new("signout", MultiAccountWords.SignOut, Disabled: true), MenuEntry.Line };
