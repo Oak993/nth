@@ -1,4 +1,4 @@
-// PORT-ONLY (OWNER OD-0141, ED-NEW-nocta-1): the materials of the Nocta switch, the owner's locked toggle, measured from design 7 "Nocta" of
+// PORT-ONLY (OWNER OD-0143, ED-NEW-nocta-1): the materials of the Nocta switch, the owner's locked toggle, measured from design 7 "Nocta" of
 // E:\Droppy\work\design\toggles\index.html (CSS "7 Nocta" and the shared .tg rules). Every fixed brush, pen, shape and shadow is made once for
 // the process (immutable, so any UI thread may draw it); the accent's lights are per switch and are recoloured in place, never rebuilt.
 using Avalonia;
@@ -80,6 +80,10 @@ internal static class NoctaLook
 
     /// <summary>.tg::after (focus-visible): inset -3px, radius 16, box-shadow 0 0 0 2px; the 2 px ring is stroked 4 out from the track, radius 17.</summary>
     internal static readonly RoundedRect FocusShape = new(new Rect(-4, -4, TrackWidth + 8, TrackHeight + 8), TrackHeight / 2 + 4);
+
+    /// <summary>.tg::before, inset -8px -6px: the zone that hovers and presses the switch, 6 beyond the track at either side and 8 above and below
+    /// (a plain rectangle: the pseudo-element has no radius).</summary>
+    internal static readonly Rect HitZone = new(-6, -8, TrackWidth + 12, TrackHeight + 16);
 
     /// <summary>--acc-l = color-mix(in oklab, accent 55%, #fff): the accent 0.45 of the way to white in Oklab, its alpha kept (the accent is opaque).
     /// Computed with doubles only, so a live accent change allocates nothing.</summary>

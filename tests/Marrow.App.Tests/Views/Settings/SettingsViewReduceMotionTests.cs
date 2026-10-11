@@ -87,7 +87,7 @@ public sealed class SettingsViewReduceMotionTests(HeadlessSession headless) : Se
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // OD-0076 for UI-SETTINGS-012 (Nocta, OD-0141): a switch held down is the dome scaled 1.08 at once, and 22 across again on release
+    [Trait("Rule", "R-TEST-4")] // OD-0076 for UI-SETTINGS-012 (Nocta, OD-0143): a switch held down is the dome scaled 1.08 at once, and 22 across again on release
     public void Under_reduce_motion_a_pressed_switch_scales_its_dome_at_once()
     {
         using var motion = ReduceMotion();

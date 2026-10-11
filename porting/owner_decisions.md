@@ -1236,8 +1236,9 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Approval, verbatim, after the built screenshots:** "As long as that Ignis folder is a demo folder, approved." (The "Ignis" project and its chats in the screenshots are capture-only demo data; nothing ships them.)
 - **Built at:** claude/ignis-guards b9cea82ed, merged into claude/release-integration at 4bbc9d6c4. Known limits accepted with the approval: the hover zone sits before the row's time and buttons; Turn on for a chat whose cache already expired warms it on the next message; per-chat on/off resets on app restart; a long title is masked under the pill while hovered.
 
-## OD-0141 Nocta is the app's switch (2026-10-11)
+## OD-0143 Nocta is the app's switch (2026-10-11)
 
 - **Owner, verbatim, after reviewing the eight material switches of the toggles page (E:\Droppy\work\design\toggles\index.html, round 2, 2026-10-11):** "Lock Nocta as the toggle".
 - **What it rules:** every on/off switch in nth is design 7 "Nocta": an obsidian dome of polished black glass on a black glass track, a softbox reflection on its crown, and a lume dot at its centre that is an empty ring when off and glows in the user's accent (made light) when on, lighting the dome from inside, with a soft accent aura in the track; contact and ambient shadows that deepen on hover and while pressed, a hover outline, a focus ring, a press scale of 1.08 and a spring slide (response 0.38 s, damping 0.82); 46 x 26 with a 22 knob inset 2 and 20 of travel. Under Reduce Motion the knob jumps and the lights cross over 0.14 s. It replaces the Mac's measured switch (ED-280 (5)) as a deviation from the source's system switch (SettingsView.swift:296-305, MessageEditor.swift:112).
 - **Built at:** claude/nocta-switch; ED-NEW-nocta-1 records the numbers, the switch sites, the rendering and the replaced tests.
+- **Number:** first written as OD-0141; renumbered OD-0143 on the branch because OD-0139 to OD-0142 are taken on other branches (OD-0141 is "PC control is named Tactus" on claude/pc-control, OD-0142 the nth boot on claude/release-integration).

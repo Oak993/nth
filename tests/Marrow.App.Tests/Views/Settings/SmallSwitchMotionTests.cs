@@ -14,7 +14,7 @@ using Marrow.UI.Theme;
 
 namespace Marrow.App.Tests.Views.Settings;
 
-// UI-SETTINGS-012, SettingsView.swift:296-305 (the system switch, controlSize .small, accent tint), drawn as the owner's Nocta (DEVIATION OD-0141,
+// UI-SETTINGS-012, SettingsView.swift:296-305 (the system switch, controlSize .small, accent tint), drawn as the owner's Nocta (DEVIATION OD-0143,
 // ED-NEW-nocta-1; design 7 of work/design/toggles/index.html): a 46 x 26 black glass track; a 22 obsidian dome 2 in from every edge that slides its
 // 20 points on spring(0.38, 0.82); a 5 point lume at the dome's centre, an empty ring off and a lit dot on in the accent made light, with the
 // dome's inner light and the track's aura; lights crossing over 0.28 s (0.14 s under Reduce Motion, where the knob jumps); hover outlines the dome,
@@ -34,7 +34,7 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-012 / OD-0141: the geometry and the slide; clicking, the pointer rules and the disabled row are proven in SettingsViewFinishGeneralTests
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-012 / OD-0143: the geometry and the slide; clicking, the pointer rules and the disabled row are proven in SettingsViewFinishGeneralTests
     public void Switch_is_46_by_26_with_a_22_dome_2_in_that_springs_its_20_points_while_the_lights_cross_over_0_28_seconds()
     {
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
@@ -70,7 +70,7 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // OD-0141: on and off read without colour (the knob's side, and an empty ring against a lit dot)
+    [Trait("Rule", "R-TEST-4")] // OD-0143: on and off read without colour (the knob's side, and an empty ring against a lit dot)
     public void The_lume_is_an_empty_ring_when_off_and_a_lit_dot_when_on_readable_without_colour()
     {
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
@@ -100,7 +100,7 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // OD-0141: hover outlines the dome and deepens its shadow; a press scales it 1.08 about its centre and commits only on release
+    [Trait("Rule", "R-TEST-4")] // OD-0143: hover outlines the dome and deepens its shadow; a press scales it 1.08 about its centre and commits only on release
     public void Hover_outlines_and_a_press_scales_the_dome_1_08_about_its_centre_deepening_its_shadow_and_commits_only_on_release()
     {
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
@@ -136,7 +136,83 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-012, OD-0076 with OD-0141: under Reduce Motion the knob and the press jump; the lights cross over in 0.14 s
+    [Trait("Rule", "R-TEST-4")] // OD-0143: .tg::before (inset -8px -6px) is the zone that hovers and presses the switch, and a press released in it commits
+    public void Hover_and_press_reach_6_beyond_the_track_at_either_side_and_8_above_and_below_and_no_further()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var s = model.Settings; s.ShowReasoning = false; Drain(w); Tick(h, 600);
+            var toggle = Switch(view, "Show thinking"); var away = At(toggle, w, new Point(-30, 13));
+            Assert.Equal(new Rect(-6, -8, 58, 42), NoctaLook.HitZone);
+            bool Over(double x, double y)
+            {
+                w.MouseMove(away); Drain(w); Assert.False(toggle.IsPointerOver);
+                w.MouseMove(At(toggle, w, new Point(x, y))); Drain(w); return toggle.IsPointerOver;
+            }
+            foreach (var (x, y) in new[] { (-5.5, 13.0), (51.5, 13.0), (13.0, -7.5), (13.0, 33.5), (33.0, -7.5), (33.0, 33.5), (-5.5, -7.5), (51.5, 33.5) })
+                Assert.True(Over(x, y), $"({x}, {y}) is inside the zone");
+            foreach (var (x, y) in new[] { (-7.0, 13.0), (53.0, 13.0), (13.0, -9.0), (13.0, 35.0), (-7.0, -9.0), (53.0, 35.0) })
+                Assert.False(Over(x, y), $"({x}, {y}) is outside the zone");
+
+            // At the zone's left edge, 4 off the track: hover outlines and deepens; a press scales the dome and commits on release there.
+            var side = At(toggle, w, new Point(-4, 13));
+            w.MouseMove(side); Drain(w); Tick(h, 400); Assert.Equal(1, toggle.LookNow().Hover); Assert.Equal(1, toggle.LookNow().Deep);
+            w.MouseDown(side, MouseButton.Left); Drain(w); Tick(h, 600); Assert.Equal(1.08, toggle.LookNow().Scale, 6); Assert.False(s.ShowReasoning);
+            w.MouseUp(side, MouseButton.Left); Drain(w); Assert.True(s.ShowReasoning);
+            // Pressed on the track and released 7 below it, still in the zone: it commits.
+            var centre = At(toggle, w); var below = At(toggle, w, new Point(13, 33));
+            w.MouseMove(centre); w.MouseDown(centre, MouseButton.Left); Drain(w); w.MouseMove(below); w.MouseUp(below, MouseButton.Left); Drain(w); Assert.False(s.ShowReasoning);
+            // Released 10 below it, out of the zone: nothing changes.
+            var out_ = At(toggle, w, new Point(13, 36));
+            w.MouseMove(centre); w.MouseDown(centre, MouseButton.Left); Drain(w); w.MouseMove(out_); w.MouseUp(out_, MouseButton.Left); Drain(w); Assert.False(s.ShowReasoning);
+            Tick(h, 1200); Assert.Equal(Off, toggle.KnobNow()); Assert.Equal(1, toggle.LookNow().Scale);
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // OD-0143: disabled mid-press (a disabled ancestor), the press ends: the dome springs back, the deeper shadow goes out, the release does nothing
+    public void A_switch_disabled_while_pressed_ends_the_press_and_its_release_changes_nothing()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var s = model.Settings; s.ShowReasoning = false; Drain(w); Tick(h, 600);
+            var row = Row(view, "Show thinking"); var toggle = Switch(view, "Show thinking"); var at = At(toggle, w);
+            w.MouseMove(at); w.MouseDown(at, MouseButton.Left); Drain(w); Tick(h, 600);
+            Assert.Equal(1.08, toggle.LookNow().Scale, 6); Assert.Equal(1, toggle.LookNow().Deep);
+            row.IsEnabled = false; Drain(w); Assert.False(toggle.IsEffectivelyEnabled);
+            Tick(h, 1200);
+            Assert.Equal(1, toggle.LookNow().Scale); Assert.Equal(0, toggle.LookNow().Deep); Assert.Equal(0, toggle.LookNow().Hover); Assert.Equal(Off, toggle.KnobNow());
+            w.MouseUp(at, MouseButton.Left); Drain(w); Assert.False(s.ShowReasoning);
+            row.IsEnabled = true; Drain(w); Tick(h, 1200);
+            Assert.Equal(1, toggle.LookNow().Scale); Assert.False(s.ShowReasoning);
+            // enabled again, a fresh press and release turns it as before
+            w.MouseMove(at); w.MouseDown(at, MouseButton.Left); Drain(w); w.MouseUp(at, MouseButton.Left); Drain(w); Assert.True(s.ShowReasoning);
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // OD-0143: .inner, .lumeoff and .lume are each their own layer with their own opacity (.tg i), laid in the design's order
+    public void Mid_crossover_the_inner_light_the_off_ring_and_the_lume_each_fade_on_their_own_in_the_designs_order()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var s = model.Settings; s.ShowReasoning = false; Drain(w); Tick(h, 600);
+            var toggle = Switch(view, "Show thinking"); Assert.True(toggle.Focus()); Press(w, Key.Space); Assert.True(s.ShowReasoning);
+            Tick(h, 90); var lights = toggle.LookNow().Lights; Assert.InRange(lights, 0.3, 0.9);
+            var layers = NoctaProbe.Layers(toggle); var lumeColour = toggle.LumeColor();
+            var inner = Assert.Single(layers, l => l.Brush is IRadialGradientBrush b && b.GradientStops.Count == 3 && b.GradientStops[0].Color == NoctaLook.Faded(lumeColour, .42));
+            var ring = Assert.Single(layers, l => ReferenceEquals(l.Pen, NoctaLook.LumeOffRing));
+            var lume = layers.Where(l => l.Brush is IRadialGradientBrush b && b.GradientStops.Count == 2 && b.GradientStops[0].Color == Colors.White).ToArray();
+            Assert.Equal(2, lume.Length); // the dot with its two glows
+            Assert.True(inner.Order < ring.Order && ring.Order < lume[0].Order, "dome, inner light, off ring, lume: the design's order");
+            Assert.NotSame(inner.Group, lume[0].Group); Assert.NotSame(inner.Group, ring.Group); Assert.Same(lume[0].Group, lume[1].Group);
+            Assert.Single(inner.Group.Children); Assert.Equal(2, lume[0].Group.Children.Count); Assert.Single(ring.Group.Children);
+            Assert.Equal(lights, inner.Group.Opacity, 9); Assert.Equal(lights, lume[0].Group.Opacity, 9); Assert.Equal(1 - lights, ring.Group.Opacity, 9);
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-012, OD-0076 with OD-0143: under Reduce Motion the knob and the press jump; the lights cross over in 0.14 s
     public void Under_reduce_motion_the_knob_jumps_and_the_lights_cross_over_in_0_14_seconds()
     {
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
@@ -155,7 +231,7 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // OD-0141: the lume is the user's accent made light, and follows an accent change live
+    [Trait("Rule", "R-TEST-4")] // OD-0143: the lume is the user's accent made light, and follows an accent change live
     public void The_lume_is_the_accent_made_light_and_follows_an_accent_change_live()
     {
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>
@@ -176,7 +252,30 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // OD-0141: --acc-l = color-mix(in oklab, accent 55%, #fff), the port's Oklab mix (ED-286) to the byte
+    [Trait("Rule", "R-TEST-4")] // the accent brush outlives the switch: a detached switch no longer hears it, and hears it again on attaching
+    public void A_detached_switch_stops_listening_to_the_accent_and_takes_it_again_on_attaching()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var s = model.Settings; s.ShowReasoning = true; Drain(w); Tick(h, 600);
+            var toggle = Switch(view, "Show thinking");
+            try
+            {
+                var system = NoctaLook.Lume(Chrome.AccentNSColor.Resolve(toggle.ActualThemeVariant));
+                Assert.Equal(system, toggle.LumeColor());
+                var content = w.Content; w.Content = null; Drain(w); Tick(h, 100);
+                s.Theme = AppTheme.Nord; Drain(w); Tick(h, 600);
+                Assert.Equal(system, toggle.LumeColor()); // detached: not recoloured
+                w.Content = content; Drain(w); Tick(h, 600);
+                var nord = NoctaLook.Lume(Chrome.AccentNSColor.Resolve(toggle.ActualThemeVariant));
+                Assert.NotEqual(system, nord); Assert.Equal(nord, toggle.LumeColor()); // attached again: current
+            }
+            finally { s.Theme = AppTheme.System; }
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // OD-0143: --acc-l = color-mix(in oklab, accent 55%, #fff), the port's Oklab mix (ED-286) to the byte
     public void The_lume_colour_is_the_accent_045_of_the_way_to_white_in_oklab()
     {
         foreach (var hex in new[] { "9C9C9C", "4F9DFF", "FF9B7E", "59D6B9", "948FFF", "F7821B", "0078D7", "000000", "FFFFFF" })
@@ -213,7 +312,7 @@ public sealed class SmallSwitchMotionTests(HeadlessSession headless) : SettingsF
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // OD-0141: precomputed brushes and shapes; a frame makes none
+    [Trait("Rule", "R-TEST-4")] // OD-0143: precomputed brushes and shapes; a frame makes none
     public void A_frame_draws_with_the_same_brushes_and_pens_and_reading_the_state_allocates_nothing()
     {
         With(() => new GeneralSettingsPage(), (view, model, h, w) =>

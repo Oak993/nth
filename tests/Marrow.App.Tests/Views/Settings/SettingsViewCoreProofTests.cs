@@ -375,7 +375,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         model.Settings.ShowReasoning = false; Sync(); Assert.Equal(ToggleState.Off, ((IToggleProvider)ControlAutomationPeer.CreatePeerForElement(toggle)!).ToggleState);
         Press(toggle); Assert.True(model.Settings.ShowReasoning); Assert.True(toggle.Focus()); Assert.True(Key(toggle, Avalonia.Input.Key.Space).Handled); Assert.False(model.Settings.ShowReasoning);
         Key(toggle, Avalonia.Input.Key.Space); Assert.True(model.Settings.ShowReasoning);
-        // The switch's look is the owner's Nocta (OD-0141, ED-NEW-nocta-1); the source tint is the on switch's lit lume, the accent made light, exact once its
+        // The switch's look is the owner's Nocta (OD-0143, ED-NEW-nocta-1); the source tint is the on switch's lit lume, the accent made light, exact once its
         // lights have crossed over (0.28 s): the colour, and the brush the switch draws, and the lit dot's white core in the rendered pixels.
         Frame(h, 1200); var accent = Marrow.App.Views.Settings.NoctaLook.Lume(Chrome.Accent.Resolve(toggle.ActualThemeVariant)); Assert.Equal(accent, toggle.LumeColor());
         Assert.True(Marrow.App.Tests.Fixtures.NoctaProbe.DrawsLitLume(toggle, accent));

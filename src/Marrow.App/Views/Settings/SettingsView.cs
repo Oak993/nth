@@ -409,16 +409,21 @@ public sealed class SettingsSwitch : Decorator
 /// ENGINEERING DECISION: Avalonia's own ToggleSwitch needs its Fluent theme's control template
 /// (PART_MovingKnobs), which this codebase's headless test host does not register, so it throws
 /// KeyNotFoundException the moment it is measured. A small, self-drawn switch avoids any themed template.
-/// DEVIATION OD-0141 (owner, 2026-10-11, "Lock Nocta as the toggle"; ED-NEW-nocta-1): its look and motion are the owner's Nocta, design 7 of
+/// DEVIATION OD-0143 (owner, 2026-10-11, "Lock Nocta as the toggle"; ED-NEW-nocta-1): its look and motion are the owner's Nocta, design 7 of
 /// work/design/toggles/index.html, in place of the Mac's measured switch (ED-280 (5)): an obsidian dome knob of polished black glass, 22 across and 2 in
 /// from every edge, on a 46 x 26 black glass track; a softbox reflection on the dome's crown; at its centre a 5 point lume, an empty ring when off and,
 /// when on, a dot lit in the accent made light (oklab 45 % to white) that lights the dome from inside, with a soft accent aura in the track. Contact
-/// and ambient shadows deepen on hover and while pressed, hover outlines the dome, a press scales it 1.08, and the knob slides its 20 points on a
+/// and ambient shadows deepen on hover and while pressed, hover outlines the dome, a press scales it 1.08 (hover and press reach 6 beyond the track at
+/// either side and 8 above and below, the design's .tg::before), and the knob slides its 20 points on a
 /// spring (response 0.38 s, damping 0.82). The lights cross over 0.28 s. Under Reduce Motion the knob and its press jump and the lights cross over
 /// 0.14 s. On and off read without colour: the knob's side, and a ring against a lit dot.
 /// </summary>
-internal sealed class SmallSwitch : Control
+internal sealed class SmallSwitch : Control, Avalonia.Rendering.ICustomHitTest
 {
+    /// <summary>.tg::before: the pointer hovers and presses the switch anywhere in its zone, 6 beyond the track at either side and 8 above and
+    /// below, as the design's button does; a press released inside the zone commits.</summary>
+    public bool HitTest(Point point) => NoctaLook.HitZone.Contains(point);
+
     internal const double TrackWidth = NoctaLook.TrackWidth;
     internal const double TrackHeight = NoctaLook.TrackHeight;
     internal const double Inset = NoctaLook.Inset;
@@ -440,6 +445,7 @@ internal sealed class SmallSwitch : Control
 
     private readonly Binding<bool> isOn;
     private bool pressed;
+    private IPointer? held; // the pointer the press captured, released when the switch is disabled mid-press
     private bool keyboardFocus;
     private readonly AnimatedScalar position, lights, scale, hover, deep;
     // the accent's lights, made once per switch and recoloured in place when the accent moves (never rebuilt per frame)
@@ -481,20 +487,32 @@ internal sealed class SmallSwitch : Control
             Focus(NavigationMethod.Pointer);
             pressed = true;
             scale.Set(PressScale, Press); Shade();
+            held = e.Pointer;
             e.Pointer.Capture(this);
             e.Handled = true;
         };
         PointerReleased += (_, e) =>
         {
             if (!pressed) return;
-            pressed = false;
+            pressed = false; held = null;
             scale.Set(1, Press); Shade();
             e.Pointer.Capture(null);
             e.Handled = true;
-            if (!IsEffectivelyEnabled || !new Rect(Bounds.Size).Contains(e.GetPosition(this))) return;
+            if (!IsEffectivelyEnabled || !HitTest(e.GetPosition(this))) return;
             isOn.Value = !isOn.Value;
         };
-        PointerCaptureLost += (_, _) => { if (pressed) scale.Set(1, Press); pressed = false; Shade(); };
+        PointerCaptureLost += (_, _) => { if (pressed) scale.Set(1, Press); pressed = false; held = null; Shade(); };
+    }
+
+    // Disabled mid-press (a dimmed CzSwitch, a disabled ancestor): the press ends there, as a disabled button is never :active; the dome
+    // springs back, the deeper shadow goes out, and the release that follows changes nothing.
+    private void EndPress()
+    {
+        if (!pressed) return;
+        pressed = false;
+        scale.Set(1, Press);
+        var pointer = held; held = null;
+        pointer?.Capture(null);
     }
 
     private bool ReduceMotion => EnvironmentValues.GetAccessibilityReduceMotion(this) || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
@@ -511,7 +529,9 @@ internal sealed class SmallSwitch : Control
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (deep is not null && (change.Property == IsPointerOverProperty || change.Property == IsEffectivelyEnabledProperty)) Shade();
+        if (deep is null) return;
+        if (change.Property == IsEffectivelyEnabledProperty && !IsEffectivelyEnabled) EndPress();
+        if (change.Property == IsPointerOverProperty || change.Property == IsEffectivelyEnabledProperty) Shade();
     }
 
     /// <summary>The state drawn now; no allocation.</summary>
@@ -555,7 +575,28 @@ internal sealed class SmallSwitch : Control
         ringDark = new Pen(lumeSolid, 2);
         ringLight = new Pen(accent, 2);
         Recolour(accent.Color);
-        accent.PropertyChanged += (_, e) => { if (e.Property == SolidColorBrush.ColorProperty) { Recolour(accent.Color); InvalidateVisual(); } };
+        if (VisualRoot is not null) accent.PropertyChanged += AccentChanged;
+    }
+
+    // The accent brush outlives the switch (it follows the theme), so the switch hears it only while it is in the tree: unsubscribed on detach, so a closed page is not kept alive by it.
+    private void AccentChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property != SolidColorBrush.ColorProperty || accent is null) return;
+        Recolour(accent.Color); InvalidateVisual();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (accent is null) return;
+        accent.PropertyChanged -= AccentChanged; accent.PropertyChanged += AccentChanged;
+        Recolour(accent.Color); // it may have moved while detached
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (accent is not null) accent.PropertyChanged -= AccentChanged;
+        base.OnDetachedFromVisualTree(e);
     }
 
     // The accent's lights, recoloured in place: no brush, stop or shadow array is made.
@@ -598,6 +639,8 @@ internal sealed class SmallSwitch : Control
         base.Render(context);
         EnsureLook();
         var look = LookNow();
+        // the zone, clear: it paints nothing, but puts the zone inside what the switch draws so hit testing reaches all of it (.tg::before)
+        context.DrawRectangle(NoctaLook.Clear, null, NoctaLook.HitZone);
         // the track: black glass, the accent's aura when on, the glass's reflection
         context.DrawRectangle(NoctaLook.Track, null, NoctaLook.TrackShape, NoctaLook.TrackShadows);
         if (look.Lights > 0) using (context.PushOpacity(Math.Min(1, look.Lights))) context.DrawRectangle(aura, null, NoctaLook.TrackShape);
@@ -613,16 +656,21 @@ internal sealed class SmallSwitch : Control
             using (context.PushTransform(Matrix.CreateTranslation(-c, -c) * Matrix.CreateScale(look.Scale, look.Scale) * Matrix.CreateTranslation(c, c)))
             {
                 context.DrawRectangle(NoctaLook.Dome, null, NoctaLook.KnobShape);
+                // .inner, .lumeoff and .lume are three layers, each fading on its own (.tg i) and then laid in the design's order: a light's
+                // layers are never faded as one group, which would lay the lume over the inner light at full strength before fading the pair
                 if (look.Lights > 0)
                     using (context.PushOpacity(Math.Min(1, look.Lights)))
-                    {
                         context.DrawRectangle(inner, null, NoctaLook.KnobShape);
-                        context.DrawRectangle(lume, null, NoctaLook.LumeShape, glowWide);
-                        context.DrawRectangle(lume, null, NoctaLook.LumeShape, glowTight);
-                    }
                 if (look.Lights < 1)
                     using (context.PushOpacity(Math.Max(0, 1 - look.Lights)))
                         context.DrawEllipse(null, NoctaLook.LumeOffRing, NoctaLook.KnobCentre, NoctaLook.LumeOffRadius, NoctaLook.LumeOffRadius);
+                if (look.Lights > 0)
+                    using (context.PushOpacity(Math.Min(1, look.Lights)))
+                    {
+                        // one element, .lume: its dot and its two glows fade together (0 0 3px over 0 0 8px)
+                        context.DrawRectangle(lume, null, NoctaLook.LumeShape, glowWide);
+                        context.DrawRectangle(lume, null, NoctaLook.LumeShape, glowTight);
+                    }
                 context.DrawRectangle(NoctaLook.SoftLight, null, NoctaLook.SoftShape);
                 context.DrawRectangle(NoctaLook.Clear, null, NoctaLook.KnobShape, NoctaLook.Rim);
                 if (look.Hover > 0)

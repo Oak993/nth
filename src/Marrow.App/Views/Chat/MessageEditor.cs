@@ -233,7 +233,7 @@ public sealed class MessageEditor : Decorator
         label.Children.Add(stat);
 
         // :112-113 .toggleStyle(.switch).controlSize(.small): the label (:110 maxWidth .infinity) and then the switch at the
-        // trailing edge. The switch is Settings' SmallSwitch, drawn as the owner's Nocta (OD-0141) like every switch in the app (its ENGINEERING DECISION: Avalonia's ToggleSwitch needs the
+        // trailing edge. The switch is Settings' SmallSwitch, drawn as the owner's Nocta (OD-0143) like every switch in the app (its ENGINEERING DECISION: Avalonia's ToggleSwitch needs the
         // Fluent template this app does not carry and threw KeyNotFoundException 'PART_MovingKnobs' when laid out).
         // ENGINEERING DECISION (UNVERIFIED metric): 8 points between the label and the switch, the HStack spacing used
         // across this row (:103); the source gives no number for a switch toggle's own label gap.

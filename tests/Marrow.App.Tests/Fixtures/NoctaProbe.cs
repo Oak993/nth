@@ -5,7 +5,7 @@ using Marrow.App.Views.Settings;
 
 namespace Marrow.App.Tests.Fixtures;
 
-// OD-0141, ED-NEW-nocta-1: reads the Nocta switch as drawn. Record lists every brush and pen one Render issues (through a DrawingGroup, so the
+// OD-0143, ED-NEW-nocta-1: reads the Nocta switch as drawn. Record lists every brush and pen one Render issues (through a DrawingGroup, so the
 // objects are the very ones the switch passed); Snapshot renders it at a scale on a ground, with room for its shadows and focus ring.
 internal static class NoctaProbe
 {
@@ -25,6 +25,23 @@ internal static class NoctaProbe
         }
         Walk(group);
         return new Drawn(brushes, pens);
+    }
+
+    /// <summary>One drawing of a Render, in draw order, with the group that holds it (a PushOpacity or PushTransform makes one).</summary>
+    internal sealed record Layer(int Order, IBrush? Brush, IPen? Pen, DrawingGroup Group);
+
+    internal static IReadOnlyList<Layer> Layers(SmallSwitch toggle)
+    {
+        var group = new DrawingGroup();
+        using (var context = group.Open()) toggle.Render(context);
+        var layers = new List<Layer>();
+        void Walk(Drawing drawing, DrawingGroup parent)
+        {
+            if (drawing is GeometryDrawing geometry) layers.Add(new Layer(layers.Count, geometry.Brush, geometry.Pen, parent));
+            else if (drawing is DrawingGroup inner) foreach (var child in inner.Children) Walk(child, inner);
+        }
+        Walk(group, group);
+        return layers;
     }
 
     /// <summary>The lit lume's brush (radial, white at its centre, the lume colour at 0.7) when one Render draws it.</summary>
