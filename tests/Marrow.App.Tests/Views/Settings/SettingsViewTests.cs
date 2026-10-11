@@ -53,6 +53,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
             using var h = new AppModelHarness();
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             using var wallpaper = WallpaperStore.Shared.Override((WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!);
+            using var library = Marrow.UI.Theme.Wallpapers.WallpaperLibraryStore.Shared.Override(new(new InMemorySettingsStore())); // WL-2: no built-in wallpaper chosen (OD-0014)
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var updates = UpdateChecker.OverrideShared(new UpdateChecker(AppInfo.Current, [], ""));
             beforeModel?.Invoke(h);
@@ -433,7 +434,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         SettingsNavigation.Shared.RequestedPage = SettingsPage.Appearance; Sync(); var appearance = Assert.Single(Nodes<AppearanceSettingsPage>(view));
         // DEVIATION OD-0088 (ED-250): the Look card stands first, then the source's three cards, all 10 apart.
         // OD-0127 (palette-refresh-locked.html option A, ED-636 (4)): the "Colours" section and its one card follow, last, 10 apart.
-        Assert.Equal(5, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 5 && stack.Children[0] is Marrow.App.Port.LookCard && stack.Children[2] is WallpaperCard && stack.Children[4] is Marrow.App.Port.ModelsPalette.PaletteColoursSection);
+        // OD-0110 (WL-2, ED-NEW-wltwo-1): the wallpaper library follows the picture card, 10 apart like the rest; with nothing chosen (OD-0014) it is
+        // three cards: the summary and the two collections' grids.
+        Assert.Equal(8, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 6 && stack.Children[0] is Marrow.App.Port.LookCard && stack.Children[2] is WallpaperCard && stack.Children[3] is WallpaperLibrarySection && stack.Children[5] is Marrow.App.Port.ModelsPalette.PaletteColoursSection);
+        Assert.Equal(3, Nodes<ChromeCard>((Control)group.Children[3]).Length);
         Assert.Equal(10, group.Spacing); Assert.Equal(22, Field<Control>(view, "pageStack").Margin.Top);
         var heading = Nodes<TextBlock>(appearance).First(); Assert.Equal("Appearance", heading.Text); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight);
         Assert.Empty(Nodes<ChromeSearchField>(Field<Control>(view, "detail"))); Assert.Empty(Nodes<AboutUpdateChromeAccessory>(view)); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
@@ -599,11 +603,13 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-127")] // App/Views/Settings/SettingsView.swift:438-442
     public void Appearance_rows_follow_the_source_and_selected_details_are_live() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
     {
-        // OD-0127 (ED-636 (4)): the Appearance section, then the "Colours" section nested last in it, exactly these two.
-        var sections = Nodes<ChromeSection>(view); Assert.Equal(new[] { "Appearance", "Colours" }, sections.Select(s => Text(s).First())); var section = sections[0];
-        Assert.Equal(new[] { "Model colours" }, Nodes<ChromeRow>(sections[1]).Select(x => Text(x).First()));
+        // OD-0127 (ED-636 (4)): the Appearance section, then the "Colours" section nested last in it. OD-0110 (WL-2, ED-NEW-wltwo-1): the
+        // wallpaper library's two collections, Static wallpapers and Animated wallpapers, are nested between them; exactly these four.
+        var sections = Nodes<ChromeSection>(view); Assert.Equal(new[] { "Appearance", "Static wallpapers", "Animated wallpapers", "Colours" }, sections.Select(s => Text(s).First())); var section = sections[0];
+        Assert.Equal(new[] { "Model colours" }, Nodes<ChromeRow>(sections[3]).Select(x => Text(x).First()));
         // DEVIATION OD-0088 (ED-250): the Theme row is the Look card's (with its Accent row); System's detail reads "System · <accent>".
-        Assert.Equal(new[] { "Theme", "Accent", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch", "Wallpaper", "Zoom" }, Nodes<ChromeRow>(view).Except(Nodes<ChromeRow>(sections[1])).Select(x => Text(x).First()));
+        // OD-0110 (WL-2): the library's summary row, "Built-in wallpaper", follows the picture card's row; with nothing chosen (OD-0014) no option rows show.
+        Assert.Equal(new[] { "Theme", "Accent", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch", "Wallpaper", "Built-in wallpaper", "Zoom" }, Nodes<ChromeRow>(view).Except(Nodes<ChromeRow>(sections[3])).Select(x => Text(x).First()));
         Assert.Contains("System · Windows accent", Text(Row(view, "Theme"))); model.Settings.Theme = AppTheme.CatppuccinMocha; Sync(); Assert.Contains("Dark \u00b7 Mauve", Text(Row(view, "Theme")));
         var sidebar = Row(view, "Sidebar"); Assert.Equal(new[] { "Column", "Floating", "Panel only" }, Nodes<Button>(sidebar).Select(x => Text(x).Last()));
         Click(Button(sidebar, "Panel only")); Sync(); Assert.Equal(SidebarMode.PanelOnly, model.Settings.SidebarMode); Assert.Contains("No column and no toolbar button; the floating panel is the sidebar", Text(sidebar));

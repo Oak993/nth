@@ -32,8 +32,12 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
     {
         var cards = Nodes<ChromeCard>(w);
         Assert.Same(card.Card, cards[0]);
-        Assert.Equal(5, cards.Length); // the Look card, the rows card, the picture card, the zoom card, then OD-0127's Colours card (ED-636 (4))
-        Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(cards[4]).OfType<Marrow.App.Port.ModelsPalette.PaletteColoursSection>());
+        // The Look card, the rows card, the picture card, WL-2's three wallpaper library cards (ED-NEW-wltwo-1: the summary with None,
+        // Static, Animated), the zoom card, then OD-0127's Colours card (ED-636 (4)) last.
+        Assert.Equal(8, cards.Length);
+        Assert.All(cards[3..6], c => Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(c).OfType<Marrow.App.Views.Settings.WallpaperLibrarySection>()));
+        Assert.Empty(Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(cards[6]).OfType<Marrow.App.Views.Settings.WallpaperLibrarySection>());
+        Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(cards[7]).OfType<Marrow.App.Port.ModelsPalette.PaletteColoursSection>());
         var content = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(card.Card.Child).Child).Children[0]);
         Assert.Collection(content.Children,
             c => Assert.Same(card.Mini, c),

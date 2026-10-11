@@ -34,7 +34,8 @@ public static class WallpaperCatalogue
                     p.GetProperty("light").EnumerateArray().Select(c => c.GetString()!).ToArray())).ToArray();
                 WallpaperOption Option(JsonElement o, string id, string key) => new(id, o.GetProperty("label").GetString()!,
                     o.GetProperty(key).GetDouble(), o.TryGetProperty("min", out var min) ? min.GetDouble() : 0,
-                    o.TryGetProperty("max", out var max) ? max.GetDouble() : 1);
+                    o.TryGetProperty("max", out var max) ? max.GetDouble() : 1,
+                    o.TryGetProperty("lo", out var lo) ? lo.GetString() : null, o.TryGetProperty("hi", out var hi) ? hi.GetString() : null);
                 var options = kind == WallpaperKind.Static
                     ? new[] { Option(w.GetProperty("grain"), "grain", "def"), Option(w.GetProperty("option"), "option", "def") }
                     : w.GetProperty("options").EnumerateArray().Select(o => Option(o, o.GetProperty("id").GetString()!, "default")).ToArray();
