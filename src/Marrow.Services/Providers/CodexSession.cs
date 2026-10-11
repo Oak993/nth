@@ -727,7 +727,8 @@ public sealed class CodexSession : ProviderSession, IStandbyInjectionSession, Ma
             parameters["developerInstructions"] = string.Join("\n\n", joined); // :255-259
 
             // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server joins the connected ones.
-            if (MCPProviderConfig.CodexServers(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.AdvisorServer(configuration)) is { } servers) // :262
+            // + ED-NEW-web-w12-1: a chat's nth-ui server (Tabula's artifact tools) joins them too.
+            if (MCPProviderConfig.CodexServers(MCPProviderConfig.CodexOverrides(), MCPProviderConfig.AdvisorServer(configuration), MCPProviderConfig.UiServer(configuration)) is { } servers) // :262
             {
                 var mergedConfig = parameters.TryGetValue("config", out var currentConfig) && currentConfig.JSONValueObject is { } currentObject
                     ? new Dictionary<string, JSONValue>(currentObject, StringComparer.Ordinal)
