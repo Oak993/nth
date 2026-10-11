@@ -9,7 +9,8 @@ public readonly record struct VoiceOrbRuntimeOptions(
     bool Dark = true,
     bool EdgeSource = false,
     bool Supersample = true,
-    double Phase = 0);
+    double Phase = 0,
+    int SupersampleBelow = VoiceOrbRuntime.DesignSupersampleBelow);
 
 /// <summary>
 /// The CPU side of the design's <c>makeOrb().frame</c> (voice-orbs.js:479-575): the state sample, the audio rules, the integrated motion
@@ -23,6 +24,7 @@ public sealed class VoiceOrbRuntime
     private readonly float[] _values = new float[OrbSeeds.Length];
     private readonly bool _edgeSource;
     private readonly bool _supersample;
+    private readonly int _supersampleBelow;
     private bool _dark;
     private double _ballFraction;
     private int _devicePx;
@@ -38,6 +40,7 @@ public sealed class VoiceOrbRuntime
         _dark = options.Dark;
         _edgeSource = options.EdgeSource;
         _supersample = options.Supersample;
+        _supersampleBelow = options.SupersampleBelow;
         Phase = options.Phase;
         Resize(options.SizePx, options.BallPx, options.DevicePixelRatio);
     }
@@ -48,7 +51,10 @@ public sealed class VoiceOrbRuntime
     /// <summary>The device pixels of the slot (<c>dev</c>).</summary>
     public int DevicePx => _devicePx;
 
-    /// <summary>1, or 2 when the slot is under 128 device pixels and the shader runs into a 2x surface (V-11.3).</summary>
+    /// <summary>The design's threshold: below 128 device pixels the shader runs into a 2x surface (voice-orbs.js:496, <c>dev &lt; 128 ? 2 : 1</c>).</summary>
+    public const int DesignSupersampleBelow = 128;
+
+    /// <summary>1, or 2 when the slot is under the options' threshold (the design's 128 device pixels unless the view asks for more) and the shader runs into a 2x surface (V-11.3).</summary>
     public int RenderScale => _renderScale;
 
     /// <summary>The edge of the render surface in pixels (<c>rdev</c>).</summary>
@@ -67,7 +73,7 @@ public sealed class VoiceOrbRuntime
         var dpr = Math.Min(3, devicePixelRatio > 0 ? devicePixelRatio : 1);
         _ballFraction = ballPx != 0 && !double.IsNaN(ballPx) ? ballPx / sizePx : 0;
         _devicePx = checked((int)Math.Max(2, Math.Floor(sizePx * dpr + 0.5))); // Math.round: half up
-        _renderScale = !_supersample ? 1 : _devicePx < 128 ? 2 : 1;
+        _renderScale = !_supersample ? 1 : _devicePx < _supersampleBelow ? 2 : 1;
         _renderPx = _devicePx * _renderScale;
     }
 

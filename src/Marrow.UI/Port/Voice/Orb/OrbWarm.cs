@@ -15,7 +15,7 @@ public static class OrbWarm
     public static void Draw(GRContext? gpu, double scaling, VoiceOrbKind kind)
     {
         var dpr = Math.Max(1, scaling);
-        var runtime = new VoiceOrbRuntime(kind, new VoiceOrbRuntimeOptions(OrbScene.ViewPx, 32, dpr, Dark: true));
+        var runtime = new VoiceOrbRuntime(kind, new VoiceOrbRuntimeOptions(OrbScene.ViewPx, 32, dpr, Dark: true, SupersampleBelow: OrbScene.SupersampleBelow));
         runtime.Frame(0, new OrbFrameState(Act: 1, Bands: new OrbBands(0.5, 0.5, 0.5, 0.5), Speed: 1, Scale: 1.16, Glow: 0.45, Lift: 1));
         using var renderer = new OrbRenderer();
         var info = new SKImageInfo(16, 16, SKColorType.Rgba8888, SKAlphaType.Premul);

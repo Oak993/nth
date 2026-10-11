@@ -11,7 +11,7 @@ internal static class OrbRig
     public static readonly SKColor LightCard = new(0xf4, 0xf4, 0xf4);
 
     public static VoiceOrbRuntime Runtime(OrbJob job, double dpr = 1) =>
-        new(job.Kind, new VoiceOrbRuntimeOptions(OrbScene.ViewPx, job.Ball, dpr, job.Dark, Phase: job.Phase));
+        new(job.Kind, new VoiceOrbRuntimeOptions(OrbScene.ViewPx, job.Ball, dpr, job.Dark, Phase: job.Phase, SupersampleBelow: OrbScene.SupersampleBelow));
 
     /// <summary>The job's frame, 72 view px square, at device ratio <paramref name="dpr"/> (the bitmap is round(72 * dpr) px).</summary>
     public static SKBitmap Render(OrbJob job, double dpr = 1, OrbRenderer? renderer = null, SKColor? background = null)

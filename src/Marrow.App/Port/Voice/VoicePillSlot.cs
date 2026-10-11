@@ -70,6 +70,18 @@ internal sealed class VoicePillSlot : Panel
     /// <summary>The floating pill's rectangle changed (opened, closed, or its width target moved).</summary>
     public event Action? FloatTargetChanged;
 
+    /// <summary>
+    /// ED-NEW-voicefix-ui-9: the inline pill's left end, in this layer's coordinates, at the width it is easing to while it is open; null when no inline pill is open. In a narrow
+    /// composer the buttons at its left move out of the way of that end.
+    /// </summary>
+    public double? InlineLeftTarget { get; private set; }
+
+    /// <summary>ED-NEW-voicefix-ui-9: the closed inline pill's left end (the disc round the orb), where an opening pill's end starts from; null before the orb is placed.</summary>
+    public double? InlineHomeLeft { get; private set; }
+
+    /// <summary>The inline pill's left end target or its closed place changed (opened, closed, or its width target or the orb moved).</summary>
+    public event Action? InlineTargetChanged;
+
     /// <summary>The orb's slot this layer follows (the composer's controls made it).</summary>
     public void Attach(VoiceOrbSlot slot)
     {
@@ -173,6 +185,19 @@ internal sealed class VoicePillSlot : Panel
         {
             var width = Pill.OpenWidth;
             rect = new Rect(VoicePillGeometry.Left(VoiceListeningStyle.Float, centre.X, width), VoicePillGeometry.FloatTop, width, VoicePillGeometry.Height(VoiceListeningStyle.Float));
+        }
+        double? inline = null;
+        double? home = null;
+        if (OrbCentre() is { } orbCentre)
+        {
+            home = VoicePillGeometry.Left(VoiceListeningStyle.Pill, orbCentre.X, VoicePillGeometry.ClosedWidth(VoiceListeningStyle.Pill));
+            if (Pill.Open && Pill.Style == VoiceListeningStyle.Pill) inline = VoicePillGeometry.Left(VoiceListeningStyle.Pill, orbCentre.X, Pill.OpenWidth);
+        }
+        if (inline != InlineLeftTarget || home != InlineHomeLeft)
+        {
+            InlineLeftTarget = inline;
+            InlineHomeLeft = home;
+            InlineTargetChanged?.Invoke();
         }
         if (rect == FloatTarget) return;
         FloatTarget = rect;

@@ -76,6 +76,8 @@ internal sealed class VoiceLanguageQuestion : Panel
         glass.CornerRadius = new CornerRadius(CardRadius);
         glass.IsHitTestVisible = false;
         SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.RoundedRectangle(CardRadius, RoundedCornerStyle.Continuous)));
+        // ED-NEW-voicefix-ui-8: the card's glass is its own piece; inside the composer's glass container it melted into the composer pill below it and flared its top edge
+        SwiftGlass.SetStandsAlone(glass, true);
         rim.CornerRadius = new CornerRadius(CardRadius);
         SwiftFont.System(13, SwiftFont.Weight.Semibold).Apply(question);
         SwiftFont.System(11).Apply(footer);

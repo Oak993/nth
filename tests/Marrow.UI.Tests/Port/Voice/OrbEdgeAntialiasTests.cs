@@ -7,12 +7,13 @@ namespace Marrow.UI.Tests.Port.Voice;
 /// <summary>
 /// ED-NEW-voicefix-ui-5 (owner 2026-10-11, 125%: "a strange low-anti-aliasing white boundary around the orb"). The light ring at the resting orb's edge is the
 /// exported shader's own rim highlight (the design's optical rim and its key and fill lobes at the silhouette), which the port keeps (the orbs are exact exports).
-/// What the port owns is how that edge is sampled onto the device pixels. This pins it: at the scales the orb is supersampled (V-T51: 2x below 128 device
-/// pixels, so 100%, 125% and 150%), on a whole-pixel and on a fractional placement, in both themes, the device pixels of the edge annulus stay within a few
-/// levels of the same frame rendered at 8x and box-filtered down (an anti-aliased edge by construction), and no pure-white 1 px ring appears that the ideal
-/// does not have.
+/// What the port owns is how that edge is sampled onto the device pixels. This pins it: at every scale the orb is supersampled (V-T51 as ED-NEW-voicefix-ui-7
+/// has it: 2x at every scale; at 200% the design's straight draw was 5.2 to 5.6 levels from the ideal on average and up to 30), on a whole-pixel and on a
+/// fractional placement, in both themes, the device pixels of the edge annulus stay within a few levels of the same frame rendered at 8x and box-filtered down
+/// (an anti-aliased edge by construction), and no pure-white 1 px ring appears that the ideal does not have.
 /// </summary>
 [Trait("Decision", "ED-NEW-voicefix-ui-5")]
+[Trait("Decision", "ED-NEW-voicefix-ui-7")]
 public sealed class OrbEdgeAntialiasTests
 {
     private const int Ideal = 8;
@@ -61,12 +62,18 @@ public sealed class OrbEdgeAntialiasTests
     [InlineData("voice-membrane", "light", 1.25, 0.46f)]
     [InlineData("siri-wave", "dark", 1.0, 0.46f)]
     [InlineData("siri-wave", "light", 1.5, 0.46f)]
+    [InlineData("siri-wave", "dark", 2.0, 0f)]
+    [InlineData("siri-wave", "dark", 2.0, 0.46f)]
+    [InlineData("siri-wave", "light", 2.0, 0.46f)]
+    [InlineData("voice-membrane", "dark", 2.0, 0.46f)]
+    [InlineData("voice-membrane", "light", 2.0, 0.46f)]
+    [InlineData("siri-wave", "dark", 3.0, 0.46f)]
     public void The_resting_orbs_edge_is_as_smooth_as_an_eight_times_supersampled_render(string orb, string theme, double dpr, float phase)
     {
         var job = new OrbJob(orb, "rest-1.3", 32, theme);
         var runtime = OrbRig.Runtime(job, dpr);
         runtime.Frame(job.T, job.FrameState);
-        Assert.Equal(2, runtime.RenderScale); // the supersampled path (V-T51)
+        Assert.Equal(2, runtime.RenderScale); // supersampled at every scale (V-T51, ED-NEW-voicefix-ui-7)
         var background = job.Dark ? OrbRig.DarkCard : OrbRig.LightCard;
         var size = runtime.DevicePx + 2;
         using var actual = Draw(runtime, runtime.Values.ToArray(), runtime.DevicePx, runtime.RenderPx, size, phase, 1, background);

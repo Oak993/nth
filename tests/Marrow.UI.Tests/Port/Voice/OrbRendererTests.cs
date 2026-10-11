@@ -5,8 +5,9 @@ using SkiaSharp;
 
 namespace Marrow.UI.Tests.Port.Voice;
 
-// VT-8, V-T51 (V-11.3): below 128 device pixels the shader runs into a reused offscreen surface at 2x and is filtered down; from 128 it draws straight; no per-frame allocation
-// of anything the port owns.
+// VT-8, V-T51 (V-11.3): the shader runs into a reused offscreen surface at 2x and is filtered down; no per-frame allocation of anything the port owns. The design stops
+// supersampling at 128 device pixels (voice-orbs.js:496); the view supersamples at every scale (ED-NEW-voicefix-ui-7: at 200% the straight draw's rim aliased), so the
+// rows from 128 expect 2x and the straight draw is pinned on a runtime built without supersampling.
 public sealed class OrbRendererTests
 {
     private static readonly OrbJob Rest = new("siri-wave", "rest-1.3", 32, "dark");
@@ -16,14 +17,15 @@ public sealed class OrbRendererTests
     [InlineData(1.25, 90, 2)]
     [InlineData(1.5, 108, 2)]
     [InlineData(1.75, 126, 2)]
-    [InlineData(1.7778, 128, 1)]
-    [InlineData(2.0, 144, 1)]
-    [InlineData(3.0, 216, 1)]
+    [InlineData(1.7778, 128, 2)]
+    [InlineData(2.0, 144, 2)]
+    [InlineData(3.0, 216, 2)]
     [InlineData(0.5, 36, 2)]
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T51")]
-    public void The_shader_runs_at_2x_below_128_device_pixels_and_at_1x_from_128(double dpr, int devicePx, int scale)
+    [Trait("Decision", "ED-NEW-voicefix-ui-7")]
+    public void The_shader_runs_at_2x_at_every_scale(double dpr, int devicePx, int scale)
     {
         var runtime = OrbRig.Runtime(Rest, dpr);
         Assert.Equal(devicePx, runtime.DevicePx);
@@ -72,10 +74,11 @@ public sealed class OrbRendererTests
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T51")]
-    public void From_128_device_pixels_the_orb_draws_straight_with_no_surface()
+    [Trait("Decision", "ED-NEW-voicefix-ui-7")]
+    public void A_runtime_built_without_supersampling_draws_straight_with_no_surface()
     {
         using var renderer = new OrbRenderer();
-        var runtime = OrbRig.Runtime(Rest, 2);
+        var runtime = new VoiceOrbRuntime(Rest.Kind, new VoiceOrbRuntimeOptions(OrbScene.ViewPx, Rest.Ball, 2, Rest.Dark, Supersample: false, Phase: Rest.Phase));
         runtime.Frame(0, Rest.FrameState);
         using var frame = OrbRig.Render(runtime, 2, renderer, SKColors.Transparent);
         Assert.Equal(0, renderer.SurfaceCreations);
@@ -91,7 +94,7 @@ public sealed class OrbRendererTests
     {
         // the same block (render size 144) drawn at 2x into the 72 px slot and drawn straight at 144 then averaged 2 x 2
         using var supersampled = OrbRig.Render(Rest, 1);
-        var direct = OrbRig.Runtime(Rest, 2);
+        var direct = new VoiceOrbRuntime(Rest.Kind, new VoiceOrbRuntimeOptions(OrbScene.ViewPx, Rest.Ball, 2, Rest.Dark, Supersample: false, Phase: Rest.Phase));
         direct.Frame(Rest.T, Rest.FrameState);
         using var full = OrbRig.Render(direct, 2, null, OrbRig.DarkCard);
         using var down = new SKBitmap(new SKImageInfo(72, 72, SKColorType.Rgba8888, SKAlphaType.Premul));
@@ -198,15 +201,17 @@ public sealed class OrbRendererTests
     // canvas (from 128). Windows review (unit/integ-vt8): a 2x path that dropped the opacity drew both orbs whole during a swap at 100 % and 150 % scaling and survived
     // every other test.
     [Theory]
-    [InlineData(1.0)]
-    [InlineData(1.5)]
-    [InlineData(2.0)]
+    [InlineData(1.0, true)]
+    [InlineData(1.5, true)]
+    [InlineData(2.0, true)]
+    [InlineData(2.0, false)]
     [Trait("Feature", "VT-8")]
     [Trait("Decision", "ED-267")]
     [Trait("Spec", "V-T53")]
-    public void The_opacity_scales_the_drawn_orb_on_both_paths(double dpr)
+    public void The_opacity_scales_the_drawn_orb_on_both_paths(double dpr, bool supersample)
     {
-        var runtime = OrbRig.Runtime(Rest, dpr);
+        var runtime = new VoiceOrbRuntime(Rest.Kind, new VoiceOrbRuntimeOptions(OrbScene.ViewPx, Rest.Ball, dpr, Rest.Dark, Supersample: supersample, Phase: Rest.Phase,
+            SupersampleBelow: OrbScene.SupersampleBelow));
         runtime.Frame(1.3, Rest.FrameState);
         SKBitmap Draw(float opacity)
         {
