@@ -726,6 +726,7 @@ public sealed class DetailView : Decorator
     }
 
     private AppModel? focusModel;
+    private bool showedEmpty; // PORT-ONLY (ED-NEW-session-hotkeys): the detail drew an empty state; the next chat comes in over it
 
     private void OnComposerFocusRequested(Guid id) => columns?.RequestComposerFocus(id);
 
@@ -791,7 +792,8 @@ public sealed class DetailView : Decorator
             if (columns is null || !ReferenceEquals(columnModel, model))
             {
                 columnModel = model;
-                columns = new ThreadColumns(threadID, prebuilt, running, model, liveResize);
+                columns = new ThreadColumns(threadID, prebuilt, running, model, liveResize, comesIn: showedEmpty);
+                showedEmpty = false;
                 Child = columns;
             }
             else columns.Update(threadID, prebuilt, running, model, liveResize);
@@ -808,6 +810,7 @@ public sealed class DetailView : Decorator
 
         // :156-164 the empty states, frame(maxWidth:.infinity,maxHeight:.infinity).detailSheet()
         if (model.Projects.Count != 0) voiceQuestion?.CloseWelcome();
+        showedEmpty = true;
         Control content = model.Projects.Count == 0 ? new WelcomeView(voiceQuestion) : new NoThreadView();
         content.HorizontalAlignment = HorizontalAlignment.Stretch;
         content.VerticalAlignment = VerticalAlignment.Stretch;
@@ -826,10 +829,20 @@ internal sealed class ThreadColumns : Decorator
     private readonly Panel pane = new();
     private readonly Coordinator coordinator = new();
 
-    public ThreadColumns(Guid threadID, IReadOnlyList<Guid> prebuilt, IReadOnlySet<Guid> running, AppModel model, WindowLiveResize liveResize)
+    public ThreadColumns(Guid threadID, IReadOnlyList<Guid> prebuilt, IReadOnlySet<Guid> running, AppModel model, WindowLiveResize liveResize, bool comesIn = false)
     {
         Child = pane; // :189-190 empty pane; each independently hosted column fills it.
         Update(threadID, prebuilt, running, model, liveResize);
+        // PORT-ONLY (ED-NEW-session-hotkeys): a chat picked over an empty detail (no chat was selected) comes in as a switch does.
+        if (comesIn)
+        {
+            void Attached(object? sender, VisualTreeAttachmentEventArgs e)
+            {
+                AttachedToVisualTree -= Attached;
+                coordinator.ComeIn(pane);
+            }
+            AttachedToVisualTree += Attached;
+        }
     }
 
     /// <summary>PORT-ONLY (ED-NEW-session-hotkeys): the switch's motion, for tests.</summary>
@@ -858,9 +871,8 @@ internal sealed class ThreadColumns : Decorator
         private readonly List<FrameHostingView> retired = [];
         private TaskHandle? retirement;
 
-        // PORT-ONLY (ED-NEW-session-hotkeys): the switch's motion, and the chat Ctrl+1..9 asked to type into next.
+        // PORT-ONLY (ED-NEW-session-hotkeys): the switch's motion.
         private readonly ChatSwitchMotion motion = new();
-        private Guid? composerFocusFor;
 
         /// <summary>The switch motion (tests read its poses).</summary>
         internal ChatSwitchMotion Motion => motion;
@@ -871,6 +883,8 @@ internal sealed class ThreadColumns : Decorator
             if (id == shown) return;
             // PORT-ONLY (ED-NEW-session-hotkeys): every switch, whatever made it, moves the same way; the first chat shown does not.
             var animates = shown is not null && ChatSwitchMotion.CanAnimate(@in);
+            FrameHostingView? left = null;
+            string? leftTitle = null;
             if (shown is { } previousID && columns.TryGetValue(previousID, out var previous))
             {
                 RootView.SetChatColumnIsShown(previous, false);
@@ -878,9 +892,11 @@ internal sealed class ThreadColumns : Decorator
                 {
                     // The chat left keeps the size it was built at while it fades (a window resize mid-move does not
                     // lay it out again), as a hidden column does (:207-209).
+                    leftTitle = ChatSwitchMotion.ChatOf(previous)?.Title;
                     previous.Width = previous.Bounds.Width;
                     previous.Height = previous.Bounds.Height;
                     motion.Leave(previous, () => Hide(previous));
+                    left = previous;
                 }
                 else Hide(previous);
             }
@@ -893,18 +909,28 @@ internal sealed class ThreadColumns : Decorator
                 // Visible before it is told it is shown: the composer's focus (ComposerView, :201-203) needs a visible box.
                 kept.IsVisible = true;
                 RootView.SetChatColumnIsShown(kept, true);
+                // The header shows the words of the chat left before this layout, so they keep their own width (Enter below).
+                if (leftTitle is not null) ChatSwitchMotion.ChatOf(kept)?.PrepareTitleCross(leftTitle);
                 kept.Measure(@in.Bounds.Size);
                 kept.Arrange(new Rect(@in.Bounds.Size));
                 column = kept;
             }
-            else column = Make(id, true, @in, model, liveResize);
-            if (animates) motion.Enter(column);
+            else
+            {
+                column = Make(id, true, @in, model, liveResize);
+                if (leftTitle is not null && ChatSwitchMotion.ChatOf(column) is { } made)
+                {
+                    made.PrepareTitleCross(leftTitle);
+                    column.Measure(@in.Bounds.Size);
+                    column.Arrange(new Rect(@in.Bounds.Size));
+                }
+            }
+            if (animates) motion.Enter(column, left); // the header's words cross (prepared above); its glass is drawn once
             shown = id;
             order.Remove(id);
             order.Add(id);
             while (order.Count > KeptLimit + 1) Drop(order[0]);
-            FocusComposer(column, force: composerFocusFor == id);
-            composerFocusFor = null;
+            FocusComposer(column);
         }
 
         // :207-209 freeze hidden layout at the size built.
@@ -916,30 +942,56 @@ internal sealed class ThreadColumns : Decorator
         }
 
         /// <summary>
-        /// PORT-ONLY (ED-NEW-session-hotkeys): Ctrl+1..9 opened <paramref name="id"/>: its composer takes the keyboard, now if it
-        /// is the chat shown, else as it is shown.
+        /// PORT-ONLY (ED-NEW-session-hotkeys): the chat shown first came in over an empty detail: it moves in as a switch's chat
+        /// does, from transparent, over the sheet.
+        /// </summary>
+        public void ComeIn(Control @in)
+        {
+            if (shown is { } id && columns.TryGetValue(id, out var column) && ChatSwitchMotion.CanAnimate(@in)) motion.Enter(column);
+        }
+
+        /// <summary>
+        /// PORT-ONLY (ED-NEW-session-hotkeys): Ctrl+1..9 asked for <paramref name="id"/>: if it is the chat shown, its composer
+        /// takes the keyboard now, wherever it was (a switch to another chat focuses its composer as it is shown).
         /// </summary>
         public void RequestComposerFocus(Guid id)
         {
-            if (shown == id && columns.TryGetValue(id, out var column)) FocusComposer(column, force: true);
-            else composerFocusFor = id;
+            if (shown == id && columns.TryGetValue(id, out var column)) FocusComposer(column);
         }
 
         /// <summary>
         /// PORT-ONLY (ED-NEW-session-hotkeys): the chat switched to is ready to type in: its composer takes the keyboard with the
-        /// caret at the end of the draft. A text field outside the chats the user is typing in (the sidebar's search, a rename)
-        /// keeps its focus unless Ctrl+1..9 asked (<paramref name="force"/>). Focus moves nothing: no layout, no scroll.
+        /// caret at the end of the draft, after a click, a shortcut, search's Return or arrows, a notification, every way in (the
+        /// source's composer takes the keyboard whenever its column is shown, ComposerView.swift:201-203; this adds the caret
+        /// at the end and a box made this frame). A box not ready yet (a column made this frame, not laid out or not in the
+        /// window) is tried again after layout; failing that the column shown itself takes the keyboard, so it never stays with
+        /// the chat left (gated by then). Focus moves nothing: no layout, no scroll.
         /// </summary>
-        private static void FocusComposer(FrameHostingView column, bool force)
+        private void FocusComposer(FrameHostingView column, int attempt = 0)
         {
-            if (ChatSwitchMotion.ChatOf(column)?.ComposerBox is not { } box) return;
-            var focused = TopLevel.GetTopLevel(column)?.FocusManager?.GetFocusedElement();
-            if (!force && focused is TextBox other && other is not Composer.ComposerNSTextView) return;
-            if (!box.Focus()) return;
-            var end = box.Text?.Length ?? 0;
-            box.SelectionStart = end;
-            box.SelectionEnd = end;
-            box.CaretIndex = end;
+            if (shown is not { } id || !columns.TryGetValue(id, out var current) || !ReferenceEquals(current, column)) return;
+            var focused = TopLevel.GetTopLevel(column)?.FocusManager?.GetFocusedElement() as Visual;
+            if (ChatSwitchMotion.ChatOf(column)?.ComposerBox is { } box && box.IsEffectivelyVisible && box.IsEffectivelyEnabled && box.Focus())
+            {
+                var end = box.Text?.Length ?? 0;
+                box.SelectionStart = end;
+                box.SelectionEnd = end;
+                box.CaretIndex = end;
+                return;
+            }
+            if (attempt < 2)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => FocusComposer(column, attempt + 1), Avalonia.Threading.DispatcherPriority.Loaded);
+                return;
+            }
+            if (focused is null || InAnyColumn(focused)) column.Focus();
+        }
+
+        private bool InAnyColumn(Visual visual)
+        {
+            for (Visual? node = visual; node is not null; node = Avalonia.VisualTree.VisualExtensions.GetVisualParent(node))
+                if (node is FrameHostingView host && columns.ContainsValue(host)) return true;
+            return false;
         }
 
         // :247-249 func dropHidden(where:)

@@ -957,7 +957,8 @@ public sealed class FrameHostingView : Decorator
 
     /// <summary>
     /// PORT-ONLY (ED-NEW-session-hotkeys): a chat column on its way out of a switch is still drawn for its 90 ms fade, but it is
-    /// gated as if hidden already: no chord, default button or focus reaches it.
+    /// gated as if hidden already: no chord, default button or focus reaches it. Its controls keep the look they drew when the
+    /// gate closed (<see cref="Marrow.UI.Port.EnabledLook"/>): nothing dims or changes colour mid-fade.
     /// </summary>
     internal bool IsLeaving
     {
@@ -966,7 +967,9 @@ public sealed class FrameHostingView : Decorator
         {
             if (isLeaving == value) return;
             isLeaving = value;
+            if (value) Marrow.UI.Port.EnabledLook.SetHeld(this, true); // held first, so the gate closing changes no look
             UpdateIsEffectivelyEnabled();
+            if (!value) ClearValue(Marrow.UI.Port.EnabledLook.HeldProperty); // the real look again (hidden by now, or shown)
         }
     }
 

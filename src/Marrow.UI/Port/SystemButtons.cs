@@ -118,11 +118,12 @@ public static class SystemButtons
                 }
                 bezel.PropertyChanged += (_, e) => { if (e.Property == Visual.BoundsProperty) Shape(); };
                 owner.PropertyChanged += (_, e) => { if (e.Property == Marrow.UI.Chrome.Popovers.IsCapsuleButtonBorderShapeProperty) Shape(); };
+                var drawnEnabled = true;
                 void Paint()
                 {
                     // Effective, so a button disabled by its parent shows its disabled look too; an Opacity the site sets on
                     // the button itself is kept.
-                    var enabled = owner.IsEffectivelyEnabled;
+                    var enabled = EnabledLook.Of(owner, ref drawnEnabled); // a column fading out of a chat switch keeps its look (ED-NEW-session-hotkeys)
                     var down = owner.IsPressed && enabled;
                     if (prominent)
                     {
@@ -141,7 +142,7 @@ public static class SystemButtons
                 }
                 owner.PropertyChanged += (_, e) =>
                 {
-                    if (e.Property == Button.IsPressedProperty || e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty ||
+                    if (e.Property == Button.IsPressedProperty || EnabledLook.Changes(e.Property) ||
                         e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
                 };
                 owner.Classes.CollectionChanged += (_, _) => Paint();

@@ -1490,6 +1490,12 @@ internal sealed class ComposerTextColumn : Decorator
     private IFrameSource? heightFrames;
     private Action<TimeSpan>? heightFrame;
 
+    // PORT-ONLY (ED-NEW-session-hotkeys): the text view's first measure is on its way to the clip. The source starts the text
+    // height at its one-line size (:552, 20) and its first measure finds that same size, so nothing moves as a chat is first
+    // shown; Windows' text metrics give a slightly taller line (22), so the port would grow the box under the reader's eyes as
+    // a new chat comes in. The first height measured is the height the box is first drawn at; every later change glides.
+    private bool firstMeasure;
+
     // :556-561. DEVIATION OD-0009: the port's text face is Inter, so the line is Inter's at 14 points; its wrap points can
     // differ from the macOS face's.
     private static double MaxComposerHeight
@@ -1557,7 +1563,11 @@ internal sealed class ComposerTextColumn : Decorator
         // :584-594
         textView = new ComposerTextView(
             text: new Binding<string>(() => runtime.Draft.Text, value => runtime.Draft = runtime.Draft with { Text = value }),
-            height: new Binding<double>(() => state.TextHeight, value => state.TextHeight = value),
+            height: new Binding<double>(() => state.TextHeight, value =>
+            {
+                firstMeasure = textView is null || !textView.HasMeasured;
+                state.TextHeight = value;
+            }),
             placeholder: placeholder,
             controller: controller,
             onKey: onKey,
@@ -1711,7 +1721,9 @@ internal sealed class ComposerTextColumn : Decorator
         if (heightFrame is { } pending) heightFrames!.CancelFrame(pending);
         heightFrame = null;
         var resize = GetValue(AppEnvironment.WindowLiveResizeProperty);
-        if (resize is null || resize.IsReshaping || double.IsNaN(clip.Height) || clip.Height == height)
+        var first = firstMeasure;
+        firstMeasure = false;
+        if (resize is null || resize.IsReshaping || first || double.IsNaN(clip.Height) || clip.Height == height)
         {
             clip.Height = height;
             return;

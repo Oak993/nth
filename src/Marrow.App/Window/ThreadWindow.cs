@@ -58,6 +58,8 @@ public sealed class ThreadWindow : AvaloniaWindow
         KeyDownEvent.AddClassHandler<ThreadWindow>((window, e) => window.NoteKeyDown(e), RoutingStrategies.Tunnel, handledEventsToo: true);
         KeyUpEvent.AddClassHandler<ThreadWindow>((window, e) => window.NoteKeyUp(e), RoutingStrategies.Tunnel, handledEventsToo: true);
         PointerPressedEvent.AddClassHandler<ThreadWindow>((window, _) => window.EndHold(taint: true), RoutingStrategies.Tunnel, handledEventsToo: true);
+        // A wheel turn (the sidebar scrolled under the numbers, Ctrl+wheel zoom) is a use of the hand like a press: the numbers go.
+        PointerWheelChangedEvent.AddClassHandler<ThreadWindow>((window, _) => window.EndHold(taint: true), RoutingStrategies.Tunnel, handledEventsToo: true);
     }
 
     public ThreadWindow() => Deactivated += (_, _) => EndHold(taint: false);
@@ -109,9 +111,15 @@ public sealed class ThreadWindow : AvaloniaWindow
     private bool numbersShown;
     private TaskHandle? holdWait;
     private TaskHandle? holdWatch;
+    private long holdWatchTurn; // the watcher's turn: a cancelled loop's tail never clears the handle of the one after it
 
     /// <summary>Whether the session numbers show now (tests).</summary>
     internal bool AreSessionNumbersShown => numbersShown;
+
+    /// <summary>Whether the safety net holds a watcher now, and how many of its loops are alive (tests).</summary>
+    internal (bool Held, int Loops) HoldWatchState => (holdWatch is not null, holdWatchLoops);
+
+    private int holdWatchLoops;
 
     private void NoteKeyDown(KeyEventArgs e)
     {
@@ -160,9 +168,11 @@ public sealed class ThreadWindow : AvaloniaWindow
     {
         if (holdWatch is not null) return;
         var weak = new WeakReference<ThreadWindow>(this);
+        var turn = ++holdWatchTurn;
         holdWatch = MainActor.Spawn(async () =>
         {
-            while (await SwiftTask.TrySleep(HoldWatchInterval) && weak.TryGetTarget(out var window))
+            if (weak.TryGetTarget(out var started)) started.holdWatchLoops++;
+            while (await SwiftTask.TrySleep(HoldWatchInterval) && weak.TryGetTarget(out var window) && window.holdWatchTurn == turn)
             {
                 if (!window.controlHeld && !window.numbersShown) break;
                 if (ControlKeyState.Current() == false)
@@ -173,7 +183,9 @@ public sealed class ThreadWindow : AvaloniaWindow
                     break;
                 }
             }
-            if (weak.TryGetTarget(out var owner)) owner.holdWatch = null;
+            if (!weak.TryGetTarget(out var owner)) return;
+            owner.holdWatchLoops--;
+            if (owner.holdWatchTurn == turn) owner.holdWatch = null;
         });
     }
 
@@ -197,6 +209,7 @@ public sealed class ThreadWindow : AvaloniaWindow
         {
             holdWatch?.Cancel();
             holdWatch = null;
+            holdWatchTurn++; // the cancelled loop's tail is not this handle's any more
         }
         if (wasShown) ShowSessionNumbers?.Invoke(false);
     }

@@ -6,6 +6,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Marrow.App.Port;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -24,11 +25,20 @@ public sealed class SessionNumbers
     /// <summary>Numbers run 1 to 9: the digit keys.</summary>
     public const int Count = 9;
 
-    /// <summary>Fade in: 0.2 s, ease-out (owner: "they come in with a premium transition, fading in").</summary>
-    public const double FadeInSeconds = 0.2;
+    /// <summary>
+    /// Fade in: a critically damped spring of response 0.16 s, settled in about 0.2 s (owner: "they come in with a premium
+    /// transition, fading in").
+    /// </summary>
+    public const double FadeInResponse = 0.16;
 
-    /// <summary>Fade out: 0.16 s, ease-in (owner: "when I let go, they fade out").</summary>
-    public const double FadeOutSeconds = 0.16;
+    /// <summary>
+    /// Fade out: a critically damped spring of response 0.12 s, settled in about 0.15 s and a fifth of the way out on the first
+    /// frame after the key-up (owner: "when I lift my finger off Ctrl ... they should fade out").
+    /// </summary>
+    public const double FadeOutResponse = 0.12;
+
+    /// <summary>The presence is settled when it is this close to its end and this slow (per second); it then lands exactly.</summary>
+    private const double SettledDistance = 0.004, SettledSpeed = 0.06;
 
     /// <summary>The scale a badge settles from as it fades in (0.96 to 1).</summary>
     public const double RestScale = 0.96;
@@ -39,6 +49,8 @@ public sealed class SessionNumbers
     private readonly List<SessionKeycap> keycaps = [];
     private IFrameSource? frames;
     private Action<TimeSpan>? tick;
+    private double velocity; // the presence's speed (per second), kept across a turn so it bends rather than stops
+    private ContinuousInstant springAt; // when the spring was last stepped
 
     /// <summary>Whether the badges are asked to show (the presence follows it on the frame clock).</summary>
     public bool IsShown { get; private set; }
@@ -103,49 +115,73 @@ public sealed class SessionNumbers
     }
 
     /// <summary>
-    /// Shows or hides every badge together: a fade in of <see cref="FadeInSeconds"/> (ease-out, scale 0.96 to 1) or out of
-    /// <see cref="FadeOutSeconds"/> (ease-in). A change mid-fade turns around from the presence drawn now, over the share of
-    /// the duration left to cover, so nothing jumps. Reduce motion, or no frame clock, shows and hides at once.
+    /// Shows or hides every badge together, on a critically damped spring (<see cref="FadeInResponse"/> in, with the scale
+    /// going 0.96 to 1, <see cref="FadeOutResponse"/> out). It gets moving on the first frame and never overshoots; a change
+    /// mid-fade turns it from the presence and the speed it has, so it bends round rather than stopping dead. Reduce motion, or
+    /// no frame clock, shows and hides at once.
     /// </summary>
     public void SetShown(bool shown, Control? context = null)
     {
         if (IsShown == shown) return;
         IsShown = shown;
-        StopTick();
         var target = shown ? 1.0 : 0.0;
-        if (Presence == target) return;
         if (!FrameClock.IsBound || ReducesMotion(context))
         {
-            Step(target);
+            StopTick();
+            velocity = 0;
+            if (Presence != target) Step(target);
             return;
         }
-        var from = Presence;
-        var seconds = (shown ? FadeInSeconds : FadeOutSeconds) * Math.Abs(target - from);
-        var span = TimeSpan.FromSeconds(seconds);
-        var start = SwiftClock.Now;
+        if (Presence == target && velocity == 0)
+        {
+            StopTick();
+            return;
+        }
+        if (tick is not null)
+        {
+            // The running spring turns here: the time since its last frame was spent going the old way, from now the new.
+            SpringTo(!shown);
+            return;
+        }
         var source = FrameClock.Source.Current;
+        springAt = SwiftClock.Now;
         Action<TimeSpan>? frame = null;
         frame = _ =>
         {
             if (!ReferenceEquals(tick, frame)) return;
-            var now = SwiftClock.Now;
-            var progress = Math.Clamp((now - start).TotalSeconds / seconds, 0, 1);
-            if ((now - start).Ticks + TimeSpan.TicksPerMillisecond >= span.Ticks) // FrameClock's completion rule (ED-117 (2))
+            if (SpringTo(IsShown))
             {
                 tick = null;
                 frames = null;
-                Step(target);
                 return;
             }
-            // Ease-out in (a quick, soft arrival), ease-in out (it lets go without a snap); both quadratic, so no frame's
-            // step is more than twice the even share.
-            var eased = shown ? 1 - (1 - progress) * (1 - progress) : progress * progress;
-            Step(from + (target - from) * eased);
             source.RequestFrame(frame!);
         };
         tick = frame;
         frames = source;
         source.RequestFrame(frame);
+    }
+
+    // Steps the spring from its last step to now toward shown (true) or hidden; true once it has landed there exactly.
+    private bool SpringTo(bool shown)
+    {
+        var now = SwiftClock.Now;
+        var seconds = Math.Max(0, (now - springAt).TotalSeconds);
+        springAt = now;
+        var end = shown ? 1.0 : 0.0;
+        var omega = 2 * Math.PI / (shown ? FadeInResponse : FadeOutResponse);
+        var spring = new CriticalSpring(Presence) { Velocity = velocity };
+        spring.Step(end, omega, seconds);
+        velocity = spring.Velocity;
+        var next = Math.Clamp(spring.Position, 0, 1);
+        if (Math.Abs(next - end) < SettledDistance && Math.Abs(velocity) < SettledSpeed * omega)
+        {
+            velocity = 0;
+            if (Presence != end) Step(end);
+            return true;
+        }
+        if (next != Presence) Step(next);
+        return false;
     }
 
     internal void Register(SessionKeycap keycap)
@@ -206,7 +242,7 @@ internal sealed class SessionKeycap : Decorator
     private readonly TextBlock digit = new() { TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly Border cap = new();
     private readonly ScaleTransform scale = new(SessionNumbers.RestScale, SessionNumbers.RestScale);
-    private readonly Dictionary<Control, double> coveredOpacity = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<Control, IBrush> coveredMasks = new(ReferenceEqualityComparer.Instance);
     private SessionNumbers? numbers;
     private long? number;
     private bool numbered;
@@ -232,8 +268,8 @@ internal sealed class SessionKeycap : Decorator
         cap.VerticalAlignment = VerticalAlignment.Center;
         cap.Padding = new Thickness(3, 0, 3, 0);
         // A keycap: the row's own overlay wash, a hairline edge, a slightly heavier lower lip.
-        cap.Background = Chrome.Overlay(0.13).Brush(cap);
-        cap.BorderBrush = Chrome.PrimaryText.Opacity(0.2).Brush(cap);
+        cap.Background = Chrome.Overlay(0.14).Brush(cap);
+        cap.BorderBrush = Chrome.PrimaryText.Opacity(0.26).Brush(cap); // a firmer edge, so the key reads on the light sheet too
         cap.BorderThickness = new Thickness(1, 1, 1, 1.5);
         cap.RoundedRectangle(5, RoundedCornerStyle.Continuous);
         cap.RenderTransform = scale;
@@ -286,19 +322,36 @@ internal sealed class SessionKeycap : Decorator
             Uncover();
             return;
         }
+        // The marks under the badge fade out under it through an opacity mask, which multiplies whatever opacity the row
+        // gives them (a hover, an activity fade, a crossfade) rather than replacing it: the row keeps owning their Opacity.
+        var keep = new HashSet<Control>(ReferenceEqualityComparer.Instance);
+        var mask = new ImmutableSolidColorBrush(Color.FromArgb((byte)Math.Round(255 * (1 - shown)), 0, 0, 0));
         foreach (var mark in covered())
         {
             if (mark is null) continue;
-            if (!coveredOpacity.ContainsKey(mark)) coveredOpacity[mark] = mark.Opacity;
-            mark.Opacity = coveredOpacity[mark] * (1 - shown);
+            // A mark with a mask of its own is left alone (the badge, opaque enough, sits over it).
+            if (mark.OpacityMask is { } own && !(coveredMasks.TryGetValue(mark, out var ours) && ReferenceEquals(own, ours))) continue;
+            keep.Add(mark);
+            mark.OpacityMask = mask;
+            coveredMasks[mark] = mask;
         }
+        // A mark the row rebuilt away (or no longer covered) gets its own look back.
+        foreach (var gone in coveredMasks.Keys.Where(mark => !keep.Contains(mark)).ToArray()) Release(gone);
     }
 
     private void Uncover()
     {
-        foreach (var (mark, opacity) in coveredOpacity) mark.Opacity = opacity;
-        coveredOpacity.Clear();
+        foreach (var mark in coveredMasks.Keys.ToArray()) Release(mark);
     }
+
+    private void Release(Control mark)
+    {
+        if (coveredMasks.Remove(mark, out var ours) && ReferenceEquals(mark.OpacityMask, ours)) mark.OpacityMask = null;
+    }
+
+    /// <summary>The share of the mark's drawing the badge lets through now: 1 uncovered, 0 hidden under a shown badge (tests).</summary>
+    internal static double CoverOf(Control mark) =>
+        mark.OpacityMask is ISolidColorBrush brush ? brush.Color.A / 255.0 * brush.Opacity : 1;
 
     private void SizeCap()
     {

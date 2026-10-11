@@ -1,8 +1,9 @@
 // PORT-ONLY (ED-NEW-session-hotkeys; owner 2026-10-11: "when I use the shortcut to move to another chat, the transition is smooth
 // and feels premium"; "when I click another chat with the mouse, the transition should be quick and smooth ... quick but
 // premium"). The Mac app flips the chat column's visibility with no animation (RootView.swift ThreadColumns, :224-243); the
-// port gives every chat switch one short, render-only move: the chat left fades out quickly where it stands, the chat opened
-// comes in over it with a soft 4-point settle. It runs for whatever selected the chat, since every path ends in Coordinator.Show.
+// port gives every chat switch one short, render-only move: the chat opened comes in over the chat left with a soft 4-point
+// settle while the chat left fades out under it; what both draw alike is drawn once. It runs for whatever selected the chat,
+// since every path ends in Coordinator.Show.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -13,13 +14,50 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views;
 
+/// <summary>The parts of a chat column a switch moves (<see cref="ChatView.SwitchParts"/>).</summary>
+internal sealed record ChatSwitchParts(
+    IReadOnlyList<Control> Content,
+    Control Rise,
+    Control? Chrome,
+    Control Composer,
+    Control? Draft,
+    IReadOnlyList<Control> Backdrop,
+    IReadOnlyList<Control> Veils)
+{
+    /// <summary>The words a part shows: its text boxes' and text blocks' text, in tree order, those it hides left out.</summary>
+    internal static string WordsOf(Control root)
+    {
+        var words = new System.Text.StringBuilder();
+        foreach (var visual in Avalonia.VisualTree.VisualExtensions.GetSelfAndVisualDescendants(root))
+        {
+            var text = visual switch { TextBox box => box.Text, TextBlock block => block.Text, _ => null };
+            if (string.IsNullOrEmpty(text) || !ShownWithin(visual, root)) continue;
+            words.Append(text).Append('\u0001');
+        }
+        return words.ToString();
+    }
+
+    private static bool ShownWithin(Visual visual, Visual root)
+    {
+        // Below the root only: the root's own opacity is the switch's to set, and a hidden column is laid out as shown.
+        for (Visual? node = visual; node is not null; node = Avalonia.VisualTree.VisualExtensions.GetVisualParent(node))
+        {
+            if (ReferenceEquals(node, root)) return true;
+            if (!node.IsVisible || node.Opacity <= 0) return false;
+        }
+        return true;
+    }
+}
+
 /// <summary>
-/// The chat switch's motion over the columns of one pane. <see cref="Enter"/>: the chat's content (transcript, header,
-/// panels, terminal) goes from transparent to opaque in <see cref="EnterSeconds"/> on a cubic ease-out, the transcript rising
-/// <see cref="Rise"/> points into place; what every chat draws alike (the sheet's wash, the veil, the composer) is there from
-/// the first frame. <see cref="Leave"/>: the chat's content (and its veil) fades out in <see cref="LeaveSeconds"/> where it
-/// stands, over the chat coming in, its shared parts gone at once, then the column hides. Both are opacity and a render transform, so no frame lays anything out. A switch
-/// mid-move turns each column around from the pose it has; Reduce Motion (or no frame clock) switches at once.
+/// The chat switch's motion over the columns of one pane. <see cref="Enter"/>: the column opened goes on top; its content
+/// (transcript, panels, terminal) goes from transparent to opaque in <see cref="EnterSeconds"/> on a cubic ease-out, the
+/// transcript rising <see cref="Rise"/> points into place, and its draft too when it differs from the draft left; its glass
+/// (the header's capsules, the composer) and its top veil are there from the first frame. <see cref="Leave"/>: the column left
+/// goes under it; its content fades out in <see cref="LeaveSeconds"/> where it stands, its glass and veil gone at once (two glass
+/// layers over each other never show), then it hides. The sheet's wash is drawn by the lowest column alone. Everything is
+/// opacity and a render transform, so no frame lays anything out. A switch mid-move turns each column around from the pose it
+/// has; Reduce Motion (or no frame clock) switches at once.
 /// </summary>
 internal sealed class ChatSwitchMotion
 {
@@ -45,6 +83,8 @@ internal sealed class ChatSwitchMotion
 
     private readonly Dictionary<FrameHostingView, Run> runs = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<FrameHostingView, (double Opacity, double Rise)> poses = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<FrameHostingView> draftCrosses = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<FrameHostingView, EventHandler> relayouts = new(ReferenceEqualityComparer.Instance);
     private IFrameSource? frames;
     private Action<TimeSpan>? tick;
 
@@ -57,8 +97,11 @@ internal sealed class ChatSwitchMotion
     /// <summary>The content's opacity and the transcript's rise drawn now for <paramref name="column"/> (1 and 0 at rest).</summary>
     public (double Opacity, double Rise) PoseOf(FrameHostingView column) => poses.TryGetValue(column, out var pose) ? pose : (1, 0);
 
-    /// <summary>The column opened comes in: from transparent (or from where a leave left it) to opaque, rising into place.</summary>
-    public void Enter(FrameHostingView column)
+    /// <summary>
+    /// The column opened comes in on top: from transparent (or from where a leave left it) to opaque, rising into place.
+    /// <paramref name="left"/>, the column the switch left, decides whether the draft crosses (the two drafts differ).
+    /// </summary>
+    public void Enter(FrameHostingView column, FrameHostingView? left = null)
     {
         var (opacity, rise) = Take(column);
         var fresh = opacity >= 1 && rise == 0 && !poses.ContainsKey(column);
@@ -66,8 +109,12 @@ internal sealed class ChatSwitchMotion
         var riseFrom = fresh ? Rise : rise;
         column.IsLeaving = false;
         column.IsHitTestVisible = true;
-        column.ZIndex = 0; // under a chat still leaving: its fading text stays over this backdrop, never washed by it
-        Pose(column, from, riseFrom, backdrop: true);
+        column.ZIndex = 1; // over the chat leaving: its glass and veil are the ones drawn
+        draftCrosses.Remove(column);
+        if (left is not null && ChatOf(left) is { } leftChat && ChatOf(column) is { } chat && leftChat.DraftWords != chat.DraftWords)
+            draftCrosses.Add(column);
+        poses[column] = (from, riseFrom);
+        Recompose(column);
         if (from >= 1 && riseFrom == 0)
         {
             Settle(column);
@@ -77,16 +124,19 @@ internal sealed class ChatSwitchMotion
     }
 
     /// <summary>
-    /// The column left goes: its shared parts at once, its content fading where it stands; <paramref name="hidden"/> then hides
-    /// it. It takes no input from the first frame (<see cref="FrameHostingView.IsLeaving"/>).
+    /// The column left goes under the one opened: its glass and veil at once, its content fading where it stands;
+    /// <paramref name="hidden"/> then hides it. It takes no input from the first frame (<see cref="FrameHostingView.IsLeaving"/>).
     /// </summary>
     public void Leave(FrameHostingView column, Action hidden)
     {
         var (opacity, rise) = Take(column);
         column.IsLeaving = true;
         column.IsHitTestVisible = false;
-        column.ZIndex = 1;
-        Pose(column, opacity, rise, backdrop: false);
+        column.ZIndex = 0;
+        draftCrosses.Remove(column);
+        ChatOf(column)?.EndTitleCross(); // its header goes at once
+        poses[column] = (opacity, rise);
+        Recompose(column);
         if (opacity <= 0)
         {
             Land(column, hidden);
@@ -98,23 +148,35 @@ internal sealed class ChatSwitchMotion
     /// <summary>Stops any move on the column and draws it at rest (shown and settled).</summary>
     public void Settle(FrameHostingView column)
     {
-        runs.Remove(column);
+        Stop(column);
+        ChatOf(column)?.EndTitleCross();
         column.IsLeaving = false;
         column.IsHitTestVisible = true;
-        column.ZIndex = 0;
-        Pose(column, 1, 0, backdrop: true);
+        draftCrosses.Remove(column);
         poses.Remove(column);
+        Recompose(column);
     }
 
     private (double Opacity, double Rise) Take(FrameHostingView column)
     {
-        runs.Remove(column);
+        Stop(column);
         return PoseOf(column);
+    }
+
+    private void Stop(FrameHostingView column)
+    {
+        runs.Remove(column);
+        if (relayouts.Remove(column, out var relayout)) column.LayoutUpdated -= relayout;
     }
 
     private void Start(Run run)
     {
         runs[run.Column] = run;
+        // A part a column builds or rebuilds while it moves (its composer for a new folder, say) takes the pose on the layout
+        // that brings it in, before that frame is drawn.
+        EventHandler relayout = (_, _) => Apply(run.Column);
+        relayouts[run.Column] = relayout;
+        run.Column.LayoutUpdated += relayout;
         if (tick is not null) return;
         frames = FrameClock.Source.Current;
         tick = Frame;
@@ -133,14 +195,22 @@ internal sealed class ChatSwitchMotion
             if (run.Entering)
             {
                 if (done) Settle(run.Column);
-                else Pose(run.Column, run.From + (1 - run.From) * eased, run.RiseFrom * (1 - eased), backdrop: true);
+                else
+                {
+                    poses[run.Column] = (run.From + (1 - run.From) * eased, run.RiseFrom * (1 - eased));
+                    Apply(run.Column);
+                }
             }
             else if (done)
             {
-                runs.Remove(run.Column);
+                Stop(run.Column);
                 Land(run.Column, run.Landed);
             }
-            else Pose(run.Column, run.From * (1 - eased), run.RiseFrom, backdrop: false);
+            else
+            {
+                poses[run.Column] = (run.From * (1 - eased), run.RiseFrom);
+                Apply(run.Column);
+            }
         }
         if (runs.Count == 0)
         {
@@ -153,31 +223,69 @@ internal sealed class ChatSwitchMotion
 
     private void Land(FrameHostingView column, Action? hidden)
     {
-        Pose(column, 0, 0, backdrop: false);
+        poses[column] = (0, 0);
+        Apply(column);
         hidden?.Invoke();
         // Hidden now: its parts go back to rest, out of sight, so a later show finds them as they were.
         column.IsLeaving = false;
         column.IsHitTestVisible = true;
         column.ZIndex = 0;
-        Pose(column, 1, 0, backdrop: true);
         poses.Remove(column);
+        Recompose(column);
     }
 
-    private void Pose(FrameHostingView column, double opacity, double rise, bool backdrop)
+    // The column and the columns beside it in the pane draw again: which one draws the backdrop depends on all of them.
+    private void Recompose(FrameHostingView column)
     {
-        poses[column] = (opacity, rise);
+        if (column.Parent is Panel pane)
+        {
+            foreach (var sibling in pane.Children.OfType<FrameHostingView>()) Apply(sibling);
+        }
+        else Apply(column);
+    }
+
+    // The lowest visible column of the pane draws the sheet's wash; with one column visible, that one.
+    private static bool DrawsBackdrop(FrameHostingView column)
+    {
+        if (!column.IsVisible || column.Parent is not Panel pane) return true;
+        FrameHostingView? lowest = null;
+        foreach (var sibling in pane.Children.OfType<FrameHostingView>())
+            if (sibling.IsVisible && (lowest is null || sibling.ZIndex < lowest.ZIndex)) lowest = sibling;
+        return ReferenceEquals(lowest ?? column, column);
+    }
+
+    private void Apply(FrameHostingView column)
+    {
         if (ChatOf(column) is not { } chat) return;
-        var (content, riser, shared, veils) = chat.SwitchParts;
-        foreach (var part in content) part.Opacity = opacity;
-        foreach (var part in shared) part.Opacity = backdrop ? 1 : 0;
-        foreach (var veil in veils) veil.Opacity = backdrop ? 1 : opacity;
+        var (opacity, rise) = PoseOf(column);
+        var leaving = column.IsLeaving && column.IsVisible;
+        var parts = chat.SwitchParts;
+        foreach (var part in parts.Content) Set(part, opacity);
+        Set(parts.Composer, leaving ? 0 : 1);
+        if (parts.Chrome is { } chrome) Set(chrome, leaving ? 0 : 1);
+        if (parts.Draft is { } draft) Set(draft, !leaving && draftCrosses.Contains(column) ? opacity : 1);
+        // The header's words: the words left fade out over this chat's, which fade in, in step with the transcript.
+        if (!leaving && poses.ContainsKey(column) && chat.TitleCross is { } cross)
+        {
+            Set(cross.Arriving, opacity);
+            Set(cross.Leaving, 1 - opacity);
+        }
+        foreach (var veil in parts.Veils) Set(veil, leaving ? 0 : 1);
+        var backdrop = DrawsBackdrop(column) ? 1 : 0;
+        foreach (var part in parts.Backdrop) Set(part, backdrop);
+        var riser = parts.Rise;
         if (riser.RenderTransform is not TranslateTransform translate)
         {
             if (rise == 0 && riser.RenderTransform is null) return;
             translate = new TranslateTransform();
             riser.RenderTransform = translate;
         }
-        translate.Y = rise;
+        if (translate.Y != rise) translate.Y = rise;
+    }
+
+    private static void Set(Control part, double opacity)
+    {
+        if (part.Opacity != opacity) part.Opacity = opacity;
     }
 
     /// <summary>The ChatView a column hosts: a few levels under the host, found breadth first.</summary>
