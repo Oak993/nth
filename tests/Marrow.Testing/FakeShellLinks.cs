@@ -28,6 +28,8 @@ public sealed partial class FakeShellLinks : IShellLinks
         WriteLink,
         UpdateLink,
         DeleteLink,
+        MoveLink,
+        DeleteEmptyFolder,
         DesktopIconsHidden,
         Notify,
         TryEnterWriter,
@@ -381,6 +383,43 @@ public sealed partial class FakeShellLinks : IShellLinks
             folders[Folder(path)] = Tick();
             deletes++;
         }
+    }
+
+    public void MoveLink(string from, string to)
+    {
+        Enter(Call.MoveLink, from);
+        lock (gate)
+        {
+            if (!links.TryGetValue(from, out var entry)) throw new FileNotFoundException("No link to move.", from);
+            if (links.ContainsKey(to) || files.Contains(to)) throw new IOException("The destination already exists: " + to, unchecked((int)0x800700B7));
+            var folder = Folder(to);
+            if (!folders.ContainsKey(folder)) throw new DirectoryNotFoundException("No folder: " + folder);
+            links.Remove(from);
+            links[to] = entry;
+            folders[Folder(from)] = Tick();
+            folders[folder] = now;
+            writes++;
+        }
+    }
+
+    public bool DeleteEmptyFolder(string folder)
+    {
+        Enter(Call.DeleteEmptyFolder, folder);
+        lock (gate)
+        {
+            var name = Norm(folder);
+            if (!folders.ContainsKey(name)) return false;
+            bool Inside(string path) => string.Equals(Folder(path), name, StringComparison.OrdinalIgnoreCase);
+            if (links.Keys.Any(Inside) || files.Any(Inside) || folders.Keys.Any(f => !string.Equals(f, name, StringComparison.OrdinalIgnoreCase) && Inside(f))) return false;
+            folders.Remove(name);
+            return true;
+        }
+    }
+
+    /// <summary>Whether a folder exists on this fake machine.</summary>
+    public bool FolderExists(string folder)
+    {
+        lock (gate) return folders.ContainsKey(Norm(folder));
     }
 
     public bool DesktopIconsHidden()
