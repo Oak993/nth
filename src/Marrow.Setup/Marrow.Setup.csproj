@@ -13,13 +13,16 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>Marrow.Setup</AssemblyName>
+    <!-- nth installer PLAN.md 7 (unit U7, ED-NEW-inst-u7-4): the shared file is nth-Setup-<version>.exe and its original filename reads nth-Setup.exe. -->
+    <AssemblyName>nth-Setup</AssemblyName>
     <RootNamespace>Marrow.Setup</RootNamespace>
     <ApplicationIcon>..\Marrow.App\Assets\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <InvariantGlobalization>true</InvariantGlobalization>
     <Product>nth</Product>
     <AssemblyTitle>nth Setup</AssemblyTitle>
+    <!-- PLAN.md 7: "(c) 2026 (publisher). Includes Droppy Code by Jordy Spruit (Droppy), GNU AGPL v3.0." The publisher is decision A (open): Directory.Release.props. -->
+    <Copyright>© 2026 $(NthPublisher). Includes Droppy Code by Jordy Spruit (Droppy), GNU AGPL v3.0.</Copyright>
     <InstallerTitle Condition="'$(InstallerTitle)' == ''">nth</InstallerTitle>
     <InstallerAppId Condition="'$(InstallerAppId)' == ''">NthApp</InstallerAppId>
   </PropertyGroup>

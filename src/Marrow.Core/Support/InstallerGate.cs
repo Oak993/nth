@@ -25,7 +25,19 @@ public enum InstallerAction
 /// <param name="Version">The package version, as vpk pack's --packVersion.</param>
 /// <param name="DefaultInstallRoot">%LOCALAPPDATA%\&lt;package id&gt;, Velopack's default install folder.</param>
 /// <param name="LaunchDirectory">The folder of the installer file, against which Setup.exe resolves a relative --installto.</param>
-public sealed record InstallerIdentity(string Title, string Version, string DefaultInstallRoot, string LaunchDirectory);
+/// <param name="FreshInstallRoot">
+/// Where a fresh install goes, passed to Setup.exe as --installto (nth installer PLAN.md override 10, unit U7, ED-NEW-inst-u7-8):
+/// %LOCALAPPDATA%\Programs\nth. Null keeps the earlier behaviour exactly: Velopack's default root, <paramref name="DefaultInstallRoot"/>,
+/// and no --installto added.
+/// </param>
+/// <param name="RegisteredInstallRoot">
+/// Reads the folder the uninstall entry records as InstallLocation (null when there is none or it cannot be read). With
+/// <paramref name="FreshInstallRoot"/> set, an install is looked for there first, then at <paramref name="DefaultInstallRoot"/> (where
+/// nth 1.0.0 put it, %LOCALAPPDATA%\NthApp), then at the fresh root, and an existing one is always updated where it is.
+/// </param>
+public sealed record InstallerIdentity(
+    string Title, string Version, string DefaultInstallRoot, string LaunchDirectory,
+    string? FreshInstallRoot = null, Func<string?>? RegisteredInstallRoot = null);
 
 /// <summary>The Win32 side of the gate: a message box and the embedded Velopack Setup.exe.</summary>
 public interface IInstallerGateHost
@@ -107,6 +119,40 @@ public static class InstallerGate
         }
     }
 
+    /// <summary>
+    /// Where the install the gate decides about is, and its version (null when nothing readable is installed there). An --installto the
+    /// user gave is the only place looked at. Without a <see cref="InstallerIdentity.FreshInstallRoot"/> it is Velopack's default root,
+    /// as before. With one, the first of the registered root, the default root and the fresh root that holds a readable install; when none
+    /// does, an install the uninstall entry records but that can no longer be read is repaired where it is, otherwise it is the fresh root.
+    /// </summary>
+    public static (string Root, string? Version) FindInstall(InstallerIdentity identity, string? installTo)
+    {
+        if (installTo is not null) return (installTo, ReadInstalledVersion(installTo));
+        if (identity.FreshInstallRoot is not { } fresh) return (identity.DefaultInstallRoot, ReadInstalledVersion(identity.DefaultInstallRoot));
+        var registered = RegisteredRoot(identity);
+        foreach (var candidate in new[] { registered, identity.DefaultInstallRoot, fresh }.OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var version = ReadInstalledVersion(candidate);
+            if (version is not null) return (candidate, version);
+        }
+        return (registered is not null && Directory.Exists(registered) ? registered : fresh, null);
+    }
+
+    // The recorded install folder as a full path without a trailing separator, or null: nothing recorded, unreadable, or not a path.
+    private static string? RegisteredRoot(InstallerIdentity identity)
+    {
+        try
+        {
+            var recorded = identity.RegisteredInstallRoot?.Invoke();
+            if (string.IsNullOrWhiteSpace(recorded)) return null;
+            return Path.TrimEndingDirectorySeparator(Path.GetFullPath(Environment.ExpandEnvironmentVariables(recorded.Trim())));
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Whether Setup.exe would run silently (--silent or -s, before the -- separator): then no message is shown.</summary>
     public static bool IsSilent(IReadOnlyList<string> arguments) => ReadArguments(arguments, Environment.CurrentDirectory).Silent;
 
@@ -121,12 +167,13 @@ public static class InstallerGate
         var read = ReadArguments(arguments, identity.LaunchDirectory);
         if (read.Help) return host.RunVelopackSetup(arguments);
 
-        var installed = ReadInstalledVersion(read.InstallTo ?? identity.DefaultInstallRoot);
+        var (root, installed) = FindInstall(identity, read.InstallTo);
         switch (Decide(installed, identity.Version))
         {
             case InstallerAction.Install:
             case InstallerAction.Upgrade:
-                return host.RunVelopackSetup(read.Forwarded);
+                // With a fresh root set the install folder is always said explicitly: an upgrade where the install is, a fresh install at the new default.
+                return host.RunVelopackSetup(identity.FreshInstallRoot is not null && read.InstallTo is null ? ["--installto", root, .. read.Forwarded] : read.Forwarded);
             case InstallerAction.AlreadyUpToDate:
                 if (!read.Silent) host.ShowMessage(Caption(identity.Title), UpToDateMessage(identity.Title, identity.Version), warning: false);
                 return 0;
