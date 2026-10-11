@@ -520,7 +520,7 @@ internal sealed class HydraHeadsButton : Decorator
             Background = Brushes.Transparent,
         };
         foreground = new AnimatedColor(capsule);
-        foreground.Set(Chrome.PrimaryText.Opacity(0.92), null);
+        foreground.Set(Chrome.IconForeground(false), null);
 
         var surface = capsule.ChromeGlassCapsule(); // :249
         // :251-253 .onHover { hovering in withAnimation(Chrome.hover) { isHovering = hovering } }
@@ -531,7 +531,7 @@ internal sealed class HydraHeadsButton : Decorator
 
         // :243 .foregroundStyle(Chrome.primaryText.opacity(isHovering || isPresented ? 1 : 0.92))
         this.Track(() => state.IsHovering || state.IsPresented,
-            lit => foreground.Set(Chrome.PrimaryText.Opacity(lit ? 1 : 0.92), Transaction.Current));
+            lit => foreground.Set(Chrome.IconForeground(lit), Transaction.Current));
         Update(heads);
     }
 

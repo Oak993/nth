@@ -155,10 +155,10 @@ namespace Marrow.UI.Chrome
         // :98
         public static Animation Hover => Animation.EaseOut(duration: 0.1);
 
-        // ED-NEW-segmenthover-1 (owner 2026-10-11): an icon in a glass pill or a round glass button lights from the secondary colour toward
-        // the primary one under the pointer, on Hover; a segment of a pill also lifts a soft plate (an overlay wash, like RoundIconButton's)
+        // ED-NEW-segmenthover-1 (owner 2026-10-11): an icon in a glass pill or a round glass button keeps the Mac's glyph (primary at 0.92 at rest, 1 under the pointer,
+        // on Hover; a segment of a pill also lifts a soft plate (an overlay wash, like RoundIconButton's)
         // behind just itself, a little stronger while it is pressed. Opacity only (no movement), so Reduce Motion leaves it as it is.
-        public static SwiftColor IconForeground(bool lit) => lit ? PrimaryText : SecondaryText;
+        public static SwiftColor IconForeground(bool lit) => lit ? PrimaryText : PrimaryText.Opacity(0.92);
 
         public const double SegmentPlateHover = 0.1;
 
@@ -823,7 +823,7 @@ namespace Marrow.UI.Chrome
             {
                 if (!isEnabled) return Chrome.PrimaryText.Opacity(0.32); // :355
                 if (isActive) return Chrome.PrimaryText; // :356
-                return Chrome.IconForeground(isHovering || isPressed); // :357, ED-NEW-segmenthover-1: secondary at rest, primary under the pointer
+                return Chrome.IconForeground(isHovering || isPressed); // :357, ED-NEW-segmenthover-1: primary at 0.92 at rest, primary under the pointer
             }
         }
 
@@ -941,7 +941,7 @@ namespace Marrow.UI.Chrome
             var foreground = new AnimatedColor(image);
             image.SetValue(TextElement.ForegroundProperty, foreground.Brush);
             image.Track(() => state.IsHovering, hovering =>
-                foreground.Set(Chrome.IconForeground(hovering), Transaction.Current)); // :424, ED-NEW-segmenthover-1: secondary at rest, primary lit
+                foreground.Set(Chrome.IconForeground(hovering), Transaction.Current)); // :424, ED-NEW-segmenthover-1: primary at 0.92 at rest, primary lit
             var label = new Panel
             {
                 Width = Chrome.CapsuleHeight, // :425
