@@ -59,7 +59,7 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
                 var badge = Assert.Single(Nodes<SidebarIconBadge>(row)); var frame = Assert.IsType<Panel>(badge.Child); Assert.Equal(20, frame.Width); Assert.Equal(20, frame.Height);
                 var glyph = frame.Children[0]; Ink(glyph, Avalonia.Controls.Documents.TextElement.GetForeground(glyph), Chrome.PrimaryText.Opacity(0.85));
                 if (index == 1) { var mark = Assert.Single(Nodes<HydraMarkImage>(row)); Assert.Equal(16.1, mark.Width, 5); Assert.Equal(16.1, mark.Height, 5); Assert.Empty(Nodes<SidebarSymbol>(row)); }
-                else if (titles[index] == "Ignis") { var flame = Assert.Single(Nodes<Marrow.App.Port.Ignis.Settings.IgnisFlameMark>(row)); Assert.Equal(16.1, flame.Width, 5); Assert.Equal(16.1, flame.Height, 5); Assert.Empty(Nodes<SidebarSymbol>(row)); } // OD-0134: the lit flame, Hydra's size
+                else if (titles[index] == "Ignis") { var flame = Assert.Single(Nodes<Marrow.App.Port.Ignis.Settings.IgnisFlameMark>(row)); Assert.Equal(16.1, flame.Width, 5); Assert.Equal(16.1, flame.Height, 5); Assert.True(flame.IsMonochrome); Assert.Null(flame.Effect); Assert.Empty(Nodes<SidebarSymbol>(row)); } // OD-0134, ED-NEW-ignismono-1: the flame in the sidebar silver, Hydra's size
                 else { var image = Assert.Single(Nodes<SwiftImage>(row)); Assert.Equal(symbols[index], image.SymbolName); Assert.Equal(index == 0 ? 16.1 : 14, image.Width, 5); Assert.Equal(index == 0 ? 16.1 : 14, image.Height, 5); }
                 Assert.Empty(Nodes<UpdateAvailableDot>(row));
             }

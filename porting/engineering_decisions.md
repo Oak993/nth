@@ -6105,3 +6105,9 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 ## ED-NEW-warmupsplit-5
 
 2026-10-11 - Commit 0e31101f8 (ED-NEW-glassslots-1 and ED-NEW-warmupsplit-4) is reverted for the nth 1.0 installer; the entries above stay as the record. TimelineRowsNativeReportTests.A_warmed_heads_report_opens_within_one_frame_of_the_first_tap passed twice alone at c90421293 and at e4ebf7c31, but failed alone at the merged tip twice (tap frame 56.2 and 65.7 ms against a tiny report's 38.2 and 33.1 ms), twice with only the glass part undone (63.3, 67.8 ms) and once in two with only the strike split kept (61.9 ms). The strike split's extra warm-up parts (94 to 133) are the likely cause: a part on the render thread at a first tap. Known and open, back to their state before 0e31101f8: On_a_second_launch_the_knob_programs_come_from_the_cache (light and strike steps over 16.7 ms), and TimelineRowsNativeReviewKeysTests.REVIEW_Escape_and_Return... (a new glass piece count links its program on the render thread when there is no program cache). Both are the next work after the installer.
+
+## ED-NEW-ignismono-1 The Settings sidebar's Ignis flame is silver like the other symbols (2026-10-11)
+
+- **Owner, 2026-10-11:** "Igni icon doesn't match the format of the rest of the icons? its colorful while the rest are silver".
+- **Decision:** the sidebar row draws IgnisFlameMark in one colour, the sidebar symbols' Chrome.PrimaryText at 0.85 (SidebarSymbol), the core cut out of the outer flame and no glow. The lit two-colour flame with its glow stays where Ignis is the subject (the Ignis page, the Updates row's mark).
+- **Test:** SettingsRestSidebarTests asserts the sidebar flame is monochrome with no effect (stricter than before: it kept size and single-mark checks).
