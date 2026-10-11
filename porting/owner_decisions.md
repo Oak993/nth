@@ -1257,3 +1257,14 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **Engineering record:** ED-NEW-pcctl-6 onwards in `porting/engineering_decisions.md`; ED-NEW-pcctl-7 records the design.
 - **Numbering note:** written as OD-0142; renumbered OD-0144 on 2026-10-11 because OD-0142 (the nth boot, already on claude/release-integration) and OD-0143 (Nocta) were taken on other branches first.
 
+## OD-0145 Tactus pill v2: pause, stop paths, a draggable pill and answers from the pill (2026-10-11)
+
+- **Owner, through the lead (2026-10-11):** Tactus pill v2 is approved: `E:\Droppy\work\design\pc-control\DESIGN.md` section 10 with its work units P21 to P30, and canvas v3 (https://claude.ai/artifact/3ejBMyVZiy44VPpycb5XLW), with the canvas defaults.
+- **Defaults ruled with it:** Esc pressed three times stays a stop path; Pause is Ctrl+Alt+Space; on resume nth sends "continue" to the chat by default (a setting can turn it off); Esc inside the pill's card only collapses the card.
+- **Effect:** Pause and Resume, the stop paths of DESIGN.md 10.2, the draggable pill with its three anchors, and answering Tactus's questions and cards from the pill are built to section 10 after units 1 to 7. This supersedes the earlier note that Pause and Resume were not part of Tactus (ED-NEW-pcctl-6 item 3, ED-NEW-pcctl-7 item 8).
+- **Engineering record:** ED-NEW-pcctl-9 onwards in `porting/engineering_decisions.md` (DESIGN.md 10.14 names the P21 entry ED-NEW-pcctl-8; that number was already used by the engine unit, so P21's entry is ED-NEW-pcctl-9).
+
+## OD-0146 Tactus's mark is Cuspis (2026-10-11)
+
+- **Owner, through the lead (2026-10-11):** the Tactus icon is Cuspis, owner-locked: `E:\Droppy\work\design\tactus-icon\pointer-1-final.svg` with its 16 px forms `pointer-1-final-16.svg`, `pointer-1-final-16-working.svg` and `pointer-1-final-16-paused.svg`, and the motion shown on https://claude.ai/artifact/WW257FhBN3ybFmmG9ccRiD. The flame earlier drawn in the pill is wrong.
+- **Effect:** Cuspis is drawn by one swappable mark component wherever Tactus shows a mark: the pill, the fullscreen dot, the tray, notifications, the Settings row and the composer chip. Neither the Ignis flame nor the nth mark stands in for it anywhere; changing the mark later is a change to that one component.
