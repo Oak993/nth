@@ -23,11 +23,19 @@ function secure(url) {
 /** Policies come from the checked-in official source map, never from arbitrary manifest host claims. */
 export function sourcePolicy(id, cfg) {
   const repo = cfg.repo ?? cfg.fetch?.repo ?? metadataRepos[id];
+  const repos = [repo].filter(Boolean);
+  // ED-NEW-dl-13: an item whose licence file lives in its upstream project's own repository (T4: Poppler's COPYING at gitlab.freedesktop.org, beside the packaged build) names
+  // that repository's raw-file URL prefix in sources.json. Each prefix is an https origin plus a path ending in "/"; a URL is allowed only when its parsed form starts with one.
+  const licencePrefixes = (cfg.licenceSources ?? []).map(prefix => {
+    const p = secure(prefix);
+    if (!p.pathname.endsWith('/') || p.search || p.href !== prefix || p.pathname.split('/').length < 4) throw new Error(`Invalid licence source prefix: ${prefix}`);
+    return p.href;
+  });
   const allowed = url => {
     const u = secure(url);
-    if (repo && common.includes(u.hostname)) {
-      const prefix = u.hostname === 'api.github.com' ? `/repos/${repo}/` : `/${repo}/`;
-      return u.pathname.startsWith(prefix);
+    if (licencePrefixes.some(prefix => u.href.startsWith(prefix))) return true;
+    if (repos.length && common.includes(u.hostname)) {
+      return repos.some(r => u.pathname.startsWith(u.hostname === 'api.github.com' ? `/repos/${r}/` : `/${r}/`));
     }
     if ((direct[id] ?? []).includes(u.hostname)) return true;
     if (cfg.fetch?.type === 'pypi' || cfg.fetch?.type === 'pip') return ['pypi.org', 'files.pythonhosted.org'].includes(u.hostname);
@@ -111,11 +119,17 @@ export function readMetadata(bytes, selector) {
   }
   return value.trim();
 }
-function coverage(manifest, sources) {
+function coverage(manifest, sources, only) {
   if (manifest.schema !== 1 || !Array.isArray(manifest.items)) throw new Error('Invalid pin manifest schema');
-  const expected = Object.keys(sources.items).sort();
+  const all = Object.keys(sources.items).sort();
+  if (all.length !== 29) throw new Error('Pin manifest must have exact coverage of all 29 items with no duplicate IDs');
+  // ED-NEW-dl-13: a partial run names its items; the manifest must then cover exactly those, each one of the 29. The other items keep the pins of the run they came from.
+  if (only !== undefined && (!Array.isArray(only) || only.length === 0 || only.some(id => !all.includes(id)) || new Set(only).size !== only.length))
+    throw new Error('A partial run names distinct catalogue item IDs');
+  const expected = only === undefined ? all : [...only].sort();
   const actual = manifest.items.map(i => i.id).sort();
-  if (expected.length !== 29 || JSON.stringify(expected) !== JSON.stringify(actual)) throw new Error('Pin manifest must have exact coverage of all 29 items with no duplicate IDs');
+  if (JSON.stringify(expected) !== JSON.stringify(actual))
+    throw new Error(only === undefined ? 'Pin manifest must have exact coverage of all 29 items with no duplicate IDs' : `Pin manifest must cover exactly the partial run's items (${expected.join(', ')}) with no duplicate IDs`);
   for (const item of manifest.items) {
     if (!Array.isArray(item.entries) || item.entries.length === 0) throw new Error(`${item.id}: no official artifacts/files were selected`);
     const names = new Set();
@@ -133,8 +147,8 @@ function coverage(manifest, sources) {
   }
 }
 /** request is mandatory in tests. Production passes requestOfficial. saveChunk is optional; the CLI persists exactly the bytes it hashes. */
-export async function generatePins(manifest, { sources, request, now = () => new Date(), saveChunk = async () => {}, saveMetadata = async () => {} }) {
-  coverage(manifest, sources);
+export async function generatePins(manifest, { sources, request, only, now = () => new Date(), saveChunk = async () => {}, saveMetadata = async () => {} }) {
+  coverage(manifest, sources, only);
   if (typeof request !== 'function') throw new Error('A source transport must be supplied explicitly');
   for (const item of manifest.items) {
     const policy = sourcePolicy(item.id, sources.items[item.id]);
@@ -143,7 +157,7 @@ export async function generatePins(manifest, { sources, request, now = () => new
       for (const field of ['version', 'licence']) requireOfficial(entry.metadata[field].url, policy);
     }
   }
-  const result = { schema: 1, startedAt: now().toISOString(), items: [] };
+  const result = { schema: 1, startedAt: now().toISOString(), ...(only === undefined ? {} : { partial: [...only].sort() }), items: [] };
   const cache = new Map();
   async function sourceBytes(url, allowed) {
     requireOfficial(url, allowed);

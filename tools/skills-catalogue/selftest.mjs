@@ -146,4 +146,66 @@ const results = await L.mapLimit([30, 5, 10, 1], 2, async (ms, i) => { await new
 assert.deepEqual(results, [60, 10, 20, 2]);
 assert.equal(order.length, 4);
 console.log('ok  mapLimit keeps order');
+
+// ED-NEW-dl-13: the provenance check's archive readers, on archives built here in memory.
+const A = await import('./archives.mjs');
+const { deflateRawSync, gzipSync, zstdCompressSync } = await import('node:zlib');
+function zip(entries, { zip64 = false } = {}) {
+  const locals = [], centrals = [];
+  let offset = 0;
+  for (const { name, data, deflate } of entries) {
+    const packed = deflate ? deflateRawSync(data) : data;
+    const nameBytes = Buffer.from(name);
+    const local = Buffer.alloc(30); local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(deflate ? 8 : 0, 8);
+    local.writeUInt32LE(packed.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(nameBytes.length, 26);
+    const extra = zip64 ? Buffer.alloc(4 + 24) : Buffer.alloc(0);
+    if (zip64) { extra.writeUInt16LE(1, 0); extra.writeUInt16LE(24, 2); extra.writeBigUInt64LE(BigInt(data.length), 4); extra.writeBigUInt64LE(BigInt(packed.length), 12); extra.writeBigUInt64LE(BigInt(offset), 20); }
+    const central = Buffer.alloc(46); central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(deflate ? 8 : 0, 10);
+    central.writeUInt32LE(zip64 ? 0xffffffff : packed.length, 20); central.writeUInt32LE(zip64 ? 0xffffffff : data.length, 24);
+    central.writeUInt16LE(nameBytes.length, 28); central.writeUInt16LE(extra.length, 30); central.writeUInt32LE(zip64 ? 0xffffffff : offset, 42);
+    locals.push(local, nameBytes, packed); centrals.push(central, nameBytes, extra);
+    offset += 30 + nameBytes.length + packed.length;
+  }
+  const dir = Buffer.concat(centrals);
+  const end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, dir, end]);
+}
+function tar(entries) {
+  const blocks = [];
+  const header = (name, size, flag) => {
+    const h = Buffer.alloc(512); h.write(name.slice(0, 99), 0); h.write(size.toString(8).padStart(11, '0'), 124); h.write(flag, 156); h.write('ustar', 257);
+    return h;
+  };
+  const pad = (b) => Buffer.concat([b, Buffer.alloc((512 - (b.length % 512)) % 512)]);
+  for (const { name, data, how } of entries) {
+    if (how === 'pax') { const rec = `path=${name}\n`; const line = `${rec.length + 3} ${rec}`; const body = Buffer.from(line); blocks.push(header('PaxHeader', body.length, 'x'), pad(body)); }
+    if (how === 'gnu') { const body = Buffer.from(name + '\0'); blocks.push(header('././@LongLink', body.length, 'L'), pad(body)); }
+    blocks.push(header(how ? 'short-name' : name, data.length, '0'), pad(data));
+  }
+  return Buffer.concat([...blocks, Buffer.alloc(1024)]);
+}
+await t('archive readers: zip (stored, deflated, ZIP64 sizes), tar (pax and GNU long names), conda packages', () => {
+  const one = Buffer.from('first file'), two = Buffer.from('x'.repeat(5000));
+  for (const zip64 of [false, true]) {
+    const z = A.readZip(zip([{ name: 'a/one.txt', data: one }, { name: 'a/dir/', data: Buffer.alloc(0) }, { name: 'a/two.bin', data: two, deflate: true }], { zip64 }));
+    assert.deepEqual(z.map((e) => e.name), ['a/one.txt', 'a/two.bin']);
+    assert.deepEqual(z[0].data(), one);
+    assert.deepEqual(z[1].data(), two);
+  }
+  assert.throws(() => A.readZip(Buffer.from('not a zip at all, no end record here')), /not a zip/);
+  const long = 'Library/' + 'deep/'.repeat(30) + 'file.dll';
+  const entries = A.readTar(tar([{ name: 'plain.txt', data: one }, { name: long, data: two, how: 'pax' }, { name: long + '.gnu', data: one, how: 'gnu' }]));
+  assert.deepEqual(entries.map((e) => [e.name, e.type]), [['plain.txt', 'file'], [long, 'file'], [long + '.gnu', 'file']]);
+  assert.deepEqual(entries[1].data, two);
+  assert.deepEqual(A.readTarGz(gzipSync(tar([{ name: 'gz.txt', data: one }])))[0].data, one);
+  const info = tar([{ name: 'info/index.json', data: Buffer.from('{"name":"fixture","license":"MIT"}') }, { name: 'info/licenses/LICENSE', data: one }]);
+  const pkg = tar([{ name: 'Library/bin/fixture.dll', data: two }]);
+  const conda = A.readConda(zip([{ name: 'metadata.json', data: Buffer.from('{}') }, { name: 'info-fixture.tar.zst', data: zstdCompressSync(info) }, { name: 'pkg-fixture.tar.zst', data: zstdCompressSync(pkg) }]));
+  assert.equal(conda.json('index.json').license, 'MIT');
+  assert.equal(conda.json('about.json'), null);
+  assert.deepEqual(conda.pkg.get('Library/bin/fixture.dll'), two);
+  assert.deepEqual(conda.info.get('info/licenses/LICENSE'), one);
+  assert.throws(() => A.readConda(zip([{ name: 'metadata.json', data: Buffer.from('{}') }])), /not a conda package/);
+});
 console.log('selftest passed');

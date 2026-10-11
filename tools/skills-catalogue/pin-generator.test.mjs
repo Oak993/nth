@@ -221,3 +221,38 @@ test('each artifact and cached source metadata records its actual read time acro
     assert.equal(pin.licence.readAt, pin.version.readAt);
     assert.equal(pin.readAt, '2026-10-08T00:02:00.000Z');
 });
+
+test('a partial run covers exactly the items it names, each one of the 29, and says so in its result (ED-NEW-dl-13)', async () => {
+    const only = ['A3', 'T4'];
+    const partial = { schema: 1, items: manifest.items.filter(i => only.includes(i.id)) };
+    const result = await generatePins(partial, { sources, request, only });
+    assert.deepEqual(result.partial, ['A3', 'T4']);
+    assert.deepEqual(result.items.map(i => i.id), ['A3', 'T4']);
+    await assert.rejects(generatePins(partial, { sources, request }), /29|coverage/);
+    await assert.rejects(generatePins(partial, { sources, request, only: ['A3'] }), /partial run's items/);
+    await assert.rejects(generatePins(partial, { sources, request, only: ['A3', 'T4', 'Z9'] }), /distinct catalogue item IDs/);
+    await assert.rejects(generatePins(partial, { sources, request, only: ['A3', 'A3', 'T4'] }), /distinct catalogue item IDs/);
+    await assert.rejects(generatePins(partial, { sources, request, only: [] }), /distinct catalogue item IDs/);
+    const doubled = { schema: 1, items: [...partial.items, partial.items[0]] };
+    await assert.rejects(generatePins(doubled, { sources, request, only }), /partial run's items/);
+    const full = await generatePins(manifest, { sources, request });
+    assert.equal(full.partial, undefined);
+});
+
+test('an item reads its licence from the licence source prefixes sources.json names for it, and from no other (ED-NEW-dl-13)', async () => {
+    const { sourcePolicy } = await import('./pin-generator.mjs');
+    assert.deepEqual(sources.items.T4.licenceSources, ['https://gitlab.freedesktop.org/poppler/poppler/-/raw/']);
+    const t4 = sourcePolicy('T4', sources.items.T4);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), true);
+    assert.equal(t4('https://raw.githubusercontent.com/oschwartz10612/poppler-windows/v26.09.0-0/LICENSE'), true);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler-data/-/raw/x/COPYING'), false);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler/-/raw/../../../evil/x/-/raw/COPYING'), false);
+    assert.equal(t4('https://gitlab.freedesktop.org/poppler/poppler/-/archive/poppler-26.09.0/x.zip'), false);
+    assert.throws(() => t4('http://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), /HTTPS/);
+    assert.equal(t4('https://gitlab.freedesktop.org.evil.example/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), false);
+    assert.equal(t4('https://raw.githubusercontent.com/evil/poppler/x/COPYING'), false);
+    const t5 = sourcePolicy('T5', sources.items.T5);
+    assert.equal(t5('https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING'), false);
+    for (const bad of ['http://gitlab.freedesktop.org/poppler/', 'https://gitlab.freedesktop.org/poppler', 'https://gitlab.freedesktop.org/', 'https://gitlab.freedesktop.org/a/../b/', 'https://gitlab.freedesktop.org/a/b/?x=1'])
+        assert.throws(() => sourcePolicy('T4', { ...sources.items.T4, licenceSources: [bad] }), /HTTPS|Invalid licence source prefix/, bad);
+});

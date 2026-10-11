@@ -35,7 +35,17 @@
     "T1p": { "fetch": { "type": "pypi", "project": "pip" }, "verify": { "type": "pypiDigest" } },
     "T2": { "fetch": { "type": "direct" }, "verify": { "type": "nodeShasums" } },
     "T3": { "fetch": { "type": "direct" }, "verify": { "type": "gpgAsc" } },
-    "T4": { "fetch": { "type": "release", "repo": "oschwartz10612/poppler-windows", "tag": "v26.09.0-0" }, "verify": { "type": "githubDigest" } },
+    "T4": {
+      "fetch": { "type": "release", "repo": "oschwartz10612/poppler-windows", "tag": "v26.09.0-0" }, "verify": { "type": "githubDigest" },
+      "licenceSources": ["https://gitlab.freedesktop.org/poppler/poppler/-/raw/"],
+      "provenance": {
+        "type": "condaForge", "note": "ED-NEW-dl-13: the zip repackages conda-forge's build; conda-provenance.mjs proves every file of it equals a file of a conda-forge package (each matching the SHA-256 anaconda.org publishes) or of the official poppler-data tarball",
+        "strip": "poppler-26.09.0/", "before": "2026-09-15T15:51:10Z", "dataUrl": "https://poppler.freedesktop.org/poppler-data-0.4.12.tar.gz", "dataInto": "share/poppler",
+        "names": ["poppler", "cairo", "lcms2", "libcurl", "libfreetype", "libfreetype6", "libglib", "libharfbuzz", "harfbuzz", "libiconv", "libintl", "libjpeg-turbo", "libpng", "libtiff", "libzlib",
+          "openjpeg", "ucrt", "vc14_runtime", "vcomp14", "krb5", "libssh2", "openssl", "libopenssl", "libdeflate", "libexpat", "expat", "libffi", "fontconfig", "graphite2", "icu", "libicu", "lerc",
+          "libbz2", "bzip2", "liblzma", "xz", "libzstd", "zstd", "pcre2", "pixman", "libpsl"]
+      }
+    },
     "T5": { "fetch": { "type": "release", "repo": "qpdf/qpdf", "tag": "v12.4.2" }, "verify": { "type": "githubDigest" } },
     "T6": { "fetch": { "type": "release", "repo": "jgm/pandoc", "tag": "3.12.1" }, "verify": { "type": "githubDigest" } },
     "T7": { "fetch": { "type": "release", "repo": "git-for-windows/git", "tag": "v2.56.0.windows.2" }, "verify": { "type": "githubDigest" } },
