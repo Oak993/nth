@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
@@ -82,7 +83,7 @@ internal static class SpinnerGeometry
     internal static int RowCount(IReadOnlyList<SpinnerCell> cells)
     {
         var max = -1;
-        foreach (var cell in cells) if (cell.Row > max) max = cell.Row;
+        for (var index = 0; index < cells.Count; index++) if (cells[index].Row > max) max = cells[index].Row; // indexed: no enumerator per frame (ED-NEW-lean-8)
         return max + 1; // :198, :278 (cells.map(\.row).max() ?? -1) + 1
     }
 
@@ -110,19 +111,63 @@ internal static class SpinnerGeometry
         return new Rect(x, y, cellSize, cellSize);
     }
 
+    /// <summary>
+    /// Each cell in its row's brush at <c>GradientSpin.Opacity(phase - lag)</c>. ED-NEW-lean-8: the brushes are made once per
+    /// tint (<see cref="RowBrushes"/>), not once per cell per frame; a solid brush of the same colour draws the same pixels.
+    /// </summary>
     internal static void Paint(DrawingContext context, IReadOnlyList<SpinnerCell> cells, int columns, double cellSize,
-        Size bounds, Func<int, Color> tint, Func<SpinnerCell, double> opacity)
+        Size bounds, IBrush[] rowBrushes, double phase)
     {
         var content = ContentSize(cells, columns, cellSize);
         var gap = cellSize * 0.8;
-        foreach (var cell in cells)
+        for (var index = 0; index < cells.Count; index++)
         {
-            var alpha = Math.Clamp(opacity(cell), 0, 1);
+            var cell = cells[index];
+            var alpha = Math.Clamp(GradientSpin.Opacity(phase - cell.Lag), 0, 1);
             if (alpha <= 0) continue;
             using (context.PushOpacity(alpha))
-                context.FillRectangle(new SolidColorBrush(tint(cell.Row)), CellFrame(cell, bounds, content, cellSize, gap));
+                context.FillRectangle(rowBrushes[cell.Row], CellFrame(cell, bounds, content, cellSize, gap));
         }
     }
+
+    /// <summary>One immutable solid brush per row tint (ED-NEW-lean-8).</summary>
+    internal static IBrush[] RowBrushes(Color[] tints)
+    {
+        var brushes = new IBrush[tints.Length];
+        for (var index = 0; index < tints.Length; index++) brushes[index] = new ImmutableSolidColorBrush(tints[index]);
+        return brushes;
+    }
+}
+
+/// <summary>
+/// PORT-ONLY (ED-NEW-lean-8, the lead's 60 Hz decorative cap): decides which frames of the main-thread frame clock repaint a
+/// decoration whose picture moves continuously. Draws are due 1/60 s apart on a grid of due times, a millisecond early at
+/// most, the way AmbientRefreshPacer paces a display whose refresh period is unknown (ED-117 (2), ED-232); a run more than two
+/// slots behind (a pause) starts again at the frame it is at. On a 60 Hz display every frame is due; at 120 and 240 Hz every
+/// second and fourth; at 144 Hz two or three refreshes apart.
+/// </summary>
+public struct DecorationPace
+{
+    private const long Span = TimeSpan.TicksPerSecond / 60; // 1/60 s, to the tick
+    private long due;
+    private bool started;
+
+    /// <summary>Whether the frame at <paramref name="now"/> repaints; the first frame of a run always does.</summary>
+    public bool Due(ContinuousInstant now)
+    {
+        if (!started)
+        {
+            started = true;
+            due = now.Ticks + Span;
+            return true;
+        }
+        if (now.Ticks + TimeSpan.TicksPerMillisecond < due) return false;
+        due = now.Ticks - due >= 2 * Span ? now.Ticks + Span : due + Span;
+        return true;
+    }
+
+    /// <summary>Starts a new run: the next frame repaints.</summary>
+    public void Reset() => started = false;
 }
 
 /// <summary>
@@ -136,10 +181,12 @@ internal sealed class SpinnerLayerView : Control
     private readonly int columns;
     private readonly double cellSize;
     private Color[] tints = [Colors.Transparent, Colors.Transparent, Colors.Transparent];
+    private IBrush[] brushes = SpinnerGeometry.RowBrushes([Colors.Transparent, Colors.Transparent, Colors.Transparent]);
     private readonly Action<TimeSpan> frame;
     private IFrameSource? source;
     private bool waiting;
     private bool animated;
+    private DecorationPace pace;
 
     internal SpinnerLayerView(IReadOnlyList<SpinnerCell> cells, int columns, double cellSize) // :150-154, :210-234
     {
@@ -183,6 +230,7 @@ internal sealed class SpinnerLayerView : Control
     {
         var accent = Marrow.UI.Chrome.Chrome.AccentNSColor.Resolve(ActualThemeVariant); // :261-263 effectiveAppearance.performAsCurrentDrawingAppearance
         tints = GradientSpin.RowTints(accent);
+        brushes = SpinnerGeometry.RowBrushes(tints);
         InvalidateVisual(); // :264-269 CATransaction with actions disabled: an instant write, no crossfade (PR-THEME-170)
     }
 
@@ -213,6 +261,13 @@ internal sealed class SpinnerLayerView : Control
     private void Request()
     {
         if (waiting || !animated || source is null) return;
+        pace.Reset(); // a new run of frames repaints at its first
+        Ask();
+    }
+
+    private void Ask()
+    {
+        if (waiting || !animated || source is null) return;
         waiting = true;
         source.RequestFrame(frame);
     }
@@ -220,13 +275,18 @@ internal sealed class SpinnerLayerView : Control
     /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the spinner.</summary>
     internal int Invalidations { get; private set; }
 
+    // ED-NEW-lean-8: the pulse is drawn from the clock at render time, so a frame repaints only at the 60 Hz cap
+    // (DecorationPace); the frames between only ask again.
     private void OnFrame(TimeSpan _)
     {
         waiting = false;
         if (!animated) return;
-        Invalidations++;
-        InvalidateVisual();
-        Request();
+        if (pace.Due(SwiftClock.Now))
+        {
+            Invalidations++;
+            InvalidateVisual();
+        }
+        Ask();
     }
 
     protected override Size MeasureOverride(Size availableSize) => SpinnerGeometry.ContentSize(cells, columns, cellSize);
@@ -242,8 +302,7 @@ internal sealed class SpinnerLayerView : Control
         var phase = animated
             ? SwiftClock.Now.Ticks / (double)TimeSpan.TicksPerSecond / GradientSpin.Period
             : 0;
-        SpinnerGeometry.Paint(context, cells, columns, cellSize, Bounds.Size, row => tints[row],
-            cell => GradientSpin.Opacity(phase - cell.Lag));
+        SpinnerGeometry.Paint(context, cells, columns, cellSize, Bounds.Size, brushes, phase);
     }
 }
 
@@ -258,6 +317,7 @@ file sealed class StillSpinnerGrid : Control
     private readonly int columns;
     private readonly double cellSize;
     private readonly Color[] tints;
+    private readonly IBrush[] brushes;
 
     internal StillSpinnerGrid(IReadOnlyList<SpinnerCell> cells, int columns, double cellSize, Color[] tints) // :115-121
     {
@@ -265,6 +325,7 @@ file sealed class StillSpinnerGrid : Control
         this.columns = columns;
         this.cellSize = cellSize;
         this.tints = tints; // :120 tints: one per row, resolved by the caller
+        brushes = SpinnerGeometry.RowBrushes(tints);
         Focusable = false;
         IsHitTestVisible = false;
     }
@@ -278,8 +339,7 @@ file sealed class StillSpinnerGrid : Control
         base.Render(context);
         if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
         // :128-132 opacity(phase: -lag): every cell frozen at the value it would hold at the very start of the wave.
-        SpinnerGeometry.Paint(context, cells, columns, cellSize, Bounds.Size, row => tints[row],
-            cell => GradientSpin.Opacity(-cell.Lag));
+        SpinnerGeometry.Paint(context, cells, columns, cellSize, Bounds.Size, brushes, 0);
     }
 }
 

@@ -20,11 +20,11 @@ namespace Marrow.UI.Tests.Common;
 public sealed class HydraDecorationLeanTests(HeadlessSession headless)
 {
     // Budgets: measured on the unchanged base, then on the fix (both numbers in ED-NEW-lean-8).
-    private const int SpinnerInvalidationsPerSecond = 360; // base 240 at 240 Hz
-    private const long SpinnerBytesPerFrame = 5880; // base 3920
-    private const int RingInvalidationsPerSecond = 360; // base 240 at 240 Hz
-    private const int RingReduceMotionRequestsPerSecond = 360; // base 240 at 240 Hz
-    private const long RingBytesPerFrame = 2652; // base 1768
+    private const int SpinnerInvalidationsPerSecond = 78; // base 240 at 240 Hz; fixed 60
+    private const long SpinnerBytesPerFrame = 0; // base 3920; fixed 0
+    private const int RingInvalidationsPerSecond = 78; // base 240 at 240 Hz; fixed 60
+    private const int RingReduceMotionRequestsPerSecond = 0; // base 240 at 240 Hz; fixed 0
+    private const long RingBytesPerFrame = 73; // base 1768; fixed 56 (what is left is Avalonia's stroke and transform)
 
     // The pixel guard: SHA-256 over the frames at the 20 fixed timestamps, recorded on the unchanged base.
     private const string SpinnerFrames = "50405F9D8B66FFD0E489D896D3C34F2FF6D0466F8C6378E1EA2F7DB2AC802875";

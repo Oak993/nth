@@ -34,12 +34,12 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class HydraDecorationLeanTests(HeadlessSession headless)
 {
     // Budgets: measured on the unchanged base, then on the fix (both numbers in ED-NEW-lean-8).
-    private const int ChargeInvalidationsPerSecond = 360; // base 240 at 240 Hz
-    private const long ChargeBytesPerFrame = 22632; // base 15088
-    private const int BarInvalidationsPerCycle = 218; // one 6 s sweep cycle; base 145
-    private const long BarBytesPerFrame = 137718; // base 91812
-    private const int TitleLayoutsPerSecond = 30; // base 20
-    private const long TitleBytesPerFrame = 8895; // base 5930
+    private const int ChargeInvalidationsPerSecond = 78; // base 240 at 240 Hz; fixed 60
+    private const long ChargeBytesPerFrame = 1092; // base 15088; fixed 840 (what is left is Skia's two gradient shaders per draw)
+    private const int BarInvalidationsPerCycle = 83; // one 6 s sweep cycle; base 145; fixed 64 (the 2.6 s sweep at 24 a second)
+    private const long BarBytesPerFrame = 519; // base 91812; fixed 399 (the timeline's frame and Skia's clip and band shader)
+    private const int TitleLayoutsPerSecond = 0; // base 20; fixed 0
+    private const long TitleBytesPerFrame = 281; // base 5930; fixed 216 (the timeline's frame and the stops' change notifications)
 
     // The pixel guard: SHA-256 over the frames at the 20 fixed timestamps, recorded on the unchanged base.
     private const string ChargeFrames = "C1C60C4544099BDCC3F185574F25B66222254B8A0EBF7828DEEE129007BDC64C";

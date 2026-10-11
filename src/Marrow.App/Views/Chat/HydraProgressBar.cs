@@ -7,6 +7,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Avalonia.Styling;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Tour;
@@ -65,6 +66,12 @@ public sealed class HydraProgressBar : Decorator
     private WorkItem? hideCard;
     private bool cardShown;
     private double? cardTargetX;
+    // ED-NEW-lean-8: what the counts line and the accessibility name were last made from; a tick that changes neither makes
+    // neither again (each was a handful of strings 24 times a second).
+    private object? lineCounts;
+    private object? nameCounts;
+    private double nameSeconds = double.NaN;
+    private bool nameRunning;
 
     private sealed class MotionState(HydraHeadInfo.Status status) : MainActorModel
     {
@@ -466,16 +473,21 @@ public sealed class HydraProgressBar : Decorator
                 Refresh();
             });
         }
-        countsText.Text = resolved.Counts.Line;
-        if (resolved.Counts.Line.Length == 0)
+        if (!ReferenceEquals(lineCounts, resolved.Counts)) // the counts are made again only when the events change
         {
-            if (content.Children.Contains(countsText))
-                content.Children.Remove(countsText);
-        }
-        else
-        {
-            if (!content.Children.Contains(countsText))
-                content.Children.Add(countsText);
+            lineCounts = resolved.Counts;
+            var line = resolved.Counts.Line;
+            countsText.Text = line;
+            if (line.Length == 0)
+            {
+                if (content.Children.Contains(countsText))
+                    content.Children.Remove(countsText);
+            }
+            else
+            {
+                if (!content.Children.Contains(countsText))
+                    content.Children.Add(countsText);
+            }
         }
 
         var id = (object)runtime;
@@ -516,9 +528,20 @@ public sealed class HydraProgressBar : Decorator
             ShowCard(false);
         }
 
-        AutomationProperties.SetName(
-            this,
-            $"{resolved.Counts.Sentence}, {RelativeTime.Duration((status == HydraHeadInfo.Status.Running ? SwiftDate.Now : finishedAt ?? SwiftDate.Now) - startedAt)}{(status == HydraHeadInfo.Status.Running ? " so far" : "")}");
+        // RelativeTime.Duration says the whole seconds, rounded half away from zero: the name changes only when they, the counts
+        // or the status do.
+        var running = status == HydraHeadInfo.Status.Running;
+        var elapsed = (running ? SwiftDate.Now : finishedAt ?? SwiftDate.Now) - startedAt;
+        var seconds = Math.Round(elapsed.TotalSeconds, MidpointRounding.AwayFromZero);
+        if (!ReferenceEquals(nameCounts, resolved.Counts) || seconds != nameSeconds || running != nameRunning)
+        {
+            nameCounts = resolved.Counts;
+            nameSeconds = seconds;
+            nameRunning = running;
+            AutomationProperties.SetName(
+                this,
+                $"{resolved.Counts.Sentence}, {RelativeTime.Duration(elapsed)}{(running ? " so far" : "")}");
+        }
     }
 
     // :177,242 The hover overlay has a smooth 0.15s opacity transition in both directions.
@@ -592,6 +615,9 @@ public sealed class HydraProgressBar : Decorator
     // :357-446
     private sealed class BarDrawing : Control
     {
+        private static readonly SwiftColor HoverColor = SwiftColor.White.Opacity(0.4);
+        private static readonly SwiftColor SlotColor = Chrome.Overlay(0.06);
+
         private IReadOnlyList<Stave> staves = Array.Empty<Stave>();
         private long capacity;
         private DateTimeOffset date = SwiftDate.Now;
@@ -600,6 +626,46 @@ public sealed class HydraProgressBar : Decorator
         private int? hovered;
         private bool rising;
         private bool sweeping;
+
+        // ED-NEW-lean-8: the staves' shapes, kept while what they are made of holds and no stave is still rising; the brushes,
+        // one per role, made again only when its colour changes; the sweep's band brush, made once. The same shapes and the
+        // same colours, so the same pixels.
+        private GeometryGroup? filled;
+        private readonly GeometryGroup?[] kinds = new GeometryGroup?[4]; // Lookup, Command, Edit, Reply: the order they are drawn in
+        private Geometry? ending;
+        private Geometry? hover;
+        private GeometryGroup? slots;
+        private bool shapesKept;
+        private IReadOnlyList<Stave>? shapesStaves;
+        private long shapesCapacity;
+        private double shapesBottom;
+        private HydraHeadInfo.Status shapesStatus;
+        private int? shapesHovered;
+        private SwiftColor? kindTint;
+        private readonly SwiftColor[] kindColors = new SwiftColor[4];
+        private readonly BrushSlot[] kindBrushes = [new(), new(), new(), new()];
+        private readonly BrushSlot endingBrush = new();
+        private readonly BrushSlot hoverBrush = new();
+        private readonly BrushSlot slotsBrush = new();
+        private LinearGradientBrush? bandBrush;
+
+        /// <summary>A solid brush for one role, made again only when its colour changes (an immutable brush of the same colour
+        /// draws what a new SolidColorBrush did).</summary>
+        private sealed class BrushSlot
+        {
+            private Color color;
+            private IBrush? brush;
+
+            public IBrush For(Color next)
+            {
+                if (brush is null || next != color)
+                {
+                    color = next;
+                    brush = new ImmutableSolidColorBrush(next);
+                }
+                return brush;
+            }
+        }
 
         // :357-367, :369-446
         public void Update(
@@ -612,6 +678,11 @@ public sealed class HydraProgressBar : Decorator
             bool rising,
             bool sweeping)
         {
+            // ED-NEW-lean-8: a tick whose picture is the one on screen (the same staves, none rising, and the sweep at rest
+            // both before and now) draws nothing.
+            var still = ReferenceEquals(staves, this.staves) && capacity == this.capacity && status == this.status &&
+                ReferenceEquals(tint, this.tint) && hovered == this.hovered && rising == this.rising && sweeping == this.sweeping &&
+                Still(this.date) && Still(date);
             this.staves = staves;
             this.capacity = capacity;
             this.date = date;
@@ -620,6 +691,7 @@ public sealed class HydraProgressBar : Decorator
             this.hovered = hovered;
             this.rising = rising;
             this.sweeping = sweeping;
+            if (still) return;
             Invalidations++;
             InvalidateVisual();
         }
@@ -627,15 +699,38 @@ public sealed class HydraProgressBar : Decorator
         /// <summary>ED-NEW-lean-8 (tests): how many updates have repainted the bar.</summary>
         internal int Invalidations { get; private set; }
 
-        // :357-446
-        public override void Render(DrawingContext context)
+        // Whether the picture at <paramref name="at"/> depends on the time at all: a stave still rising, or the sweep's band out.
+        private bool Still(DateTimeOffset at) => !Rising(at) && !BandOut(at);
+
+        private bool Rising(DateTimeOffset at)
         {
-            base.Render(context);
-            var bottom = Bounds.Height;
-            var filled = new GeometryGroup();
-            var byKind = new Dictionary<Stave.Kind, GeometryGroup>();
-            Geometry? ending = null;
-            Geometry? hover = null;
+            if (!rising) return false;
+            for (var index = 0; index < staves.Count; index++)
+                if ((at - staves[index].ArrivedAt).TotalSeconds < Rise) return true;
+            return false;
+        }
+
+        private bool BandOut(DateTimeOffset at) => sweeping && staves.Count > 0 && Within(at) < Sweep;
+
+        private static double Within(DateTimeOffset at)
+        {
+            var referenceDate = new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var seconds = (at - referenceDate).TotalSeconds;
+            return seconds % (Sweep + SweepRest);
+        }
+
+        // The shapes of :373-418, made again unless the ones kept are of the same staves at full height.
+        private void Shape(double bottom)
+        {
+            var risingNow = Rising(date);
+            if (!risingNow && shapesKept && ReferenceEquals(shapesStaves, staves) && shapesCapacity == capacity &&
+                shapesBottom == bottom && shapesStatus == status && shapesHovered == hovered)
+                return;
+
+            filled = new GeometryGroup();
+            Array.Clear(kinds);
+            ending = null;
+            hover = null;
 
             for (var index = 0; index < staves.Count; index++)
             {
@@ -662,31 +757,15 @@ public sealed class HydraProgressBar : Decorator
                 else if (index == staves.Count - 1 && status == HydraHeadInfo.Status.Stopped)
                     ending = shape;
                 else
-                {
-                    if (!byKind.TryGetValue(stave.StaveKind, out var group))
-                        byKind[stave.StaveKind] = group = new GeometryGroup();
-                    group.Children.Add(shape);
-                }
+                    (kinds[(int)stave.StaveKind] ??= new GeometryGroup()).Children.Add(shape);
 
                 if (index == hovered) hover = shape;
             }
 
-            foreach (var kind in new[] { Stave.Kind.Lookup, Stave.Kind.Command, Stave.Kind.Edit, Stave.Kind.Reply })
-                if (byKind.TryGetValue(kind, out var paths))
-                    context.DrawGeometry(ColorFor(kind, tint).Brush(this), null, paths);
-
-            if (ending is not null)
-            {
-                var color = status == HydraHeadInfo.Status.Failed ? Chrome.Danger : Chrome.SecondaryText;
-                context.DrawGeometry(color.Brush(this), null, ending);
-            }
-
-            if (hover is not null)
-                context.DrawGeometry(SwiftColor.White.Opacity(0.4).Brush(this), null, hover);
-
+            slots = null;
             if (staves.Count < capacity)
             {
-                var slots = new GeometryGroup();
+                slots = new GeometryGroup();
                 for (var slot = staves.Count; slot < capacity; slot++)
                     slots.Children.Add(new RectangleGeometry
                     {
@@ -694,20 +773,60 @@ public sealed class HydraProgressBar : Decorator
                         RadiusX = StaveWidth / 2,
                         RadiusY = StaveWidth / 2,
                     });
-                context.DrawGeometry(Chrome.Overlay(0.06).Brush(this), null, slots);
             }
+
+            shapesKept = !risingNow;
+            shapesStaves = staves;
+            shapesCapacity = capacity;
+            shapesBottom = bottom;
+            shapesStatus = status;
+            shapesHovered = hovered;
+        }
+
+        // :347-353, per stave kind in the order Lookup, Command, Edit, Reply
+        private SwiftColor KindColor(int kind)
+        {
+            if (!ReferenceEquals(kindTint, tint))
+            {
+                kindTint = tint;
+                for (var index = 0; index < kindColors.Length; index++) kindColors[index] = ColorFor((Stave.Kind)index, tint);
+            }
+            return kindColors[kind];
+        }
+
+        // :357-446
+        public override void Render(DrawingContext context)
+        {
+            base.Render(context);
+            var bottom = Bounds.Height;
+            Shape(bottom);
+            var theme = ActualThemeVariant;
+
+            for (var kind = 0; kind < kinds.Length; kind++)
+                if (kinds[kind] is { } paths)
+                    context.DrawGeometry(kindBrushes[kind].For(KindColor(kind).Resolve(theme)), null, paths);
+
+            if (ending is not null)
+            {
+                var color = status == HydraHeadInfo.Status.Failed ? Chrome.Danger : Chrome.SecondaryText;
+                context.DrawGeometry(endingBrush.For(color.Resolve(theme)), null, ending);
+            }
+
+            if (hover is not null)
+                context.DrawGeometry(hoverBrush.For(HoverColor.Resolve(theme)), null, hover);
+
+            if (slots is not null)
+                context.DrawGeometry(slotsBrush.For(SlotColor.Resolve(theme)), null, slots);
 
             if (!sweeping || staves.Count == 0) return;
 
             var filledWidth = staves.Count * Pitch - Gap;
             var band = Math.Max(24, filledWidth / 3);
-            var referenceDate = new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero);
-            var seconds = (date - referenceDate).TotalSeconds;
-            var within = seconds % (Sweep + SweepRest);
+            var within = Within(date);
             if (within >= Sweep) return;
             var phase = within / Sweep;
             var x = -band + phase * (filledWidth + band);
-            var bandBrush = new LinearGradientBrush
+            bandBrush ??= new LinearGradientBrush
             {
                 StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
                 EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
@@ -718,7 +837,7 @@ public sealed class HydraProgressBar : Decorator
                     new GradientStop(Color.FromArgb(0, 255, 255, 255), 1),
                 },
             };
-            using (context.PushGeometryClip(filled))
+            using (context.PushGeometryClip(filled!))
                 context.DrawRectangle(bandBrush, null, new Rect(x, 0, band, bottom));
         }
     }
@@ -780,6 +899,11 @@ public sealed class HydraWorkingTitle : Decorator
 
         Child = new Grid { Children = { label } };
 
+        // ED-NEW-lean-8: one gradient for the title's life, its stops moved in place on each paint. A new brush on every paint
+        // made the label lay its text out again 20 times a second; the stops of the one brush reach the screen as a new one's
+        // did, with the same colours at the same offsets.
+        GradientStop? start = null, before = null, dipStop = null, after = null, end = null;
+
         // Lead (native gallery, 2026-10-08): a finished head's title is not ticking, so a theme change left it in the old
         // theme's colour (white on the light panel). It is painted again whenever the theme changes.
         void Paint(DateTimeOffset date)
@@ -794,19 +918,30 @@ public sealed class HydraWorkingTitle : Decorator
             var breath = animates ? 0.5 + 0.5 * Math.Sin(now / Breath * 2 * Math.PI) : 1.0;
             label.Opacity = animates ? 0.86 + 0.14 * breath : 1;
             var primary = Chrome.PrimaryText.Resolve(ActualThemeVariant);
-            label.Foreground = new LinearGradientBrush
+            var dipped = Color.FromArgb((byte)(primary.A * dip), primary.R, primary.G, primary.B);
+            if (start is null || before is null || dipStop is null || after is null || end is null)
             {
-                StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
-                GradientStops =
+                start = new GradientStop(primary, 0);
+                before = new GradientStop(primary, (float)Math.Clamp(centre - Reach, 0, 1));
+                dipStop = new GradientStop(dipped, (float)Math.Clamp(centre, 0, 1));
+                after = new GradientStop(primary, (float)Math.Clamp(centre + Reach, 0, 1));
+                end = new GradientStop(primary, 1);
+                label.Foreground = new LinearGradientBrush
                 {
-                    new GradientStop(primary, 0),
-                    new GradientStop(primary, (float)Math.Clamp(centre - Reach, 0, 1)),
-                    new GradientStop(Color.FromArgb((byte)(primary.A * dip), primary.R, primary.G, primary.B), (float)Math.Clamp(centre, 0, 1)),
-                    new GradientStop(primary, (float)Math.Clamp(centre + Reach, 0, 1)),
-                    new GradientStop(primary, 1),
-                },
-            };
+                    StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
+                    EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+                    GradientStops = { start, before, dipStop, after, end },
+                };
+                return;
+            }
+            start.Color = primary;
+            before.Color = primary;
+            before.Offset = (float)Math.Clamp(centre - Reach, 0, 1);
+            dipStop.Color = dipped;
+            dipStop.Offset = (float)Math.Clamp(centre, 0, 1);
+            after.Color = primary;
+            after.Offset = (float)Math.Clamp(centre + Reach, 0, 1);
+            end.Color = primary;
         }
         Child.TimelineView(
             () => new AnimationTimelineSchedule(

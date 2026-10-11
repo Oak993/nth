@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -173,6 +174,14 @@ public sealed class HydraBreathRingView : Control
     private bool waiting;
     private double scale = RestingScale;
     private double opacity = RestingOpacity;
+    private DecorationPace pace;
+
+    // ED-NEW-lean-8: the stroke, made once per colour and width rather than once per frame (a new brush per frame also bound
+    // itself to the control's theme changes, one subscription per frame). An immutable pen of the same colour and width
+    // draws the same pixels.
+    private ImmutablePen? pen;
+    private Color penColor;
+    private double penWidth;
 
     public HydraBreathRingView()
     {
@@ -193,6 +202,19 @@ public sealed class HydraBreathRingView : Control
             waiting = false;
             source = null;
         };
+        // :192 under Reduce Motion the ring rests and asks for no frames (ED-NEW-lean-8); turned off again, it breathes.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property != EnvironmentValues.AccessibilityReduceMotionProperty || source is null) return;
+            Update();
+            InvalidateVisual();
+            if (!Reduced) Request();
+            else if (waiting)
+            {
+                source.CancelFrame(frame);
+                waiting = false;
+            }
+        };
     }
 
     /// <summary>:73, :135 <c>let color: CGColor</c> / <c>ring.strokeColor</c>.</summary>
@@ -200,6 +222,8 @@ public sealed class HydraBreathRingView : Control
 
     /// <summary>:74, :136 <c>let lineWidth: CGFloat</c> / <c>ring.lineWidth</c>.</summary>
     public double StrokeWidth { get; set; } = 1.5;
+
+    private bool Reduced => EnvironmentValues.GetAccessibilityReduceMotion(this);
 
     public double CurrentScale => scale;
 
@@ -223,7 +247,8 @@ public sealed class HydraBreathRingView : Control
 
     private void Request()
     {
-        if (waiting || source is null) return;
+        if (waiting || source is null || Reduced) return;
+        pace.Reset(); // a new run of frames repaints at its first
         waiting = true;
         source.RequestFrame(frame);
     }
@@ -231,14 +256,25 @@ public sealed class HydraBreathRingView : Control
     /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the ring.</summary>
     internal int Invalidations { get; private set; }
 
+    // ED-NEW-lean-8: the breath repaints at the 60 Hz cap (DecorationPace); the frames between only ask again.
     private void OnFrame(TimeSpan _)
     {
         waiting = false;
         if (source is null) return;
-        Update();
-        Invalidations++;
-        InvalidateVisual();
-        Request();
+        if (Reduced)
+        {
+            Update(); // the resting frame, and no more frames
+            InvalidateVisual();
+            return;
+        }
+        if (pace.Due(SwiftClock.Now))
+        {
+            Update();
+            Invalidations++;
+            InvalidateVisual();
+        }
+        waiting = true;
+        source.RequestFrame(frame);
     }
 
     private void Update()
@@ -256,10 +292,18 @@ public sealed class HydraBreathRingView : Control
         var inset = StrokeWidth / 2; // :180 bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
         var rect = new Rect(inset, inset, Math.Max(0, Bounds.Width - StrokeWidth), Math.Max(0, Bounds.Height - StrokeWidth));
         var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
+        // the colour as a brush made now would resolve it: in this view's appearance, with the current accent
+        var color = StrokeColor.Resolve(ActualThemeVariant);
+        if (pen is null || color != penColor || StrokeWidth != penWidth)
+        {
+            pen = new ImmutablePen(new ImmutableSolidColorBrush(color), StrokeWidth);
+            penColor = color;
+            penWidth = StrokeWidth;
+        }
         using (context.PushOpacity(opacity))
         using (context.PushTransform(Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(centre.X, centre.Y)))
         {
-            context.DrawEllipse(null, new Pen(StrokeColor.Brush(this), StrokeWidth), rect.Center, rect.Width / 2, rect.Height / 2);
+            context.DrawEllipse(null, pen, rect.Center, rect.Width / 2, rect.Height / 2);
         }
     }
 }

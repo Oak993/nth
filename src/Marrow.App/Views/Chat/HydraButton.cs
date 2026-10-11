@@ -814,6 +814,15 @@ public sealed class HydraChargeLayerView : Control
     private readonly Action<TimeSpan> frame;
     private IFrameSource? source;
     private bool waiting;
+    private Marrow.UI.Common.DecorationPace pace;
+
+    // ED-NEW-lean-8: the glow's gradient and the ring's pen, made again only when their colours or size change, not once per
+    // frame. The same brushes, so the same pixels.
+    private RadialGradientBrush? glowBrush;
+    private Color glowBrushAccent;
+    private Size glowBrushSize;
+    private Pen? ringPen;
+    private Color[]? ringPenColors;
 
     // :474-479 the three NotificationCenter observers, added in init and removed in deinit: kept weakly, so a view that is
     // let go is let go (R-NOTE-1; the platform has no deinit to unsubscribe in).
@@ -1016,6 +1025,7 @@ public sealed class HydraChargeLayerView : Control
     private void Request()
     {
         if (waiting || source is null) return;
+        pace.Reset(); // a new run of frames repaints at its first
         waiting = true;
         source.RequestFrame(frame);
     }
@@ -1023,14 +1033,19 @@ public sealed class HydraChargeLayerView : Control
     /// <summary>ED-NEW-lean-8 (tests): how many frames have repainted the charge.</summary>
     internal int Invalidations { get; private set; }
 
+    // ED-NEW-lean-8: the turn and the breaths repaint at the 60 Hz cap (DecorationPace); the frames between only ask again.
     private void OnFrame(TimeSpan _)
     {
         waiting = false;
         if (source is null) return;
-        Refresh();
-        Invalidations++;
-        InvalidateVisual();
-        Request();
+        if (pace.Due(SwiftClock.Now))
+        {
+            Refresh();
+            Invalidations++;
+            InvalidateVisual();
+        }
+        waiting = true;
+        source.RequestFrame(frame);
     }
 
     // :535-562 layout: the still charge's geometry exactly
@@ -1042,7 +1057,13 @@ public sealed class HydraChargeLayerView : Control
 
         // :543-550 a circle two points in, its gradient running from two to fifteen points out of the centre
         var glowRect = bounds.Deflate(2);
-        var glow = HydraCharge.GlowBrush(glowAccent, glowRect.Size);
+        if (glowBrush is null || glowBrushAccent != glowAccent || glowBrushSize != glowRect.Size)
+        {
+            glowBrush = HydraCharge.GlowBrush(glowAccent, glowRect.Size);
+            glowBrushAccent = glowAccent;
+            glowBrushSize = glowRect.Size;
+        }
+        var glow = glowBrush;
         using (context.PushOpacity(GlowOpacity))
             context.DrawEllipse(glow, null, glowRect.Center, glowRect.Width / 2, glowRect.Height / 2);
 
@@ -1053,9 +1074,14 @@ public sealed class HydraChargeLayerView : Control
         var radiusY = ringRect.Height / 2 - LineWidth / 2;
         var centre = ringRect.Center;
         var turn = Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateRotation(TurnDegrees * Math.PI / 180) * Matrix.CreateTranslation(centre.X, centre.Y);
+        if (ringPen is null || !ReferenceEquals(ringPenColors, ringColors)) // ApplyColors stores a new array whenever it recolours
+        {
+            ringPen = new Pen(RingGradient(ringColors), LineWidth);
+            ringPenColors = ringColors;
+        }
         using (context.PushOpacity(RingOpacity))
         using (context.PushTransform(turn))
-            context.DrawEllipse(null, new Pen(RingGradient(ringColors), LineWidth), centre, radiusX, radiusY);
+            context.DrawEllipse(null, ringPen, centre, radiusX, radiusY);
     }
 
     // The ring's conic gradient from resolved colours: evenly spread from 3 o'clock, clockwise.
