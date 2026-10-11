@@ -21,17 +21,21 @@ public sealed class NativeSkillTools
     private readonly NativeUserSkills? ownSkills;
     private readonly IToolRequestOffer? offer;
     private readonly Marrow.Services.Port.Advisor.AdvisorRegistration? advisor;
+    private readonly Marrow.Services.Web.ArtifactNativeTools? artifacts;
 
     /// <param name="generation">The session's generation (SK-9), which the caller keeps alive for the session; null when nothing is installed.</param>
     /// <param name="ownSkills">The user's own skills; consulted only while its switch is on.</param>
     /// <param name="offer">The offer flow request_tool asks; the tool is offered to the model only while it says something is installed.</param>
     /// <param name="advisor">PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's advisor registration; ask_advisor is offered only with one.</param>
-    public NativeSkillTools(Generation? generation, NativeUserSkills? ownSkills = null, IToolRequestOffer? offer = null, Marrow.Services.Port.Advisor.AdvisorRegistration? advisor = null)
+    /// <param name="artifacts">PORT-ONLY (web surfaces W12, ED-NEW-web-w12-1): the chat's artifact tools (Tabula); offered only with them.</param>
+    public NativeSkillTools(Generation? generation, NativeUserSkills? ownSkills = null, IToolRequestOffer? offer = null, Marrow.Services.Port.Advisor.AdvisorRegistration? advisor = null,
+        Marrow.Services.Web.ArtifactNativeTools? artifacts = null)
     {
         this.generation = generation;
         this.ownSkills = ownSkills;
         this.offer = offer;
         this.advisor = advisor;
+        this.artifacts = artifacts;
     }
 
     private bool UseSkillOffered => Listing().Count > 0;
@@ -65,6 +69,7 @@ public sealed class NativeSkillTools
             if (UseSkillOffered) definitions.Add(NativeSkillToolDefinitions.UseSkill());
             if (RequestToolOffered) definitions.Add(NativeSkillToolDefinitions.RequestTool());
             if (advisor is not null) definitions.Add(Marrow.Services.Port.Advisor.AdvisorTool.FunctionDefinition());
+            if (artifacts is not null) definitions.AddRange(artifacts.Definitions);
             return definitions;
         }
     }
@@ -75,7 +80,7 @@ public sealed class NativeSkillTools
         UseSkillName => UseSkillOffered,
         RequestToolName => RequestToolOffered,
         Marrow.Services.Port.Advisor.AdvisorTool.Name => advisor is not null,
-        _ => false,
+        _ => artifacts is not null && artifacts.Owns(toolName),
     };
 
     /// <summary>
@@ -88,13 +93,15 @@ public sealed class NativeSkillTools
         if (toolName == UseSkillName && UseSkillOffered) return Task.FromResult(UseSkill(arguments));
         if (toolName == RequestToolName && offer is not null) return RequestTool(arguments);
         if (toolName == Marrow.Services.Port.Advisor.AdvisorTool.Name && advisor is not null) return AskAdvisor(advisor, arguments);
+        if (artifacts is not null && artifacts.Owns(toolName)) return artifacts.Execute(toolName, arguments);
         throw new InvalidOperationException($"{toolName} is not a tool this object runs.");
     }
 
     /// <summary>The timeline row's title for a call, known before it runs (U+00B7 MIDDLE DOT, as the MCP rows use).</summary>
     public static string Title(string toolName, JSONValue arguments) =>
         toolName == UseSkillName ? "Skill" + (arguments["name"]?.JSONValueString is { Length: > 0 } name ? " \u00B7 " + name : "")
-        : toolName == Marrow.Services.Port.Advisor.AdvisorTool.Name ? Marrow.Services.Port.Advisor.AdvisorTool.Title : toolName;
+        : toolName == Marrow.Services.Port.Advisor.AdvisorTool.Name ? Marrow.Services.Port.Advisor.AdvisorTool.Title
+        : Marrow.Services.Web.ArtifactTools.IsName(toolName) ? Marrow.Services.Web.ArtifactNativeTools.Title(toolName, arguments) : toolName;
 
     // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): one piece of advice from the head's lead; an error is a failed row, never a throw.
     private static async Task<NativeToolResult> AskAdvisor(Marrow.Services.Port.Advisor.AdvisorRegistration advisor, JSONValue arguments)

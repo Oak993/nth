@@ -45,5 +45,6 @@ public static class SkillSessionFactory
     }
 
     public static NativeSkillTools NativeTools(SessionConfiguration configuration) =>
-        new(configuration.SkillGeneration, offer: configuration.SkillToolOffer, advisor: Marrow.Services.Port.Advisor.AdvisorTool.Registration(configuration)); // + ED-NEW-ignisadvisor-2
+        new(configuration.SkillGeneration, offer: configuration.SkillToolOffer, advisor: Marrow.Services.Port.Advisor.AdvisorTool.Registration(configuration), // + ED-NEW-ignisadvisor-2
+            artifacts: Marrow.Services.Web.ArtifactNativeTools.For(configuration)); // + ED-NEW-web-w12-1 (Tabula)
 }
