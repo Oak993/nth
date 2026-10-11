@@ -37,6 +37,8 @@ public sealed class ConversationTransferPrompt(Func<Avalonia.Controls.Window?>? 
                     else answer.TrySetResult(result);
                     window.Close();
                 });
+                // ED-NEW-textsize-1: drawn at the app zoom of the window it is asked over.
+                if (window.Content is Control content) window.Content = Marrow.UI.Common.AppZoom.Zoomed(content, Marrow.UI.Common.AppZoom.ScaleOfWindow(parent));
                 window.Closed += (_, _) => answer.TrySetResult(new(false));
                 _ = window.ShowDialog(parent);
             }

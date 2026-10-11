@@ -532,13 +532,15 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     {
         var window = ShowMain(harness, manager, new Border());
         var container = Assert.IsAssignableFrom<Panel>(window.Content);
-        // :107 one hosting view, then (OD-0044) the caption buttons' layer over it, filling the window too.
-        Assert.Equal(2, container.Children.Count);
+        // :107 one hosting view, then the zoom's capsule over it (ED-NEW-textsize-3: drawn at the base scale, never hit), then (OD-0044) the caption
+        // buttons' layer over both, filling the window too.
+        Assert.Equal(3, container.Children.Count);
         var hosting = Assert.IsType<FrameHostingView>(container.Children[0]);
-        Assert.Same(WindowChrome.CaptionLayer(window), container.Children[1]);
+        var capsule = Assert.IsType<LayoutTransformControl>(container.Children[1]); Assert.IsType<ZoomIndicator>(capsule.Child); Assert.False(capsule.IsHitTestVisible);
+        Assert.Same(WindowChrome.CaptionLayer(window), container.Children[2]);
         Assert.Equal(new Rect(0, 0, 1320, 860), hosting.Bounds);
         Assert.Equal(new Rect(0, 0, 1320, 860), container.Bounds);
-        Assert.Equal(new Rect(0, 0, 1320, 860), container.Children[1].Bounds);
+        Assert.Equal(new Rect(0, 0, 1320, 860), container.Children[2].Bounds);
         Assert.Same(WindowChrome.CaptionLayer(window), WindowChrome.CaptionCluster(window).Parent); // the buttons live on it
     });
 
@@ -851,7 +853,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         {
             Hosts(content);
             Assert.Same(manager.Model, AppEnvironment.GetAppModel(content)); // :171
-            Assert.Equal(1.25, ScaleOf(content)); // :175, AppZoom.swift:22
+            Assert.Equal(125 / 100.0 * AppZoom.BaseScale, ScaleOf(content)); // :175, AppZoom.swift:22; the level over the base scale (ED-NEW-textsize-2)
             Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content)); // :176
             Assert.Equal(Color.FromRgb(0xBD, 0x93, 0xF9), SwiftTraps.Unwrap(Popovers.GetTint(content)).Resolve(ThemeVariant.Dark)); // :177, AppTheme.swift:119
         }
@@ -871,7 +873,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
             var hosting = new FrameHostingView(new HostedEnvironment(manager.Model, liveResize).Body(column));
             Assert.Same(manager.Model, AppEnvironment.GetAppModel(column));
             Assert.Same(liveResize, AppEnvironment.GetWindowLiveResize(column));
-            Assert.Equal(1.5, ScaleOf(column));
+            Assert.Equal(150 / 100.0 * AppZoom.BaseScale, ScaleOf(column)); // ED-NEW-textsize-2
             Assert.IsType<ZoomLayout>(column.Parent);
             Assert.True(Popovers.GetIsCapsuleButtonBorderShape(column));
             Assert.Equal(Color.FromRgb(0xBD, 0x93, 0xF9), SwiftTraps.Unwrap(Popovers.GetTint(column)).Resolve(ThemeVariant.Dark));
@@ -891,21 +893,22 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         ShowMain(harness, manager, mainContent);
         ShowSettings(harness, manager, settingsContent);
         var zoom = Hosts(mainContent).Zoom;
-        Assert.Equal(1d, ScaleOf(mainContent));
+        Assert.Equal(AppZoom.BaseScale, ScaleOf(mainContent)); // 100 %: the base scale alone (ED-NEW-textsize-2)
         var attachedBefore = attached;
 
         harness.Main.OnMain(() => manager.Model.Settings.AppZoom = 175);
         harness.Main.OnMain(() => Settle(WindowOf(mainContent)));
-        Assert.Equal(1.75, ScaleOf(mainContent));
-        Assert.Equal(1.75, ScaleOf(settingsContent));
+        var scale = 175 / 100.0 * AppZoom.BaseScale;
+        Assert.Equal(scale, ScaleOf(mainContent));
+        Assert.Equal(scale, ScaleOf(settingsContent));
         Assert.Same(zoom, Hosts(mainContent).Zoom); // the same layout, the same content: nothing rebuilt
         Assert.Equal(attachedBefore, attached); // never detached and attached again
         // AppZoom.swift:40-46: laid out in the window's space divided by the scale.
-        Assert.Equal(new Size(1320 / 1.75, 860 / 1.75), mainContent.Bounds.Size);
+        Assert.Equal(new Size(1320 / scale, 860 / scale), mainContent.Bounds.Size);
 
         harness.Main.OnMain(() => manager.Model.Settings.AppZoom = 95); // not a level: normalized to 100
         harness.Main.OnMain(() => Settle(WindowOf(mainContent)));
-        Assert.Equal(1d, ScaleOf(mainContent));
+        Assert.Equal(AppZoom.BaseScale, ScaleOf(mainContent));
     });
 
     // ---- PR-WIN-020, PR-THEME-039: colour scheme and process appearance ----
@@ -1055,11 +1058,12 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         // WindowChrome.swift:116-117 isOpaque = false, backgroundColor = .clear
         Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(window.Background).Color);
         // Nothing between the window and the hosted view paints (:104-108: a plain container and the hosting view),
-        // so what shows is the content itself, from the window's top-left corner under the title bar, at 780 x 580.
+        // so what shows is the content itself, from the window's top-left corner under the title bar, at 780 x 580 (pixels: the content's points at the
+        // base scale, ED-NEW-textsize-2).
         var container = Assert.IsAssignableFrom<Panel>(window.Content);
         Assert.Null(container.Background);
         Assert.Equal(new Point(0, 0), content.TranslatePoint(new Point(0, 0), window));
-        Assert.Equal(new Size(780, 580), content.Bounds.Size);
+        ZoomDrawn.Covers(new Size(780, 580), content, window);
     });
 
     // ED-236 (OD-0014, closes STOP #5): the clear window over the desktop is Acrylic under the app-drawn scrim, on both

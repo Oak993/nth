@@ -81,12 +81,13 @@ public abstract class SettingsRestFixture(HeadlessSession headless)
     }
     protected static void CheckRow(ChromeRow row, string title, string? detail)
     {
-        // Chrome.swift:1062-1078: title/body 13, detail/subheadline 11, spacing 2, padding 16/11/10/11.
-        var pad = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), pad.Padding);
+        // Chrome.swift:1062-1078 at the Settings sizes of ED-NEW-textsize-2: title Chrome.SettingsRowTitleSize (.body 13), detail
+        // SettingsRowDetailSize on a SettingsRowDetailLineHeight line (.subheadline 11), spacing 2, padding 16/SettingsRowVerticalPadding/10 (11).
+        var pad = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, Chrome.SettingsRowVerticalPadding, 10, Chrome.SettingsRowVerticalPadding), pad.Padding);
         var grid = Assert.IsType<Grid>(pad.Child); var labels = Assert.IsType<StackPanel>(grid.Children[0]); Assert.Equal(2, labels.Spacing);
-        var heading = Assert.IsType<TextBlock>(labels.Children[0]); Assert.Equal(title, heading.Text); Font(heading, 13); Ink(heading, heading.Foreground, Chrome.PrimaryText);
+        var heading = Assert.IsType<TextBlock>(labels.Children[0]); Assert.Equal(title, heading.Text); Font(heading, Chrome.SettingsRowTitleSize); Ink(heading, heading.Foreground, Chrome.PrimaryText);
         Assert.Equal(detail is null ? 1 : 2, labels.Children.Count);
-        if (detail is not null) { var subtitle = Assert.IsType<TextBlock>(labels.Children[1]); Assert.Equal(detail, subtitle.Text); Font(subtitle, 11); Ink(subtitle, subtitle.Foreground, Chrome.SecondaryText); Assert.Equal(TextWrapping.Wrap, subtitle.TextWrapping); }
+        if (detail is not null) { var subtitle = Assert.IsType<TextBlock>(labels.Children[1]); Assert.Equal(detail, subtitle.Text); Font(subtitle, Chrome.SettingsRowDetailSize); Assert.Equal(Chrome.SettingsRowDetailLineHeight, subtitle.LineHeight); Ink(subtitle, subtitle.Foreground, Chrome.SecondaryText); Assert.Equal(TextWrapping.WrapWithOverflow, subtitle.TextWrapping); }
         var accessory = grid.Children[1]; Assert.Equal(Avalonia.Layout.HorizontalAlignment.Right, accessory.HorizontalAlignment); Assert.Equal(Avalonia.Layout.VerticalAlignment.Center, accessory.VerticalAlignment);
     }
     protected static Control Open(Popup popup)

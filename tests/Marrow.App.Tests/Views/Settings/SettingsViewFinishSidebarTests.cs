@@ -81,12 +81,12 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
                 for (var i = 0; i < rows.Length; i++)
                 {
                     var button = Assert.Single(Nodes<Button>(rows[i])); var shape = Assert.IsType<Border>(button.Content); var label = Assert.Single(Nodes<TextBlock>(rows[i])); var on = titles[i] == selected;
-                    // Chrome.swift:719-727: height 28, 7pt continuous corners, 8pt leading and (8 + accessoryWidth 0) trailing, the 20pt icon column, 8pt spacing, the full 192pt of the list.
-                    Assert.Equal(28, shape.Bounds.Height, 3); Assert.Equal(192, shape.Bounds.Width, 3); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); Assert.Equal(new Thickness(8, 0), shape.Padding); ContinuousCornerChecks.Drawn(shape, expectApple: true); // ED-181 closed: 28 pt holds the 21 pt two run-ins of a 7 pt corner
+                    // Chrome.swift:719-727: height 28 (Chrome.SettingsNavRowHeight in Settings, ED-NEW-textsize-2), 7pt continuous corners, 8pt leading and (8 + accessoryWidth 0) trailing, the 20pt icon column, 8pt spacing, the full 192pt of the list.
+                    Assert.Equal(Chrome.SettingsNavRowHeight, shape.Bounds.Height, 3); Assert.Equal(192, shape.Bounds.Width, 3); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); Assert.Equal(new Thickness(8, 0), shape.Padding); ContinuousCornerChecks.Drawn(shape, expectApple: true); // ED-181 closed: 28 pt holds the 21 pt two run-ins of a 7 pt corner
                     var badge = Assert.Single(Nodes<SidebarIconBadge>(rows[i])); Assert.Equal(20, badge.Bounds.Width, 3); Assert.Equal(8, TopLeft(badge, shape).X, 3); Assert.Equal(8 + 20 + 8, TopLeft(label, shape).X, 3);
-                    if (i > 0) Assert.Equal(28 + 1, TopLeft(shape, list).Y - TopLeft(Nodes<Button>(rows[i - 1]).Single(), list).Y, 3);
+                    if (i > 0) Assert.Equal(Chrome.SettingsNavRowHeight + 1, TopLeft(shape, list).Y - TopLeft(Nodes<Button>(rows[i - 1]).Single(), list).Y, 3);
                     // :713-716 .body, medium when selected else regular, primary at 1 when selected else 0.92, one line truncated at the tail; :754 the isSelected trait.
-                    Font(label, 13, on ? FontWeight.Medium : FontWeight.Normal); Ink(label, label.Foreground, Chrome.PrimaryText.Opacity(on ? 1 : 0.92)); Assert.Equal(1, label.MaxLines); Assert.Equal(TextTrimming.CharacterEllipsis, label.TextTrimming);
+                    Font(label, Chrome.SettingsNavTitleSize, on ? FontWeight.Medium : FontWeight.Normal); Ink(label, label.Foreground, Chrome.PrimaryText.Opacity(on ? 1 : 0.92)); Assert.Equal(1, label.MaxLines); Assert.Equal(TextTrimming.CharacterEllipsis, label.TextTrimming);
                     Assert.Equal(on, ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(button)!).IsSelected); Assert.Equal(titles[i], AutomationProperties.GetName(button));
                     var glyph = ((Panel)badge.Child!).Children[0]; Ink(glyph, Avalonia.Controls.Documents.TextElement.GetForeground(glyph), Chrome.PrimaryText.Opacity(0.85)); // :150 SidebarIconBadge's glyph at 0.85
                     Ink(shape, shape.Background, on ? Chrome.Overlay(0.12) : SwiftColor.Clear); // :739-743 the selected fill; hovering is exercised below
@@ -124,7 +124,7 @@ public sealed class SettingsViewFinishSidebarTests(HeadlessSession headless) : S
             // :149 a click selects the page: the rows stay (the state is theirs, not a new set of rows), and the label's weight and ink change at once ...
             Click(w, models); Assert.Single(Nodes<ModelsSettingsPage>(view));
             Assert.Equal(rows, Nodes<SidebarRow>(view)); Assert.Same(models, RowButton(view, "Models")); Assert.Same(modelsFill, models.Content);
-            Font(Assert.Single(Nodes<TextBlock>(models)), 13, FontWeight.Medium); Font(Assert.Single(Nodes<TextBlock>(general)), 13, FontWeight.Normal); Assert.True(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(models)!).IsSelected); Assert.False(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(general)!).IsSelected);
+            Font(Assert.Single(Nodes<TextBlock>(models)), Chrome.SettingsNavTitleSize, FontWeight.Medium); Font(Assert.Single(Nodes<TextBlock>(general)), Chrome.SettingsNavTitleSize, FontWeight.Normal); Assert.True(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(models)!).IsSelected); Assert.False(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(general)!).IsSelected);
             // ... and the wash crossfades in place over Chrome.hover (0.1 s ease-out): the new row part-way up, the old row part-way down, then exact.
             Tick(h, 40); Assert.InRange(Alpha(modelsFill), 1, selectedAlpha - 1); Assert.InRange(Alpha(generalFill), 1, selectedAlpha - 1);
             Tick(h, 101); Ink(modelsFill, modelsFill.Background, Chrome.Overlay(0.12)); Ink(generalFill, generalFill.Background, SwiftColor.Clear);

@@ -49,7 +49,7 @@ public sealed class SettingsLeftoverCornerTests(HeadlessSession headless) : Sett
             var hovered = RowButton(view, "Models"); Hover(w, hovered); Tick(h, 150); var wash = Assert.IsType<Border>(hovered.Content);
             foreach (var (name, shape, alpha) in new[] { ("selected, overlay 0.12", selected, 0.12), ("hovering, overlay 0.06", wash, 0.06) })
             {
-                Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(28, shape.Bounds.Height, 3);
+                Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(Chrome.SettingsNavRowHeight, shape.Bounds.Height, 3);
                 Assert.True(ContinuousCornerChecks.Drawn(shape, expectApple: true), name);
                 using var drawn = RenderedCorner.Of(shape);
                 var read = drawn.AssertCorners(shape.CornerRadius, expectApple: true, Alpha(shape.Background));
@@ -61,7 +61,7 @@ public sealed class SettingsLeftoverCornerTests(HeadlessSession headless) : Sett
             // The reading is two-sided: the row's Apple corner fails the circular reading (so the capsule's circular arcs below cannot pass as Apple's).
             using (var apple = RenderedCorner.Of(selected)) Assert.Contains("not the circular regime", Assert.ThrowsAny<Xunit.Sdk.XunitException>(() => apple.AssertCorners(selected.CornerRadius, expectApple: false, Alpha(selected.Background))).Message, StringComparison.Ordinal);
             // The negative controls: a circular twin of the row's size draws the sliver, and so does the real wash with its cut removed.
-            var circularTwin = Twin(new Border { Width = 192, Height = 28, Background = selected.Background }.RoundedRectangle(7, RoundedCornerStyle.Circular), new Size(192, 28));
+            var circularTwin = Twin(new Border { Width = 192, Height = Chrome.SettingsNavRowHeight, Background = selected.Background }.RoundedRectangle(7, RoundedCornerStyle.Circular), new Size(192, Chrome.SettingsNavRowHeight));
             using var twin = RenderedCorner.Of(circularTwin); Throws(twin, circularTwin.CornerRadius, Alpha(selected.Background));
             Assert.All(twin.AssertCorners(circularTwin.CornerRadius, expectApple: false, Alpha(selected.Background)), r => Assert.Equal(r.Solid, r.Sliver, 0.01));
             var cut = selected.Clip; selected.Clip = null;

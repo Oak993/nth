@@ -158,12 +158,23 @@ public sealed class TourWindowController
             ? lifetime.MainWindow
             : null);
 
+        // ED-NEW-textsize-1: the tour card is drawn at the app zoom of the main window, as every other surface of the app.
+        var zoom = Marrow.UI.Common.AppZoom.ScaleOfWindow(mainWindow);
+        var zoomed = Marrow.UI.Common.AppZoom.Zoomed(rootView, zoom);
+        if (!ReferenceEquals(zoomed, rootView))
+        {
+            createdWindow.Content = zoomed;
+            createdWindow.Width = width * zoom;
+            createdWindow.Height = totalHeight * zoom;
+        }
+        else zoom = 1;
+
         if (mainWindow != null && mainWindow.IsVisible)
         {
             var mainFrame = mainWindow.FrameSize ?? mainWindow.Bounds.Size;
             var scale = mainWindow.RenderScaling;
-            var originX = mainWindow.Position.X + (mainFrame.Width - width) * scale / 2;
-            var originY = mainWindow.Position.Y + (mainFrame.Height - totalHeight) * scale / 2;
+            var originX = mainWindow.Position.X + (mainFrame.Width - width * zoom) * scale / 2;
+            var originY = mainWindow.Position.Y + (mainFrame.Height - totalHeight * zoom) * scale / 2;
             createdWindow.Position = new PixelPoint((int)Math.Round(originX), (int)Math.Round(originY));
         }
         else createdWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;

@@ -60,7 +60,7 @@ public sealed class SettingsViewFinishGeneralTests(HeadlessSession headless) : S
             try { var thinking = Assert.Single(Nodes<SmallSwitch>(Row(view, "Show thinking"))); s.ShowReasoning = true; Drain(w); Tick(h, 300); var system = Chrome.Accent.Resolve(thinking.ActualThemeVariant); // the track crossfades over 0.25 s (ED-280), so the colours are read once it has settled
             Assert.True(Count(thinking, system) > 0); s.ShowReasoning = false; Drain(w); Tick(h, 300); Assert.Equal(0, Count(thinking, system)); s.ShowReasoning = true; s.Theme = AppTheme.Nord; Drain(w); Tick(h, 300);
             var nord = Chrome.Accent.Resolve(thinking.ActualThemeVariant); Assert.Equal(SwiftColor.Hex("88C0D0").Resolve(thinking.ActualThemeVariant), nord); Assert.True(Count(thinking, nord) > 0); Assert.Equal(0, Count(thinking, system)); } finally { s.Theme = AppTheme.System; }
-        });
+        }, height: 2600);
     }
 
     private static int Count(Control control, Color color)

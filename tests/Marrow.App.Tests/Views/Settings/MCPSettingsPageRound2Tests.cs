@@ -742,7 +742,7 @@ public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
             Assert.Equal(new[] { "Developer", "Browser", "Search", "Work", "Data", "Cloud", "Knowledge" }, sections.Select(s => Texts(s)[0]));
             for (var n = 0; n < sections.Length; n++)
             {
-                var heading = TextAt(sections[n], Texts(sections[n])[0]); TextStyle(heading, 13, FontWeight.SemiBold, Chrome.SecondaryText);
+                var heading = TextAt(sections[n], Texts(sections[n])[0]); TextStyle(heading, Chrome.SettingsSectionTitleSize, FontWeight.SemiBold, Chrome.SecondaryText);
                 var grid = Assert.Single(Nodes<Grid>(sections[n]), g => g.Parent is StackPanel p && p.Parent == sections[n]);
                 Assert.Equal(At(heading, page).Bottom + 10, At(grid, page).Top, 6); Assert.Equal(At(heading, page).Left, At(grid, page).Left, 6);
                 Assert.True(grid.Children.Count > 0);

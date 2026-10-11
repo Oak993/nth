@@ -392,7 +392,7 @@ public sealed class HydraSettingsPageSpecTests(HeadlessSession headless)
         Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(glyphs));
 
         var subtitle = Of<TextBlock>(card).Single(block => block.Text == "One chat leads a team of heads on big jobs.");
-        Assert.Equal(1, subtitle.MaxLines);
+        Assert.Equal(0, subtitle.MaxLines); // ED-NEW-textsize-1: it wraps in a narrow window instead of being cut off
         var column = Assert.IsType<StackPanel>(subtitle.Parent);
         Assert.Equal(2, column.Spacing);
         Assert.Equal(2, column.Children.Count);

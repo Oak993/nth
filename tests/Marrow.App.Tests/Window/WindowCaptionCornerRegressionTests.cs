@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 
 namespace Marrow.App.Tests.Window;
 
@@ -25,7 +26,7 @@ public sealed class WindowCaptionCornerRegressionTests(HeadlessSession headless)
         if (settings) manager.ShowSettings();
         var window = settings ? Settings(manager) : MainOf(manager);
         WindowChrome.PlaceTrafficLights(window, false, false); Drain(window);
-        var scale = percent / 100.0;
+        var scale = percent / 100.0 * AppZoom.BaseScale; // the zoom over the base scale (ED-NEW-textsize-2)
         foreach (var kind in new[] { CaptionButton.Kind.Minimize, CaptionButton.Kind.Maximize, CaptionButton.Kind.Close })
         {
             var button = window.GetVisualDescendants().OfType<CaptionButton>().Single(b => b.ButtonKind == kind);

@@ -34,7 +34,8 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
 
     private static void Row(ChromeRow row, string title, string detail)
     {
-        var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), border.Padding);
+        // ED-NEW-textsize-2: the Settings row's vertical padding is Claude's (Chrome.SettingsRowVerticalPadding, 18), the source's 11 before.
+        var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 18, 10, 18), border.Padding);
         var grid = Assert.IsType<Grid>(border.Child);
         // :1062,1072: VStack, Spacer(minLength:12), control; HStack has two 16pt gaps.
         Assert.Equal(new[] { 16.0, 12.0, 16.0 }, grid.ColumnDefinitions.Skip(1).Take(3).Select(c => c.Width.Value));
@@ -43,7 +44,9 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
         // The check row's sentence sits in the box that eases its height when the words swap (OD-0076); at rest the box holds the sentence alone.
         var detailText = Assert.IsType<TextBlock>(labels.Children[1] is SentenceHeightGlide box ? Assert.Single(box.Children) : labels.Children[1]);
         Assert.Equal(title, titleText.Text); Assert.Equal(detail, detailText.Text);
-        Assert.Equal(13, titleText.FontSize); Assert.Equal(11, detailText.FontSize); Assert.Equal(TextWrapping.Wrap, detailText.TextWrapping);
+        // ED-NEW-textsize-2: title 14 and detail 13 on a 20 pt line (the source's 13 and 11); ED-NEW-textsize-1: whole words wrap.
+        Assert.Equal(14, titleText.FontSize); Assert.Equal(13, detailText.FontSize); Assert.Equal(20, detailText.LineHeight);
+        Assert.Equal(TextWrapping.WrapWithOverflow, detailText.TextWrapping);
         Assert.Equal(Chrome.PrimaryText.Resolve(titleText.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(titleText.Foreground).Color);
         Assert.Equal(Chrome.PrimaryText.Opacity(0.7).Resolve(detailText.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(detailText.Foreground).Color);
         Assert.Equal(HorizontalAlignment.Right, grid.Children[1].HorizontalAlignment);

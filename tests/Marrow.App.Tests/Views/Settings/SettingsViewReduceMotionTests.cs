@@ -83,7 +83,7 @@ public sealed class SettingsViewReduceMotionTests(HeadlessSession headless) : Se
             w.MouseMove(at); Drain(w); Assert.Equal(1, content.Opacity);
             w.MouseDown(at, MouseButton.Left); Drain(w); Assert.Equal(0.8, content.Opacity, 6); // no frame has run
             w.MouseUp(at, MouseButton.Left); Drain(w); Assert.Equal(1, content.Opacity, 6);
-        });
+        }, height: 2600);
     }
 
     [Fact]

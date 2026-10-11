@@ -215,7 +215,8 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         var grey = Color.FromRgb(128, 128, 128);
         window.Background = new SolidColorBrush(grey); // the system's Acrylic stood in for by a known grey
         void Render() { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); }
-        var pairs = CornerSeam.Pairs(780, 580, Chrome.WindowCornerRadius, [2, 3, 4, 5], edgeInset: 1);
+        // ED-NEW-textsize-2: the 26 pt shape and its 1 pt hairline are drawn at the base scale, so the first clear edge row is the third.
+        var pairs = CornerSeam.Pairs(780, 580, Chrome.WindowCornerRadius * Marrow.UI.Common.AppZoom.BaseScale, [2, 3, 4, 5], edgeInset: 2);
         Assert.NotEmpty(pairs);
         (int R, int G, int B)[] Wedge() { Render(); return CornerSeam.Rgb(window, pairs.Select(pair => pair.Wedge).ToArray()); }
         (int R, int G, int B)[] Body() => CornerSeam.Rgb(window, pairs.Select(pair => pair.Body).ToArray());

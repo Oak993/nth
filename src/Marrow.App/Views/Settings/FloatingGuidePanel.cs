@@ -61,13 +61,18 @@ public class FloatingGuidePanel
     protected void Present(Control content)
     {
         var window = panel ?? MakePanel(); // :18
-        window.Content = content; // :19
+        // ED-NEW-textsize-1: the panel draws its content at the app zoom of the main window (the zoom scales the whole app,
+        // WindowManager.swift:173-175), so it is as many points wide as the source's, times the scale.
+        var scale = Marrow.UI.Common.AppZoom.ScaleOfWindow(Marrow.App.Window.WindowManager.Shared.MainWindow);
+        var shown = Marrow.UI.Common.AppZoom.Zoomed(content, scale);
+        var width = this.width * (ReferenceEquals(shown, content) ? 1 : scale);
+        window.Content = shown; // :19
         window.Width = width;
         // :17 fittingSize of the content at the panel's width, measured once it is in the panel: a detached control has
         // no styles or templates yet, so its fields and buttons measured short (the key guide by 16-28 pt).
         window.Measure(new Size(width, double.PositiveInfinity));
-        content.Measure(new Size(width, double.PositiveInfinity));
-        var measuredHeight = Math.Ceiling(content.DesiredSize.Height);
+        shown.Measure(new Size(width, double.PositiveInfinity));
+        var measuredHeight = Math.Ceiling(shown.DesiredSize.Height);
         window.Height = Math.Max(measuredHeight, 100); // :20
 
         // :21-23 Place at the main screen's visible top right with a 24-point inset.

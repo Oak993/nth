@@ -8,6 +8,7 @@ using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Common;
 using Xunit;
 
 namespace Marrow.App.Tests.Window;
@@ -25,9 +26,13 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
     private const int Width = 780, Height = 580;
     private static readonly Color Grey = Color.FromRgb(128, 128, 128);
 
+    // ED-NEW-textsize-2: the window's content is drawn at the base scale, so the 26 pt shape is 26 x 1.3 pixels and the 1 pt hairline 1.3 pixels:
+    // it covers the outermost pixel of each edge and part of the next, so the first clear edge row is the third (inset 2).
+    private const double Radius = Chrome.WindowCornerRadius * AppZoom.BaseScale;
+
     private static CornerSeam.Pair[] Pairs() =>
-        CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 1)
-            .Concat(CornerSeam.Pairs(Width, Height, Chrome.WindowCornerRadius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
+        CornerSeam.Pairs(Width, Height, Radius, [2, 3, 4, 5, 6, 8, 10], edgeInset: 2)
+            .Concat(CornerSeam.Pairs(Width, Height, Radius, [3, 4, 5, 6, 7], edgeInset: 3)).ToArray();
 
     // The window's chrome has made it clear (the system's Acrylic is behind it): the known grey stands in for that blur.
     private static Avalonia.Controls.Window OpenOnGrey(WindowManager manager, bool dark)
@@ -88,6 +93,6 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
         // Rise (OD-0074) fades the glass in over the first 80 ms: the backdrop is the glass out to the window's rectangle, so there is no separate
         // corner layer to show its scrim before it.
         Assert.Contains(view.RiseBackdrop, SettingsRiseLayout.Gather(view).Glass);
-        Assert.Equal(new Avalonia.Size(Width, Height), view.RiseBackdrop.Bounds.Size);
+        ZoomDrawn.Covers(new Avalonia.Size(Width, Height), view.RiseBackdrop, window);
     });
 }

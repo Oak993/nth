@@ -299,7 +299,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
             OnMain(() => Press(window, key, physical, modifiers));
             Assert.True(Zoom() == to, $"{chord}: the zoom is {Zoom()}, not {to}");
             Assert.Equal(["appZoom"], Get(() => defaults.Writes.ToList())); // AppSettings.swift:253-254, even when the value stays
-            var scale = to / 100d;
+            var scale = to / 100d * Marrow.UI.Common.AppZoom.BaseScale; // ED-NEW-textsize-1: 100% draws at the base scale
             Assert.Equal([scale, scale], Scales()); // WindowManager.swift:173-175, every hosted tree
         }
         void NotZoomed(string chord, AvaloniaWindow window, Key key, PhysicalKey physical, RawInputModifiers modifiers)
@@ -328,7 +328,7 @@ public sealed class AppCommandsZoomTests(HeadlessSession headless)
             using (KeyboardLayoutText.Current.Override(layouts.Us))
             {
                 SetZoom(100);
-                Assert.Equal([1d, 1d], Scales());
+                Assert.Equal([Marrow.UI.Common.AppZoom.BaseScale, Marrow.UI.Common.AppZoom.BaseScale], Scales()); // ED-NEW-textsize-1
                 // :53-54 "+" is Shift with the US "=" key: the chord a user presses for Zoom In. Windows must report Shift.
                 Zoomed("US Ctrl+Shift+=", main, Key.OemPlus, PhysicalKey.Equal, CtrlShift, 110);
                 // :59-62 the hidden item: the same key without Shift ("US keyboards produce '=' for Command-plus without Shift").

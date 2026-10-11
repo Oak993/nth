@@ -54,8 +54,8 @@ public sealed class AboutUpdateViewsRecordTests(HeadlessSession headless)
     private static string Detail(AboutUpdateCheckRow row)
     {
         var chrome = Assert.IsType<ChromeRow>(row.Child);
-        // The detail is the 11 pt caption outside the button: the button's own label is 11 pt as well (the small control size).
-        return Assert.Single(chrome.GetVisualDescendants().OfType<TextBlock>(), t => t.FontSize == 11 && t.FindAncestorOfType<Button>() is null).Text!;
+        // The detail is the row's detail text outside the button (Chrome.SettingsRowDetailSize, ED-NEW-textsize-2; the button's own label is 11 pt, the small control size).
+        return Assert.Single(chrome.GetVisualDescendants().OfType<TextBlock>(), t => t.FontSize == Chrome.SettingsRowDetailSize && t.FindAncestorOfType<Button>() is null).Text!;
     }
 
     // Avalonia raises Popup.Opened and Popup.Closed from the open popup itself; the headless platform cannot open one

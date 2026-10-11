@@ -82,6 +82,25 @@ public abstract class SettingsWindowFixture(HeadlessSession headless)
         }
     }
 
+    /// <summary>
+    /// ED-NEW-textsize-3: frames at <paramref name="hertz"/> for <paramref name="seconds"/>, <paramref name="time"/> (the test's SwiftClock)
+    /// moved before each, with <paramref name="each"/> after each frame: a zoom change runs out its motion.
+    /// </summary>
+    protected static void RunFrames(ManualTimeProvider time, HostWindow window, double seconds = 1, double hertz = 60, Action? each = null)
+    {
+        Drain(window);
+        var frames = Assert.IsType<ManualFrameSource>(FrameClock.Source.Current);
+        var step = TimeSpan.FromSeconds(1 / hertz);
+        for (var at = 0.0; at < seconds; at += 1 / hertz)
+        {
+            time.Advance(step);
+            frames.Advance(step);
+            Dispatcher.UIThread.RunJobs();
+            each?.Invoke();
+        }
+        Drain(window);
+    }
+
     protected static void Deactivate(HostWindow window)
     {
         // Existing input-boundary setup: AppCommandsProofTests.cs:98-105.

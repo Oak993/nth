@@ -249,7 +249,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             Assert.True(model.Settings.SettleSound); Assert.Single(recorder.Plays); // the stored value is left alone and nothing was played
             Click(w, toggle); Assert.True(model.Settings.SettleSound); Assert.Single(recorder.Plays); // the disabled switch does nothing
             Click(w, settleTile); Assert.True(row.IsEnabled); Tick(h, 50); Assert.InRange(row.Opacity, 0.501, 0.999); Tick(h, 60); Assert.Equal(1, row.Opacity); Assert.Single(recorder.Plays);
-        });
+        }, height: 2600);
     }
 
     [Fact]
@@ -420,7 +420,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
     [Trait("Req", "UI-SETTINGS-065")] // SettingsView.swift:395-399,432-442; ChromeVisualPicker.swift:10-105
     public void The_owned_visual_pickers_have_the_selected_hovered_and_plain_states_over_Chrome_hover_and_the_press_dim()
     {
-        With(() => new GeneralSettingsPage(), (view, model, h, w) => CheckTileStates(Row(view, "Done with a thread"), w, h, ["Settle", "Archive"], ["checkmark", "archivebox"]));
+        With(() => new GeneralSettingsPage(), (view, model, h, w) => CheckTileStates(Row(view, "Done with a thread"), w, h, ["Settle", "Archive"], ["checkmark", "archivebox"]), height: 2600);
         With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
         {
             CheckTileStates(Row(view, "Sidebar"), w, h, ["Column", "Floating", "Panel only"], ["sidebar.left", "macwindow.on.rectangle", "macwindow"]);
@@ -441,7 +441,7 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
                 Click(w, Assert.Single(Nodes<Button>(tiles[action == ThreadFinishAction.Archive ? 1 : 0]))); Tick(h, 150); Assert.Equal(action, model.Settings.ThreadFinishAction);
                 Assert.Contains(action.Detail, Text(Row(view, "Done with a thread")));
             }
-        });
+        }, height: 2600);
         With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
         {
             var sidebar = Row(view, "Sidebar"); var sidebarTiles = Nodes<ChromeVisualTile>(sidebar);

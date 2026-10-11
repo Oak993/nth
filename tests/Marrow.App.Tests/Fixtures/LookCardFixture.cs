@@ -66,6 +66,18 @@ public abstract class LookCardFixture(HeadlessSession headless) : Marrow.App.Tes
 
     protected static Rect In(Control control, Visual relativeTo) =>
         new(control.TranslatePoint(default, relativeTo)!.Value, control.Bounds.Size);
+
+    /// <summary>
+    /// A row's height (LEAD RULING, ED-290 (1)): a ChromeRow, its padding + its title's line + 2 + the board's subheadline line (16) +
+    /// its padding: the source's 11 + 18 + 2 + 16 + 11 = 58, at the Settings sizes of ED-NEW-textsize-2.
+    /// </summary>
+    protected static double RowHeight(LookCard card)
+    {
+        var title = Assert.IsType<Avalonia.Controls.TextBlock>(((StackPanel)((Grid)((Border)card.ThemeRow.Child!).Child!).Children[0]).Children[0]);
+        Assert.Equal(Marrow.UI.Chrome.Chrome.SettingsRowTitleSize, title.FontSize);
+        Assert.Equal("Theme", title.Text);
+        return 2 * Marrow.UI.Chrome.Chrome.SettingsRowVerticalPadding + title.Bounds.Height + 2 + 16;
+    }
 }
 
 /// <summary>

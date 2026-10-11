@@ -53,8 +53,8 @@ public sealed class SettingsRestSidebarTests(HeadlessSession headless) : Setting
             void Check(SidebarRow row, int index, bool selected)
             {
                 var button = Assert.Single(Nodes<Button>(row)); Assert.Equal(titles[index], AutomationProperties.GetName(button)); var shape = Assert.IsType<Border>(button.Content);
-                Assert.Equal(28, shape.Height); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
-                var line = Assert.IsAssignableFrom<StackPanel>(shape.Child); Assert.Equal(8, line.Spacing); var text = Assert.Single(Nodes<TextBlock>(row)); Font(text, 13, selected ? FontWeight.Medium : FontWeight.Normal); Assert.Equal(1, text.MaxLines); Ink(text, text.Foreground, Chrome.PrimaryText.Opacity(selected ? 1 : 0.92));
+                Assert.Equal(Chrome.SettingsNavRowHeight, shape.Height); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
+                var line = Assert.IsAssignableFrom<StackPanel>(shape.Child); Assert.Equal(8, line.Spacing); var text = Assert.Single(Nodes<TextBlock>(row)); Font(text, Chrome.SettingsNavTitleSize, selected ? FontWeight.Medium : FontWeight.Normal); Assert.Equal(1, text.MaxLines); Ink(text, text.Foreground, Chrome.PrimaryText.Opacity(selected ? 1 : 0.92));
                 Ink(shape, shape.Background, selected ? Chrome.Overlay(0.12) : SwiftColor.Clear);
                 var badge = Assert.Single(Nodes<SidebarIconBadge>(row)); var frame = Assert.IsType<Panel>(badge.Child); Assert.Equal(20, frame.Width); Assert.Equal(20, frame.Height);
                 var glyph = frame.Children[0]; Ink(glyph, Avalonia.Controls.Documents.TextElement.GetForeground(glyph), Chrome.PrimaryText.Opacity(0.85));

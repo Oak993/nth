@@ -109,7 +109,7 @@ public sealed class LookCardRenderTests(HeadlessSession headless) : LookCardFixt
                 // (name, x, the board's y, the port's y, width, height): the board's rows are 54, the port's 58 (LEAD RULING above).
                 const int BoardRow = 54;
                 var themeTop = (int)Math.Round(In(card.ThemeRow, card).Y); var accentTop = (int)Math.Round(In(card.AccentRow, card).Y);
-                Assert.Equal(open ? 281 : 245, height); // the card follows its content: 128 + 58 + 1 + 58 (+ 36)
+                Assert.Equal((int)Math.Round(128 + 2 * RowHeight(card!) + 1 + (open ? 36 : 0)), height); // the card follows its content: 128 + row + 1 + row (+ 36); 245 and 281 with the 58-point rows, taller at the Settings sizes (ED-NEW-textsize-2)
                 var regions = new List<(string Name, int X, int BoardY, int PortY, int W, int H)>
                 {
                     ("mini window", CardX + 12, CardY, CardY, 496, 128),

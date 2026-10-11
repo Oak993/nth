@@ -3,6 +3,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 
 namespace Marrow.UI.Common;
 
@@ -46,15 +47,66 @@ public static class AppZoom
 
         return current;
     }
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-textsize-2, owner 2026-10-11: "Try to match this text size that Claude uses"): the scale the whole
+    /// app is drawn at under the zoom of Settings › Appearance, so 100 % shows the type and the controls at the size of the
+    /// Claude desktop app on Windows (measured on its windows at 96 DPI: session sidebar items 17 px on a 36 px pitch, chat
+    /// text 16 px, composer footer 15-16 px; nth's source sizes are 13 pt on a 28 pt pitch, 13 pt and 12.5 pt: 17 / 13 and
+    /// 36 / 28 are both 1.3). The source's point sizes match the Mac, drawn at 2x on a Retina screen; a 96 DPI Windows
+    /// screen showed them at the size of a dense 13 px web page. The zoom levels multiply it (125 % is 1.625).
+    /// </summary>
+    public const double BaseScale = 1.3;
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-textsize-1): the scale <paramref name="visual"/> is drawn at by the app zoom: the product of the
+    /// zoom layers it is inside (a window root's ZoomLayout, a popup's PopupZoom); 1 outside any.
+    /// </summary>
+    public static double ScaleOf(Visual? visual)
+    {
+        double scale = 1;
+        for (var at = visual; at is not null; at = at.GetVisualParent())
+        {
+            if (at is ZoomLayout zoom) scale *= zoom.Scale;
+            else if (at is PopupZoom popup) scale *= popup.Scale;
+        }
+        return scale;
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-textsize-1): the scale a window draws its root at (its ZoomLayout's); 1 for none.</summary>
+    public static double ScaleOfWindow(TopLevel? window) =>
+        window?.GetVisualDescendants().OfType<ZoomLayout>().FirstOrDefault() is { } zoom ? zoom.Scale : 1;
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-textsize-1): a window of its own that is not a hosted root (an alert, a dialog, a guide panel)
+    /// draws its content at <paramref name="scale"/> like the window it serves; the content itself at 100 %.
+    /// </summary>
+    public static Control Zoomed(Control content, double scale)
+    {
+        if (Math.Abs(scale - 1) < 1e-9) return content;
+        return new AppZoomModifier(100) { BaseScale = scale }.Body(content);
+    }
+
+    /// <summary>PORT-ONLY (ED-NEW-textsize-1): the content <see cref="Zoomed"/> wrapped, or <paramref name="shown"/> itself.</summary>
+    public static object? Unzoomed(object? shown)
+    {
+        if (shown is not ZoomLayout { Children.Count: 1 } zoom) return shown;
+        var only = zoom.Children[0];
+        return only is AppZoomModifier.ZoomScaler { Children.Count: 1 } scaler ? scaler.Children[0] : only;
+    }
 }
 
 // :18-27
 public sealed record AppZoomModifier(int Percent)
 {
+    /// <summary>PORT-ONLY (ED-NEW-textsize-2): a scale under the zoom level (<see cref="AppZoom.BaseScale"/> for a window
+    /// root; 1, the source's, by default).</summary>
+    public double BaseScale { get; init; } = 1;
+
     // :21-26
     public Control Body(Control content)
     {
-        var scale = (double)AppZoom.Normalized(Percent) / 100;
+        var scale = (double)AppZoom.Normalized(Percent) / 100 * BaseScale;
         // The body evaluated again for a new percent (the setting changed, WindowManager.swift:175): SwiftUI keeps the
         // same ZoomLayout and content (structural identity) and only the scale changes, so the content already in a
         // ZoomLayout keeps it and is never detached and attached again.
@@ -89,7 +141,7 @@ public sealed record AppZoomModifier(int Percent)
     }
 
     // Carries the zoom scale for content that already has a render transform of its own (:24).
-    private sealed class ZoomScaler : Panel
+    internal sealed class ZoomScaler : Panel
     {
     }
 }

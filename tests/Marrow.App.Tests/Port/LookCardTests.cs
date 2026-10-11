@@ -54,8 +54,9 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
         // the two rows are ChromeRows and follow parity, 58 like the Mac's ChromeRow (11 + body 18 + 2 + subheadline 16 + 11; 1-settings-tour.mov
         // S 23.5 and S 194.0), not SPEC 2.1's 54 (drawn in Inter's own boxes), and the card's height follows its content: 128 + 58 + 1 + 58 = 245 shut
         // (SPEC 2.1's 237), 245 + the 36 fold = 281 open (273). The board's other geometry is kept: each control keeps the board's offset from
-        // its own row top (segments 13, the Classic line 15) and the Signature line opens at the fold's top.
-        const double row = 58;
+        // its own row top (segments 13, the Classic line 15) and the Signature line opens at the fold's top. At the Settings sizes
+        // (ED-NEW-textsize-2) a row is 18 + the title's line + 2 + 16 + 18 (RowHeight).
+        var row = RowHeight(card);
         Assert.Equal(520, card.Bounds.Width);
         Assert.Equal(new Rect(12, 0, 496, 128), In(card.Mini, card));
         Assert.Equal(128, In(card.ThemeRow, card).Y);

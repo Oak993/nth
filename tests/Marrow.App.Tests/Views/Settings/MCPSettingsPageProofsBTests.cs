@@ -463,7 +463,7 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
             {
                 var section = Assert.IsType<StackPanel>(s.Child); Assert.Equal(10, section.Spacing);
                 var header = Assert.IsAssignableFrom<StackPanel>(section.Children[0]); Assert.Equal(4, header.Spacing);
-                TextStyle(Assert.IsType<TextBlock>(header.Children[0]), 13, FontWeight.SemiBold, Chrome.SecondaryText);
+                TextStyle(Assert.IsType<TextBlock>(header.Children[0]), Chrome.SettingsSectionTitleSize, FontWeight.SemiBold, Chrome.SecondaryText);
             });
             page.SetQuery("absent in every catalog"); Assert.Empty(Nodes<ChromeSection>(page)); Assert.Same(footer, stack.Children[^1]);
             var developer = MCPCatalog.ByCategory.Single(g => g.Category == MCPCategory.Developer);

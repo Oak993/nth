@@ -69,7 +69,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         window.MouseMove(point); window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Sync();
     }
 
-    private void WithView(Func<Control> make, Action<Control, AppModel, AppModelHarness> check, Action<AppModel>? seed = null)
+    private void WithView(Func<Control> make, Action<Control, AppModel, AppModelHarness> check, Action<AppModel>? seed = null, double height = 580)
     {
         headless.OnUiThread(() =>
         {
@@ -80,7 +80,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
             using var updates = UpdateChecker.OverrideShared(new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], ""));
             var model = new AppModel(); seed?.Invoke(model);
             var host = new Border(); AppEnvironment.SetAppModel(host, model); var view = make(); host.Child = view;
-            var window = new Avalonia.Controls.Window { Content = host, Width = 780, Height = 580 };
+            var window = new Avalonia.Controls.Window { Content = host, Width = 780, Height = height };
             try { window.Show(); Drain(view); check(view, model, h); }
             finally { window.Close(); Sync(); SettingsNavigation.Shared.RequestedPage = null; }
         });
@@ -170,7 +170,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var stack = Nodes<StackPanel>(card).Single(s => s.Children.Count == 3 && s.Children[0] is ChromeRow);
         Assert.Same(rows[0], stack.Children[0]); Assert.IsType<ChromeRowDivider>(stack.Children[1]); Assert.Same(rows[1], stack.Children[2]);
         Assert.Empty(Nodes<Button>(rows[1]));
-        foreach (var row in rows) { var text = Nodes<TextBlock>(row); Assert.Equal(13, text[0].FontSize); Assert.Equal(11, text[1].FontSize); Foreground(text[0], Chrome.PrimaryText); Foreground(text[1], Chrome.SecondaryText); }
+        foreach (var row in rows) { var text = Nodes<TextBlock>(row); Assert.Equal(Chrome.SettingsRowTitleSize, text[0].FontSize); Assert.Equal(Chrome.SettingsRowDetailSize, text[1].FontSize); Foreground(text[0], Chrome.PrimaryText); Foreground(text[1], Chrome.SecondaryText); }
         var back = Assert.IsType<Border>(card.Child); Assert.Equal(new CornerRadius(16), back.CornerRadius); Assert.Equal(Chrome.Overlay(0.03).Resolve(back.ActualThemeVariant), ColorOf(back.Background)); // Chrome.swift:1023-1025.
         var revealEffect = SwiftGlass.GetEffect(Assert.Single(Button(rows[0], "Reveal").GetVisualDescendants().OfType<Control>(), c => SwiftGlass.GetEffect(c) is not null))!; // :840 .buttonStyle(.glass): the accent capsule (SettingsViewFinishWorktreesTests carries the measured geometry)
         Assert.Equal(GlassShapeKind.Capsule, revealEffect.Shape.Kind); Assert.Equal(Chrome.Accent, revealEffect.TintColor); Assert.Equal(1, revealEffect.TintOpacity); Assert.True(revealEffect.IsInteractive);
@@ -243,9 +243,9 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         foreach (var row in Nodes<SidebarRow>(rows))
         {
             var button = Nodes<Button>(row).Single(); var shape = Assert.IsType<Border>(button.Content); var label = Nodes<TextBlock>(row).Single(); bool selected = label.Text == "General";
-            Assert.Equal(28, shape.Height); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
+            Assert.Equal(Chrome.SettingsNavRowHeight, shape.Height); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
             Assert.Equal(8, Nodes<StackPanel>(shape).Single().Spacing); Assert.Equal(20, Nodes<SidebarIconBadge>(row).Single().Width);
-            Assert.Equal(13, label.FontSize); Assert.Equal(selected ? FontWeight.Medium : FontWeight.Normal, label.FontWeight); Foreground(label, Chrome.PrimaryText.Opacity(selected ? 1 : 0.92));
+            Assert.Equal(Chrome.SettingsNavTitleSize, label.FontSize); Assert.Equal(selected ? FontWeight.Medium : FontWeight.Normal, label.FontWeight); Foreground(label, Chrome.PrimaryText.Opacity(selected ? 1 : 0.92));
             Assert.Equal((selected ? Chrome.Overlay(0.12) : SwiftColor.Clear).Resolve(shape.ActualThemeVariant), ColorOf(shape.Background));
             Assert.Equal(selected, ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(button)!).IsSelected);
             var badge = Nodes<SidebarIconBadge>(row).Single(); var glyph = ((Panel)badge.Child!).Children.Single(); Assert.Equal(Chrome.PrimaryText.Opacity(0.85).Resolve(glyph.ActualThemeVariant), ColorOf(Avalonia.Controls.Documents.TextElement.GetForeground(glyph)));
@@ -381,7 +381,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var accent = Chrome.Accent.Resolve(toggle.ActualThemeVariant); Assert.Contains(pixels.Pixels, p => p.Red == accent.R && p.Green == accent.G && p.Blue == accent.B && p.Alpha == accent.A);
         var disabled = Row(view, "Sound when settling"); model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Sync(); Assert.False(disabled.IsEnabled); Assert.Equal(0.5, disabled.Opacity);
         var child = Nodes<SmallSwitch>(disabled).Single(); var before = model.Settings.SettleSound; Key(child, Avalonia.Input.Key.Space); Assert.Equal(before, model.Settings.SettleSound);
-    });
+    }, height: 1400);
 
     [Fact]
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.

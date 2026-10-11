@@ -481,6 +481,14 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         var anchorOrigin = anchor.PointToScreen(within.Position);
         var card = new Rect(cardOrigin.X / top.RenderScaling, cardOrigin.Y / top.RenderScaling, Bounds.Width, Bounds.Height);
         var target = new Rect(anchorOrigin.X / anchorTop.RenderScaling, anchorOrigin.Y / anchorTop.RenderScaling, within.Width, within.Height);
+        // ED-NEW-textsize-1: the card and its anchor are each drawn at the app zoom (the card in its popup's PopupZoom, the anchor
+        // in its window's ZoomLayout). The anchor is taken into the card's own points about the card's origin, so the tip
+        // still points at the anchor's middle; at 100 % both scales are 1 and nothing changes.
+        var cardScale = Marrow.UI.Common.AppZoom.ScaleOf(parent);
+        var anchorScale = Marrow.UI.Common.AppZoom.ScaleOf(anchor);
+        if (cardScale != 1 || anchorScale != 1)
+            target = new Rect(card.X + (target.X - card.X) / cardScale, card.Y + (target.Y - card.Y) / cardScale,
+                within.Width * anchorScale / cardScale, within.Height * anchorScale / cardScale);
         var (edge, offset) = Aim(card, target, TipEdge, BodyCornerRadius);
         if (edge != TipEdge) TipEdge = edge;
         if (TipOffset is not { } current || Math.Abs(current - offset) > 0.01) TipOffset = offset;

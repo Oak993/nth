@@ -11,6 +11,7 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Common;
 using Xunit;
 
 namespace Marrow.App.Tests.Window;
@@ -50,17 +51,17 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
             var window = Settings(manager); Drain(window);
             var view = View(manager);
             Assert.Equal(new Avalonia.Size(780, 580), window.ClientSize);
-            Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
+            Assert.Equal(780 / AppZoom.BaseScale, view.Width); Assert.Equal(580 / AppZoom.BaseScale, view.Height); // the window's pixels in points at the base scale (ED-NEW-textsize-2)
             // OD-0075 and the owner's intent of 2026-10-05 (ED-338): the source's `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))`
             // (SettingsView.swift:118-122, ED-181) is the window's RECTANGLE here, which DWM rounds, so the backdrop and the detail sheet reach the window's edge
             // (WindowManagerCornerWedgeTests proves the corner pixels). Nothing in this window is drawn in the 26 pt shape any more.
             var frame = Assert.IsType<SwiftShapeBorder>(view.Child);
             Assert.Equal(default, frame.CornerRadius);
             Assert.True(frame.ClipToBounds);
-            Assert.Equal(new Avalonia.Size(780, 580), frame.Bounds.Size);
+            ZoomDrawn.Covers(new Avalonia.Size(780, 580), frame, window);
             var layers = Assert.IsType<Panel>(frame.Child);
             var backdrop = Assert.IsType<WindowBackdrop>(layers.Children[0]);
-            Assert.Equal(new Avalonia.Size(780, 580), backdrop.Bounds.Size);
+            ZoomDrawn.Covers(new Avalonia.Size(780, 580), backdrop, window);
             Assert.Equal(new Point(0, 0), backdrop.TranslatePoint(new Point(0, 0), view));
             Assert.All(Nodes<SwiftShapeBorder>(backdrop), layer => Assert.Equal(default, layer.CornerRadius)); // every layer of the backdrop, the hairline included
             Assert.False(Assert.Single(Nodes<WindowChromeProbe>(view)).IsHitTestVisible);
@@ -121,7 +122,7 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
             var window = Settings(manager); Drain(window);
             var drag = Assert.Single(Nodes<WindowDragArea>(View(manager)));
             Assert.Equal(212, drag.Bounds.Width);
-            Assert.Equal(580, drag.Bounds.Height);
+            Assert.Equal(580 / AppZoom.BaseScale, drag.Bounds.Height); // the window's height in points at the base scale (ED-NEW-textsize-2)
             Assert.Equal(Win32Properties.Win32HitTestValue.Caption, Win32Properties.GetNonClientHitTestResult(drag));
             var point = At(drag, window, new Point(180, 18)); // Empty top strip beyond the leading caption controls.
             Assert.Same(drag, window.InputHitTest(point));

@@ -261,7 +261,7 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
         OnWelcome(host =>
         {
             var header = RootViewRig.Text(host, "Activity list");
-            RootViewRig.AssertStyle(header, 13, FontWeight.SemiBold); // :1040 .font(.system(.body, weight: .semibold)), ChatZoom.swift:51
+            RootViewRig.AssertStyle(header, Chrome.SettingsSectionTitleSize, FontWeight.SemiBold); // :1040 .font(.system(.body, weight: .semibold)), ChatZoom.swift:51; the Settings section size (ED-NEW-textsize-2)
             RootViewRig.AssertForeground(header, RootViewRig.Secondary); // :1042
             var section = Assert.Single(RootViewRig.All<ChromeSection>(host), s => RootViewRig.AllText(s).StartsWith("Activity list", StringComparison.Ordinal));
             var card = Assert.Single(RootViewRig.All<ChromeCard>(section));
@@ -278,10 +278,10 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
         OnWelcome(host =>
         {
             var title = RootViewRig.Text(host, "Project mark");
-            RootViewRig.AssertStyle(title, 13, FontWeight.Normal); // :1064 .font(.system(.body))
+            RootViewRig.AssertStyle(title, Chrome.SettingsRowTitleSize, FontWeight.Normal); // :1064 .font(.system(.body)); the Settings row size (ED-NEW-textsize-2)
             RootViewRig.AssertForeground(title, RootViewRig.Primary); // :1065
             var detail = RootViewRig.Text(host, "Each project's emoji or symbol before the thread's name, one line per thread"); // :88-92 Icon, the default
-            RootViewRig.AssertStyle(detail, 11, FontWeight.Normal); // :1068 .font(.system(.subheadline)), ChatZoom.swift:53
+            RootViewRig.AssertStyle(detail, Chrome.SettingsRowDetailSize, FontWeight.Normal); // :1068 .font(.system(.subheadline)), ChatZoom.swift:53; the Settings detail size (ED-NEW-textsize-2)
             RootViewRig.AssertForeground(detail, RootViewRig.Secondary); // :1069
 
             var row = Assert.Single(RootViewRig.All<ChromeRow>(host));
@@ -291,8 +291,8 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
             Assert.Equal(2, detail.Bounds.Top - title.Bounds.Bottom, 0.5); // :1063 VStack(spacing: 2)
             Assert.Equal(16, RootViewRig.In(title, card).Left, 0.5); // :1076 .padding(.leading, 16)
             Assert.Equal(10, card.Bounds.Width - RootViewRig.In(picker, card).Right, 0.5); // :1077 Chrome.rowControlTrailingPadding, 10
-            Assert.Equal(11, RootViewRig.In(textStack, card).Top, 0.5); // :1078 .padding(.vertical, 11)
-            Assert.Equal(Math.Max(textStack.Bounds.Height, picker.Bounds.Height) + 2 * 11, card.Bounds.Height, 0.5);
+            Assert.Equal(Chrome.SettingsRowVerticalPadding, RootViewRig.In(textStack, card).Top, 0.5); // :1078 .padding(.vertical, 11); the Settings padding (ED-NEW-textsize-2)
+            Assert.Equal(Math.Max(textStack.Bounds.Height, picker.Bounds.Height) + 2 * Chrome.SettingsRowVerticalPadding, card.Bounds.Height, 0.5);
         });
     }
 
@@ -348,7 +348,7 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
         OnWelcome(host =>
         {
             var header = RootViewRig.Text(host, "Providers");
-            RootViewRig.AssertStyle(header, 13, FontWeight.SemiBold);
+            RootViewRig.AssertStyle(header, Chrome.SettingsSectionTitleSize, FontWeight.SemiBold);
             RootViewRig.AssertForeground(header, RootViewRig.Secondary);
             var section = Assert.Single(RootViewRig.All<ChromeSection>(host), s => RootViewRig.AllText(s).StartsWith("Providers", StringComparison.Ordinal));
             Assert.Equal(480, section.Bounds.Width, 0.5); // :342 .frame(maxWidth: 480)

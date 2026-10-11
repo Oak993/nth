@@ -171,15 +171,15 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     private static void Close(Control section, AppModelHarness h) { Click(Header(section)); Sync(); Frames(h, 1000); Layout(section); Collapsed(section, true); }
     private static void RowMetrics(ChromeRow row, string title, string? detail)
     {
-        // Chrome.swift:1055-1087 HStack spacing 16 + Spacer(minLength:12), VStack spacing 2, padding 16/10/11.
-        var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), border.Padding);
+        // Chrome.swift:1055-1087 HStack spacing 16 + Spacer(minLength:12), VStack spacing 2, padding 16/10/11 (vertical Chrome.SettingsRowVerticalPadding, ED-NEW-textsize-2).
+        var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, Chrome.SettingsRowVerticalPadding, 10, Chrome.SettingsRowVerticalPadding), border.Padding);
         var grid = Assert.IsType<Grid>(border.Child); Assert.Equal(VerticalAlignment.Center, grid.VerticalAlignment);
         var labels = Assert.IsType<StackPanel>(grid.Children[0]); Assert.Equal(2, labels.Spacing);
         Layout(row); Leading(labels, grid);
         var texts = labels.Children.Cast<TextBlock>().ToArray(); foreach (var text in texts) { Inter(text); Leading(text, labels); }
         if (detail is not null) { Assert.Equal(2, texts[1].Bounds.Y - texts[0].Bounds.Bottom, 6); Assert.Equal(0, texts[1].MaxLines); Assert.Equal(double.PositiveInfinity, texts[1].MaxHeight); }
-        Assert.Equal(title, texts[0].Text); Assert.Equal(13, texts[0].FontSize); Assert.Equal(FontWeight.Normal, texts[0].FontWeight); ColorIs(texts[0], texts[0].Foreground, SwiftColor.LabelColor);
-        if (detail is not null) { Assert.Equal(detail, texts[1].Text); Assert.Equal(11, texts[1].FontSize); Assert.Equal(FontWeight.Normal, texts[1].FontWeight); Assert.Equal(TextWrapping.Wrap, texts[1].TextWrapping); Assert.Equal(TextTrimming.None, texts[1].TextTrimming); ColorIs(texts[1], texts[1].Foreground, SwiftColor.LabelColor.Opacity(0.7)); }
+        Assert.Equal(title, texts[0].Text); Assert.Equal(Chrome.SettingsRowTitleSize, texts[0].FontSize); Assert.Equal(FontWeight.Normal, texts[0].FontWeight); ColorIs(texts[0], texts[0].Foreground, SwiftColor.LabelColor);
+        if (detail is not null) { Assert.Equal(detail, texts[1].Text); Assert.Equal(Chrome.SettingsRowDetailSize, texts[1].FontSize); Assert.Equal(Chrome.SettingsRowDetailLineHeight, texts[1].LineHeight); Assert.Equal(FontWeight.Normal, texts[1].FontWeight); Assert.Equal(TextWrapping.WrapWithOverflow, texts[1].TextWrapping); Assert.Equal(TextTrimming.CharacterEllipsis, texts[1].TextTrimming); ColorIs(texts[1], texts[1].Foreground, SwiftColor.LabelColor.Opacity(0.7)); } // ED-NEW-textsize-1: a word wider than the line ends in an ellipsis
         var control = grid.Children.Single(x => !ReferenceEquals(x, labels));
         Assert.Equal(44, control.Bounds.Left - labels.Bounds.Right, 6); // :1062,1072: rendered 16 + 12 + 16 gap around Spacer(minLength: 12).
         Assert.Equal(grid.Bounds.Width, control.Bounds.Right, 6); Assert.Equal(new Thickness(0), control.Margin); Assert.Equal(HorizontalAlignment.Right, control.HorizontalAlignment); Assert.Equal(VerticalAlignment.Center, control.VerticalAlignment);
@@ -236,8 +236,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var sidebar = Field<Control>(view, "sidebar"); var field = Assert.Single(Nodes<TextBox>(sidebar));
         foreach (var word in words) { field.Text = word.ToUpperInvariant(); Sync(); Assert.Contains(Nodes<SidebarRow>(sidebar), row => Text(row).Contains("Providers")); }
         field.Text = ""; Sync(); SettingsNavigation.Shared.RequestedPage = SettingsPage.General; Sync(); var providerRow = Nodes<SidebarRow>(sidebar).Single(row => Text(row).Contains("Providers"));
-        var shape = Nodes<Border>(providerRow).Single(x => x.Height == 28); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
-        var title = Assert.Single(Nodes<TextBlock>(providerRow)); Assert.Equal(13, title.FontSize); Assert.Equal(FontWeight.Normal, title.FontWeight);
+        var shape = Nodes<Border>(providerRow).Single(x => x.Height == Chrome.SettingsNavRowHeight); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
+        var title = Assert.Single(Nodes<TextBlock>(providerRow)); Assert.Equal(Chrome.SettingsNavTitleSize, title.FontSize); Assert.Equal(FontWeight.Normal, title.FontWeight);
         Assert.Equal("cpu", Assert.Single(Nodes<SwiftImage>(providerRow)).SymbolName); Assert.Equal(8, Nodes<StackPanel>(providerRow).Single().Spacing);
         PointerClick(Nodes<Button>(providerRow).Single()); Sync(); Assert.Single(Nodes<ProvidersSettingsPage>(view)); Assert.Equal(16, Nodes<ProviderSettingsSection>(view).Length);
         var selected = Nodes<SidebarRow>(sidebar).Single(row => Text(row).Contains("Providers")); Assert.Equal(FontWeight.Medium, Nodes<TextBlock>(selected).Single().FontWeight);
@@ -656,8 +656,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             foreach (var row in Nodes<ChromeRow>(view))
             {
                 var labels = Assert.IsType<StackPanel>(Assert.IsType<Grid>(Assert.IsType<Border>(row.Child).Child).Children[0]);
-                var text = labels.Children.OfType<TextBlock>().ToArray(); Assert.Equal(13, text[0].FontSize); Inter(text[0]);
-                if (text.Length == 2) { Assert.Equal(11, text[1].FontSize); Inter(text[1]); Assert.Equal(TextWrapping.Wrap, text[1].TextWrapping); }
+                var text = labels.Children.OfType<TextBlock>().ToArray(); Assert.Equal(Chrome.SettingsRowTitleSize, text[0].FontSize); Inter(text[0]);
+                if (text.Length == 2) { Assert.Equal(Chrome.SettingsRowDetailSize, text[1].FontSize); Inter(text[1]); Assert.Equal(TextWrapping.WrapWithOverflow, text[1].TextWrapping); }
             }
         }
     });

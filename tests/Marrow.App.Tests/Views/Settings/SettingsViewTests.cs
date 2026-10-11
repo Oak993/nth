@@ -118,7 +118,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-030")] // App/Views/Settings/SettingsView.swift:958-960,1104-1121
     public void Credits_header_and_resolved_repository_links_keep_exact_fonts_spacing_and_targets() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
     {
-        var section = Assert.Single(Nodes<ChromeSection>(view)); var header = Nodes<TextBlock>(section).Single(text => text.Text == "Credits"); Assert.Equal(13, header.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, header.FontWeight); Assert.Equal(Chrome.SecondaryText.Resolve(header.ActualThemeVariant), Assert.IsType<Avalonia.Media.SolidColorBrush>(header.Foreground).Color);
+        var section = Assert.Single(Nodes<ChromeSection>(view)); var header = Nodes<TextBlock>(section).Single(text => text.Text == "Credits"); Assert.Equal(Chrome.SettingsSectionTitleSize, header.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, header.FontWeight); Assert.Equal(Chrome.SecondaryText.Resolve(header.ActualThemeVariant), Assert.IsType<Avalonia.Media.SolidColorBrush>(header.Foreground).Color);
         var opened = new List<string>(); using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened.Add(url.AbsoluteString); return true; });
         foreach (var (title, detail, url) in new[] { ("Working indicators", "Ported from Zeron by Wing, MIT License.", "https://github.com/zeronsh/zeron"), ("Welcome tour", "Ported from TourKit by Ram Patra, MIT License.", "https://github.com/rampatra/TourKit") }) { var row = Row(section, title); Assert.Contains(detail, Text(row)); var link = Assert.Single(Nodes<CreditLink>(row)); var button = Assert.Single(Nodes<Button>(link)); Assert.Equal(url, ToolTip.GetTip(button)); Assert.Equal(12, Nodes<TextBlock>(link).Single().FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, Nodes<TextBlock>(link).Single().FontWeight); Assert.Equal(4, Nodes<StackPanel>(link).Single().Spacing); Assert.Equal(SwiftFont.System(10, SwiftFont.Weight.Semibold), SwiftImage.GetFont(Nodes<SwiftImage>(link).Single())); Click(button); }
         Assert.Equal(new[] { "https://github.com/zeronsh/zeron", "https://github.com/rampatra/TourKit" }, opened);
@@ -173,7 +173,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-074")] // App/Views/Settings/SettingsView.swift:148-157
     public void Sidebar_icons_use_source_sizes_and_labels_without_using_page_tints() => WithSettings((view, _, _) =>
     {
-        var rows = Nodes<SidebarRow>(view); foreach (var row in rows) { var title = Nodes<TextBlock>(row).Single(); Assert.Equal(13, title.FontSize); Assert.Equal(title.Text == "Archive" ? Avalonia.Media.FontWeight.Medium : Avalonia.Media.FontWeight.Normal, title.FontWeight); var badge = Assert.Single(Nodes<SidebarIconBadge>(row)); Assert.Equal(20, Assert.IsType<Panel>(badge.Child).Width); }
+        var rows = Nodes<SidebarRow>(view); foreach (var row in rows) { var title = Nodes<TextBlock>(row).Single(); Assert.Equal(Chrome.SettingsNavTitleSize, title.FontSize); Assert.Equal(title.Text == "Archive" ? Avalonia.Media.FontWeight.Medium : Avalonia.Media.FontWeight.Normal, title.FontWeight); var badge = Assert.Single(Nodes<SidebarIconBadge>(row)); Assert.Equal(20, Assert.IsType<Panel>(badge.Child).Width); }
         foreach (var (title, symbol, side) in new[] { ("General", "gear", 16.1), ("Providers", "cpu", 14.0), ("MCP", "puzzlepiece.extension", 14.0), ("Models", "slider.horizontal.3", 14.0), ("About", "info.circle", 14.0) }) { var image = Assert.Single(Nodes<SwiftImage>(rows.Single(row => Text(row).Contains(title)))); Assert.Equal(symbol, image.SymbolName); Assert.Equal(side, image.Width, 4); Assert.Equal(side, image.Height, 4); }
         var hydra = Assert.Single(Nodes<HydraMarkImage>(rows.Single(row => Text(row).Contains("Hydra")))); Assert.Equal(16.1, hydra.Width, 4); Assert.Equal(16.1, hydra.Height, 4);
     });
@@ -325,8 +325,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-PROVREG-007")] // App/Views/Settings/SettingsView.swift:661-665
     public void API_provider_rows_use_exact_host_key_source_and_install_URL_without_CLI_rows(ProviderKind provider, string source, string host, string url) => WithView(() => new ProviderSettingsSection(provider, Binding<bool>.Constant(true)), (view, model, _) =>
     {
-        var key = Row(view, "API key"); Assert.Contains($"Stored in your Credential Manager. Get one at {source}.", Text(key)); var texts = Nodes<TextBlock>(key); Assert.Equal(13, texts[0].FontSize); Assert.Equal(11, texts[1].FontSize);
-        Assert.Equal(new Thickness(16, 11, 10, 11), Assert.IsType<Border>(key.Child).Padding); Assert.DoesNotContain(Text(view), text => text is "Binary path" or "Install" or "Sign in");
+        var key = Row(view, "API key"); Assert.Contains($"Stored in your Credential Manager. Get one at {source}.", Text(key)); var texts = Nodes<TextBlock>(key); Assert.Equal(Chrome.SettingsRowTitleSize, texts[0].FontSize); Assert.Equal(Chrome.SettingsRowDetailSize, texts[1].FontSize);
+        Assert.Equal(new Thickness(16, Chrome.SettingsRowVerticalPadding, 10, Chrome.SettingsRowVerticalPadding), Assert.IsType<Border>(key.Child).Padding); Assert.DoesNotContain(Text(view), text => text is "Binary path" or "Install" or "Sign in");
         var get = Row(view, "Get a key"); Assert.Contains(provider.DisplayName + " needs an API key. Nothing to install.", Text(get)); var link = Button(get, "Get a " + provider.DisplayName + " key"); Assert.Equal(16, Nodes<TextBlock>(link).Single().Height);
         SwiftURL? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(value => { opened = value; return true; }); Click(link); Assert.Equal(url, opened!.AbsoluteString);
         Seed(model, provider, model.Providers.Status(provider) with { ApiKeyConfigured = true, Version = "API", ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.DoesNotContain("Get a key", Text(view)); Assert.Contains($"Native API \u00b7 {host}", Text(view)); Assert.DoesNotContain("Version API", Text(view));
@@ -435,7 +435,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         // OD-0127 (palette-refresh-locked.html option A, ED-636 (4)): the "Colours" section and its one card follow, last, 10 apart.
         Assert.Equal(5, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 5 && stack.Children[0] is Marrow.App.Port.LookCard && stack.Children[2] is WallpaperCard && stack.Children[4] is Marrow.App.Port.ModelsPalette.PaletteColoursSection);
         Assert.Equal(10, group.Spacing); Assert.Equal(22, Field<Control>(view, "pageStack").Margin.Top);
-        var heading = Nodes<TextBlock>(appearance).First(); Assert.Equal("Appearance", heading.Text); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight);
+        var heading = Nodes<TextBlock>(appearance).First(); Assert.Equal("Appearance", heading.Text); Assert.Equal(Chrome.SettingsSectionTitleSize, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight);
         Assert.Empty(Nodes<ChromeSearchField>(Field<Control>(view, "detail"))); Assert.Empty(Nodes<AboutUpdateChromeAccessory>(view)); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
     });
 
