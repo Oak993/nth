@@ -7,15 +7,16 @@ using SkiaSharp;
 namespace Marrow.App.Port;
 
 // OD-0108 / OD-0113: renderer's actual image/gradient/blur families join the boot's awaited preparation.
-// OD-0136: the boot shows the nth mark B, so its programs are the boot painter's own (NthMark's stage tile, the n's drop-shadow
-// layer, the bead, the sweeps, the gather blur, the tile's shadow, the grow's clip and glow), drawn by the real AuroraBootPainter
-// at the boot's own sizes, plus the empty chat's 44 px tile (NthMark's icon tile and its soft sweep).
+// OD-0136: the boot shows the nth mark B, so its programs are the boot painter's own, drawn by the real AuroraBootPainter at the
+// boot's own sizes, plus the empty chat's 44 px tile (NthMark's icon tile and its soft sweep). OD-0141: the pop (the faded tile's
+// layer, its turned and dithered gradient, the lifting shadow's scaled blur), the n's trim with its clipped round head and the
+// drop-shadow layer, the bead's spring, the settled tile, the grow's cached tile, clip and glow; there is no sweep any more.
 public static class AuroraBootWarmup
 {
     /// <summary>The registered programs, in order: one render-thread step each.</summary>
     public static IReadOnlyList<string> Programs { get; } = Array.AsReadOnly(new[]
     {
-        "nth-boot-gather", "nth-boot-draw", "nth-boot-sweep", "nth-boot-hold", "nth-boot-grow", "nth-boot-glow", "nth-boot-still", "nth-hero",
+        "nth-boot-pop", "nth-boot-draw", "nth-boot-bead", "nth-boot-hold", "nth-boot-grow", "nth-boot-glow", "nth-boot-still", "nth-hero",
     });
 
     private static readonly List<IDisposable> entries = [];
@@ -37,10 +38,10 @@ public static class AuroraBootWarmup
         if (program == "nth-hero") { Hero(context); return; }
         (double Seconds, double? Ready, double Opacity)[] poses = program switch
         {
-            "nth-boot-gather" => [(.1, null, 1), (.3, null, 1)],
-            "nth-boot-draw" => [(.8, null, 1)],
-            "nth-boot-sweep" => [(1.3, null, 1), (1.5, null, 1)],
-            "nth-boot-hold" => [(4.6, null, 1)],
+            "nth-boot-pop" => [(.1, null, 1), (.3, null, 1)],
+            "nth-boot-draw" => [(.7, null, 1)],
+            "nth-boot-bead" => [(1.1, null, 1)],
+            "nth-boot-hold" => [(1.6, null, 1), (4.6, null, 1)],
             "nth-boot-grow" => [(2.2, 1, 1)],
             "nth-boot-glow" => [(2.6, 1, 1), (3.3, 1, 1)],
             _ => [(.15, null, 1), (.5, null, .6), (1.4, 1, 1)], // the reduced-motion still, opaque and opacity-modulated, and its cross-fade

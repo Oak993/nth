@@ -1,8 +1,9 @@
 // PORT-ONLY: OD-0136, the locked nth icon B "Exponent": a bold "n" stroke with a small raised silver bead on the silver tile.
 // Source of truth: work/design/nth-brand/nth-brand.html (assets-src/brand/nth-brand-icon.svg keeps its <defs>): the gradients
 // gTile, gPool, gHi, gGlyph, gBead, the filter fG and the symbols tile, mkB and mkBs; the boot stage's .metal/.bs tile (its CSS
-// gradients, rim and box-shadow) and its .sw sweep; the hero/loop .mk::after sweep. This file draws only SkiaSharp, so the
-// icon generator (scripts/brand/NthIcon) compiles the very same drawing the app shows.
+// gradients, rim and box-shadow); the hero/loop .mk::after sweep. This file draws only SkiaSharp, so the icon generator
+// (scripts/brand/NthIcon) compiles the very same drawing the app shows. OD-0141: the boot has no sweep (the stage's .sw is
+// gone); its motion turns the tile's own gradient, lifts its shadow and leads the n's trim with a round head.
 using SkiaSharp;
 
 namespace Marrow.UI.Port;
@@ -22,19 +23,17 @@ public readonly record struct NthGlyph(float Left, float Right, float Top, float
     public static NthGlyph Small => new(66, 162, 126, 200, 36, 194, 68, 20, false);
 }
 
-/// <summary>Which light sweep: the boot's <c>.sw</c> (white .7, clear at 38% and 62%) or the loop/hero <c>.mk::after</c>
-/// (white .42, clear at 40% and 60%).</summary>
-public enum NthSweep { Hot, Soft }
-
 /// <summary>One pose of the mark. <see cref="Draw"/> is the drawn share of the n stroke (stroke-dashoffset 100 to 0);
-/// the bead's lift is in symbol units (the 256-unit box); <see cref="Sweep"/> is the sweep's eased progress (background-position
-/// 100% to 0), drawn only strictly between 0 and 1. <see cref="Breath"/> and the gather fields are applied by whoever composites
-/// the drawn tile (the boot painter); <see cref="NthMark.Draw"/> draws the tile at rest scale.</summary>
-public readonly record struct NthPose(double Draw, double BeadOpacity, double BeadLift, double BeadScale, double Sweep, NthSweep SweepKind,
-    double Breath, double GatherOpacity, double GatherScale, double GatherBlur)
+/// <see cref="Sweep"/> is the hero's soft sweep (the loop/hero <c>.mk::after</c>: white .42, clear at 40% and 60%) as its eased
+/// progress (background-position 100% to 0), drawn only strictly between 0 and 1. <see cref="Light"/> turns the stage tile's
+/// gradient by that many degrees (clockwise) about the tile's centre (OD-0141). <see cref="TileScale"/>, <see cref="TileOpacity"/>
+/// and <see cref="Lift"/> (the shadow's lift: 0 close under the tile, 1 the design's box-shadow) are applied by whoever places
+/// the tile (the boot painter); <see cref="NthMark.Draw"/> draws the tile at rest scale.</summary>
+public readonly record struct NthPose(double Draw, double BeadOpacity, double BeadScale, double Sweep,
+    double TileScale, double TileOpacity, double Lift, double Light)
 {
-    /// <summary>The finished mark: fully drawn, the bead at rest, no sweep, no breath, gathered.</summary>
-    public static NthPose Still => new(1, 1, 0, 1, 0, NthSweep.Soft, 1, 1, 1, 0);
+    /// <summary>The finished mark: fully drawn, the bead at rest, no sweep, the tile at rest with its gradient at its own angle.</summary>
+    public static NthPose Still => new(1, 1, 1, 0, 1, 1, 1, 0);
 }
 
 /// <summary>
@@ -57,15 +56,17 @@ public sealed class NthMark : IDisposable
     public const float Box = 256, TileInset = 8, TileSide = 240, TileCorner = 52, StageCorner = .217f * TileSide;
     /// <summary>The boot stage's CSS px in symbol units: its 26% tile is 243.9 px on the page's 938 px stage (its 1000 px column).</summary>
     public const float StagePixel = TileSide / 243.9f;
-    /// <summary>The stage .bs box-shadow <c>0 18px 40px -14px</c> and the gather's <c>blur(14px)</c>, in symbol units.</summary>
-    public const float ShadowOffset = 18 * StagePixel, ShadowSigma = 20 * StagePixel, ShadowSpread = -14 * StagePixel, GatherSigma = 14 * StagePixel;
+    /// <summary>The stage .bs box-shadow <c>0 18px 40px -14px</c>, in symbol units.</summary>
+    public const float ShadowOffset = 18 * StagePixel, ShadowSigma = 20 * StagePixel, ShadowSpread = -14 * StagePixel;
+    /// <summary>OD-0141: the shadow at lift 0, as shares of the box-shadow's offset and blur (a tight shadow close under the tile).</summary>
+    public const float ShadowRestingOffset = .2f, ShadowRestingBlur = .3f;
 
     private readonly SKPaint paint = new() { IsAntialias = true };
     private readonly SKPaint layer = new();
     private readonly Parts regular = new(NthGlyph.Regular), small = new(NthGlyph.Small);
     private readonly SKPath segment = new();
     private readonly SKRoundRect round = new();
-    private readonly SKShader tileIcon, poolIcon, hiIcon, tileStage, poolStage, metalStage, hiStage, sweepHot, sweepSoft;
+    private readonly SKShader tileIcon, poolIcon, hiIcon, tileStage, poolStage, metalStage, hiStage, sweepSoft;
     private readonly SKImageFilter glyphShadow;
     private readonly SKMaskFilter stageShadow;
     private bool disposed;
@@ -83,8 +84,7 @@ public sealed class NthMark : IDisposable
         hiStage = Css(160, [Hi55, Hi08, Clear], [0, .42f, .6f]);
         // .metal's two background layers paint as one: the pool over the linear gradient, edged by one antialiased pass.
         metalStage = SKShader.CreateCompose(tileStage, poolStage, SKBlendMode.SrcOver);
-        // The sweeps: linear-gradient(105deg, ...) on a 300% x 100% background, centred on the band's own origin.
-        sweepHot = Band([Clear, new SKColor(255, 255, 255, 179), Clear], [.38f, .5f, .62f]);
+        // The hero's sweep: linear-gradient(105deg, ...) on a 300% x 100% background, centred on the band's own origin.
         sweepSoft = Band([Clear, new SKColor(255, 255, 255, 107), Clear], [.4f, .5f, .6f]);
         // fG: feDropShadow dx 0, dy 3, stdDeviation 5, --gshadow.
         glyphShadow = SKImageFilter.CreateDropShadow(0, 3, 5, 5, GShadow);
@@ -93,7 +93,8 @@ public sealed class NthMark : IDisposable
     }
 
     /// <summary>Draws the tile, the n and the bead (and the sweep) with the 256-unit symbol box mapped onto <paramref name="box"/>.
-    /// For <see cref="NthTileStyle.Stage"/> the tile fills the box's inner 240 units, as the stage svg's viewBox does.</summary>
+    /// For <see cref="NthTileStyle.Stage"/> the tile fills the box's inner 240 units, as the stage svg's viewBox does, and
+    /// <see cref="NthPose.Light"/> turns its gradient (at 0 the drawing is exactly the resting tile's).</summary>
     public void Draw(SKCanvas canvas, SKRect box, NthTileStyle style, NthGlyph glyph, in NthPose pose)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
@@ -107,49 +108,72 @@ public sealed class NthMark : IDisposable
             var corner = style == NthTileStyle.Icon ? TileCorner : StageCorner;
             var tile = new SKRect(TileInset, TileInset, TileInset + TileSide, TileInset + TileSide);
             if (style == NthTileStyle.Icon) { Fill(canvas, tile, corner, tileIcon); Fill(canvas, tile, corner, poolIcon); } // three SVG rects
-            else
+            else if (pose.Light == 0)
             {
                 Fill(canvas, tile, corner, metalStage); // .metal (one element's backgrounds); its children paint inside .bs's overflow clip
                 round.SetRect(tile, corner, corner);
                 canvas.ClipRoundRect(round, SKClipOperation.Intersect, true);
             }
-            Fill(canvas, tile, corner, style == NthTileStyle.Icon ? hiIcon : hiStage);
+            else
+            {
+                // OD-0141: the moving light. The tile's whole material (gradient, pool, highlight) turns about the tile's centre
+                // inside the fixed rounded tile: the same shaders under a rotation, dithered so no band steps show while it moves.
+                round.SetRect(tile, corner, corner);
+                canvas.ClipRoundRect(round, SKClipOperation.Intersect, true);
+                var turned = canvas.Save();
+                const float centre = TileInset + TileSide / 2, cover = TileSide * .75f; // the turned square still covers the tile
+                canvas.RotateDegrees((float)pose.Light, centre, centre);
+                var area = new SKRect(centre - cover, centre - cover, centre + cover, centre + cover);
+                paint.IsDither = true;
+                paint.Shader = metalStage; canvas.DrawRect(area, paint);
+                paint.Shader = hiStage; canvas.DrawRect(area, paint);
+                paint.Shader = null; paint.IsDither = false;
+                canvas.RestoreToCount(turned);
+            }
+            if (style == NthTileStyle.Icon || pose.Light == 0) Fill(canvas, tile, corner, style == NthTileStyle.Icon ? hiIcon : hiStage);
             if (style == NthTileStyle.Icon) RimStroke(canvas, 2, TileCorner); // the symbol's rim lies under the mark
             if (glyph == regular.Glyph) Glyph(canvas, regular, pose);
             else if (glyph == small.Glyph) Glyph(canvas, small, pose);
             else { using var parts = new Parts(glyph); Glyph(canvas, parts, pose); } // a fitted cut (the icon generator's 16-24 px)
-            if (style == NthTileStyle.Stage)
-            {
-                SweepBand(canvas, corner, pose);
-                RimStroke(canvas, StagePixel, StageCorner); // .bs::after inset 0 0 0 1px --rim, above the mark and the sweep
-            }
-            else SweepBand(canvas, corner, pose); // .mk::after sits over the whole symbol
+            if (style == NthTileStyle.Stage) RimStroke(canvas, StagePixel, StageCorner); // .bs::after inset 0 0 0 1px --rim, above the mark
+            else SweepBand(canvas, corner, pose); // .mk::after sits over the whole symbol (the hero's soft sweep)
         }
         finally { canvas.RestoreToCount(saved); }
     }
 
     /// <summary>The stage tile's outer box-shadow (<c>0 18px 40px -14px --gshadow</c>) for a tile drawn with
-    /// <see cref="NthTileStyle.Stage"/> on <paramref name="tile"/> (the 240-unit tile itself, not its box). <paramref name="extraSigma"/>
-    /// (symbol units) is a blur over the whole tile on top (the gather's), which the shadow takes too.</summary>
-    public void DrawStageShadow(SKCanvas canvas, SKRect tile, double alpha, double extraSigma = 0)
+    /// <see cref="NthTileStyle.Stage"/> on <paramref name="tile"/> (the 240-unit tile itself, not its box). OD-0141:
+    /// <paramref name="lift"/> lifts the tile off the desktop: at 0 the shadow is tight and close (<see cref="ShadowRestingOffset"/>,
+    /// <see cref="ShadowRestingBlur"/>), at 1 it is the design's, a little beyond 1 a little further and softer. The blur follows
+    /// the canvas matrix, so one mask filter serves every lift: the shadow is drawn in a frame scaled by the blur's share.</summary>
+    public void DrawStageShadow(SKCanvas canvas, SKRect tile, double alpha, double lift = 1)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         if (!(alpha > .002)) return;
         var saved = canvas.Save();
-        SKMaskFilter? blur = null;
         try
         {
             canvas.Translate(tile.Left - TileInset * tile.Width / TileSide, tile.Top - TileInset * tile.Height / TileSide);
             canvas.Scale(tile.Width / TileSide, tile.Height / TileSide);
-            if (extraSigma > .05) blur = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, (float)Math.Sqrt(ShadowSigma * ShadowSigma + extraSigma * extraSigma));
-            paint.Shader = null; paint.Style = SKPaintStyle.Fill; paint.MaskFilter = blur ?? stageShadow;
+            paint.Shader = null; paint.Style = SKPaintStyle.Fill; paint.MaskFilter = stageShadow;
             paint.Color = GShadow.WithAlpha((byte)Math.Round(GShadow.Alpha * Math.Clamp(alpha, 0, 1)));
-            var inner = new SKRect(TileInset - ShadowSpread, TileInset - ShadowSpread + ShadowOffset, TileInset + TileSide + ShadowSpread, TileInset + TileSide + ShadowSpread + ShadowOffset);
+            var l = Math.Max(0, lift);
+            var offset = (float)(ShadowOffset * (ShadowRestingOffset + (1 - ShadowRestingOffset) * l));
+            var inner = new SKRect(TileInset - ShadowSpread, TileInset - ShadowSpread + offset, TileInset + TileSide + ShadowSpread, TileInset + TileSide + ShadowSpread + offset);
             var r = Math.Max(0, StageCorner + ShadowSpread);
+            var soft = (float)(ShadowRestingBlur + (1 - ShadowRestingBlur) * l);
+            if (soft != 1)
+            {
+                // The same rounded rectangle in a frame scaled by `soft` about its centre: the blur scales, the shape does not.
+                canvas.Scale(soft, soft, inner.MidX, inner.MidY);
+                float cx = inner.MidX, cy = inner.MidY, hw = inner.Width / 2 / soft, hh = inner.Height / 2 / soft;
+                inner = new SKRect(cx - hw, cy - hh, cx + hw, cy + hh);
+                r /= soft;
+            }
             round.SetRect(inner, r, r);
             canvas.DrawRoundRect(round, paint);
         }
-        finally { paint.MaskFilter = null; blur?.Dispose(); canvas.RestoreToCount(saved); }
+        finally { paint.MaskFilter = null; canvas.RestoreToCount(saved); }
     }
 
     private void Fill(SKCanvas canvas, SKRect tile, float corner, SKShader shader)
@@ -182,15 +206,25 @@ public sealed class NthMark : IDisposable
             else
             {
                 segment.Reset();
-                if (parts.Measure.GetSegment(0, (float)(parts.Measure.Length * draw), segment, true)) canvas.DrawPath(segment, paint);
+                var length = (float)(parts.Measure.Length * draw);
+                if (parts.Measure.GetSegment(0, length, segment, true)) canvas.DrawPath(segment, paint);
+                // OD-0141: a round head leads the trim. It is clipped at the feet's line, so on the right stem it lands flush on the
+                // finished glyph's butt foot, and the draw's last frame is exactly the finished n.
+                if (parts.Measure.GetPosition(length, out var head))
+                {
+                    var clipped = canvas.Save();
+                    canvas.ClipRect(new SKRect(0, 0, Box, g.Bottom), SKClipOperation.Intersect, true);
+                    paint.Style = SKPaintStyle.Fill;
+                    canvas.DrawCircle(head, g.Width / 2, paint);
+                    canvas.RestoreToCount(clipped);
+                }
             }
             paint.Shader = null; paint.Style = SKPaintStyle.Fill;
         }
         if (beadAlpha > 0 && pose.BeadScale > 0)
         {
             var saved = canvas.Save();
-            // transform: translateY(lift) scale(s) about the bead's own centre (transform-box: fill-box)
-            canvas.Translate(0, (float)pose.BeadLift);
+            // scale(s) about the bead's own centre (transform-box: fill-box)
             canvas.Scale((float)pose.BeadScale, (float)pose.BeadScale, g.BeadX, g.BeadY);
             paint.Shader = parts.Bead;
             paint.Color = SKColors.White.WithAlpha((byte)Math.Round(255 * beadAlpha));
@@ -212,7 +246,7 @@ public sealed class NthMark : IDisposable
         // background-position p = 1 - w on a 3W-wide image: the band's centre runs from -W/2 to 3W/2 across the tile.
         var x = TileInset + (float)(TileSide * (2 * w - .5));
         canvas.Translate(x, TileInset + TileSide / 2);
-        paint.Shader = pose.SweepKind == NthSweep.Hot ? sweepHot : sweepSoft; paint.Color = SKColors.White;
+        paint.Shader = sweepSoft; paint.Color = SKColors.White;
         canvas.DrawRect(new SKRect(tile.Left - x, -TileSide / 2, tile.Right - x, TileSide / 2), paint);
         paint.Shader = null;
         canvas.RestoreToCount(saved);
@@ -268,7 +302,7 @@ public sealed class NthMark : IDisposable
     {
         if (disposed) return;
         disposed = true;
-        foreach (var shader in new[] { metalStage, tileIcon, poolIcon, hiIcon, tileStage, poolStage, hiStage, sweepHot, sweepSoft }) shader.Dispose();
+        foreach (var shader in new[] { metalStage, tileIcon, poolIcon, hiIcon, tileStage, poolStage, hiStage, sweepSoft }) shader.Dispose();
         layer.ImageFilter = null; glyphShadow.Dispose(); stageShadow.Dispose();
         regular.Dispose(); small.Dispose(); segment.Dispose();
         round.Dispose(); paint.Dispose(); layer.Dispose();

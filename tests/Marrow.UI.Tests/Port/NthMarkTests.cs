@@ -6,9 +6,10 @@ using SkiaSharp;
 
 namespace Marrow.UI.Tests.Port;
 
-// OD-0136: the nth icon B and its boot motion. The drawing is checked against Chrome's rendering of the design's own sources
-// (tests/fixtures/nth: the master svg and the boot stage's settled tile, copied from work/design/nth-brand/nth-brand.html; how the
-// oracle PNGs were made is in its manifest.json), and the motion against the page's keyframes and their timing functions.
+// OD-0136: the nth icon B. The drawing is checked against Chrome's rendering of the design's own sources (tests/fixtures/nth: the
+// master svg and the boot stage's settled tile, copied from work/design/nth-brand/nth-brand.html; how the oracle PNGs were made is
+// in its manifest.json). OD-0141: the boot motion (the tile's pop, its turning gradient and lifting shadow, the n's trim, the bead's
+// spring; no shine) against its own curves, and the painter's frames (ED-NEW-bootpop-1 names the tests it replaced).
 public sealed class NthMarkTests
 {
     // ---- the drawing against the design (Chrome oracle) ----
@@ -86,77 +87,180 @@ public sealed class NthMarkTests
         Assert.True(Pixel(surface, 44, 150).Red < 120);
     }
 
-    // ---- the motion against the keyframes ----
+    // ---- the boot motion (OD-0141: the tile pops toward the viewer, the n draws, the bead springs in; no shine) ----
+
+    // 600 Hz samples of a value over [from, to].
+    private static double[] Samples(Func<double, double> value, double from, double to, double step = 1 / 600.0) =>
+        Enumerable.Range(0, (int)Math.Round((to - from) / step) + 1).Select(i => value(from + i * step)).ToArray();
+
+    private static void Rising(double[] values, double slack = 0)
+    {
+        for (var i = 1; i < values.Length; i++) Assert.True(values[i] >= values[i - 1] - slack, $"sample {i} falls: {values[i - 1]} to {values[i]}");
+    }
 
     [Fact]
-    [Trait("Decision", "OD-0136")]
-    public void Silver_gathers_over_six_tenths_from_a_soft_blur_and_four_fifths_scale_and_is_opaque_by_fifty_five_percent()
+    [Trait("Decision", "OD-0141")]
+    public void The_tile_pops_from_eighty_six_hundredths_with_one_overshoot_under_two_percent_and_rests_exactly_at_one()
     {
         var start = NthMotion.Boot(0, false);
-        Assert.Equal(0, start.GatherOpacity); Assert.Equal(.8, start.GatherScale, 12); Assert.Equal(NthMark.GatherSigma, start.GatherBlur, 6);
-        Assert.Equal(14 * 240 / 243.9, NthMark.GatherSigma, 4); // blur(14px) on the page's 243.9 px stage tile
-        Assert.Equal(1, NthMotion.Boot(.33, false).GatherOpacity, 9);
-        Assert.True(NthMotion.Boot(.2, false).GatherOpacity < 1);
-        var mid = NthMotion.Boot(.3, false);
-        Assert.Equal(.8 + .2 * NthMotion.Ease(.5, .2, .8, .2, 1), mid.GatherScale, 12); // one cubic-bezier(.2,.8,.2,1) over the whole .6 s
-        var done = NthMotion.Boot(.6, false);
-        Assert.Equal((1, 1, 0), (done.GatherOpacity, done.GatherScale, done.GatherBlur));
-    }
-
-    [Fact]
-    [Trait("Decision", "OD-0136")]
-    public void The_n_draws_from_thirty_eight_hundredths_over_seventy_two_hundredths_in_a_symmetric_ease()
-    {
-        Assert.Equal(0, NthMotion.Boot(.38, false).Draw);
-        Assert.Equal(.5, NthMotion.Boot(.38 + .36, false).Draw, 6); // cubic-bezier(.65,0,.35,1) is point-symmetric about its middle
-        Assert.True(NthMotion.Boot(.5, false).Draw < .1); // slow in
-        Assert.Equal(1, NthMotion.Boot(1.1, false).Draw);
-    }
-
-    [Fact]
-    [Trait("Decision", "OD-0136")]
-    public void The_bead_drops_in_at_one_second_with_one_overshoot_and_rests_at_one_and_a_half()
-    {
-        Assert.Equal(0, NthMotion.Boot(.999, false).BeadOpacity);
-        var first = NthMotion.Boot(1.0, false);
-        Assert.Equal((0, -36, .3), (first.BeadOpacity, first.BeadLift, first.BeadScale));
-        var rest = NthMotion.Boot(1.5, false);
-        Assert.Equal((1, 0, 1), (rest.BeadOpacity, rest.BeadLift, rest.BeadScale));
-        // cubic-bezier(.34,1.56,.64,1) overshoots once: the scale rises past 1 and comes back, one peak, never below 1 after it
-        var scales = Enumerable.Range(0, 501).Select(i => NthMotion.Boot(1.0 + i * .001, false).BeadScale).ToArray();
+        Assert.Equal((.86, 0.0, 0.0), (start.TileScale, start.TileOpacity, start.Lift));
+        var scales = Samples(t => NthMotion.Boot(t, false).TileScale, 0, NthMotion.TileSeconds);
         var peak = Array.IndexOf(scales, scales.Max());
-        Assert.InRange(scales[peak], 1.05, 1.3);
-        Assert.All(scales.Take(peak), (s, i) => Assert.True(s <= scales[i + 1] + 1e-12));
-        Assert.All(scales.Skip(peak).Zip(scales.Skip(peak + 1)), pair => Assert.True(pair.Second <= pair.First + 1e-12));
-        Assert.All(scales.Skip(peak), s => Assert.True(s >= 1 - 1e-12));
-        Assert.Contains(Enumerable.Range(0, 501), i => NthMotion.Boot(1.0 + i * .001, false).BeadLift > 0); // it passes its rest once
+        Assert.InRange(scales[peak], 1.005, 1.02); // it comes slightly forward, never more than 2% past its size
+        Rising(scales[..(peak + 1)]); // one rise to the peak...
+        Assert.All(scales[peak..], s => Assert.True(s >= .998, $"the tile sinks back visibly: {s}")); // ...then a settle with no second pop
+        foreach (var t in new[] { NthMotion.TileSeconds, 1.0, 1.8, 30.0 }) Assert.Equal(1, NthMotion.Boot(t, false).TileScale);
+        // its opacity rises only, from 0 to exactly 1 at .3 s
+        var opacities = Samples(t => NthMotion.Boot(t, false).TileOpacity, 0, 1);
+        Rising(opacities);
+        Assert.True(NthMotion.Boot(.1, false).TileOpacity is > .3 and < 1);
+        Assert.Equal(1, NthMotion.Boot(NthMotion.TileFadeSeconds, false).TileOpacity);
+        // its shadow lifts with the same spring: lift 0 to exactly 1, a little past 1 with the overshoot
+        foreach (var t in Samples(t => t, 0, NthMotion.TileSeconds, .01))
+        {
+            var p = NthMotion.Boot(t, false);
+            Assert.Equal(p.TileScale, NthMotion.TileFrom + (1 - NthMotion.TileFrom) * p.Lift, 12);
+        }
+        Assert.Equal(1, NthMotion.Boot(NthMotion.TileSeconds, false).Lift);
     }
 
     [Fact]
-    [Trait("Decision", "OD-0136")]
-    public void Light_sweeps_once_from_one_eighteen_and_the_tile_breathes_once_to_one_point_zero_three_five()
+    [Trait("Decision", "OD-0141")]
+    public void The_n_draws_once_the_tile_is_two_thirds_through_its_spring_rising_smoothly_to_exactly_the_whole_n()
     {
-        Assert.Equal(0, NthMotion.Boot(1.18, false).Sweep);
-        var mid = NthMotion.Boot(1.48, false);
-        Assert.Equal(NthSweep.Hot, mid.SweepKind);
-        Assert.Equal(NthMotion.Ease(.5, .45, 0, .2, 1), mid.Sweep, 9);
-        Assert.Equal(1, NthMotion.Boot(1.78, false).Sweep);
-        Assert.Equal(1, NthMotion.Boot(1.36, false).Breath);
-        Assert.Equal(1.035, NthMotion.Boot(1.36 + .45 * .5, false).Breath, 9);
-        Assert.Equal(1, NthMotion.Boot(NthMotion.Settled, false).Breath, 9);
-        Assert.True(NthMotion.Boot(1.5, false).Breath is > 1 and < 1.035);
-        Assert.Equal(NthPose.Still, NthMotion.Boot(NthMotion.Settled, false) with { Sweep = 0, SweepKind = NthSweep.Soft });
+        Assert.InRange(NthMotion.DrawStart / NthMotion.TileSeconds, .6, .7);
+        Assert.All(Samples(t => NthMotion.Boot(t, false).Draw, 0, NthMotion.DrawStart), d => Assert.Equal(0, d));
+        var draws = Samples(t => NthMotion.Boot(t, false).Draw, 0, 3);
+        Rising(draws); // never steps back
+        Assert.All(draws, d => Assert.InRange(d, 0, 1));
+        // no jump: at 600 Hz no step exceeds three times the trim's mean speed (1 / 0.56 s); the ease's own peak is 2.7 times it
+        var bound = 3 / (600 * NthMotion.DrawSeconds);
+        for (var i = 1; i < draws.Length; i++) Assert.True(draws[i] - draws[i - 1] < bound, $"the draw jumps at sample {i}: {draws[i] - draws[i - 1]}");
+        Assert.True(NthMotion.Boot(NthMotion.DrawStart + .05, false).Draw < .02); // eases in...
+        Assert.True(NthMotion.Boot(NthMotion.DrawEnd - .05, false).Draw > .99); // ...and out
+        foreach (var t in new[] { NthMotion.DrawEnd, 1.2, 1.8, 30.0 }) Assert.Equal(1, NthMotion.Boot(t, false).Draw);
     }
 
     [Fact]
-    [Trait("Decision", "OD-0136")]
-    public void A_long_hold_repeats_the_soft_sweep_slowly_and_reduced_motion_is_the_finished_mark()
+    [Trait("Decision", "OD-0141")]
+    public void The_bead_springs_in_from_four_tenths_only_after_the_n_is_complete_and_rests_when_the_mark_settles()
     {
-        foreach (var t in new[] { 2.0, 3.0, 4.18, 5.38, 7.0 }) Assert.False(NthMotion.Boot(t, false).Sweep is > 0 and < 1);
-        var hold = NthMotion.Boot(4.78, false);
-        Assert.Equal(NthSweep.Soft, hold.SweepKind); Assert.Equal(NthMotion.Ease(.5, .45, 0, .2, 1), hold.Sweep, 9);
-        Assert.Equal(NthMotion.Ease(.5, .45, 0, .2, 1), NthMotion.Boot(7.78, false).Sweep, 9); // every 3 s
-        foreach (var t in new[] { 0, .2, .8, 1.2, 1.5, 5.0 }) Assert.Equal(NthPose.Still, NthMotion.Boot(t, true));
+        Assert.Equal(NthMotion.DrawEnd, NthMotion.BeadStart);
+        foreach (var t in Samples(t => t, 0, 3))
+        {
+            var p = NthMotion.Boot(t, false);
+            if (p.Draw < 1) Assert.Equal(0, p.BeadOpacity); // the dot never shows before the n is whole
+        }
+        var first = NthMotion.Boot(NthMotion.BeadStart, false);
+        Assert.Equal((0.0, .4), (first.BeadOpacity, first.BeadScale));
+        var scales = Samples(t => NthMotion.Boot(t, false).BeadScale, NthMotion.BeadStart, NthMotion.Settled);
+        var peak = Array.IndexOf(scales, scales.Max());
+        Assert.InRange(scales[peak], 1.02, 1.1); // a soft spring: one small overshoot
+        Rising(scales[..(peak + 1)]);
+        Assert.All(scales[peak..], s => Assert.True(s >= .995));
+        var opacities = Samples(t => NthMotion.Boot(t, false).BeadOpacity, NthMotion.BeadStart, 3);
+        Rising(opacities);
+        Assert.Equal(1, NthMotion.Boot(NthMotion.BeadStart + NthMotion.BeadFadeSeconds, false).BeadOpacity);
+        var rest = NthMotion.Boot(NthMotion.Settled, false);
+        Assert.Equal((1.0, 1.0), (rest.BeadOpacity, rest.BeadScale));
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0141")]
+    public void The_mark_settles_within_one_point_four_seconds_then_holds_still_before_the_hand_over_with_no_shine_ever()
+    {
+        Assert.InRange(NthMotion.Settled, 1.1, 1.4);
+        Assert.Equal(NthPose.Still, NthMotion.Boot(NthMotion.Settled, false));
+        foreach (var t in Samples(t => t, NthMotion.Settled, 30, 1 / 60.0)) Assert.Equal(NthPose.Still, NthMotion.Boot(t, false)); // no hold sweeps
+        Assert.All(Samples(t => NthMotion.Boot(t, false).Sweep, 0, 30, 1 / 60.0), s => Assert.Equal(0, s)); // no light band at any time
+        Assert.True(NthMotion.Settled <= AuroraBootSequence.HandOver(0, false) - .3); // a brief hold before the unchanged hand-over
+        Assert.Equal(1.8, AuroraBootSequence.HandOver(0, false));
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0141")]
+    public void The_tile_gradient_turns_from_twenty_two_degrees_off_and_rests_exactly_on_the_icon_gradient_as_the_bead_lands()
+    {
+        Assert.Equal(-22, NthMotion.Boot(0, false).Light);
+        var lights = Samples(t => NthMotion.Boot(t, false).Light, 0, NthMotion.Settled);
+        Rising(lights); // one way, toward rest
+        for (var i = 1; i < lights.Length; i++) Assert.True(lights[i] - lights[i - 1] < .15, $"the light jumps at sample {i}"); // eased, no jump
+        foreach (var t in new[] { NthMotion.Settled, 1.8, 30.0 })
+        {
+            var light = NthMotion.Boot(t, false).Light;
+            Assert.Equal(0, light); Assert.False(double.IsNegative(light)); // exactly the resting angle, not a negative zero
+        }
+        // Drawn: the settled pose draws exactly the resting stage tile (the one the Chrome oracle checks), byte for byte; a turned
+        // gradient moves the corners and leaves the centre, about which it turns, as it is.
+        using var mark = new NthMark();
+        byte[] Draw(in NthPose pose)
+        {
+            using var surface = Surface(256, 256);
+            mark.Draw(surface.Canvas, new SKRect(0, 0, 256, 256), NthTileStyle.Stage, NthGlyph.Regular, pose);
+            using var image = surface.Snapshot();
+            using var pixels = image.PeekPixels();
+            return pixels.GetPixelSpan().ToArray();
+        }
+        var still = Draw(NthPose.Still);
+        Assert.Equal(still, Draw(NthMotion.Boot(NthMotion.Settled, false)));
+        Assert.Equal(still, Draw(NthPose.Still with { Light = 0 }));
+        var turned = Draw(NthPose.Still with { Light = -11 });
+        static int At(byte[] p, int x, int y) => p[(y * 256 + x) * 4];
+        Assert.True(Math.Abs(At(turned, 30, 226) - At(still, 30, 226)) >= 4, "the gradient does not move at the lower left corner");
+        Assert.True(Math.Abs(At(turned, 128, 128) - At(still, 128, 128)) <= 2, "the gradient does not turn about the tile's centre");
+        Assert.Equal(NthPose.Still, NthMotion.Boot(.5, true)); // reduced motion: the static gradient
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0141")]
+    public void Reduced_motion_is_the_finished_mark_at_every_moment()
+    {
+        foreach (var t in Samples(t => t, 0, 5, 1 / 60.0)) Assert.Equal(NthPose.Still, NthMotion.Boot(t, true));
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0141")]
+    public void The_shadow_lifts_from_close_under_the_tile_to_the_design_box_shadow()
+    {
+        using var mark = new NthMark();
+        var tile = new SKRect(60, 40, 300, 280); // 240 px: symbol units are pixels
+        byte Alpha(double lift, int below)
+        {
+            using var surface = Surface(360, 400);
+            mark.DrawStageShadow(surface.Canvas, tile, 1, lift);
+            return Pixel(surface, 180, (int)tile.Bottom + below).Alpha;
+        }
+        Assert.True(Alpha(0, 12) <= 4, "a resting shadow reaches out from under the tile");
+        Assert.True(Alpha(1, 12) > Alpha(0, 12) + 15, "the lifted shadow does not fall out from under the tile");
+        Assert.True(Alpha(1, 20) > Alpha(.5, 20) && Alpha(.5, 20) > Alpha(0, 20), "the shadow does not grow with the lift");
+        Assert.True(Alpha(1.05, 40) >= Alpha(1, 40), "the overshoot does not lift the shadow a little further");
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0141")]
+    public void A_round_head_leads_the_draw_and_lands_flush_on_the_finished_feet()
+    {
+        using var mark = new NthMark();
+        SKSurface At(double draw)
+        {
+            var surface = Surface(256, 256);
+            mark.Draw(surface.Canvas, new SKRect(0, 0, 256, 256), NthTileStyle.Icon, NthGlyph.Regular, NthPose.Still with { Draw = draw, BeadOpacity = 0 });
+            return surface;
+        }
+        // .15 of the 282-unit path: the head is on the left stem at y 196 - 42.3; a butt end would stop there, the round head
+        // reaches 13 units (half the stroke) beyond it.
+        using (var rising = At(.15))
+        {
+            Assert.True(White(Pixel(rising, 70, 196 - 42 - 8)), "no round head beyond the trim");
+            Assert.False(White(Pixel(rising, 70, 196 - 42 - 16)), "the head runs beyond half the stroke");
+        }
+        // just before the end the head is clipped at the feet's line, so nothing hangs below the right foot
+        using var nearly = At(.995);
+        using var whole = At(1);
+        Assert.True(White(Pixel(nearly, 158, 192)));
+        SKColor below = Pixel(nearly, 158, 199), finished = Pixel(whole, 158, 199);
+        Assert.True(Math.Abs(below.Red - finished.Red) <= 2 && Math.Abs(below.Alpha - finished.Alpha) <= 2, $"{below} below the right foot, finished {finished}");
+        Assert.False(White(below));
     }
 
     [Fact]
@@ -167,7 +271,8 @@ public sealed class NthMarkTests
         Assert.Equal(NthPose.Still, NthMotion.Hero(.3, false));
         Assert.Equal(.3, NthMotion.HeroSweepDelay); Assert.Equal(.9, NthMotion.HeroDone, 9); // sweepOnce's .6 s pass, after the prompt's .3 s fade-in
         var mid = NthMotion.Hero(.6, false);
-        Assert.Equal(NthSweep.Soft, mid.SweepKind); Assert.Equal(NthMotion.Ease(.5, .45, 0, .2, 1), mid.Sweep, 9);
+        Assert.Equal(NthMotion.Ease(.5, .45, 0, .2, 1), mid.Sweep, 9);
+        Assert.Equal(NthPose.Still with { Sweep = mid.Sweep }, mid); // only the sweep moves
         Assert.False(NthMotion.Hero(NthMotion.HeroDone, false).Sweep is > 0 and < 1);
         Assert.False(NthMotion.Hero(30, false).Sweep is > 0 and < 1);
         Assert.Equal(NthPose.Still, NthMotion.Hero(1.6, true));
@@ -196,12 +301,13 @@ public sealed class NthMarkTests
     private static bool White(SKColor c) => c.Red > 180 && c.Green > 180 && c.Blue > 180;
 
     [Fact]
-    [Trait("Decision", "OD-0136")]
+    [Trait("Decision", "OD-0141")]
     public void The_boot_tile_forms_its_n_then_its_bead_and_settles_on_the_stage_tile()
     {
         static SKColor At(SKSurface s, (int X, int Y) p) => Pixel(s, p.X, p.Y);
         using (var early = Boot(.3)) { Assert.False(White(At(early, Stage(70, 150)))); Assert.False(White(At(early, Stage(186, 74)))); } // the tile, no mark yet
-        using (var drawing = Boot(.8)) { Assert.True(White(At(drawing, Stage(70, 180)))); Assert.False(White(At(drawing, Stage(158, 190)))); Assert.False(White(At(drawing, Stage(186, 74)))); }
+        Assert.True(NthMotion.Boot(.7, false).Draw is > .3 and < .8);
+        using (var drawing = Boot(.7)) { Assert.True(White(At(drawing, Stage(70, 180)))); Assert.False(White(At(drawing, Stage(158, 190)))); Assert.False(White(At(drawing, Stage(186, 74)))); }
         using (var settled = Boot(NthMotion.Settled)) // settled, no readiness yet: no hand-over
         {
             Assert.True(White(At(settled, Stage(70, 150)))); Assert.True(White(At(settled, Stage(158, 150)))); Assert.True(White(At(settled, Stage(186, 74))));
@@ -215,25 +321,29 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0136")]
-    public void The_boot_tile_gathers_in_from_a_blur_and_the_hot_sweep_brightens_it_once()
+    [Trait("Decision", "OD-0141")]
+    public void The_boot_tile_pops_in_smaller_and_fainter_and_no_light_ever_crosses_it()
     {
-        // On a black desktop: at .12 s the tile is smaller, fading in and blurred, so light spills above its edge; at .6 s it is sharp.
-        using var gathering = Boot(.12, desktop: 0);
-        using var gathered = Boot(.6, desktop: 0);
-        var pose = NthMotion.Boot(.12, false);
-        Assert.True(pose.GatherBlur > 3 && pose.GatherOpacity is > .5 and < 1);
-        var top = Stage(128, 8, pose.GatherScale).Y; // the gathering tile's top edge, mid-width
-        var settledTop = Stage(128, 8).Y;
-        Assert.True(Pixel(gathering, 660, top - 6).Red > 15, "no blur above the gathering tile's edge");
-        Assert.True(Pixel(gathered, 660, settledTop - 6).Red <= 6, "the gathered tile's edge is not sharp");
-        Assert.True(Pixel(gathering, 660, top + 6).Red < Pixel(gathered, 660, settledTop + 6).Red);
-        // the hot band's centre crosses the tile's centre when the sweep is half done
-        var half = Enumerable.Range(0, 601).Select(i => 1.18 + i * .001).MinBy(t => Math.Abs(NthMotion.Boot(t, false).Sweep - .5));
-        using var sweeping = Boot(half);
-        using var after = Boot(1.9);
+        // On a black desktop: at .05 s the tile is smaller and fading in; by .6 s it is whole at its own size.
+        var pose = NthMotion.Boot(.05, false);
+        Assert.True(pose.TileScale < .93 && pose.TileOpacity is > .05 and < .9);
+        using var popping = Boot(.05, desktop: 0);
+        using var popped = Boot(.6, desktop: 0);
+        var edge = Stage(128, 12); // just inside the resting tile's top edge
+        Assert.True(Pixel(popping, edge.X, edge.Y).Red <= 6, "the popping tile is not smaller than its rest");
+        Assert.True(Pixel(popped, edge.X, edge.Y).Red > 30);
         var centre = Stage(128, 128);
-        Assert.True(Pixel(sweeping, centre.X, centre.Y).Red > Pixel(after, centre.X, centre.Y).Red + 60);
+        Assert.True(Pixel(popping, centre.X, centre.Y).Red < Pixel(popped, centre.X, centre.Y).Red - 15, "the popping tile is not fainter");
+        // From the moment it is opaque to the hand-over the tile's centre never brightens: no band, streak or sweep passes it
+        // (the gradient turns about this very point, so it holds its colour while the light moves).
+        using var settled = Boot(NthMotion.Settled, desktop: 0);
+        var rest = Pixel(settled, centre.X, centre.Y);
+        for (var t = NthMotion.TileFadeSeconds; t <= 1.8; t += 1 / 30.0)
+        {
+            using var frame = Boot(t, desktop: 0);
+            var c = Pixel(frame, centre.X, centre.Y);
+            Assert.True(Math.Abs(c.Red - rest.Red) <= 3 && Math.Abs(c.Green - rest.Green) <= 3 && Math.Abs(c.Blue - rest.Blue) <= 3, $"at {t:F3} s the centre is {c}, at rest {rest}");
+        }
     }
 
     [Fact]
@@ -247,6 +357,32 @@ public sealed class NthMarkTests
         Assert.True(Pixel(fading, stem.X, stem.Y).Red < Pixel(shown, stem.X, stem.Y).Red - 40);
         Assert.Equal(Pixel(shown, stem.X, stem.Y), Pixel(later, stem.X, stem.Y));
         Assert.True(White(Pixel(shown, stem.X, stem.Y)));
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0141")]
+    public void Drawing_the_boot_mark_allocates_nothing_per_frame()
+    {
+        // Every 60 Hz frame of the mark, the hold and the reduced-motion fade, after one warm pass (the painter's caches and the
+        // JIT): the drawing creates no managed object (transforms, opacity and the painter's own paints, paths and shaders only).
+        var window = new Rect(0, 0, 900, 700);
+        using var surface = Surface(900, 700);
+        using var painter = new AuroraBootPainter();
+        var moving = new AuroraBootSequence(window, false);
+        var calm = new AuroraBootSequence(window, true);
+        var times = Samples(t => t, 0, 1.8, 1 / 60.0);
+        void Pass()
+        {
+            foreach (var t in times)
+            {
+                painter.Draw(surface.Canvas, window.Size, window, moving.At(t, null), t, true, false);
+                painter.Draw(surface.Canvas, window.Size, window, calm.At(t, null), t, false, true);
+            }
+        }
+        Pass();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        Pass();
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
     // ---- helpers ----

@@ -5,19 +5,21 @@ namespace Marrow.UI.Port;
 
 // Locked Stage.renderB/renderRM, loading-aurora.html:618-670: the stage, its scrim, the tile's grow into the window frame, its
 // clip and glow. Real desktop and main window supply the backdrop/content. OD-0136: what the tile shows is the nth mark B
-// (NthMark, the stage's .bs.metal tile) moved by NthMotion.Boot (gather, draw, drop, sweep, breath), in place of the Aurora mark;
-// the gather's scale and the breath replace the Aurora's .93-to-1 entrance scale in the tile's side, so from the hand-over on
-// (at least 1.8 s, both are 1 there) the grow is the same rectangle as before.
+// (NthMark, the stage's .bs.metal tile). OD-0141: it moves by NthMotion.Boot (the tile pops toward the viewer while its gradient
+// turns to rest and its shadow lifts, the n draws, the bead springs in; no shine); the pop's scale replaces the Aurora's .93-to-1
+// entrance scale in the tile's side, so from the hand-over on (at least 1.8 s, where it is 1) the grow is the same rectangle.
+// Until the grow the mark is drawn as vectors straight onto the stage at its current size (crisp at every scale, nothing
+// rasterised per frame, no managed allocation per frame); the grow and its glow draw one cached image of the settled tile.
 public sealed class AuroraBootPainter : IDisposable
 {
     private readonly NthMark mark = new();
     private readonly SKPaint paint = new() { IsAntialias = true };
+    private readonly SKPaint fade = new();
     private readonly SKRoundRect clip = new();
     private SKSurface? icon, glow;
+    private SKImage? still;
     private int iconPixels, glowWidth, glowHeight;
     private GRContext? graphics;
-    private bool drawn;
-    private NthPose shown;
     private static SKRect Rect(Avalonia.Rect r) => new((float)r.X, (float)r.Y, (float)r.Right, (float)r.Bottom);
     private void Color(byte r, byte g, byte b, double alpha) => paint.ColorF = new SKColorF(r / 255f, g / 255f, b / 255f, (float)alpha);
     public void Draw(SKCanvas canvas, Size area, Avalonia.Rect window, AuroraBootFrame f, double seconds, bool dark, bool reduceMotion, double opacity = 1, GRContext? gpu = null)
@@ -27,37 +29,18 @@ public sealed class AuroraBootPainter : IDisposable
         {
             Color(dark ? (byte)2 : (byte)8, dark ? (byte)6 : (byte)14, dark ? (byte)16 : (byte)28, (dark ? .5 : .46) * f.ScrimOpacity * opacity);
             paint.Style = SKPaintStyle.Fill; canvas.DrawRect(SKRect.Create((float)area.Width, (float)area.Height), paint);
-            if (f.StageClosed) return; // OD-0136: the nth gather starts with the stage (the Aurora's launch waited .12 s)
-            var matrix = canvas.TotalMatrix;
-            var deviceScale = Math.Sqrt(matrix.ScaleX * matrix.ScaleX + matrix.SkewY * matrix.SkewY);
-            var size = reduceMotion ? AuroraBootSequence.MarkSize : Math.Round(window.Width * .6);
-            var pixels = Math.Max(1, (int)Math.Round(size * deviceScale));
+            if (f.StageClosed) return; // the pop starts with the stage (the Aurora's launch waited .12 s)
             if (graphics != gpu)
             {
-                icon?.Dispose(); glow?.Dispose(); icon = glow = null; graphics = gpu;
+                still?.Dispose(); icon?.Dispose(); glow?.Dispose(); still = null; icon = glow = null; graphics = gpu;
             }
-            if (icon is null || iconPixels != pixels)
-            {
-                icon?.Dispose(); icon = Surface(pixels, pixels); iconPixels = pixels; drawn = false;
-                if (icon is null) throw new InvalidOperationException("Aurora boot icon surface was not created.");
-            }
-            // The tile is drawn on the compositor GPU at the stage's tile size (.88 of the icon, as before) and redrawn only when
-            // what it shows changes (the stroke, the bead, the sweep): the reduced-motion still and the settled tile are drawn once.
             var pose = NthMotion.Boot(seconds, reduceMotion);
-            if (!drawn || !SameContent(pose, shown))
-            {
-                icon.Canvas.Clear(SKColors.Transparent); icon.Canvas.ResetMatrix(); icon.Canvas.Scale((float)(pixels / size));
-                var unit = .88 * size / NthMark.TileSide;
-                var box = (float)(.06 * size - NthMark.TileInset * unit);
-                mark.Draw(icon.Canvas, new SKRect(box, box, (float)(box + NthMark.Box * unit), (float)(box + NthMark.Box * unit)), NthTileStyle.Stage, NthGlyph.Regular, pose);
-                drawn = true; shown = pose;
-            }
-            using var image = icon.Snapshot();
-            var sc0 = pose.GatherScale * pose.Breath; // OD-0136: .bi's gather and .bs's breath (the Aurora's own entrance scale before)
-            var side = reduceMotion ? size : size * (AuroraBootSequence.MarkSize / size * sc0 +
-                (Math.Max(window.Width, window.Height) / (.88 * size) - AuroraBootSequence.MarkSize / size * sc0) * f.Progress);
+            var growing = !reduceMotion && f.Progress > 0;
+            var image = growing ? Still(canvas, window) : null;
+            var side = reduceMotion ? AuroraBootSequence.MarkSize : AuroraBootSequence.MarkSize * pose.TileScale +
+                (Math.Max(window.Width, window.Height) / .88 - AuroraBootSequence.MarkSize * pose.TileScale) * f.Progress;
             var dest = new SKRect((float)(window.Center.X - side / 2), (float)(window.Center.Y - side / 2), (float)(window.Center.X + side / 2), (float)(window.Center.Y + side / 2));
-            if (f.GlowOpacity > .002)
+            if (f.GlowOpacity > .002 && image is not null)
             {
                 // The page reduces the whole stage to 1/8 before drawing the glow back inside the growing rectangle.
                 var gw = Math.Max(8, (int)Math.Round(area.Width / 8)); var gh = Math.Max(8, (int)Math.Round(area.Height / 8));
@@ -69,26 +52,38 @@ public sealed class AuroraBootPainter : IDisposable
                 glow.Canvas.Clear(SKColors.Transparent); glow.Canvas.ResetMatrix();
                 glow.Canvas.Scale((float)(gw / area.Width), (float)(gh / area.Height));
                 Color(255, 255, 255, 1); glow.Canvas.DrawImage(image, dest, new SKSamplingOptions(SKCubicResampler.Mitchell), paint);
-                using var blurred = glow.Snapshot();
+                using var blurred = glow.Snapshot(); // the hand-over's glow, unchanged (its only per-frame object, after the mark)
                 canvas.Save(); clip.SetRect(Rect(f.Tile), (float)f.CornerRadius, (float)f.CornerRadius); canvas.ClipRoundRect(clip, SKClipOperation.Intersect, true);
                 Color(255, 255, 255, f.GlowOpacity * opacity); canvas.DrawImage(blurred, SKRect.Create((float)area.Width, (float)area.Height), new SKSamplingOptions(SKCubicResampler.Mitchell), paint); canvas.Restore();
             }
-            if (f.TileOpacity > .002)
+            var alpha = f.TileOpacity * opacity * pose.TileOpacity;
+            if (alpha > .002)
             {
-                // .bs's box-shadow lies on the desktop under the tile, outside the tile's clip; it lifts away in the grow's first quarter.
+                // .bs's box-shadow lies on the desktop under the tile, outside the tile's clip; it lifts with the pop (OD-0141) and
+                // lifts away in the grow's first quarter.
                 var tile = SKRect.Inflate(dest, (float)(-.06 * side), (float)(-.06 * side));
-                var lift = reduceMotion ? 1 : 1 - AuroraLoaderMotion.Smooth(f.Progress * 4);
-                mark.DrawStageShadow(canvas, tile, f.TileOpacity * opacity * pose.GatherOpacity * lift, pose.GatherBlur);
+                var away = reduceMotion ? 1 : 1 - AuroraLoaderMotion.Smooth(f.Progress * 4);
+                mark.DrawStageShadow(canvas, tile, alpha * away, pose.Lift);
                 canvas.Save();
                 var inflate = reduceMotion ? 0 : (1 - AuroraLoaderMotion.Smooth(f.Progress * 4)) * .06 * AuroraBootSequence.MarkSize;
                 clip.SetRect(Rect(f.Tile.Inflate(inflate)), (float)(f.CornerRadius + inflate), (float)(f.CornerRadius + inflate));
                 canvas.ClipRoundRect(clip, SKClipOperation.Intersect, true);
-                // .bi's gather: the whole tile fades in and sharpens from blur(14px), in the tile's own units.
-                var sigma = pose.GatherBlur * tile.Width / NthMark.TileSide;
-                using var gather = sigma > .05 ? SKImageFilter.CreateBlur((float)sigma, (float)sigma) : null;
-                paint.ImageFilter = gather;
-                Color(255, 255, 255, f.TileOpacity * opacity * pose.GatherOpacity); canvas.DrawImage(image, dest, new SKSamplingOptions(SKFilterMode.Linear), paint); canvas.Restore();
-                paint.ImageFilter = null;
+                if (image is not null)
+                {
+                    Color(255, 255, 255, alpha); canvas.DrawImage(image, dest, new SKSamplingOptions(SKFilterMode.Linear), paint);
+                }
+                else
+                {
+                    // The tile as vectors at its current size: .88 of the side, centred (the stage svg's 8 8 240 240 viewBox).
+                    var faded = alpha < .998;
+                    if (faded) { fade.Color = SKColors.White.WithAlpha((byte)Math.Round(255 * alpha)); canvas.SaveLayer(dest, fade); }
+                    var unit = (float)(.88 * side / NthMark.TileSide);
+                    var box = new SKRect(tile.Left - NthMark.TileInset * unit, tile.Top - NthMark.TileInset * unit,
+                        tile.Left + (NthMark.Box - NthMark.TileInset) * unit, tile.Top + (NthMark.Box - NthMark.TileInset) * unit);
+                    mark.Draw(canvas, box, NthTileStyle.Stage, NthGlyph.Regular, pose);
+                    if (faded) canvas.Restore();
+                }
+                canvas.Restore();
             }
             if (!reduceMotion && f.Progress > .02)
             {
@@ -103,14 +98,30 @@ public sealed class AuroraBootPainter : IDisposable
         }
         finally { canvas.RestoreToCount(saved); }
     }
-    private static bool SameContent(in NthPose a, in NthPose b) =>
-        a.Draw == b.Draw && a.BeadOpacity == b.BeadOpacity && a.BeadLift == b.BeadLift && a.BeadScale == b.BeadScale &&
-        (a.Sweep == b.Sweep && a.SweepKind == b.SweepKind || !(a.Sweep > 0 && a.Sweep < 1) && !(b.Sweep > 0 && b.Sweep < 1));
+
+    // The settled tile for the grow, drawn once on the compositor GPU at .6 of the window's width (the grow scales it up toward
+    // the window) and kept: the grow only ever shows the finished mark (the hand-over is at least 1.8 s, the mark settles at 1.36).
+    private SKImage Still(SKCanvas canvas, Avalonia.Rect window)
+    {
+        var matrix = canvas.TotalMatrix;
+        var deviceScale = Math.Sqrt(matrix.ScaleX * matrix.ScaleX + matrix.SkewY * matrix.SkewY);
+        var size = Math.Round(window.Width * .6);
+        var pixels = Math.Max(1, (int)Math.Round(size * deviceScale));
+        if (still is not null && iconPixels == pixels) return still;
+        still?.Dispose(); still = null; icon?.Dispose();
+        icon = Surface(pixels, pixels) ?? throw new InvalidOperationException("Aurora boot icon surface was not created.");
+        iconPixels = pixels;
+        icon.Canvas.Clear(SKColors.Transparent); icon.Canvas.ResetMatrix(); icon.Canvas.Scale((float)(pixels / size));
+        var unit = .88 * size / NthMark.TileSide;
+        var box = (float)(.06 * size - NthMark.TileInset * unit);
+        mark.Draw(icon.Canvas, new SKRect(box, box, (float)(box + NthMark.Box * unit), (float)(box + NthMark.Box * unit)), NthTileStyle.Stage, NthGlyph.Regular, NthPose.Still);
+        return still = icon.Snapshot();
+    }
 
     private SKSurface? Surface(int width, int height)
     {
         var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
         return graphics is { } gpu ? SKSurface.Create(gpu, false, info) : SKSurface.Create(info);
     }
-    public void Dispose() { mark.Dispose(); paint.Dispose(); clip.Dispose(); icon?.Dispose(); glow?.Dispose(); }
+    public void Dispose() { mark.Dispose(); paint.Dispose(); fade.Dispose(); clip.Dispose(); still?.Dispose(); icon?.Dispose(); glow?.Dispose(); }
 }

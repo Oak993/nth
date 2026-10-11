@@ -36,7 +36,7 @@ public sealed class NthTileTests(HeadlessSession headless)
             Assert.Equal(1, frames.Pending);
             Step(frames, time, NthMotion.HeroSweepDelay + NthMotion.HeroSweepSeconds / 2);
             Assert.True(tile.Pose.Sweep is > 0 and < 1);
-            Assert.Equal(NthSweep.Soft, tile.Pose.SweepKind);
+            Assert.Equal(NthPose.Still with { Sweep = tile.Pose.Sweep }, tile.Pose); // only the soft sweep moves (OD-0141 left the hero one band)
             var sweeping = Draw(tile);
             Assert.True(sweeping.Zip(still).Any(pair => pair.First > pair.Second + 20), "the sweep did not brighten the tile");
             Step(frames, time, NthMotion.HeroDone + .1);
