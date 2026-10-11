@@ -223,6 +223,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.2, )",
+          "Avalonia.Controls.WebView": "[12.1.0, )",
           "Avalonia.Fonts.Inter": "[12.1.2, )",
           "Avalonia.Skia": "[12.1.2, )",
           "Marrow.Core": "[1.0.0, )"
@@ -237,6 +238,15 @@
           "Avalonia.BuildServices": "11.3.2",
           "Avalonia.Remote.Protocol": "12.1.2",
           "MicroCom.Runtime": "0.11.6"
+        }
+      },
+      "Avalonia.Controls.WebView": {
+        "type": "CentralTransitive",
+        "requested": "[12.1.0, )",
+        "resolved": "12.1.0",
+        "contentHash": "imv2/+IYFa17ZBmQZG6TtNYXLC6m3vNw4JZLfhL3Eec9nXEFD2tPhA31ZIwbcvXK910eLABw+5yoGvbkR0AOuA==",
+        "dependencies": {
+          "Avalonia": "12.0.0"
         }
       },
       "Avalonia.Fonts.Inter": {
