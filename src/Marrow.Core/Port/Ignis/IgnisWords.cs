@@ -267,7 +267,14 @@ public static class IgnisWords
         IgnisEventKind.KeepWarmOn => KeepWarmOnRow,
         IgnisEventKind.SwitchCost => SwitchCostLine(e.Model, e.AtTokens ?? 0, e.Amount ?? 0m),
         IgnisEventKind.CacheNotReused => NotReusedLine(CauseFrom(e.Reason)),
+        IgnisEventKind.AdvisorAsked => AdvisorAsked(e.Model),
     };
+
+    /// <summary>ED-NEW-ignisadvisor-1: "Asked Opus 5.5 for advice" (the line's amount is what the advice cost).</summary>
+    public static string AdvisorAsked(string? model) => "Asked " + (model ?? "the advisor") + " for advice";
+
+    /// <summary>ED-NEW-ignisadvisor-1: the report's line for today's advice: "Advice: 3 calls cost $0.12".</summary>
+    public static string AdviceReportLine(int calls, decimal cost) => "Advice: " + calls.ToString(Us) + (calls == 1 ? " call cost " : " calls cost ") + Money(cost);
 
     // ---- keep-warm guards (ED-NEW-ignis-guards; the fire words: lit, cool, rest) ----
 
@@ -341,6 +348,7 @@ public static class IgnisWords
         IgnisEventKind.KeepWarmOn => KeepWarmOnRow,
         IgnisEventKind.SwitchCost => "Switch to " + (e.Model ?? "another model") + " rebuilds " + Tokens(e.AtTokens ?? 0),
         IgnisEventKind.CacheNotReused => NotReusedLine(CauseFrom(e.Reason)),
+        IgnisEventKind.AdvisorAsked => AdvisorAsked(e.Model),
     };
 
     private static string HeadRebuilt(IgnisEvent e) =>

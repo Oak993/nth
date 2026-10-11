@@ -60,6 +60,7 @@ public static class ModelCatalog
                 .Where(entry => entry is not null)
                 .Select(entry => entry!)
                 .ToList();
+        Marrow.App.Port.Advisor.AdvisorPicker.AddEntries(registry, result); // DEVIATION (ED-NEW-ignisadvisor-1): the Claude advisor entries
 
         if (including is { } thread &&
             registry.Model(thread.Model, thread.Provider) is { } current &&
@@ -371,7 +372,9 @@ public sealed class ModelEffortPanel : Decorator
             Model = option.Id, Effort = effort, FastMode = option.SupportsFast && preference.FastMode,
         });
         model.LeaveHydraPair(thread.Id);
-        if (switchesProvider) model.ExistingRuntime(thread.Id)?.StopSession();
+        // DEVIATION (ED-NEW-ignisadvisor-1): moving onto or off an advisor entry also restarts the session (resumed on the next
+        // message), since the advisor is a launch flag; every other choice behaves as before.
+        if (switchesProvider || Marrow.App.Port.Advisor.AdvisorPicker.ChangesLaunch(thread.Model, option.Id)) model.ExistingRuntime(thread.Id)?.StopSession();
         model.Settings.Remember(option.Id, effort, provider); model.Settings.DefaultProvider = provider;
     }
 }
@@ -401,15 +404,16 @@ public sealed class ModelList : Decorator
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
-            return (Model: model, Entries: ModelCatalog.Entries(model, thread), Pairs: model.HydraIsOn(thread) ? model.HydraPickerPairs : ValueList<HydraPair>.Empty);
+            return (Model: model, Entries: ModelCatalog.Entries(model, thread), Pairs: model.HydraIsOn(thread) ? model.HydraPickerPairs : ValueList<HydraPair>.Empty,
+                AdvisorNote: Marrow.App.Port.Advisor.AdvisorPicker.Note(model.Providers)); // ED-NEW-ignisadvisor-1
         }, snapshot =>
         {
             using var probe = InteractionProbe.Begin("modellist.build"); // ED-NEW-stutterfix-1
-            var (model, entries, pairs) = snapshot;
+            var (model, entries, pairs, advisorNote) = snapshot;
             if (Marrow.App.Port.ModelsPalette.ModelPickerBinding.TryCreate(model, thread, hasHistory, entries, pairs, onChoose, onBack, onEnterPair, Child) is { } approved) { Child = approved; return; }
             var leadsWithPair = pairs.Any(pair => model.LeadsWithHydraPair(pair, thread)); // :280
             var showsProviders = entries.Select(entry => entry.Provider).Distinct().Count() > 1;
-            var rowHeight = showsProviders || hasHistory && entries.Any(entry => entry.Provider != thread.Provider) ? 46 : 34;
+            var rowHeight = showsProviders || hasHistory && entries.Any(entry => entry.Provider != thread.Provider) || entries.Any(Marrow.App.Port.Advisor.AdvisorPicker.IsAdvisor) ? 46 : 34; // ED-NEW-ignisadvisor-1: an advisor entry's subtitle
             var pairsHeight = pairs.Count == 0 ? 0 : SectionHeaderHeight * 2 + pairs.Count * (PairRowHeight + 1);
             var rows = new StackPanel { Spacing = 1 };
             if (pairs.Count > 0)
@@ -427,11 +431,16 @@ public sealed class ModelList : Decorator
             ModelListRow Row(ModelCatalog.Entry entry)
             {
                 var locked = hasHistory && entry.Provider != thread.Provider;
-                return new ModelListRow(entry, locked ? "New chats only" : showsProviders ? entry.Provider.DisplayName : null,
-                    showsProviders, rowHeight, !leadsWithPair && entry.Provider == thread.Provider && entry.Option.Id == thread.Model, !locked, () => onChoose(entry)); // :327-339
+                // ED-NEW-ignisadvisor-1: an advisor entry shows its subtitle, or why Opus won't be asked and the Update action.
+                var advisor = Marrow.App.Port.Advisor.AdvisorPicker.IsAdvisor(entry);
+                return new ModelListRow(entry, locked ? "New chats only" : advisor ? Marrow.App.Port.Advisor.AdvisorPicker.Detail(entry, advisorNote) : showsProviders ? entry.Provider.DisplayName : null,
+                    showsProviders, rowHeight, !leadsWithPair && entry.Provider == thread.Provider && entry.Option.Id == thread.Model, !locked, () => onChoose(entry),
+                    advisor && !locked && advisorNote is not null ? Marrow.App.Port.Advisor.AdvisorPicker.UpdateLink() : null,
+                    advisor ? Marrow.App.Port.Advisor.AdvisorPicker.DetailLines : 1); // :327-339
             }
             // ED-NEW-stutterfix-2: a long list makes its first screens of rows now and the rest a slice per frame (DeferredRows).
-            var heights = Enumerable.Repeat((double)rowHeight, entries.Count).ToArray();
+            // ED-NEW-ignisadvisor-1: an advisor entry's row is taller (its two detail lines); every other row keeps rowHeight.
+            var heights = entries.Select(entry => ModelListRow.Slot(rowHeight, Marrow.App.Port.Advisor.AdvisorPicker.IsAdvisor(entry) ? Marrow.App.Port.Advisor.AdvisorPicker.DetailLines : 1)).ToArray();
             var eager = Marrow.App.Port.ModelsPalette.DeferredRows.EagerCount(heights, rows.Spacing, pairsHeight);
             for (var i = 0; i < eager; i++) rows.Children.Add(Row(entries[i]));
             if (entries.Count == 0)
@@ -443,7 +452,7 @@ public sealed class ModelList : Decorator
             var backIcon = SwiftImage.SystemName("chevron.left").Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
             var back = PlainControls.Button(new Border { Width = 20, Height = 20, Background = Brushes.Transparent, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299, :294 .contentShape(.rect): the whole frame takes the press
             var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(8, 8, 8, 4), Children = { back, EffortView.Text("Select model", SwiftFont.Body, Chrome.SecondaryText) } };
-            var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + (entries.Count == 0 ? SkeletonRows * 40 : entries.Count * (rowHeight + 1)), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + (entries.Count == 0 ? SkeletonRows * 40 : heights.Sum() + entries.Count), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
             // Owner task T46: keep the source rows, pair order and disabled-provider guards; add model/maker search above them.
             Marrow.App.Port.ModelsPalette.PickerScroll.Apply(scroll);
             var stack = new StackPanel { Spacing = 0, Children = { header } };
@@ -516,8 +525,11 @@ public sealed class ModelListRow : Decorator
     /// <param name="isEnabled">:428 <c>let isEnabled: Bool</c>.</param>
     /// <param name="action">:429 <c>let action: () -> Void</c>.</param>
     // :433-476 body
-    public ModelListRow(ModelCatalog.Entry entry, string? detail, bool showsIcon, double rowHeight, bool isSelected, bool isEnabled, Action action)
+    /// <param name="accessory">PORT-ONLY (ED-NEW-ignisadvisor-1): a control at the end of the detail's words (an advisor entry's Update action); null: none.</param>
+    /// <param name="detailLines">PORT-ONLY (ED-NEW-ignisadvisor-1): how many lines the detail may wrap to; each line past the first makes the row <see cref="ExtraLine"/> taller.</param>
+    public ModelListRow(ModelCatalog.Entry entry, string? detail, bool showsIcon, double rowHeight, bool isSelected, bool isEnabled, Action action, Control? accessory = null, int detailLines = 1)
     {
+        RowSlot = Slot(rowHeight, detailLines);
         // :435 HStack(spacing: 10): SwiftUI puts the spacing between EVERY two neighbours, the :451 Spacer(minLength: 12) included
         // (the pair row above does the same), so the text column is followed by 10 + 12 + 10 before the bolt (a model with a fast
         // tier) or the checkmark, and the checkmark 10 after the bolt. The columns follow the children that are there: no icon, no
@@ -534,7 +546,18 @@ public sealed class ModelListRow : Decorator
         }
         var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(EffortView.Text(entry.Option.ShortName, SwiftFont.System(14), Chrome.PrimaryText)); // :441-444
-        if (detail is not null) texts.Children.Add(EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText)); // :445-449
+        if (detail is not null)
+        {
+            var detailText = EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText); // :445-449
+            if (detailLines > 1) { detailText.MaxLines = detailLines; detailText.TextWrapping = TextWrapping.Wrap; detailText.TextTrimming = TextTrimming.CharacterEllipsis; }
+            if (accessory is not null)
+            {
+                // ED-NEW-ignisadvisor-1: the action follows the detail's last word, so the name and the words keep the row's full width.
+                detailText.Text = null;
+                detailText.Inlines = [new Run(detail), new Run(" "), new InlineUIContainer(accessory) { BaselineAlignment = BaselineAlignment.Baseline }];
+            }
+            texts.Children.Add(detailText);
+        }
         Grid.SetColumn(texts, column);
         row.Children.Add(texts);
         column += 3; // the text column, its 10, the spacer's 12
@@ -547,8 +570,17 @@ public sealed class ModelListRow : Decorator
         var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
         check.Opacity = isSelected ? 1 : 0; // :456-460
         Grid.SetColumn(check, column + 1); row.Children.Add(check);
-        Child = EffortView.Row(row, rowHeight, isEnabled, action); // :462-475
+        Child = EffortView.Row(row, RowSlot, isEnabled, action); // :462-475
     }
+
+    /// <summary>PORT-ONLY (ED-NEW-ignisadvisor-1): what each detail line past the first adds to a row (a Callout line).</summary>
+    public const double ExtraLine = 15;
+
+    /// <summary>PORT-ONLY (ED-NEW-ignisadvisor-1): a row's height for its detail lines.</summary>
+    public static double Slot(double rowHeight, int detailLines) => rowHeight + Math.Max(0, detailLines - 1) * ExtraLine;
+
+    /// <summary>PORT-ONLY (ED-NEW-ignisadvisor-1): this row's full height (rowHeight, or more with a wrapping detail); the search folds it from here.</summary>
+    public double RowSlot { get; }
 }
 
 /// <summary>:485-504 <c>struct EffortPairLook: Hashable</c>.</summary>

@@ -215,6 +215,7 @@ public sealed class IgnisController : IIgnisController
     {
         var chat = Get(thread);
         var now = SwiftDate.Now;
+        RecordAdvice(thread, chat, usage.AdvisorCalls, now); // ED-NEW-ignisadvisor-1: whatever the chat's mode, advice is a cost the user chose
         if (usage.AgentID is { } agent)
         {
             ObserveHead(thread, chat, agent, usage, now); // learns always; its list, lines and money follow "Include Hydra heads"
@@ -814,6 +815,51 @@ public sealed class IgnisController : IIgnisController
             await SwiftTask.TrySleep(JustTidiedFor);
             if (chats.TryGetValue(thread, out var current) && current.JustTidiedUntil == until) Changed?.Invoke(thread);
         });
+    }
+
+    // ---- advice (ED-NEW-ignisadvisor-1) ----
+
+    /// <summary>
+    /// Each advisor call of a turn: its cost at the advising model's own prices (the points of the model the call names), booked as
+    /// Advice (a cost the user chose with the model: never a saving, never keep-warm's Spent), and the chat line "Asked {model} for
+    /// advice · $0.04". A model without points books the call with no amount and the line shows no money.
+    /// </summary>
+    private void RecordAdvice(Guid thread, Chat chat, IReadOnlyList<IgnisTurnUsage> calls, DateTimeOffset now)
+    {
+        foreach (var call in calls)
+        {
+            var points = Points.Find(call.Provider, call.Model);
+            decimal? cost = points is null ? null : IgnisMoney.Cost(points, call);
+            Ledger.Record(new IgnisLedgerEntry(now, thread, IgnisLedgerKind.Advice, null, cost ?? 0m));
+            Record(thread, chat, new IgnisEvent(NewEventID(), thread, IgnisEventKind.AdvisorAsked, now, cost, IgnisAmountKind.Cost, Model: points?.DisplayName ?? call.Model));
+        }
+    }
+
+    /// <summary>
+    /// One answer from an advisor nth hosts (AdvisorSeams.Asked: Hydra heads asking their lead). Its cost is the dollars the host
+    /// reported, else its tokens at the advising model's prices (input taken as the whole prompt, cached tokens inside it); no
+    /// chat: nothing is booked.
+    /// </summary>
+    public void AdviceAsked(Guid? thread, Marrow.Core.Port.Advisor.AdvisorAdvice advice)
+    {
+        if (thread is not { } id) return;
+        var points = Points.Find(advice.By.Provider, advice.By.Model);
+        decimal? cost = AdviceCost(points, advice);
+        var chat = Get(id);
+        var now = SwiftDate.Now;
+        Ledger.Record(new IgnisLedgerEntry(now, id, IgnisLedgerKind.Advice, null, cost ?? 0m));
+        Record(id, chat, new IgnisEvent(NewEventID(), id, IgnisEventKind.AdvisorAsked, now, cost, IgnisAmountKind.Cost, Model: points?.DisplayName ?? advice.By.Model));
+        Changed?.Invoke(id);
+    }
+
+    /// <summary>What one hosted answer cost: the reported dollars, else its tokens at the advising model's prices; null when neither is known.</summary>
+    public static decimal? AdviceCost(IgnisModelPoints? points, Marrow.Core.Port.Advisor.AdvisorAdvice advice)
+    {
+        if (advice.Usd is { } usd && double.IsFinite(usd) && usd >= 0) return (decimal)usd;
+        if (points is null) return null;
+        var cached = Math.Clamp(advice.CachedInputTokens, 0, Math.Max(0, advice.InputTokens));
+        var usage = new IgnisTurnUsage(advice.By.Provider, advice.By.Model, null, Math.Max(0, advice.InputTokens) - cached, cached, 0, 0, 0, Math.Max(0, advice.OutputTokens), null, null, true);
+        return IgnisMoney.Cost(points, usage);
     }
 
     private void Record(Guid thread, Chat chat, IgnisEvent @event)

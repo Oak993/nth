@@ -194,10 +194,18 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             "--setting-sources", "user,project,local",
             "--allow-dangerously-skip-permissions", "--permission-mode", permissionMode,
         ];
-        if (configuration.Model is { } configuredModel && !SwiftString.Equal(configuredModel, "default")) // :91
+        // DEVIATION (ED-NEW-ignisadvisor-1): a picker entry that pairs a main model with an advisor launches on its main model, with
+        // `--advisor` only when the installed CLI can take it (AdvisorLaunch); every other model launches exactly as before.
+        var advisorLaunch = Marrow.Core.Port.Advisor.ClaudeAdvisorModels.Find(configuration.Model) is { } advisorEntry ? await AdvisorLaunch(advisorEntry, executable) : null;
+        if ((advisorLaunch?.MainModel ?? configuration.Model) is { } configuredModel && !SwiftString.Equal(configuredModel, "default")) // :91
         {
             arguments.Add("--model");
             arguments.Add(configuredModel);
+        }
+        if (advisorLaunch?.Advisor is { } advisor)
+        {
+            arguments.Add(Marrow.Core.Port.Advisor.ClaudeAdvisorModels.Flag);
+            arguments.Add(advisor);
         }
         if (configuration.Effort is { } effort && effort.Length != 0) // :92
         {
@@ -247,7 +255,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             if (hydra.RunsNatively) // :106-112
             {
                 arguments.Add("--agents");
-                arguments.Add(HandshakeAgents(WithIgnisHelperModel(HydraPrompts.ClaudeAgents(hydra), configuration.Model)).CompactString); // DEVIATION (OD-0134 Ignis): Smart helpers moves only the scout entry to the helper model.
+                arguments.Add(HandshakeAgents(WithIgnisHelperModel(HydraPrompts.ClaudeAgents(hydra), Marrow.Core.Port.Advisor.ClaudeAdvisorModels.MainModel(configuration.Model))).CompactString); // DEVIATION (OD-0134 Ignis): Smart helpers moves only the scout entry to the helper model.
                 hydraPolicy = HydraPrompts.Policy(ProviderKind.Claude, hydra);
                 if (options.Contains("--forward-subagent-text")) arguments.Add("--forward-subagent-text");
                 // Uncapped, the CLI keeps its own limit on heads at once. :111-112
@@ -786,14 +794,14 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         {
             OnEvent?.Invoke(new ProviderEvent.Usage(usage)); // :574
             // No head usage is added to it (:575-580): a head's own account stays on its panel.
-            if (TurnSpendEvent(message, model) is { } spend) // :581-584
+            if (TurnSpendEvent(message, Marrow.Core.Port.Advisor.ClaudeAdvisorModels.MainModel(model)) is { } spend) // :581-584; ED-NEW-ignisadvisor-1: the model that ran
             {
                 TokenLedger.Shared.Current.Record(spend.TotalTokens);
                 OnEvent?.Invoke(new ProviderEvent.TokenSpend(spend));
             }
         }
         // DEVIATION (OD-0134 Ignis): the turn's cache-aware usage, iterations summed, for Ignis; no Swift counterpart.
-        if (CacheUsageOf(message, model) is { } cacheUsage) OnEvent?.Invoke(new ProviderEvent.CacheUsage(cacheUsage));
+        if (CacheUsageOf(message, Marrow.Core.Port.Advisor.ClaudeAdvisorModels.MainModel(model)) is { } cacheUsage) OnEvent?.Invoke(new ProviderEvent.CacheUsage(cacheUsage));
         foreach (var requestID in pendingTools.Keys.ToList()) OnEvent?.Invoke(new ProviderEvent.RequestResolved(requestID)); // :586
         pendingTools.Clear(); // :587
         toolNames.Clear(); // :589
@@ -975,7 +983,7 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         }
         if (!NullableModelEqual(input.Model, model)) // :222-226
         {
-            var wire = input.Model is { } requestedModel && SwiftString.Equal(requestedModel, "default") ? null : input.Model;
+            var wire = input.Model is { } requestedModel && SwiftString.Equal(requestedModel, "default") ? null : Marrow.Core.Port.Advisor.ClaudeAdvisorModels.MainModel(input.Model); // ED-NEW-ignisadvisor-1: an advisor entry switches to its main model (the advisor itself comes with the next launch)
             if (handshakeAgent is not null)
                 await Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"), ("model", JSONValue.Optional(wire))));
             else
@@ -1219,17 +1227,51 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     // present (as TurnSpend does), else the top-level usage. cache_creation's ephemeral_5m/1h_input_tokens fill the
     // 5-minute and 1-hour write buckets; any write the stream gave no TTL for stays in CacheWriteUnknownTtl. A usage
     // with neither cache_read_input_tokens nor cache_creation_input_tokens anywhere is "not reported".
+    // ED-NEW-ignisadvisor-1: iterations of type "advisor_message" are the advisor's own requests (platform.claude.com advisor tool,
+    // "Usage and billing": billed at the advisor model's rates and never inside the top-level usage). They are kept out of the
+    // chat's buckets and handed on one by one, each with the model that advised, so Ignis prices them at that model's rates.
+    internal const string AdvisorIteration = "advisor_message";
+
     internal static global::Marrow.Core.Port.Ignis.IgnisTurnUsage? CacheUsageOf(JSONValue message, string? model)
     {
         if (message["usage"] is not { IsNull: false } usage) return null;
-        var parts = usage["iterations"]?.JSONValueArray is { Count: > 0 } iterations ? iterations.ToList() : [usage];
+        var iterations = usage["iterations"]?.JSONValueArray is { Count: > 0 } all ? all.ToList() : null;
+        var executor = iterations?.Where(part => !IsAdvisorIteration(part)).ToList();
+        var parts = executor is { Count: > 0 } ? executor : [usage];
         var context = ContextUsageOf(message);
         var (uncached, read, write5m, write1h, writeUnknown, output, reported) = UsageBuckets(parts);
+        var advice = new ValueList<global::Marrow.Core.Port.Ignis.IgnisTurnUsage>((iterations ?? []).Where(IsAdvisorIteration).Select(AdvisorUsage));
         if (!reported)
-            return global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, model, null, context?.UsedTokens, context?.WindowTokens);
+            return global::Marrow.Core.Port.Ignis.IgnisTurnUsage.NotReported(ProviderKind.Claude, model, null, context?.UsedTokens, context?.WindowTokens)
+                with { AdvisorCalls = advice };
         return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Claude, model, null, uncached, read, write5m, write1h, writeUnknown, output,
-            context?.UsedTokens, context?.WindowTokens, true);
+            context?.UsedTokens, context?.WindowTokens, true) { AdvisorCalls = advice };
     }
+
+    private static bool IsAdvisorIteration(JSONValue part) => part["type"]?.JSONValueString is { } type && SwiftString.Equal(type, AdvisorIteration);
+
+    private static global::Marrow.Core.Port.Ignis.IgnisTurnUsage AdvisorUsage(JSONValue part)
+    {
+        var (uncached, read, write5m, write1h, writeUnknown, output, reported) = UsageBuckets([part]);
+        return new global::Marrow.Core.Port.Ignis.IgnisTurnUsage(ProviderKind.Claude, part["model"]?.JSONValueString, null, uncached, read, write5m, write1h, writeUnknown, output,
+            null, null, reported);
+    }
+
+    // DEVIATION (ED-NEW-ignisadvisor-1): the launch an advisor entry gets. The version is read with the same `claude --version` probe
+    // the context transfer uses, only for an advisor entry (every other launch starts no extra process); a failed or unreadable
+    // probe passes no flag.
+    private async Task<Marrow.Core.Port.Advisor.ClaudeAdvisorLaunch> AdvisorLaunch(Marrow.Core.Port.Advisor.ClaudeAdvisorModel entry, SwiftURL executable)
+    {
+        var environment = ProviderChildEnvironment.Apply(configuration.Environment);
+        var probe = await SwiftTry.OptionalAsync<ShellResult>(async () => await ClaudeProviderRuntime.Version.Current(executable, environment));
+        var version = probe is { Succeeded: true } ? System.Text.Encoding.UTF8.GetString(probe.Stdout) : null;
+        var launch = Marrow.Core.Port.Advisor.ClaudeAdvisorModels.Launch(entry, version, environment);
+        AdvisorGate = launch.Gate;
+        return launch;
+    }
+
+    /// <summary>ED-NEW-ignisadvisor-1: the advisor gate of this session's launch; null when its model is not an advisor entry.</summary>
+    internal Marrow.Core.Port.Advisor.ClaudeAdvisorGate? AdvisorGate { get; private set; }
 
     // DEVIATION (OD-0134 Ignis): no Swift counterpart. With Smart helpers on (IgnisSeams.HelperAgents bound and
     // answering a model), only the read-only scout entry of the --agents JSON gets the helper model; the worker and
@@ -1333,7 +1375,8 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
     internal static ContextUsage? ContextUsageOf(JSONValue message) // :802-812
     {
         if (message["usage"] is not { } usage) return null;
-        var last = usage["iterations"]?.JSONValueArray is { Count: > 0 } iterations ? iterations[^1] : usage;
+        // DEVIATION (ED-NEW-ignisadvisor-1): an advisor's own request is not the chat's size; the last executor request is.
+        var last = usage["iterations"]?.JSONValueArray is { Count: > 0 } iterations ? iterations.LastOrDefault(part => !IsAdvisorIteration(part)) ?? usage : usage;
         var used = (last["input_tokens"]?.JSONValueInt ?? 0)
             + (last["cache_read_input_tokens"]?.JSONValueInt ?? 0)
             + (last["cache_creation_input_tokens"]?.JSONValueInt ?? 0)

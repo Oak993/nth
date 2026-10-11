@@ -37,6 +37,8 @@ public static class IgnisRuntimeStartup
         IgnisSeams.PiRetention.SetProcessDefault(query => (IgnisSeams.Controller.Current() as IgnisController)?.ChoosePiRetention(query));
         IgnisSeams.IsOn.SetProcessDefault((provider, thread) => IsOn(IgnisSeams.Controller.Current(), thread));
         IgnisSeams.Controller.SetProcessDefault(Running);
+        // ED-NEW-ignisadvisor-1: answers from an advisor nth hosts reach the ledger and the chat line (AdvisorSeams.Choice stays unset here).
+        Marrow.Core.Port.Advisor.AdvisorSeams.Asked = (thread, advice) => MainActor.Post(() => (IgnisSeams.Controller.Current() as IgnisController)?.AdviceAsked(thread, advice));
         Marrow.App.Port.Ignis.Views.IgnisViews.Bind(Running);
     }
 

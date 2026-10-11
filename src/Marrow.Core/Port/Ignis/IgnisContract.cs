@@ -114,6 +114,13 @@ public sealed record IgnisTurnUsage(
     long? ContextWindow,
     bool Reported)
 {
+    /// <summary>
+    /// ED-NEW-ignisadvisor-1: the advisor calls inside this turn (Claude's usage.iterations[] entries of type "advisor_message"),
+    /// each with the advising model and its own buckets; they are not inside this usage's buckets. Empty: none were reported.
+    /// A value list, so two usages still compare by value.
+    /// </summary>
+    public ValueList<IgnisTurnUsage> AdvisorCalls { get; init; } = ValueList<IgnisTurnUsage>.Empty;
+
     /// <summary>All three cache-write buckets.</summary>
     public long CacheWrite => CacheWrite5m + CacheWrite1h + CacheWriteUnknownTtl;
 
@@ -156,6 +163,8 @@ public enum IgnisEventKind
     SwitchCost,
     /// <summary>ED-NEW-ignis-guards: the chat's last turns read nothing from the cache (<see cref="IgnisEvent.Reason"/>: the likely cause). History only.</summary>
     CacheNotReused,
+    /// <summary>ED-NEW-ignisadvisor-1: "Asked {model} for advice" (<see cref="IgnisEvent.Amount"/>: what the advice cost).</summary>
+    AdvisorAsked,
 }
 
 /// <summary>
@@ -439,6 +448,11 @@ public enum IgnisLedgerKind
     Spent,
     /// <summary>A helper's cache rebuilt after a gap longer than its lifetime (ED-NEW-ignis-runtime); kept apart from the chat's Lost.</summary>
     Missed,
+    /// <summary>
+    /// ED-NEW-ignisadvisor-1: an advisor call (a model the chat asked for advice), priced at the advising model's own rates. A cost
+    /// the user chose with the model: never a saving, and kept apart from keep-warm's Spent.
+    /// </summary>
+    Advice,
 }
 
 /// <summary>
@@ -470,6 +484,15 @@ public sealed record IgnisDayTotals(
 
     /// <summary>Helper cache rebuilds: a helper's write after a gap longer than its cache lifetime (not inside <see cref="Lost"/>).</summary>
     public decimal Missed { get; init; }
+
+    /// <summary>
+    /// ED-NEW-ignisadvisor-1: what advice cost that day, every advisor call at the advising model's own prices. A cost the user
+    /// chose with the model, never a saving and not inside <see cref="Spent"/> (keep-warm's own spending).
+    /// </summary>
+    public decimal Advice { get; init; }
+
+    /// <summary>ED-NEW-ignisadvisor-1: advice asked that day (each advisor call once).</summary>
+    public int AdviceCalls { get; init; }
 
     /// <summary>Money saved that day: every source.</summary>
     public decimal Saved => Reuse + KeptWarm + TidyUp + SmartHelpers + LongerMemory;

@@ -71,7 +71,7 @@ internal sealed class ModelListSearch
         var text = $"{entry.Option.ShortName} {entry.Option.Id} {entry.Provider.DisplayName} {maker} {ModelPickerSeam.MakerName(maker)}";
         var fold = new AnimatedScalar(row, 1, v =>
         {
-            row.Height = rowHeight * v; row.Opacity = v;
+            row.Height = row.RowSlot * v; row.Opacity = v; // ED-NEW-ignisadvisor-1: each row's own height (rowHeight but for an advisor entry)
             if (v == 0) row.IsVisible = false;
         });
         rows.Add((row, text, fold)); matches.Add((row, entry));
@@ -104,12 +104,12 @@ internal sealed class ModelListSearch
                 if (shown) { item.Row.IsVisible = true; matches.Add((item.Row, entries[i])); }
                 item.Fold.Set(to, Animation.TimingCurve(.25, .1, .25, 1, .34));
             }
-            before += rowHeight * from; after += rowHeight * to;
+            before += item.Row.RowSlot * from; after += item.Row.RowSlot * to;
             if (to > 0) spacing += RowSpacing;
         }
         if (held is not null) Hold();
         offset.Set(0, null);
-        height.Set(Math.Min(pairsHeight + Math.Max(matches.Count, 1) * (rowHeight + 1), 440), Animation.TimingCurve(.25, .1, .25, 1, .34));
+        height.Set(Math.Min(pairsHeight + (matches.Count == 0 ? rowHeight + 1 : matches.Sum(match => match.Row.RowSlot + 1)), 440), Animation.TimingCurve(.25, .1, .25, 1, .34));
         Highlight();
     }
 
@@ -146,7 +146,7 @@ internal sealed class ModelListSearch
             var (index, from, to, driven) = held[k];
             var value = from + (to - from) * progress;
             if (driven) { var row = rows[index]; row.Fold.Set(value, null); if (to > 0) row.Row.IsVisible = true; continue; }
-            var height = rowHeight * value;
+            var height = rows[index].Row.RowSlot * value;
             pending += (rows[index].Row.UseLayoutRounding ? LayoutHelper.RoundLayoutValueUp(height, scale) : height) + RowSpacing;
             any = true;
         }

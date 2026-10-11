@@ -33,7 +33,7 @@ public static class IgnisReportText
             status.ContextFill,
             AccountLine(status, zone),
             week,
-            ledger.AllTimeSaved) { CacheLines = CacheLines(status) };
+            ledger.AllTimeSaved) { CacheLines = chatToday.AdviceCalls > 0 ? [.. CacheLines(status), IgnisWords.AdviceReportLine(chatToday.AdviceCalls, chatToday.Advice)] : CacheLines(status) };
     }
 
     /// <summary>

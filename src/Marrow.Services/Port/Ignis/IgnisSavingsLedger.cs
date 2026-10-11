@@ -47,7 +47,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
         if (entry.Amount == 0m && entry.Count == 0) return;
         lock (gate)
         {
-            var key = new BucketKey(LocalDay(entry.At), entry.ThreadID, entry.Kind, entry.Kind is IgnisLedgerKind.Lost or IgnisLedgerKind.Missed ? null : entry.Source);
+            var key = new BucketKey(LocalDay(entry.At), entry.ThreadID, entry.Kind, entry.Kind is IgnisLedgerKind.Lost or IgnisLedgerKind.Missed or IgnisLedgerKind.Advice ? null : entry.Source);
             var (amount, count) = buckets.GetValueOrDefault(key);
             buckets[key] = (amount + entry.Amount, count + entry.Count);
             Save();
@@ -118,6 +118,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
                 (IgnisLedgerKind.Saved, IgnisSource.LongerMemory) => t with { LongerMemory = t.LongerMemory + amount },
                 (IgnisLedgerKind.Lost, _) => t with { Lost = t.Lost + amount },
                 (IgnisLedgerKind.Missed, _) => t with { Missed = t.Missed + amount },
+                (IgnisLedgerKind.Advice, _) => t with { Advice = t.Advice + amount, AdviceCalls = t.AdviceCalls + count }, // ED-NEW-ignisadvisor-1
                 (IgnisLedgerKind.Spent, IgnisSource.KeptWarm) => t with { Spent = t.Spent + amount, Pings = t.Pings + count },
                 (IgnisLedgerKind.Spent, IgnisSource.LongerMemory) => t with { Spent = t.Spent + amount, LongerMemorySpent = t.LongerMemorySpent + amount },
                 (IgnisLedgerKind.Spent, _) => t with { Spent = t.Spent + amount },
@@ -140,7 +141,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
 
     private sealed record BucketKey(DateOnly Day, Guid Thread, IgnisLedgerKind Kind, IgnisSource? Source);
 
-    private static readonly (IgnisLedgerKind Kind, string Raw)[] KindNames = [(IgnisLedgerKind.Saved, "saved"), (IgnisLedgerKind.Lost, "lost"), (IgnisLedgerKind.Spent, "spent"), (IgnisLedgerKind.Missed, "missed")];
+    private static readonly (IgnisLedgerKind Kind, string Raw)[] KindNames = [(IgnisLedgerKind.Saved, "saved"), (IgnisLedgerKind.Lost, "lost"), (IgnisLedgerKind.Spent, "spent"), (IgnisLedgerKind.Missed, "missed"), (IgnisLedgerKind.Advice, "advice")];
     private static readonly (IgnisSource Source, string Raw)[] SourceNames =
         [(IgnisSource.Reuse, "reuse"), (IgnisSource.KeptWarm, "keptWarm"), (IgnisSource.TidyUp, "tidyUp"), (IgnisSource.SmartHelpers, "smartHelpers"), (IgnisSource.LongerMemory, "longerMemory")];
     private static readonly (IgnisEventKind Kind, string Raw)[] EventNames =
@@ -148,7 +149,7 @@ public sealed class IgnisSavingsLedger : ISavingsLedger
         (IgnisEventKind.KeptWarm, "keptWarm"), (IgnisEventKind.WarmedAgain, "warmedAgain"), (IgnisEventKind.TidiedUp, "tidiedUp"),
         (IgnisEventKind.WentCold, "wentCold"), (IgnisEventKind.HelperRan, "helperRan"), (IgnisEventKind.HeadTidiedAfterSwitch, "headTidiedAfterSwitch"),
         // ED-NEW-ignis-guards
-        (IgnisEventKind.KeepWarmHeld, "keepWarmHeld"), (IgnisEventKind.LetCool, "letCool"), (IgnisEventKind.KeepWarmOn, "keepWarmOn"), (IgnisEventKind.SwitchCost, "switchCost"), (IgnisEventKind.CacheNotReused, "cacheNotReused"),
+        (IgnisEventKind.KeepWarmHeld, "keepWarmHeld"), (IgnisEventKind.LetCool, "letCool"), (IgnisEventKind.KeepWarmOn, "keepWarmOn"), (IgnisEventKind.SwitchCost, "switchCost"), (IgnisEventKind.CacheNotReused, "cacheNotReused"), (IgnisEventKind.AdvisorAsked, "advisorAsked"),
     ];
     private static readonly (IgnisAmountKind Kind, string Raw)[] AmountNames = [(IgnisAmountKind.Cost, "cost"), (IgnisAmountKind.Saved, "saved"), (IgnisAmountKind.Lost, "lost")];
 

@@ -80,6 +80,9 @@ internal sealed class FakeSavingsLedger : ISavingsLedger
             LongerMemory = Saved(IgnisSource.LongerMemory),
             LongerMemorySpent = list.Where(e => e.Kind == IgnisLedgerKind.Spent && e.Source == IgnisSource.LongerMemory).Sum(e => e.Amount),
             Missed = list.Where(e => e.Kind == IgnisLedgerKind.Missed).Sum(e => e.Amount),
+            // ED-NEW-ignisadvisor-1: advice the chat's model asked for, a cost of its own.
+            Advice = list.Where(e => e.Kind == IgnisLedgerKind.Advice).Sum(e => e.Amount),
+            AdviceCalls = list.Where(e => e.Kind == IgnisLedgerKind.Advice).Sum(e => e.Count),
         };
     }
 }

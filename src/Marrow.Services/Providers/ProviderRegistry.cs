@@ -995,9 +995,17 @@ public sealed partial class ProviderRegistry : MainActorModel, ICliUpdateRunner
     {
         if (id is null) return null; // :434
         if (Match(id, Models(provider)) is { } match) return match; // :435
+        if (provider == ProviderKind.Claude && Marrow.Core.Port.Advisor.ClaudeAdvisorModels.Find(id) is { } advisor) return AdvisorOption(advisor); // DEVIATION (ED-NEW-ignisadvisor-1)
         if (provider != ProviderKind.Opencode || !SwiftString.HasPrefix(id, "opencode-go/")) return null; // :436-437
         return Match(id, Models(ProviderKind.OpencodeGo)); // :438-439
     }
+
+    /// <summary>
+    /// DEVIATION (ED-NEW-ignisadvisor-1): a Claude advisor entry (ClaudeAdvisorModels) as a model option, with its main model's
+    /// efforts when the Claude catalogue has that model; the catalogue itself (Models) is unchanged, so the picker adds the entries.
+    /// </summary>
+    public ModelOption AdvisorOption(Marrow.Core.Port.Advisor.ClaudeAdvisorModel entry) =>
+        Marrow.Core.Port.Advisor.ClaudeAdvisorModels.Option(entry, Models(ProviderKind.Claude).FirstOrDefault(option => Marrow.Core.Port.Advisor.ClaudeAdvisorModels.IsMainOf(entry, option.Id)));
 
     // :442-449. Private in Swift; kept private since only Model(_:for:) calls it.
     private static ModelOption? Match(string id, IReadOnlyList<ModelOption> list)
