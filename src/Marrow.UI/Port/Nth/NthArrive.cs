@@ -20,7 +20,35 @@ public static class NthArrive
     /// The thread history hand-over: 10 px, 0.5 s, 45 ms apart, 150 ms after the loader starts to leave.</summary>
     public static void Rows(IReadOnlyList<Control> rows, double distance = 6, double seconds = .36, double stagger = .04, double delay = 0)
     {
-        for (var i = 0; i < rows.Count; i++) Rise(rows[i], distance, seconds, delay + i * stagger);
+        var risen = RisingRows(rows);
+        for (var i = 0; i < rows.Count; i++)
+        {
+            if (i < risen) Rise(rows[i], distance, seconds, delay + i * stagger);
+            else Arrived(rows[i]);
+        }
+    }
+
+    // ED-NEW-lean-19: only the rows that can be on screen when they arrive rise; the rest stand at once in the state the rise ends in, with
+    // no transition (300 rows made 600 transitions over 12 s). Rows 0-24 always rise with the 40 ms stagger. A taller window raises the
+    // count to every row that can fit in it: a maximised Settings window is as tall as its screen, so the count follows the top level's
+    // height at the shortest row an arrival lays out (the composer's model row, 34 px and 1 px of spacing) at the smallest app zoom (75 %).
+    internal const int AlwaysRisingRows = 25;
+    internal const double ShortestRowPitch = 35 * .75;
+
+    internal static int RisingRows(IReadOnlyList<Control> rows)
+    {
+        if (rows.Count <= AlwaysRisingRows) return rows.Count;
+        var height = TopLevel.GetTopLevel(rows[0])?.ClientSize.Height ?? 0;
+        var fit = double.IsFinite(height) && height > 0 ? (int)Math.Min(int.MaxValue - 1, Math.Ceiling(height / ShortestRowPitch)) + 1 : 0;
+        return Math.Min(rows.Count, Math.Max(AlwaysRisingRows, fit));
+    }
+
+    private static void Arrived(Control control)
+    {
+        var calm = EnvironmentValues.GetAccessibilityReduceMotion(control);
+        control.Transitions = null;
+        control.Opacity = 1;
+        control.RenderTransform = calm ? null : TransformOperations.Identity;
     }
 
     /// <summary>One control rising <paramref name="distance"/> px and fading in over <paramref name="seconds"/>, after <paramref name="delay"/>.</summary>
