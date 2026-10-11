@@ -148,6 +148,79 @@ public sealed class ThreadRuntimeStreamEquivalenceTests
         });
     }
 
+    // ED-NEW-lean-5 review fix: the per-row count memo holds no string of its own (a 100k-character reply must not
+    // keep a second near-complete copy of its text for the thread's lifetime) and is handed on to the flushed row
+    // text, so the next count is one reference compare plus a walk of the newest Characters, not of the whole row.
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-5")]
+    public void The_count_memo_keeps_no_row_text_alive_and_resumes_on_the_flushed_text()
+    {
+        using var test = new TestRuntime();
+        test.OnMain(() =>
+        {
+            var memoType = typeof(ThreadRuntime).GetNestedType("StreamedCount", BindingFlags.NonPublic);
+            Assert.NotNull(memoType);
+            Assert.DoesNotContain(memoType!.GetFields(InstanceMembers), field => field.FieldType == typeof(string));
+
+            var runtime = CreateRuntime();
+            var entry = AddEntry(runtime, "m", new TimelineItem.Content.Assistant(new AssistantMessage { Text = "", IsStreaming = true }));
+            SetField(runtime, "lastFlushAt", SwiftClock.Now + TimeSpan.FromSeconds(1000));
+            var streamed = StreamThenComplete(runtime, entry);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Assert.False(streamed.TryGetTarget(out _), "the streamed row text outlived its row only through the count memo");
+            Assert.Equal("done", RowText(entry), StringComparer.Ordinal);
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference<string> StreamThenComplete(ThreadRuntime runtime, TimelineEntry entry)
+    {
+        var flushLength = Method("PendingFlushLength");
+        var flush = Method("FlushDeltas");
+        var expected = "";
+        for (var i = 0; i < 4; i++)
+        {
+            var delta = new string('a', 1_000) + "\U0001F469\u200D\U0001F469" + i;
+            Method("QueueDelta").Invoke(runtime, ["m", ThreadRuntime.DeltaKind.Message, delta]);
+            Assert.Equal(OldCharacters(expected).LongCount() + OldCharacters(delta).LongCount(), (long)flushLength.Invoke(runtime, [])!);
+            flush.Invoke(runtime, [false]);
+            expected += delta;
+            Assert.Equal(expected, RowText(entry), StringComparer.Ordinal);
+
+            // The flush handed the memo on to the new row text: it covers the text counted before the flush only.
+            var memo = Memo(runtime, entry);
+            Assert.True(MemoField<WeakReference<string>>(memo, "Text").TryGetTarget(out var target));
+            Assert.Same(RowText(entry), target);
+            Assert.Equal(expected.Length - delta.Length, MemoField<int>(memo, "Length"));
+        }
+
+        // The completion swaps in a text that does not extend the streamed one; nothing but the memo saw the old one.
+        var streamed = new WeakReference<string>(RowText(entry));
+        Method("QueueDelta").Invoke(runtime, ["m", ThreadRuntime.DeltaKind.Message, "z"]);
+        Assert.Equal(OldCharacters(expected).LongCount() + 1, (long)flushLength.Invoke(runtime, [])!);
+        Assert.Equal(expected.Length, MemoField<int>(Memo(runtime, entry), "Length"));
+        flush.Invoke(runtime, [false]);
+        entry.Item = entry.Item with
+        {
+            TimelineItemContent = new TimelineItem.Content.Assistant(new AssistantMessage { Text = "done", IsStreaming = false }),
+        };
+        return streamed;
+    }
+
+    private static object Memo(ThreadRuntime runtime, TimelineEntry entry)
+    {
+        var table = typeof(ThreadRuntime).GetField("streamedCounts", InstanceMembers)!.GetValue(runtime);
+        Assert.NotNull(table);
+        var args = new object?[] { entry, null };
+        Assert.True((bool)table!.GetType().GetMethod("TryGetValue")!.Invoke(table, args)!);
+        return args[1]!;
+    }
+
+    private static T MemoField<T>(object memo, string name) =>
+        (T)memo.GetType().GetField(name, InstanceMembers)!.GetValue(memo)!;
+
     private static string RandomDelta(Random random, int maxPieces)
     {
         var builder = new StringBuilder();

@@ -4517,10 +4517,12 @@ public sealed partial class ThreadRuntime : MainActorModel
         return longest;
     }
 
-    // ED-NEW-lean-5. A row's text as last counted: the text, its Character count and where its last Character starts.
+    // ED-NEW-lean-5. A row's count as last taken: the row text it was taken for (held weakly, so the memo never keeps
+    // a string alive), how much of that text was counted, its Character count and where its last Character starts.
     private sealed class StreamedCount
     {
-        public string Text = "";
+        public readonly WeakReference<string> Text = new("");
+        public int Length;
         public long Count;
         public int LastStart;
     }
@@ -4528,21 +4530,25 @@ public sealed partial class ThreadRuntime : MainActorModel
     // Keyed by the row object, so a removed row takes its count with it. Created on first use.
     private System.Runtime.CompilerServices.ConditionalWeakTable<TimelineEntry, StreamedCount>? streamedCounts;
 
-    // `text.count`, as SwiftString.Characters walks it. Text that extends the counted text is walked again from the
-    // start of its last Character only: every earlier boundary is decided by scalars wholly inside the counted text,
-    // so an append cannot move it. A counted text ending in a high surrogate (its scalar may complete only now), or
-    // any text that does not extend the counted one, is counted afresh.
+    // `text.count`, as SwiftString.Characters walks it. The memo is trusted only for the very string it was handed
+    // on to: the text it counted, or a text AppendStreamed made by joining a delta to it (CarryStreamedCount), whose
+    // first Length chars are therefore the counted ones. That check is one reference compare, so the walk per flush
+    // covers only the newest Characters, from the start of the last counted one: every earlier boundary is decided by
+    // scalars wholly inside the counted text, so an append cannot move it. A counted text ending in a high surrogate
+    // (its scalar may complete only now), or any other text (a completion, a replaced row), is counted afresh.
     private long StreamedCharacterCount(TimelineEntry entry, string text)
     {
         var memo = (streamedCounts ??= new()).GetValue(entry, static _ => new StreamedCount());
-        if (ReferenceEquals(memo.Text, text)) return memo.Count;
         long count = 0;
         var index = 0;
-        if (memo.Text.Length > 0 && text.Length >= memo.Text.Length && !char.IsHighSurrogate(memo.Text[^1])
-            && text.AsSpan().StartsWith(memo.Text.AsSpan(), StringComparison.Ordinal))
+        if (memo.Text.TryGetTarget(out var counted) && ReferenceEquals(counted, text))
         {
-            index = memo.LastStart;
-            count = memo.Count - 1;
+            if (memo.Length == text.Length) return memo.Count;
+            if (memo.Length > 0 && !char.IsHighSurrogate(text[memo.Length - 1]))
+            {
+                index = memo.LastStart;
+                count = memo.Count - 1;
+            }
         }
         var last = index;
         while (index < text.Length)
@@ -4551,10 +4557,18 @@ public sealed partial class ThreadRuntime : MainActorModel
             index += System.Globalization.StringInfo.GetNextTextElementLength(text.AsSpan(index));
             count += 1;
         }
-        memo.Text = text;
+        memo.Text.SetTarget(text);
+        memo.Length = text.Length;
         memo.Count = count;
         memo.LastStart = last;
         return count;
+    }
+
+    // AppendStreamed made `joined` = `previous` + delta: a count taken for `previous` still covers joined's first chars.
+    private void CarryStreamedCount(TimelineEntry entry, string previous, string joined)
+    {
+        if (streamedCounts is null || !streamedCounts.TryGetValue(entry, out var memo)) return;
+        if (memo.Text.TryGetTarget(out var counted) && ReferenceEquals(counted, previous)) memo.Text.SetTarget(joined);
     }
 
     // `text.count` without a string per Character.
@@ -4606,22 +4620,30 @@ public sealed partial class ThreadRuntime : MainActorModel
     }
 
     // ThreadRuntime.swift:3663-3692. Mutate only the four matching content/kind pairs.
-    private static bool AppendStreamed(TimelineEntry entry, string text, DeltaKind kind)
+    private bool AppendStreamed(TimelineEntry entry, string text, DeltaKind kind)
     {
         switch (kind, entry.Item.TimelineItemContent)
         {
             case (DeltaKind.Message, TimelineItem.Content.Assistant assistant):
+            {
+                var joined = assistant.Value.Text + text;
                 entry.Item = entry.Item with
                 {
-                    TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = assistant.Value.Text + text }),
+                    TimelineItemContent = new TimelineItem.Content.Assistant(assistant.Value with { Text = joined }),
                 };
+                CarryStreamedCount(entry, assistant.Value.Text, joined);
                 return true;
+            }
             case (DeltaKind.Reasoning, TimelineItem.Content.Reasoning reasoning):
+            {
+                var joined = reasoning.Value.Text + text;
                 entry.Item = entry.Item with
                 {
-                    TimelineItemContent = new TimelineItem.Content.Reasoning(reasoning.Value with { Text = reasoning.Value.Text + text }),
+                    TimelineItemContent = new TimelineItem.Content.Reasoning(reasoning.Value with { Text = joined }),
                 };
+                CarryStreamedCount(entry, reasoning.Value.Text, joined);
                 return true;
+            }
             case (DeltaKind.ToolOutput, TimelineItem.Content.Tool tool):
                 entry.Item = entry.Item with
                 {
@@ -4629,11 +4651,15 @@ public sealed partial class ThreadRuntime : MainActorModel
                 };
                 return true;
             case (DeltaKind.Plan, TimelineItem.Content.Plan plan):
+            {
+                var joined = plan.Value.Markdown + text;
                 entry.Item = entry.Item with
                 {
-                    TimelineItemContent = new TimelineItem.Content.Plan(plan.Value with { Markdown = plan.Value.Markdown + text }),
+                    TimelineItemContent = new TimelineItem.Content.Plan(plan.Value with { Markdown = joined }),
                 };
+                CarryStreamedCount(entry, plan.Value.Markdown, joined);
                 return true;
+            }
             default:
                 return false;
         }
