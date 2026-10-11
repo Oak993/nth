@@ -1,0 +1,108 @@
+// PORT-ONLY: web surfaces W12, Tabula (DESIGN.md 0 point 9, 6.2, 7.3; ED-NEW-web-w12-1). nth's built-in MCP server
+// "nth-ui", which CLI providers reach through the stdio relay (UiMcpBridge): one JSON-RPC line in, one line out, in the
+// shape of the advisor's and the skills' servers. A connection carries the registration of the session it serves (its
+// chat, provider and model); one without a registration lists no tools and runs none. The artifact tools are its first;
+// the live-answer tools (ui_show, ui_update, html_widget) join them in W24. No Swift counterpart.
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+
+namespace Marrow.Services.Web;
+
+/// <summary>A session the nth-ui server serves: its chat, its provider and model, and the artifact host at its launch.</summary>
+public sealed record UiRegistration(Guid Thread, ProviderKind Provider, string? Model, ArtifactHost Host);
+
+public sealed class UiMcpServer(UiRegistration? registration)
+{
+    public const string ServerName = "nth-ui";
+
+    /// <summary>The server's instructions (initialize), a short version of the teaching block W17 writes in full.</summary>
+    public const string Instructions =
+        "nth shows artifacts in its Tabula pane beside the chat. Create one with artifact_create when the user will keep, run or reuse what you make "
+        + "(a page or small app, a component, a diagram, a document, a program, several files that work together); keep short answers in the chat. "
+        + "Every change is a new version: use artifact_update, with edits for small changes. artifact_list and artifact_read show what exists.";
+
+    /// <summary>True for a Claude Code tool name of this server's ("mcp__nth-ui__artifact_create").</summary>
+    public static bool IsOwnTool(string? qualifiedName) =>
+        qualifiedName is not null && qualifiedName.StartsWith("mcp__" + ServerName + "__", StringComparison.Ordinal)
+        && ArtifactTools.IsName(qualifiedName[("mcp__" + ServerName + "__").Length..]);
+
+    public async Task<string?> Handle(string line, CancellationToken cancellationToken)
+    {
+        JsonNode? request;
+        try { request = JsonNode.Parse(line); }
+        catch (JsonException) { return Error(null, -32700, "Invalid JSON."); }
+        if (request is not JsonObject message) return Error(null, -32600, "Invalid MCP request.");
+        if (!message.ContainsKey("id")) return null; // MCP notifications have no response.
+        var id = message["id"]?.DeepClone();
+        try
+        {
+            var parameters = message["params"];
+            JsonNode result = (message["method"] as JsonValue)?.GetValue<string>() switch
+            {
+                "initialize" => new JsonObject
+                {
+                    ["protocolVersion"] = ProtocolVersion(parameters),
+                    ["capabilities"] = new JsonObject { ["tools"] = new JsonObject() },
+                    ["serverInfo"] = new JsonObject { ["name"] = ServerName, ["version"] = "1.0.0" },
+                    ["instructions"] = Serves ? Instructions : "Artifacts are not available in this session.",
+                },
+                "ping" => new JsonObject(),
+                "tools/list" => new JsonObject { ["tools"] = Tools() },
+                "tools/call" => await Call(parameters, cancellationToken).ConfigureAwait(false),
+                _ => throw new NotSupportedException("Unsupported MCP method."),
+            };
+            return new JsonObject { ["jsonrpc"] = "2.0", ["id"] = id, ["result"] = result }.ToJsonString();
+        }
+        catch (NotSupportedException error) { return Error(id, -32601, error.Message); }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException or FormatException) { return Error(id, -32602, error.Message); }
+    }
+
+    private bool Serves => registration is { Host.IsOn: true };
+
+    private JsonArray Tools()
+    {
+        var tools = new JsonArray();
+        if (!Serves) return tools;
+        foreach (var name in ArtifactTools.Names)
+        {
+            var reads = name is ArtifactTools.ReadName or ArtifactTools.ListName;
+            tools.Add(new JsonObject
+            {
+                ["name"] = name,
+                ["title"] = ArtifactTools.Title,
+                ["description"] = ArtifactTools.Description(name),
+                ["inputSchema"] = ArtifactTools.InputSchema(name),
+                ["annotations"] = new JsonObject { ["readOnlyHint"] = reads, ["destructiveHint"] = false, ["openWorldHint"] = false },
+            });
+        }
+        return tools;
+    }
+
+    private async Task<JsonNode> Call(JsonNode? parameters, CancellationToken cancellationToken)
+    {
+        var name = (parameters?["name"] as JsonValue)?.GetValue<string>();
+        if (!Serves || !ArtifactTools.IsName(name)) throw new ArgumentException("Unknown nth-ui tool.");
+        var (thread, provider, model, host) = registration!;
+        var (author, prompt) = await host.Caller(thread, provider, model).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = ArtifactTools.Run(host.Store!, thread, name!, parameters?["arguments"], author, prompt);
+        var reply = new JsonObject
+        {
+            ["isError"] = result.Failed,
+            ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = result.Text }),
+        };
+        if (result.Structured is { } structured) reply["structuredContent"] = structured;
+        return reply;
+    }
+
+    private static string Error(JsonNode? id, int code, string message) =>
+        new JsonObject { ["jsonrpc"] = "2.0", ["id"] = id, ["error"] = new JsonObject { ["code"] = code, ["message"] = message } }.ToJsonString();
+
+    private static string ProtocolVersion(JsonNode? parameters)
+    {
+        var version = (parameters?["protocolVersion"] as JsonValue)?.TryGetValue<string>(out var text) == true ? text : null;
+        return version is "2024-11-05" or "2025-03-26" or "2025-06-18" or "2025-11-25" ? version : "2025-11-25";
+    }
+}
