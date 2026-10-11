@@ -8,7 +8,7 @@ namespace Marrow.App.Port;
 
 // OD-0108 / OD-0113: renderer's actual image/gradient/blur families join the boot's awaited preparation.
 // OD-0136: the boot shows the nth mark B, so its programs are the boot painter's own, drawn by the real AuroraBootPainter at the
-// boot's own sizes, plus the empty chat's 44 px tile (NthMark's icon tile and its soft sweep). OD-0141: the pop (the faded tile's
+// boot's own sizes, plus the empty chat's 44 px tile (NthMark's icon tile and its soft sweep). OD-0142: the pop (the faded tile's
 // layer, its turned and dithered gradient, the lifting shadow's scaled blur), the n's trim with its clipped round head and the
 // drop-shadow layer, the bead's spring, the settled tile, the grow's cached tile, clip and glow; there is no sweep any more.
 public static class AuroraBootWarmup
@@ -42,7 +42,7 @@ public static class AuroraBootWarmup
             "nth-boot-draw" => [(.7, null, 1)],
             "nth-boot-bead" => [(1.1, null, 1)],
             "nth-boot-hold" => [(1.6, null, 1), (4.6, null, 1)],
-            "nth-boot-grow" => [(2.2, 1, 1)],
+            "nth-boot-grow" => [(1.85, 1, 1), (2.2, 1, 1)], // the grow's first frames as vectors (the still is never shrunk), then the still
             "nth-boot-glow" => [(2.6, 1, 1), (3.3, 1, 1)],
             _ => [(.15, null, 1), (.5, null, .6), (1.4, 1, 1)], // the reduced-motion still, opaque and opacity-modulated, and its cross-fade
         };

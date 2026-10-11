@@ -5,7 +5,7 @@ namespace Marrow.UI.Port;
 
 // Locked Stage.renderB/renderRM, loading-aurora.html:618-670: the stage, its scrim, the tile's grow into the window frame, its
 // clip and glow. Real desktop and main window supply the backdrop/content. OD-0136: what the tile shows is the nth mark B
-// (NthMark, the stage's .bs.metal tile). OD-0141: it moves by NthMotion.Boot (the tile pops toward the viewer while its gradient
+// (NthMark, the stage's .bs.metal tile). OD-0142: it moves by NthMotion.Boot (the tile pops toward the viewer while its gradient
 // turns to rest and its shadow lifts, the n draws, the bead springs in; no shine); the pop's scale replaces the Aurora's .93-to-1
 // entrance scale in the tile's side, so from the hand-over on (at least 1.8 s, where it is 1) the grow is the same rectangle.
 // Until the grow the mark is drawn as vectors straight onto the stage at its current size (crisp at every scale, nothing
@@ -36,11 +36,14 @@ public sealed class AuroraBootPainter : IDisposable
             }
             var pose = NthMotion.Boot(seconds, reduceMotion);
             var growing = !reduceMotion && f.Progress > 0;
-            var image = growing ? Still(canvas, window) : null;
             var side = reduceMotion ? AuroraBootSequence.MarkSize : AuroraBootSequence.MarkSize * pose.TileScale +
                 (Math.Max(window.Width, window.Height) / .88 - AuroraBootSequence.MarkSize * pose.TileScale) * f.Progress;
+            var settled = growing ? Still(canvas, window) : null;
+            // the still is only ever enlarged: while it would be shrunk (side below its .6-of-the-width size) the tile stays vectors,
+            // so the grow's first frames keep the hold's crisp edges and the switch happens where the image is drawn 1:1
+            var image = settled is not null && side >= Math.Round(window.Width * .6) ? settled : null;
             var dest = new SKRect((float)(window.Center.X - side / 2), (float)(window.Center.Y - side / 2), (float)(window.Center.X + side / 2), (float)(window.Center.Y + side / 2));
-            if (f.GlowOpacity > .002 && image is not null)
+            if (f.GlowOpacity > .002 && settled is not null)
             {
                 // The page reduces the whole stage to 1/8 before drawing the glow back inside the growing rectangle.
                 var gw = Math.Max(8, (int)Math.Round(area.Width / 8)); var gh = Math.Max(8, (int)Math.Round(area.Height / 8));
@@ -51,7 +54,7 @@ public sealed class AuroraBootPainter : IDisposable
                 }
                 glow.Canvas.Clear(SKColors.Transparent); glow.Canvas.ResetMatrix();
                 glow.Canvas.Scale((float)(gw / area.Width), (float)(gh / area.Height));
-                Color(255, 255, 255, 1); glow.Canvas.DrawImage(image, dest, new SKSamplingOptions(SKCubicResampler.Mitchell), paint);
+                Color(255, 255, 255, 1); glow.Canvas.DrawImage(settled, dest, new SKSamplingOptions(SKCubicResampler.Mitchell), paint);
                 using var blurred = glow.Snapshot(); // the hand-over's glow, unchanged (its only per-frame object, after the mark)
                 canvas.Save(); clip.SetRect(Rect(f.Tile), (float)f.CornerRadius, (float)f.CornerRadius); canvas.ClipRoundRect(clip, SKClipOperation.Intersect, true);
                 Color(255, 255, 255, f.GlowOpacity * opacity); canvas.DrawImage(blurred, SKRect.Create((float)area.Width, (float)area.Height), new SKSamplingOptions(SKCubicResampler.Mitchell), paint); canvas.Restore();
@@ -59,7 +62,7 @@ public sealed class AuroraBootPainter : IDisposable
             var alpha = f.TileOpacity * opacity * pose.TileOpacity;
             if (alpha > .002)
             {
-                // .bs's box-shadow lies on the desktop under the tile, outside the tile's clip; it lifts with the pop (OD-0141) and
+                // .bs's box-shadow lies on the desktop under the tile, outside the tile's clip; it lifts with the pop (OD-0142) and
                 // lifts away in the grow's first quarter.
                 var tile = SKRect.Inflate(dest, (float)(-.06 * side), (float)(-.06 * side));
                 var away = reduceMotion ? 1 : 1 - AuroraLoaderMotion.Smooth(f.Progress * 4);

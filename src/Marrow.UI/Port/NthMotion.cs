@@ -1,7 +1,7 @@
 namespace Marrow.UI.Port;
 
 // PORT-ONLY: the nth boot and hero motion as pure functions of time.
-// Boot: OD-0141 (owner, 2026-10-11) replaces OD-0136's boot motion (gather, draw, drop, hot sweep, breath, the hold's slow
+// Boot: OD-0142 (owner, 2026-10-11) replaces OD-0136's boot motion (gather, draw, drop, hot sweep, breath, the hold's slow
 // sweeps): the shine is gone. The silver tile pops toward the viewer, the n draws inside it, then the bead appears:
 //   tile    0s     .62s  a damped spring (zeta .62): scale .86 to 1 (peak about 1.012), opacity 0 to 1 over .30 s
 //                        (cubic-bezier(.2,.7,.3,1)); the drop shadow lifts with the same spring (grows, softens, falls further)

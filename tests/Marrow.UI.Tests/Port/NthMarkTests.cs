@@ -8,7 +8,7 @@ namespace Marrow.UI.Tests.Port;
 
 // OD-0136: the nth icon B. The drawing is checked against Chrome's rendering of the design's own sources (tests/fixtures/nth: the
 // master svg and the boot stage's settled tile, copied from work/design/nth-brand/nth-brand.html; how the oracle PNGs were made is
-// in its manifest.json). OD-0141: the boot motion (the tile's pop, its turning gradient and lifting shadow, the n's trim, the bead's
+// in its manifest.json). OD-0142: the boot motion (the tile's pop, its turning gradient and lifting shadow, the n's trim, the bead's
 // spring; no shine) against its own curves, and the painter's frames (ED-NEW-bootpop-1 names the tests it replaced).
 public sealed class NthMarkTests
 {
@@ -87,7 +87,7 @@ public sealed class NthMarkTests
         Assert.True(Pixel(surface, 44, 150).Red < 120);
     }
 
-    // ---- the boot motion (OD-0141: the tile pops toward the viewer, the n draws, the bead springs in; no shine) ----
+    // ---- the boot motion (OD-0142: the tile pops toward the viewer, the n draws, the bead springs in; no shine) ----
 
     // 600 Hz samples of a value over [from, to].
     private static double[] Samples(Func<double, double> value, double from, double to, double step = 1 / 600.0) =>
@@ -99,7 +99,7 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void The_tile_pops_from_eighty_six_hundredths_with_one_overshoot_under_two_percent_and_rests_exactly_at_one()
     {
         var start = NthMotion.Boot(0, false);
@@ -125,7 +125,7 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void The_n_draws_once_the_tile_is_two_thirds_through_its_spring_rising_smoothly_to_exactly_the_whole_n()
     {
         Assert.InRange(NthMotion.DrawStart / NthMotion.TileSeconds, .6, .7);
@@ -142,7 +142,7 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void The_bead_springs_in_from_four_tenths_only_after_the_n_is_complete_and_rests_when_the_mark_settles()
     {
         Assert.Equal(NthMotion.DrawEnd, NthMotion.BeadStart);
@@ -166,7 +166,30 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
+    public void The_boot_motion_keeps_the_owner_timings_and_curves_of_OD_0142()
+    {
+        // the owner's numbers as literals: a retune must change this test and OD-0142 together
+        Assert.Equal((.62, .86, .30), (NthMotion.TileSeconds, NthMotion.TileFrom, NthMotion.TileFadeSeconds));
+        Assert.Equal(.40, NthMotion.DrawStart); Assert.Equal(.56, NthMotion.DrawSeconds);
+        Assert.Equal(.96, NthMotion.DrawEnd, 12); Assert.Equal(.96, NthMotion.BeadStart, 12);
+        Assert.Equal((.40, .4, .18), (NthMotion.BeadSeconds, NthMotion.BeadFrom, NthMotion.BeadFadeSeconds));
+        Assert.Equal(1.36, NthMotion.Settled, 12); Assert.Equal(-22, NthMotion.LightFrom);
+        // each curve at a fixed time
+        Assert.Equal(0, NthMotion.Boot(.40, false).Draw);
+        Assert.Equal(NthMotion.Ease(.5, .55, 0, .3, 1), NthMotion.Boot(.40 + .28, false).Draw, 9); // the trim's cubic-bezier(.55,0,.3,1)
+        Assert.Equal(NthMotion.Ease(.5, .2, .7, .3, 1), NthMotion.Boot(.15, false).TileOpacity, 9); // the fade's cubic-bezier(.2,.7,.3,1) over .3 s
+        Assert.Equal(-22 * (1 - NthMotion.Ease(.5, .45, 0, .25, 1)), NthMotion.Boot(.68, false).Light, 9); // the gradient's cubic-bezier(.45,0,.25,1) over 1.36 s
+        Assert.Equal(NthMotion.Ease(.5, .2, .7, .3, 1), NthMotion.Boot(.96 + .09, false).BeadOpacity, 9); // the bead's fade over .18 s
+        // the springs' peaks (zeta .62 / omega*T 9.4 and zeta .6 / omega*T 9.0): about 1.012 at .26 s and about 1.057
+        var tile = Samples(t => NthMotion.Boot(t, false).TileScale, 0, .62);
+        Assert.Equal(1.0117, tile.Max(), 3);
+        Assert.InRange(Array.IndexOf(tile, tile.Max()) / 600.0, .24, .29);
+        Assert.Equal(1.057, Samples(t => NthMotion.Boot(t, false).BeadScale, .96, 1.36).Max(), 3);
+    }
+
+    [Fact]
+    [Trait("Decision", "OD-0142")]
     public void The_mark_settles_within_one_point_four_seconds_then_holds_still_before_the_hand_over_with_no_shine_ever()
     {
         Assert.InRange(NthMotion.Settled, 1.1, 1.4);
@@ -178,7 +201,7 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void The_tile_gradient_turns_from_twenty_two_degrees_off_and_rests_exactly_on_the_icon_gradient_as_the_bead_lands()
     {
         Assert.Equal(-22, NthMotion.Boot(0, false).Light);
@@ -212,14 +235,14 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void Reduced_motion_is_the_finished_mark_at_every_moment()
     {
         foreach (var t in Samples(t => t, 0, 5, 1 / 60.0)) Assert.Equal(NthPose.Still, NthMotion.Boot(t, true));
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void The_shadow_lifts_from_close_under_the_tile_to_the_design_box_shadow()
     {
         using var mark = new NthMark();
@@ -237,7 +260,7 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void A_round_head_leads_the_draw_and_lands_flush_on_the_finished_feet()
     {
         using var mark = new NthMark();
@@ -301,7 +324,7 @@ public sealed class NthMarkTests
     private static bool White(SKColor c) => c.Red > 180 && c.Green > 180 && c.Blue > 180;
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void The_boot_tile_forms_its_n_then_its_bead_and_settles_on_the_stage_tile()
     {
         static SKColor At(SKSurface s, (int X, int Y) p) => Pixel(s, p.X, p.Y);
@@ -321,7 +344,7 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void The_boot_tile_pops_in_smaller_and_fainter_and_no_light_ever_crosses_it()
     {
         // On a black desktop: at .05 s the tile is smaller and fading in; by .6 s it is whole at its own size.
@@ -360,7 +383,7 @@ public sealed class NthMarkTests
     }
 
     [Fact]
-    [Trait("Decision", "OD-0141")]
+    [Trait("Decision", "OD-0142")]
     public void Drawing_the_boot_mark_allocates_nothing_per_frame()
     {
         // Every 60 Hz frame of the mark, the hold and the reduced-motion fade, after one warm pass (the painter's caches and the

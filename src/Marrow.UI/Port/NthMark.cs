@@ -2,7 +2,7 @@
 // Source of truth: work/design/nth-brand/nth-brand.html (assets-src/brand/nth-brand-icon.svg keeps its <defs>): the gradients
 // gTile, gPool, gHi, gGlyph, gBead, the filter fG and the symbols tile, mkB and mkBs; the boot stage's .metal/.bs tile (its CSS
 // gradients, rim and box-shadow); the hero/loop .mk::after sweep. This file draws only SkiaSharp, so the icon generator
-// (scripts/brand/NthIcon) compiles the very same drawing the app shows. OD-0141: the boot has no sweep (the stage's .sw is
+// (scripts/brand/NthIcon) compiles the very same drawing the app shows. OD-0142: the boot has no sweep (the stage's .sw is
 // gone); its motion turns the tile's own gradient, lifts its shadow and leads the n's trim with a round head.
 using SkiaSharp;
 
@@ -26,7 +26,7 @@ public readonly record struct NthGlyph(float Left, float Right, float Top, float
 /// <summary>One pose of the mark. <see cref="Draw"/> is the drawn share of the n stroke (stroke-dashoffset 100 to 0);
 /// <see cref="Sweep"/> is the hero's soft sweep (the loop/hero <c>.mk::after</c>: white .42, clear at 40% and 60%) as its eased
 /// progress (background-position 100% to 0), drawn only strictly between 0 and 1. <see cref="Light"/> turns the stage tile's
-/// gradient by that many degrees (clockwise) about the tile's centre (OD-0141). <see cref="TileScale"/>, <see cref="TileOpacity"/>
+/// gradient by that many degrees (clockwise) about the tile's centre (OD-0142). <see cref="TileScale"/>, <see cref="TileOpacity"/>
 /// and <see cref="Lift"/> (the shadow's lift: 0 close under the tile, 1 the design's box-shadow) are applied by whoever places
 /// the tile (the boot painter); <see cref="NthMark.Draw"/> draws the tile at rest scale.</summary>
 public readonly record struct NthPose(double Draw, double BeadOpacity, double BeadScale, double Sweep,
@@ -58,7 +58,7 @@ public sealed class NthMark : IDisposable
     public const float StagePixel = TileSide / 243.9f;
     /// <summary>The stage .bs box-shadow <c>0 18px 40px -14px</c>, in symbol units.</summary>
     public const float ShadowOffset = 18 * StagePixel, ShadowSigma = 20 * StagePixel, ShadowSpread = -14 * StagePixel;
-    /// <summary>OD-0141: the shadow at lift 0, as shares of the box-shadow's offset and blur (a tight shadow close under the tile).</summary>
+    /// <summary>OD-0142: the shadow at lift 0, as shares of the box-shadow's offset and blur (a tight shadow close under the tile).</summary>
     public const float ShadowRestingOffset = .2f, ShadowRestingBlur = .3f;
 
     private readonly SKPaint paint = new() { IsAntialias = true };
@@ -116,7 +116,7 @@ public sealed class NthMark : IDisposable
             }
             else
             {
-                // OD-0141: the moving light. The tile's whole material (gradient, pool, highlight) turns about the tile's centre
+                // OD-0142: the moving light. The tile's whole material (gradient, pool, highlight) turns about the tile's centre
                 // inside the fixed rounded tile: the same shaders under a rotation, dithered so no band steps show while it moves.
                 round.SetRect(tile, corner, corner);
                 canvas.ClipRoundRect(round, SKClipOperation.Intersect, true);
@@ -142,7 +142,7 @@ public sealed class NthMark : IDisposable
     }
 
     /// <summary>The stage tile's outer box-shadow (<c>0 18px 40px -14px --gshadow</c>) for a tile drawn with
-    /// <see cref="NthTileStyle.Stage"/> on <paramref name="tile"/> (the 240-unit tile itself, not its box). OD-0141:
+    /// <see cref="NthTileStyle.Stage"/> on <paramref name="tile"/> (the 240-unit tile itself, not its box). OD-0142:
     /// <paramref name="lift"/> lifts the tile off the desktop: at 0 the shadow is tight and close (<see cref="ShadowRestingOffset"/>,
     /// <see cref="ShadowRestingBlur"/>), at 1 it is the design's, a little beyond 1 a little further and softer. The blur follows
     /// the canvas matrix, so one mask filter serves every lift: the shadow is drawn in a frame scaled by the blur's share.</summary>
@@ -208,7 +208,7 @@ public sealed class NthMark : IDisposable
                 segment.Reset();
                 var length = (float)(parts.Measure.Length * draw);
                 if (parts.Measure.GetSegment(0, length, segment, true)) canvas.DrawPath(segment, paint);
-                // OD-0141: a round head leads the trim. It is clipped at the feet's line, so on the right stem it lands flush on the
+                // OD-0142: a round head leads the trim. It is clipped at the feet's line, so on the right stem it lands flush on the
                 // finished glyph's butt foot, and the draw's last frame is exactly the finished n.
                 if (parts.Measure.GetPosition(length, out var head))
                 {

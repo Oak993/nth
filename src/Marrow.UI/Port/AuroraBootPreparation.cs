@@ -22,7 +22,7 @@ public static class AuroraBootPreparation
         foreach (var dark in new[] { false, true })
         {
             var sequence = new AuroraBootSequence(window, reduce);
-            // OD-0141: the nth pop (.1, .3), draw (.7), bead (1.1), the settled hold (1.5), the grow and glow.
+            // OD-0142: the nth pop (.1, .3), draw (.7), bead (1.1), the settled hold (1.5), the grow and glow.
             foreach (var seconds in new[] { .1, .3, .7, 1.1, 1.5, 1.9, 2.2, 2.8, 3.8 })
                 painter.Draw(surface.Canvas, new Size(64, 64), window, sequence.At(seconds, 0), seconds, dark, reduce);
             painter.Draw(surface.Canvas, new Size(64, 64), window, sequence.At(4.6, null), 4.6, dark, reduce);
