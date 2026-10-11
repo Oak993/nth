@@ -6111,3 +6111,9 @@ Branch claude/release-integration, 2026-10-10 (integrates Ignis part A, points s
 - **Owner, 2026-10-11:** "Igni icon doesn't match the format of the rest of the icons? its colorful while the rest are silver".
 - **Decision:** the sidebar row draws IgnisFlameMark in one colour, the sidebar symbols' Chrome.PrimaryText at 0.85 (SidebarSymbol), the core cut out of the outer flame and no glow. The lit two-colour flame with its glow stays where Ignis is the subject (the Ignis page, the Updates row's mark).
 - **Test:** SettingsRestSidebarTests asserts the sidebar flame is monochrome with no effect (stricter than before: it kept size and single-mark checks).
+
+## ED-NEW-ignismono-2 The sidebar flame draws the inherited foreground and repaints with the appearance (2026-10-11)
+
+- **Review finding:** ED-NEW-ignismono-1 handed IgnisFlameMark one mutable SolidColorBrush and drew it in a custom Render with no AffectsRender, so an appearance turn might not repaint it, and the test only checked a flag, not the colour.
+- **Decision:** IgnisFlameMark(bool monochrome) draws the inherited TextElement.Foreground (its own Foreground property, an AddOwner like SwiftImage's) that SidebarIconBadge already sets to PrimaryText 0.85, and registers AffectsRender on it, so the flame is repainted exactly as the neighbouring SwiftImage symbols are, including the brush's in-place easing. The Updates row and the Ignis page keep the lit colour flame (monochrome false).
+- **Test:** SettingsRestSidebarTests now asserts the drawn colour, Ink(flame, flame.Foreground, PrimaryText 0.85), in every Check and again after switching the window to Dark and back to Light (stricter than ED-NEW-ignismono-1, which asserted only the flag and no effect; those two assertions stay).

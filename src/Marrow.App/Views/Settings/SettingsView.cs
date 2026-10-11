@@ -289,7 +289,7 @@ public sealed class SettingsView : Decorator
             var badge = new SidebarIconBadge(() => page switch
             {
                 SettingsPage.Hydra => new HydraMarkImage { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 },
-                SettingsPage.Ignis => new Marrow.App.Port.Ignis.Settings.IgnisFlameMark(Chrome.PrimaryText.Opacity(0.85).Brush(this)) { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }, // PORT-ONLY OD-0134; ED-NEW-ignismono-1: the flame in the sidebar symbols' silver (SidebarSymbol's PrimaryText 0.85)
+                SettingsPage.Ignis => new Marrow.App.Port.Ignis.Settings.IgnisFlameMark(monochrome: true) { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }, // PORT-ONLY OD-0134; ED-NEW-ignismono-1: the flame draws the badge's inherited PrimaryText 0.85, the sidebar symbols' silver
                 _ => new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1),
             }); // :151-157
             if (page != SettingsPage.About) return badge;
