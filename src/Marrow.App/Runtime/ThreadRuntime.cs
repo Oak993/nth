@@ -3156,9 +3156,10 @@ public sealed partial class ThreadRuntime : MainActorModel
         provider.OnEvent = observedSessionEvent = @event =>
         {
             if (weakSelf.TryGetTarget(out var runtime) && runtime.sessionEpoch == epoch)
-                runtime.Handle(@event is ProviderEvent.UsageLimit limit
+                // + ED-NEW-web-w12-2: the answer's nth-artifact blocks become chips and saved artifacts on the way in.
+                foreach (var shown in runtime.ArtifactEvents(@event is ProviderEvent.UsageLimit limit
                     ? limit with { Account = provider is OpenAICompatibleSession { KeyRotation: AppApiKeyRotation } ? runtime.UsageAccount : account }
-                    : @event);
+                    : @event)) runtime.Handle(shown);
         };
     }
 
