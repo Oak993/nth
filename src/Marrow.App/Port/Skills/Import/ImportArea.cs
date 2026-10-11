@@ -20,6 +20,7 @@ internal sealed class ImportArea : Decorator
     private bool closingFromHere;
     private bool hidden;
     private bool shown;
+    private Control? sheetAnchor;
     private readonly CzCrossfadeText found = new("") { FontSize = 12, Secondary = true };
     private readonly CzFoldRow foundFold;
 
@@ -27,7 +28,7 @@ internal sealed class ImportArea : Decorator
     {
         this.model = model;
         imported = new ImportedSection(model);
-        var button = LibraryButtons.Make(ImportWords.Action, Open, ButtonLook.Plain, "import-skills");
+        var button = LibraryButtons.Make(ImportWords.Action, () => Open(), ButtonLook.Plain, "import-skills");
         button.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
         var note = LibraryUi.Text(ImportWords.ActionNote, 12, secondary: true, wrap: true);
         // the quiet line (OD-0118 addendum): "Found 12 skills in Claude Code and Codex · Import", with a way to dismiss it; nothing is imported until the user chooses
@@ -38,7 +39,7 @@ internal sealed class ImportArea : Decorator
             Children =
             {
                 found, dot,
-                LibraryButtons.Make(ImportWords.FoundImport, Open, ButtonLook.Accent, "import-found-open"),
+                LibraryButtons.Make(ImportWords.FoundImport, () => Open(), ButtonLook.Accent, "import-found-open"),
                 LibraryButtons.Glyph("xmark", ImportWords.FoundDismiss, "import-found-dismiss", () => model.Detector?.Dismiss()),
             },
         };
@@ -72,9 +73,12 @@ internal sealed class ImportArea : Decorator
 
     internal bool LineOpen => foundFold.Open;
 
-    private void Open()
+    // ED-NEW-mcpimport-2: also the Skills page header's "Import". From the header the sheet is centred on <paramref name="anchor"/> (a page-sized control, ED-NEW-mcpimport-8), not on this area,
+    // which sits wherever the page is scrolled to; opened from the area's own button it stays centred on the area.
+    internal void Open(Control? anchor = null)
     {
         hidden = false;
+        if (anchor is not null) sheetAnchor = anchor;
         // a sheet that is not closed is an import in progress (hidden by Escape): it comes back as it was, it is not started again
         if (model.Controller.Phase == ImportPhase.Closed) _ = model.Controller.OpenAsync();
         else Sync();
@@ -101,7 +105,7 @@ internal sealed class ImportArea : Decorator
         if (phase is ImportPhase.Closed or ImportPhase.Done) hidden = false;
         if (phase == ImportPhase.Closed) { CloseSheet(); return; }
         if (shown || hidden || TopLevel.GetTopLevel(this) is null) return;
-        ChatSheetPresentation.Show(this, dismiss =>
+        ChatSheetPresentation.Show(sheetAnchor ?? this, dismiss =>
         {
             closeSheet = dismiss;
             return new ImportSheetLayer(new ImportSheetView(model, dismiss));
@@ -114,7 +118,7 @@ internal sealed class ImportArea : Decorator
         if (!shown) return;
         closingFromHere = true;
         try { closeSheet?.Invoke(); }
-        finally { closingFromHere = false; shown = false; closeSheet = null; }
+        finally { closingFromHere = false; shown = false; closeSheet = null; sheetAnchor = null; }
     }
 
     // Escape (or Cancel and Close) closed the sheet. While an import goes on, Escape only hides the sheet (and a question still open is answered Skip for the rest, so the import can end); otherwise the import is closed.
@@ -122,6 +126,7 @@ internal sealed class ImportArea : Decorator
     {
         shown = false;
         closeSheet = null;
+        sheetAnchor = null;
         if (closingFromHere) return;
         var controller = model.Controller;
         switch (controller.Phase)

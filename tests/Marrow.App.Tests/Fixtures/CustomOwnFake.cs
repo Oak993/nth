@@ -10,6 +10,7 @@ internal sealed class CustomOwnFake : ICustomSourceFiles, ICustomGitHubSource
     internal Dictionary<string, Dictionary<string, byte[]>> Installed { get; } = [];
     internal byte[]? Registry { get; private set; }
     internal bool FailCommit { get; set; }
+    internal bool FailPublish { get; set; }
     internal int Fetches { get; private set; }
     internal CustomSources Open() => new("/fake/own", this, this, new ManualTimeProvider());
     public Task<IReadOnlyDictionary<string, byte[]>> ReadFolder(string path, CancellationToken cancel) => Task.FromResult<IReadOnlyDictionary<string, byte[]>>(Source.ToDictionary(p => p.Key, p => p.Value.ToArray()));
@@ -21,7 +22,11 @@ internal sealed class CustomOwnFake : ICustomSourceFiles, ICustomGitHubSource
     }
     public byte[]? ReadRegistry(string root) => Registry?.ToArray();
     public IReadOnlyDictionary<string, byte[]> ReadInstalled(string root, string id) => Installed[id];
-    public void Publish(string root, string id, IReadOnlyDictionary<string, byte[]> files) => Installed.Add(id, files.ToDictionary(p => p.Key, p => p.Value.ToArray()));
+    public void Publish(string root, string id, IReadOnlyDictionary<string, byte[]> files)
+    {
+        if (FailPublish) throw new IOException("Fixture disk is full");
+        Installed.Add(id, files.ToDictionary(p => p.Key, p => p.Value.ToArray()));
+    }
     public void Delete(string root, string id) => Installed.Remove(id);
     public void SaveRegistry(string root, byte[] bytes)
     {
