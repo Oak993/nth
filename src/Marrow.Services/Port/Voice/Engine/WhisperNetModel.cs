@@ -19,7 +19,8 @@ public sealed class WhisperNetModel(WhisperFactory factory, RuntimeKind runtime)
         await using var processor = builder.Build();
         var segments = new List<BackendSegment>();
         await foreach (var segment in processor.ProcessAsync(audio, cancellationToken))
-            segments.Add(new BackendSegment([.. segment.Tokens.Select(ToToken)], segment.Language));
+            // ED-NEW-voicefix-2: a character split across tokens comes out of each token as U+FFFD; the segment's text is decoded whole and mends them
+            segments.Add(new BackendSegment(WhisperTokenText.Repair([.. segment.Tokens.Select(ToToken)], segment.Text), segment.Language));
         return segments;
     }
 

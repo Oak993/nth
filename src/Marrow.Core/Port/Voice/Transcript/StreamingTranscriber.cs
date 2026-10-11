@@ -27,6 +27,13 @@ public sealed class StreamingTranscriber
     public const double FinalSilenceSeconds = 0.3;
     public const int PromptCharacters = 200;
 
+    /// <summary>
+    /// ED-NEW-voicefix-3: with Auto-detect, the language Whisper detects on a window this long (or on a long pause's or the final pass's whole buffer) becomes the
+    /// session's; until then nothing is committed. Whisper told "en" for Hindi or Urdu speech writes an English translation, and a 0.5 s window is too little to tell the
+    /// language from; a committed word never changes, so one early wrong guess used to stay in the text and steer every later pass through the prompt.
+    /// </summary>
+    public const double SettleSeconds = 3.0;
+
     private const double SameWordTolerance = 1e-3;
 
     private readonly ISpeechEngine engine;
@@ -47,6 +54,7 @@ public sealed class StreamingTranscriber
     private bool running;
     private bool cleared;
     private string? detectedLanguage;
+    private string? settledLanguage;
 
     public StreamingTranscriber(ISpeechEngine engine, string language, bool liveWords = true, bool processingOnly = false)
     {
@@ -76,6 +84,11 @@ public sealed class StreamingTranscriber
     public int CommittedCount => committed.Count;
 
     public string? DetectedLanguage => detectedLanguage;
+
+    /// <summary>With Auto-detect, the language the session settled on (<see cref="SettleSeconds"/>); every later pass is decoded in it. Null before, and for a forced language.</summary>
+    public string? SettledLanguage => settledLanguage;
+
+    private bool AutoDetect => string.Equals(language, VoiceLanguage.AutoCode, StringComparison.Ordinal);
 
     private bool SpeechInBuffer => speechSpans.Count > 0 && speechSpans[^1].End > bufferStart;
 
@@ -128,7 +141,8 @@ public sealed class StreamingTranscriber
             var (start, samples) = Window(end, padSilence: false);
             var hypothesis = await engine.TranscribeAsync(samples, Request(start, DecodeMode.Live), cancellationToken);
             if (cleared) return Unchanged();
-            return ApplyLive(hypothesis, start, pass, end);
+            var hold = !Settle(hypothesis, pass == TranscriberPass.LongPause || ToTime(end - start).TotalSeconds >= SettleSeconds);
+            return ApplyLive(hypothesis, start, pass, end, hold);
         }
         catch
         {
@@ -154,6 +168,7 @@ public sealed class StreamingTranscriber
             var (start, samples) = processingOnly ? (0L, audio.ToArray()) : Window(total, padSilence: true);
             var hypothesis = await engine.TranscribeAsync(samples, Request(start, DecodeMode.Final), cancellationToken);
             if (cleared) return Unchanged();
+            if (!processingOnly) Settle(hypothesis, settles: true);
             if (processingOnly)
             {
                 detectedLanguage = hypothesis.Language;
@@ -188,7 +203,16 @@ public sealed class StreamingTranscriber
 
     private TranscriptDelta Unchanged() => new([], words, committed.Count, null);
 
-    private DecodeRequest Request(long start, DecodeMode mode) => new(language, Prompt(), mode, ToTime(start));
+    private DecodeRequest Request(long start, DecodeMode mode) => new(settledLanguage ?? language, Prompt(), mode, ToTime(start));
+
+    // Auto-detect: adopts the detected language when the pass `settles` (enough audio heard); false while the language is still a guess (the pass commits nothing)
+    private bool Settle(Hypothesis hypothesis, bool settles)
+    {
+        if (!AutoDetect || settledLanguage is not null || hypothesis.Language is not { } heard) return true;
+        if (!settles) return false;
+        settledLanguage = heard;
+        return true;
+    }
 
     // V-7.3 step 2: the prompt is the last 200 characters of committed text.
     private string Prompt()
@@ -225,10 +249,15 @@ public sealed class StreamingTranscriber
         return result;
     }
 
-    private TranscriptDelta ApplyLive(Hypothesis hypothesis, long windowStart, TranscriberPass pass, long decodedEnd)
+    private TranscriptDelta ApplyLive(Hypothesis hypothesis, long windowStart, TranscriberPass pass, long decodedEnd, bool hold = false)
     {
         var fresh = NewWords(hypothesis, windowStart);
-        if (pass == TranscriberPass.LongPause)
+        if (hold)
+        {
+            // the language is still a guess: every word stays tentative, and the next pass hears this audio again
+            tail = fresh;
+        }
+        else if (pass == TranscriberPass.LongPause)
         {
             // V-7.4: a pause of 1.5 s commits every word and drops the silent audio.
             committed.AddRange(fresh);
@@ -249,7 +278,7 @@ public sealed class StreamingTranscriber
             MoveBufferStart();
             CapUncommitted();
         }
-        return Publish(hypothesis.Language);
+        return Publish(hypothesis.Language ?? settledLanguage);
     }
 
     // V-7.4: over 25 s uncommitted, tentative words ending more than 10 s before the newest audio are committed and the buffer is cut after the last.
