@@ -9,12 +9,16 @@ namespace Marrow.App.Views.Composer;
 // Source: DroppyCode/App/Views/Composer/ComposerWorkingDots.swift (B3 52bc792), :5-11,152-190.
 // PORT-ONLY: the render-server equivalent of the source's CALayer / CAReplicatorLayer animation.
 // ED-NEW-lean-9: a frame update and a draw allocate nothing once warm. The field's state (the frame the UI thread sent) is drawn
-// at the time the clock shows, in its own brush or, while the accent blends, in a brush kept until the colour changes; no sampled
-// frame is made per update or draw (LastFrame makes one when read). The "stop when not drawn" guard of NthMotionHandler: the next
-// update is asked for by a draw, so a field that is not drawn (its window not composed) stops asking until it is drawn again.
+// at the time the clock shows, in its own brush; no sampled frame is made per update or draw (LastFrame makes one when read). While
+// the accent blends (0.32 s after a change) the colour changes at nearly every draw and each new colour is a new immutable brush
+// (64 B a draw, ComposerWorkingDotsLeanBudgetTests); a colour drawn again keeps its brush. The "stop when not drawn" guard of
+// NthMotionHandler: the next update is asked for by a draw, so a field that is not drawn (its window not composed) stops asking
+// until it is drawn again or sent a new frame (ComposerWorkingDotsStopGuardTests).
 internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandler
 {
     private DotFieldCompositionFrame? state;
+    // The last draw's frame, time and brush, written and read together (a reader on another thread sees one draw's three).
+    private readonly Lock drawnGate = new();
     private DotFieldCompositionFrame? drawnState;
     private IImmutableBrush? drawnBrush;
     private long drawnAt;
@@ -23,10 +27,23 @@ internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandle
     private int stopped;
     private bool requested, drawn = true;
     private int animating;
+    private int updates;
 
     /// <summary>The frame last drawn, as sampled at its draw (tests; made when read).</summary>
-    public DotFieldCompositionFrame? LastFrame =>
-        Volatile.Read(ref drawnState) is { } last ? last.At(new ContinuousInstant(Volatile.Read(ref drawnAt)), drawnBrush) : null;
+    public DotFieldCompositionFrame? LastFrame
+    {
+        get
+        {
+            DotFieldCompositionFrame? last;
+            long at;
+            IImmutableBrush? brush;
+            lock (drawnGate) { last = drawnState; at = drawnAt; brush = drawnBrush; }
+            return last?.At(new ContinuousInstant(at), brush);
+        }
+    }
+
+    /// <summary>Frame updates the field has had (tests: a field that is not drawn stops asking for them).</summary>
+    internal int Updates => Volatile.Read(ref updates);
 
     public bool IsStopped => Volatile.Read(ref stopped) != 0;
     public bool IsAnimating => !IsStopped && Volatile.Read(ref animating) != 0;
@@ -42,6 +59,7 @@ internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandle
 
     public override void OnAnimationFrameUpdate()
     {
+        Interlocked.Increment(ref updates);
         requested = false;
         if (IsStopped) return;
         Invalidate();
@@ -72,13 +90,12 @@ internal sealed class DotFieldCompositionHandler : CompositionCustomVisualHandle
         var now = current.ClockNow();
         var brush = current.From is null ? current.Brush : BlendBrush(current.ShownAt(now));
         current.Draw(context, now, brush);
-        drawnBrush = brush;
-        Volatile.Write(ref drawnAt, now.Ticks);
-        Volatile.Write(ref drawnState, current);
+        lock (drawnGate) { drawnState = current; drawnAt = now.Ticks; drawnBrush = brush; }
         Request(now);
     }
 
-    // ED-NEW-lean-9: the blend's colour changes at every draw while it runs; a colour drawn again keeps its brush.
+    // ED-NEW-lean-9: the blend's colour changes at nearly every draw while it runs, and each new colour is a new brush (an
+    // immutable brush is what the drawing context takes, and LastFrame hands the drawn one out); a colour drawn again keeps it.
     private IImmutableBrush BlendBrush(Color color)
     {
         if (blendBrush is null || blendColor != color)

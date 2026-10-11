@@ -25,6 +25,9 @@ namespace Marrow.App.Tests.Views.Composer;
 // at a draw's first push, which is Avalonia's share, not the field's.
 // Numbers: see ED-NEW-lean-9 in porting/engineering_decisions.md (before on 1fdf47b43, after the L9 fix). The 60 Hz pacing the plan
 // names is not in L9 (the shared pacer is internal to Marrow.UI; ED-NEW-lean-9), so the draws and clock reads still follow the display.
+// The own share is a difference of two runs' median ticks, so it needs each run's steady tick: more than half of the ticks of a run
+// allocate the same bytes (Avalonia's one-off growth moves a few ticks only), and a regression of the dots that allocates at most
+// draws moves the median.
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
 {
@@ -34,7 +37,7 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
     // before their first pulse. 10 s in, every dot of the loop is in its wave, as in a running app.
     private const double Settled = 10;
 
-    private static (int Draws, int Reads, double Bytes, long Median) OneSimulatedSecond()
+    private static (int Draws, int Reads, double Bytes, long Median) OneSimulatedSecond(bool blend = false)
     {
         var period = RenderFrameSource.PeriodSource;
         RenderFrameSource.PeriodSource = () => TimeSpan.FromSeconds(1 / Rate);
@@ -54,21 +57,25 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             for (var i = 0; i < Warm; i++) Tick(runtime, out _);
             Assert.Equal(267, field.LastRenderedFrame is { } first ? first.Rows * first.Columns : 0);
+            // An accent change eases the dots over 0.32 s (ED-253): the ticks measured are those of the blend, every one inside it.
+            if (blend) field.UpdateColor(new SwiftColor(0, 0.4, 1), ease: true);
+            var count = blend ? BlendTicks : (int)Rate;
             var last = field.LastRenderedFrame!.Now.Ticks;
             var reads = clock.OnThread;
             var draws = 0;
             long bytes = 0;
-            var ticks = new long[(int)Rate];
-            for (var i = 0; i < Rate; i++)
+            var ticks = new long[count];
+            for (var i = 0; i < count; i++)
             {
                 Tick(runtime, out var allocated);
                 bytes += allocated;
                 ticks[i] = allocated;
                 if (field.LastRenderedFrame is { } frame && frame.Now.Ticks != last) { draws++; last = frame.Now.Ticks; }
+                if (blend) Assert.True(field.LastRenderedFrame!.Blending, $"the blend ended at tick {i}");
             }
             Assert.Equal(0, clock.OffThread); // the field's render-server work ran on this thread, so its allocations are counted
             Assert.Equal(0, frames.Pending); // never a UI-thread frame
-            return (draws, clock.OnThread - reads, bytes / Rate, Median(ticks));
+            return (draws, clock.OnThread - reads, bytes / count, Median(ticks));
         }
         finally
         {
@@ -168,8 +175,30 @@ public sealed class ComposerWorkingDotsLeanBudgetTests(HeadlessSession headless)
         Assert.True(own <= OwnBytesLimit, $"the dots' own work allocates {own} B a warm compositor tick (median tick {median} B with the dots, {reference} B without) (limit {OwnBytesLimit})");
     });
 
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-9")]
+    public void The_dots_own_share_of_a_warm_compositor_tick_while_the_accent_blends_allocates_within_the_budget() => headless.OnUiThread(() =>
+    {
+        var reference = ReferenceBytes();
+        var (draws, _, _, median) = OneSimulatedSecond(blend: true);
+        Assert.Equal(BlendTicks, draws); // the dots drew at every tick of the blend
+        var own = median - reference;
+        Assert.True(own <= BlendOwnBytesLimit, $"while the accent blends, the dots' own work allocates {own} B a warm compositor tick (median tick {median} B with the dots, {reference} B without) (limit {BlendOwnBytesLimit})");
+    });
+
+    // 0.32 s of blend is 76 ticks at 240 Hz (complete 1 ms early); the first 60 are all inside it.
+    private const int BlendTicks = 60;
+
+    // The first limits (cc75a34e4, measured on the unchanged field before the fix, the clock at 0, the mean tick): draws 360 (240),
+    // reads 720 (480), bytes 6890 (4593 B). The fix commit (c92e5ca66) changed the method (the clock 10 s in, the median tick, the
+    // reference run); the new method's "before" numbers were measured on the base handler and frame after the fix was written (the
+    // review round): bytes 19472 B, own share 15384 B, own share while blending 15512 B. Every limit below is under its first limit.
+    // The draws and reads limits pin the unpaced field: the brief's <=61 draws waits for the shared 60 Hz pacer (ED-NEW-lean-9, 2).
     private const int DrawsLimit = 312; // before 240 (first limit 360, 1.5x); after 240 (1.3x)
     private const int ReadsLimit = 312; // before 480 (first limit 720, 1.5x); after 240 (1.3x)
-    private const double BytesLimit = 5314; // before 19478 B (first limit 29217, 1.5x); after 4088 B (1.3x)
-    private const long OwnBytesLimit = 0; // before 15384 B (first limit 23076, 1.5x); after 0 B
+    private const double BytesLimit = 5314; // before 4593 B on the first method (first limit 6890, 1.5x), 19472 B on this one; after 4088 B (1.3x)
+    private const long OwnBytesLimit = 0; // before 15384 B; after 0 B
+    // Added in the review round, measured first on the unchanged L9 field (c92e5ca66): 64 B, one new immutable brush a draw for each
+    // new colour of the blend (first limit 96, 1.5x); before L9 15512 B; after the review round 64 B (1.3x).
+    private const long BlendOwnBytesLimit = 83;
 }
