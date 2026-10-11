@@ -1,0 +1,17 @@
+{
+  "note": "nth installer PLAN.md section 7: the app's published exe is nth.exe, and no file in the repository may name the old apphost, except the decision ledgers (they record the rename) and the dated evidence records below (a record of a past run says what the file was called then; rewriting it would falsify it). Used by scripts/lib/NthPackaging.ps1 (Find-NthOldExeNameReferences) and by tests/Marrow.Core.Tests (OldExeNameTests). A new path needs a reason.",
+  "ledgers": [
+    "porting/engineering_decisions.md",
+    "porting/owner_decisions.md",
+    "porting/owner_decisions_pending.md",
+    "porting/contract_amendments.md"
+  ],
+  "evidence": [
+    { "path": "porting/first-release/reports/SK-17-cursor-automatic.md", "reason": "a unit report of 2026-10-02: it describes the relay command as that build ran it" },
+    { "path": "porting/first-release/reviews/T39-RR-43-app-pe.json", "reason": "RR-43 review evidence: the PE metadata of the Release build as it was (the build output keeps its apphost name; only the published app is renamed)" },
+    { "path": "porting/probes/vt-0-publish/publish-listing.txt", "reason": "the saved file list of a dotnet publish; VoicePinsTests holds the voice record to it, and a publish still writes that apphost name before the packaging script renames it" },
+    { "path": "porting/verification/native/launch-2026-10-02/RESULT.md", "reason": "native launch record of 2026-10-02: the Debug build that was run" },
+    { "path": "porting/verification/native/launch-2026-10-02/capture.py", "reason": "the capture script of that same run, kept with its record; it launches that Debug build's path" },
+    { "path": "porting/verification/native/launch-2026-10-02/launch.json", "reason": "the launch record of that same run" }
+  ]
+}

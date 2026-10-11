@@ -4,5 +4,22 @@
   "powerShell": "7.6.6",
   "node": "24.19.0",
   "vpk": "1.2.161",
-  "vpkNugetSha512": "NZ9I8Fbwlz4bHPlxvWeGKx3TXCEUf4AdPHhUHidppgM3CKVt1bGAHHrdBjCjY0S1uokpl60vA889wAzO2/ixmw=="
+  "vpkNugetSha512": "NZ9I8Fbwlz4bHPlxvWeGKx3TXCEUf4AdPHhUHidppgM3CKVt1bGAHHrdBjCjY0S1uokpl60vA889wAzO2/ixmw==",
+  "vcRuntime": {
+    "note": "nth installer PLAN.md override 4 and section 9 item 2 (ED-NEW-inst-u7-3): the four Visual C++ runtime DLLs the voice natives import, copied next to nth.exe from Visual Studio's redistributable folder (VC\\Redist\\MSVC\\<redistVersion>\\x64\\Microsoft.VC14?.CRT and Microsoft.VC14?.OpenMP) instead of Velopack's vcredist143-x64 prerequisite. Windows does not service these copies, so every release build compares the pin with the newest redistributable installed and stops when the pin is older than securityFloor.",
+    "redistVersion": "14.50.35710",
+    "fileVersion": "14.50.35719.0",
+    "architecture": "x64",
+    "securityFloor": {
+      "fileVersion": "14.50.35719.0",
+      "checked": "2026-10-11",
+      "source": "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist (the page lists no number; the file version of https://aka.ms/vc14/vc_redist.x64.exe is the newest). Raise this, and the pin below, whenever Microsoft ships a newer v14 runtime with a security fix. Set on 2026-10-11 from the newest redistributable installed on the build PC (Visual Studio Build Tools 2026 18.5); it was not compared with Microsoft's latest download, which needs a network check by the lead."
+    },
+    "files": [
+      { "name": "msvcp140.dll", "group": "CRT", "sha256": "DEF46AA6A8F72F27BAFAC0C43334419486A4D1DCDB6C479A8EF7034B3E1FA4CB" },
+      { "name": "vcruntime140.dll", "group": "CRT", "sha256": "184146852727A9DB4EEA06178716BEC3CDBB1015C911F6B0F915B184AD7775B2" },
+      { "name": "vcruntime140_1.dll", "group": "CRT", "sha256": "E6BFB3662AB4B1969A73441DBE35C96D51441B6BFF8CF1FE7430BD5B246CA605" },
+      { "name": "vcomp140.dll", "group": "OpenMP", "sha256": "31AF29C03643F8396A6F26BCD601C6369D26493D7D78B714827AB2801BD284C7" }
+    ]
+  }
 }

@@ -823,6 +823,30 @@ public sealed class VoicePinsTests
             Assert.DoesNotContain(PublishListing(), f => string.Equals(System.IO.Path.GetFileName(f.Path), dll, StringComparison.OrdinalIgnoreCase));
     }
 
+    // nth installer PLAN.md override 4 and section 9 item 2 (unit U7, ED-NEW-inst-u7-3) resolves the open finding above: dotnet publish still does not carry
+    // the four DLLs (the test before this one), and the packaging script now ships them app-local, next to nth.exe, from a pin in scripts/release-toolchain.json.
+    [Fact]
+    [Trait("Feature", Feature)]
+    [Trait("Decision", "ED-267")]
+    public void The_record_says_the_packaging_script_ships_the_four_imported_DLLs_next_to_the_app_from_the_same_pin()
+    {
+        var recorded = Pins().GetProperty("vcRuntime");
+        Assert.True(recorded.GetProperty("carriedByPackaging").GetBoolean());
+        Assert.Equal("scripts/release-toolchain.json", recorded.GetProperty("packagingPin").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(recorded.GetProperty("packagingNote").GetString()));
+        var imported = recorded.GetProperty("importedByNatives").EnumerateArray().Select(e => e.GetString()!).Order(StringComparer.OrdinalIgnoreCase).ToArray();
+        var pinned = JsonDocument.Parse(ReadRepositoryText("scripts", "release-toolchain.json")).RootElement.GetProperty("vcRuntime").GetProperty("files")
+            .EnumerateArray().Select(e => e.GetProperty("name").GetString()!).Order(StringComparer.OrdinalIgnoreCase).ToArray();
+        Assert.Equal(imported, pinned, StringComparer.OrdinalIgnoreCase); // exactly the DLLs the whisper natives import, no more, no fewer
+
+        var script = ReadRepositoryText("scripts", "package-windows.ps1");
+        Assert.Contains("Copy-NthVcRuntime -Resolved $vcRuntime -Destination $publishDir", script, StringComparison.Ordinal); // beside nth.exe, in the publish folder the package is made from
+        var code = string.Join('\n', System.Text.RegularExpressions.Regex.Replace(script, @"<#.*?#>", "", System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.CultureInvariant)
+            .Split('\n').Where(l => !l.TrimStart().StartsWith('#')));
+        Assert.DoesNotContain("--framework", code, StringComparison.Ordinal); // no machine-wide prerequisite any more
+        Assert.DoesNotContain("vcredist143", code, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     [Trait("Feature", Feature)]
     [Trait("Decision", "ED-267")]
