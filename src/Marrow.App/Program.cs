@@ -59,6 +59,9 @@ public static class Program
         // ED-NEW-ignisadvisor-2: the ask_advisor relay, the same kind of private headless child.
         if (args.FirstOrDefault() == Marrow.Services.Port.Advisor.AdvisorMcpBridge.Command)
             return Marrow.Services.Port.Advisor.AdvisorMcpBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
+        // Tactus (OD-0140, ED-NEW-pcctl-10): the nth-pc relay, the same kind of private headless child.
+        if (args.FirstOrDefault() == Marrow.Services.Port.PcControl.PcControlBridge.Command)
+            return Marrow.Services.Port.PcControl.PcControlBridge.RunClient(args, Console.OpenStandardInput(), Console.OpenStandardOutput()).GetAwaiter().GetResult();
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
         // arguments) this handles the event and exits the process; started normally it returns at once.
