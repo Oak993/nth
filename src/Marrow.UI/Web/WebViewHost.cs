@@ -31,7 +31,7 @@ public enum WebViewHostState
 }
 
 /// <summary>
-/// DESIGN 2.4, 2.5, 2.7 (ED-NEW-web-W7-3): wraps one web view. The live view is a child HWND that always draws above
+/// DESIGN 2.4, 2.5, 2.7 (ED-NEW-web-w7-3): wraps one web view. The live view is a child HWND that always draws above
 /// Avalonia content, so every gesture, window transition, in-tree overlay, suspension or failure swaps it for a
 /// pixel-identical snapshot first: the image goes on screen, and only once a composed frame carries it is the live view
 /// hidden; on the way back the final bounds are set, the page answers two frames (or 120 ms pass), the live view shows,
@@ -257,7 +257,7 @@ public sealed class WebViewHost : Panel
     {
         if (e.TryGetPlatformHandle() is IWindowsWebView2PlatformHandle handle)
         {
-            // Each getter hands out a new reference (ED-NEW-web-W7-1); read once, the surface owns and releases them.
+            // Each getter hands out a new reference (ED-NEW-web-w7-1); read once, the surface owns and releases them.
             var core = handle.CoreWebView2;
             var controller = handle.CoreWebView2Controller;
             surface.AttachNative(core, controller);

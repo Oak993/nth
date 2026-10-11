@@ -5,7 +5,7 @@ using Marrow.Core.Web;
 namespace Marrow.Services.Web;
 
 /// <summary>
-/// DESIGN 0 (2), 2.3, 2.5, 2.7, 3.7 (ED-NEW-web-W7-2 to -6): the one service that owns every web view in the process,
+/// DESIGN 0 (2), 2.3, 2.5, 2.7, 3.7 (ED-NEW-web-w7-2 to -6): the one service that owns every web view in the process,
 /// across every <c>ThreadWindow</c>. It picks each view's profile, keeps at most <see cref="WebSurfaceOptions.MaxLiveViews"/>
 /// views live (the least recently used beyond that are suspended and shown as snapshots; model-driven views never),
 /// runs hidden views at low memory, discards tabs hidden for 10 minutes to a snapshot plus URL, captures a fresh frame at
@@ -479,7 +479,7 @@ public sealed class WebSurface : IDisposable
         view.Liveness is WebLiveness.Live or WebLiveness.Suspended
         && !view.IsShown
         && !view.IsModelStepRunning
-        && view.Kind != WebSurfaceKind.VisusPrivateTab // ED-NEW-web-W7-2: discarding would end its InPrivate session
+        && view.Kind != WebSurfaceKind.VisusPrivateTab // ED-NEW-web-w7-2: discarding would end its InPrivate session
         && view.HiddenSince is { } hidden
         && now - hidden >= Options.DiscardAfter;
 

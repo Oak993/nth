@@ -31,7 +31,7 @@ public enum WebSurfaceKind
 }
 
 /// <summary>
-/// DESIGN 2.3 (ED-NEW-web-W7-2): one user data folder (<c>%LOCALAPPDATA%\nth\WebView2</c>), one browser process group,
+/// DESIGN 2.3 (ED-NEW-web-w7-2): one user data folder (<c>%LOCALAPPDATA%\nth\WebView2</c>), one browser process group,
 /// identical environment options for every view, and a profile per surface kind. The model never inherits
 /// <c>browse</c>: agent tabs get their own persistent profile per thread folder, and sandboxed content and private tabs
 /// are InPrivate.

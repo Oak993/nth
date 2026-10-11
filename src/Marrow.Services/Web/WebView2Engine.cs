@@ -8,7 +8,7 @@ using Microsoft.Web.WebView2.Core;
 namespace Marrow.Services.Web;
 
 /// <summary>
-/// DESIGN 2.1 (ED-NEW-web-W7-1): the real engine. Avalonia's <c>NativeWebView</c> (package Avalonia.Controls.WebView,
+/// DESIGN 2.1 (ED-NEW-web-w7-1): the real engine. Avalonia's <c>NativeWebView</c> (package Avalonia.Controls.WebView,
 /// MIT) hosts each view in windowed (HWND) mode; the UI host hands this engine the adapter's raw <c>ICoreWebView2</c>
 /// and <c>ICoreWebView2Controller</c>, which it wraps with the managed WebView2 SDK for permissions, downloads, the
 /// DevTools Protocol and accelerator keys. The engine creates the one shared environment itself (identical options for
@@ -136,7 +136,7 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
     }
 
     /// <summary>
-    /// ED-NEW-web-W7-1: the managed SDK has no public accessor for an environment's COM object, so the pinned SDK's
+    /// ED-NEW-web-w7-1: the managed SDK has no public accessor for an environment's COM object, so the pinned SDK's
     /// internal <c>_rawNative</c> field is read (a unit test pins its presence). Returns an owned
     /// <c>ICoreWebView2Environment</c> pointer, or zero when the field is gone (the host then lets Avalonia create one).
     /// </summary>
@@ -160,7 +160,7 @@ public sealed class WebView2Engine : IWebEngine, IDisposable
     internal static FieldInfo? RawNativeField { get; } = typeof(CoreWebView2Environment).GetField("_rawNative", BindingFlags.NonPublic | BindingFlags.Instance);
 
     /// <summary>
-    /// ED-NEW-web-W7-1: <c>AcceleratorKeyPressed</c> lives on the controller, and the managed SDK only wraps a raw
+    /// ED-NEW-web-w7-1: <c>AcceleratorKeyPressed</c> lives on the controller, and the managed SDK only wraps a raw
     /// controller through its internal constructor <c>CoreWebView2Controller(object)</c> (a unit test pins it). Null when
     /// a later SDK removed it; chord forwarding then stays off and the engine logs it.
     /// </summary>

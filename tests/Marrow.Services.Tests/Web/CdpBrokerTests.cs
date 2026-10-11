@@ -6,7 +6,7 @@ namespace Marrow.Services.Tests.Web;
 
 // DESIGN 2.2 CdpBroker (5.8, 5.10): one ordered channel per view, CDP sessions for frames and workers (flatten mode),
 // and cookie and authorization values redacted before anything leaves the engine layer (DESIGN 8.1).
-[Trait("Decision", "ED-NEW-web-1")]
+[Trait("Decision", "ED-NEW-web-w7-4")]
 [Trait("Feature", "W-7")]
 public sealed class CdpBrokerTests
 {

@@ -6,7 +6,7 @@ namespace Marrow.Services.Tests.Web;
 
 // DESIGN 2.5 intent cache: one recent frame per live view, refreshed on intent and 500 ms after navigation, never older
 // than 1 s while the view is visible and the window focused. Off until spike (b) shows the capture budget needs it.
-[Trait("Decision", "ED-NEW-web-3")]
+[Trait("Decision", "ED-NEW-web-w7-3")]
 [Trait("Feature", "W-7")]
 public sealed class SnapshotCacheTests
 {

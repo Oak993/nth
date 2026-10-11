@@ -5,7 +5,7 @@ namespace Marrow.Services.Tests.Web;
 
 // DESIGN 5.8, 8.1: the console and network views, the model's page tools and the logs never see cookie or
 // authorization values; every other byte of the CDP message is kept.
-[Trait("Decision", "ED-NEW-web-1")]
+[Trait("Decision", "ED-NEW-web-w7-4")]
 [Trait("Feature", "W-7")]
 public sealed class CdpRedactorTests
 {

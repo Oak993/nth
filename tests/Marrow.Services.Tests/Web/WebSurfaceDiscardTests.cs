@@ -4,9 +4,9 @@ using Marrow.Services.Web;
 namespace Marrow.Services.Tests.Web;
 
 // DESIGN 2.3: a tab not shown for 10 minutes is discarded to its snapshot plus URL and restored by URL when shown;
-// model-driven views are never discarded. ED-NEW-web-W7-2: a private tab is never discarded (its InPrivate session
+// model-driven views are never discarded. ED-NEW-web-w7-2: a private tab is never discarded (its InPrivate session
 // would end with it).
-[Trait("Decision", "ED-NEW-web-2")]
+[Trait("Decision", "ED-NEW-web-w7-2")]
 [Trait("Feature", "W-7")]
 public sealed class WebSurfaceDiscardTests
 {

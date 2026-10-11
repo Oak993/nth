@@ -3,7 +3,7 @@ using Marrow.Core.Web;
 namespace Marrow.Services.Web;
 
 /// <summary>
-/// DESIGN 13.2 (ED-NEW-web-W7-1): the engine for tests. It records every call (CDP calls with their session, the
+/// DESIGN 13.2 (ED-NEW-web-w7-1): the engine for tests. It records every call (CDP calls with their session, the
 /// operation log of each view), scripts every event (navigation, permission, download, console and network through CDP
 /// events, new window, process failure, keys) and returns canned snapshots. Captures, frame pings and CDP calls can be
 /// held open to model slow pages. It touches no WebView2 and no window.

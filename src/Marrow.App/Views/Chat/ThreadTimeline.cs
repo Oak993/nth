@@ -120,6 +120,12 @@ public sealed class ThreadTimeline : Decorator
         // :209-217 a head's name in the prose opens the head's chat; every other link keeps the system's handling.
         MarkdownView.SetOpenUrlAction(this, url =>
         {
+            // PORT-ONLY (web surfaces W12, ED-NEW-web-w12-2): an artifact's chip in the answer opens it in Tabula; its
+            // nth-artifact link never reaches the system's handling.
+            if (Marrow.Core.Models.ArtifactFenceParser.ChipId(url.AbsoluteString) is { } artifact)
+            {
+                Marrow.Services.Web.ArtifactHost.Shared.Current.RequestOpen(runtime.ThreadID, artifact); return true;
+            }
             if (HydraMentionTarget.ThreadIDIn(url) is not { } headID) return false;
             AppEnvironment.GetAppModel(this).SelectedThreadID = headID; return true;
         });

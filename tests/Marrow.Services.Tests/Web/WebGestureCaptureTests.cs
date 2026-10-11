@@ -6,7 +6,7 @@ namespace Marrow.Services.Tests.Web;
 // DESIGN 2.5: every gesture takes a one-shot capture of each affected live view, and the spring starts when it returns.
 // Over the capture budget (planning value 30 ms) the intent cache's frame starts the spring and the fresh capture
 // cross-fades in when it lands. Exit waits for two page frames, at most 120 ms.
-[Trait("Decision", "ED-NEW-web-3")]
+[Trait("Decision", "ED-NEW-web-w7-3")]
 [Trait("Feature", "W-7")]
 public sealed class WebGestureCaptureTests
 {

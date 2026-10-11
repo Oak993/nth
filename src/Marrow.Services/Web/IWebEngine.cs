@@ -3,7 +3,7 @@ using Marrow.Core.Web;
 namespace Marrow.Services.Web;
 
 /// <summary>
-/// DESIGN 2.2 (ED-NEW-web-W7-1): the only place that touches WebView2. <see cref="WebView2Engine"/> is the real engine
+/// DESIGN 2.2 (ED-NEW-web-w7-1): the only place that touches WebView2. <see cref="WebView2Engine"/> is the real engine
 /// (Avalonia's <c>NativeWebView</c> in windowed mode, wrapped <c>CoreWebView2</c>); <see cref="FakeWebEngine"/> records
 /// and scripts everything for tests. Composition hosting (spike g) or nth's own thin host (the spike a fallback) would be
 /// another implementation behind this seam; nothing above it changes.

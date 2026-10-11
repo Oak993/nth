@@ -6,7 +6,7 @@ namespace Marrow.Services.Tests.Web;
 // DESIGN 2.3: at most four live web views across every window; the least recently used beyond that are suspended and
 // shown as snapshots; a view a model step drives is never suspended. DESIGN 2.5: a shown view's snapshot is on screen
 // before the live view hides.
-[Trait("Decision", "ED-NEW-web-2")]
+[Trait("Decision", "ED-NEW-web-w7-2")]
 [Trait("Feature", "W-7")]
 public sealed class WebSurfaceLiveCapTests
 {

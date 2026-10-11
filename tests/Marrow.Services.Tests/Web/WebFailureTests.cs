@@ -5,7 +5,7 @@ namespace Marrow.Services.Tests.Web;
 
 // DESIGN 2.7: every ProcessFailed case has a designed outcome (card, model step result, log), three crashes of one page
 // in 5 minutes stop automatic reloads, and "Restart Visus" recreates the environment and restores every tab by URL.
-[Trait("Decision", "ED-NEW-web-1")]
+[Trait("Decision", "ED-NEW-web-w7-6")]
 [Trait("Feature", "W-7")]
 public sealed class WebFailureTests
 {

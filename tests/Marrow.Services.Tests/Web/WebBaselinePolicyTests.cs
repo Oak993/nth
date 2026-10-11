@@ -6,8 +6,8 @@ namespace Marrow.Services.Tests.Web;
 // baseline of each profile answers before any pane can: the agent profile and sandboxed content never get permissions,
 // sandboxed content never downloads, opens windows or launches protocols, and "Continue anyway" is never offered to
 // the model or sandboxed content. A baseline answer is final.
-[Trait("Decision", "ED-NEW-web-2")]
-[Trait("Decision", "ED-NEW-web-7")]
+[Trait("Decision", "ED-NEW-web-w7-2")]
+[Trait("Decision", "ED-NEW-web-w7-1")]
 [Trait("Feature", "W-7")]
 public sealed class WebBaselinePolicyTests
 {

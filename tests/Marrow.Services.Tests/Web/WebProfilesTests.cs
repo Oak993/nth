@@ -4,7 +4,7 @@ using Marrow.Services.Web;
 namespace Marrow.Services.Tests.Web;
 
 // DESIGN 2.3 (profiles, processes), 5.8 (DevTools), 13.2 (profiles: environment options identical across surfaces).
-[Trait("Decision", "ED-NEW-web-2")]
+[Trait("Decision", "ED-NEW-web-w7-2")]
 [Trait("Feature", "W-7")]
 public sealed class WebProfilesTests
 {

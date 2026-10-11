@@ -4,9 +4,9 @@ using Marrow.Services.Web;
 
 namespace Marrow.Services.Tests.Web;
 
-// DESIGN 2.1 (ED-NEW-web-W7-1): the WebView2 engine's pure parts, read without WebView2 or a window. The real engine's
+// DESIGN 2.1 (ED-NEW-web-w7-1): the WebView2 engine's pure parts, read without WebView2 or a window. The real engine's
 // runtime behaviour is spike (a) and (i), in WebView2EngineNativeTests (not run here).
-[Trait("Decision", "ED-NEW-web-1")]
+[Trait("Decision", "ED-NEW-web-w7-1")]
 [Trait("Feature", "W-7")]
 public sealed class WebView2EngineTests
 {

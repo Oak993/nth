@@ -10,7 +10,7 @@
     <PackageReference Include="Whisper.net.Runtime" />
     <PackageReference Include="Whisper.net.Runtime.Vulkan" />
     <PackageReference Include="NAudio.Wasapi" />
-    <!-- Web surfaces W7 (ED-NEW-web-W7-1): only the managed Core assembly and the x64 loader. The package's build targets
+    <!-- Web surfaces W7 (ED-NEW-web-w7-1): only the managed Core assembly and the x64 loader. The package's build targets
          also reference its WPF and WinForms assemblies, whose WindowsBase conflicts with this project (MSB3277), and its
          native assets put a WebView2Loader.dll for every platform under runtimes\ (win-arm64 and win-x86 too); both are
          excluded. Core is referenced directly, and the win-x64 loader is copied beside the app, where the Core assembly's

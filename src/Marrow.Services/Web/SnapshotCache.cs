@@ -3,7 +3,7 @@ using Marrow.Core.Web;
 namespace Marrow.Services.Web;
 
 /// <summary>
-/// DESIGN 2.5 intent cache (ED-NEW-web-W7-3), used only as the fallback when a fresh capture at gesture start misses
+/// DESIGN 2.5 intent cache (ED-NEW-web-w7-3), used only as the fallback when a fresh capture at gesture start misses
 /// the capture budget. It keeps one recent frame per live view. While <see cref="Enabled"/> (spike b found busy-page
 /// captures over budget) frames are refreshed on intent (pointer over a gutter, header or pane toggle; a workspace
 /// shortcut key down; navigation finished plus 500 ms) and kept no older than <see cref="MaxAge"/> while the view is

@@ -4,7 +4,7 @@ using Marrow.Core.Port;
 namespace Marrow.Services.Web;
 
 /// <summary>
-/// DESIGN 3.7 (ED-NEW-web-W7-5): chords from inside a web view. Web views raise <c>AcceleratorKeyPressed</c> before
+/// DESIGN 3.7 (ED-NEW-web-w7-5): chords from inside a web view. Web views raise <c>AcceleratorKeyPressed</c> before
 /// the page sees a key; nth takes only the reserved chords (F6 and Shift+F6, the Tactus Stop chord Ctrl+Alt+Esc,
 /// Ctrl+Shift+\, Ctrl+Alt+Arrow and Ctrl+Shift+B) and lets every other key reach the page. The default list here is the
 /// design's; the shortcut layer (W3b) replaces <see cref="WebSurface.IsReservedChord"/> with the user's re-bound chords.

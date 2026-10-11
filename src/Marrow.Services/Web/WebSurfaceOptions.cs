@@ -37,7 +37,7 @@ public sealed class WebSurfaceOptions
     public TimeSpan HangTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// A shown page is pinged for a frame at most this often (ED-NEW-web-W7-6): often enough that a hang shows within
+    /// A shown page is pinged for a frame at most this often (ED-NEW-web-w7-6): often enough that a hang shows within
     /// 5 s, seldom enough that an idle page costs next to nothing.
     /// </summary>
     public TimeSpan ProbeInterval { get; set; } = TimeSpan.FromSeconds(1);
@@ -50,7 +50,7 @@ public sealed class WebSurfaceOptions
 
     /// <summary>
     /// How long a suspend waits for the host to put a shown view's snapshot on screen and hide the live view before it
-    /// hides the view itself (ED-NEW-web-W7-3: the host needs one composed frame; this bounds a host that is not rendering).
+    /// hides the view itself (ED-NEW-web-w7-3: the host needs one composed frame; this bounds a host that is not rendering).
     /// </summary>
     public TimeSpan HideWait { get; set; } = TimeSpan.FromMilliseconds(500);
 

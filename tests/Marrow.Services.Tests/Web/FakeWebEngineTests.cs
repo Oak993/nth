@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Web;
 // DESIGN 13.2: FakeWebEngine records CDP calls and scripts events (navigation, permission, download, console, network,
 // new window, process failure), and returns canned snapshots. Every later web unit's service tests stand on this
 // contract, so it is pinned here through the surface the panes use.
-[Trait("Decision", "ED-NEW-web-1")]
+[Trait("Decision", "ED-NEW-web-w7-1")]
 [Trait("Feature", "W-7")]
 public sealed class FakeWebEngineTests
 {

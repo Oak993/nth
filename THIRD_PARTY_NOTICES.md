@@ -686,7 +686,7 @@ http://www.apache.org/licenses/
 
 ## Web surfaces (Visus)
 
-The in-app browser, project previews, artifacts and live widgets (web surfaces unit W7, ED-NEW-web-W7-1) host Microsoft
+The in-app browser, project previews, artifacts and live widgets (web surfaces unit W7, ED-NEW-web-w7-1) host Microsoft
 Edge WebView2 through Avalonia's WebView control. The WebView2 runtime itself is part of Windows and is not shipped.
 
 ### Avalonia.Controls.WebView

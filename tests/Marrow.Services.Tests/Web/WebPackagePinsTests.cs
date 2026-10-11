@@ -6,8 +6,8 @@ namespace Marrow.Services.Tests.Web;
 
 // DESIGN 2.1, 14 (W7 "Directory.Packages.props"): the web engine's packages are pinned exactly, the Services project takes
 // nothing else, and the build carries the managed WebView2 Core assembly and one win-x64 loader beside the app, never a
-// loader for another platform and never the SDK's WPF or WinForms assemblies (ED-NEW-web-W7-1).
-[Trait("Decision", "ED-NEW-web-1")]
+// loader for another platform and never the SDK's WPF or WinForms assemblies (ED-NEW-web-w7-1).
+[Trait("Decision", "ED-NEW-web-w7-1")]
 [Trait("Feature", "W-7")]
 public sealed partial class WebPackagePinsTests
 {

@@ -83,7 +83,7 @@ public enum WebPermissionKind
 
     /// <summary>
     /// <c>navigator.storage.persist()</c>. Not among DESIGN 5.5's kinds handled, so it is denied with no prompt in every
-    /// profile (ED-NEW-web-W7-1), as is <see cref="Unknown"/>.
+    /// profile (ED-NEW-web-w7-1), as is <see cref="Unknown"/>.
     /// </summary>
     PersistentStorage,
 }

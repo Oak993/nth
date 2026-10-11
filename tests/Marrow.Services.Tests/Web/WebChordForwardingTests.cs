@@ -7,7 +7,7 @@ namespace Marrow.Services.Tests.Web;
 // DESIGN 3.7: a focused web view keeps every key except nth's reserved chords, which reach nth through the
 // controller's AcceleratorKeyPressed: decided at once (the browser waits for the handler) and run after the key event.
 // DESIGN 10: Tab out of the page moves focus on (MoveFocusRequested, Avalonia WebView issue #76).
-[Trait("Decision", "ED-NEW-web-9")]
+[Trait("Decision", "ED-NEW-web-w7-5")]
 [Trait("Feature", "W-7")]
 public sealed class WebChordForwardingTests
 {

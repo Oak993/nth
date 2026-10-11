@@ -7,7 +7,7 @@ namespace Marrow.Services.Web;
 public sealed record CdpSession(string SessionId, string? ParentSessionId, string TargetId, string Type, string Url);
 
 /// <summary>
-/// DESIGN 5.8, 5.10 (ED-NEW-web-W7-4): the one way nth talks the DevTools Protocol to a view. Calls run strictly in
+/// DESIGN 5.8, 5.10 (ED-NEW-web-w7-4): the one way nth talks the DevTools Protocol to a view. Calls run strictly in
 /// order (each starts after the previous one finished, failed or was cancelled), so a model step's clicks, typing and
 /// reads never interleave. iframes are reached with <c>Target.setAutoAttach {flatten: true}</c> and per-session
 /// calls; the broker tracks attached sessions. Every result and event is redacted (<see cref="CdpRedactor"/>) before

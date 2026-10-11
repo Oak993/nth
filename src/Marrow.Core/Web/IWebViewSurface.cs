@@ -1,7 +1,7 @@
 namespace Marrow.Core.Web;
 
 /// <summary>
-/// DESIGN 2.2, 2.5 (ED-NEW-web-W7-1): what the UI host (<c>Marrow.UI.Web.WebViewHost</c>) needs from one web view. The
+/// DESIGN 2.2, 2.5 (ED-NEW-web-w7-1): what the UI host (<c>Marrow.UI.Web.WebViewHost</c>) needs from one web view. The
 /// engine layer implements it (<c>Marrow.Services.Web.WebSurfaceView</c>, over <c>IWebEngine</c>); the App hands the
 /// object to the host, so the host never references Services and the engine never references Avalonia (ED-064).
 /// Every member is called on the UI thread.

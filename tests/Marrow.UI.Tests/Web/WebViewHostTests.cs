@@ -20,7 +20,7 @@ namespace Marrow.UI.Tests.Web;
 // colour; the hidden live view is resized at most every 100 ms. DESIGN 2.1 window transitions, 2.7 failure cards,
 // 2.3 suspended and discarded views, 10 Tab out of the page.
 [Collection("Headless")]
-[Trait("Decision", "ED-NEW-web-3")]
+[Trait("Decision", "ED-NEW-web-w7-3")]
 [Trait("Feature", "W-7")]
 public sealed class WebViewHostTests(HeadlessSession headless)
 {

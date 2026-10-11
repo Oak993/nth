@@ -1,6 +1,6 @@
 namespace Marrow.Core.Web;
 
-// Web surfaces W7 (DESIGN 2.1, 2.3; ED-NEW-web-W7-1). The contracts the UI host (Marrow.UI/Web/WebViewHost) and the web
+// Web surfaces W7 (DESIGN 2.1, 2.3; ED-NEW-web-w7-1). The contracts the UI host (Marrow.UI/Web/WebViewHost) and the web
 // engine layer (Marrow.Services/Web) share. They live in Core because the layer table (ED-064) keeps UI and Services
 // apart: the host may not reference the engine, and the engine may not reference Avalonia.
 

@@ -5,7 +5,7 @@ namespace Marrow.Services.Tests.Web;
 // Spike (a) on the owner's PC (DESIGN 13.4, run alone, never in the ordinary filters): the real WebView2 runtime. These
 // start no window. The hosting checks that need nth's window (the platform view, events beside Avalonia's, chords,
 // hiding, capture timings) are spike (a) and (i) by hand; the W7 landing notes list them.
-[Trait("Decision", "ED-NEW-web-1")]
+[Trait("Decision", "ED-NEW-web-w7-1")]
 [Trait("Feature", "W-7")]
 public sealed class WebView2EngineNativeTests
 {

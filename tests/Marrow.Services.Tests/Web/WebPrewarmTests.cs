@@ -5,7 +5,7 @@ namespace Marrow.Services.Tests.Web;
 // DESIGN 2.3 pre-warm: only when it is likely to be used (the first hover of a Visus control in a session, or 3 s after
 // first paint for people who opened Visus in the last 7 days), with the environment's own options, closed after 10
 // minutes unused; the first live view takes over from it.
-[Trait("Decision", "ED-NEW-web-2")]
+[Trait("Decision", "ED-NEW-web-w7-2")]
 [Trait("Feature", "W-7")]
 public sealed class WebPrewarmTests
 {

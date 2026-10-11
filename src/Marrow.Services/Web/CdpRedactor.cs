@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace Marrow.Services.Web;
 
 /// <summary>
-/// DESIGN 5.8, 8.1 (ED-NEW-web-W7-4): cookies, <c>Set-Cookie</c>, <c>Authorization</c> and <c>Proxy-Authorization</c>
+/// DESIGN 5.8, 8.1 (ED-NEW-web-w7-4): cookies, <c>Set-Cookie</c>, <c>Authorization</c> and <c>Proxy-Authorization</c>
 /// values never reach the model or chat, so every CDP result and event that passes through <see cref="CdpBroker"/> is
 /// redacted here first. It covers header objects (<c>headers</c>, <c>requestHeaders</c>), header arrays of
 /// <c>{name, value}</c> (the Fetch domain), raw header text (<c>headersText</c>, <c>requestHeadersText</c>) and cookie

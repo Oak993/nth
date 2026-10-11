@@ -5,7 +5,7 @@ namespace Marrow.Services.Tests.Web;
 
 // DESIGN 2.1 runtime check (GetAvailableCoreWebView2BrowserVersionString against the SDK's minimum) and DESIGN 2.7: a
 // missing or too old runtime gives the install or update card; artifacts and widgets keep their static fallback.
-[Trait("Decision", "ED-NEW-web-1")]
+[Trait("Decision", "ED-NEW-web-w7-6")]
 [Trait("Feature", "W-7")]
 public sealed class WebRuntimeTests
 {
