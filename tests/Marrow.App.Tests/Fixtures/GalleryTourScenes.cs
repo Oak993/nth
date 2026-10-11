@@ -74,14 +74,10 @@ internal static class GalleryTourScenes
 
             // Pairs: the chip's popover turned to the model picker, pairs on top.
             OpenChip(stage, window);
-            var title = stage.Native.OnUi(() => stage.Popups.Open.Select(popup => popup.Child).OfType<Control>().SelectMany(child => child.GetVisualDescendants().OfType<Button>())
-                .FirstOrDefault(button => button.GetVisualDescendants().OfType<MorphingTextBlock>().Any()));
-            if (title is not null)
-            {
-                stage.Click(stage.CenterOf(title));
-                Thread.Sleep(1300);
-                stage.Shoot(window, "tour-pairs", "dark", 1200, 5000, GalleryCrop.WithPopups);
-            }
+            var modelButton = GalleryComposerScenes.ModelButton(stage);
+            stage.Click(stage.CenterOf(modelButton));
+            Thread.Sleep(1300);
+            stage.Shoot(window, "tour-pairs", "dark", 1200, 5000, GalleryCrop.WithPopups);
             CloseChip(stage, window);
 
             // Slider: a pair's effort slider, the lead's colour blending into the heads'.
