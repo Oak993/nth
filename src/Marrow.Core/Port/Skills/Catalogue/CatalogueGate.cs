@@ -57,6 +57,9 @@ public static partial class CatalogueGate
 
     [GeneratedRegex("^[0-9a-f]{8,64}$")] private static partial Regex Sha256Prefix();
 
+    /// <summary>A plugin's manifest below the repository root, as GenerationItem finds plugin roots.</summary>
+    [GeneratedRegex(@"^.+/\.(claude|codex|cursor)-plugin/plugin\.json$")] private static partial Regex PluginManifest();
+
     public static CatalogueGateReport Check(SkillsCatalogue catalogue, CatalogueGateOptions? options = null)
     {
         var violations = new List<CatalogueViolation>();
@@ -122,8 +125,13 @@ public static partial class CatalogueGate
         if (string.IsNullOrEmpty(item.Pin) && !perSkillPins) missing.Add("pin");
         if (item.SourceUrl is null) missing.Add("sourceUrl");
         if (item.LicenceName is null) missing.Add("licenceName");
-        if (item.LicenceFile is null) missing.Add("licenceFile");
-        if (item.LicenceUrl is null) missing.Add("licenceUrl");
+        // ED-NEW-dl-13: a plugin item whose every plugin names its own licence file has no single one (PluginLicences); every other item needs its licence file and URL.
+        var perPlugin = PluginLicences.PerPlugin(item);
+        if (item.LicenceFile is null && !perPlugin) missing.Add("licenceFile");
+        if (item.LicenceUrl is null && !perPlugin) missing.Add("licenceUrl");
+        if (perPlugin)
+            foreach (var path in PluginLicences.Files(item))
+                if (!item.Files.Any(f => f.Path == path)) missing.Add($"files[{path}]");
         switch (item.Kind)
         {
             case ItemKind.Tool:
@@ -259,12 +267,37 @@ public static partial class CatalogueGate
     {
         if (item.LicenceName is not null && string.IsNullOrWhiteSpace(item.LicenceName)) fail(CatalogueRules.Licence, "licenceName is blank");
         if (item.LicenceFile is not null && !IsRelativePath(item.LicenceFile)) fail(CatalogueRules.Licence, "licenceFile is not a plain relative path");
+        CheckPluginLicences(item, fail);
         if (item.LicenceUrl is null || item.LicenceFile is null || item.Pin is null || item.SourceUrl is null) return;
         if (!FullCommit().IsMatch(item.Pin) || !Uri.TryCreate(item.SourceUrl, UriKind.Absolute, out var source) || source.Host != "github.com") return;
         var parts = source.AbsolutePath.Trim('/').Split('/');
         if (parts.Length != 2) return;
         var expected = $"https://raw.githubusercontent.com/{parts[0]}/{parts[1]}/{item.Pin}/{item.LicenceFile}";
         if (item.LicenceUrl != expected) fail(CatalogueRules.Licence, $"licenceUrl is not the licence file at the pin: expected {expected}");
+    }
+
+    /// <summary>
+    /// ED-NEW-dl-13: licences recorded per plugin. Only a plugin item records them, and then for every plugin folder (name and file together) and with no item licence file or URL;
+    /// a skill names its own licence (name and file together) only inside such an item; every named file is a plain relative path pinned in the item's files.
+    /// </summary>
+    private static void CheckPluginLicences(CatalogueItem item, Action<string, string> fail)
+    {
+        var folders = item.Folders.Where(f => f.LicenceName is not null || f.LicenceFile is not null).ToList();
+        var skills = item.Skills.Where(s => s.LicenceName is not null || s.LicenceFile is not null).ToList();
+        if (folders.Count == 0 && skills.Count == 0) return;
+        if (item.Kind != ItemKind.Plugin) { fail(CatalogueRules.Licence, "only a plugin records licences per plugin or per skill"); return; }
+        if (folders.Count != item.Folders.Count) fail(CatalogueRules.Licence, "licences recorded per plugin name one for every plugin folder");
+        if (item.LicenceFile is not null || item.LicenceUrl is not null) fail(CatalogueRules.Licence, "an item with licences per plugin has no item licence file or URL");
+        void One(string what, string? name, string? file)
+        {
+            if (name is null || file is null) { fail(CatalogueRules.Licence, $"{what}: a licence names both its name and its file"); return; }
+            if (string.IsNullOrWhiteSpace(name) || name.Any(c => c is '\n' or '\r')) fail(CatalogueRules.Licence, $"{what}: the licence name is blank or not one line");
+            if (!IsRelativePath(file)) fail(CatalogueRules.Licence, $"{what}: the licence file '{file}' is not a plain relative path");
+            else if (!item.Files.Any(f => f.Path == file) && item.Files.Count > 0) fail(CatalogueRules.Licence, $"{what}: the licence file '{file}' is not in files");
+        }
+        foreach (var folder in folders) One("plugin " + folder.Name, folder.LicenceName, folder.LicenceFile);
+        if (skills.Count > 0 && folders.Count == 0) fail(CatalogueRules.Licence, "a skill names its own licence only where every plugin names one");
+        foreach (var skill in skills) One("skill " + (skill.Path ?? skill.Folder), skill.LicenceName, skill.LicenceFile);
     }
 
     private static void CheckUrls(CatalogueItem item, Action<string, string> fail)
@@ -274,21 +307,70 @@ public static partial class CatalogueGate
             if (url is not null && !CatalogueHosts.IsAllowed(url)) fail(CatalogueRules.Host, $"{field} '{url}' is not an https URL on the host list");
         }
         Url("sourceUrl", item.SourceUrl);
-        Url("licenceUrl", item.LicenceUrl);
+        // ED-NEW-dl-13: a licence URL may also be on the licence-only hosts; no other field may.
+        if (item.LicenceUrl is not null && !CatalogueHosts.IsAllowedLicence(item.LicenceUrl)) fail(CatalogueRules.Host, $"licenceUrl '{item.LicenceUrl}' is not an https URL on the host list");
         foreach (var artifact in item.Artifacts) Url("artifact " + artifact.Name, artifact.Url);
     }
 
     private static void CheckSkills(CatalogueItem item, Action<string, string> fail)
     {
         var folders = new HashSet<string>(StringComparer.Ordinal);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var skill in item.Skills)
         {
             if (!SkillName.IsValid(skill.Folder)) fail(CatalogueRules.SkillName, $"skill folder '{skill.Folder}' does not follow the name rule");
             else if (!folders.Add(skill.Folder)) fail(CatalogueRules.SkillName, $"skill folder '{skill.Folder}' is listed twice");
-            if (skill.Name is not null && (!SkillName.IsValid(skill.Name) || skill.Name != skill.Folder))
+            // ED-NEW-dl-13: a plugin's skill is loaded by its frontmatter name, as the plugin's own tools load it (nth's skills view names its folder after it too), so in a plugin
+            // that name may differ from the folder; it must still follow the name rule, and no two skills of the item may share it (a generation keeps one skill per name).
+            if (skill.Name is not null && (!SkillName.IsValid(skill.Name) || (skill.Name != skill.Folder && item.Kind != ItemKind.Plugin)))
                 fail(CatalogueRules.SkillName, $"skill '{skill.Folder}': the frontmatter name '{skill.Name}' is not the folder name in the name rule's form");
+            else if (skill.Name is not null && item.Kind == ItemKind.Plugin && !names.Add(skill.Name))
+                fail(CatalogueRules.SkillName, $"skill '{skill.Folder}': the frontmatter name '{skill.Name}' is used by another skill of the item");
             if (skill.Path is not null && (!IsRelativePath(skill.Path) || skill.Path.Split('/')[^1] != skill.Folder))
                 fail(CatalogueRules.SkillName, $"skill '{skill.Folder}': the path '{skill.Path}' does not end in the folder name");
+        }
+        CheckSkipped(item, fail);
+        if (!item.SkillsListed || item.Files.Count == 0) return;
+        // ED-NEW-dl-13: what a generation refuses (GenerationItem) is refused here first. Every SKILL.md the item pins is a listed skill's own, so no skill nested in another skill's
+        // folder (and none the item leaves out) is fetched. In a pinned plugin the folders are exactly the plugin roots its plugin.json files mark (the keys its switches are
+        // stored under), each skill lies in exactly one of them and each folder's count is the number of its skills.
+        var declared = item.Skills.Where(s => s.Path is not null).Select(s => s.Path + "/SKILL.md").ToHashSet(StringComparer.Ordinal);
+        foreach (var file in item.Files)
+            if ((file.Path.EndsWith("/SKILL.md", StringComparison.OrdinalIgnoreCase) || file.Path.Equals("SKILL.md", StringComparison.OrdinalIgnoreCase)) && !declared.Contains(file.Path))
+                fail(CatalogueRules.SkillName, $"the file {file.Path} is a skill the item does not list");
+        if (item.Kind != ItemKind.Plugin || item.Folders.Count == 0) return;
+        var roots = item.Files.Select(f => f.Path).Where(p => PluginManifest().IsMatch(p)).Select(p => p[..p.LastIndexOf("/.", StringComparison.Ordinal)])
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var folder in item.Folders)
+            if (!roots.Contains(folder.Name)) fail(CatalogueRules.Count, $"plugin folder {folder.Name} holds no plugin.json");
+        foreach (var root in roots)
+            if (!item.Folders.Any(f => f.Name == root)) fail(CatalogueRules.Count, $"the plugin at {root} is not listed as a plugin folder");
+        foreach (var skill in item.Skills.Where(s => s.Path is not null))
+        {
+            var owners = item.Folders.Count(f => skill.Path!.StartsWith(f.Name + "/", StringComparison.Ordinal));
+            if (owners != 1) fail(CatalogueRules.Count, $"skill {skill.Path} lies in {owners.ToString(CultureInfo.InvariantCulture)} plugin folders, not one");
+        }
+        foreach (var folder in item.Folders)
+        {
+            var count = item.Skills.Count(s => s.Path is not null && s.Path.StartsWith(folder.Name + "/", StringComparison.Ordinal));
+            if (count != folder.SkillCount) fail(CatalogueRules.Count, $"plugin folder {folder.Name} counts {folder.SkillCount.ToString(CultureInfo.InvariantCulture)} skills but holds {count.ToString(CultureInfo.InvariantCulture)}");
+        }
+    }
+
+    /// <summary>ED-NEW-dl-13: a skipped skill is a plain path that is no listed skill, listed once, with a one-line reason, and none of its files is pinned.</summary>
+    private static void CheckSkipped(CatalogueItem item, Action<string, string> fail)
+    {
+        if (item.Skipped.Count == 0) return;
+        if (item.Kind is not (ItemKind.Skillset or ItemKind.Plugin)) { fail(CatalogueRules.Kind, "only a skill set or plugin leaves skills out"); return; }
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var skipped in item.Skipped)
+        {
+            if (!IsRelativePath(skipped.Path)) { fail(CatalogueRules.SkillName, $"skipped skill '{skipped.Path}' is not a plain relative path"); continue; }
+            if (!seen.Add(skipped.Path)) fail(CatalogueRules.SkillName, $"skipped skill {skipped.Path} is listed twice");
+            if (item.Skills.Any(s => s.Path == skipped.Path)) fail(CatalogueRules.SkillName, $"skipped skill {skipped.Path} is also listed as a skill");
+            if (string.IsNullOrWhiteSpace(skipped.Reason) || skipped.Reason.Any(c => c is '\n' or '\r')) fail(CatalogueRules.Text, $"skipped skill {skipped.Path}: the reason is blank or not one line");
+            if (item.Files.Any(f => f.Path.StartsWith(skipped.Path + "/", StringComparison.Ordinal)))
+                fail(CatalogueRules.SkillName, $"skipped skill {skipped.Path}: its files are pinned, so it would be fetched");
         }
     }
 

@@ -26,9 +26,17 @@ public sealed class ItemInstaller(IInstallLock? installLock = null, IInstallProc
         var supplemental = (plan.Pyset?.Wheels ?? []).Concat(plan.Python?.PipWheel is { } pip ? [pip] : []);
         foreach (var wheel in supplemental) RequireSupplemental(wheel.Path, wheel.Size, wheel.Sha256);
         foreach (var package in plan.NodePackages ?? []) RequireSupplemental(package.Path, package.Size, package.Sha256);
-        var licence = plan.Item.LicenceFile ?? throw new InvalidDataException("A licence file path is required.");
-        var licencePin = plan.Item.Files.SingleOrDefault(f => f.Path == licence) ?? throw new InvalidDataException("The licence file must have a content pin.");
-        RequireInput(licencePin.Path, licencePin.Size, licencePin.Sha256);
+        // ED-NEW-dl-13: a plugin item whose licences are recorded per plugin has no single licence file; each of its licence files must be pinned and supplied instead.
+        IReadOnlyList<string> licences = plan.Item.LicenceFile is { } one ? [one]
+            : PluginLicences.PerPlugin(plan.Item) ? PluginLicences.Files(plan.Item) : throw new InvalidDataException("A licence file path is required.");
+        CatalogueFile? licencePin = null;
+        foreach (var licence in licences)
+        {
+            var pinned = plan.Item.Files.SingleOrDefault(f => f.Path == licence) ?? throw new InvalidDataException("The licence file must have a content pin.");
+            RequireInput(pinned.Path, pinned.Size, pinned.Sha256);
+            licencePin ??= pinned;
+        }
+        if (licencePin is null) throw new InvalidDataException("A licence file path is required.");
         string parent;
         string name;
         if (plan.Kind == InstallerKind.Skillset)
@@ -85,9 +93,13 @@ public sealed class ItemInstaller(IInstallLock? installLock = null, IInstallProc
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 using (new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { }
             }
-            var licenceTarget = InstallPaths.Under(transaction.Path, licence);
-            if (!File.Exists(licenceTarget)) InstallTree.Copy(plan.LocalFiles[licence], licenceTarget);
-            InstallHash.Verify(licenceTarget, licencePin.Size, licencePin.Sha256);
+            foreach (var licence in licences)
+            {
+                var pinned = plan.Item.Files.Single(f => f.Path == licence);
+                var licenceTarget = InstallPaths.Under(transaction.Path, licence);
+                if (!File.Exists(licenceTarget)) InstallTree.Copy(plan.LocalFiles[licence], licenceTarget);
+                InstallHash.Verify(licenceTarget, pinned.Size, pinned.Sha256);
+            }
             cancellationToken.ThrowIfCancellationRequested();
             transaction.Prepare(checkpoint, plan.Kind == InstallerKind.Skillset ? plan.Item.Files : null);
             var spares = plan.Kind == InstallerKind.Skillset ? SpareGenerationBuilder.Prepare(plan, transaction.Path, seal, checkpoint, transactions, reserve) : [];

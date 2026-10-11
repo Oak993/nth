@@ -34,9 +34,34 @@ public sealed class TermsStep(SkillsCatalogue catalogue, Func<AddonsState> state
     public async Task<string> LicenceTextAsync(string id, CancellationToken cancellation = default)
     {
         var item = Item(id);
+        if (item.LicenceFile is null && PluginLicences.PerPlugin(item)) return await PerPluginTextAsync(item, cancellation).ConfigureAwait(false);
         var pinned = item.LicenceFile is { } path ? item.Files.FirstOrDefault(f => f.Path == path) : null;
         if (pinned is null) throw new InvalidOperationException("The catalogue holds no pinned licence file for " + id + " yet.");
-        var bytes = await licence.ReadAsync(item, cancellation).ConfigureAwait(false);
+        return Checked(await licence.ReadAsync(item, cancellation).ConfigureAwait(false), pinned);
+    }
+
+    /// <summary>
+    /// ED-NEW-dl-13: the terms of a plugin item whose licences are recorded per plugin are all its licence files, each read through the seam, checked against its own pin and shown
+    /// under a line naming the file, its licence and the plugins and skills it covers.
+    /// </summary>
+    private async Task<string> PerPluginTextAsync(CatalogueItem item, CancellationToken cancellation)
+    {
+        var text = new StringBuilder();
+        foreach (var path in PluginLicences.Files(item))
+        {
+            var pinned = item.Files.FirstOrDefault(f => f.Path == path) ?? throw new InvalidOperationException("The catalogue holds no pinned licence file " + path + " for " + item.Id + ".");
+            var plugins = item.Folders.Where(f => f.LicenceFile == path).Select(f => f.Name[(f.Name.LastIndexOf('/') + 1)..]).ToList();
+            var skills = item.Skills.Where(s => s.LicenceFile == path).Select(s => "/" + (s.Name ?? s.Folder)).ToList();
+            var name = item.Folders.FirstOrDefault(f => f.LicenceFile == path)?.LicenceName ?? item.Skills.First(s => s.LicenceFile == path).LicenceName;
+            if (text.Length > 0) text.Append("\n\n");
+            text.Append("—— ").Append(path).Append(" · ").Append(name).Append(" · ").Append(string.Join(", ", plugins.Concat(skills))).Append(" ——\n\n");
+            text.Append(Checked(await licence.ReadFileAsync(item, path, cancellation).ConfigureAwait(false), pinned));
+        }
+        return text.ToString();
+    }
+
+    private static string Checked(byte[] bytes, CatalogueFile pinned)
+    {
         if (bytes.LongLength != pinned.Size || !string.Equals(Convert.ToHexStringLower(SHA256.HashData(bytes)), pinned.Sha256, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("The licence file didn't match its checksum.");
         try { return Strict.GetString(bytes); }

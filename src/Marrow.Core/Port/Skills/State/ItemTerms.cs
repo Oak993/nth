@@ -5,11 +5,15 @@ namespace Marrow.Core.Port.Skills.State;
 
 public static class ItemTerms
 {
-    /// <summary>The SHA-256 the catalogue holds for the item's licence file, or null while the catalogue has none (the pin run fills it).</summary>
+    /// <summary>
+    /// The SHA-256 the catalogue holds for the item's licence file, or null while the catalogue has none (the pin run fills it). ED-NEW-dl-13: a plugin item whose licences are
+    /// recorded per plugin is keyed by all its licence files together (<see cref="PluginLicences.Hash"/>).
+    /// </summary>
     public static string? LicenceHash(CatalogueItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return item.LicenceFile is null ? null : item.Files.FirstOrDefault(f => f.Path == item.LicenceFile)?.Sha256;
+        if (item.LicenceFile is null) return PluginLicences.Hash(item);
+        return item.Files.FirstOrDefault(f => f.Path == item.LicenceFile)?.Sha256;
     }
 
     /// <summary>

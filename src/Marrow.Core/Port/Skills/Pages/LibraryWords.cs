@@ -92,15 +92,22 @@ public static class LibraryWords
     public static string FactFree(string drive) => "Free on " + drive;
     public const string FactFrom = "From";
 
-    public static string Included(int all, int alreadyHere, int needTerms, int noSize, int cantFetch = 0)
+    public static string Included(int all, int alreadyHere, int needTerms, int noSize, int cantFetch = 0, int skippedSkills = 0)
     {
         var text = "Included \u00B7 " + all;
         if (alreadyHere > 0) text += " \u00B7 " + alreadyHere + " already here, skipped";
         if (needTerms > 0) text += " \u00B7 " + needTerms + (needTerms == 1 ? " needs its terms first, skipped" : " need their terms first, skipped");
         if (noSize > 0) text += " \u00B7 " + noSize + (noSize == 1 ? " has no size yet, skipped" : " have no size yet, skipped");
         if (cantFetch > 0) text += " \u00B7 " + cantFetch + " can\u2019t be downloaded in this build, skipped";
+        if (skippedSkills > 0) text += " \u00B7 " + skippedSkills + (skippedSkills == 1 ? " skill is left out of its set, skipped" : " skills are left out of their sets, skipped");
         return text;
     }
+
+    /// <summary>ED-NEW-dl-13: the title of a skill a set leaves out, under the set's own line.</summary>
+    public static string SkippedSkillTitle(string name) => "/" + name;
+
+    /// <summary>ED-NEW-dl-13: the right side of that line: the catalogue's reason.</summary>
+    public static string SkippedSkill(string reason) => "Skipped: " + reason;
 
     /// <summary>ED-NEW-dl-6: the right side of a line the run leaves out because this build cannot fetch it (the row's own detail says <see cref="DownloadsUnavailable"/>).</summary>
     public const string NotAvailable = "Not available in this build";

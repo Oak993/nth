@@ -128,6 +128,13 @@ public sealed record CatalogueItem
     public IReadOnlyList<CataloguePackage> Packages { get; init; } = [];
 
     /// <summary>
+    /// ED-NEW-dl-13: the skills found at the pin that the item leaves out, each with the reason (no clear licence of its own, a name the name rule refuses, a name another skill of
+    /// the item already uses, a skill inside another skill's folder, a skill outside every plugin). None of their files is in <see cref="Files"/>, so none is fetched; the Download
+    /// all list names them.
+    /// </summary>
+    public IReadOnlyList<CatalogueSkipped> Skipped { get; init; } = [];
+
+    /// <summary>
     /// How a tool or package set is installed from its verified artifacts (ONDEMAND-PLAN.md 3.4's kinds) and what it publishes (3.6's shims, the Python package folders and the
     /// environment a tool exports). ENGINEERING DECISION (ED-NEW-dl-7): installer parameters are catalogue data, pinned with the artifacts by the same pin run and reviewed with them;
     /// absent for skill sets and plugins, and an item without it is never offered as a download.
@@ -276,13 +283,42 @@ public sealed record CatalogueSkill
 
     /// <summary>A per-skill commit where the set is not at one commit (O3).</summary>
     public string? Pin { get; init; }
+
+    /// <summary>
+    /// ED-NEW-dl-13: in a plugin whose licences are recorded per plugin, the licence of a skill that carries a licence file of its own inside its folder (the file is in the item's
+    /// files). A skill without one is under its plugin folder's licence.
+    /// </summary>
+    public string? LicenceName { get; init; }
+
+    public string? LicenceFile { get; init; }
 }
 
+/// <summary>
+/// One plugin of a plugin item: <see cref="Name"/> is the plugin's folder in the repository (where its plugin.json sits), the key its on/off switch is stored under.
+/// </summary>
 public sealed record CatalogueFolder
 {
     public required string Name { get; init; }
 
     public required int SkillCount { get; init; }
+
+    /// <summary>
+    /// ED-NEW-dl-13: the plugin's own licence, when the item records its licences per plugin: the name and the file in the item's files that states it (the plugin's nearest
+    /// licence file, or its plugin.json when the licence is stated only there).
+    /// </summary>
+    public string? LicenceName { get; init; }
+
+    public string? LicenceFile { get; init; }
+}
+
+/// <summary>ED-NEW-dl-13: a skill the item leaves out. <see cref="Name"/> is its frontmatter name as found (null when it has none).</summary>
+public sealed record CatalogueSkipped
+{
+    public required string Path { get; init; }
+
+    public required string? Name { get; init; }
+
+    public required string Reason { get; init; }
 }
 
 public sealed record CataloguePackage

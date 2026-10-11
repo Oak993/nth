@@ -30,7 +30,28 @@ public sealed class SkillsCatalogueHostsTests
     {
         var urls = AllUrls(CatalogueFixtures.Real).ToList();
         Assert.NotEmpty(urls);
-        foreach (var (id, field, url) in urls) Assert.True(CatalogueHosts.IsAllowed(url), $"{id} {field}: {url}");
+        foreach (var (id, field, url) in urls) Assert.True(field == "licenceUrl" ? CatalogueHosts.IsAllowedLicence(url) : CatalogueHosts.IsAllowed(url), $"{id} {field}: {url}");
+    }
+
+    [Fact]
+    [Trait("Feature", "RR-14")]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_licence_only_host_is_accepted_for_a_licence_url_alone_and_the_gate_refuses_it_anywhere_else()
+    {
+        // ED-NEW-dl-13: the plan's eight hosts stay the list for every URL; gitlab.freedesktop.org (the Poppler project's own home) may name a licence file and nothing else.
+        Assert.Equal(["gitlab.freedesktop.org"], CatalogueHosts.LicenceOnly);
+        const string Copying = "https://gitlab.freedesktop.org/poppler/poppler/-/raw/poppler-26.09.0/COPYING";
+        Assert.False(CatalogueHosts.IsAllowed(Copying));
+        Assert.True(CatalogueHosts.IsAllowedLicence(Copying));
+        Assert.True(CatalogueHosts.IsAllowedLicence("https://raw.githubusercontent.com/openai/codex/2739e828581c3deee59a270cd740675dc278ed14/LICENSE"));
+        foreach (var bad in new[] { "http://gitlab.freedesktop.org/x", "https://evil.gitlab.freedesktop.org/x", "https://gitlab.freedesktop.org.evil.example/x", "https://gitlab.freedesktop.org:8443/x",
+            "https://u@gitlab.freedesktop.org/x", "https://gitlab.com/x", "https://evil.example/x" })
+            Assert.False(CatalogueHosts.IsAllowedLicence(bad), bad);
+        var real = CatalogueFixtures.Real;
+        Assert.False(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(real, "T5", i => i with { LicenceUrl = Copying })), CatalogueRules.Host, "T5"));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(real, "A1", i => i with { SourceUrl = "https://gitlab.freedesktop.org/poppler/poppler" })), CatalogueRules.Host, "A1"));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(real, "T4", i => i with { Artifacts = i.Artifacts.Select(a => a with { Url = Copying }).ToList() })), CatalogueRules.Host, "T4"));
+        Assert.True(CatalogueFixtures.Fires(CatalogueGate.Check(CatalogueFixtures.Change(real, "T4", i => i with { LicenceUrl = "https://gitlab.com/poppler/poppler/-/raw/poppler-26.09.0/COPYING" })), CatalogueRules.Host, "T4"));
     }
 
     [Theory]

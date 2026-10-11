@@ -16,13 +16,18 @@ public sealed class DownloadPolicy
         "files.pythonhosted.org", "registry.npmjs.org", "cdn.playwright.dev",
     ];
 
+    /// <summary>
+    /// ED-NEW-dl-13: the hosts the catalogue may name for an item's licence file alone (<c>CatalogueHosts.LicenceOnly</c>; the catalogue gate refuses them in every other field).
+    /// </summary>
+    public static IReadOnlyList<string> CatalogueLicenceHosts { get; } = ["gitlab.freedesktop.org"];
+
     private readonly HashSet<string> hosts;
 
     public DownloadPolicy(IEnumerable<string> allowedHosts) =>
         hosts = new HashSet<string>(allowedHosts, StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>The catalogue's hosts and nothing else.</summary>
-    public static DownloadPolicy Catalogue() => new(CatalogueHosts);
+    /// <summary>The catalogue's hosts and its licence-only hosts, and nothing else.</summary>
+    public static DownloadPolicy Catalogue() => new(CatalogueHosts.Concat(CatalogueLicenceHosts));
 
     public IReadOnlyCollection<string> AllowedHosts => hosts;
 

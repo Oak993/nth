@@ -21,7 +21,7 @@ public static class SkillsProductionSeams
         var source = new PipelineDownloadSource(downloader, plans.Plan, plans.Requests);
         return options with
         {
-            Downloads = source.DownloadAsync, Bindings = plans.Bind, LicenceText = new DownloaderLicenceText(downloader, dataRoot), Installable = CatalogueInstallPlans.CanPlan,
+            Downloads = source.DownloadAsync, Bindings = plans.Bind, LicenceText = new DownloaderLicenceText(downloader, dataRoot, rawBase), Installable = CatalogueInstallPlans.CanPlan,
             InstallProcess = process ?? new CatalogueInstallProcess(dataRoot, options.Catalogue),
         };
     }

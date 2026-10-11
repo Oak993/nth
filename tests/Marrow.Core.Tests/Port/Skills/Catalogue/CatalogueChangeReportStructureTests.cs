@@ -75,6 +75,36 @@ public sealed class CatalogueChangeReportStructureTests
     }
 
     [Fact]
+    [Trait("Feature", "RR-14")]
+    [Trait("Rule", "R-TEST-4")]
+    public void Licences_per_plugin_and_per_skill_and_the_skills_left_out_are_listed_with_what_changed()
+    {
+        // ED-NEW-dl-13: a pin run that changes a plugin's or a skill's own licence, or the skills an item leaves out, shows each in the owner's report.
+        var previous = ChangeReportFixtures.Mutate(ChangeReportFixtures.Previous(), "X3", i => i with
+        {
+            Kind = ItemKind.Plugin, LicenceFile = null, LicenceUrl = null,
+            Folders = [new CatalogueFolder { Name = "plugins/one", SkillCount = 2, LicenceName = "MIT", LicenceFile = "plugins/one/LICENSE" }],
+            Skipped = [new CatalogueSkipped { Path = "plugins/one/skills/old", Name = "old", Reason = "No clear licence of its own" }],
+        });
+        var next = ChangeReportFixtures.Mutate(previous, "X3", i => i with
+        {
+            Folders = [new CatalogueFolder { Name = "plugins/one", SkillCount = 2, LicenceName = "Apache-2.0", LicenceFile = "plugins/one/LICENSE" }],
+            Skills = [i.Skills[0] with { LicenceName = "MIT", LicenceFile = "plugins/one/skills/alpha-skill/LICENSE.txt" }, i.Skills[1]],
+            Skipped = [new CatalogueSkipped { Path = "plugins/one/skills/new", Name = "new", Reason = "Its name breaks the skill name rule" }],
+        });
+        var lines = ChangeReportFixtures.Lines(CatalogueChangeReport.Compare(previous, next), "X3");
+        Assert.Contains("licence: folders[plugins/one].licenceName: MIT -> Apache-2.0", lines);
+        Assert.Contains("licence: skills[alpha-skill].licenceName: (none) -> MIT", lines);
+        Assert.Contains("licence: skills[alpha-skill].licenceFile: (none) -> plugins/one/skills/alpha-skill/LICENSE.txt", lines);
+        Assert.Contains("skills: skipped[plugins/one/skills/new]: left out (Its name breaks the skill name rule)", lines);
+        Assert.Contains("skills: skipped[plugins/one/skills/old]: no longer left out (was: No clear licence of its own)", lines);
+        Assert.DoesNotContain(lines, l => l.Contains("folders[plugins/one].licenceFile", StringComparison.Ordinal));
+        var reason = ChangeReportFixtures.Mutate(previous, "X3", i => i with { Skipped = [i.Skipped[0] with { Reason = "Same name as a skill in two" }] });
+        Assert.Equal(["skills: skipped[plugins/one/skills/old].reason: No clear licence of its own -> Same name as a skill in two"],
+            ChangeReportFixtures.Lines(CatalogueChangeReport.Compare(previous, reason), "X3"));
+    }
+
+    [Fact]
     [Trait("Feature", "SK-2")]
     [Trait("Rule", "R-TEST-4")]
     public void A_package_whose_licence_changes_is_a_licence_change_and_the_title_summary_and_vendor_are_text()
@@ -98,10 +128,12 @@ public sealed class CatalogueChangeReportStructureTests
         var known = new[]
         {
             "Id", "Kind", "Title", "Summary", "Vendor", "CountState", "PinState", "Pin", "PinHint", "SourceUrl", "LicenceName", "LicenceUrl", "LicenceFile", "LicenceNotes", "TermsClass",
-            "ApproxSizeMb", "Needs", "Provides", "Artifacts", "Files", "SkillCount", "SkillsListed", "Skills", "Folders", "Packages", "Install",
+            "ApproxSizeMb", "Needs", "Provides", "Artifacts", "Files", "SkillCount", "SkillsListed", "Skills", "Folders", "Packages", "Skipped", "Install",
         };
         Assert.Equal(known.OrderBy(k => k, StringComparer.Ordinal), typeof(CatalogueItem).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
-        Assert.Equal(["Folder", "Name", "Needs", "Path", "Pin", "TermsClass"], typeof(CatalogueSkill).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal(["Folder", "LicenceFile", "LicenceName", "Name", "Needs", "Path", "Pin", "TermsClass"], typeof(CatalogueSkill).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal(["LicenceFile", "LicenceName", "Name", "SkillCount"], typeof(CatalogueFolder).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal(["Name", "Path", "Reason"], typeof(CatalogueSkipped).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
         Assert.Equal(["Name", "Sha256", "Sha256Hint", "Size", "Url"], typeof(CatalogueArtifact).GetProperties().Select(p => p.Name).OrderBy(k => k, StringComparer.Ordinal));
         var changes = new Dictionary<string, Func<CatalogueItem, CatalogueItem>>
         {
@@ -112,6 +144,7 @@ public sealed class CatalogueChangeReportStructureTests
             ["ApproxSizeMb"] = i => i with { ApproxSizeMb = 9 }, ["Needs"] = i => i with { Needs = [] }, ["Provides"] = i => i with { Provides = [new CatalogueProvide { Kind = ProvideKind.Exe, Name = "zz" }] },
             ["Files"] = i => i with { Files = [] }, ["SkillCount"] = i => i with { SkillCount = 9 }, ["SkillsListed"] = i => i with { SkillsListed = false }, ["Skills"] = i => i with { Skills = [] },
             ["Folders"] = i => i with { Folders = [new CatalogueFolder { Name = "f", SkillCount = 1 }] },
+            ["Skipped"] = i => i with { Skipped = [new CatalogueSkipped { Path = "skills/gamma", Name = "gamma", Reason = "r" }] },
         };
         foreach (var (field, change) in changes)
             Assert.Contains(Compare(change).ChangesFor("X3"), c => c.Category != ChangeCategory.Item || field == "Kind");

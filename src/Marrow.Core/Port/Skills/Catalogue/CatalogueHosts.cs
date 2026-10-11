@@ -21,15 +21,26 @@ public static class CatalogueHosts
     };
 
     /// <summary>
+    /// ED-NEW-dl-13: hosts a catalogue item may name for its licence file alone, never for its source or an artifact. gitlab.freedesktop.org is the Poppler project's own home: T4's build
+    /// (on github.com) is packaged by a third party from conda-forge's build, and Poppler's own COPYING at the release tag is served from nowhere on the plan's list.
+    /// </summary>
+    public static IReadOnlySet<string> LicenceOnly { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "gitlab.freedesktop.org" };
+
+    /// <summary>
     /// An absolute https URL on the default port, with no user information, whose host is exactly on the list (no subdomain, no trailing dot, no address).
     /// ENGINEERING DECISION (ED-294): the port and user-information limits close the look-alike forms (<c>https://nodejs.org@evil.example</c>).
     /// </summary>
-    public static bool IsAllowed(string? url)
+    public static bool IsAllowed(string? url) => Host(url) is { } host && Allowed.Contains(host);
+
+    /// <summary>The same check for an item's licence URL, which may also be on <see cref="LicenceOnly"/> (ED-NEW-dl-13).</summary>
+    public static bool IsAllowedLicence(string? url) => Host(url) is { } host && (Allowed.Contains(host) || LicenceOnly.Contains(host));
+
+    private static string? Host(string? url)
     {
-        if (string.IsNullOrEmpty(url) || url != url.Trim()) return false;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
-        if (uri.Scheme != Uri.UriSchemeHttps) return false;
-        if (uri.UserInfo.Length != 0 || !uri.IsDefaultPort) return false;
-        return Allowed.Contains(uri.Host);
+        if (string.IsNullOrEmpty(url) || url != url.Trim()) return null;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
+        if (uri.Scheme != Uri.UriSchemeHttps) return null;
+        if (uri.UserInfo.Length != 0 || !uri.IsDefaultPort) return null;
+        return uri.Host;
     }
 }

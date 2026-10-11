@@ -81,6 +81,7 @@ public static class SkillsCatalogueLoader
             Check(item.Skills, at + "skills");
             Check(item.Folders, at + "folders");
             Check(item.Packages, at + "packages");
+            Check(item.Skipped, at + "skipped");
             foreach (var skill in item.Skills) Check(skill.Needs, at + "skills " + skill.Folder + " needs");
             if (item.Install is { } install)
             {

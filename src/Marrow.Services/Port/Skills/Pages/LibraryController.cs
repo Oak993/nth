@@ -699,6 +699,7 @@ public sealed class LibraryController : IDisposable
             PlanLineKind.NeedsTerms => new RunLine(l.Id, l.Title, RunLineState.NeedsTerms, 0, l.TermsLabel ?? ""),
             PlanLineKind.NoSize => new RunLine(l.Id, l.Title, RunLineState.NoSize, 0, LibraryWords.SizeUnknown),
             PlanLineKind.CantFetch => new RunLine(l.Id, l.Title, RunLineState.CantFetch, 0, LibraryWords.NotAvailable),
+            PlanLineKind.SkippedSkill => new RunLine(l.Id, l.Title, RunLineState.SkippedSkill, 0, LibraryWords.SkippedSkill(l.Reason ?? "")),
             _ => new RunLine(l.Id, l.Title, RunLineState.Waiting, 0, SizeText.Short(l.SizeMb ?? 0)),
         }).ToList();
         return new RunView(RunPhase.Confirm, plan.Title, plan.Sub, plan.Statement, plan.Large && !plan.IsEmpty, LibraryWords.ConfirmFoot, null, 0, lines, plan.IncludedHeading, plan.DownloadFact,
@@ -721,6 +722,7 @@ public sealed class LibraryController : IDisposable
                     PlanLineKind.AlreadyHere => new RunLine(l.Id, l.Title, RunLineState.AlreadyHere, 0, LibraryWords.AlreadyHere),
                     PlanLineKind.NeedsTerms => new RunLine(l.Id, l.Title, RunLineState.NeedsTerms, 0, l.TermsLabel ?? ""),
                     PlanLineKind.CantFetch => new RunLine(l.Id, l.Title, RunLineState.CantFetch, 0, LibraryWords.NotAvailable),
+                    PlanLineKind.SkippedSkill => new RunLine(l.Id, l.Title, RunLineState.SkippedSkill, 0, LibraryWords.SkippedSkill(l.Reason ?? "")),
                     _ => new RunLine(l.Id, l.Title, RunLineState.NoSize, 0, LibraryWords.SizeUnknown),
                 });
                 continue;
