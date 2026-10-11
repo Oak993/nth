@@ -33,15 +33,27 @@ public static class McpImportWords
         _ => "The server in nth stays as it is.",
     };
 
+    // ---- servers nth can't take as they are (the row says so in place of where it came from; the tip says why)
+    public const string CantImport = "Can’t import";
+    public const string NeedsValueRow = "Needs a value";
+    public const string LegacySse = "Uses the older SSE connection, which nth doesn’t speak. Ask the server for its streamable HTTP address (often /mcp) and add it with Add.";
+    public static string LeftOut(int count) => count + (count == 1 ? " server can’t be imported and is left out." : " servers can’t be imported and are left out.");
+    public static string Placeholders(IReadOnlyList<string> names) => "Uses " + string.Join(", ", names) + ", which nth can’t fill in here. Add it with Add and set the value.";
+    public static string NeedsValueTip(IReadOnlyList<string> keys) => "Takes its value from something nth can’t read (" + string.Join(", ", keys) + "). It comes in empty; set it in the server’s editor.";
+    public static string NeedsValueLine(string name, IReadOnlyList<string> keys) => name + ": set " + string.Join(", ", keys) + " in the server’s editor.";
+    public static string Origin(string path, string project) => project.Length > 0 ? path + " (" + project + ")" : path;
+
     // ---- the result
     public const string Importing = "Importing…";
-    public static string Done(int imported, int replaced, int skipped, int failed)
+    public static string ImportingCount(int done, int total) => "Importing " + Math.Min(done + 1, total) + " of " + total + "…";
+    public static string Done(int imported, int replaced, int skipped, int failed, int needValue = 0)
     {
         var parts = new List<string>();
         if (imported > 0) parts.Add(imported + " imported");
         if (replaced > 0) parts.Add(replaced + " replaced");
         if (skipped > 0) parts.Add(skipped + " skipped");
         if (failed > 0) parts.Add(failed + " couldn’t be imported");
+        if (needValue > 0) parts.Add(needValue + (needValue == 1 ? " needs a value" : " need a value"));
         return parts.Count == 0 ? "Nothing was imported." : string.Join(", ", parts) + ".";
     }
     public const string ValuesNotSaved = "The Credential Manager could not save a value.";
@@ -58,4 +70,5 @@ public static class McpImportWords
     // ---- where in an app (only for apps with more than one place)
     public const string User = "User";
     public const string Settings = "Settings";
+    public const string Extension = "Extension";
 }

@@ -29,12 +29,27 @@ public sealed class ForeignPluginScanner
     private const long MaxManifestBytes = 1024 * 1024;
     private readonly string home;
     private readonly string[] picked;
+    private readonly string[] claudeRoots, codexCaches;
 
-    public ForeignPluginScanner(string home, IEnumerable<string>? pickedFolders = null)
+    /// <param name="claudeConfigDir">CLAUDE_CONFIG_DIR when set: where Claude Code keeps its plugins then (looked in before ~/.claude). Ignored unless it is a full path.</param>
+    /// <param name="codexHome">CODEX_HOME when set: where Codex keeps its plugins then (looked in before ~/.codex). Ignored unless it is a full path.</param>
+    public ForeignPluginScanner(string home, IEnumerable<string>? pickedFolders = null, string? claudeConfigDir = null, string? codexHome = null)
     {
         if (string.IsNullOrWhiteSpace(home) || !System.IO.Path.IsPathFullyQualified(home)) throw new ArgumentException("An explicit absolute home folder is required.", nameof(home));
         this.home = System.IO.Path.GetFullPath(home);
         picked = [.. pickedFolders ?? []];
+        claudeRoots = Roots(claudeConfigDir, System.IO.Path.Combine(this.home, ".claude"), "plugins");
+        codexCaches = Roots(codexHome, System.IO.Path.Combine(this.home, ".codex"), "plugins", "cache");
+    }
+
+    // the folder the variable names (when it is a full path), then the usual one; once if they are the same
+    private static string[] Roots(string? variable, string usual, params string[] below)
+    {
+        var roots = new List<string>();
+        if (!string.IsNullOrWhiteSpace(variable) && System.IO.Path.IsPathFullyQualified(variable)) roots.Add(System.IO.Path.Combine([System.IO.Path.GetFullPath(variable), .. below]));
+        var normal = System.IO.Path.Combine([usual, .. below]);
+        if (!roots.Contains(normal, StringComparer.OrdinalIgnoreCase)) roots.Add(normal);
+        return [.. roots];
     }
 
     public ForeignPluginScan Scan()
@@ -43,9 +58,10 @@ public sealed class ForeignPluginScanner
         var problems = new List<ScanProblem>();
         void Add(ForeignPlugin? plugin) { if (plugin is not null) found.TryAdd(System.IO.Path.GetFullPath(plugin.Path), plugin); }
 
-        ClaudeCode(Add, problems);
-        foreach (var dir in Find(System.IO.Path.Combine(home, ".codex", "plugins", "cache"), 0, problems))
-            Add(Read(ForeignPluginApp.Codex, SourceUnder(System.IO.Path.Combine(home, ".codex", "plugins", "cache"), dir), dir, problems));
+        foreach (var root in claudeRoots) ClaudeCode(root, Add, problems);
+        foreach (var cache in codexCaches)
+            foreach (var dir in Find(cache, 0, problems))
+                Add(Read(ForeignPluginApp.Codex, SourceUnder(cache, dir), dir, problems));
         foreach (var folder in picked)
         {
             if (string.IsNullOrWhiteSpace(folder) || !System.IO.Path.IsPathFullyQualified(folder)) { problems.Add(new ScanProblem(folder, "Choose a folder by its full path.")); continue; }
@@ -59,9 +75,8 @@ public sealed class ForeignPluginScanner
         return new ForeignPluginScan(plugins, problems);
     }
 
-    private void ClaudeCode(Action<ForeignPlugin?> add, List<ScanProblem> problems)
+    private static void ClaudeCode(string root, Action<ForeignPlugin?> add, List<ScanProblem> problems)
     {
-        var root = System.IO.Path.Combine(home, ".claude", "plugins");
         if (!Directory.Exists(root)) return;
         var listFile = System.IO.Path.Combine(root, "installed_plugins.json");
         if (!File.Exists(listFile))

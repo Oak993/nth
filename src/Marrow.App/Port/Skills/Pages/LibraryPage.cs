@@ -107,7 +107,7 @@ internal abstract class LibraryPage : Decorator, ISettingsPageChrome
         var add = new CustomAddAction(tools ? CustomAddKind.Tools : section == LibrarySection.Plugins ? CustomAddKind.Plugins : CustomAddKind.Skills);
         if (tools) return [add];
         Button? import = null;
-        if (section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is not null) import = PageHeaderButton.Import(() => importArea?.Open());
+        if (section == LibrarySection.Skills && SkillsPageSeams.Imports.Current.Model is not null) import = PageHeaderButton.Import(() => importArea?.Open(ImportSheetAnchor.For(import!)));
         else if (section == LibrarySection.Plugins && PluginImport.PluginImportLauncher.Model() is not null) import = PageHeaderButton.Import(() => PluginImport.PluginImportLauncher.Open(import!));
         return import is null ? [add] : [add, import];
     }

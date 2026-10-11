@@ -21,7 +21,11 @@ internal sealed class CustomAddUiBackend(CustomSources sources, CustomOwnModel o
         lock (gate) foreach (var candidate in found) checkedItems[candidate.Key] = candidate;
         return found.Select(c => new CustomAddCandidate(c.Key, c.Name, c.Description, c.Problem)).ToArray();
     }
-    public async Task Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel)
+    public Task Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel) => Install(null, candidate, progress, cancel);
+
+    public Task Replace(string replacingId, CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel) => Install(replacingId, candidate, progress, cancel);
+
+    private async Task Install(string? replacingId, CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel)
     {
         ServiceCandidate exact;
         lock (gate)
@@ -29,7 +33,8 @@ internal sealed class CustomAddUiBackend(CustomSources sources, CustomOwnModel o
             if (!checkedItems.TryGetValue(candidate.Key, out exact!) || exact.Name != candidate.Name || exact.Description != candidate.Description || exact.Problem != candidate.Problem)
                 throw new InvalidOperationException("Check this item before adding it.");
         }
-        await sources.Add(exact, progress, cancel);
+        if (replacingId is null) await sources.Add(exact, progress, cancel);
+        else await sources.Replace(replacingId, exact, progress, cancel);
         lock (gate) checkedItems.Remove(candidate.Key);
         await own.Refresh();
     }

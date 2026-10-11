@@ -16,8 +16,12 @@ internal sealed class TomlLite
         public override string ToString() => Text;
     }
 
+    /// <summary>How deep arrays and inline tables may nest (System.Text.Json's own limit): a deeper file is refused as unreadable instead of overflowing the stack.</summary>
+    internal const int MaxDepth = 64;
+
     private readonly string text;
     private int at;
+    private int depth;
 
     private TomlLite(string text) => this.text = text;
 
@@ -150,8 +154,10 @@ internal sealed class TomlLite
         {
             case '"': return Basic();
             case '\'': return Literal();
-            case '[': return Array();
-            case '{': return Inline();
+            case '[' or '{':
+                if (++depth > MaxDepth) throw Fail("Values are nested too deeply");
+                try { return Peek() == '[' ? Array() : Inline(); }
+                finally { depth--; }
         }
         var start = at;
         while (!End && Peek() is not (',' or ']' or '}' or '#' or '\r' or '\n')) at++;

@@ -52,11 +52,18 @@ internal static class McpImportSeams
     /// <summary>The read-only scan of the other apps' MCP configs on this PC. A test overrides it, so no test reads the real profile.</summary>
     public static Ambient<Func<ForeignMcpScan>> Scan { get; } = new(() => (Func<ForeignMcpScan>)DefaultScan);
 
+    /// <summary>A variable's value for the placeholders of the other apps' configs (null: none). A test overrides it, so no test depends on the machine's environment.</summary>
+    public static Ambient<Func<string, string?>> Lookup { get; } = new(() => (Func<string, string?>)McpPlaceholders.EnvironmentValue);
+
     private static ForeignMcpScan DefaultScan()
     {
         var home = LoginEnvironment.HomeDirectory;
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         if (!Path.IsPathRooted(home)) return ForeignMcpScan.Empty;
-        return new ForeignMcpScanner(ForeignMcpScanner.Places(home, Path.IsPathRooted(appData) ? appData : Path.Combine(home, "AppData", "Roaming"))).Scan();
+        // CODEX_HOME and CLAUDE_CONFIG_DIR: where Codex and Claude Code keep their files when the variable is set
+        var places = ForeignMcpScanner.Places(home, Path.IsPathRooted(appData) ? appData : Path.Combine(home, "AppData", "Roaming"),
+            Path.IsPathRooted(localAppData) ? localAppData : Path.Combine(home, "AppData", "Local"), McpPlaceholders.EnvironmentValue("CODEX_HOME"), McpPlaceholders.EnvironmentValue("CLAUDE_CONFIG_DIR"));
+        return new ForeignMcpScanner(places, home: home).Scan();
     }
 }

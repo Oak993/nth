@@ -171,7 +171,7 @@ public sealed class McpImportTests
         controller.Toggle(unreadable.Key); // not a server: nothing to tick
         Assert.Equal(0, controller.TickedCount);
         controller.Toggle(controller.Groups.Single(g => g.App == ForeignMcpApp.Cursor).Rows.Single(r => r.Name == "memory").Key);
-        var outcome = controller.ImportSelected();
+        var outcome = await controller.ImportSelectedAsync(); // ED-NEW-mcpimport-7: the import is async (it hands the thread back between servers); the assertions below are unchanged
         Assert.Equal(1, outcome!.Imported);
         Assert.Equal(McpImportPhase.Done, controller.Phase);
         Assert.Equal(["custom-files", "custom-memory"], target.Saved.Select(s => s.Id));

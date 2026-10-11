@@ -97,21 +97,28 @@ internal sealed class McpImportSheetView : Decorator
         var found = c.Groups;
         var servers = found.Sum(g => g.Rows.Count(r => !r.Unreadable));
         var apps = found.Count(g => g.Rows.Any(r => !r.Unreadable));
+        var blocked = found.Sum(g => g.Rows.Count(r => r.Blocked is not null));
         var anyDuplicate = found.SelectMany(g => g.Rows).Any(r => r.Duplicate);
 
-        listFold.Open = phase == McpImportPhase.Choosing && found.Count > 0;
+        listFold.Open = phase is McpImportPhase.Choosing or McpImportPhase.Importing && found.Count > 0;
         duplicateFold.Open = phase == McpImportPhase.Choosing && anyDuplicate;
 
         status.SetText(phase switch
         {
             McpImportPhase.Scanning => McpImportWords.Scanning,
-            McpImportPhase.Choosing => servers == 0 ? McpImportWords.NothingFound : McpImportWords.FoundCount(servers, apps) + " " + McpImportWords.Nothing,
+            McpImportPhase.Choosing => servers == 0 ? McpImportWords.NothingFound : McpImportWords.FoundCount(servers, apps) + (blocked > 0 ? " " + McpImportWords.LeftOut(blocked) : "") + " " + McpImportWords.Nothing,
+            McpImportPhase.Importing => McpImportWords.ImportingCount(c.Progress.Done, c.Progress.Total),
             McpImportPhase.Done => c.Summary,
             _ => "",
         });
-        IReadOnlyList<McpImportFailure> failed = phase == McpImportPhase.Done && c.Outcome is { } outcome ? outcome.Failed : [];
-        failuresFold.Open = failed.Count > 0;
-        if (failed.Count > 0) failures.SetText(string.Join("\n", failed.Select(f => f.Name + ": " + f.Reason)));
+        var notes = new List<string>();
+        if (phase == McpImportPhase.Done && c.Outcome is { } outcome)
+        {
+            notes.AddRange(outcome.Failed.Select(f => f.Name + ": " + f.Reason));
+            notes.AddRange(outcome.NeedsValue.Select(n => McpImportWords.NeedsValueLine(n.Name, n.Keys)));
+        }
+        failuresFold.Open = notes.Count > 0;
+        if (notes.Count > 0) failures.SetText(string.Join("\n", notes));
 
         Rebuild(found);
         foreach (var group in found)
@@ -119,13 +126,13 @@ internal sealed class McpImportSheetView : Decorator
             if (groupTicks.TryGetValue(group.App, out var all))
             {
                 all.SetChecked(group.AllTicked);
-                all.Enabled = phase == McpImportPhase.Choosing;
+                all.Enabled = phase == McpImportPhase.Choosing && group.Rows.Any(r => r.CanTick);
             }
             foreach (var row in group.Rows)
                 if (ticks.TryGetValue(row.Key, out var tick))
                 {
                     tick.SetChecked(row.Ticked);
-                    tick.Enabled = phase == McpImportPhase.Choosing;
+                    tick.Enabled = phase == McpImportPhase.Choosing && row.CanTick;
                 }
         }
 
@@ -141,13 +148,13 @@ internal sealed class McpImportSheetView : Decorator
             duplicateNote.SetText(McpImportWords.DuplicateNote(choice switch { DuplicateChoice.Replace => McpImportWords.Replace, DuplicateChoice.KeepBoth => McpImportWords.KeepBoth, _ => McpImportWords.Skip }));
         }
 
-        Buttons(phase, c.TickedCount, servers > 0);
+        Buttons(phase, c.TickedCount, found.Any(g => g.Rows.Any(r => r.CanTick)));
     }
 
     // The list is made again only when what was found changes; ticking only moves the ticks.
     private void Rebuild(IReadOnlyList<McpImportGroup> found)
     {
-        var next = string.Join("\n", found.Select(g => g.App + ":" + string.Join(",", g.Rows.Select(r => r.Key + (r.Duplicate ? "!" : "")))));
+        var next = string.Join("\n", found.Select(g => g.App + ":" + string.Join(",", g.Rows.Select(r => r.Key + (r.Duplicate ? "!" : "") + (r.Blocked is not null ? "x" : "") + (r.NeedsValue is not null ? "?" : "")))));
         if (next == structure) return;
         structure = next;
         groups.Children.Clear();
@@ -160,7 +167,7 @@ internal sealed class McpImportSheetView : Decorator
             var name = LibraryUi.Text(group.Title, 12, weight: SwiftFont.Weight.Semibold);
             name.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(name, 1);
-            if (group.Rows.Any(r => !r.Unreadable))
+            if (group.Rows.Any(r => r.CanTick))
             {
                 var all = new ImportTick(group.Title, "mcp-import-tick-group-" + app, () => Controller.ToggleGroup(app));
                 groupTicks[app] = all;
@@ -174,7 +181,7 @@ internal sealed class McpImportSheetView : Decorator
                 var key = row.Key;
                 var line = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto"), ColumnSpacing = 8, MinHeight = 26 };
                 Control lead;
-                if (row.Unreadable) lead = new Border { Width = 15 };
+                if (!row.CanTick) lead = new Border { Width = 15 };
                 else
                 {
                     var tick = new ImportTick(row.Name, "mcp-import-tick-" + app + "-" + row.Name, () => Controller.Toggle(key));
@@ -183,13 +190,16 @@ internal sealed class McpImportSheetView : Decorator
                 }
                 var server = LibraryUi.Mono(row.Name, 11.5);
                 server.VerticalAlignment = VerticalAlignment.Center;
-                if (row.Unreadable) server.Opacity = 0.6;
+                if (!row.CanTick) server.Opacity = 0.6;
                 var detail = LibraryUi.Text(row.Detail, 11.5, secondary: true, trim: true);
                 detail.VerticalAlignment = VerticalAlignment.Center;
                 ToolTip.SetTip(detail, row.Detail);
-                var source = LibraryUi.Text(row.Duplicate ? McpImportWords.AlreadyIn : row.Source, 11, secondary: true);
+                // the last column: what stops the server (it cannot be imported), that it is already in nth, that a value comes in empty, else where in the app it was found; the tip says more
+                var source = LibraryUi.Text(row.Blocked is not null ? McpImportWords.CantImport : row.Duplicate ? McpImportWords.AlreadyIn : row.NeedsValue is not null ? McpImportWords.NeedsValueRow : row.Source, 11, secondary: true);
                 source.VerticalAlignment = VerticalAlignment.Center;
                 source.Opacity = 0.8;
+                var tip = row.Blocked ?? row.NeedsValue ?? row.Origin;
+                if (tip.Length > 0) ToolTip.SetTip(source, tip);
                 Grid.SetColumn(server, 1);
                 Grid.SetColumn(detail, 2);
                 Grid.SetColumn(source, 3);
@@ -219,8 +229,8 @@ internal sealed class McpImportSheetView : Decorator
             Control next;
             if (key == "choose")
             {
-                importSelected = LibraryButtons.Make(McpImportWords.ImportSelected(ticked), () => Controller.ImportSelected(), ButtonLook.Primary, "mcp-import-selected");
-                importAll = LibraryButtons.Make(McpImportWords.ImportAll, () => Controller.ImportAll(), ButtonLook.Accent, "mcp-import-all");
+                importSelected = LibraryButtons.Make(McpImportWords.ImportSelected(ticked), () => _ = Controller.ImportSelectedAsync(), ButtonLook.Primary, "mcp-import-selected");
+                importAll = LibraryButtons.Make(McpImportWords.ImportAll, () => _ = Controller.ImportAllAsync(), ButtonLook.Accent, "mcp-import-all");
                 next = new StackPanel
                 {
                     Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right,

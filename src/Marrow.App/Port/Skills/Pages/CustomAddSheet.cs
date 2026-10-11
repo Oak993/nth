@@ -25,6 +25,9 @@ internal interface ICustomAddBackend
 {
     Task<IReadOnlyList<CustomAddCandidate>> Check(CustomAddRequest request, CancellationToken cancel);
     Task Add(CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel);
+
+    /// <summary>Adds the checked candidate in place of the own item <paramref name="replacingId"/>: the new copy goes in first and the old one goes only after that worked, so a failed add never loses the old one (ED-NEW-mcpimport-6).</summary>
+    Task Replace(string replacingId, CustomAddCandidate candidate, IProgress<double> progress, CancellationToken cancel);
 }
 
 internal sealed record CustomAddServices(Func<CustomAddKind, ICustomAddBackend?> For, CustomOwnModel? Own = null);

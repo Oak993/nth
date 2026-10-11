@@ -8,6 +8,7 @@ using Marrow.App.Port.Skills.Pages;
 using Marrow.Core.Port;
 using Marrow.Core.Port.Skills.Import;
 using Marrow.Core.Support;
+using Marrow.Services.Port.MCP.Import;
 using Marrow.Services.Port.Skills.PluginImport;
 
 namespace Marrow.App.Port.Skills.PluginImport;
@@ -72,8 +73,9 @@ internal sealed class CustomPluginImportTarget(ICustomAddBackend backend, Custom
         try
         {
             if (pick is null) return candidates.FirstOrDefault(c => c.Problem is not null)?.Problem ?? PluginImportWords.NotFound;
-            if (replacingId is not null && own is not null) await own.Remove(replacingId);
-            await backend.Add(pick, new Progress<double>(), cancel);
+            // Replace: the new copy goes in first and the old one only after that worked, so a failure here leaves the plugin nth had (ED-NEW-mcpimport-6)
+            if (replacingId is not null && own is not null) await backend.Replace(replacingId, pick, new Progress<double>(), cancel);
+            else await backend.Add(pick, new Progress<double>(), cancel);
             return null;
         }
         finally
@@ -91,7 +93,9 @@ internal static class PluginImportSeams
     private static ForeignPluginScan DefaultScan(IReadOnlyList<string> folders)
     {
         var home = LoginEnvironment.HomeDirectory;
-        return Path.IsPathFullyQualified(home) ? new ForeignPluginScanner(home, folders).Scan() : new ForeignPluginScan([], []);
+        if (!Path.IsPathFullyQualified(home)) return new ForeignPluginScan([], []);
+        // CLAUDE_CONFIG_DIR and CODEX_HOME: where Claude Code and Codex keep their plugins when the variable is set
+        return new ForeignPluginScanner(home, folders, McpPlaceholders.EnvironmentValue("CLAUDE_CONFIG_DIR"), McpPlaceholders.EnvironmentValue("CODEX_HOME")).Scan();
     }
 }
 
@@ -129,7 +133,7 @@ internal static class PluginImportLauncher
             return picked.FirstOrDefault()?.TryGetLocalPath();
         };
         _ = model.Controller.OpenAsync();
-        ChatSheetPresentation.Show(anchor, dismiss => new ImportWashLayer(new PluginImportSheetView(model, dismiss)), () =>
+        ChatSheetPresentation.Show(ImportSheetAnchor.For(anchor), dismiss => new ImportWashLayer(new PluginImportSheetView(model, dismiss)), () =>
         {
             model.SheetShown = false;
             model.PickFolder = null;
