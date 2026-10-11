@@ -135,7 +135,9 @@ const summary = [];
 for (const tool of tools) {
   const spec = callSpecs.find((c) => c.tool === tool.name);
   const callResult = spec ? await tool.call(spec.args) : null;
-  summary.push({ server: tool.server, name: tool.name, description: tool.description, inputSchema: tool.inputSchema, callResult });
+  // W18: the same call answered as content blocks (text and images), when the bridge offers it.
+  const callContent = spec && typeof tool.callContent === "function" ? await tool.callContent(spec.args) : null;
+  summary.push({ server: tool.server, name: tool.name, description: tool.description, inputSchema: tool.inputSchema, callResult, callContent });
 }
 
 if (server) await new Promise((resolve) => server.close(resolve));
