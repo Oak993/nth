@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Models;
@@ -79,23 +80,112 @@ public sealed class MCPHub : Actor
     // would get to run.
     public static void TerminateAll() => liveProcesses.TerminateAll();
 
-    // :32-39
+    // :32-39. PORT-ONLY (W18): the members below the call name are optional and default to "a plain tool", so every
+    // existing construction (name, description, schema) keeps working.
     public sealed record Tool(string Server, string Name, string Description, JSONValue InputSchema)
     {
         // :38
         public string CallName => "mcp__" + Server + "__" + Name;
+
+        /// <summary>The tool's display title, when the server gives one.</summary>
+        public string? Title { get; init; }
+
+        /// <summary>The tool's whole <c>_meta</c> object, kept as the server sent it.</summary>
+        public JSONValue? Meta { get; init; }
+
+        /// <summary>The <c>ui://</c> resource that draws this tool's result (an MCP App), or null. See <see cref="MCPToolMeta"/>.</summary>
+        public string? UiResourceUri { get; init; }
+
+        /// <summary>Who may call the tool (<c>_meta.ui.visibility</c>); both by default.</summary>
+        public MCPToolVisibility Visibility { get; init; } = MCPToolVisibility.Both;
+
+        public bool IsVisibleToModel => (Visibility & MCPToolVisibility.Model) != 0;
+
+        public bool IsVisibleToApp => (Visibility & MCPToolVisibility.App) != 0;
     }
 
-    // :41-44
-    public sealed record Result(string Text, bool IsError);
+    // :41-44. PORT-ONLY (W18, ED-NEW-web-w18-1): Text is still every text item joined (images as "[image]", a
+    // resource as "[resource: uri]"), for a caller that can only read text. The rest of the answer is kept next to it.
+    public sealed record Result(string Text, bool IsError)
+    {
+        /// <summary>The images of the result, base64 as sent.</summary>
+        public ValueList<MCPResultImage> Images { get; init; } = ValueList<MCPResultImage>.Empty;
+
+        /// <summary>Resource links and embedded resources of the result.</summary>
+        public ValueList<MCPResultResource> Resources { get; init; } = ValueList<MCPResultResource>.Empty;
+
+        /// <summary>The result's <c>structuredContent</c> object, or null.</summary>
+        public JSONValue? StructuredContent { get; init; }
+
+        /// <summary>The result's <c>_meta</c> object, or null.</summary>
+        public JSONValue? Meta { get; init; }
+
+        /// <summary>The server and tool the hub called (set by <see cref="MCPHub.Call"/>).</summary>
+        public string? Server { get; init; }
+        public string? ToolName { get; init; }
+
+        /// <summary>The <c>ui://</c> resource the tool says draws this result, or null.</summary>
+        public string? UiResourceUri { get; init; }
+
+        /// <summary>
+        /// The part of the result the text cannot carry, under the persistence caps of <see cref="ToolPayload"/>, or
+        /// null when there is none (a plain text result).
+        /// </summary>
+        public ToolPayload? ToPayload()
+        {
+            var payload = new ToolPayload { Server = Server, Tool = ToolName, UiResourceUri = UiResourceUri };
+            foreach (var image in Images) payload = payload.WithImage(image.MimeType, image.Data, MCPResultReader.Base64Bytes(image.Data));
+            foreach (var resource in Resources)
+            {
+                payload = payload.WithResourceLink(new ToolResourceLink
+                {
+                    Uri = resource.Uri,
+                    Name = resource.Name,
+                    MimeType = resource.MimeType,
+                    Description = resource.Description,
+                    Embedded = resource.Embedded,
+                    Text = resource.Text,
+                    ByteCount = resource.ByteCount,
+                });
+            }
+            if (StructuredContent is { } structured) payload = payload.WithStructuredContent(structured.CompactString);
+            if (Meta is { } meta) payload = payload.WithMeta(meta.CompactString);
+            return payload.IsEmpty ? null : payload;
+        }
+    }
 
     private Dictionary<string, MCPServerSpec>? specs;
     private readonly Dictionary<string, MCPClient> clients = new(SwiftStringComparer.Instance);
     private readonly Dictionary<string, List<Tool>> toolCache = new(SwiftStringComparer.Instance);
+    private readonly Dictionary<string, List<MCPResource>> resourceCache = new(SwiftStringComparer.Instance);
+    private readonly Dictionary<string, List<MCPResourceTemplate>> templateCache = new(SwiftStringComparer.Instance);
     private readonly HashSet<string> failed = new(SwiftStringComparer.Instance);
 
-    // :51-77
+    private int toolsRevision;
+
+    /// <summary>
+    /// PORT-ONLY (W18): counts the times a server's tool list changed on this hub (a list-changed notification). A
+    /// session that loaded the tools earlier reloads them when this moved.
+    /// </summary>
+    public int ToolsRevision => Volatile.Read(ref toolsRevision);
+
+    /// <summary>
+    /// PORT-ONLY (W18): raised when a server says its tools, resources or prompts changed, after the hub dropped
+    /// what it had cached for that server. It runs on the hub's executor: a handler must be quick and hop for any
+    /// real work.
+    /// </summary>
+    public event Action<MCPListChange>? ListChanged;
+
+    // :51-77. PORT-ONLY (W18): the model's list. A tool whose _meta.ui.visibility leaves out "model" (an app-only tool)
+    // is not in it; AllTools() has every tool, for the MCP Apps host.
     public Task<IReadOnlyList<Tool>> Tools() => Isolated(async () =>
+        (IReadOnlyList<Tool>)(await ListAll()).Where(tool => tool.IsVisibleToModel).ToList());
+
+    /// <summary>PORT-ONLY (W18): every tool of every server, including the ones only an app view may call.</summary>
+    public Task<IReadOnlyList<Tool>> AllTools() => Isolated(ListAll);
+
+    // :51-77 (the body of tools()).
+    private async Task<IReadOnlyList<Tool>> ListAll()
     {
         specs ??= ReadSpecs();
         var current = specs;
@@ -125,27 +215,38 @@ public sealed class MCPHub : Actor
                 await client.Stop();
             }
         }
-        return (IReadOnlyList<Tool>)all
+        return all
             .OrderBy(tool => tool.Server, SwiftStringComparer.Instance)
             .ThenBy(tool => tool.Name, SwiftStringComparer.Instance)
             .ToList();
-    });
+    }
 
-    // :79-98
-    public Task<Result> Call(string callName, JSONValue arguments) => Isolated(async () =>
+    // :79-98. PORT-ONLY (W18): caller says who is calling. A model caller is refused an app-only tool, and an app
+    // caller a model-only one, when the tool list is known; an app caller makes it known first.
+    public Task<Result> Call(string callName, JSONValue arguments, MCPCaller caller = MCPCaller.Model) => Isolated(async () =>
     {
         specs ??= ReadSpecs();
         if (Parse(callName) is not { } parsed || !specs.TryGetValue(parsed.Server, out var spec))
             throw MCPHubError.UnknownTool(callName);
-        if (toolCache.TryGetValue(parsed.Server, out var cached) &&
-            !cached.Any(tool => SwiftString.Equal(tool.Name, parsed.Tool)))
+        if (caller == MCPCaller.App && !toolCache.ContainsKey(parsed.Server))
+            await ListAll();
+        Tool? known = null;
+        if (toolCache.TryGetValue(parsed.Server, out var cached))
+        {
+            known = cached.FirstOrDefault(tool => SwiftString.Equal(tool.Name, parsed.Tool));
+            if (known is null) throw MCPHubError.UnknownTool(callName);
+            if (caller == MCPCaller.Model ? !known.IsVisibleToModel : !known.IsVisibleToApp)
+                throw MCPHubError.UnknownTool(callName);
+        }
+        else if (caller == MCPCaller.App)
         {
             throw MCPHubError.UnknownTool(callName);
         }
         var client = Client(parsed.Server, spec);
         try
         {
-            return await client.CallTool(parsed.Tool, arguments);
+            var result = await client.CallTool(parsed.Tool, arguments);
+            return result with { Server = parsed.Server, ToolName = parsed.Tool, UiResourceUri = known?.UiResourceUri };
         }
         catch (MCPHubError)
         {
@@ -161,6 +262,102 @@ public sealed class MCPHub : Actor
         }
     });
 
+    // MARK: - Resources (PORT-ONLY, W18)
+
+    /// <summary>The resources a server lists, cached until it says they changed. Empty when it has none.</summary>
+    public Task<IReadOnlyList<MCPResource>> Resources(string server) => Isolated(async () =>
+    {
+        var spec = SpecFor(server);
+        if (resourceCache.TryGetValue(server, out var cached)) return (IReadOnlyList<MCPResource>)cached;
+        var listed = (await Guarded(() => Client(server, spec).ListResources())).ToList();
+        resourceCache[server] = listed;
+        return listed;
+    });
+
+    /// <summary>The resource templates a server lists, cached until it says its resources changed.</summary>
+    public Task<IReadOnlyList<MCPResourceTemplate>> ResourceTemplates(string server) => Isolated(async () =>
+    {
+        var spec = SpecFor(server);
+        if (templateCache.TryGetValue(server, out var cached)) return (IReadOnlyList<MCPResourceTemplate>)cached;
+        var listed = (await Guarded(() => Client(server, spec).ListResourceTemplates())).ToList();
+        templateCache[server] = listed;
+        return listed;
+    });
+
+    /// <summary>resources/read: the items of one resource.</summary>
+    public Task<IReadOnlyList<MCPResourceContent>> ReadResource(string server, string uri) => Isolated(async () =>
+    {
+        var spec = SpecFor(server);
+        return await Guarded(() => Client(server, spec).ReadResource(uri));
+    });
+
+    /// <summary>
+    /// Reads a <c>ui://</c> resource for the MCP Apps host: the page and the <c>_meta.ui</c> it carries (the domains
+    /// it asks for, its permissions). Refuses an address that is not <c>ui://</c> and a page that is not the MCP App
+    /// MIME type (<c>text/html;profile=mcp-app</c>).
+    /// </summary>
+    public Task<MCPUiResource> ReadUiResource(string server, string uri) => Isolated(async () =>
+    {
+        if (!MCPToolMeta.IsUiUri(uri)) throw MCPHubError.Server("That isn't an app page address.");
+        var contents = await ReadResource(server, uri);
+        foreach (var item in contents)
+        {
+            if (!MCPToolMeta.IsAppPageMime(item.MimeType)) continue;
+            if (item.TextOrDecodedBlob() is not { } html) continue;
+            return new MCPUiResource(server, item.Uri.Length > 0 ? item.Uri : uri, html, MCPUiMeta.Read(item.Meta), item.Meta);
+        }
+        throw MCPHubError.Server("The server's resource isn't an MCP App page.");
+    });
+
+    // The spec of a configured server; an unknown id is an error the caller can show.
+    private MCPServerSpec SpecFor(string server)
+    {
+        specs ??= ReadSpecs();
+        if (!specs.TryGetValue(server, out var spec)) throw MCPHubError.Server($"No MCP server named {server}.");
+        return spec;
+    }
+
+    // The same error mapping Call() has: a hub error passes, cancellation stays cancellation, anything else is text.
+    private static async Task<T> Guarded<T>(Func<Task<T>> body)
+    {
+        try
+        {
+            return await body();
+        }
+        catch (MCPHubError)
+        {
+            throw;
+        }
+        catch (CancellationError)
+        {
+            throw new CancellationError();
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
+        {
+            throw MCPHubError.Server(SwiftErrors.LocalizedDescription(error));
+        }
+    }
+
+    // A server said (on its own) that a list changed. The change counts only if it comes from the client the hub
+    // holds now: Reload() replaces every client, and a stopped one may still be saying goodbye.
+    private void NoteListChanged(MCPClient client, MCPWire.ListKind kind) => _ = Isolated(() =>
+    {
+        if (!clients.TryGetValue(client.Id, out var current) || !ReferenceEquals(current, client)) return;
+        switch (kind)
+        {
+            case MCPWire.ListKind.Tools:
+                toolCache.Remove(client.Id);
+                Interlocked.Increment(ref toolsRevision);
+                break;
+            case MCPWire.ListKind.Resources:
+                resourceCache.Remove(client.Id);
+                templateCache.Remove(client.Id);
+                break;
+        }
+        try { ListChanged?.Invoke(new MCPListChange(client.Id, kind)); }
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) { /* a handler's failure never reaches the server loop */ }
+    });
+
     // The tests' seam (as LoginEnvironment.Which, Shell.cs:701): seeds specs directly, bypassing
     // MCPPaths.ClaudeConfigURL, so tools()/call()/reload() can be tested without depending on
     // Services/Store/Storage.swift (an unbuilt unit as of this writing, PORTING/work/packets4/Services.Store.Storage).
@@ -173,6 +370,8 @@ public sealed class MCPHub : Actor
         var existing = new Dictionary<string, MCPClient>(clients, SwiftStringComparer.Instance);
         clients.Clear();
         toolCache.Clear();
+        resourceCache.Clear();
+        templateCache.Clear();
         failed.Clear();
         specs = null;
         foreach (var client in existing.Values) Spawn(async () => await client.Stop());
@@ -196,7 +395,8 @@ public sealed class MCPHub : Actor
     private MCPClient Client(string id, MCPServerSpec spec)
     {
         if (clients.TryGetValue(id, out var existing)) return existing;
-        var created = new MCPClient(id, spec);
+        MCPClient? created = null;
+        created = new MCPClient(id, spec, kind => NoteListChanged(created!, kind));
         clients[id] = created;
         return created;
     }
@@ -283,22 +483,44 @@ internal sealed class MCPClient : Actor
     private bool dead;
     private string? sessionID;
 
+    // PORT-ONLY (W18): the server's capabilities object from its initialize result (null before the handshake or when
+    // it sent none), where list-changed is announced and what the server offers is named.
+    private JSONValue? serverCapabilities;
+
+    // PORT-ONLY (W18): told, on any thread, when the server says one of its lists changed.
+    private readonly Action<MCPWire.ListKind>? onListChanged;
+
+    // PORT-ONLY (W18): the http "listen" stream (a GET the server answers with events), when the server announced
+    // list changes. Ended by Stop().
+    private TaskHandle? listener;
+
     // :168-171
-    public MCPClient(string id, MCPServerSpec spec)
+    public MCPClient(string id, MCPServerSpec spec, Action<MCPWire.ListKind>? onListChanged = null)
     {
         Id = id;
         this.spec = spec;
+        this.onListChanged = onListChanged;
     }
 
     // :173-178. Nothing else is cleared: didRestart and dead stay set, so a client that exhausted its restart
     // stays dead until reload replaces it, and the http id counter keeps counting (PR-MCP-190).
     public Task Stop() => Isolated(() =>
     {
+        listener?.Cancel();
+        listener = null;
         stdio?.Stop();
         stdio = null;
         initialized = false;
         sessionID = null;
+        serverCapabilities = null;
     });
+
+    // PORT-ONLY (W18): what the server sends on its own. A list-changed notification reaches onListChanged; other
+    // notifications (progress, logging, resource updates) are not used yet and are dropped.
+    private void HandleNotification(JSONValue message)
+    {
+        if (MCPWire.ListChangedKind(MCPWire.MethodOf(message)) is { } kind) onListChanged?.Invoke(kind);
+    }
 
     // :180-200
     public Task<IReadOnlyList<MCPHub.Tool>> ListTools() => Isolated(async () =>
@@ -316,7 +538,15 @@ internal sealed class MCPClient : Actor
                     ["type"] = new JSONValue.String("object"),
                     ["properties"] = new JSONValue.Object(ValueMap<string, JSONValue>.Empty),
                 }, SwiftStringComparer.Instance));
-            output.Add(new MCPHub.Tool(Id, name, SwiftString.Prefix(rawDescription, 400), schema));
+            // PORT-ONLY (W18): _meta is kept whole; the UI resource and the visibility are read from it.
+            var meta = item["_meta"] is JSONValue.Object foundMeta ? foundMeta : null;
+            output.Add(new MCPHub.Tool(Id, name, SwiftString.Prefix(rawDescription, 400), schema)
+            {
+                Title = item["title"]?.JSONValueString,
+                Meta = meta,
+                UiResourceUri = MCPToolMeta.UiResourceUri(meta),
+                Visibility = MCPToolMeta.Visibility(meta),
+            });
         }
         return (IReadOnlyList<MCPHub.Tool>)output;
     });
@@ -332,32 +562,86 @@ internal sealed class MCPClient : Actor
                 ["arguments"] = args,
             }, SwiftStringComparer.Instance)),
             TimeSpan.FromSeconds(120));
-        var result = reply["result"];
-        var lines = new List<string>();
-        if (result?["content"] is JSONValue.Array contentArray)
+        // PORT-ONLY (W18): the text is the same flattened text as before; images, resources, structuredContent and
+        // _meta are kept next to it (MCPResultReader).
+        return MCPResultReader.Read(reply["result"]);
+    });
+
+    // MARK: - Resources (PORT-ONLY, W18)
+
+    // resources/list, paged. A server that named its capabilities and left "resources" out is not asked.
+    public Task<IReadOnlyList<MCPResource>> ListResources() => Isolated(async () =>
+    {
+        await EnsureReady();
+        if (!MCPWire.MaySupport(serverCapabilities, "resources")) return (IReadOnlyList<MCPResource>)[];
+        var items = await MCPWire.List("resources", parameters => Rpc("resources/list", parameters, TimeSpan.FromSeconds(60)));
+        var output = new List<MCPResource>();
+        foreach (var item in items)
         {
-            foreach (var item in contentArray.Value)
+            if (item["uri"]?.JSONValueString is not { Length: > 0 } uri) continue;
+            output.Add(new MCPResource(Id, uri, item["name"]?.JSONValueString ?? uri)
             {
-                if (item["text"] is JSONValue.String { Value: { } text })
+                Title = item["title"]?.JSONValueString,
+                Description = item["description"]?.JSONValueString,
+                MimeType = item["mimeType"]?.JSONValueString,
+                Size = item["size"]?.JSONValueInt,
+                Meta = item["_meta"] is JSONValue.Object meta ? meta : null,
+            });
+        }
+        return (IReadOnlyList<MCPResource>)output;
+    });
+
+    // resources/templates/list, paged.
+    public Task<IReadOnlyList<MCPResourceTemplate>> ListResourceTemplates() => Isolated(async () =>
+    {
+        await EnsureReady();
+        if (!MCPWire.MaySupport(serverCapabilities, "resources")) return (IReadOnlyList<MCPResourceTemplate>)[];
+        var items = await MCPWire.List("resourceTemplates", parameters => Rpc("resources/templates/list", parameters, TimeSpan.FromSeconds(60)));
+        var output = new List<MCPResourceTemplate>();
+        foreach (var item in items)
+        {
+            if (item["uriTemplate"]?.JSONValueString is not { Length: > 0 } template) continue;
+            output.Add(new MCPResourceTemplate(Id, template, item["name"]?.JSONValueString ?? template)
+            {
+                Title = item["title"]?.JSONValueString,
+                Description = item["description"]?.JSONValueString,
+                MimeType = item["mimeType"]?.JSONValueString,
+                Meta = item["_meta"] is JSONValue.Object meta ? meta : null,
+            });
+        }
+        return (IReadOnlyList<MCPResourceTemplate>)output;
+    });
+
+    // resources/read.
+    public Task<IReadOnlyList<MCPResourceContent>> ReadResource(string uri) => Isolated(async () =>
+    {
+        var reply = await Rpc("resources/read",
+            JSONValue.FromDictionaryLiteral(("uri", new JSONValue.String(uri))), TimeSpan.FromSeconds(60));
+        var output = new List<MCPResourceContent>();
+        if (reply["result"]?["contents"]?.JSONValueArray is { } contents)
+        {
+            foreach (var item in contents)
+            {
+                output.Add(new MCPResourceContent(item["uri"]?.JSONValueString ?? uri)
                 {
-                    lines.Add(text);
-                }
-                else if (item["type"] is JSONValue.String { Value: "image" })
-                {
-                    lines.Add("[image]");
-                }
-                else if (item["type"] is JSONValue.String { Value: "resource" })
-                {
-                    var uri = item["resource"]?["uri"] is JSONValue.String { Value: { } resourceUri }
-                        ? resourceUri
-                        : "";
-                    lines.Add($"[resource: {uri}]");
-                }
+                    MimeType = item["mimeType"]?.JSONValueString,
+                    Text = item["text"]?.JSONValueString,
+                    Blob = item["blob"]?.JSONValueString,
+                    Meta = item["_meta"] is JSONValue.Object meta ? meta : null,
+                });
             }
         }
-        var isError = result?["isError"] is JSONValue.Bool { Value: true };
-        return new MCPHub.Result(string.Join("\n", lines), isError);
+        return (IReadOnlyList<MCPResourceContent>)output;
     });
+
+    // The handshake alone, so the capabilities are known before a list is asked for (the same step every Rpc takes
+    // first; running it twice does nothing).
+    private Task EnsureReady() => spec switch
+    {
+        MCPServerSpec.Stdio stdioSpec => EnsureStdio(stdioSpec.Command, stdioSpec.Args, stdioSpec.Env),
+        MCPServerSpec.Http http => EnsureHttp(http.Url, http.Headers),
+        _ => throw new UnreachableException(),
+    };
 
     // :226-233
     private Task<JSONValue> Rpc(string method, JSONValue? parameters, TimeSpan timeout) => spec switch
@@ -436,7 +720,7 @@ internal sealed class MCPClient : Actor
         MCPStdioConnection connection;
         try
         {
-            connection = MCPStdioConnection.Launch(executable, args, environment);
+            connection = MCPStdioConnection.Launch(executable, args, environment, HandleNotification);
         }
         catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
@@ -453,6 +737,7 @@ internal sealed class MCPClient : Actor
             var reply = await StdioReply(connection, "initialize", MCPWire.InitializeParams(), TimeSpan.FromSeconds(60));
             if (reply["result"] is not JSONValue.Object)
                 throw MCPHubError.Server("The server sent something unexpected: missing result.");
+            serverCapabilities = reply["result"]?["capabilities"] is JSONValue.Object named ? named : null;
             connection.Notify("notifications/initialized");
             initialized = true;
         }
@@ -470,6 +755,20 @@ internal sealed class MCPClient : Actor
     private async Task<JSONValue> HttpRpc(string urlString, ValueMap<string, string> headers, string method,
         JSONValue? parameters, TimeSpan timeout)
     {
+        var url = await EnsureHttp(urlString, headers);
+        var id = nextID;
+        nextID += 1;
+        var posted2 = await Post(url, headers, MCPWire.Request(id, method, parameters), id, timeout);
+        if (posted2.Body is not { } replyBody)
+            throw MCPHubError.Server("The server sent something unexpected: empty reply.");
+        CheckReply(replyBody);
+        return replyBody;
+    }
+
+    // :310-341 (the first half of httpRpc). PORT-ONLY (W18): split out so a list can wait for the handshake and read
+    // the server's capabilities first; the requests and their order are exactly as before.
+    private async Task<Uri> EnsureHttp(string urlString, ValueMap<string, string> headers)
+    {
         if (SwiftURL.Create(urlString) is not { } parsed || !Uri.TryCreate(parsed.AbsoluteString, UriKind.Absolute, out var url))
             throw MCPHubError.Server("The server address is invalid.");
         if (!initialized)
@@ -484,6 +783,7 @@ internal sealed class MCPClient : Actor
             if (body["result"] is not JSONValue.Object)
                 throw MCPHubError.Server("The server sent something unexpected: missing result.");
             sessionID = posted.SessionID ?? sessionID;
+            serverCapabilities = body["result"]?["capabilities"] is JSONValue.Object named ? named : null;
             initialized = true;
             try
             {
@@ -497,14 +797,55 @@ internal sealed class MCPClient : Actor
             {
                 // swallowed: the client carries on, initialized, even though the notification failed.
             }
+            if (MCPWire.AnnouncesListChanges(serverCapabilities)) StartListener(url, headers);
         }
-        var id = nextID;
-        nextID += 1;
-        var posted2 = await Post(url, headers, MCPWire.Request(id, method, parameters), id, timeout);
-        if (posted2.Body is not { } replyBody)
-            throw MCPHubError.Server("The server sent something unexpected: empty reply.");
-        CheckReply(replyBody);
-        return replyBody;
+        return url;
+    }
+
+    // PORT-ONLY (W18): a server that announced list changes may send them on a GET event stream. It is opened once
+    // per handshake and read until the server closes it; a refusal (405 and the like) ends the attempt for good, a
+    // dropped stream is retried a few times, slower each time, and then given up.
+    private void StartListener(Uri url, ValueMap<string, string> headers)
+    {
+        listener?.Cancel();
+        var session = sessionID;
+        listener = TaskHandle.Detached(async () =>
+        {
+            var failures = 0;
+            while (!SwiftTask.IsCancelled)
+            {
+                var delivered = 0;
+                var outcome = await MCPWire.Listen(url, headers, session, message =>
+                {
+                    delivered += 1;
+                    HandleInbound(url, headers, session, message);
+                });
+                if (SwiftTask.IsCancelled || outcome == MCPWire.ListenOutcome.Unsupported) return;
+                failures = delivered > 0 ? 0 : failures + 1;
+                if (failures >= 5) return;
+                await SwiftTask.Sleep(SwiftTask.Seconds(Math.Min(30, 1 << failures)));
+            }
+        });
+    }
+
+    // PORT-ONLY (W18): a message the server sent over http. A notification is handled; a request is answered with a
+    // POST of the answer (ping gets an empty result, everything else "method not found"), so the server is not left
+    // waiting. A failed answer is not an error here.
+    private void HandleInbound(Uri url, ValueMap<string, string> headers, string? session, JSONValue message)
+    {
+        switch (MCPWire.Classify(message))
+        {
+            case MCPWire.MessageKind.Notification:
+                HandleNotification(message);
+                break;
+            case MCPWire.MessageKind.Request:
+                _ = TaskHandle.Detached(async () =>
+                {
+                    try { _ = await MCPWire.Post(url, headers, session, MCPWire.Reply(message), null, 30); }
+                    catch (Exception error) when (SwiftTry.IsThrownError(error)) { /* the server asked; nothing to tell the user */ }
+                });
+                break;
+        }
     }
 
     // :343-352. DEVIATION OD-0022 (ED-152, ED-209): `headers` here is this client's spec.headers, the server's own
@@ -515,7 +856,9 @@ internal sealed class MCPClient : Actor
     {
         try
         {
-            return await MCPWire.Post(url, headers, sessionID, payload, id, timeout.TotalSeconds);
+            var session = sessionID;
+            return await MCPWire.Post(url, headers, session, payload, id, timeout.TotalSeconds,
+                message => HandleInbound(url, headers, session, message));
         }
         catch (MCPHTTPError error)
         {

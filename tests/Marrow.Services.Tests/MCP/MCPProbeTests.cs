@@ -96,7 +96,11 @@ public sealed class MCPProbeTests
         Assert.Equal("initialize", initBody["method"]?.JSONValueString);
         var parameters = initBody["params"];
         Assert.Equal("2025-06-18", parameters?["protocolVersion"]?.JSONValueString);
-        Assert.Equal(0, parameters?["capabilities"]?.JSONValueObject?.Count);
+        // ED-NEW-web-w18-2: the probe says what the hub says (the apps extension and resources), no longer an empty object.
+        Assert.Equal(MCPWire.ClientCapabilities(), parameters?["capabilities"]);
+        Assert.Equal(2, parameters?["capabilities"]?.JSONValueObject?.Count);
+        Assert.Equal("text/html;profile=mcp-app",
+            parameters?["capabilities"]?["extensions"]?["io.modelcontextprotocol/ui"]?["mimeTypes"]?[0]?.JSONValueString);
         Assert.Equal("nth", parameters?["clientInfo"]?["name"]?.JSONValueString);
         Assert.Equal("1.0", parameters?["clientInfo"]?["version"]?.JSONValueString);
         await init.Respond(200, "OK", Ascii("{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"serverInfo\":{}}}"), ("Content-Type", "application/json"));
