@@ -25,6 +25,9 @@ public sealed record PcCaller(string Thread, Func<bool> Attended, bool Vision)
     public string? Head { get; init; }
     public PcGridProfile? Grid { get; init; }
 
+    /// <summary>The model's name, for a question's label ("GPT-6.1 Sol asks").</summary>
+    public string? Model { get; init; }
+
     /// <summary>The name busy_window and the cards show for this chat.</summary>
     public string Label => Head ?? "another chat";
 }
@@ -46,6 +49,9 @@ public sealed class PcEngineParts
 
     /// <summary>Pause and Resume, shared by every chat like the run control (DESIGN.md 10.1).</summary>
     public required PcPauseControl Pause { get; init; }
+
+    /// <summary>Every pending ask, from every chat (DESIGN.md 10.4, 10.7): pc_ask questions go here.</summary>
+    public required PcAskBroker Asks { get; init; }
 
     public required IPcAudit Audit { get; init; }
     public required IPcClock Clock { get; init; }
@@ -182,6 +188,7 @@ public sealed partial class PcControlEngine : IDisposable
         pending.CancelAll();
         parts.Ownership.Release(caller.Thread);
         parts.Pause.EndTurn(caller.Thread);
+        parts.Asks.EndTurn(caller.Thread);
         lock (gate)
         {
             stoppedForTurn = false;
@@ -302,6 +309,8 @@ public sealed partial class PcControlEngine : IDisposable
             }
             case PcToolSchemas.Batch:
                 return await Batch(args, call).ConfigureAwait(false);
+            case PcToolSchemas.Ask:
+                return await Ask(args, call).ConfigureAwait(false);
         }
         var handle = Window(PcArgs.Str(args, "window"));
         var capability = spec.ReadOnly ? PcCapability.See : PcCapability.Act;

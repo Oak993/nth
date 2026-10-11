@@ -20,6 +20,7 @@ public sealed class PcEngineHarness
         Capture = new PcCapturePipeline([CaptureSource], Encoder);
         Ownership = new PcWindowOwnership(Desktop.Clock);
         Pause = new PcPauseControl(Desktop.Clock, Control);
+        Asks = new PcAskBroker(AskClock, Control);
     }
 
     public PcFakeDesktop Desktop { get; } = new();
@@ -37,6 +38,11 @@ public sealed class PcEngineHarness
     public PcCapturePipeline Capture { get; }
     public PcWindowOwnership Ownership { get; }
     public PcPauseControl Pause { get; }
+
+    /// <summary>The ask broker, on its own clock so a question's 30 minutes pass only when a test advances it.</summary>
+    public PcAskBroker Asks { get; }
+
+    public PcManualClock AskClock { get; } = new();
     public PcSettings Settings { get; set; } = PcSettings.Default with { Enabled = true };
     public DateTimeOffset Now { get; set; } = Today;
 
@@ -54,6 +60,7 @@ public sealed class PcEngineHarness
         StopKey = StopKey,
         Control = Control,
         Pause = Pause,
+        Asks = Asks,
         Audit = Audit,
         Clock = Desktop.Clock,
         Launcher = Desktop,

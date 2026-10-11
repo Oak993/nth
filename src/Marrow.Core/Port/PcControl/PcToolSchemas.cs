@@ -69,6 +69,14 @@ public static class PcToolSchemas
     private const string ModifiersProp = "\"modifiers\":{\"type\":\"string\",\"description\":\"Keys held during the action, such as ctrl or ctrl+shift.\"}";
     private const string ExpectProp = "\"expect\":{\"type\":\"object\",\"description\":\"What must be true after the action, checked before the call returns: the target's value, name, selected, checked or focused_in_app; an element that appears; text that is gone; text_in_window; a window that opens (window_opens with title or class, and bind to name it for later batch steps, such as $dlg).\",\"properties\":{\"value\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"appears\":{\"type\":\"string\"},\"gone\":{\"type\":\"string\"},\"selected\":{\"type\":\"boolean\"},\"checked\":{\"type\":\"boolean\"},\"focused_in_app\":{\"type\":\"boolean\"},\"window_opens\":{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"class\":{\"type\":\"string\"}},\"additionalProperties\":false},\"text_in_window\":{\"type\":\"string\"},\"bind\":{\"type\":\"string\"}},\"additionalProperties\":false}";
 
+    /// <summary>
+    /// pc_ask (DESIGN.md 10.4, 10.9): the model's short question, answered from the pill or the chat. Plain text; a question
+    /// that asks for a secret is shown only in the chat.
+    /// </summary>
+    public static PcToolSpec AskSpec { get; } = new(Ask, "Ask the user",
+        "Ask the user a short question while you work in their apps; they answer from Tactus's pill or from the chat. Give up to four short choices, and allow_text for a typed answer (on unless you turn it off). Plain text only. Never ask for passwords, codes, or card or bank numbers: such a question goes only to the chat. Returns the answer, or waiting_for_user with reason question and a token for pc_wait until \"step\".",
+        true, "{\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":600},\"choices\":{\"type\":\"array\",\"maxItems\":4,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":40}},\"allow_text\":{\"type\":\"boolean\",\"default\":true},\"window\":{\"type\":\"string\",\"description\":\"The window the question is about (w:...), for the pill's line.\"}},\"required\":[\"question\"],\"additionalProperties\":false}");
+
     public static IReadOnlyList<PcToolSpec> All { get; } =
     [
         new(ListApps, "List apps",
@@ -116,6 +124,7 @@ public static class PcToolSchemas
         new(Wait, "Wait",
             "Wait until the window is idle, until some text appears, until some text is gone, or until an expect holds, at most 15 seconds. It wakes on the window's own change events. Do not sleep any other way. until step, with the token of a waiting_for_user result, waits up to 25 seconds more for that same step and returns its result.",
             true, "{\"type\":\"object\",\"properties\":{" + WindowProp + ",\"until\":{\"type\":\"string\",\"enum\":[\"idle\",\"text\",\"gone\",\"expect\",\"step\"]},\"text\":{\"type\":\"string\"},\"token\":{\"type\":\"string\",\"description\":\"The token of a waiting_for_user result (until step).\"}," + ElementProp + "," + TargetProp + "," + ExpectProp + ",\"timeout_ms\":{\"type\":\"integer\",\"minimum\":100,\"maximum\":15000,\"default\":5000}},\"required\":[\"window\",\"until\"],\"additionalProperties\":false}"),
+        AskSpec,
     ];
 
     /// <summary>
@@ -126,15 +135,7 @@ public static class PcToolSchemas
         "Hand a plan of simple steps to the user's fast helper model. goal is the plan: each step has tool (pc_observe, pc_read, pc_click, pc_type, pc_set_value, pc_action with select, pc_scroll or pc_wait), window, a target and an expect; the helper only fills in details and never adds steps. Any mismatch, ambiguity or guarded action returns to you at once with a report.",
         false, "{\"type\":\"object\",\"properties\":{\"goal\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":40,\"items\":{\"type\":\"object\",\"properties\":{\"tool\":{\"type\":\"string\",\"enum\":[\"pc_observe\",\"pc_read\",\"pc_click\",\"pc_type\",\"pc_set_value\",\"pc_action\",\"pc_scroll\",\"pc_wait\"]},\"window\":{\"type\":\"string\"}," + TargetProp + "," + ExpectProp + "},\"required\":[\"tool\",\"window\",\"target\",\"expect\"]}},\"windows\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"done_when\":{\"type\":\"string\"},\"max_steps\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":40}},\"required\":[\"goal\",\"windows\",\"done_when\"],\"additionalProperties\":false}");
 
-    /// <summary>
-    /// pc_ask (DESIGN.md 10.4, 10.9): the model's short question, answered from the pill or the chat. Plain text; a question
-    /// that asks for a secret is shown only in the chat.
-    /// </summary>
-    public static PcToolSpec AskSpec { get; } = new(Ask, "Ask the user",
-        "Ask the user a short question while you work in their apps; they answer from Tactus's pill or from the chat. Give up to four short choices, and allow_text for a typed answer (on unless you turn it off). Plain text only. Never ask for passwords, codes, or card or bank numbers: such a question goes only to the chat. Returns the answer, or waiting_for_user with reason question and a token for pc_wait until \"step\".",
-        true, "{\"type\":\"object\",\"properties\":{\"question\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":600},\"choices\":{\"type\":\"array\",\"maxItems\":4,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":40}},\"allow_text\":{\"type\":\"boolean\",\"default\":true},\"window\":{\"type\":\"string\",\"description\":\"The window the question is about (w:...), for the pill's line.\"}},\"required\":[\"question\"],\"additionalProperties\":false}");
-
-    /// <summary>The tools a model is offered: the fifteen, plus pc_delegate when the fast helper is on.</summary>
+    /// <summary>The tools a model is offered: the sixteen (pc_ask last), plus pc_delegate when the fast helper is on.</summary>
     public static IReadOnlyList<PcToolSpec> Listed(PcSettings settings) => settings.FastHelper ? [.. All, DelegateSpec] : All;
 
     public static PcToolSpec? Find(string? name) => name == Delegate ? DelegateSpec : All.FirstOrDefault(t => t.Name == name);

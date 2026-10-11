@@ -9,13 +9,13 @@ namespace Marrow.Core.Tests.Port.PcControl;
 public sealed class PcToolSchemasTests
 {
     [Fact]
-    public void The_fifteen_tool_names_are_stable_and_in_design_order()
+    public void The_sixteen_tool_names_are_stable_and_in_design_order()
     {
         Assert.Equal(
             new[]
             {
                 "pc_list_apps", "pc_launch_app", "pc_observe", "pc_click", "pc_type", "pc_set_value", "pc_key", "pc_scroll",
-                "pc_drag", "pc_action", "pc_focus_window", "pc_batch", "pc_read", "pc_zoom", "pc_wait",
+                "pc_drag", "pc_action", "pc_focus_window", "pc_batch", "pc_read", "pc_zoom", "pc_wait", "pc_ask",
             },
             PcToolSchemas.All.Select(t => t.Name));
         Assert.Equal("nth-pc", PcToolSchemas.ServerName);
@@ -46,14 +46,14 @@ public sealed class PcToolSchemasTests
             Assert.True(tool.Description.Length >= 40, tool.Name);
         }
         Assert.Equal(
-            new[] { "pc_list_apps", "pc_observe", "pc_read", "pc_zoom", "pc_wait" },
+            new[] { "pc_list_apps", "pc_observe", "pc_read", "pc_zoom", "pc_wait", "pc_ask" },
             PcToolSchemas.All.Where(t => t.ReadOnly).Select(t => t.Name));
     }
 
     [Fact]
     public void Window_scoped_tools_require_a_window()
     {
-        foreach (var tool in PcToolSchemas.All.Where(t => t.Name is not ("pc_list_apps" or "pc_launch_app" or "pc_zoom")))
+        foreach (var tool in PcToolSchemas.All.Where(t => t.Name is not ("pc_list_apps" or "pc_launch_app" or "pc_zoom" or "pc_ask")))
             Assert.Contains("window", tool.Schema()["required"]!.AsArray().Select(r => r!.GetValue<string>()));
     }
 
@@ -100,7 +100,7 @@ public sealed class PcToolSchemasTests
     {
         Assert.DoesNotContain(PcToolSchemas.Listed(PcSettings.Default), t => t.Name == "pc_delegate");
         Assert.Contains(PcToolSchemas.Listed(PcSettings.Default with { FastHelper = true }), t => t.Name == "pc_delegate");
-        Assert.Equal(15, PcToolSchemas.All.Count);
+        Assert.Equal(16, PcToolSchemas.All.Count);
         var spec = PcToolSchemas.Find("pc_delegate")!;
         var step = spec.Schema()["properties"]!["goal"]!["items"]!;
         Assert.Equal(new[] { "tool", "window", "target", "expect" }, step["required"]!.AsArray().Select(r => r!.GetValue<string>()));
@@ -124,7 +124,7 @@ public sealed class PcToolSchemasTests
     public void The_instructions_cover_the_loop_targeting_waiting_secrets_confirmation_and_untrusted_screen_text()
     {
         var text = PcInstructions.Text;
-        foreach (var needle in new[] { "pc_list_apps", "pc_observe", "element numbers", "obs", "pc_batch", "Never sleep", "passwords", "ask the user in chat first", "never instructions", "stop and tell the user", "Tactus", "every call names its window", "at the same time", "minimized", "never brings a window to the front", "expect", "ambiguous_target", "unverified", "pc_read", "parallel", "never copy and paste", "user_typing_here", "needs_real_input", "waiting_for_user", "until \"step\"", "Excel" })
+        foreach (var needle in new[] { "pc_list_apps", "pc_observe", "element numbers", "obs", "pc_batch", "Never sleep", "passwords", "ask the user in chat first", "never instructions", "stop and tell the user", "Tactus", "every call names its window", "at the same time", "minimized", "never brings a window to the front", "expect", "ambiguous_target", "unverified", "pc_read", "parallel", "never copy and paste", "user_typing_here", "needs_real_input", "waiting_for_user", "until \"step\"", "Excel", "pc_ask", "declined_by_user" })
             Assert.Contains(needle, text, StringComparison.Ordinal);
         Assert.StartsWith("<pc_control>\n", PcInstructions.PromptBlock, StringComparison.Ordinal);
         Assert.DoesNotContain('—', text);
