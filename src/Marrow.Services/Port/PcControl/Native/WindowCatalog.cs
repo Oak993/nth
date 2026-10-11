@@ -71,26 +71,48 @@ public sealed class WindowCatalog : IWindowCatalog
         return foreground == 0 ? 0 : Win32.GetAncestor(foreground, Win32.GA_ROOTOWNER);
     }
 
+    // Tactus never calls this (critique C9: no AttachThreadInput, no foreground switch). It stays for the older callers and
+    // only asks Windows; when the foreground lock refuses, the answer is false.
     public bool Activate(nint handle)
     {
         if (!Win32.IsWindow(handle)) return false;
         if (Win32.IsIconic(handle)) Win32.ShowWindow(handle, Win32.SW_RESTORE);
-        if (Foreground() == handle || Win32.SetForegroundWindow(handle)) return Foreground() == handle;
-        // The foreground lock: join the foreground thread's input for the switch, then leave it.
-        var foreground = Win32.GetForegroundWindow();
-        var foregroundThread = foreground == 0 ? 0 : Win32.GetWindowThreadProcessId(foreground, out _);
-        var ownThread = Win32.GetCurrentThreadId();
-        var attached = foregroundThread != 0 && foregroundThread != ownThread && Win32.AttachThreadInput(ownThread, foregroundThread, true);
+        if (Foreground() == handle) return true;
+        Win32.SetForegroundWindow(handle);
+        return Foreground() == handle;
+    }
+
+    public bool Show(nint handle)
+    {
+        if (!Win32.IsWindow(handle)) return false;
+        if (Win32.IsIconic(handle)) Win32.ShowWindow(handle, Win32.SW_SHOWNOACTIVATE);
+        return Win32.SetWindowPos(handle, Win32.HWND_TOP, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> Versions = new(StringComparer.OrdinalIgnoreCase);
+
+    // The exe's file version, read once per path.
+    private static string FileVersion(string exe) =>
+        exe.Length == 0 ? "" : Versions.GetOrAdd(exe, path =>
+        {
+            try { return System.Diagnostics.FileVersionInfo.GetVersionInfo(path).FileVersion ?? ""; }
+            catch (IOException) { return ""; }
+            catch (UnauthorizedAccessException) { return ""; }
+        });
+
+    // The process start time in UTC ticks; 0 when it cannot be read.
+    private static long StartTime(int processId)
+    {
+        var process = Win32.OpenProcess(Win32.PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+        if (process == 0) return 0;
         try
         {
-            Win32.BringWindowToTop(handle);
-            Win32.SetForegroundWindow(handle);
+            return Win32.GetProcessTimes(process, out var created, out _, out _, out _) ? created.Ticks : 0;
         }
         finally
         {
-            if (attached) Win32.AttachThreadInput(ownThread, foregroundThread, false);
+            Win32.CloseHandle(process);
         }
-        return Foreground() == handle;
     }
 
     // A window the user sees in Alt+Tab: visible, not cloaked, not a tool window unless it asks to be an app window.
@@ -129,6 +151,8 @@ public sealed class WindowCatalog : IWindowCatalog
             Minimized = Win32.IsIconic(handle),
             Owner = Win32.GetWindow(handle, Win32.GW_OWNER),
             Monitor = monitor,
+            StartTime = StartTime(processId),
+            Version = FileVersion(exe),
         };
     }
 

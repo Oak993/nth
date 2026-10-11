@@ -27,6 +27,8 @@ public sealed class UiaReader : IUiaReader, IDisposable
         UiaIds.IsValuePatternAvailable, UiaIds.IsWindowPatternAvailable, UiaIds.ValueValue, UiaIds.ValueIsReadOnly,
         UiaIds.RangeValueValue, UiaIds.RangeValueIsReadOnly, UiaIds.ScrollHorizontallyScrollable,
         UiaIds.ScrollVerticallyScrollable, UiaIds.ExpandCollapseState, UiaIds.SelectionItemIsSelected, UiaIds.ToggleState,
+        UiaIds.FrameworkId, UiaIds.ClassName, UiaIds.NativeWindowHandle, UiaIds.AccessKey, UiaIds.ScrollVerticalScrollPercent,
+        UiaIds.LegacyIAccessibleDefaultAction,
     ];
 
     private readonly PcWorkerPool workers = new("nth Tactus UIA");
@@ -58,8 +60,25 @@ public sealed class UiaReader : IUiaReader, IDisposable
 
     public Task<PcUiaOutcome> Perform(nint window, string runtimeId, PcElementCommand command, CancellationToken cancellationToken) => workers.For(window).Run(() =>
         Find(window, runtimeId, Client().Element) is { } element
-            ? UiaPatterns.Perform(element, Build(element), command)
+            ? command.Action == PcElementAction.Invoke ? Sacrificial(element, Build(element), command) : UiaPatterns.Perform(element, Build(element), command)
             : PcUiaOutcome.Fail(PcErrorCode.StaleElement, "the element is gone"), CallTimeout, cancellationToken);
+
+    // Invoke can stay inside the app until a modal dialog it opened closes (critique C31). It runs on a thread of its own;
+    // after ModalMs the answer is "still running" and the window's worker is free again. The thread ends with the dialog.
+    private static PcUiaOutcome Sacrificial(IUIAutomationElement element, PcUiNode node, PcElementCommand command)
+    {
+        var done = new TaskCompletionSource<PcUiaOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            try { done.TrySetResult(UiaPatterns.Perform(element, node, command)); }
+            catch (COMException exception) { done.TrySetException(exception); }
+            catch (InvalidOperationException exception) { done.TrySetException(exception); }
+        })
+        { IsBackground = true, Name = "nth Tactus invoke" };
+        thread.SetApartmentState(ApartmentState.MTA);
+        thread.Start();
+        return done.Task.Wait(PcUiaOutcome.ModalMs) ? done.Task.Result : PcUiaOutcome.Running;
+    }
 
     public Task<string?> ReadText(nint window, string runtimeId, CancellationToken cancellationToken) => workers.For(window).Run(() =>
     {
@@ -202,6 +221,13 @@ public static class UiaNodes
             States = states,
             Actions = actions,
             Bounds = Bounds(read(UiaIds.BoundingRectangle)),
+            Framework = Text(UiaIds.FrameworkId),
+            ClassName = Text(UiaIds.ClassName),
+            NativeWindow = Number(UiaIds.NativeWindowHandle) is int native ? native : 0,
+            AccessKey = Text(UiaIds.AccessKey),
+            // UIA_ScrollPatternNoScroll (-1) means the element does not scroll that way.
+            ScrollPercent = (states & PcStates.Scrollable) != 0 && read(UiaIds.ScrollVerticalScrollPercent) is double percent && percent >= 0 ? percent : null,
+            DefaultAction = Text(UiaIds.LegacyIAccessibleDefaultAction),
         };
     }
 

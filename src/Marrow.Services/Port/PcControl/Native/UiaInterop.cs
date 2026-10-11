@@ -23,13 +23,16 @@ internal static class UiaIds
     public const int LocalizedControlType = 30004;
     public const int Name = 30005;
     public const int AcceleratorKey = 30006;
+    public const int AccessKey = 30007;
     public const int HasKeyboardFocus = 30008;
     public const int IsKeyboardFocusable = 30009;
     public const int IsEnabled = 30010;
     public const int AutomationId = 30011;
+    public const int ClassName = 30012;
     public const int IsPassword = 30019;
     public const int NativeWindowHandle = 30020;
     public const int IsOffscreen = 30022;
+    public const int FrameworkId = 30024;
     public const int IsExpandCollapsePatternAvailable = 30028;
     public const int IsInvokePatternAvailable = 30031;
     public const int IsRangeValuePatternAvailable = 30033;
@@ -38,6 +41,8 @@ internal static class UiaIds
     public const int IsSelectionItemPatternAvailable = 30036;
     public const int IsTextPatternAvailable = 30040;
     public const int IsTogglePatternAvailable = 30041;
+    public const int ScrollVerticalScrollPercent = 30055;
+    public const int LegacyIAccessibleDefaultAction = 30100;
     public const int IsValuePatternAvailable = 30043;
     public const int IsWindowPatternAvailable = 30044;
     public const int ValueValue = 30045;

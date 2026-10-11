@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.PcControl;
 // pcTools.ts:39-45): the tools go only to a chat the user is watching, and only when PC control is on.
 [Trait("Decision", "ED-NEW-pcctl-1")]
 [Trait("Decision", "ED-NEW-pcctl-2")]
+[Trait("Decision", "ED-NEW-pcctl-7")]
 public sealed class PcPolicyTests
 {
     [Theory]
@@ -111,6 +112,46 @@ public sealed class PcPolicyTests
     public void Words_that_only_contain_a_guarded_word_are_not_guarded(string? name)
     {
         Assert.Null(PcPolicy.GuardedWord(name));
+    }
+
+    [Theory]
+    [InlineData("भेजें", "send")]
+    [InlineData("ईमेल भेजें", "send")]
+    [InlineData("हटाएं", "delete")]
+    [InlineData("भुगतान करें", "pay")]
+    [InlineData("अनइंस्टॉल करें", "uninstall")]
+    [InlineData("بھیجیں", "send")]
+    [InlineData("حذف کریں", "delete")]
+    [InlineData("ادائیگی کریں", "pay")]
+    [InlineData("ان انسٹال کریں", "uninstall")]
+    [InlineData("سائن آؤٹ", "sign out")]
+    public void Hindi_and_urdu_buttons_are_guarded_too(string name, string word)
+    {
+        Assert.Equal(word, PcPolicy.GuardedWord(name));
+    }
+
+    [Theory]
+    [InlineData("SendButton", "send")]
+    [InlineData("btnDelete", "delete")]
+    [InlineData("id_pay_now", "pay")]
+    [InlineData("SignOut", "sign out")]
+    [InlineData("PostalCode", null)]
+    [InlineData("OrderedList", null)]
+    [InlineData("PaymentHistory", null)]
+    public void An_icon_button_is_guarded_by_its_automation_id(string automationId, string? word)
+    {
+        Assert.Equal(word, PcPolicy.GuardedWord("", automationId));
+    }
+
+    [Fact]
+    public void A_nameless_button_in_a_mail_or_chat_app_needs_confirmation()
+    {
+        var outlook = new PcAppIdentity(@"C:\Program Files\Microsoft Office\outlook.exe");
+        var icon = new PcUiNode("1.2", "button", "") { Actions = PcActions.Invoke };
+        Assert.True(PcPolicy.UnnamedButtonNeedsConfirmation(outlook, icon));
+        Assert.True(PcPolicy.UnnamedButtonNeedsConfirmation(outlook, icon with { Name = "»" }));
+        Assert.False(PcPolicy.UnnamedButtonNeedsConfirmation(outlook, icon with { Name = "Reply" }));
+        Assert.False(PcPolicy.UnnamedButtonNeedsConfirmation(new PcAppIdentity(@"C:\Windows\notepad.exe"), icon));
     }
 
     [Fact]

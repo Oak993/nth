@@ -1,6 +1,6 @@
 // PORT-ONLY: PC control (OD-0140, ED-NEW-pcctl-1; DESIGN.md 3.1, 3.2). The backends the engine drives, each behind an
-// interface so every automated test runs on fakes: the window list, the security probe, input, nth's own windows, the
-// clock and the app launcher. (The UIA reader, the capture and the approval, confirmation and interruption seams have
+// interface so every automated test runs on fakes: the window list, the security probe, input, the user's foreground
+// state, nth's own windows, the clock and the app launcher. (The UIA reader, the capture and the approval, confirmation and interruption seams have
 // their own files.) Win32 implementations live in Native/.
 using System.Diagnostics;
 using Marrow.Core.Port.PcControl;
@@ -15,8 +15,21 @@ public sealed record PcWindowInfo(nint Handle, string Title, string ClassName, i
     public bool Minimized { get; init; }
     public nint Owner { get; init; }
     public int Monitor { get; init; }
+
+    /// <summary>When the window's process started (UTC ticks); with the process id and class it tells a reused handle apart.</summary>
+    public long StartTime { get; init; }
+
+    /// <summary>The exe's file version, for capability learning (DESIGN.md 2.6); empty when unknown.</summary>
+    public string Version { get; init; } = "";
     public PcAppIdentity App => new(ExePath, Aumid);
     public string ExeName => App.ExeName;
+
+    /// <summary>
+    /// Whether <paramref name="live"/> is still this window and not another one that Windows gave the same handle
+    /// (critique C17): the same process id, process start time and class.
+    /// </summary>
+    public bool SameWindow(PcWindowInfo live) =>
+        live.Handle == Handle && live.ProcessId == ProcessId && live.StartTime == StartTime && string.Equals(live.ClassName, ClassName, StringComparison.Ordinal);
 }
 
 /// <summary>A monitor: its index, bounds and work area in physical pixels, its DPI, whether it is the primary.</summary>
@@ -46,6 +59,25 @@ public interface IWindowCatalog
 
     /// <summary>Restores and brings the window forward; true when it is the foreground window afterwards.</summary>
     bool Activate(nint handle);
+
+    /// <summary>
+    /// Shows the window to the user without activating it (DESIGN.md 2.2 pc_focus_window): restored if minimized
+    /// (SW_SHOWNOACTIVATE) and raised (SetWindowPos HWND_TOP, SWP_NOACTIVATE). The user's foreground and focus stay.
+    /// </summary>
+    bool Show(nint handle);
+}
+
+/// <summary>
+/// The user's side of the PC at one moment (DESIGN.md 2.6 delta check, critique C16): the foreground window (its root),
+/// the real cursor, the focused control of the foreground thread, whether a modifier key is down, and how long ago the
+/// last physical or injected input of the session was (GetLastInputInfo).
+/// </summary>
+public readonly record struct PcUserState(nint Foreground, PcPoint Cursor, nint Focus, bool ModifiersDown, long InputAgeMs);
+
+/// <summary>Reads the user's state. Reading only: nothing here changes the foreground, the focus or the cursor.</summary>
+public interface IForeground
+{
+    PcUserState Read();
 }
 
 public interface ISecurityProbe

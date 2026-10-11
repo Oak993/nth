@@ -4,6 +4,7 @@ namespace Marrow.Core.Tests.Port.PcControl;
 
 // PORT-ONLY: PC control (OD-0140). DESIGN.md 2.1 result envelope and 2.2 stable error codes, each with one next step.
 [Trait("Decision", "ED-NEW-pcctl-1")]
+[Trait("Decision", "ED-NEW-pcctl-7")]
 public sealed class PcResultTests
 {
     [Fact]
@@ -29,8 +30,33 @@ public sealed class PcResultTests
         Assert.Equal(wires.Count, wires.Distinct(StringComparer.Ordinal).Count());
         foreach (var wire in wires) Assert.Matches("^[a-z]+(_[a-z]+)*$", wire);
         foreach (var code in codes) Assert.False(string.IsNullOrWhiteSpace(PcErrorCodes.Recovery(code)));
-        foreach (var design in new[] { "not_approved", "denied_app", "elevated", "secure_desktop", "locked", "password_field", "stale_obs", "stale_element", "occluded_point", "window_gone", "stopped_by_user", "user_took_over", "needs_confirmation", "timeout", "bad_args", "disabled" })
+        foreach (var design in new[] { "not_approved", "denied_app", "elevated", "secure_desktop", "locked", "password_field", "stale_obs", "stale_element", "occluded_point", "window_gone", "stopped_by_user", "needs_confirmation", "timeout", "bad_args", "disabled", "ambiguous_target", "expect_failed", "deferred_by_user", "declined_by_user", "user_typing_here", "busy_window", "needs_real_input", "not_in_workspace" })
             Assert.Contains(design, wires);
+        // User input never stops Tactus, so nothing can say the user took over (DESIGN.md 2.2, ED-NEW-pcctl-7).
+        Assert.DoesNotContain("user_took_over", wires);
+    }
+
+    [Fact]
+    public void Unverified_is_a_status_that_is_neither_ok_nor_an_error()
+    {
+        var result = PcResult.Unverified("only unrelated parts of the window changed", body: "done: invoke button \"Next\"");
+        Assert.False(result.Ok);
+        Assert.Null(result.Error);
+        Assert.Equal("unverified: only unrelated parts of the window changed. Call pc_observe or give an expect; do not assume it worked.\ndone: invoke button \"Next\"", result.Render());
+    }
+
+    [Fact]
+    public void Waiting_for_user_is_a_status_with_its_reason_a_token_and_the_steps_done()
+    {
+        var result = PcResult.WaitingFor(PcWaitReason.Approval, "s:3", body: "1. pc_click: done");
+        Assert.False(result.Ok);
+        Assert.Null(result.Error);
+        Assert.Equal(PcStatus.WaitingForUser, result.Status);
+        Assert.Equal("waiting_for_user: approval. token: s:3. Do other steps, then call pc_wait with until \"step\" and this token.\n1. pc_click: done", result.Render());
+        Assert.Equal(new[] { "approval", "hands_off", "typing_here", "confirm_card", "batch_budget" },
+            new[] { PcWaitReason.Approval, PcWaitReason.HandsOff, PcWaitReason.TypingHere, PcWaitReason.ConfirmCard, PcWaitReason.BatchBudget });
+        Assert.Equal(new[] { "real input off", "not allowed for this app", "foreground protected", "monitor unhealthy", "activation unproven" },
+            new[] { PcRealInputReason.Off, PcRealInputReason.NotAllowed, PcRealInputReason.ForegroundProtected, PcRealInputReason.MonitorUnhealthy, PcRealInputReason.ActivationUnproven });
     }
 
     [Fact]

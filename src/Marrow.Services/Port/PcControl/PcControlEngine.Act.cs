@@ -1,0 +1,434 @@
+// PORT-ONLY: Tactus, PC control (OD-0140, OD-0141, OD-0144, ED-NEW-pcctl-6, ED-NEW-pcctl-7, ED-NEW-pcctl-8; DESIGN.md 2.6,
+// 2.8, 2.9, 2.11, 2.12, 4.3; critique C5, C6, C7, C13, C16, C21, C25 to C28). Acting. The target is found again by
+// identity just before acting (a recycled container or a look-alike is never acted on; two matches are refused). The action
+// goes down the ladder without activating any window: before each way the guarded-word check runs on what that way will
+// press (name, AutomationId, default action, class, menu text; an unnamed button in a mail or chat app), a write into the
+// control the user is typing in waits, and around each way the user's foreground, pointer and focus are compared (a way
+// that moved them is not used again). The window is then waited on by its change events until the action's check holds,
+// and the check decides ok, unverified or expect_failed; a failed check tries the next way once.
+using System.Text;
+using System.Text.Json.Nodes;
+using Marrow.Core.Port.PcControl;
+
+namespace Marrow.Services.Port.PcControl;
+
+public sealed partial class PcControlEngine
+{
+    /// <summary>A resolved target: the tree its number is in, its number, the live element, the screen point (point targets).</summary>
+    private sealed record PcTarget(PcTree Tree, int Number, PcUiNode? Node, PcPoint? Point);
+
+    /// <summary>
+    /// The element a call names (an element number, a target locator, or a point with its obs), found again in the live
+    /// app just before acting. A changed, vanished or doubly matched element is refused; Tactus never guesses.
+    /// </summary>
+    private async Task<(PcTarget? Target, PcResult? Failure)> Resolve(PcWindowInfo info, JsonObject args, bool pointAllowed, bool required, PcCall call)
+    {
+        var element = PcArgs.Int(args, "element");
+        var locator = PcArgs.Locator(args);
+        var point = PcArgs.Pair(args["point"], "point");
+        var given = (element is null ? 0 : 1) + (locator is null ? 0 : 1) + (point is null ? 0 : 1);
+        if (given > 1) throw new PcArgsException("give only one of element, target and point");
+        if (point is not null && !pointAllowed) throw new PcArgsException("this tool takes element or target, not a point");
+        if (given == 0)
+        {
+            if (required) throw new PcArgsException("give element (a number from the tree) or target");
+            return (null, null);
+        }
+        PcElementIdentity identity;
+        PcObservation? looked = null;
+        PcPoint? screen = null;
+        if (element is { } number)
+        {
+            // The look the model saw: the batch's starting look in a batch, else the latest (whose diff it was given).
+            looked = call.Base ?? Latest(info.Handle);
+            if (looked is null) return (null, PcResult.Fail(PcErrorCode.StaleObs, "Tactus has not looked at this window yet; call pc_observe"));
+            if (!looked.Tree.Elements.ContainsKey(number)) return (null, PcResult.Fail(PcErrorCode.StaleElement, "element " + Count(number) + " was not in your last look at this window"));
+            identity = PcElementMatch.Identity(looked.Tree, number);
+        }
+        else if (locator is not null)
+        {
+            var tree = await Tree(info.Handle, fresh: false, call.Token).ConfigureAwait(false);
+            if (tree is null) return (null, PcResult.Fail(PcErrorCode.WindowGone, "the window is gone"));
+            var match = PcElementMatch.Find(tree, locator);
+            if (!match.Found) return (null, Unmatched(match, tree));
+            identity = PcElementMatch.Identity(tree, match.Index);
+        }
+        else
+        {
+            var observation = Observation(PcArgs.Str(args, "obs"));
+            if (observation is null || observation.Window.Handle != info.Handle || observation.Shot is null || LatestShot(info.Handle)?.Number != observation.Number)
+                return (null, PcResult.Fail(PcErrorCode.StaleObs, "a point needs the obs of this window's latest screenshot"));
+            var (x, y) = point!.Value;
+            var grid = observation.Shot.Grid;
+            if (!CoordinateMapper.OnGrid(grid, x, y)) return (null, PcResult.Fail(PcErrorCode.OffScreen, "the point is outside the screenshot"));
+            if (info.Minimized) return (null, PcResult.Fail(PcErrorCode.OffScreen, "the window is minimized; use an element number"));
+            if (CoordinateMapper.Compare(observation.Window.Frame, info.Frame) == PcFrameChange.Resized)
+                return (null, PcResult.Fail(PcErrorCode.StaleObs, "the window changed size since " + observation.Id));
+            // A moved window is followed: the point keeps its place inside the window.
+            var at = CoordinateMapper.ToScreen(info.Frame, grid.Scale, x, y);
+            screen = at;
+            if (parts.Own.Rects().Any(r => r.Contains(at))) return (null, PcResult.Fail(PcErrorCode.OwnWindow, "the point is on nth's own window"));
+            if (!parts.Catalog.Monitors().Any(m => m.Bounds.Contains(at))) return (null, PcResult.Fail(PcErrorCode.OffScreen, "the point is on no screen"));
+            var then = CoordinateMapper.ToScreen(observation.Window.Frame, grid.Scale, x, y);
+            looked = observation;
+            var under = PcElementMatch.AtPoint(observation.Tree, then);
+            if (under == 0)
+            {
+                if (StaleView(info, looked) is { } staleness) return (null, staleness);
+                var now = await Tree(info.Handle, fresh: false, call.Token).ConfigureAwait(false);
+                return now is null ? (null, PcResult.Fail(PcErrorCode.WindowGone, "the window is gone")) : (new PcTarget(now, 0, null, at), null);
+            }
+            identity = PcElementMatch.Identity(observation.Tree, under);
+        }
+        if (looked is not null && StaleView(info, looked) is { } stale) return (null, stale);
+        call.Timings.Mark("resolve");
+        // Just before acting: the element itself, live (one cheap call); a full read only when it is not the same any more.
+        var live = await parts.Reader.Element(info.Handle, identity.RuntimeId, call.Token).WaitAsync(call.Token).ConfigureAwait(false);
+        var current = await Tree(info.Handle, fresh: false, call.Token).ConfigureAwait(false);
+        if (current is null) return (null, PcResult.Fail(PcErrorCode.WindowGone, "the window is gone"));
+        PcUiNode node;
+        int resolved;
+        if (live is not null && PcElementMatch.Matches(live, identity) && current.IndexOf(identity.RuntimeId) is { } index)
+        {
+            node = live;
+            resolved = index;
+        }
+        else
+        {
+            var fresh = await Tree(info.Handle, fresh: true, call.Token).ConfigureAwait(false);
+            if (fresh is null) return (null, PcResult.Fail(PcErrorCode.WindowGone, "the window is gone"));
+            var match = PcElementMatch.Resolve(fresh, identity);
+            if (!match.Found) return (null, Unmatched(match, fresh));
+            node = fresh.Elements[match.Index];
+            resolved = match.Index;
+            current = fresh;
+        }
+        if (screen is { } p && !node.Bounds.IsEmpty && !node.Bounds.Contains(p))
+            return (null, PcResult.Fail(PcErrorCode.StaleObs, identity.Describe() + " is no longer under the point"));
+        if (looked is not null && identity.Seen is { } seen && UserChanged(info, looked, seen, node) is { } edited)
+            return (null, PcResult.Fail(PcErrorCode.ExpectFailed, edited));
+        call.Audit.Element = node.Name;
+        call.Audit.Role = node.Role;
+        call.Timings.Mark("verify-target");
+        return (new PcTarget(current, resolved, node, screen), null);
+    }
+
+    // Never acts on old facts (DESIGN.md 2.9): when the user worked in this window after the model's look (it was in front
+    // and had input since), a target whose value or state differs from that look was changed by the user, and the step
+    // stops instead of acting on what the model saw. Tactus's own earlier writes do not count unless the user was also
+    // working there, which errs on the side of stopping.
+    private string? UserChanged(PcWindowInfo info, PcObservation looked, PcUiNode seen, PcUiNode now)
+    {
+        var user = parts.Foreground.Read();
+        if (user.Foreground != info.Handle || user.InputAgeMs >= parts.Clock.NowMs - looked.At) return null;
+        var what = PcVerify.Describe(now);
+        if (PcElementMatch.Editable(seen) && !seen.Has(PcStates.Password)
+            && !string.Equals(PcVerify.Text(seen.Value), PcVerify.Text(now.Value), StringComparison.Ordinal))
+            return "the user changed " + what + " since your look: it now shows " + PcWindowLine.Quote(TreeFormatter.Clean(now.Value ?? "", 80)) + "; look again before acting";
+        const PcStates watched = PcStates.Checked | PcStates.Selected | PcStates.Expanded | PcStates.Collapsed;
+        if ((seen.States & watched) != (now.States & watched))
+            return "the user changed " + what + " since your look: it is now " + StateWords(seen.States, now.States) + "; look again before acting";
+        return null;
+    }
+
+    // The states that changed, as they are now: "checked", "not selected", "expanded".
+    private static string StateWords(PcStates seen, PcStates now)
+    {
+        var words = new List<string>();
+        if ((seen ^ now).HasFlag(PcStates.Checked)) words.Add(now.HasFlag(PcStates.Checked) ? "checked" : "unchecked");
+        if ((seen ^ now).HasFlag(PcStates.Selected)) words.Add(now.HasFlag(PcStates.Selected) ? "selected" : "not selected");
+        if ((seen ^ now).HasFlag(PcStates.Expanded) || (seen ^ now).HasFlag(PcStates.Collapsed))
+            words.Add(now.HasFlag(PcStates.Expanded) ? "expanded" : "collapsed");
+        return string.Join(", ", words);
+    }
+
+    // Never a stale view (DESIGN.md 2.9): a window of the app that opened since the model looked (and that no Tactus step
+    // opened) may cover or change what the step depends on.
+    private PcResult? StaleView(PcWindowInfo info, PcObservation looked)
+    {
+        List<PcWindowInfo> appeared;
+        lock (gate) appeared = NewWindows(info, looked.AppWindows).Where(w => w.Handle != info.Handle && !opened.Contains(w.Handle)).ToList();
+        if (appeared.Count == 0) return null;
+        var first = appeared[0];
+        return PcResult.Fail(PcErrorCode.ExpectFailed, "a window of the app opened since your look at this window: " + PcWindowRef.Format(first.Handle) + " "
+            + PcWindowLine.Quote(TreeFormatter.Clean(first.Title, 80)) + "; look at it before acting here");
+    }
+
+    private static PcResult Unmatched(PcMatch match, PcTree tree)
+    {
+        if (match.Kind == PcMatchKind.Ambiguous)
+        {
+            var list = string.Join("; ", match.Candidates.Take(8).Select(i => "[" + Count(i) + "] " + TreeFormatter.Body(tree.Elements[i]) + " at " + Bounds(tree.Elements[i].Bounds)));
+            return PcResult.Fail(PcErrorCode.AmbiguousTarget, (match.Detail ?? "more than one element matches") + ": " + list);
+        }
+        return PcResult.Fail(PcErrorCode.StaleElement, match.Detail ?? "the element is gone");
+    }
+
+    private static string Bounds(PcRect r) => Count(r.X) + "," + Count(r.Y) + " " + Count(r.Width) + "x" + Count(r.Height);
+
+    /// <summary>
+    /// Runs one input down the ladder and checks it. <paramref name="typed"/> is the text of a pc_type (read back after).
+    /// </summary>
+    private async Task<PcResult> Act(PcWindowInfo info, PcInputRequest request, PcExpect? expect, PcCall call, string? typed = null)
+    {
+        var handle = info.Handle;
+        // What changed on its own since Tactus last looked (a clock, a caret, an animation) is noise for the check.
+        var cached = Cached(handle);
+        var before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false);
+        if (before is null) return PcResult.Fail(PcErrorCode.WindowGone, "the window is gone");
+        var user = parts.Foreground.Read();
+        var inFront = user.Foreground == handle;
+        var active = inFront && user.InputAgeMs < UserActiveMs;
+        var noise = cached is not null && !ReferenceEquals(cached, before) ? PcVerify.Changed(cached, before) : new HashSet<string>(StringComparer.Ordinal);
+        if (active && before.Focused is { } focusedIndex) noise.Add(before.Elements[focusedIndex].RuntimeId);
+        request = request with { Tree = before, InFront = inFront, UserActive = active, ModifiersDown = user.ModifiersDown };
+        var plan = parts.Ladder.Plan(request);
+        call.Timings.Mark("plan");
+        if (plan.Refused)
+        {
+            var code = plan.Refusal ?? PcErrorCode.NeedsRealInput;
+            if (code == PcErrorCode.NeedsRealInput && parts.Security.Locked())
+                return PcResult.Fail(PcErrorCode.Locked, "the PC is locked, and this step needs the real mouse or keyboard");
+            return PcResult.Fail(code, plan.Reason ?? PcRealInputReason.Off, Line(info, Latest(handle)));
+        }
+        // A write into the control the user is typing in waits (DESIGN.md 2.9); keyless keys act on the app's own focus.
+        var writes = request.Kind == PcInputKind.Type || (request.Kind == PcInputKind.Key && request.Element is null) || plan.Plans.Any(p => p.Writes);
+        if (writes && await Yield(info, request.Element, call).ConfigureAwait(false) is { } yielded) return yielded;
+        var confirmed = new HashSet<string>(StringComparer.Ordinal);
+        PcResult? last = null;
+        var tried = 0;
+        foreach (var way in plan.Plans)
+        {
+            if (tried == 2) break;
+            if (Clipboard(request, way) is { } clipboard) return clipboard;
+            if (await Guard(info, request, way, before, confirmed, call).ConfigureAwait(false) is { } refused) return refused;
+            tried++;
+            var structureSeen = parts.Feed.StructureVersion(handle);
+            var windowsBefore = AppWindows(info);
+            var pre = parts.Foreground.Read();
+            var started = parts.Clock.NowMs;
+            var outcome = await way.Run(call.Token).WaitAsync(call.Token).ConfigureAwait(false);
+            call.Timings.Mark("act");
+            call.Audit.Rung = way.Rung + " " + way.Method;
+            var post = parts.Foreground.Read();
+            var learned = Learn(info, way, pre, post, windowsBefore, parts.Clock.NowMs - started);
+            if (!outcome.Done)
+            {
+                last = PcResult.Fail(outcome.Error ?? PcErrorCode.NotSupported, outcome.Reason ?? "the app refused the action", Line(info, Latest(handle)));
+                if (outcome.Error is PcErrorCode.Disabled or PcErrorCode.PasswordField or PcErrorCode.StaleElement) return last;
+                if (way.Probe && way.Key is { } failedKey) parts.Ladder.Capabilities.Refuse(failedKey);
+                continue;
+            }
+            var target = way.Target ?? request.Element;
+            PcCheck? check = null;
+            PcVerdict verdict = PcVerdict.Unverified("not checked");
+            var checks = 0;
+            async Task<bool> Holds()
+            {
+                // In a batch the first check reads the window afresh (one cached UIA fetch), so a step whose value already
+                // reads back right goes on without waiting for its change event (critique C21).
+                var after = await Tree(handle, fresh: call.InBatch && checks++ == 0, call.Token).ConfigureAwait(false);
+                var now = parts.Catalog.Window(handle);
+                // The user worked in the window since the action: where their focus is now is their doing (critique C26).
+                var seen = noise;
+                var during = parts.Foreground.Read();
+                if (during.Foreground == handle && during.InputAgeMs < parts.Clock.NowMs - started && after?.Focused is { } userFocus)
+                    seen = new HashSet<string>(noise, StringComparer.Ordinal) { after.Elements[userFocus].RuntimeId };
+                check = new PcCheck
+                {
+                    Command = way.Command,
+                    Kind = request.Kind,
+                    Before = before,
+                    After = now is null ? null : after,
+                    Target = target,
+                    TargetAfter = target is not null && after?.IndexOf(target.RuntimeId) is { } at ? after.Elements[at] : null,
+                    Typed = typed,
+                    Insert = request.Insert,
+                    TitleBefore = info.Title,
+                    TitleAfter = now?.Title,
+                    WindowClosed = now is null,
+                    Minimized = now?.Minimized ?? false,
+                    NewWindows = NewWindows(info, windowsBefore),
+                    Noise = seen,
+                    StillRunning = outcome.StillRunning,
+                };
+                verdict = PcVerify.Implicit(check);
+                if (verdict.Passed && expect is not null) verdict = PcVerify.Expected(expect, check);
+                return verdict.Passed;
+            }
+            var settled = await settle.Until(handle, structureSeen, Busy(before), call.InBatch, Holds, call.Token).ConfigureAwait(false);
+            call.Timings.Mark("settle");
+            if (way.Key is { } key && learned)
+            {
+                if (verdict.Passed && way.Probe) parts.Ladder.Capabilities.Passed(key);
+                else if (!verdict.Passed && way.Probe) parts.Ladder.Capabilities.Refuse(key);
+            }
+            last = await Conclude(info, request, way, check!, verdict, settled, post, call).ConfigureAwait(false);
+            if (verdict.Passed || tried == 2 || check!.WindowClosed) return last;
+            // A failed check tries the next way once (DESIGN.md 2.12); the window is read again first.
+            before = await Tree(handle, fresh: false, call.Token).ConfigureAwait(false) ?? before;
+        }
+        return last ?? PcResult.Fail(PcErrorCode.NeedsRealInput, plan.Reason ?? PcRealInputReason.Off, Line(info, Latest(handle)));
+    }
+
+    // Copy, cut and paste use the user's clipboard (DESIGN.md 2.8, critique C6): refused, whichever way they would run.
+    private static PcResult? Clipboard(PcInputRequest request, PcRungPlan way)
+    {
+        if (request.Kind is not (PcInputKind.Click or PcInputKind.Key or PcInputKind.Command)) return null;
+        var node = way.Target ?? (request.Kind == PcInputKind.Click ? request.Element : null);
+        return PcClipboard.IsClipboardCommand(way.MenuText) || PcClipboard.IsClipboardCommand(node?.Name)
+            ? PcResult.Fail(PcErrorCode.NotSupported, PcClipboard.Refusal)
+            : null;
+    }
+
+    /// <summary>
+    /// The guarded-action card (DESIGN.md 4.3, critique C13), checked at run time on what this way will press: the name in
+    /// English, Hindi or Urdu, the AutomationId, the MSAA default action, the class, a menu item's text; in a mail or chat
+    /// app also a button with no name. Asked once per step.
+    /// </summary>
+    private async Task<PcResult?> Guard(PcWindowInfo info, PcInputRequest request, PcRungPlan way, PcTree before, HashSet<string> confirmed, PcCall call)
+    {
+        if (!parts.Settings().ConfirmGuardedActions) return null;
+        var presses = request.Kind is PcInputKind.Click or PcInputKind.Key
+            || way.Command?.Action is PcElementAction.Invoke or PcElementAction.Close or PcElementAction.Toggle or PcElementAction.Select;
+        if (!presses) return null;
+        var node = way.Target ?? request.Element;
+        // Enter or Space with no target presses the app's focused control.
+        if (node is null && request.Kind == PcInputKind.Key && request.Chord is { Modifiers.Count: 0 } chord && chord.Key is KeyChordParser.Return or 0x20
+            && before.Focused is { } focused)
+            node = before.Elements[focused];
+        var word = PcPolicy.GuardedWord(node?.Name, node?.AutomationId) ?? PcPolicy.GuardedWord(node?.DefaultAction)
+            ?? PcPolicy.GuardedWord(null, node?.ClassName) ?? PcPolicy.GuardedWord(way.MenuText);
+        var name = node?.Name is { Length: > 0 } named ? named : way.MenuText ?? "";
+        if (word is null && node is not null && request.Kind != PcInputKind.Key && PcPolicy.UnnamedButtonNeedsConfirmation(info.App, node))
+        {
+            word = "press";
+            name = "a button with no name (it may be Send)";
+        }
+        if (word is null) return null;
+        var key = word + "\u0001" + name;
+        if (confirmed.Contains(key)) return null;
+        bool allowed;
+        using (call.Wait.Waiting(PcWaitReason.ConfirmCard))
+            allowed = await parts.Confirmer.Confirm(Source(info), word, name, AppName(info), call.Token).ConfigureAwait(false);
+        call.Timings.Mark("confirm");
+        if (!allowed) return PcResult.Fail(PcErrorCode.NeedsConfirmation, "the user did not confirm " + PcWindowLine.Quote(name));
+        confirmed.Add(key);
+        return null;
+    }
+
+    /// <summary>
+    /// The yield rule (DESIGN.md 2.9), until the physical input monitor (unit P2) can tell the user's keys apart: a write
+    /// waits while the window is in front, the user gave input within 2 s, and the target is the focused control (or the
+    /// write has no target). It runs as soon as that ends; after 10 s it answers user_typing_here.
+    /// </summary>
+    private async Task<PcResult?> Yield(PcWindowInfo info, PcUiNode? target, PcCall call)
+    {
+        var start = parts.Clock.NowMs;
+        IDisposable? waiting = null;
+        try
+        {
+            while (true)
+            {
+                var user = parts.Foreground.Read();
+                var users = user.Foreground == info.Handle && user.InputAgeMs < UserActiveMs
+                    && (target is null || target.Has(PcStates.Focused) || (target.NativeWindow != 0 && target.NativeWindow == user.Focus));
+                if (!users) return null;
+                var waited = parts.Clock.NowMs - start;
+                if (waited >= YieldMs)
+                {
+                    return PcResult.Fail(PcErrorCode.UserTypingHere, "the user is typing in " + (target is null ? "this window's focused field" : PcVerify.Describe(target))
+                        + " (" + AppName(info) + ")");
+                }
+                waiting ??= call.Wait.Waiting(PcWaitReason.TypingHere);
+                // A timeout tied to the condition: the moment the user's last input is 2 s old, or the 10 s limit.
+                var until = (int)Math.Max(1, Math.Min(UserActiveMs - user.InputAgeMs, YieldMs - waited));
+                await parts.Clock.Delay(until, call.Token).ConfigureAwait(false);
+                call.Timings.Mark("yield");
+            }
+        }
+        finally
+        {
+            waiting?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// The delta check (DESIGN.md 2.6, critique C16): the user's foreground, pointer and focused control before and after a
+    /// way. A way that moved the foreground (other than to a window the app opened) or the pointer is refused for 7 days in
+    /// this app; one that moved the focus is marked focus-moving. When the user gave input during the way, nothing is
+    /// learned (the move may be theirs). Returns whether the way was clean.
+    /// </summary>
+    private bool Learn(PcWindowInfo info, PcRungPlan way, PcUserState pre, PcUserState post, IReadOnlySet<nint> windowsBefore, long elapsedMs)
+    {
+        if (post.InputAgeMs <= elapsedMs) return false;
+        var foregroundMoved = post.Foreground != pre.Foreground
+            && !(post.Foreground != info.Handle && NewWindows(info, windowsBefore).Any(w => w.Handle == post.Foreground));
+        var pointerMoved = post.Cursor != pre.Cursor;
+        if (foregroundMoved || pointerMoved)
+        {
+            if (way.Key is { } key) parts.Ladder.Capabilities.Refuse(key);
+            return false;
+        }
+        if (post.Focus != pre.Focus && post.Foreground == pre.Foreground)
+        {
+            if (way.Key is { } key) parts.Ladder.Capabilities.FocusMoving(key);
+            return false;
+        }
+        return true;
+    }
+
+    private static bool Busy(PcTree tree) =>
+        tree.Elements.Values.Any(n => n.Role.Contains("progress", StringComparison.OrdinalIgnoreCase) || n.Role.Contains("busy", StringComparison.OrdinalIgnoreCase));
+
+    // After a way: record the new look and answer with the check, what changed, and the rung used.
+    private async Task<PcResult> Conclude(PcWindowInfo info, PcInputRequest request, PcRungPlan way, PcCheck check, PcVerdict verdict, PcSettleResult settled,
+        PcUserState post, PcCall call)
+    {
+        var handle = info.Handle;
+        var extra = new StringBuilder();
+        foreach (var window in check.NewWindows)
+        {
+            lock (gate) opened.Add(window.Handle);
+            Remember(window);
+            extra.Append("\nnew window: ").Append(PcWindowRef.Format(window.Handle)).Append(' ').Append(PcWindowLine.Quote(TreeFormatter.Clean(window.Title, 120)));
+            if (post.Foreground == window.Handle) extra.Append(" (it took the foreground)");
+        }
+        call.Output.Opened = check.NewWindows;
+        if (settled.TimedOut) extra.Append("\nthe window was still changing after ").Append(Count(settled.ElapsedMs)).Append(" ms");
+        if (check.StillRunning) extra.Append("\nthe app is still running the action (it may be showing a dialog)");
+        if (check.Typed is not null && check.Target is null) extra.Append("\nnot read back: the window's focused control does not show its text");
+        var head = "done: " + (way.Detail.Length > 0 ? way.Detail : request.Kind.ToString().ToLowerInvariant()) + "\nrung: " + way.Rung + " (" + way.Method + ")";
+        call.Timings.Mark("verify");
+        var now = parts.Catalog.Window(handle);
+        if (now is null || check.After is null)
+        {
+            var closed = head + "\nthe window closed" + extra;
+            return verdict.Passed ? PcResult.Success(Line(info, null), closed) : Fail(verdict, Line(info, null), closed);
+        }
+        var previous = Latest(handle);
+        var observation = Record(now, check.After, CachedVersion(handle), null);
+        var diff = previous is null ? check.After.Render(null, 120) : TreeDiff.Compute(previous.Tree, check.After, previous.Id) ?? "many changes: call pc_observe with full";
+        var body = call.InBatch && verdict.Passed ? head + extra : head + "\n" + diff + extra;
+        call.Timings.Mark("observe");
+        var line = Line(now, observation);
+        if (!verdict.Passed) return Fail(verdict, line, body);
+        var result = PcResult.Success(line, body);
+        // A point click shows the model exactly what it hit: a 256 x 256 crop at full resolution (critique C27).
+        if (request.Point is { } point && NoPixels(now) is null)
+        {
+            var grab = await parts.Capture!.Grab(handle, now.Frame, call.Token).ConfigureAwait(false);
+            if (grab is { Frame: var frame })
+            {
+                var crop = parts.Capture.AroundPoint(frame, new PcPoint(point.X - now.Frame.X, point.Y - now.Frame.Y), Grid());
+                result = result with { Body = body + "\nthe crop around the click follows at full resolution", Details = [new PcImage(crop.Jpeg, crop.Width, crop.Height, observation.Id)] };
+            }
+            call.Timings.Mark("capture");
+        }
+        return result;
+    }
+
+    private static PcResult Fail(PcVerdict verdict, PcWindowLine line, string body) => verdict.Kind == PcVerdictKind.Unverified
+        ? PcResult.Unverified(verdict.Saw ?? "no change tied to the target was seen", line, body)
+        : PcResult.Fail(PcErrorCode.ExpectFailed, verdict.Saw ?? "the check did not hold", line) with { Body = body };
+}

@@ -5,6 +5,7 @@ namespace Marrow.Core.Tests.Port.PcControl;
 
 // PORT-ONLY: PC control (OD-0140). DESIGN.md 2.2 and 5.1: valid schemas, every tool described, stable names.
 [Trait("Decision", "ED-NEW-pcctl-1")]
+[Trait("Decision", "ED-NEW-pcctl-7")]
 public sealed class PcToolSchemasTests
 {
     [Fact]
@@ -68,6 +69,48 @@ public sealed class PcToolSchemasTests
     }
 
     [Fact]
+    public void Every_action_takes_a_target_and_an_expect_and_a_batch_holds_up_to_fifty_steps()
+    {
+        foreach (var name in new[] { "pc_click", "pc_type", "pc_set_value", "pc_key", "pc_scroll", "pc_action" })
+        {
+            var properties = PcToolSchemas.Find(name)!.Schema()["properties"]!.AsObject();
+            Assert.True(properties.ContainsKey("target"), name);
+            Assert.True(properties.ContainsKey("expect"), name);
+            var expect = properties["expect"]!["properties"]!.AsObject().Select(p => p.Key);
+            Assert.Equal(new[] { "value", "name", "appears", "gone", "selected", "checked", "focused_in_app", "window_opens", "text_in_window", "bind" }, expect);
+        }
+        var batch = PcToolSchemas.Find("pc_batch")!.Schema()["properties"]!;
+        Assert.Equal(PcToolSchemas.MaxBatchSteps, batch["actions"]!["maxItems"]!.GetValue<int>());
+        Assert.Equal("boolean", batch["parallel"]!["type"]!.GetValue<string>());
+        Assert.Equal(new[] { "insert", "replace" }, PcToolSchemas.Find("pc_type")!.Schema()["properties"]!["mode"]!["enum"]!.AsArray().Select(m => m!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void Wait_resumes_a_waiting_step_by_token_and_launch_picks_a_place()
+    {
+        var wait = PcToolSchemas.Find("pc_wait")!.Schema()["properties"]!;
+        Assert.Contains("step", wait["until"]!["enum"]!.AsArray().Select(u => u!.GetValue<string>()));
+        Assert.Equal("string", wait["token"]!["type"]!.GetValue<string>());
+        var place = PcToolSchemas.Find("pc_launch_app")!.Schema()["properties"]!["place"]!;
+        Assert.Equal(new[] { "auto", "desk", "workspace" }, place["enum"]!.AsArray().Select(p => p!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void The_fast_helper_tool_is_listed_only_when_the_user_turned_it_on_and_takes_a_plan_of_checked_steps()
+    {
+        Assert.DoesNotContain(PcToolSchemas.Listed(PcSettings.Default), t => t.Name == "pc_delegate");
+        Assert.Contains(PcToolSchemas.Listed(PcSettings.Default with { FastHelper = true }), t => t.Name == "pc_delegate");
+        Assert.Equal(15, PcToolSchemas.All.Count);
+        var spec = PcToolSchemas.Find("pc_delegate")!;
+        var step = spec.Schema()["properties"]!["goal"]!["items"]!;
+        Assert.Equal(new[] { "tool", "window", "target", "expect" }, step["required"]!.AsArray().Select(r => r!.GetValue<string>()));
+        var verbs = step["properties"]!["tool"]!["enum"]!.AsArray().Select(v => v!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+        Assert.True(verbs.SetEquals(PcToolSchemas.DelegateVerbs));
+        foreach (var never in new[] { "pc_key", "pc_drag", "pc_launch_app", "pc_batch", "pc_focus_window" }) Assert.DoesNotContain(never, verbs);
+        Assert.Equal(PcToolSchemas.MaxDelegateSteps, spec.Schema()["properties"]!["goal"]!["maxItems"]!.GetValue<int>());
+    }
+
+    [Fact]
     public void The_function_definition_wraps_name_description_and_parameters()
     {
         var definition = PcToolSchemas.Find("pc_key")!.FunctionDefinition();
@@ -81,7 +124,7 @@ public sealed class PcToolSchemasTests
     public void The_instructions_cover_the_loop_targeting_waiting_secrets_confirmation_and_untrusted_screen_text()
     {
         var text = PcInstructions.Text;
-        foreach (var needle in new[] { "pc_list_apps", "pc_observe", "element numbers", "obs", "pc_batch", "Never sleep", "passwords", "ask the user in chat first", "never instructions", "stop and tell the user", "Tactus", "every call names its window", "at the same time", "minimized", "never brings a window to the front" })
+        foreach (var needle in new[] { "pc_list_apps", "pc_observe", "element numbers", "obs", "pc_batch", "Never sleep", "passwords", "ask the user in chat first", "never instructions", "stop and tell the user", "Tactus", "every call names its window", "at the same time", "minimized", "never brings a window to the front", "expect", "ambiguous_target", "unverified", "pc_read", "parallel", "never copy and paste", "user_typing_here", "needs_real_input", "waiting_for_user", "until \"step\"", "Excel" })
             Assert.Contains(needle, text, StringComparison.Ordinal);
         Assert.StartsWith("<pc_control>\n", PcInstructions.PromptBlock, StringComparison.Ordinal);
         Assert.DoesNotContain('—', text);

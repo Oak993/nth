@@ -36,7 +36,18 @@ public sealed record PcElementCommand(PcElementAction Action)
 public sealed record PcUiaOutcome(PcErrorCode? Error, string? Reason)
 {
     public bool Done => Error is null;
+
+    /// <summary>
+    /// An Invoke that had not returned after <see cref="PcUiaOutcome.ModalMs"/>: the app is showing a modal dialog from inside
+    /// the call (DESIGN.md 2.10). It counts as done; the stream goes on to look at the dialog.
+    /// </summary>
+    public bool StillRunning { get; init; }
+
+    /// <summary>How long an Invoke runs on its sacrificial thread before it counts as "a modal dialog opened".</summary>
+    public const int ModalMs = 1500;
+
     public static PcUiaOutcome Ok { get; } = new(null, null);
+    public static PcUiaOutcome Running { get; } = new(null, null) { StillRunning = true };
     public static PcUiaOutcome Fail(PcErrorCode code, string reason) => new(code, reason);
 }
 

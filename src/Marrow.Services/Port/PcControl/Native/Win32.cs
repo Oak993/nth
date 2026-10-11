@@ -7,7 +7,7 @@ using Marrow.Core.Port.PcControl;
 
 namespace Marrow.Services.Port.PcControl.Native;
 
-internal static class Win32
+internal static partial class Win32
 {
     internal delegate bool EnumWindowsProc(nint handle, nint parameter);
     internal delegate bool MonitorEnumProc(nint monitor, nint dc, ref RECT rect, nint parameter);

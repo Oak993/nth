@@ -6,6 +6,7 @@ namespace Marrow.Core.Tests.Port.PcControl;
 // (legacy Marrow pc-control.test.ts:207-250): screenshots are not kept in the history after the turn unless the user says so.
 [Trait("Decision", "ED-NEW-pcctl-1")]
 [Trait("Decision", "ED-NEW-pcctl-2")]
+[Trait("Decision", "ED-NEW-pcctl-7")]
 public sealed class PcTypesTests
 {
     [Fact]
@@ -34,12 +35,16 @@ public sealed class PcTypesTests
         var settings = PcSettings.Default;
         Assert.False(settings.Enabled);
         Assert.True(settings.ConfirmGuardedActions);
-        Assert.True(settings.ShowClickRing);
+        Assert.True(settings.ShowPointer);
         Assert.False(settings.KeepScreenshots);
         Assert.False(settings.LogTypedText);
         Assert.False(settings.ReadTextFromImages);
-        Assert.Equal(1280, settings.LongEdge);
-        Assert.Equal(1600, (settings with { Detail = PcDetail.High }).LongEdge);
+        // Real mouse and keyboard stays off until its physical-input gate exists (ED-NEW-pcctl-7).
+        Assert.False(settings.RealInput);
+        Assert.False(settings.FastHelper);
+        Assert.Equal(PcGridProfile.Standard, settings.Grid);
+        Assert.Equal((1568, 1_150_000), (settings.LongEdge, settings.MaxPixels));
+        Assert.Equal((2048, 2_000_000), ((settings with { Detail = PcDetail.High }).LongEdge, (settings with { Detail = PcDetail.High }).MaxPixels));
     }
 
     [Fact]
