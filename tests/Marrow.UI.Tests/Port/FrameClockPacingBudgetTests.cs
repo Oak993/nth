@@ -7,7 +7,9 @@ namespace Marrow.UI.Tests.Port;
 // ED-NEW-lean-7 budget: frame requests a second for slow schedules on a 240 Hz display. Headless and deterministic
 // (ManualFrameSource frames at 240 Hz in whole ticks, ManualTimeProvider), Debug build. A frame request is one
 // RequestAnimationFrame plus one compositor commit in production (FrameClock.cs AvaloniaFrameSource, ED-237).
-// Measured on the unchanged base (1fdf47b43): 240 a second for a 30 Hz display link and for a 24 Hz timeline.
+// Measured on the unchanged base (1fdf47b43): 240 a second for a 30 Hz display link and for a 24 Hz timeline (limit
+// then 360). After ED-NEW-lean-7, with the source holding each request back until 1.5 refreshes before its draw is due:
+// 60 and 48 (two frames per draw), limits 78 and 62 (1.3x).
 public sealed class FrameClockPacingBudgetTests
 {
     private const int Rate = 240;
@@ -16,27 +18,11 @@ public sealed class FrameClockPacingBudgetTests
 
     private static TimeSpan FrameTime(long frame) => TimeSpan.FromTicks(frame * TimeSpan.TicksPerSecond / Rate);
 
-    private sealed class Counting(ManualFrameSource inner) : IFrameSource
-    {
-        public long Requests;
-
-        public int Pending => inner.Pending;
-
-        public void RequestFrame(Action<TimeSpan> frame)
-        {
-            Requests++;
-            inner.RequestFrame(frame);
-        }
-
-        public void CancelFrame(Action<TimeSpan> frame) => inner.CancelFrame(frame);
-    }
-
     private static (double RequestsPerSecond, double DrawsPerSecond) Measure(Action<TestRuntime> start, Func<long> draws)
     {
         using var runtime = new TestRuntime();
-        var frames = new ManualFrameSource();
-        var counting = new Counting(frames);
-        using var source = FrameClock.Source.Override(counting);
+        var frames = new ManualFrameSource { WakePeriod = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / Rate) };
+        using var source = FrameClock.Source.Override(frames);
         start(runtime);
         long frame = 0;
         void Run(int count)
@@ -50,16 +36,16 @@ public sealed class FrameClockPacingBudgetTests
             }
         }
         Run(WarmUpFrames);
-        var requestsBefore = counting.Requests;
+        var requestsBefore = frames.Delivered;
         var drawsBefore = draws();
         Run(MeasuredFrames);
         var seconds = MeasuredFrames / (double)Rate;
-        return ((counting.Requests - requestsBefore) / seconds, (draws() - drawsBefore) / seconds);
+        return ((frames.Delivered - requestsBefore) / seconds, (draws() - drawsBefore) / seconds);
     }
 
     [Fact]
     [Trait("Decision", "ED-NEW-lean-7")]
-    public void A_30_Hz_display_link_on_a_240_Hz_display_asks_for_at_most_360_frames_a_second()
+    public void A_30_Hz_display_link_on_a_240_Hz_display_asks_for_at_most_78_frames_a_second()
     {
         long ticks = 0;
         var (requests, draws) = Measure(runtime => runtime.OnMain(() =>
@@ -69,12 +55,12 @@ public sealed class FrameClockPacingBudgetTests
             link.Add();
         }), () => ticks);
         Assert.InRange(draws, 29.5, 30.5);
-        Assert.True(requests <= 360, $"{requests} frame requests a second (budget 360; 240 on the unchanged base)");
+        Assert.True(requests <= 78, $"{requests} frame requests a second (budget 78; 240 on the unchanged base, 60 after ED-NEW-lean-7)");
     }
 
     [Fact]
     [Trait("Decision", "ED-NEW-lean-7")]
-    public void A_24_Hz_timeline_on_a_240_Hz_display_asks_for_at_most_360_frames_a_second()
+    public void A_24_Hz_timeline_on_a_240_Hz_display_asks_for_at_most_62_frames_a_second()
     {
         long updates = 0;
         var (requests, draws) = Measure(runtime => runtime.OnMain(() =>
@@ -84,6 +70,6 @@ public sealed class FrameClockPacingBudgetTests
             timeline.Appear();
         }), () => updates);
         Assert.InRange(draws, 23.5, 24.5);
-        Assert.True(requests <= 360, $"{requests} frame requests a second (budget 360; 240 on the unchanged base)");
+        Assert.True(requests <= 62, $"{requests} frame requests a second (budget 62; 240 on the unchanged base, 48 after ED-NEW-lean-7)");
     }
 }

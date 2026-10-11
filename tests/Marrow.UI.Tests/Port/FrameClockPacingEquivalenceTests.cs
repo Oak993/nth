@@ -9,7 +9,8 @@ namespace Marrow.UI.Tests.Port;
 
 // ED-NEW-lean-7 equivalence: the instants a slow display link or timeline draws at, for 30, 24 and 20 Hz schedules on
 // 240, 144 and 60 Hz displays, with and without frame-time jitter, and for timelines paused, resumed and re-timed on the
-// way. The expected digests were recorded on the unchanged base (1fdf47b43), where every schedule asks for every frame.
+// way. The expected digests were recorded on the unchanged base (1fdf47b43), where every schedule asks for every frame;
+// since ED-NEW-lean-7 they hold both for a source that holds nothing back and for one whose requests sleep between draws.
 public sealed class FrameClockPacingEquivalenceTests
 {
     private const int Seconds = 4;
@@ -90,10 +91,10 @@ public sealed class FrameClockPacingEquivalenceTests
         return times;
     }
 
-    internal static List<long> Run(Func<ManualFrameSource> make, string kind, int rate, int display, bool jitter)
+    internal static List<long> Run(Func<int, ManualFrameSource> make, string kind, int rate, int display, bool jitter)
     {
         using var runtime = new TestRuntime();
-        var frames = make();
+        var frames = make(display);
         using var source = FrameClock.Source.Override(frames);
         var start = SwiftDate.Now;
         var draws = new List<long>();
@@ -132,7 +133,7 @@ public sealed class FrameClockPacingEquivalenceTests
         return draws;
     }
 
-    internal static string Table(Func<ManualFrameSource> make)
+    internal static string Table(Func<int, ManualFrameSource> make)
     {
         var lines = new List<string>();
         foreach (var kind in new[] { "link", "timeline", "changes" })
@@ -149,5 +150,11 @@ public sealed class FrameClockPacingEquivalenceTests
     [Fact]
     [Trait("Decision", "ED-NEW-lean-7")]
     public void Slow_schedules_draw_at_the_instants_recorded_on_the_unchanged_base() =>
-        Assert.Equal(Recorded, Table(() => new ManualFrameSource()));
+        Assert.Equal(Recorded, Table(_ => new ManualFrameSource()));
+
+    // ED-NEW-lean-7: the same draws when the source holds each request back until 1.5 refreshes before its draw is due.
+    [Fact]
+    [Trait("Decision", "ED-NEW-lean-7")]
+    public void Slow_schedules_whose_requests_sleep_between_draws_draw_at_the_same_recorded_instants() =>
+        Assert.Equal(Recorded, Table(display => new ManualFrameSource { WakePeriod = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / display) }));
 }

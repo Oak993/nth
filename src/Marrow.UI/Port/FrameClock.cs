@@ -1,13 +1,21 @@
 // PORT-ONLY: the frame clock seam for TimelineView(.animation), CADisplayLink and frame-tick sleeps (ED-083, ED-098 (1), ED-117; R-VIEW-10, R-TASK-3).
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using Marrow.Core.Port;
 
 namespace Marrow.UI.Port;
 
 // Frames come from TopLevel.RequestAnimationFrame behind IFrameSource and are the only wake-ups (ED-117 (1)). Spans
 // are measured on SwiftClock and dates are SwiftDate.Now at the frame; the TimeSpan a frame callback receives
-// decides nothing. A span is complete 1 ms early at most (ED-117 (2)). No timer and no change of the system timer
-// resolution: Windows timers tick every 15.6 ms (R-VIEW-10).
+// decides nothing. A span is complete 1 ms early at most (ED-117 (2)). No change of the system timer resolution:
+// Windows timers tick every 15.6 ms (R-VIEW-10). ED-NEW-lean-7 amends "the only wake-ups" in how a frame is asked for,
+// never in what decides a draw: a schedule slower than the display lets its request sleep until 1.5 refreshes before
+// its next draw is due (IWakeFrameSource; production wakes it with a one-shot high-resolution waitable timer, which
+// leaves the system timer resolution alone), and the draw still happens in a frame, by the same maths.
 // UNVERIFIED O-34: the cadence, dates, first tick and schedule-change rules below are the port's parked choice for
 // SwiftUI and Core Animation behaviour the pinned source does not contain (ED-117 (7)).
 
@@ -28,6 +36,22 @@ public interface IFrameSource
     /// warm-up compiles only in frames where nothing does). A source that cannot tell answers 0.
     /// </summary>
     int Pending => 0;
+}
+
+/// <summary>
+/// PORT-ONLY (ED-NEW-lean-7). A frame source that can hold a request back to an instant, so a schedule slower than the
+/// display asks for no frames between its draws.
+/// </summary>
+public interface IWakeFrameSource : IFrameSource
+{
+    /// <summary>The display's refresh period when this source can hold a request back; null: it cannot.</summary>
+    TimeSpan? WakePeriod { get; }
+
+    /// <summary>
+    /// Calls <paramref name="frame"/> once, on main, at the first frame at or after the SwiftClock instant
+    /// <paramref name="wake"/>, never inside the request; <see cref="IFrameSource.CancelFrame"/> withdraws it.
+    /// </summary>
+    void RequestFrameAt(ContinuousInstant wake, Action<TimeSpan> frame);
 }
 
 /// <summary>
@@ -57,14 +81,37 @@ public interface IRefreshFrameSource : IFrameSource
     long Refresh { get; }
 }
 
-/// <summary>PORT-ONLY. The production frame source: <c>TopLevel.RequestAnimationFrame</c>, its frame time passed on.</summary>
-public sealed class AvaloniaFrameSource(TopLevel topLevel) : IFrameSource, IRenderFrameSourceProvider
+/// <summary>
+/// PORT-ONLY. The production frame source: <c>TopLevel.RequestAnimationFrame</c>, its frame time passed on.
+/// ED-NEW-lean-7: on the Windows platform it holds a request back to an instant (<see cref="IWakeFrameSource"/>), and while
+/// every shown window of the app is minimised or cloaked it asks for no frames: the requests wait, and are asked for as
+/// soon as a window can be seen again.
+/// </summary>
+public sealed class AvaloniaFrameSource(TopLevel topLevel) : IWakeFrameSource, IRenderFrameSourceProvider
 {
+    // ED-NEW-lean-7: how often parked requests look at the windows again, and how long a look at them is trusted.
+    private static readonly TimeSpan LookEvery = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan Slack = TimeSpan.FromTicks(TimeSpan.TicksPerMillisecond / 2);
+    private static event Action? HostsChanged;
+    private static int hooked;
+
     private readonly List<Request> waiting = [];
     private readonly Stack<Request> pool = new();
+    private readonly List<(Action<TimeSpan> Frame, ContinuousInstant Wake)> sleeping = []; // held back to an instant
+    private readonly List<Action<TimeSpan>> parked = [];                                    // held while no window is seen
+    private bool? win32;
+    private WakeTimer? timer;
+    private bool timerMade;
+    private ContinuousInstant? armed;
+    private TimeSpan? period;
+    private long periodRead, lookedAt;
+    private bool unseen, hostsChanged;
 
-    /// <summary>The requests waiting for the next frame.</summary>
-    public int Pending => waiting.Count;
+    /// <summary>The requests waiting for a frame: asked for, held back to an instant, or held while no window is seen.</summary>
+    public int Pending => waiting.Count + sleeping.Count + parked.Count;
+
+    /// <summary>ED-NEW-lean-7 seam (tests): whether no window can be seen; null asks the app's windows.</summary>
+    internal Func<bool>? UnseenOverride { get; set; }
 
     // ED-248: request objects and their delegates are reused.
     private sealed class Request
@@ -93,9 +140,86 @@ public sealed class AvaloniaFrameSource(TopLevel topLevel) : IFrameSource, IRend
 
     public RenderFrameSource? RenderFrames(Control host) => RenderFrameSource.Create(host);
 
+    /// <summary>
+    /// ED-NEW-lean-7: DWM's refresh period (read again after a second) when this source can hold a request back: a window
+    /// of the Windows platform with a high-resolution waitable timer; null otherwise (headless, older Windows).
+    /// </summary>
+    public TimeSpan? WakePeriod
+    {
+        get
+        {
+            if (!IsWin32) return null;
+            var now = Stopwatch.GetTimestamp();
+            if (periodRead == 0 || Stopwatch.GetElapsedTime(periodRead, now) >= TimeSpan.FromSeconds(1))
+            {
+                period = RenderFrameSource.DisplayRefreshPeriod();
+                periodRead = now;
+            }
+            return period is not null && Timer() is not null ? period : null;
+        }
+    }
+
     public void RequestFrame(Action<TimeSpan> frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
+        if (Unseen())
+        {
+            parked.Add(frame); // ED-NEW-lean-7: nothing can be seen, so no frame is asked for
+            Arm();
+            return;
+        }
+        Ask(frame);
+    }
+
+    public void RequestFrameAt(ContinuousInstant wake, Action<TimeSpan> frame)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (Timer() is null || wake <= SwiftClock.Now + Slack)
+        {
+            RequestFrame(frame);
+            return;
+        }
+        sleeping.Add((frame, wake));
+        Arm();
+    }
+
+    public void CancelFrame(Action<TimeSpan> frame)
+    {
+        for (var i = 0; i < waiting.Count; i++)
+        {
+            if (!ReferenceEquals(waiting[i].Frame, frame)) continue;
+            waiting.RemoveAt(i);
+            return;
+        }
+        for (var i = 0; i < sleeping.Count; i++)
+        {
+            if (!ReferenceEquals(sleeping[i].Frame, frame)) continue;
+            sleeping.RemoveAt(i); // the timer may still fire: a wake-up with nothing due asks for nothing
+            return;
+        }
+        for (var i = 0; i < parked.Count; i++)
+        {
+            if (!ReferenceEquals(parked[i], frame)) continue;
+            parked.RemoveAt(i);
+            return;
+        }
+    }
+
+    /// <summary>ED-NEW-lean-7: asks for the parked requests when a window can be seen again (also the tests' seam).</summary>
+    internal void Recheck()
+    {
+        hostsChanged = true;
+        if (parked.Count > 0 && !Unseen())
+        {
+            var resumed = parked.ToArray();
+            parked.Clear();
+            foreach (var frame in resumed) Ask(frame);
+        }
+        Arm();
+    }
+
+    private void Ask(Action<TimeSpan> frame)
+    {
         var request = pool.Count > 0 ? pool.Pop() : new Request(this);
         request.Frame = frame;
         waiting.Add(request);
@@ -108,14 +232,165 @@ public sealed class AvaloniaFrameSource(TopLevel topLevel) : IFrameSource, IRend
             _ = compositor.RequestCommitAsync();
     }
 
-    public void CancelFrame(Action<TimeSpan> frame)
+    private bool IsWin32
     {
-        for (var i = 0; i < waiting.Count; i++)
+        get
         {
-            if (!ReferenceEquals(waiting[i].Frame, frame)) continue;
-            waiting.RemoveAt(i);
-            return;
+            if (win32 is { } known) return known;
+            win32 = OperatingSystem.IsWindows() && topLevel.TryGetPlatformHandle()?.HandleDescriptor == "HWND";
+            if (win32 == true)
+            {
+                HostsChanged += () =>
+                {
+                    hostsChanged = true;
+                    if (parked.Count > 0) Dispatcher.UIThread.Post(Recheck, DispatcherPriority.Render);
+                };
+                Hook();
+            }
+            return win32.Value;
         }
+    }
+
+    // A window minimised, restored, shown, hidden or activated (back from another virtual desktop) is looked at again at once.
+    private static void Hook()
+    {
+        if (Interlocked.Exchange(ref hooked, 1) != 0) return;
+        Window.WindowStateProperty.Changed.AddClassHandler<Window>((_, _) => HostsChanged?.Invoke());
+        WindowBase.IsActiveProperty.Changed.AddClassHandler<WindowBase>((_, _) => HostsChanged?.Invoke());
+        Visual.IsVisibleProperty.Changed.AddClassHandler<Window>((_, _) => HostsChanged?.Invoke());
+    }
+
+    private WakeTimer? Timer()
+    {
+        if (timerMade || !IsWin32) return timer;
+        timerMade = true;
+        return timer = WakeTimer.Create(OnWake);
+    }
+
+    // The timer is armed for the earliest instant anything waits for: a held request's wake-up, or the next look at the
+    // windows while requests are parked. A source without a timer (headless) looks again only when asked (Recheck).
+    private void Arm()
+    {
+        if (Timer() is not { } wakeTimer) return;
+        ContinuousInstant? at = null;
+        foreach (var (_, wake) in sleeping)
+            if (at is not { } earliest || wake < earliest) at = wake;
+        if (parked.Count > 0 && (at is not { } soonest || SwiftClock.Now + LookEvery < soonest)) at = SwiftClock.Now + LookEvery;
+        if (at is not { } when || armed == when) return;
+        armed = when;
+        wakeTimer.Arm(when - SwiftClock.Now);
+    }
+
+    private void OnWake()
+    {
+        armed = null;
+        var now = SwiftClock.Now + Slack;
+        for (var i = 0; i < sleeping.Count;)
+        {
+            if (sleeping[i].Wake > now)
+            {
+                i++;
+                continue;
+            }
+            var frame = sleeping[i].Frame;
+            sleeping.RemoveAt(i);
+            RequestFrame(frame);
+        }
+        if (parked.Count > 0) Recheck();
+        else Arm();
+    }
+
+    private bool Unseen()
+    {
+        if (UnseenOverride is { } probe) return probe();
+        if (!IsWin32) return false;
+        var now = Stopwatch.GetTimestamp();
+        if (hostsChanged || lookedAt == 0 || Stopwatch.GetElapsedTime(lookedAt, now) >= LookEvery)
+        {
+            unseen = NoWindowSeen();
+            lookedAt = now;
+            hostsChanged = false;
+        }
+        return unseen;
+    }
+
+    // ED-NEW-lean-7: frames serve every window (one process-wide MediaContext, Program.cs), so they stop only when every
+    // shown window of the app is minimised (IsIconic) or cloaked (DWMWA_CLOAKED: another virtual desktop). No shown window,
+    // or one that is not a Win32 window, counts as seen: frames go on as before.
+    private static bool NoWindowSeen()
+    {
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { Windows: { Count: > 0 } windows }) return false;
+        var hidden = false;
+        foreach (var window in windows)
+        {
+            if (!window.IsVisible) continue;
+            if (window.TryGetPlatformHandle() is not { HandleDescriptor: "HWND" } handle || handle.Handle == 0) return false;
+            if (!IsIconic(handle.Handle) && !(DwmGetWindowAttribute(handle.Handle, DwmwaCloaked, out var cloaked, sizeof(int)) == 0 && cloaked != 0)) return false;
+            hidden = true;
+        }
+        return hidden;
+    }
+
+    private const int DwmwaCloaked = 14;
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsIconic(nint window);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(nint window, int attribute, out int value, int size);
+
+    /// <summary>
+    /// PORT-ONLY (ED-NEW-lean-7). A one-shot high-resolution waitable timer (CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, Windows 10
+    /// 1803 and later): it fires within about a millisecond of its due time without changing the system timer resolution
+    /// (R-VIEW-10). A background thread waits on it and only posts the wake-up to main.
+    /// </summary>
+    private sealed class WakeTimer
+    {
+        private const uint HighResolution = 0x2, AllAccess = 0x1F0003, Infinite = 0xFFFFFFFF;
+        private readonly nint handle;
+        private readonly Action fired;
+
+        private WakeTimer(nint handle, Action fired)
+        {
+            this.handle = handle;
+            this.fired = fired;
+            new Thread(Wait, 64 * 1024) { IsBackground = true, Name = "Marrow frame wake", Priority = ThreadPriority.AboveNormal }.Start();
+        }
+
+        public static WakeTimer? Create(Action fired)
+        {
+            if (!OperatingSystem.IsWindows()) return null;
+            try
+            {
+                var handle = CreateWaitableTimerExW(0, null, HighResolution, AllAccess);
+                return handle == 0 ? null : new WakeTimer(handle, fired);
+            }
+            catch (DllNotFoundException) { return null; }
+            catch (EntryPointNotFoundException) { return null; }
+        }
+
+        /// <summary>Fires once, <paramref name="delay"/> from now (replacing any earlier arming).</summary>
+        public void Arm(TimeSpan delay)
+        {
+            var due = -Math.Max(1L, delay.Ticks); // negative: relative, in 100 ns units (TimeSpan ticks)
+            SetWaitableTimer(handle, ref due, 0, 0, 0, false);
+        }
+
+        private void Wait()
+        {
+            while (WaitForSingleObject(handle, Infinite) == 0) Dispatcher.UIThread.Post(fired, DispatcherPriority.Render);
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern nint CreateWaitableTimerExW(nint attributes, string? name, uint flags, uint access);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWaitableTimer(nint timer, ref long dueTime, int period, nint completion, nint argument, [MarshalAs(UnmanagedType.Bool)] bool resume);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint WaitForSingleObject(nint handle, uint milliseconds);
     }
 }
 
@@ -123,17 +398,27 @@ public sealed class AvaloniaFrameSource(TopLevel topLevel) : IFrameSource, IRend
 /// PORT-ONLY. A frame source a test drives by hand (ED-098 (1)). <see cref="Now"/> starts at zero;
 /// <see cref="Advance"/> moves it, then runs once each, in request order, the callbacks requested before the call,
 /// each with the new time. A callback requested during an Advance waits for the next one.
+/// ED-NEW-lean-7: with a <see cref="WakePeriod"/> set, a request held back to an instant waits for the first Advance at
+/// which SwiftClock has reached it; without one (the default) it waits for the next Advance as any request.
 /// </summary>
-public sealed class ManualFrameSource : IFrameSource
+public sealed class ManualFrameSource : IWakeFrameSource
 {
     private readonly object gate = new();
     private readonly List<Request> waiting = [];
+    private long delivered;
 
-    private sealed class Request(Action<TimeSpan> frame)
+    private sealed class Request(Action<TimeSpan> frame, ContinuousInstant? wake = null)
     {
         public Action<TimeSpan> Frame { get; } = frame;
+        public ContinuousInstant? Wake { get; } = wake;
         public bool Withdrawn { get; set; }
     }
+
+    /// <summary>ED-NEW-lean-7: the display's refresh period a test gives it; null (the default): it holds nothing back.</summary>
+    public TimeSpan? WakePeriod { get; set; }
+
+    /// <summary>ED-NEW-lean-7: the callbacks it has run, each one a frame request answered.</summary>
+    public long Delivered { get { lock (gate) return delivered; } }
 
     private List<Request> running = [];
 
@@ -152,6 +437,12 @@ public sealed class ManualFrameSource : IFrameSource
     {
         ArgumentNullException.ThrowIfNull(frame);
         lock (gate) waiting.Add(new Request(frame));
+    }
+
+    public void RequestFrameAt(ContinuousInstant wake, Action<TimeSpan> frame)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        lock (gate) waiting.Add(new Request(frame, WakePeriod is null ? null : wake));
     }
 
     public void CancelFrame(Action<TimeSpan> frame)
@@ -179,8 +470,17 @@ public sealed class ManualFrameSource : IFrameSource
         {
             now += by;
             time = now;
-            due = [.. waiting];
-            waiting.Clear();
+            if (waiting.Exists(request => request.Wake is not null))
+            {
+                var clock = SwiftClock.Now;
+                due = waiting.FindAll(request => request.Wake is not { } wake || wake <= clock);
+                waiting.RemoveAll(request => request.Wake is not { } wake || wake <= clock);
+            }
+            else
+            {
+                due = [.. waiting];
+                waiting.Clear();
+            }
             running = due;
         }
         try
@@ -192,6 +492,7 @@ public sealed class ManualFrameSource : IFrameSource
                 {
                     withdrawn = request.Withdrawn;
                     request.Withdrawn = true; // ran: a later CancelFrame no longer finds it
+                    if (!withdrawn) delivered++;
                 }
                 if (!withdrawn) request.Frame(time);
             }
@@ -239,6 +540,22 @@ public static class FrameClock
     // ED-117 (2): a span S from instant s is complete at a frame when (SwiftClock.Now - s) + 1 ms >= S, in ticks.
     internal static bool IsComplete(ContinuousInstant since, ContinuousInstant now, TimeSpan span) =>
         (now - since).Ticks + TimeSpan.TicksPerMillisecond >= span.Ticks;
+
+    // ED-NEW-lean-7: the first instant at which IsComplete(since, now, span) holds; null for a span too long to wait for.
+    internal static ContinuousInstant? DueAt(ContinuousInstant since, TimeSpan span) =>
+        span <= TimeSpan.FromHours(1) ? since + span - TimeSpan.FromTicks(TimeSpan.TicksPerMillisecond) : null;
+
+    /// <summary>
+    /// ED-NEW-lean-7: the instant a request for a draw due at <paramref name="due"/> may sleep until, 1.5 refreshes before
+    /// it, when the source can hold requests back and that skips one refresh at least; null: ask for the next frame. Every
+    /// frame skipped comes before the draw's due instant, so it would not have drawn: the draws are the same.
+    /// </summary>
+    internal static ContinuousInstant? WakeFor(IFrameSource source, ContinuousInstant? due)
+    {
+        if (due is not { } at || source is not IWakeFrameSource { WakePeriod: { } period } || period <= TimeSpan.Zero) return null;
+        var lead = TimeSpan.FromTicks(period.Ticks * 3 / 2);
+        return at - SwiftClock.Now > lead + period ? at - lead : null;
+    }
 
     /// <summary>
     /// <c>try? await Task.sleep(for: .milliseconds(17))</c> or <c>(30)</c> standing for a frame tick
@@ -312,7 +629,9 @@ public sealed class DisplayLink
     private bool added;
     private bool invalidated;
     private bool outstanding;
+    private bool asleep; // ED-NEW-lean-7: the outstanding request is held back to an instant
     private ContinuousInstant? lastTick;
+    private FrameRateRange? preferredFrameRateRange;
 
     internal DisplayLink(Action tick)
     {
@@ -321,7 +640,19 @@ public sealed class DisplayLink
     }
 
     /// <summary><c>preferredFrameRateRange</c> (StreamVeil.swift:178); only Preferred is read.</summary>
-    public FrameRateRange? PreferredFrameRateRange { get; set; }
+    public FrameRateRange? PreferredFrameRateRange
+    {
+        get => preferredFrameRateRange;
+        set
+        {
+            preferredFrameRateRange = value;
+            if (!outstanding || !asleep) return;
+            // ED-NEW-lean-7: a request held back for the old rate is asked for at the next frame, as every request was.
+            outstanding = false;
+            source!.CancelFrame(frame);
+            Request();
+        }
+    }
 
     /// <summary><c>add(to: .main, forMode: .common)</c> (StreamVeil.swift:179, :360).</summary>
     public void Add()
@@ -343,16 +674,26 @@ public sealed class DisplayLink
         source!.CancelFrame(frame);
     }
 
-    private void Request()
+    private void Request(ContinuousInstant? due = null)
     {
         if (outstanding) return; // ED-117 (7): one request at most
         outstanding = true;
-        source!.RequestFrame(frame);
+        if (FrameClock.WakeFor(source!, due) is { } wake)
+        {
+            asleep = true;
+            ((IWakeFrameSource)source!).RequestFrameAt(wake, frame);
+        }
+        else
+        {
+            asleep = false;
+            source!.RequestFrame(frame);
+        }
     }
 
     private void OnFrame(TimeSpan _)
     {
         outstanding = false;
+        asleep = false;
         if (!added || invalidated) return;
         var now = SwiftClock.Now;
         var due = lastTick is not { } last
@@ -363,7 +704,8 @@ public sealed class DisplayLink
             lastTick = now;
             tick();
         }
-        if (added && !invalidated) Request();
+        if (added && !invalidated)
+            Request(lastTick is { } at && PreferredFrameRateRange?.Preferred is { } rate && rate > 0 ? FrameClock.DueAt(at, SwiftTask.Seconds(1.0 / rate)) : null);
     }
 }
 
@@ -392,6 +734,7 @@ public sealed class AnimationTimeline
     private RenderFrameSource? renderFrames; // the render-thread source this appearance made, disposed when it ends
     private bool appeared;
     private bool outstanding;
+    private bool asleep; // ED-NEW-lean-7: the outstanding request is held back to an instant
     private ContinuousInstant lastDraw;
     private ContinuousInstant due; // ED-232: when the last due draw was due
     private long? refreshDue;      // ED-248 review 2: the refresh the next draw is due at, on a refresh-counting source
@@ -485,17 +828,35 @@ public sealed class AnimationTimeline
     {
         lock (gate)
         {
+            var changed = next != current;
             current = next;
             if (next.Ambient) renderFrames?.EnableAmbientMotion(ambientInteraction, decorationCarry);
+            if (changed && outstanding && asleep)
+            {
+                // ED-NEW-lean-7: a request held back for the old schedule is withdrawn; running, it is asked for at the
+                // next frame, as every request was before.
+                outstanding = false;
+                asleep = false;
+                source!.CancelFrame(frame);
+            }
             if (Running) Request(); // ED-117 (6): a resume asks at once, reusing a stale request
         }
     }
 
-    private void Request()
+    private void Request(ContinuousInstant? due = null)
     {
         if (outstanding) return; // ED-117 (7): one request at most
         outstanding = true;
-        source!.RequestFrame(frame);
+        if (FrameClock.WakeFor(source!, due) is { } wake)
+        {
+            asleep = true;
+            ((IWakeFrameSource)source!).RequestFrameAt(wake, frame);
+        }
+        else
+        {
+            asleep = false;
+            source!.RequestFrame(frame);
+        }
     }
 
     private void Draw()
@@ -530,7 +891,9 @@ public sealed class AnimationTimeline
         lock (gate)
         {
             outstanding = false;
+            asleep = false;
             if (!Running) return; // paused or gone: the stale request does nothing
+            ContinuousInstant? next = null; // ED-NEW-lean-7: when the next draw is due, where the maths below says it
             if (current.MinimumInterval is not { } interval || current.Ambient && renderFrames?.DecorationTime is not null && (ambientInteraction?.Invoke() == true || PacedBySource(interval)))
             {
                 Draw();
@@ -575,8 +938,9 @@ public sealed class AnimationTimeline
                     Draw();
                     due = now - due >= span + span ? now : due + span;
                 }
+                next = FrameClock.DueAt(due, span);
             }
-            if (Running) Request();
+            if (Running) Request(next);
         }
     }
 }
