@@ -81,6 +81,9 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
 
     private readonly SessionConfiguration configuration; // :29
     private IClaudeProcess? process;                        // :30
+    // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): this launch's ask_advisor server; null for a chat with no advisor.
+    private MCPResolvedServer? advisorServer;
+    private static readonly string AdvisorToolName = "mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name;
     private TaskHandle? readTask;                          // :31
     private string? sessionID;                             // :32
     private string permissionMode;                         // :33
@@ -210,20 +213,14 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
             arguments.Add(HandshakeLaunchSettings());
         }
         // Connected servers from Settings are the only MCP servers the session sees. :94-96
-        if (MCPProviderConfig.ClaudeConfigPath() is { } mcpConfig)
+        // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server is merged into that one
+        // config; a chat with no advisor gets exactly the connected servers' file, as before.
+        advisorServer = MCPProviderConfig.AdvisorServer(configuration);
+        if (MCPProviderConfig.ClaudeSessionConfig(advisorServer, configuration.IgnisThreadID) is { } mcpConfig)
         {
             arguments.Add("--mcp-config");
-            arguments.Add(mcpConfig);
-            arguments.Add("--strict-mcp-config");
-        }
-        // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): a Hydra head's ask_advisor server in a file of its own, and
-        // the tool allowed without a prompt (it only asks the lead's model). Absent for every other chat.
-        if (MCPProviderConfig.ClaudeAdvisorConfigPath(MCPProviderConfig.AdvisorServer(configuration), configuration.IgnisThreadID) is { } advisorConfig)
-        {
-            arguments.Add("--mcp-config");
-            arguments.Add(advisorConfig);
-            arguments.Add("--allowedTools");
-            arguments.Add("mcp__" + Port.Advisor.AdvisorMcpServer.ServerName + "__" + Port.Advisor.AdvisorTool.Name);
+            arguments.Add(mcpConfig.Path);
+            if (mcpConfig.Strict) arguments.Add("--strict-mcp-config");
         }
         var environment = new ValueMap<string, string>(ProviderChildEnvironment.Apply(configuration.Environment), SwiftStringComparer.Instance); // DEVIATION OD-0099 DL-6: only PATH changes; an unbound Storage (a test) leaves the environment as it came.
         var options = await KnownOptions(executable, environment); // :98
@@ -550,6 +547,13 @@ public sealed partial class ClaudeSession : ProviderSession, Marrow.Services.Por
         var input = request["input"] ?? JSONValue.FromDictionaryLiteral(); // :619
         var toolUseID = request["tool_use_id"]?.JSONValueString; // :620
         pendingTools[requestID] = new PendingTool { Name = name, Input = input, Suggestions = request["permission_suggestions"] }; // :621
+        // PORT-ONLY (Ignis Advisor, ED-NEW-ignisadvisor-2): nth's own ask_advisor runs without a card, as the skills relay's
+        // read-only tools do on ACP (SkillsMcpBridge.AutomaticOption): it only asks the lead's model.
+        if (advisorServer is not null && SwiftString.Equal(name, AdvisorToolName))
+        {
+            ResolveApproval(requestID, "allow");
+            return;
+        }
 
         switch (name)
         {

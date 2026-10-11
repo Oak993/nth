@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Marrow.Core.Models;
@@ -10,6 +11,8 @@ using Marrow.Services.Port.Advisor;
 using Marrow.Services.Port.Skills.Providers;
 using Marrow.Services.Providers;
 using Marrow.Services.Tests.Fixtures;
+using Marrow.Services.Tests.Port.Skills.Providers;
+using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Port.Advisor;
 
@@ -199,7 +202,6 @@ public sealed class AdvisorHostedRouteTests
         Assert.Same(connected, MCPProviderConfig.CodexServers(connected, null));
         Assert.Null(MCPProviderConfig.CodexServers(null, null));
         Assert.Null(MCPProviderConfig.CopilotSessionServers(null));
-        Assert.Null(MCPProviderConfig.ClaudeAdvisorConfigPath(null, Other));
         var acp = JSONValue.FromArrayLiteral(JSONValue.FromDictionaryLiteral(("name", "github")));
         Assert.Same(acp, MCPProviderConfig.AcpServers(acp, null));
 
@@ -218,10 +220,84 @@ public sealed class AdvisorHostedRouteTests
         Assert.Empty(acpAll[1]["env"]!.JSONValueArray!);
 
         using var storage = new StorageScratchFolder();
-        var path = Assert.IsType<string>(MCPProviderConfig.ClaudeAdvisorConfigPath(server, Head));
-        var written = JSONValue.Parse(File.ReadAllBytes(path))!;
-        Assert.Equal(new[] { AdvisorMcpServer.ServerName }, written["mcpServers"]!.JSONValueObject!.Keys);
-        Assert.Equal(server.Command, written["mcpServers"]![AdvisorMcpServer.ServerName]!["command"]!.JSONValueString);
+        Assert.Null(MCPProviderConfig.ClaudeSessionConfig(null, Other)); // no connected servers, no advisor: no flag, as before
+        var alone = Assert.IsType<(string Path, bool Strict)>(MCPProviderConfig.ClaudeSessionConfig(server, Head));
+        Assert.False(alone.Strict); // with no connected servers the user's own stay on, as before
+        Assert.Equal(new[] { AdvisorMcpServer.ServerName }, JSONValue.Parse(File.ReadAllBytes(alone.Path))!["mcpServers"]!.JSONValueObject!.Keys);
+        MCPProviderConfig.WriteAll([new MCPResolvedServer("github", "github") { Url = "https://example.test/mcp" }]);
+        Assert.Equal((MCPProviderConfig.ClaudeConfigPath()!, true), MCPProviderConfig.ClaudeSessionConfig(null, Head));
+        var merged = Assert.IsType<(string Path, bool Strict)>(MCPProviderConfig.ClaudeSessionConfig(server, Head));
+        Assert.True(merged.Strict);
+        var written = JSONValue.Parse(File.ReadAllBytes(merged.Path))!["mcpServers"]!;
+        Assert.Equal(new HashSet<string> { "github", AdvisorMcpServer.ServerName }, written.JSONValueObject!.Keys.ToHashSet());
+        Assert.Equal(server.Command, written[AdvisorMcpServer.ServerName]!["command"]!.JSONValueString);
+        Assert.Equal("https://example.test/mcp", written["github"]!["url"]!.JSONValueString);
+        return Task.CompletedTask;
+    });
+
+    private static (string[] Arguments, RecordingClaudeProcess Process, ClaudeSession? Session) LaunchClaude(TestRuntime runtime, Guid? thread, bool legacy)
+    {
+        RecordingClaudeProcess? call = null;
+        using var transport = ClaudeProviderRuntime.Process.Override((_, args, _, env) => call = new(args, env));
+        var configuration = Config(ProviderKind.Claude, thread) with { Executable = SwiftURL.Create("/offline/claude-" + Guid.NewGuid().ToString("N"))!, RuntimeMode = RuntimeMode.Supervised, ResumeID = "fixture-chat" };
+        if (legacy)
+        {
+            var old = new LegacyClaudeSession(configuration);
+            runtime.Loop.Run(() => old.Start(), TimeSpan.FromSeconds(5));
+            old.Stop();
+            return (call!.Arguments, call, null);
+        }
+        var session = new ClaudeSession(configuration, () => null);
+        runtime.Loop.Run(() => session.Start(), TimeSpan.FromSeconds(5));
+        return (call!.Arguments, call, session);
+    }
+
+    private static string[] WithoutMcpConfig(string[] arguments)
+    {
+        var list = arguments.ToList();
+        var at = list.IndexOf("--mcp-config");
+        if (at < 0) return [.. list];
+        list.RemoveRange(at, at + 2 < list.Count && list[at + 2] == "--strict-mcp-config" ? 3 : 2);
+        return [.. list];
+    }
+
+    [Theory, InlineData(false), InlineData(true)]
+    public Task ClaudeSession_args_stay_byte_identical_without_an_advisor_and_carry_one_merged_config_with_one(bool connected) => WithLead(Lead, () =>
+    {
+        using var runtime = new TestRuntime();
+        using var help = ClaudeProviderRuntime.Help.Override((_, _) => Task.FromResult(new ShellResult(0, Encoding.UTF8.GetBytes("--system-prompt-snapshot"), [])));
+        using var storage = new StorageScratchFolder();
+        if (connected) MCPProviderConfig.WriteAll([new MCPResolvedServer("github", "github") { Url = "https://example.test/mcp" }]);
+
+        var today = LaunchClaude(runtime, Other, legacy: true).Arguments;
+        var (unadvised, plainProcess, plain) = LaunchClaude(runtime, Other, legacy: false);
+        Assert.Equal(today, unadvised); // byte for byte the launch before the advisor existed
+        Assert.Equal(today, LaunchClaude(runtime, null, legacy: false).Arguments);
+
+        var (advised, process, session) = LaunchClaude(runtime, Head, legacy: false);
+        Assert.Single(advised, a => a == "--mcp-config");
+        Assert.DoesNotContain("--allowedTools", advised);
+        Assert.Equal(connected, advised.Contains("--strict-mcp-config"));
+        Assert.Equal(WithoutMcpConfig(today), WithoutMcpConfig(advised));
+        var file = JSONValue.Parse(File.ReadAllBytes(advised[Array.IndexOf(advised, "--mcp-config") + 1]))!["mcpServers"]!.JSONValueObject!;
+        Assert.Equal(connected ? new HashSet<string> { "github", AdvisorMcpServer.ServerName } : [AdvisorMcpServer.ServerName], file.Keys.ToHashSet());
+
+        // The advised session lets its own ask_advisor run without a card; any other session still asks.
+        JSONValue Ask(string id) => JSONValue.FromDictionaryLiteral(("request_id", id), ("request", JSONValue.FromDictionaryLiteral(
+            ("subtype", "can_use_tool"), ("tool_name", "mcp__nth-advisor__ask_advisor"), ("input", JSONValue.FromDictionaryLiteral(("question", "q"))))));
+        var events = new List<ProviderEvent>();
+        session!.OnEvent = events.Add;
+        var sentBefore = process.Sent.Count;
+        session.HandleControlRequest(Ask("r1"));
+        Assert.DoesNotContain(events, e => e is ProviderEvent.Approval);
+        var reply = JSONValue.Parse(process.Sent[sentBefore])!;
+        Assert.Equal(("r1", "allow"), (reply["response"]!["request_id"]!.JSONValueString, reply["response"]!["response"]!["behavior"]!.JSONValueString));
+        var plainEvents = new List<ProviderEvent>();
+        plain!.OnEvent = plainEvents.Add;
+        plain.HandleControlRequest(Ask("r2"));
+        Assert.Single(plainEvents, e => e is ProviderEvent.Approval);
+        session.Stop();
+        plain.Stop();
         return Task.CompletedTask;
     });
 }

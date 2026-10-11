@@ -337,18 +337,27 @@ public static class MCPProviderConfig
         : new JSONValue.Array(new ValueList<JSONValue>((servers.JSONValueArray ?? []).Append(Port.Advisor.AdvisorMcpBridge.AcpEntry(advisor))));
 
     /// <summary>
-    /// Claude: a config file holding only the advisor's entry, for a second --mcp-config beside the connected servers'
-    /// file; null without an advisor or when the file cannot be written (the session then launches without the tool).
+    /// Claude: the session's one --mcp-config file and whether --strict-mcp-config follows it. Without an advisor it is
+    /// exactly ClaudeConfigPath() with strict (or null), as before. With one, the connected servers of claude.json and
+    /// the advisor's entry are merged into a file of the chat's own, strict only when there were connected servers (as
+    /// before: with none, the user's own servers stay on). A file that cannot be written leaves the launch as before.
     /// </summary>
-    public static string? ClaudeAdvisorConfigPath(MCPResolvedServer? advisor, Guid? thread)
+    public static (string Path, bool Strict)? ClaudeSessionConfig(MCPResolvedServer? advisor, Guid? thread)
     {
-        if (advisor is null) return null;
-        return SwiftTry.Optional(() =>
+        var connected = ClaudeConfigPath();
+        (string, bool)? plain = connected is null ? null : (connected, true);
+        if (advisor is null) return plain;
+        var merged = SwiftTry.Optional(() =>
         {
+            var servers = new Dictionary<string, JSONValue>();
+            if (connected is not null && ReadOptionalConfig(connected) is { } data && JSONValue.Parse(data)?["mcpServers"]?.JSONValueObject is { } existing)
+                foreach (var (key, value) in existing) servers[key] = value;
+            servers[advisor.Id] = Claude([advisor])["mcpServers"]![advisor.Id]!;
             var path = SwiftPath.AppendingPathComponent(MCPPaths.Directory, "advisor-" + (thread ?? Guid.NewGuid()).ToString("N") + ".json");
-            FileOps.WriteAtomic(path, Claude([advisor]).Data(pretty: true));
+            FileOps.WriteAtomic(path, ObjectOf(new Dictionary<string, JSONValue> { ["mcpServers"] = ObjectOf(servers) }).Data(pretty: true));
             return path;
         });
+        return merged is null ? plain : (merged, connected is not null);
     }
 
     // :230. private static let geminiSettingsURL. ENGINEERING DECISION: like MCPPaths.Directory (MCP.cs, ED-177),
