@@ -8,12 +8,20 @@ namespace Marrow.Services.Port.MCP.Import;
 
 internal sealed class TomlLite
 {
+    /// <summary>A bare value (a number, a boolean, a date), kept as its text and told apart from a string.</summary>
+    public sealed class Scalar(string text)
+    {
+        public string Text { get; } = text;
+
+        public override string ToString() => Text;
+    }
+
     private readonly string text;
     private int at;
 
     private TomlLite(string text) => this.text = text;
 
-    /// <summary>The document as nested dictionaries: a value is a string, a List&lt;object&gt; or a Dictionary&lt;string, object&gt;.</summary>
+    /// <summary>The document as nested dictionaries: a value is a string, a Scalar, a List&lt;object&gt; or a Dictionary&lt;string, object&gt;.</summary>
     public static Dictionary<string, object> Parse(string text) => new TomlLite(text).Document();
 
     private char Peek(int ahead = 0) => at + ahead < text.Length ? text[at + ahead] : '\0';
@@ -150,7 +158,7 @@ internal sealed class TomlLite
         var bare = text[start..at].TrimEnd(' ', '\t');
         at = start + bare.Length;
         if (bare.Length == 0) throw Fail("A value is missing");
-        return bare;
+        return new Scalar(bare);
     }
 
     private string Basic()
