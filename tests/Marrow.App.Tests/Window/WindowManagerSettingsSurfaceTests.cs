@@ -6,31 +6,61 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
-using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
+using Marrow.App.Window;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Xunit;
+using HostWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Window;
 
+// OD-0140 (ED-NEW-settingsinapp-1): Settings is a panel inside the main window (Port/SettingsOverlay.cs). Its glass is the panel's own
+// backdrop, the app's glass over the app (SettingsOverlay.Backdrop); SettingsView's window-glass backdrop is hidden there.
 [Collection("Headless")]
 public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) : SettingsWindowFixture(headless)
 {
+    // The backdrop Settings shows: the panel's, the only one visible in it.
+    private static WindowBackdrop ShownBackdrop(WindowManager manager)
+    {
+        var overlay = Overlay(manager);
+        Assert.False(View(manager).RiseBackdrop.IsVisible);
+        Assert.Same(overlay.Backdrop, Assert.Single(Nodes<WindowBackdrop>(overlay.Card), backdrop => backdrop.IsVisible));
+        return overlay.Backdrop;
+    }
+
+    // The main window shown in an appearance before Settings is built in it: an appearance change while the panel is open turns it over
+    // (AppearanceTurn, OD-0088) on the frame clock, which these tests do not step.
+    private static HostWindow MainIn(WindowManager manager, ThemeVariant appearance)
+    {
+        manager.ShowMain();
+        var main = MainOf(manager);
+        main.RequestedThemeVariant = appearance;
+        Drain(main);
+        return main;
+    }
+
+    private static void Settle(SettingsRiseRig rig, HostWindow window)
+    {
+        for (var i = 0; i < 30; i++) { rig.Frame(1.0 / 60); Drain(window); }
+    }
+
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]
+    [Trait("Decision", "OD-0140")]
     public void A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop()
     {
         // SettingsView.swift:119, ui_contract opacity binding; Chrome's light scrim at 0.75 is 0.59.
         WithManager((_, manager) =>
         {
             manager.Model.Settings.BackdropOpacity = 0.5;
+            MainIn(manager, ThemeVariant.Light);
             manager.ShowSettings(SettingsPage.Archive);
             var window = Settings(manager);
-            window.RequestedThemeVariant = ThemeVariant.Light;
             Drain(window);
-            var backdrop = Assert.Single(Nodes<WindowBackdrop>(View(manager)));
+            var backdrop = ShownBackdrop(manager);
+            Assert.Equal(ThemeVariant.Light, backdrop.ActualThemeVariant);
             SettingsBackdropAssertions.GlassOpacity(backdrop, 0.18);
             manager.Model.Settings.BackdropOpacity = 0.75;
             Drain(window);
@@ -41,50 +71,66 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]
     [Trait("Req", "PR-WIN-010")]
-    public void Actual_Settings_content_is_clipped_to_the_window_rectangle_and_the_backdrop_fills_the_whole_window()
+    [Trait("Decision", "OD-0140")]
+    public void Actual_Settings_content_is_clipped_to_the_panel_s_26_point_continuous_shape_and_the_backdrop_fills_the_whole_panel()
     {
-        // ui_contract.json:15428-15430; SettingsView.swift:118-122 as quoted there.
+        // ui_contract.json:15428-15430; SettingsView.swift:118-122 as quoted there. OD-0140: the source's
+        // `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))` is the panel's own shape, drawn by the app inside the main window
+        // (no window rectangle for DWM to round any more).
         WithManager((_, manager) =>
         {
             manager.ShowSettings(SettingsPage.Archive);
             var window = Settings(manager); Drain(window);
+            var overlay = Overlay(manager);
             var view = View(manager);
-            Assert.Equal(new Avalonia.Size(780, 580), window.ClientSize);
-            Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
-            // OD-0075 and the owner's intent of 2026-10-05 (ED-338): the source's `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))`
-            // (SettingsView.swift:118-122, ED-181) is the window's RECTANGLE here, which DWM rounds, so the backdrop and the detail sheet reach the window's edge
-            // (WindowManagerCornerWedgeTests proves the corner pixels). Nothing in this window is drawn in the 26 pt shape any more.
+            var card = Assert.IsAssignableFrom<Border>(overlay.Card);
+            var size = card.Bounds.Size;
+            Assert.True(size.Width > 0 && size.Height > 0);
+            Assert.True(card.ClipToBounds);
+            Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(card));
+            Assert.Equal(new CornerRadius(Chrome.WindowCornerRadius), SwiftShapes.StatedCornerRadius(card));
+            Assert.NotNull(card.Clip); // cut to Apple's curve
+            // The content fills the panel from its top-left corner.
+            Assert.Equal(size, view.Bounds.Size);
+            Assert.Equal(new Point(0, 0), view.TranslatePoint(new Point(0, 0), card));
             var frame = Assert.IsType<SwiftShapeBorder>(view.Child);
             Assert.Equal(default, frame.CornerRadius);
             Assert.True(frame.ClipToBounds);
-            Assert.Equal(new Avalonia.Size(780, 580), frame.Bounds.Size);
-            var layers = Assert.IsType<Panel>(frame.Child);
-            var backdrop = Assert.IsType<WindowBackdrop>(layers.Children[0]);
-            Assert.Equal(new Avalonia.Size(780, 580), backdrop.Bounds.Size);
-            Assert.Equal(new Point(0, 0), backdrop.TranslatePoint(new Point(0, 0), view));
-            Assert.All(Nodes<SwiftShapeBorder>(backdrop), layer => Assert.Equal(default, layer.CornerRadius)); // every layer of the backdrop, the hairline included
+            Assert.Equal(size, frame.Bounds.Size);
+            // The panel's backdrop fills the panel out to its edge: its layers are the rectangle the panel's shape clips, and its hairline is
+            // the inner stroke of that 26 pt shape (WindowBackdrop roundedHairline, ED-338).
+            var backdrop = ShownBackdrop(manager);
+            Assert.Equal(size, backdrop.Bounds.Size);
+            Assert.Equal(new Point(0, 0), backdrop.TranslatePoint(new Point(0, 0), card));
+            var layers = Assert.IsType<Panel>(backdrop.Child);
+            var hairline = Assert.IsType<SwiftShapeBorder>(layers.Children[2]);
+            Assert.Equal(new CornerRadius(Chrome.WindowCornerRadius), hairline.CornerRadius);
+            Assert.Equal(RoundedCornerStyle.Continuous, hairline.CornerStyle);
+            Assert.All(Nodes<SwiftShapeBorder>(backdrop).Where(layer => !ReferenceEquals(layer, hairline)), layer => Assert.Equal(default, layer.CornerRadius));
             Assert.False(Assert.Single(Nodes<WindowChromeProbe>(view)).IsHitTestVisible);
-            Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(window.Background).Color);
         });
     }
 
     [Theory]
     [Trait("Req", "UI-SETTINGS-001")]
+    [Trait("Decision", "OD-0140")]
     [InlineData(false, 0.18, 0.09, 0.59)]
     [InlineData(true, 0.26, 0.13, 0.63)]
     public void Actual_Settings_backdrop_follows_initial_live_and_hidden_opacity(bool dark, double stock, double quarter, double threeQuarter)
     {
-        // SettingsView.cs:169-172 supplies the setting to the real WindowBackdrop.
+        // SettingsOverlay.cs supplies the setting to the panel's WindowBackdrop (as SettingsView.cs:169-172 does to its own).
         // Chrome.swift:211-215,249-259 (Chrome.cs:369-375,438-461): independently tabulated scrim values.
         WithManager((_, manager) =>
         {
+            using var rig = new SettingsRiseRig();
             manager.Model.Settings.BackdropOpacity = 0.5;
+            MainIn(manager, dark ? ThemeVariant.Dark : ThemeVariant.Light);
             manager.ShowSettings(SettingsPage.Archive);
             var window = Settings(manager);
-            window.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
-            Drain(window);
+            Settle(rig, window);
+            var overlay = Overlay(manager);
             var view = View(manager);
-            var backdrop = Assert.Single(Nodes<WindowBackdrop>(view));
+            var backdrop = ShownBackdrop(manager);
             Assert.Equal(dark ? ThemeVariant.Dark : ThemeVariant.Light, backdrop.ActualThemeVariant);
             SettingsBackdropAssertions.GlassOpacity(backdrop, stock);
 
@@ -98,47 +144,60 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
             SettingsBackdropAssertions.Solid(backdrop, dark ? Colors.Black : Colors.White);
 
             manager.Model.Settings.BackdropOpacity = 0.25; Drain(window);
-            window.Close(); Assert.False(window.IsVisible);
+            manager.CloseSettings(); Settle(rig, window);
+            Assert.False(manager.IsSettingsOpen); Assert.False(overlay.IsVisible); Assert.True(window.IsVisible);
             manager.Model.Settings.BackdropOpacity = 0.75;
-            manager.ShowSettings(); Drain(window);
+            manager.ShowSettings(); Settle(rig, window);
+            Assert.True(manager.IsSettingsOpen);
             Assert.Same(view, View(manager));
-            Assert.Same(backdrop, Assert.Single(Nodes<WindowBackdrop>(view)));
+            Assert.Same(backdrop, ShownBackdrop(manager));
             SettingsBackdropAssertions.GlassOpacity(backdrop, threeQuarter);
         });
     }
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]
-    public void Sidebar_background_is_a_hit_tested_caption_region()
+    [Trait("Decision", "OD-0140")]
+    public void The_sidebar_background_inside_the_panel_is_not_a_caption_region_so_a_press_there_neither_drags_the_main_window_nor_closes_Settings()
     {
-        // Headless hit testing proves the managed caption region; the production Settings HWND reports it as HTCAPTION to the system
-        // (WindowManagerNativeTests.The_actual_Settings_sidebar_background_reaches_native_caption_hit_testing, a real native hit test),
-        // and its caption buttons are driven by real mouse input in the same class (RESOLVED SETTINGS-NATIVE-SURFACE).
-        // ui_contract.json:15437; SettingsView.cs:166 installs the background over the 212-point sidebar.
+        // ui_contract.json:15437; SettingsView.cs:166 installs the background over the 212-point sidebar. In the Settings window it was the
+        // window's caption region; inside the main window it would drag the main window from inside the panel, so the panel turns it off.
         WithManager((_, manager) =>
         {
+            using var rig = new SettingsRiseRig();
             manager.ShowSettings(SettingsPage.Archive);
-            var window = Settings(manager); Drain(window);
+            var window = Settings(manager);
+            Settle(rig, window);
+            var overlay = Overlay(manager);
             var drag = Assert.Single(Nodes<WindowDragArea>(View(manager)));
             Assert.Equal(212, drag.Bounds.Width);
-            Assert.Equal(580, drag.Bounds.Height);
-            Assert.Equal(Win32Properties.Win32HitTestValue.Caption, Win32Properties.GetNonClientHitTestResult(drag));
-            var point = At(drag, window, new Point(180, 18)); // Empty top strip beyond the leading caption controls.
-            Assert.Same(drag, window.InputHitTest(point));
-            window.MouseMove(point); Drain(window);
-            Assert.True(drag.IsPointerOver);
+            Assert.Equal(overlay.Card.Bounds.Height, drag.Bounds.Height, 3); // the sidebar runs the panel's full height
+            Assert.False(drag.IsHitTestVisible);
+            var point = At(drag, window, new Point(180, 18)); // Empty top strip of the sidebar.
+            Assert.NotSame(drag, window.InputHitTest(point));
+            AssertHitWithin(window, overlay.Card, point); // the panel, not the dim round it (a press there closes Settings)
+            using var platform = new SettingsWindowPlatformScope(window);
+            window.MouseMove(point);
+            window.MouseDown(point, MouseButton.Left);
+            window.MouseUp(point, MouseButton.Left);
+            Drain(window);
+            Assert.DoesNotContain("BeginMoveDrag", platform.Spy.Calls);
+            Assert.True(manager.IsSettingsOpen);
         });
     }
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]
+    [Trait("Decision", "OD-0140")]
     public void Search_and_page_controls_receive_input_without_starting_a_window_drag()
     {
         // SettingsView.cs:158-166,198-209,403: search/page buttons sit over the sidebar's drag background.
         WithManager((_, manager) =>
         {
+            using var rig = new SettingsRiseRig();
             manager.ShowSettings(SettingsPage.Archive);
-            var window = Settings(manager); Drain(window);
+            var window = Settings(manager);
+            Settle(rig, window);
             var view = View(manager);
             var input = Assert.Single(Nodes<TextBox>(Assert.Single(Nodes<SidebarSearchField>(view))));
             using var platform = new SettingsWindowPlatformScope(window);
@@ -149,7 +208,7 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
             Click(window, appearance);
             Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Transparency");
             Assert.DoesNotContain("BeginMoveDrag", platform.Spy.Calls);
+            Assert.True(manager.IsSettingsOpen); // input inside the panel keeps it open
         });
     }
-
 }

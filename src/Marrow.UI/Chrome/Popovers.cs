@@ -114,6 +114,7 @@ public sealed class PopoverScroll : Decorator
             Content = body,
             Height = Math.Min(Math.Max(contentHeight, minHeight), maxHeight), // :90
         };
+        scroll.Fades(); // PORT-ONLY (OD-0140): rows dissolve at the edge they scroll past (ScrollEdgeFade)
         if (!isPremeasured)
         {
             // The content keeps its own height (a ScrollView offers it unbounded height): stretched to the viewport it
@@ -167,6 +168,7 @@ public sealed class PopoverMenu : Decorator
             MaxHeight = maxHeight, // :112
         };
         if (idealHeight is { } ideal) scroll.Height = ideal; // :112 idealHeight
+        scroll.Fades(); // PORT-ONLY (OD-0140): rows dissolve at the edge they scroll past (ScrollEdgeFade)
         Child = scroll.PresentedChrome(); // :113
     }
 }

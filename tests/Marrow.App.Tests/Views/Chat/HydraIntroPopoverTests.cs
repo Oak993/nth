@@ -45,12 +45,13 @@ public sealed class HydraIntroPopoverTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-HYDRA-059")] // App/Views/Chat/HydraIntroPopover.swift:63-66
+    [Trait("Decision", "OD-0140")] // Settings opens as the panel inside the main window
     public void Setup_dismisses_before_opening_settings_on_the_hydra_page()
     {
         headless.OnUiThread(() => {
             using var harness = new AppModelHarness();
             harness.Main.OnMain(() => {
-                var manager = new WindowManager(); var content = new Border(); var events = new List<string>();
+                var manager = new WindowManager { MainContent = () => new Border() }; var content = new Border(); var events = new List<string>();
                 manager.SettingsContent = () => { events.Add("open"); return content; };
                 using var shared = WindowManager.OverrideShared(manager);
                 var prior = SettingsNavigation.Shared.RequestedPage;
@@ -58,8 +59,10 @@ public sealed class HydraIntroPopoverTests(HeadlessSession headless)
                     var intro = new HydraIntroPopover(() => events.Add("dismiss"));
                     LogicalQuery.SelfAndDescendants<Button>(intro).Single(b => ButtonText(b) == "Set up in Settings").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     Assert.Equal(new[] {"dismiss", "open"}, events); Assert.Equal(SettingsPage.Hydra, SettingsNavigation.Shared.RequestedPage);
+                    Assert.Same(manager.MainWindow, TopLevel.GetTopLevel(content)); // OD-0140: the Settings panel is in the main window
+                    Assert.True(manager.IsSettingsOpen);
                     Assert.True(((Avalonia.Controls.Window)TopLevel.GetTopLevel(content)!).IsVisible);
-                } finally { ((Avalonia.Controls.Window?)TopLevel.GetTopLevel(content))?.Close(); SettingsNavigation.Shared.RequestedPage = prior; Dispatcher.UIThread.RunJobs(); }
+                } finally { manager.CloseSettings(); ((Avalonia.Controls.Window?)TopLevel.GetTopLevel(content))?.Close(); SettingsNavigation.Shared.RequestedPage = prior; Dispatcher.UIThread.RunJobs(); }
             });
         });
     }

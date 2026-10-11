@@ -47,6 +47,10 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // gap on a user-opened Settings window, which ED-249 (OD-0074) closes: every open of Settings is shown cloaked and revealed at
 // glass-ready with Rise (Port/SettingsRise.cs). The three
 // window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
+// DEVIATION OD-0140 (ED-NEW-settingsinapp-1): Settings is no longer a window. showSettings(page:) (:32-38) opens the Settings panel inside the
+// main window (Port/SettingsOverlay.cs), so makeSettingsWindow (:80-84), the Settings size (:21) and the centring over the main window
+// (:40-55) are not ported any more, nor the port's Settings-window machinery around them (the Rise open and its close, the shadow shell, the
+// cloak, the owner link): the panel is drawn by the app in the main window, where the dim, the close and the keyboard are its own.
 // makeWindow also carries the port's stand-in for the menu bar DroppyCodeApp.swift:24 installs: each window it makes
 // dispatches the AppCommands chords itself (OD-0008 C3, Port/MenuKeyEquivalents.cs; STOP App.AppCommands #6).
 
@@ -70,7 +74,9 @@ public sealed class WindowManager
     internal bool HasCreatedModel => model.IsValueCreated;
 
     private AvaloniaWindow? mainWindow; // :15
-    private AvaloniaWindow? settingsWindow; // :16
+    // :16 settingsWindow: DEVIATION OD-0140, the Settings panel inside the main window instead.
+    private SettingsOverlay? settingsOverlay;
+    private WindowLiveResize? mainLiveResize;
 
     // ED-063: WindowChrome declares the app-drawn caption controls with Win32 hit-test values; this App-layer hook owns
     // their native actions because Avalonia 12.1.2 does not perform them for app-drawn controls by itself.
@@ -111,16 +117,16 @@ public sealed class WindowManager
     {
         public static readonly Avalonia.Size Main = new(1320, 860); // :19
         public static readonly Avalonia.Size MainMinimum = new(860, 560); // :20
-        public static readonly Avalonia.Size Settings = new(780, 580); // :21
+        // :21 Settings: DEVIATION OD-0140, the panel takes its size from the main window (SettingsOverlay).
     }
 
     // :24 private static let mainFrameName = "DroppyCodeMainWindow". ED-006: the port keeps the frame in its own
     // settings store under this exact name (PR-WIN-006 windows_path).
     private const string MainFrameName = "DroppyCodeMainWindow";
 
-    // :63 `{ RootView() }` and :81 `{ SettingsView() }`, each window's content, built by makeWindow (:104). Internal and
-    // settable only for headless content substitution. SettingsContent's default is now exercised with the real
-    // SettingsView; MainContent's real RootView is blocked by its owned dependency (STOP #7). The app sets neither.
+    // :63 `{ RootView() }`, the main window's content, built by makeWindow (:104), and :81 `{ SettingsView() }`, now the content of the
+    // Settings panel in the main window (OD-0140), built when Settings first opens. Internal and settable only for headless content
+    // substitution. The app sets neither.
     internal Func<Control> MainContent { get; set; } = () => new RootView();
     internal Func<Control> SettingsContent { get; set; } = () => new SettingsView();
 
@@ -134,7 +140,11 @@ public sealed class WindowManager
     /// reopen (ED-002) and session-end hook (ED-004); null before.</summary>
     internal AvaloniaWindow? MainWindow => mainWindow;
 
-    internal AvaloniaWindow? SettingsWindow => settingsWindow;
+    /// <summary>PORT-ONLY (OD-0140): the Settings panel of the main window once Settings has opened; null before.</summary>
+    internal SettingsOverlay? SettingsOverlay => settingsOverlay;
+
+    /// <summary>PORT-ONLY (OD-0140): whether Settings is open (an open panel that is closing is not).</summary>
+    public bool IsSettingsOpen => settingsOverlay is { IsOpen: true };
 
     // The implicit init of the Swift singleton (module-internal in Swift): `model` (:13) is made here.
     internal WindowManager() { }
@@ -156,110 +166,56 @@ public sealed class WindowManager
     {
         var window = PrepareMain(); // :27
         mainWindow = window; // :28
-        if (settingsWindow is SecondaryWindow settings) settings.SetMainOwner(window);
         Present(window); // :29
     }
 
-    // :32-38 func showSettings(page: SettingsPage? = nil)
+    // :32-38 func showSettings(page: SettingsPage? = nil). DEVIATION OD-0140 (ED-NEW-settingsinapp-1): the page is asked for (:33) as
+    // before, and Settings opens as the panel inside the main window, which is shown and brought forward first (:37's present); an open
+    // panel stays open on the page asked for.
     public void ShowSettings(SettingsPage? page = null)
     {
         if (page is { } requested) SettingsNavigation.Shared.RequestedPage = requested; // :33
-        var window = settingsWindow ?? MakeSettingsWindow(); // :34
-        settingsWindow = window; // :35
-        settingsClose?.Stop();
-        CenterOverMainWindow(window); // :36
-        // DEVIATION OD-0074 (ED-249): an open of the hidden window is Rise (Port/SettingsRise.cs): shown cloaked, revealed
-        // at glass-ready, then activated, the glass fading in and the items rising in a 0.26 s wave. A window already up is
-        // brought forward as before, except while it is still cloaked for its reveal (the reveal activates it).
-        if (!window.IsVisible && settingsView is { } view)
+        var main = PrepareMain();
+        mainWindow = main;
+        Present(main); // :37
+        SettingsOverlayFor(main)?.Open();
+    }
+
+    /// <summary>PORT-ONLY (OD-0140): the Settings shortcut (AppCommands.swift:13-14) opens Settings, and closes it when it is open.</summary>
+    public void ToggleSettings()
+    {
+        if (IsSettingsOpen && mainWindow is { IsVisible: true } main && main.WindowState != WindowState.Minimized)
         {
-            settingsRise?.Stop();
-            settingsRise = SettingsRise.Open(window, view, SettingsCloak, () => ShowRestoring(window), window.Activate);
+            CloseSettings();
             return;
         }
-        if (settingsRise is { Waiting: true }) return;
-        Present(window); // :37
+        ShowSettings();
     }
 
-    /// <summary>PORT-ONLY (OD-0074, ED-249): how the Settings window is cloaked for its open; DWM cloaking
-    /// (<see cref="WindowCloak"/>) unless a test stands in for it.</summary>
-    internal Func<AvaloniaWindow, bool, bool> SettingsCloak { get; set; } = WindowCloak.Set;
+    /// <summary>PORT-ONLY (OD-0140): closes the Settings panel, if it is open.</summary>
+    public void CloseSettings() => settingsOverlay?.Close();
 
-    // PORT-ONLY (OD-0074, ED-249): the Settings window's current open; null when it could not be cloaked.
-    private SettingsRise? settingsRise;
-
-    // PORT-ONLY (OD-0074, ED-249): the Settings window's content when it is the real SettingsView (:81).
-    private SettingsView? settingsView;
-
-    /// <summary>PORT-ONLY: the Settings window's current open, for tests.</summary>
-    internal SettingsRise? SettingsOpening => settingsRise;
-    private SettingsClose? settingsClose;
-    internal SettingsClose? SettingsClosing => settingsClose;
-
-    /// <summary>:40-55 Opens a window centered over the main window, kept on the screen the main window is on.</summary>
-    private void CenterOverMainWindow(AvaloniaWindow window)
+    // The main window's Settings panel, made with its content the first time Settings opens (:34-35, `settingsWindow ?? makeSettingsWindow()`),
+    // and laid over the window's content under its caption buttons (OD-0044), as an in-window sheet is (ChatSheetPresentation).
+    private SettingsOverlay? SettingsOverlayFor(AvaloniaWindow main)
     {
-        // :42-45
-        if (mainWindow is not { } main || !main.IsVisible || main.WindowState == WindowState.Minimized)
+        if (main.Content is not Panel root || mainLiveResize is not { } liveResize) return null;
+        if (settingsOverlay is { } made && ReferenceEquals(made.Window, main))
         {
-            WindowCentering.Center(window, FrameSizeOf(window)); // :43 window.center(), ED-225
-            return; // :44
+            if (made.Parent is null) Insert(root, made, main);
+            return made;
         }
-        // In points: the main window's position (pixels) over its own scale, as NSWindow.frame is in points.
-        var scale = main.DesktopScaling;
-        // An NSWindow frame's origin is its bottom-left corner, in one global space whose y grows upward from the
-        // bottom edge of the primary screen (NSScreen.screens[0]). Windows' primary monitor has its top-left corner at
-        // the virtual screen's origin and y grows downward, so AppKit's y is `up - y` for a point `y` down, where `up`
-        // is the primary screen's bottom edge; :49 rounds, and :52 clamps, in AppKit's y, then :54 converts back. With
-        // no screen at all (nothing a window could be shown on) there is no primary screen to measure from, and the
-        // virtual screen's origin line stands in for its bottom edge.
-        var up = main.Screens.Primary is { } primary ? primary.Bounds.ToRect(scale).Bottom : 0;
-        var parentSize = main.FrameSize ?? FrameSizeOf(main); // :46 main.frame, not the requested content size.
-        var parent = new Rect(main.Position.X / scale, up - (main.Position.Y / scale + parentSize.Height), parentSize.Width, parentSize.Height); // :46
-        // :47 window.frame, for the HWND the visible frame and the invisible strip around it (WindowInvisibleBorder), in points.
-        var strip = WindowInvisibleBorder.Pixels.Current(window, scale) / scale;
-        var frame = FrameSizeOf(window) + new Avalonia.Size(2 * strip, strip);
-        // The Settings HWND is centred on the HWND centre of the main window moved to the visible centre of the main window
-        // (+ strip / 2 for the bottom strip the Settings frame carries). A normal main HWND keeps its strip on the left, the
-        // right and the bottom, so its visible centre lies strip / 2 above its HWND centre; a MAXIMISED one has the strip on
-        // all four sides (Avalonia's WM_NCCALCSIZE maximise branch insets the client by the border on every side), so its HWND
-        // centre is its visible centre. The shift is in AppKit's y (up): a lower HWND centre is a smaller y.
-        var mainStrip = WindowInvisibleBorder.Pixels.Current(main, scale) / scale;
-        var mainTop = main.WindowState == WindowState.Maximized ? mainStrip : 0;
-        var shiftDown = (mainTop - mainStrip + strip) / 2;
-        parent = parent.WithY(parent.Y - shiftDown);
-        Rect? visible = null;
-        // :50 (main.screen ?? NSScreen.main)?.visibleFrame: the working area (the taskbar and app bars left out) of the
-        // screen the main window is on, else the primary screen; with no screen at all the clamp is skipped.
-        if ((main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary) is { } screen)
-        {
-            var working = screen.WorkingArea.ToRect(scale);
-            // visibleFrame in AppKit's y: minY is the working area's bottom edge, maxY its top edge. The window's invisible
-            // strip (left, right, bottom) may lie outside it: the clamp is of the visible window, as AppKit's frame is.
-            visible = new Rect(working.Left - strip, up - working.Bottom - strip, working.Width + 2 * strip, working.Height + strip);
-        }
-        var centered = CenteredFrame(parent, frame, visible); // :46-54
-        // :54 window.setFrame(frame, display: false): only the origin moves (the size is the window's own). Back to
-        // Windows' downward y (the top edge is `up` less the bottom edge and the height), and, a position being whole
-        // pixels, to pixels at the main window's scale.
-        var top = up - centered.Bottom;
-        var inset = window.Content is SettingsShell shell ? shell.Inset : 0;
-        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded((centered.X - inset) * scale)), checked((int)SwiftNumber.Rounded((top - inset) * scale)));
-    }
+        var overlay = new SettingsOverlay(main, Model, liveResize, SettingsContent()); // :81 SettingsView()
+        Insert(root, overlay, main);
+        settingsOverlay = overlay;
+        return overlay;
 
-    // :46-54 The source's point-space calculation, shared with the headless edge-case tests. A missing screen
-    // leaves the rounded origin alone; a smaller working area still uses the outer min, without shrinking the
-    // frame. This centers over a visible main window; NSWindow.center() uses the separate ED-225 binding.
-    private static Rect CenteredFrame(Rect parent, Avalonia.Size frame, Rect? visible)
-    {
-        var x = SwiftNumber.Rounded(parent.Center.X - frame.Width / 2); // :48
-        var y = SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2); // :49
-        if (visible is { } working) // :50
+        static void Insert(Panel root, Control overlay, AvaloniaWindow window)
         {
-            x = SwiftMin(SwiftMax(x, working.Left), working.Right - frame.Width); // :51
-            y = SwiftMin(SwiftMax(y, working.Top), working.Bottom - frame.Height); // :52 minY and maxY in upward point space
+            var caption = WindowChrome.CaptionLayer(window);
+            var at = root.Children.IndexOf(caption);
+            root.Children.Insert(at >= 0 ? at : root.Children.Count, overlay);
         }
-        return new Rect(x, y, frame.Width, frame.Height); // :54 only the origin changes
     }
 
     // :57-60 private func present(_ window: NSWindow)
@@ -273,20 +229,10 @@ public sealed class WindowManager
         window.Activate();
     }
 
-    // :59 the ordering front of makeKeyAndOrderFront, without its activation (Present; the Settings open, ED-249).
+    // :59 the ordering front of makeKeyAndOrderFront, without its activation (Present).
     private void ShowRestoring(AvaloniaWindow window)
     {
-        if (ReferenceEquals(window, settingsWindow) && window is SecondaryWindow settings)
-        {
-            // Owner instruction, 2026-10-08 (ED-NEW-T45): Settings cannot be lost
-            // behind Main. Show(owner) installs native ownership before display;
-            // reapply after cached Hide, which Avalonia clears. A Settings-first
-            // open gains its owner when ShowMain first realises the main window.
-            if (mainWindow is { IsVisible: true } main) window.Show(main);
-            else window.Show();
-            settings.SetMainOwner(mainWindow);
-        }
-        else window.Show();
+        window.Show();
         // OD-0038: a minimised window is restored to the state it had before it was minimised (normal or maximised),
         // for the second launch and the reopen alike. Whether makeKeyAndOrderFront alone deminiaturizes is UNVERIFIED
         // (OD-0001); the owner ruled it does here.
@@ -321,21 +267,18 @@ public sealed class WindowManager
         ApplyMinimumHeight();
         window.ScalingChanged += (_, _) => ApplyMinimumHeight();
         // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }
-        if (!SetFrameUsingName(window, MainFrameName)) WindowCentering.Center(window, FrameSizeOf(window)); // :68, ED-225
+        if (!SetFrameUsingName(window, MainFrameName)) // :68
+        {
+            // PORT-ONLY ED-NEW-settingsinapp-3 (owner, 2026-10-11): with no saved frame the window takes 69 % x 92 % of its monitor's work
+            // area, centred, as Claude's desktop window does; the source's fixed 1320 x 860 (:19) is kept only when there is no display.
+            var monitor = WindowCentering.SelectMonitor(window); // read once: the size and the place are on one monitor
+            var first = WindowCentering.FirstLaunchSize(monitor, Size.Main, Size.MainMinimum);
+            window.Width = first.Width;
+            window.Height = first.Height;
+            WindowCentering.Center(window, FrameSizeOf(window), above: 0.5, monitor); // ED-225
+        }
         SetFrameAutosaveName(window, MainFrameName); // :70
         return window; // :71
-    }
-
-    // :80-84 private func makeSettingsWindow() -> NSWindow
-    private AvaloniaWindow MakeSettingsWindow()
-    {
-        var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow { AllowsCaptionMaximize = true }); // :81; ED-NEW-T45 owner caption override
-        if (settingsView is not null) SettingsShell.Install(window);
-        WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
-        // DEVIATION OD-0088, OD-0076 (ED-254): the Settings window turns over on a change of appearance, every colour in it
-        // easing 0.32 s as the locked accent board's window does (SPEC 6.5), where the source changes it in one frame.
-        AppearanceTurn.SetTurnsOver(window, true);
-        return window; // :83
     }
 
     // :86-110 private func makeWindow<Content: View>(title:size:resizable:windowClass:content:) -> NSWindow
@@ -384,12 +327,6 @@ public sealed class WindowManager
                 quit();
                 return;
             }
-            if (ReferenceEquals(window, settingsWindow) && settingsView is { } view && window.IsVisible
-                && settingsRise is { Done: true } && !EnvironmentValues.GetAccessibilityReduceMotion(window))
-            {
-                if (settingsClose is not { Done: false }) settingsClose = new SettingsClose(window, view);
-                return;
-            }
             window.Hide();
         };
         // :99 animationBehavior = .documentWindow: the system's own window animation, which Windows applies to every
@@ -408,6 +345,7 @@ public sealed class WindowManager
     private void AttachContent(AvaloniaWindow window, Func<Control> content)
     {
         var liveResize = new WindowLiveResize(window); // :103
+        mainLiveResize = liveResize; // OD-0140: the Settings panel shares the main window's environment
         var hosting = new FrameHostingView(new HostedRoot(Model, liveResize, content())); // :104
         // :105 hosting.frame = frame, :106 NSView(frame: frame): the plain container fills the client area and lays
         // its one child out over the whole of it.
@@ -419,7 +357,7 @@ public sealed class WindowManager
         window.Content = container; // :108
         // PORT-ONLY (OD-0008 C3): DroppyCodeApp.swift:21-25 installs `AppCommands(model: WindowManager.shared.model)` as
         // the menu bar, which answers the key equivalents of whichever window of the app is key. With no menu bar, each
-        // window this factory makes (main and Settings) carries the port's dispatch of those chords
+        // window this factory makes (the main window; Settings is a panel inside it, OD-0140) carries the port's dispatch of those chords
         // (Port/MenuKeyEquivalents.cs) for as long as it lives (:98 keeps it). The command table is read afresh at each
         // key-down, as SwiftUI re-reads the Commands body, over this manager's model (:13). Views that monitor the window's
         // keys register when they attach, after this, so they still see a key-down first, as a local monitor does.
@@ -462,8 +400,7 @@ public sealed class WindowManager
                 WindowChrome.SetCaptionHover(window, IsCaptionButton(wParam, window) ? (int)wParam : 0);
                 if (!state.TrackingLeave && OperatingSystem.IsWindows() && hWnd != 0)
                 {
-                    var trackWindow = window.Content is SettingsShell { Input: { } input } ? input.Handle : hWnd;
-                    var track = new TrackMouseEventInfo { Size = (uint)Marshal.SizeOf<TrackMouseEventInfo>(), Flags = TME_LEAVE | TME_NONCLIENT, Window = trackWindow };
+                    var track = new TrackMouseEventInfo { Size = (uint)Marshal.SizeOf<TrackMouseEventInfo>(), Flags = TME_LEAVE | TME_NONCLIENT, Window = hWnd };
                     state.TrackingLeave = TrackMouseEvent(ref track);
                 }
                 break;
@@ -569,7 +506,7 @@ public sealed class WindowManager
         {
             SC_CLOSE => CloseWindow(window),
             SC_MINIMIZE when window.CanMinimize => SetWindowState(window, WindowState.Minimized),
-            // Consume a denied maximize too: falling through lets DefWindowProc maximize a fixed Settings HWND.
+            // Consume a denied maximize too: falling through lets DefWindowProc maximize a fixed-size HWND.
             SC_MAXIMIZE => !window.CanMaximize || SetWindowState(window, WindowState.Maximized),
             SC_RESTORE when window.WindowState != WindowState.Normal => SetWindowState(window, WindowState.Normal),
             _ => false,
@@ -614,8 +551,7 @@ public sealed class WindowManager
         {
             // Preserve the proven P7 keyboard-menu anchor at the leading caption, not (' ', 0).
             if (!GetWindowRect(hWnd, out var frame)) return false;
-            var inset = window.Content is SettingsShell shell ? (int)Math.Round(shell.Inset * window.RenderScaling) : 0;
-            point = new ScreenPoint(frame.Left + inset + 8, frame.Top + inset + 44);
+            point = new ScreenPoint(frame.Left + 8, frame.Top + 44);
         }
         var command = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, point.X, point.Y, hWnd, 0);
         if (command != 0) _ = PostMessage(hWnd, WM_SYSCOMMAND, (nint)command, 0);
@@ -679,7 +615,6 @@ public sealed class WindowManager
     // is the content rect (:93-96) and nothing is added; before the first show the platform reports the standard overlapped
     // frame instead (+39 px of caption), which centred the window 11 to 15 px too high (WindowInvisibleBorder).
     private static Avalonia.Size FrameSizeOf(AvaloniaWindow window) =>
-        window.Content is SettingsShell { Inset: > 0 } shell ? new Avalonia.Size(shell.Client.Width, shell.Client.Height) :
         window.TryGetPlatformHandle() is { Handle: not 0 } handle && handle.HandleDescriptor == "HWND"
             ? new Avalonia.Size(window.Width, window.Height)
             : new Avalonia.Size(window.Width, window.Height) + (window.FrameSize is { } frame ? frame - window.ClientSize : default);
@@ -730,11 +665,6 @@ public sealed class WindowManager
         public const string Width = "width";
         public const string Height = "height";
     }
-
-    // Swift.min and Swift.max on CGFloat (R-NUM-4).
-    private static double SwiftMin(double x, double y) => y < x ? y : x;
-
-    private static double SwiftMax(double x, double y) => y >= x ? y : x;
 }
 
 /// <summary>:113-140 <c>@MainActor @Observable final class WindowLiveResize</c> (R-OBS-6): whether the window is
@@ -860,18 +790,6 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
     {
         AppEnvironment.SetAppModel(content, Model); // :171 .environment(model)
         AppEnvironment.SetWindowLiveResize(content, LiveResize); // :172 .environment(liveResize)
-        // ED-NEW-T45: Settings' fixed frame describes the visible card. Its inner layout must fit the zoom proposal.
-        void FitSettings(long percent)
-        {
-            if (!Zooms || content is not SettingsView settings) return;
-            var scale = AppZoom.Normalized(Percent(percent)) / 100.0;
-            settings.UseLayoutRounding = false; // round after scaling, rather than rounding the inverse frame's fractional size
-            var viewport = TopLevel.GetTopLevel(settings)?.Content is SettingsShell shell
-                ? new Avalonia.Size(shell.Client.Width, shell.Client.Height) : new Avalonia.Size(780, 580);
-            settings.Width = viewport.Width / scale;
-            settings.Height = viewport.Height / scale;
-        }
-        FitSettings(Model.Settings.AppZoom);
         // :173-175 The zoom in Settings scales the whole app: every window root and every chat column carries it, so the
         // sidebar, settings and composer move together.
         // Lead (native gallery at 200 %, 2026-10-08): on the Mac a chat column is an NSHostingView of its own, which the window
@@ -881,14 +799,9 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
         var zoomed = Zooms ? new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content) : content;
         Popovers.SetIsCapsuleButtonBorderShape(zoomed, true); // :176 .buttonBorderShape(.capsule)
         var tinted = new ThemeTint(Model.Settings.Theme, Model.Settings.Accent).Body(zoomed); // :177
-        if (Zooms && content is SettingsView) tinted.SizeChanged += (_, _) => FitSettings(Model.Settings.AppZoom);
         // The body reads model.settings.appZoom (:175) and model.settings.theme (:177), so SwiftUI evaluates it again
         // when either changes; AppZoomModifier keeps its layout and ThemeTint its view when they are evaluated again.
-        if (Zooms) tinted.Track(() => Model.Settings.AppZoom, percent =>
-        {
-            FitSettings(percent);
-            new AppZoomModifier(Percent(percent)).Body(content);
-        });
+        if (Zooms) tinted.Track(() => Model.Settings.AppZoom, percent => new AppZoomModifier(Percent(percent)).Body(content));
         tinted.Track(() => (Model.Settings.Theme, Model.Settings.Accent), pair => new ThemeTint(pair.Theme, pair.Accent).Body(zoomed)); // and the accent (OD-0088)
         return tinted;
     }

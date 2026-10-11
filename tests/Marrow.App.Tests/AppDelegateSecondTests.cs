@@ -23,26 +23,26 @@ public sealed class AppDelegateSecondTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             var main = new AvaloniaWindow { ShowActivated = false };
-            var settings = new AvaloniaWindow { ShowActivated = false };
+            var other = new AvaloniaWindow { ShowActivated = false };
             main.Show();
-            settings.Show();
+            other.Show();
             Dispatcher.UIThread.RunJobs();
             try
             {
                 Assert.False(main.IsActive);
-                Assert.False(settings.IsActive);
-                Assert.False(NSApplication.AnyWindowIsActive([main, settings])); // no window of the app is active
+                Assert.False(other.IsActive);
+                Assert.False(NSApplication.AnyWindowIsActive([main, other])); // no window of the app is active
 
-                settings.Activate(); // the settings window comes to the front; the main window stays behind it
+                other.Activate(); // another window of the app (the tour window, say; OD-0140: Settings is no window of its own) comes to the front; the main window stays behind it
                 Dispatcher.UIThread.RunJobs();
 
                 Assert.False(main.IsActive);
-                Assert.True(settings.IsActive);
-                Assert.True(NSApplication.AnyWindowIsActive([main, settings])); // through a window not the main one
+                Assert.True(other.IsActive);
+                Assert.True(NSApplication.AnyWindowIsActive([main, other])); // through a window not the main one
             }
             finally
             {
-                settings.Close();
+                other.Close();
                 main.Close();
                 Dispatcher.UIThread.RunJobs();
             }
@@ -56,9 +56,9 @@ public sealed class AppDelegateSecondTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             var main = new AvaloniaWindow { ShowActivated = false };
-            var settings = new AvaloniaWindow { ShowActivated = false };
+            var other = new AvaloniaWindow { ShowActivated = false };
             main.Show();
-            settings.Show();
+            other.Show();
             Dispatcher.UIThread.RunJobs();
             try
             {
@@ -66,12 +66,12 @@ public sealed class AppDelegateSecondTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
 
                 Assert.True(main.IsActive);
-                Assert.False(settings.IsActive);
-                Assert.True(NSApplication.AnyWindowIsActive([main, settings]));
+                Assert.False(other.IsActive);
+                Assert.True(NSApplication.AnyWindowIsActive([main, other]));
             }
             finally
             {
-                settings.Close();
+                other.Close();
                 main.Close();
                 Dispatcher.UIThread.RunJobs();
             }

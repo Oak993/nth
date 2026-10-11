@@ -14,8 +14,8 @@ internal static class VoiceNoteNavigation
         manager.ShowSettings(SettingsPage.VoiceTyping);
         Dispatcher.UIThread.Post(() =>
         {
-            if (manager.SettingsWindow is not { } window) return;
-            var page = window.GetLogicalDescendants().OfType<VoiceTypingSettingsPage>().FirstOrDefault();
+            if (manager.SettingsOverlay is not { IsOpen: true } settings) return; // OD-0140: the Settings panel in the main window
+            var page = settings.Content.GetLogicalDescendants().OfType<VoiceTypingSettingsPage>().FirstOrDefault();
             if (page is null) return;
             Control row = target switch
             {

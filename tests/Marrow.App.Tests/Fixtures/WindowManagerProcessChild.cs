@@ -1,13 +1,13 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Marrow.App.Port;
-using Marrow.App.Window;
 using Marrow.Services.Store;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Fixtures;
 
-// Source: WindowManager.swift:15-16, :26-38, :98. Main-close termination is OD-0008 C1/C2.
+// Source: WindowManager.swift:15-16, :26-38, :98. Main-close termination is OD-0008 C1/C2. DEVIATION OD-0140: Settings is a panel
+// inside the main window (Port/SettingsOverlay.cs), so "retained" is the one panel and its content kept through a close and a reopen.
 // This is a disposable testhost scenario. The real application entrypoint, bootstrap and native
 // pointer dispatch are outside its claim. Environment.Exit is the test-owned terminal dependency
 // passed to AppShell; production FinishLaunching must install and reach it through main.Close().
@@ -166,22 +166,34 @@ internal static class WindowManagerProcessChild
             Record("main-represented");
 
             launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
-            var settings = Assert.IsType<SecondaryWindow>(LaunchHarness.WindowOf(Assert.Single(settingsRoots)));
-            var settingsContent = settings.Content;
-            settings.Closed += (_, _) => settingsClosed++;
+            var settingsRoot = Assert.Single(settingsRoots);
+            // OD-0140: the Settings content is in the main window, inside its one panel; no second window exists.
+            Assert.Same(main, LaunchHarness.WindowOf(settingsRoot));
+            var overlay = Assert.IsType<SettingsOverlay>(launch.Manager.SettingsOverlay);
+            Assert.Same(main, overlay.Window);
+            Assert.Same(settingsRoot, overlay.Content);
+            Assert.True(launch.Manager.IsSettingsOpen);
+            Assert.True(overlay.IsVisible);
+            // A panel taken down (its content out of the window) would be the closed-and-gone window of before.
+            settingsRoot.DetachedFromVisualTree += (_, _) => settingsClosed++;
             for (var index = 1; index <= 2; index++)
             {
                 var number = WindowManagerProcessProtocol.Invariant(index);
                 Record("settings-close-" + number + "-requested");
-                launch.Harness.Main.OnMain(settings.Close);
-                Assert.False(settings.IsVisible);
+                launch.Harness.Main.OnMain(overlay.Close); // what the panel's close button, Escape and Ctrl+W run
+                Assert.False(launch.Manager.IsSettingsOpen);
+                Assert.False(overlay.IsVisible);
+                Assert.Same(main, LaunchHarness.WindowOf(settingsRoot)); // kept in the main window
                 Assert.Equal(0, settingsClosed);
                 Assert.True(main.IsVisible);
                 Record("settings-close-" + number + "-returned");
                 launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
-                Assert.Same(settings, LaunchHarness.WindowOf(Assert.Single(settingsRoots)));
-                Assert.Same(settingsContent, settings.Content);
-                Assert.True(settings.IsVisible);
+                Assert.Same(overlay, launch.Manager.SettingsOverlay);
+                Assert.Same(main, LaunchHarness.WindowOf(Assert.Single(settingsRoots)));
+                Assert.Same(settingsRoot, overlay.Content);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.True(overlay.IsVisible);
+                Assert.True(main.IsVisible);
                 Assert.Equal(1, launch.Events.Count(value => value == "settings window built"));
                 Record("settings-reopened-" + number);
             }

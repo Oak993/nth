@@ -67,7 +67,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-090")] // App/AppCommands.swift:12-15
     [Trait("Req", "UI-LAUNCH-007")] // App/AppCommands.swift:12-15
     [Trait("Req", "UI-WIN-006")] // App/AppCommands.swift:12-15
-    public void Settings_is_first_never_disabled_and_its_default_and_rebound_chords_show_the_cached_Settings_window() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // Settings opens as the panel inside the main window; the Settings command toggles it
+    public void Settings_is_first_never_disabled_and_its_default_and_rebound_chords_open_the_cached_Settings_panel_in_the_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
         using var store = ShortcutStore.Shared.Override(FreshStore());
@@ -78,19 +79,34 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             Assert.Equal("Settings\U00002026", settings.Title); // :13
             Assert.Equal(Chord(",", ChordModifiers.Control), settings.Shortcut); // :14; Shortcuts.swift:234, ED-050
             Assert.False(settings.IsDisabled); // :12-15 has no .disabled
+            Assert.False(launch.Manager.IsSettingsOpen);
             Assert.True(commands.PerformKeyEquivalent(Chord(",", ChordModifiers.Control)));
             var window = LaunchHarness.WindowOf(launch.SettingsContent);
             Assert.NotNull(window);
+            Assert.Same(launch.Manager.MainWindow, window); // OD-0140: the Settings content sits in the main window
+            var overlay = Assert.IsType<SettingsOverlay>(launch.Manager.SettingsOverlay);
+            Assert.Same(window, overlay.Window);
+            Assert.True(launch.Manager.IsSettingsOpen);
+            Assert.True(overlay.IsVisible);
             Assert.True(window.IsVisible);
+            launch.Manager.CloseSettings();
             window.Hide();
+            Assert.False(launch.Manager.IsSettingsOpen);
 
             var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt); // Windows US Y position, ED-050
             ShortcutStore.Shared.Current.Set(rebound, AppShortcut.OpenSettings);
             Assert.False(commands.PerformKeyEquivalent(Chord(",", ChordModifiers.Control)));
+            Assert.False(launch.Manager.IsSettingsOpen);
             Assert.True(commands.PerformKeyEquivalent(rebound.KeyboardShortcut!.Value));
             Assert.Same(window, LaunchHarness.WindowOf(launch.SettingsContent));
+            Assert.Same(overlay, launch.Manager.SettingsOverlay); // the cached panel (:34-35)
+            Assert.True(launch.Manager.IsSettingsOpen);
             Assert.True(window.IsVisible);
             Assert.Single(launch.Events, value => value == "settings window built");
+            // OD-0140: the Settings command closes the open panel, and the main window stays.
+            Assert.True(commands.PerformKeyEquivalent(rebound.KeyboardShortcut!.Value));
+            Assert.False(launch.Manager.IsSettingsOpen);
+            Assert.True(window.IsVisible);
             window.Close();
         });
     });
@@ -130,7 +146,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-090")] // App/Views/Palette/CommandPalette.swift:176-178,201-206
-    public void The_palettes_Settings_row_opens_the_cached_Settings_window() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // Settings opens as the panel inside the main window
+    public void The_palettes_Settings_row_opens_the_Settings_panel_in_the_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
         using var store = ShortcutStore.Shared.Override(FreshStore());
@@ -151,12 +168,16 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             {
                 Assert.Equal(1, palette.ResultCount);
                 Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(palette.RowsPanel), block => block.Text == "Settings");
+                Assert.False(launch.Manager.IsSettingsOpen);
                 palette.QueryField.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
                 var settings = LaunchHarness.WindowOf(launch.SettingsContent);
                 Assert.NotNull(settings);
+                Assert.Same(main, settings); // OD-0140: the panel opens in the main window, no second window
+                Assert.Same(main, launch.Manager.SettingsOverlay!.Window);
+                Assert.True(launch.Manager.IsSettingsOpen);
                 Assert.True(settings.IsVisible);
                 Assert.False(launch.Manager.Model.IsCommandPalettePresented); // :204 close before performing
-                settings.Hide();
+                launch.Manager.CloseSettings();
             }
             finally { main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
@@ -164,7 +185,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25; App/Window/WindowManager.swift:26-31
-    public void A_recorded_show_main_chord_dispatched_from_the_focused_Settings_window_reuses_main() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // the Settings content is a panel inside the main window
+    public void A_recorded_show_main_chord_dispatched_from_the_focused_Settings_panel_reuses_main() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
         using var store = ShortcutStore.Shared.Override(FreshStore());
@@ -179,6 +201,11 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
             try
             {
+                // OD-0140: Settings asked for while the main window is hidden brings that same window back with the panel in it.
+                Assert.Same(main, settings);
+                Assert.Same(main, launch.Manager.SettingsOverlay!.Window);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.True(main.IsVisible);
                 Assert.True(input.Focus());
                 Assert.True(input.IsFocused);
                 var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt);
@@ -191,8 +218,9 @@ public sealed class AppCommandsTests(HeadlessSession headless)
                 Assert.Same(main, LaunchHarness.WindowOf(launch.MainContent));
                 Assert.True(main.IsVisible);
                 Assert.Single(launch.Events, value => value == "main window built");
+                Assert.True(launch.Manager.IsSettingsOpen); // showing main leaves the panel as it was
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 
@@ -1124,7 +1152,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-110")] // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:95-98; App/Window/WindowManager.swift:32-38
     [Trait("Decision", "ED-099")]
-    public void While_the_Settings_window_the_app_shows_is_key_ctrl_and_a_digit_select_that_sidebar_thread() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // Settings is a panel inside the main window
+    public void While_the_Settings_panel_the_app_shows_is_open_ctrl_and_a_digit_select_that_sidebar_thread() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h =>
         {
@@ -1142,13 +1171,15 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
             try
             {
+                Assert.Same(main, settings); // OD-0140: the panel is in the main window
+                Assert.True(launch.Manager.IsSettingsOpen);
                 Assert.Equal(2, order.Count);
                 Assert.Null(model.SelectedThreadID);
                 // :97 KeyEquivalent("2") with .command: Ctrl+2 (ED-050 (a), ED-099).
                 Press(settings, Key.D2, PhysicalKey.Digit2, RawInputModifiers.Control);
                 Assert.Equal(order[1], model.SelectedThreadID); // :96; AppModel.swift:1119-1123 order[number - 1]
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 

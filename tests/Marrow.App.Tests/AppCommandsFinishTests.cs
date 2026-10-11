@@ -417,37 +417,52 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
             var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
             try
             {
-                Assert.False(main.IsVisible);
+                // OD-0140: Settings is a panel inside the main window, so asking for it brings the hidden main window back with the panel open.
+                Assert.Same(main, settings);
+                Assert.Same(main, launch.Manager.SettingsOverlay!.Window);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.True(main.IsVisible);
                 var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt); // US Y position, ED-099
                 ShortcutStore.Shared.Current.Set(rebound, AppShortcut.ShowMainWindow);
                 Assert.Equal("Zed Test", new AppCommands(launch.Manager.Model).Body[1].Title); // the title stays when a chord is recorded
                 Assert.Equal(rebound.KeyboardShortcut, new AppCommands(launch.Manager.Model).Body[1].Shortcut);
 
-                // The Settings window, which the production path gave the dispatch, is the one key.
-                Press(settings, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
+                // Hidden: the item's chord shows it again.
+                main.Hide();
+                Assert.False(main.IsVisible);
+                Assert.True(new AppCommands(launch.Manager.Model).PerformKeyEquivalent(rebound.KeyboardShortcut!.Value));
+                Dispatcher.UIThread.RunJobs(); // the window's activation runs on the dispatcher, as it did after the key press this replaced
                 Assert.True(main.IsVisible); // :22 showMain(): shown ...
                 Assert.True(main.IsActive); // ... and brought to the front (WindowManager.swift:58-59)
                 Assert.Same(main, LaunchHarness.WindowOf(launch.MainContent)); // the cached instance (:27)
+                Assert.True(launch.Manager.IsSettingsOpen); // the panel stays as it was
 
-                // Visible but behind another window: the chord fronts it again, still the same instance.
+                // Visible but behind another window, the chord pressed with the Settings panel open and its field focused (through the
+                // dispatch the production path gave the main window) fronts it again, still the same instance.
+                Assert.True(input.Focus());
                 Deactivate(main);
                 Assert.False(main.IsActive);
-                Press(settings, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
+                Press(main, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
                 Assert.True(main.IsActive);
+                Assert.Same(main, LaunchHarness.WindowOf(launch.MainContent));
+                Assert.True(launch.Manager.IsSettingsOpen);
                 Assert.Single(launch.Events, value => value == "main window built");
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 
     [Fact]
-    // Partial for PR-WIN-092, PR-WIN-224 and UI-WIN-007: the focused Settings window's Ctrl+0 zooms to 100 and does not front the
-    // hidden main window, and the show-main item's title and chord (App/AppCommands.swift:21-25, :57-58; Core/Models/Shortcuts.swift:233;
+    // Partial for PR-WIN-092, PR-WIN-224 and UI-WIN-007: Ctrl+0 pressed in the focused Settings panel zooms to 100 and does not front the
+    // main window it is in, and the show-main item's title and chord (App/AppCommands.swift:21-25, :57-58; Core/Models/Shortcuts.swift:233;
     // Core/Support/Text.swift:4; OD-0012 F1, G6; App/Window/WindowManager.swift:57-63). Not proved here: PR-WIN-092's and UI-WIN-007's
     // recorded-chord clause (the chord a user records for the item fronts the window, proved by the test above this one) and the
     // other clauses of PR-WIN-224 (AppCommandsZoomTests.Read_by_Windows_...).
+    // OD-0140: Settings is a panel inside the main window, so the main window cannot be hidden while Settings has the keyboard; the
+    // show-main item's absence from Ctrl+0 shows as the window behind another staying behind.
     [Trait("Rule", "R-TEST-4")]
-    public void Ctrl_0_pressed_in_the_focused_Settings_window_zooms_to_100_and_does_not_front_the_hidden_main_window() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")]
+    public void Ctrl_0_pressed_in_the_focused_Settings_panel_zooms_to_100_and_does_not_front_the_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
         using var store = ShortcutStore.Shared.Override(FreshStore());
@@ -461,28 +476,31 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
 
             launch.Manager.ShowMain();
             var main = LaunchHarness.WindowOf(launch.MainContent)!;
-            main.Hide();
             var input = new TextBox();
             launch.SettingsContent.Child = input;
             launch.Manager.ShowSettings();
+            Dispatcher.UIThread.RunJobs(); // opening Settings fronts the window it is in; that activation lands before the window goes behind
             var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
             try
             {
+                Assert.Same(main, settings); // OD-0140: the panel is in the main window
+                Assert.True(launch.Manager.IsSettingsOpen);
                 Assert.True(input.Focus());
-                Assert.False(main.IsVisible);
+                Deactivate(main);
+                Assert.False(main.IsActive);
                 model.Settings.AppZoom = 150;
                 var built = launch.Events.Count(value => value == "main window built");
 
-                // A real Ctrl+0 key press in the focused Settings window, through the dispatch MakeWindow installed.
+                // A real Ctrl+0 key press in the focused Settings panel, through the dispatch MakeWindow installed.
                 Press(settings, Key.D0, PhysicalKey.Digit0, RawInputModifiers.Control);
                 Assert.Equal(100, model.Settings.AppZoom); // :57-58 Actual Size, from 150
-                Assert.False(main.IsVisible); // the show-main item answers only a chord that is recorded for it ...
-                Assert.False(main.IsActive);
+                Assert.False(main.IsActive); // the show-main item answers only a chord that is recorded for it ...
                 Assert.Equal(built, launch.Events.Count(value => value == "main window built")); // ... and built nothing
+                Assert.True(launch.Manager.IsSettingsOpen); // Actual Size leaves the panel open
                 Assert.Null(NativeMenu.GetMenu(settings)); // OD-0008 C3: no menu bar in the window the chord went to
                 Assert.Empty(settings.GetVisualDescendants().OfType<Menu>());
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 
@@ -532,28 +550,32 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
             Assert.Equal(expected, commands.Body.Select(command => (command.Title, command.Shortcut, command.IsDisabled)));
         });
 
-        // OD-0008 C3: no window the app builds carries a menu bar, and a chord still runs its command in each of them.
+        // OD-0008 C3: no window the app builds carries a menu bar, and a chord still runs its command in it, with the Settings panel
+        // (OD-0140: a panel inside the main window, not a window of its own) closed and open.
         launch.Harness.Main.OnMain(() =>
         {
             launch.Manager.ShowMain();
-            launch.Manager.ShowSettings();
             var main = LaunchHarness.WindowOf(launch.MainContent)!;
-            var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
             try
             {
-                foreach (var window in new[] { main, settings })
-                {
-                    Assert.Null(NativeMenu.GetMenu(window));
-                    Assert.Empty(window.GetVisualDescendants().OfType<Menu>());
-                }
+                Assert.Null(NativeMenu.GetMenu(main));
+                Assert.Empty(main.GetVisualDescendants().OfType<Menu>());
                 var model = launch.Manager.Model;
                 var before = model.Settings.SidebarActivityView;
                 Press(main, Key.U, PhysicalKey.U, RawInputModifiers.Control | RawInputModifiers.Alt); // :48-51
                 Assert.Equal(!before, model.Settings.SidebarActivityView);
+
+                launch.Manager.ShowSettings();
+                var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+                Assert.Same(main, settings);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.Null(NativeMenu.GetMenu(settings));
+                Assert.Empty(settings.GetVisualDescendants().OfType<Menu>());
                 Press(settings, Key.OemMinus, PhysicalKey.Minus, RawInputModifiers.Control); // :55-56
                 Assert.Equal(90, model.Settings.AppZoom);
+                Assert.True(launch.Manager.IsSettingsOpen);
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 
@@ -599,39 +621,50 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58; App/Window/WindowManager.swift:173-175
     [Trait("Req", "PR-WIN-225")] // App/AppCommands.swift:59-62; App/Window/WindowManager.swift:173-175
     [Trait("Decision", "ED-099")]
-    public void The_zoom_chords_pressed_in_either_window_rescale_the_hosted_tree_of_both_live() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // the Settings panel is a hosted root of its own inside the main window
+    public void The_zoom_chords_pressed_with_the_Settings_panel_closed_or_open_rescale_the_main_and_the_Settings_hosted_trees_live() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
         using var store = ShortcutStore.Shared.Override(FreshStore());
         AvaloniaWindow main = null!;
-        AvaloniaWindow settings = null!;
+        Control stage = null!;
         launch.Harness.Main.OnMain(() =>
         {
             launch.Manager.ShowMain();
             launch.Manager.ShowSettings();
             main = LaunchHarness.WindowOf(launch.MainContent)!;
-            settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            Assert.Same(main, LaunchHarness.WindowOf(launch.SettingsContent)); // OD-0140: the panel is in the main window
+            // The panel's own hosted root (WindowManager.HostedRoot) zooms the panel's stage, the Settings content's host.
+            stage = Assert.IsType<SettingsOverlay>(launch.Manager.SettingsOverlay).Stage;
+            Assert.True(stage.IsVisualAncestorOf(launch.SettingsContent));
         });
         double[] Scales() => launch.Harness.Main.OnMain(() =>
         {
             Dispatcher.UIThread.RunJobs();
-            return new[] { launch.MainContent, launch.SettingsContent }
+            return new[] { launch.MainContent, stage }
                 .Select(content => Assert.IsType<ScaleTransform>(content.RenderTransform).ScaleX).ToArray();
         });
         void PressIn(AvaloniaWindow window, Key key, PhysicalKey physical) =>
             launch.Harness.Main.OnMain(() => Press(window, key, physical, RawInputModifiers.Control));
+        bool Open() => launch.Harness.Main.OnMain(() => launch.Manager.IsSettingsOpen);
         try
         {
             Assert.Equal([1d, 1d], Scales());
+            launch.Harness.Main.OnMain(() => launch.Manager.CloseSettings());
+            Assert.False(Open());
             PressIn(main, Key.OemPlus, PhysicalKey.Equal); // Ctrl with the "=" key: the second Zoom In (:60-61), 100 -> 110
             Assert.Equal(110, launch.Harness.Main.OnMain(() => launch.Manager.Model.Settings.AppZoom));
             Assert.Equal([1.1, 1.1], Scales()); // WindowManager.swift:173-175 AppZoomModifier(percent:), AppZoom.swift:19-23 scale = percent / 100
-            PressIn(settings, Key.OemMinus, PhysicalKey.Minus); // Zoom Out (:55-56), 110 -> 100
-            PressIn(settings, Key.OemMinus, PhysicalKey.Minus); // 100 -> 90
+            launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
+            Assert.True(Open());
+            PressIn(main, Key.OemMinus, PhysicalKey.Minus); // Zoom Out (:55-56), 110 -> 100, with the panel open
+            PressIn(main, Key.OemMinus, PhysicalKey.Minus); // 100 -> 90
             Assert.Equal([0.9, 0.9], Scales());
+            Assert.True(Open());
+            launch.Harness.Main.OnMain(() => launch.Manager.CloseSettings());
             PressIn(main, Key.D0, PhysicalKey.Digit0); // Actual Size (:57-58)
             Assert.Equal([1d, 1d], Scales());
         }
-        finally { launch.Harness.Main.OnMain(() => { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        finally { launch.Harness.Main.OnMain(() => { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }); }
     });
 }

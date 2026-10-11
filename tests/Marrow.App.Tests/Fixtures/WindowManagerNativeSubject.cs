@@ -30,9 +30,13 @@ internal sealed class WindowManagerNativeSubject : IDisposable
         Main = Manager.MainWindow ?? throw new InvalidOperationException("ShowMain did not retain its window.");
         session.Register(Main);
         Template(Main);
-        Manager.ShowSettings();
-        Settings = (AvaloniaWindow)(typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(Manager) ?? throw new InvalidOperationException("ShowSettings did not retain its window."));
+        // OD-0140: the app no longer makes a Settings window (Settings is a panel in the main window, SettingsOverlay). The suite's second
+        // window is now a stand-in the fixture makes itself: a SecondaryWindow of the old Settings frame holding SettingsContent, owned by Main.
+        // It is not managed by WindowManager (no caption state, no live-resize environment), so the native tests that read those through
+        // it are listed for a rework at their next native run.
+        Settings = new SecondaryWindow { Title = "Settings", Width = 780, Height = 580, CanResize = false, Content = SettingsContent };
+        Marrow.UI.Chrome.WindowChrome.Configure(Settings);
+        Settings.Show(Main);
         session.Register(Settings);
         Template(Settings);
         Place(Main, 880, 570);
@@ -41,7 +45,6 @@ internal sealed class WindowManagerNativeSubject : IDisposable
         Place(Settings, 780, 580, ClearOf(Main, Settings, 780, 580));
         // Reads the exact instances created by MakeWindow and attached by HostedEnvironment.
         _ = AppEnvironment.GetWindowLiveResize(MainContent);
-        _ = AppEnvironment.GetWindowLiveResize(SettingsContent);
         MainProbe = new WindowManagerNativeProbe(Main, MainContent, () => ReadPendingCaption(Main));
         SettingsProbe = new WindowManagerNativeProbe(Settings, SettingsContent, () => ReadPendingCaption(Settings));
     }

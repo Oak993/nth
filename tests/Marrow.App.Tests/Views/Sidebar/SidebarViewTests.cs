@@ -7899,7 +7899,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:168-175; App/Window/WindowManager.swift:32-36,80-84
-    public void Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window() => headless.OnUiThread(() =>
+    // OD-0140: Settings opens as a panel in the shared manager's main window (SettingsOverlay), not as a window of its own.
+    public void Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_panel() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
@@ -7915,17 +7916,25 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 view = Attached(manager.Model);
                 PointerClick(ButtonNamed(view, "Settings"));
-                settings = (AvaloniaWindow)managerType.GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)!;
+                var overlay = Assert.IsType<Marrow.App.Port.SettingsOverlay>(manager.SettingsOverlay);
+                settings = overlay.Window;
+                Assert.Same(manager.MainWindow, settings);
                 Assert.True(settings.IsVisible);
-                var content = Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(settings));
+                Assert.True(overlay.IsOpen);
+                var content = Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(overlay.Content));
                 Assert.Same(manager.Model, AppEnvironment.GetAppModel(content));
-                Assert.Equal(780, settings.Width); // WindowManager.swift:21
-                Assert.Equal(580, settings.Height);
-                settings.Hide();
+                // the panel is laid out at its stage's size for the window (ED-NEW-settingsinapp-2), the view filling it
+                settings.UpdateLayout();
+                var card = Marrow.App.Port.SettingsOverlay.SettingsStage.CardSize(overlay.Stage.Bounds.Size);
+                Assert.InRange(overlay.Card.Bounds.Width - card.Width, -0.5, 0.5); // to the layout's whole pixel
+                Assert.InRange(overlay.Card.Bounds.Height - card.Height, -0.5, 0.5);
+                Assert.Equal(overlay.Card.Bounds.Size, content.Bounds.Size);
+                manager.CloseSettings();
+                Assert.False(overlay.IsOpen);
                 PointerClick(ButtonNamed(view, "Settings"));
-                Assert.Same(settings, managerType.GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
-                Assert.True(settings.IsVisible);
-                Assert.Same(content, Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(settings)));
+                Assert.Same(overlay, manager.SettingsOverlay);
+                Assert.True(overlay.IsOpen);
+                Assert.Same(content, Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(overlay.Content)));
             });
         }
         finally
@@ -7934,6 +7943,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 // WindowManager.swift:98 orders Settings out instead of destroying it. Detach this fixture's
                 // content explicitly so its global navigation observer cannot consume a later test's request.
+                manager.SettingsOverlay?.Close();
                 if (settings is not null) { settings.Content = null; settings.Close(); }
                 if (view is not null) Close(view);
                 SettingsNavigation.Shared.RequestedPage = oldPage;

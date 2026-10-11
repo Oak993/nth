@@ -71,13 +71,21 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             using var rig = new SettingsRiseRig { Accepts = false };
             using var accent = SwiftColor.AccentSource.Override(() => Color.Parse("#0067C0"));
             manager.Model.Settings.Theme = theme;
-            manager.SettingsCloak = rig.Cloak;
             manager.ShowSettings(page);
             Dispatcher.UIThread.RunJobs();
             var window = Settings(manager);
+            // OD-0140: the panel is in the main window, which opens at 69 % x 92 % of the work area (ED-NEW-settingsinapp-3). These
+            // frames are drawn and compared whole, so the window is the smallest that holds a panel of about the Settings window's
+            // 780 x 580 (the panel is 816 x 580 here).
+            window.Width = 860;
+            window.Height = 680;
             if (reduceMotion) EnvironmentValues.SetAccessibilityReduceMotion(window, true);
             Drain(window);
             Step(rig, window, 60);
+            // OD-0140: the Settings panel puts the focus in its search field as it opens; its blinking caret is not part of a turnover, so
+            // these frames start, as the Settings window's did, with nothing focused.
+            window.FocusManager?.Focus(null);
+            Drain(window);
             check(rig, window, View(manager), manager.Model);
         });
 
@@ -382,7 +390,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             for (var x = 0; x < pre.Width; x++)
                 for (var c = 0; c < 4; c++)
                     if (Math.Abs(At(end, x, y, c) - At(fresh, x, y, c)) > 2) { stale++; staleAt = new PixelPoint(x, y); }
-        Assert.True(stale == 0, $"{page}: {stale} pixel channels end apart from a fresh drawing, e.g. at {staleAt}");
+        Assert.True(stale == 0, $"{page}: {stale} pixel channels end apart from a fresh drawing, e.g. at {staleAt} ({string.Join(",", Enumerable.Range(0, 4).Select(c => At(end, staleAt.X, staleAt.Y, c)))} against {string.Join(",", Enumerable.Range(0, 4).Select(c => At(fresh, staleAt.X, staleAt.Y, c)))}) DIAG {string.Join(" < ", window.GetVisualsAt(new Point(staleAt.X + 0.5, staleAt.Y + 0.5)).Take(1).SelectMany(v => v.GetSelfAndVisualAncestors()).Take(8).Select(v => v.GetType().Name + (v is TextBlock t ? "[" + t.Text + "]" : "")))}");
         var changed = 0;
         var total = new int[pre.Width, pre.Height];
         for (var y = 0; y < pre.Height; y++)

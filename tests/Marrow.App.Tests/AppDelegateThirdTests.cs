@@ -251,8 +251,9 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-LAUNCH-047")] // App/AppDelegate.swift:30-33; App/AppUpdater.swift:254-259
     [Trait("Req", "PR-WIN-071")] // App/AppDelegate.swift:30-33
     [Trait("Req", "PR-UPDATE-059")] // App/AppDelegate.swift:22-33
-    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-003: the matching marker arms the celebration and opens Settings on About after the main window; the window geometry is AppDelegateFourthTests
+    [Trait("Rule", "R-TEST-4")] // Partial proof of UI-LAUNCH-003: the matching marker arms the celebration and opens Settings on About after the main window; where it opens is AppDelegateFourthTests
     [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:29-33; App/AppUpdater.swift:254-259
+    [Trait("Decision", "OD-0140")] // Settings is a panel inside the main window
     public void The_first_launch_after_an_install_arms_the_celebration_and_opens_Settings_on_About_after_the_main_window()
     {
         WithLaunch(h => h.Defaults.Set(RelaunchVersionKey, LaunchHarness.RunningVersion), launch =>
@@ -263,6 +264,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
             Assert.Equal(SettingsPage.About, launch.Harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage)); // :32
             var settings = LaunchHarness.WindowOf(launch.SettingsContent);
             Assert.NotNull(settings);
+            Assert.Same(launch.Manager.MainWindow, settings); // OD-0140: the Settings panel sits in the main window
+            Assert.True(launch.Harness.Main.OnMain(() => launch.Manager.IsSettingsOpen));
             Assert.True(settings.IsVisible);
             Assert.Equal(["main window built", "settings window built"], launch.Events.Where(e => e.EndsWith(" built", StringComparison.Ordinal)));
             Assert.Null(launch.Harness.Defaults.Object(RelaunchVersionKey)); // consumed, so never again
@@ -353,13 +356,16 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-072")] // App/Window/WindowManager.swift:32-38, :57-60; owner_decisions.md OD-0038
-    public void Showing_a_minimised_Settings_window_restores_it()
+    [Trait("Decision", "OD-0140")] // Settings is a panel inside the main window, so Settings restores the main window
+    public void Showing_Settings_while_the_main_window_is_minimised_restores_it_with_the_panel_open()
     {
         WithLaunch(null, launch =>
         {
             launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
             var settings = LaunchHarness.WindowOf(launch.SettingsContent);
             Assert.NotNull(settings);
+            Assert.Same(launch.Manager.MainWindow, settings); // OD-0140: the panel is in the main window
+            Assert.True(launch.Harness.Main.OnMain(() => launch.Manager.IsSettingsOpen));
             launch.Harness.Main.OnMain(() => settings.WindowState = WindowState.Minimized);
             Dispatcher.UIThread.RunJobs();
 
@@ -368,6 +374,19 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 
             Assert.Equal(WindowState.Normal, settings.WindowState);
             Assert.True(settings.IsVisible);
+            Assert.True(launch.Harness.Main.OnMain(() => launch.Manager.IsSettingsOpen));
+
+            // The Settings command (OD-0140: it closes an open panel) restores a minimised window instead, the panel still open.
+            launch.Harness.Main.OnMain(() => settings.WindowState = WindowState.Minimized);
+            Dispatcher.UIThread.RunJobs();
+            launch.Harness.Main.OnMain(() => launch.Manager.ToggleSettings());
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(WindowState.Normal, settings.WindowState);
+            Assert.True(settings.IsVisible);
+            Assert.True(launch.Harness.Main.OnMain(() => launch.Manager.IsSettingsOpen));
+            Assert.Single(launch.Events, e => e == "main window built");
+            Assert.Single(launch.Events, e => e == "settings window built");
         });
     }
 }

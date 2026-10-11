@@ -99,7 +99,6 @@ public sealed class AccentPickerRound3ReviewTests(HeadlessSession session) : Set
         using var presentation = Presentation.Presenter.Override(presenter);
         using var rig = new SettingsRiseRig { Accepts = false };
         manager.Model.Settings.Theme = AppTheme.Dark;
-        manager.SettingsCloak = rig.Cloak;
         manager.ShowSettings(SettingsPage.About);
         Dispatcher.UIThread.RunJobs();
         var window = Settings(manager);
@@ -136,7 +135,6 @@ public sealed class AccentPickerRound3ReviewTests(HeadlessSession session) : Set
         using var rig = new SettingsRiseRig { Accepts = false };
         using var accent = SwiftColor.AccentSource.Override(() => Color.Parse("#0067C0"));
         manager.Model.Settings.Theme = AppTheme.Dark;
-        manager.SettingsCloak = rig.Cloak;
         manager.ShowSettings(SettingsPage.Appearance);
         Dispatcher.UIThread.RunJobs();
         var window = Settings(manager);

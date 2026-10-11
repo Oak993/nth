@@ -15,7 +15,7 @@ public sealed class WindowManagerChildEnvironmentTests
         var run = WindowManagerProcessProtocol.CreateRun(nonce);
         var process = WindowManagerProcessProtocol.ChildEnvironment(run, nonce);
         var request = WindowManagerNativeChildProtocol.CreateRequest(
-            WindowManagerNativeChildProtocol.FactName(nameof(WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI)));
+            WindowManagerNativeChildProtocol.FactName(nameof(WindowManagerNativeTests.Reopening_Settings_activates_the_native_main_window_its_panel_is_in_and_leaves_that_window_where_it_is)));
         var native = WindowManagerNativeChildProtocol.ChildEnvironment(request, WindowManagerProcessProtocol.ResolveDotnetHost());
         foreach (var environment in new[] { process, native })
         {
@@ -33,7 +33,7 @@ public sealed class WindowManagerChildEnvironmentTests
     public void The_native_childs_profile_is_inside_its_run_directory_and_has_the_shell_known_folders_a_dialog_opens_at()
     {
         var request = WindowManagerNativeChildProtocol.CreateRequest(
-            WindowManagerNativeChildProtocol.FactName(nameof(WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI)));
+            WindowManagerNativeChildProtocol.FactName(nameof(WindowManagerNativeTests.Reopening_Settings_activates_the_native_main_window_its_panel_is_in_and_leaves_that_window_where_it_is)));
         var native = WindowManagerNativeChildProtocol.ChildEnvironment(request, WindowManagerProcessProtocol.ResolveDotnetHost());
         var home = Path.GetFullPath(native["USERPROFILE"]);
         Assert.Equal(home, Path.GetFullPath(native["HOME"]));

@@ -8,7 +8,7 @@ namespace Marrow.App.Tests;
 
 // Source: DroppyCode/App/DroppyCodeApp.swift (B3 52bc792), :7-19 (the prologue presents nothing, makes no network call) with
 // App/AppDelegate.swift:8-28 (the only things launch presents are the main window, the tour after 700 ms if unseen, and the
-// Settings window on About after an update relaunch), App/AppModel.swift:106 (alert is never set by launch-path code) and
+// Settings on About after an update relaunch, a panel in the main window under OD-0140), App/AppModel.swift:106 (alert is never set by launch-path code) and
 // Services/Store/Storage.swift:60-63 (a library that fails to load opens empty, silently).
 // PR-LAUNCH-068 / UI-LAUNCH-009: no splash, no progress UI, no migration dialog and no error dialog on the launch path.
 // DEVIATION OD-0008 A10, OD-0012 E4: one failure is not silent: a library.json that exists but cannot be read or decoded is
@@ -45,8 +45,9 @@ public sealed class DroppyCodeLaunchSurfaceTests(HeadlessSession headless)
             Assert.True(main.IsVisible);
             Assert.True(main.IsEnabled); // nothing modal holds it
             Assert.Equal(chat, launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID)); // :23 a chat is selected
-            Assert.Equal(OnlyTheMainWindow, launch.Events); // no Settings window (:30-33 needs a relaunch marker), no tour (seen)
+            Assert.Equal(OnlyTheMainWindow, launch.Events); // no Settings (:30-33 needs a relaunch marker), no tour (seen)
             Assert.Null(LaunchHarness.WindowOf(launch.SettingsContent));
+            Assert.False(launch.Manager.IsSettingsOpen); // OD-0140: nor the Settings panel in the main window
             Assert.Empty(launch.TourModels);
             Assert.Null(launch.Harness.Main.OnMain(() => launch.Manager.Model.Alert)); // AppModel.swift:106 never set by launch
             Assert.Empty(alerts.Shown);
@@ -105,8 +106,9 @@ public sealed class DroppyCodeLaunchSurfaceTests(HeadlessSession headless)
             Assert.Empty(launch.Harness.Main.OnMain(() => launch.Manager.Model.Projects)); // "your projects and threads are hidden"
             Assert.Empty(launch.Harness.Main.OnMain(() => launch.Manager.Model.Threads));
             Assert.Equal(garbage, File.ReadAllBytes(Storage.LibraryURL)); // "The file will not be changed"
-            Assert.Equal(OnlyTheMainWindow, launch.Events); // the alert is the only surface: no Settings window, no tour
+            Assert.Equal(OnlyTheMainWindow, launch.Events); // the alert is the only surface: no Settings, no tour
             Assert.Null(LaunchHarness.WindowOf(launch.SettingsContent));
+            Assert.False(launch.Manager.IsSettingsOpen); // OD-0140: nor the Settings panel in the main window
             Assert.True(LaunchHarness.WindowOf(launch.MainContent)!.IsVisible);
         });
     }

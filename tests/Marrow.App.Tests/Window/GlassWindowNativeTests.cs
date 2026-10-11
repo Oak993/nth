@@ -367,13 +367,13 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
             manager = new WindowManager { MainContent = () => new Border() };
             manager.Model.Settings.Theme = Marrow.UI.Theme.AppTheme.Dark;
             manager.ShowSettings();
-            settings = (AvaloniaWindow)typeof(WindowManager).GetField("settingsWindow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(manager)!;
+            settings = manager.SettingsOverlay!.Window; // OD-0140: Settings is a panel in the main window
             native.Register(settings);
             Themeless(settings);
             settings.ShowInTaskbar = false;
             settings.Topmost = true; // above the stripes, which are topmost
         });
-        WaitFor(() => native.OnUi(() => manager.SettingsOpening is not { Waiting: true }), "the Settings open never finished", 8000);
+        WaitFor(() => native.OnUi(() => manager.SettingsOverlay is { Shown: >= 1 }), "the Settings open never finished", 8000);
         Activate(settings);
 
         var problems = new List<string>();

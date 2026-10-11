@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
@@ -20,9 +19,13 @@ namespace Marrow.App.Tests.Window.Native;
 // ED-063 bridge checks are Windows port-only, not invented Swift parity claims.
 // Factory/lifecycle source: _packet/swift/WindowManager.swift:26-37,86-110; resize:113-140.
 // Each Fact automatically selects itself in a fresh child; the ordinary parent may run Headless.
-// The painted fixture caption zones are not SettingsView's production WindowChrome overlay: the production sidebar's drag region
-// is the first Fact below (the real SettingsView), the corner and backdrop pixels are GlassWindowNativeTests'. (Was STOP
+// The painted fixture caption zones are not SettingsView's production WindowChrome overlay: the production sidebar (the real SettingsView,
+// in the Settings panel) is the first Fact below, the corner and backdrop pixels are GlassWindowNativeTests'. (Was STOP
 // SETTINGS-NATIVE-SURFACE; the continuous corner curve, ED-181, is the one part still open.)
+// OD-0140 (ED-NEW-settingsinapp-1): Settings is a panel inside the main window (SettingsOverlay), so the app makes no Settings window. The
+// fixture's second window (subject.Settings) is a stand-in the fixture makes itself; here it is only another top-level window of the
+// app's thread (a foreground or capture target), never a subject. The Settings window's own caption, size, placement and close facts
+// went with it; the facts below that open Settings open it as the panel in a main window.
 // CLOSED STOP FACTORY-STRETCH (2026-10-04): WindowChrome.Configure binds ResizeStretch (WindowChrome.cs:170) for every factory
 // window, and WindowManagerFactoryStretchTests proves it; the ED-101 composition remedy is not these messages' job.
 [Collection("WindowManagerNative")]
@@ -30,38 +33,48 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")]
-    public void The_actual_Settings_sidebar_background_reaches_native_caption_hit_testing()
+    [Trait("Decision", "OD-0140")] // Settings is a panel in the main window; its sidebar's drag region would drag the main window, so it is off
+    public void The_actual_Settings_sidebar_background_in_the_panel_is_not_a_native_caption_of_the_main_window()
     {
         native.Run(subject =>
         {
-            var (window, drag, client) = native.OnUi(() =>
+            var (window, card, client) = native.OnUi(() =>
             {
-                // the production open is Rise (OD-0074, ED-249), which asks for frames: the fixture's window supplies them
-                FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Settings));
-                var manager = new WindowManager();
+                // the panel's open animates (SettingsOverlay.Open), which asks for frames: the fixture's window supplies them
+                FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Main));
+                var manager = new WindowManager { MainContent = () => new Border() };
                 manager.ShowSettings();
-                var window = (Avalonia.Controls.Window)(typeof(WindowManager)
-                    .GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!
-                    .GetValue(manager) ?? throw new InvalidOperationException("Settings window was not retained."));
+                var window = manager.MainWindow ?? throw new InvalidOperationException("Settings did not show the main window.");
                 native.Register(window);
-                window.ShowInTaskbar = false;
-                window.Template = new FuncControlTemplate<Avalonia.Controls.Window>((owner, _) =>
-                    new ContentPresenter { Content = owner.Content });
-                window.ApplyTemplate();
-                window.UpdateLayout();
-                var view = Assert.Single(window.GetVisualDescendants().OfType<SettingsView>());
+                var overlay = manager.SettingsOverlay ?? throw new InvalidOperationException("Settings did not open as the panel in the main window.");
+                Assert.Same(window, overlay.Window);
+                Assert.True(manager.IsSettingsOpen);
+                HostTemplate(window);
+                var view = Assert.Single(overlay.GetVisualDescendants().OfType<SettingsView>());
                 var drag = Assert.Single(view.GetVisualDescendants().OfType<WindowDragArea>());
+                Assert.False(drag.IsHitTestVisible);
                 var client = drag.TranslatePoint(new Point(180, 18), window);
                 Assert.NotNull(client);
-                return (window, drag, client.Value);
+                return (window, overlay.Card, client.Value);
             });
-            N.Until(() => native.OnUi(() => ReferenceEquals(window.InputHitTest(client), drag)),
-                "The actual Settings sidebar did not become the managed hit target after native layout.");
+            N.Until(() => native.OnUi(() => window.InputHitTest(client) is Visual hit && (ReferenceEquals(hit, card) || card.IsVisualAncestorOf(hit))),
+                "The actual Settings sidebar in the panel did not become a managed hit target inside the panel after native layout.");
             var point = native.OnUi(() => window.PointToScreen(client));
             var handle = native.OnUi(() => window.TryGetPlatformHandle()?.Handle ?? 0);
             N.RequireOwner(handle);
-            Assert.Equal(N.HTCAPTION, N.Hit(handle, new NativeWindowPoint(point.X, point.Y)));
+            Assert.NotEqual(N.HTCAPTION, N.Hit(handle, new NativeWindowPoint(point.X, point.Y)));
         });
+    }
+
+    // A bare Application has no production theme/Window template: the host template that displays the factory's content subtree
+    // (as WindowManagerNativeSubject's).
+    private static void HostTemplate(Avalonia.Controls.Window window)
+    {
+        window.ShowInTaskbar = false;
+        window.Template = new FuncControlTemplate<Avalonia.Controls.Window>((owner, _) =>
+            new ContentPresenter { Content = owner.Content });
+        window.ApplyTemplate();
+        window.UpdateLayout();
     }
 
     [Fact]
@@ -151,13 +164,11 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
                 // release our physical press before asserting it. A missing flag must not leave a
                 // held button until a behavior timeout, allowing cleanup to mask the actual failure.
                 var mainWasResizing = subject.MainProbe.IsResizing;
-                var settingsWasResizing = subject.SettingsProbe.IsResizing;
                 pointer.Up(subject.MainProbe, moved);
                 N.Until(() => !subject.MainProbe.IsResizing && N.Gui(native.ThreadId).Capture == 0,
                     "The actual retained-window resize did not end.");
                 subject.MainProbe.Fence();
                 Assert.True(mainWasResizing, $"The actual retained-window resize did not publish its active state on attempt {attempt + 1}.");
-                Assert.False(settingsWasResizing);
                 Assert.True(N.Rect(handle).Width > before.Width);
                 if (attempt == 0)
                 {
@@ -168,7 +179,6 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
                 }
             }
             Assert.Equal(new[] { true, false, true, false }, subject.MainProbe.ResizeTransitions);
-            Assert.Empty(subject.SettingsProbe.ResizeTransitions);
         });
     }
 
@@ -199,57 +209,61 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:36-37, :57-60; an already visible window still becomes key.
-    [Trait("Req", "PR-WIN-011")] // WindowManager.swift:46-54; native final placement is checked too.
-    public void Reopening_visible_Settings_activates_its_native_window_after_centering()
+    [Trait("Decision", "OD-0140")] // the window Settings opens in, and so the one brought forward, is the main window; it is not moved
+    public void Reopening_Settings_activates_the_native_main_window_its_panel_is_in_and_leaves_that_window_where_it_is()
     {
         native.Run(subject =>
         {
+            // The subject's manager hosts the fixture's stand-in content, so a manager of the app's own Settings content opens the panel.
+            var (manager, window, handle) = native.OnUi(() =>
+            {
+                // the panel's open animates (SettingsOverlay.Open), which asks for frames: the fixture's window supplies them
+                FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(subject.Main));
+                var manager = new WindowManager { MainContent = () => new Border() };
+                manager.ShowSettings();
+                var window = manager.MainWindow ?? throw new InvalidOperationException("Settings did not show the main window.");
+                native.Register(window);
+                Assert.True(manager.IsSettingsOpen);
+                Assert.Same(window, manager.SettingsOverlay?.Window);
+                HostTemplate(window);
+                return (manager, window, window.TryGetPlatformHandle()?.Handle ?? 0);
+            });
+            N.RequireOwner(handle);
+            // Another of the app's windows takes the foreground; the main window stays visible behind it with the panel open.
             subject.Focus(subject.Main, subject.MainProbe);
             native.OnUi(() =>
             {
                 subject.Main.Topmost = false;
-                subject.Settings.Topmost = false;
-                Assert.True(subject.Settings.IsVisible);
+                window.Topmost = false;
+                Assert.True(window.IsVisible);
+                Assert.True(manager.IsSettingsOpen);
                 Assert.True(subject.Main.IsActive);
-                Assert.False(subject.Settings.IsActive);
+                Assert.False(window.IsActive);
             });
             subject.MainProbe.Fence();
             WindowManagerNativeForeground.RequireStillForeground(subject.MainProbe.Handle, native.ThreadId);
-            var topology = native.OnUi(WindowManagerNativeMonitorTopology.Read);
-            var main = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(subject.MainProbe.Handle));
-            var settings = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(subject.SettingsProbe.Handle));
-            var primary = Assert.Single(topology.Monitors, monitor => monitor.Primary);
-            var ownerMonitor = Assert.Single(topology.Monitors, monitor => monitor.Handle == main.Monitor);
-            var expected = WindowManagerNativePlacementGeometry.Expected(main, settings, primary.Bounds, ownerMonitor.Work);
+            var before = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(handle));
 
             // Neither a second focus helper nor another Show may manufacture the observed result.
-            native.OnUi(() => subject.Manager.ShowSettings());
-            subject.SettingsProbe.Fence();
-            Assert.Equal(subject.SettingsProbe.Handle, N.GetForegroundWindow());
-            Assert.True(native.OnUi(() => subject.Settings.IsActive));
-            var after = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(subject.SettingsProbe.Handle));
+            native.OnUi(() => manager.ShowSettings());
+            N.Until(() => N.GetForegroundWindow() == handle, "Showing Settings did not bring the main window its panel is in to the foreground.");
+            Assert.True(native.OnUi(() => window.IsActive));
+            Assert.True(native.OnUi(() => manager.IsSettingsOpen));
+            Assert.Same(window, native.OnUi(() => manager.SettingsOverlay?.Window));
+            var after = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(handle));
             Assert.True(after.Visible);
-            Assert.Equal(expected.Origin, after.Origin);
+            Assert.Equal(before.Origin, after.Origin);
         });
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:32-55; native placement on the observed topology.
-    [Trait("Req", "PR-WIN-011")] // Two-monitor verification remains open when fewer than two physical regions are available.
-    public void Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI()
-    {
-        native.Run(subject => WindowManagerNativePlacementExercise.Run(subject));
-    }
-
-    [Fact]
     [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-SETTINGS-001")]
     public void Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click()
     {
         native.Run(subject =>
         {
             using var pointer = new WindowManagerNativePointer(subject);
-            foreach (var entry in new[] { (subject.Main, subject.MainContent, subject.MainProbe), (subject.Settings, subject.SettingsContent, subject.SettingsProbe) })
+            foreach (var entry in new[] { (subject.Main, subject.MainContent, subject.MainProbe) }) // OD-0140: no Settings factory window
             {
                 var (window, content, probe) = entry;
                 subject.Focus(window, probe);
@@ -278,14 +292,13 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-SETTINGS-001")] // WindowManager.swift:93-101; ED-063 applies to both factory windows.
+    [Trait("Req", "PR-WIN-007")] // WindowManager.swift:93-101; ED-063 applies to the factory window (OD-0140: the main one only).
     public void Release_over_a_different_caption_control_cancels_the_original_command()
     {
         native.Run(subject =>
         {
             using var pointer = new WindowManagerNativePointer(subject);
-            foreach (var entry in new[] { (subject.Main, subject.MainContent, subject.MainProbe), (subject.Settings, subject.SettingsContent, subject.SettingsProbe) })
+            foreach (var entry in new[] { (subject.Main, subject.MainContent, subject.MainProbe) })
             {
                 var (window, content, probe) = entry;
                 subject.Focus(window, probe);
@@ -310,8 +323,7 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-SETTINGS-001")] // ED-063 cancellation on main and capture transfer away from Settings.
+    [Trait("Req", "PR-WIN-007")] // ED-063 cancellation on main and capture transfer away from main (OD-0140: no Settings factory window).
     public void Cancel_mode_and_real_capture_transfer_clear_the_pending_caption_press()
     {
         native.Run(subject =>
@@ -331,77 +343,36 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
             subject.MainProbe.Fence();
             Assert.Equal(0, subject.MainProbe.CommandCount(N.SC_MINIMIZE));
 
-            subject.Focus(subject.Settings, subject.SettingsProbe);
-            var settingsPoint = subject.Center(subject.SettingsContent.MinimizeZone);
-            pointer.Down(subject.SettingsProbe, settingsPoint, N.HTMINBUTTON);
-            N.Until(() => N.Gui(native.ThreadId).Capture == subject.SettingsProbe.Handle, "Settings caption did not capture.");
-            var captureMessages = subject.SettingsProbe.Count(N.WM_CAPTURECHANGED);
+            // The capture transfer, on the main window now (it was the Settings window's): its press loses capture to the fixture's other
+            // top-level window, a plain capture target.
+            subject.Focus(subject.Main, subject.MainProbe);
+            mainPoint = subject.Center(subject.MainContent.MinimizeZone);
+            pointer.Down(subject.MainProbe, mainPoint, N.HTMINBUTTON);
+            N.Until(() => N.Gui(native.ThreadId).Capture == subject.MainProbe.Handle, "Main caption did not capture again.");
+            Assert.Equal((nint)N.HTMINBUTTON, subject.PendingCaption(subject.Main));
+            var captureMessages = subject.MainProbe.Count(N.WM_CAPTURECHANGED);
             // Real ownership transfer causes WM_CAPTURECHANGED; no fabricated pointer or capture event.
-            native.OnUi(() => { _ = N.SetCapture(subject.MainProbe.Handle); });
-            N.Until(() => subject.SettingsProbe.Count(N.WM_CAPTURECHANGED) > captureMessages, "Capture transfer was not delivered.");
-            Assert.Equal((nint)0, subject.PendingCaption(subject.Settings));
-            var mainReleases = subject.MainProbe.Count(N.WM_LBUTTONUP, returned: true);
-            pointer.Up(subject.MainProbe, settingsPoint);
-            N.Until(() => subject.MainProbe.Count(N.WM_LBUTTONUP, returned: true) > mainReleases,
+            native.OnUi(() => { _ = N.SetCapture(subject.SettingsProbe.Handle); });
+            N.Until(() => subject.MainProbe.Count(N.WM_CAPTURECHANGED) > captureMessages, "Capture transfer was not delivered.");
+            Assert.Equal((nint)0, subject.PendingCaption(subject.Main));
+            var otherReleases = subject.SettingsProbe.Count(N.WM_LBUTTONUP, returned: true);
+            pointer.Up(subject.MainProbe, mainPoint);
+            N.Until(() => subject.SettingsProbe.Count(N.WM_LBUTTONUP, returned: true) > otherReleases,
                 "Transferred native capture did not receive the real release.");
-            subject.SettingsProbe.Fence();
+            subject.MainProbe.Fence();
             native.OnUi(() => { _ = N.ReleaseCapture(); });
-            Assert.Equal(0, subject.SettingsProbe.CommandCount(N.SC_MINIMIZE));
-            Assert.False(N.IsIconic(subject.SettingsProbe.Handle));
+            Assert.Equal(0, subject.MainProbe.CommandCount(N.SC_MINIMIZE));
+            Assert.False(N.IsIconic(subject.MainProbe.Handle));
         });
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-SETTINGS-001")]
-    public void Settings_maximize_activates_at_caption_acceptance_and_at_system_command_dispatch()
-    {
-        native.Run(subject =>
-        {
-            subject.Focus(subject.Settings, subject.SettingsProbe);
-            Assert.True(native.OnUi(() => subject.Settings.CanMaximize)); // T45 owner override, while CanResize stays false.
-            var original = N.Rect(subject.SettingsProbe.Handle);
-            using var pointer = new WindowManagerNativePointer(subject);
-            var point = subject.Center(subject.SettingsContent.MaximizeZone);
-            pointer.Down(subject.SettingsProbe, point, N.HTMAXBUTTON);
-            N.Until(() => subject.SettingsProbe.Messages.Any(item => item.Message == N.WM_NCLBUTTONDOWN && item.Returned && item.PendingCaption == N.HTMAXBUTTON),
-                "Settings maximize press did not reach caption acceptance.");
-            pointer.Up(subject.SettingsProbe, point);
-            N.Until(() => N.IsZoomed(subject.SettingsProbe.Handle), "Settings caption release did not maximize.");
-            subject.SettingsProbe.Fence();
-            // A09: observes acceptance before the separate command guard can mask this mutation.
-            var press = Assert.Single(subject.SettingsProbe.Messages, item => item.Message == N.WM_NCLBUTTONDOWN && item.Returned);
-            Assert.Equal((nint?)N.HTMAXBUTTON, press.PendingCaption);
-            Assert.True(N.IsZoomed(subject.SettingsProbe.Handle));
-            subject.Focus(subject.Settings, subject.SettingsProbe);
-            point = subject.Center(subject.SettingsContent.MaximizeZone);
-            pointer.Down(subject.SettingsProbe, point, N.HTMAXBUTTON);
-            pointer.Up(subject.SettingsProbe, point);
-            N.Until(() => !N.IsZoomed(subject.SettingsProbe.Handle), "Second Settings caption click did not restore.");
-            subject.SettingsProbe.Fence();
-            var restored = N.Rect(subject.SettingsProbe.Handle);
-            Assert.Equal(original.Left, restored.Left); Assert.Equal(original.Top, restored.Top);
-            Assert.Equal(original.Width, restored.Width); Assert.Equal(original.Height, restored.Height);
-
-            // A10: a native non-caption command bypasses IsCaptionButton entirely.
-            var before = subject.SettingsProbe.CommandCount(N.SC_MAXIMIZE);
-            N.Post(subject.SettingsProbe.Handle, N.WM_SYSCOMMAND, (nint)N.SC_MAXIMIZE);
-            N.Until(() => subject.SettingsProbe.CommandCount(N.SC_MAXIMIZE) > before, "Native SC_MAXIMIZE was not delivered.");
-            subject.SettingsProbe.Fence();
-            N.Until(() => N.IsZoomed(subject.SettingsProbe.Handle), "Native SC_MAXIMIZE did not maximize Settings.");
-            Assert.Equal(WindowState.Maximized, native.OnUi(() => subject.Settings.WindowState));
-            Assert.True(N.IsZoomed(subject.SettingsProbe.Handle));
-        });
-    }
-
-    [Fact]
-    [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-SETTINGS-001")] // ED-063 keyboard system menu belongs to each factory window.
+    [Trait("Req", "PR-WIN-007")] // ED-063 keyboard system menu belongs to the factory window (OD-0140: the main one only).
     public void Space_key_menu_is_anchored_to_its_factory_window_instead_of_decoding_the_character_as_coordinates()
     {
         native.Run(subject =>
         {
-            foreach (var entry in new[] { (subject.Main, subject.MainProbe), (subject.Settings, subject.SettingsProbe) })
+            foreach (var entry in new[] { (subject.Main, subject.MainProbe) })
             {
                 var (target, probe) = entry;
                 subject.Focus(target, probe);
@@ -439,13 +410,12 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 
     [Fact]
     [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-SETTINGS-001")]
     public void A_real_caption_right_click_opens_a_menu_with_each_windows_native_capabilities()
     {
         native.Run(subject =>
         {
             using var pointer = new WindowManagerNativePointer(subject);
-            foreach (var entry in new[] { (subject.Main, subject.MainContent, subject.MainProbe, true), (subject.Settings, subject.SettingsContent, subject.SettingsProbe, false) })
+            foreach (var entry in new[] { (subject.Main, subject.MainContent, subject.MainProbe, true) }) // OD-0140: no Settings factory window
             {
                 var (window, content, probe, canResize) = entry;
                 subject.Focus(window, probe);
@@ -454,8 +424,8 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
                 var popup = menu.WaitForMenu();
                 Assert.True(probe.Count(N.WM_CONTEXTMENU) > 0, "The native right click did not reach WM_CONTEXTMENU.");
                 Assert.Equal(canResize, popup.Enabled(N.SC_SIZE));
-                // ED-NEW-native-fix (T45 owner override): Settings may be maximized though it cannot be resized, so Maximize is on for both
-                // windows (was: it followed canResize), and the managed CanMaximize agrees with what the native menu offers.
+                // ED-NEW-native-fix (T45 owner override): Maximize is on (it was for the fixed-size Settings window too, which OD-0140
+                // removed), and the managed CanMaximize agrees with what the native menu offers.
                 Assert.True(popup.Enabled(N.SC_MAXIMIZE));
                 Assert.True(native.OnUi(() => window.CanMaximize));
                 Assert.Equal(canResize, native.OnUi(() => window.CanResize));
@@ -495,8 +465,7 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
         native.Run(subject =>
         {
             subject.Focus(subject.Main, subject.MainProbe);
-            Assert.NotSame(native.OnUi(() => AppEnvironment.GetWindowLiveResize(subject.MainContent)),
-                native.OnUi(() => AppEnvironment.GetWindowLiveResize(subject.SettingsContent)));
+            Assert.NotNull(native.OnUi(() => AppEnvironment.GetWindowLiveResize(subject.MainContent))); // OD-0140: the only factory window's own state
             using var pointer = new WindowManagerNativePointer(subject);
             var before = N.Rect(subject.MainProbe.Handle);
             var edge = WindowManagerNativePointer.RightEdge(subject.MainProbe, resizable: true);
@@ -506,14 +475,12 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
             pointer.Move(subject.MainProbe, moved);
             N.Until(() => subject.MainProbe.Count(N.WM_SIZING) > 0, "The actual drag produced no WM_SIZING.");
             N.Until(() => subject.MainProbe.IsResizing, "The factory-created live-resize hook did not activate during WM_SIZING.");
-            Assert.False(subject.SettingsProbe.IsResizing);
             pointer.Up(subject.MainProbe, moved);
             N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > 0 && !subject.MainProbe.IsResizing,
                 "Live resize did not end after actual pointer release.");
             var after = N.Rect(subject.MainProbe.Handle);
             Assert.True(after.Width > before.Width, "The pointer drag did not change the native frame width.");
             Assert.Equal(new[] { true, false }, subject.MainProbe.ResizeTransitions);
-            Assert.Empty(subject.SettingsProbe.ResizeTransitions);
             Assert.True(subject.MainProbe.Count(N.WM_ENTERSIZEMOVE) > 0);
         });
     }
@@ -597,45 +564,14 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
             pointer.Up(subject.MainProbe, moved);
             N.Until(() => subject.MainProbe.Count(N.WM_EXITSIZEMOVE) > 0, "Native caption move did not end.");
             Assert.Empty(subject.MainProbe.ResizeTransitions);
-            Assert.Empty(subject.SettingsProbe.ResizeTransitions);
             Assert.Equal(0, subject.MainProbe.Count(N.WM_SIZING));
         });
     }
 
     [Fact]
     [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-SETTINGS-001")]
-    [Trait("Req", "PR-WIN-010")] // WindowManager.swift:81, the fixed secondary refuses a native resize.
-    public void Settings_refuses_an_actual_border_resize_attempt()
-    {
-        native.Run(subject =>
-        {
-            subject.Focus(subject.Settings, subject.SettingsProbe);
-            using var pointer = new WindowManagerNativePointer(subject);
-            var before = N.Rect(subject.SettingsProbe.Handle);
-            var edge = WindowManagerNativePointer.RightEdge(subject.SettingsProbe, resizable: false);
-            var hit = N.Hit(subject.SettingsProbe.Handle, edge);
-            pointer.Down(subject.SettingsProbe, edge, hit);
-            var moved = new NativeWindowPoint(edge.X - 64, edge.Y);
-            pointer.Move(subject.SettingsProbe, moved);
-            pointer.Up(subject.SettingsProbe, moved);
-            N.Until(() => subject.SettingsProbe.Count(N.WM_LBUTTONUP, returned: true) + subject.SettingsProbe.Count(N.WM_NCLBUTTONUP, returned: true) > 0,
-                "The Settings border attempt did not receive actual native pointer release.");
-            subject.SettingsProbe.Fence();
-            var after = N.Rect(subject.SettingsProbe.Handle);
-            Assert.Equal(before.Width, after.Width);
-            Assert.Equal(before.Height, after.Height);
-            Assert.Equal(0, subject.SettingsProbe.Count(N.WM_SIZING));
-            Assert.Empty(subject.SettingsProbe.ResizeTransitions);
-            Assert.False(native.OnUi(() => subject.Settings.CanResize));
-        });
-    }
-
-    [Fact]
-    [Trait("Req", "PR-WIN-007")]
-    [Trait("Req", "PR-WIN-008")]
-    [Trait("Req", "PR-SETTINGS-001")] // WindowManager.swift:98, the Settings HWND survives actual close/reopen.
-    public void Actual_close_clicks_request_main_termination_and_retain_the_hidden_Settings_window()
+    [Trait("Req", "PR-WIN-008")] // OD-0140: the Settings window whose HWND survived close/reopen (:98) is gone; its panel closes in SettingsOverlayTests.
+    public void An_actual_close_click_requests_main_termination_and_keeps_the_main_window()
     {
         native.Run(subject =>
         {
@@ -647,16 +583,7 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
             pointer.Up(subject.MainProbe, mainPoint);
             N.Until(() => subject.QuitRequests == 1, "Main close did not reach the existing termination seam.");
             Assert.True(N.IsWindowVisible(subject.MainProbe.Handle));
-
-            subject.Focus(subject.Settings, subject.SettingsProbe);
-            var settingsPoint = subject.Center(subject.SettingsContent.CloseZone);
-            pointer.Down(subject.SettingsProbe, settingsPoint, N.HTCLOSE);
-            N.Until(() => N.Gui(native.ThreadId).Capture == subject.SettingsProbe.Handle, "Settings close did not capture.");
-            pointer.Up(subject.SettingsProbe, settingsPoint);
-            N.Until(() => !N.IsWindowVisible(subject.SettingsProbe.Handle), "Settings close did not hide the retained window.");
-            Assert.True(N.IsWindow(subject.SettingsProbe.Handle));
-            native.OnUi(() => subject.Manager.ShowSettings());
-            Assert.True(N.IsWindowVisible(subject.SettingsProbe.Handle));
+            Assert.True(N.IsWindow(subject.MainProbe.Handle));
         });
     }
 

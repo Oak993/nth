@@ -73,6 +73,8 @@ public sealed class AppShellActivationTests(HeadlessSession headless)
         launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
         Dispatcher.UIThread.RunJobs();
         var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+        Assert.Same(main, settings); // OD-0140: Settings is a panel inside the main window, no window of its own
+        Assert.True(launch.Manager.IsSettingsOpen);
         Assert.True(settings.IsActive);
         // Avalonia 12.1.2 HeadlessWindowImpl.Activate posts Activated without deactivating
         // other windows. Observe that real headless event, without claiming native focus.

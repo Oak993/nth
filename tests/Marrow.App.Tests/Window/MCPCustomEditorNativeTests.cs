@@ -57,10 +57,10 @@ public sealed class MCPCustomEditorNativeTests(WindowManagerNativeSession native
                 manager = new WindowManager { MainContent = () => new Border() };
                 manager.Model.Mcp.SaveCustom(new MCPCustomServer("custom-example", "Example", MCPCustomServer.Kind.Stdio) { Command = "offline-fixture" });
                 manager.ShowSettings(SettingsPage.Mcp);
-                settings = (AvaloniaWindow)typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)!;
+                settings = manager.SettingsOverlay!.Window; // OD-0140: Settings is a panel in the main window
                 native.Register(settings);
             });
-            N.Until(() => native.OnUi(() => manager.SettingsOpening is not { Waiting: true }), "the Settings open never finished", 8000);
+            N.Until(() => native.OnUi(() => manager.SettingsOverlay is { Shown: >= 1 }), "the Settings open never finished", 8000);
             Thread.Sleep(1500);
             void Front()
             {

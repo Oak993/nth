@@ -1,4 +1,3 @@
-using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Styling;
@@ -18,48 +17,19 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Window;
 
 // Source: DroppyCode/App/Window/WindowManager.swift (B3 52bc792), :1-222.
-// The pure frame calculation is tested in AppKit's global, upward-growing point space, before the existing
-// Windows pixel conversion. Reflection lets these tests build and fail red before that private seam is added.
+// OD-0140 (ED-NEW-settingsinapp-1): Settings is a panel inside the main window (Port/SettingsOverlay.cs), so the Settings window's
+// centring over the main window (:40-55, the former CenteredFrame) is not ported any more and its frame-calculation tests are gone.
 [Collection("Headless")]
 public sealed class WindowManagerNextTests(HeadlessSession headless)
 {
-    private static Rect Centered(Rect parent, Size size, Rect? visible)
+    // The Settings panel, open in the main window.
+    private static SettingsOverlay OpenSettings(WindowManager manager)
     {
-        var calculation = typeof(WindowManager).GetMethod("CenteredFrame", BindingFlags.Static | BindingFlags.NonPublic);
-        Assert.NotNull(calculation);
-        return Assert.IsType<Rect>(calculation.Invoke(null, [parent, size, visible]));
+        var overlay = Assert.IsType<SettingsOverlay>(manager.SettingsOverlay);
+        Assert.True(manager.IsSettingsOpen);
+        Assert.Same(manager.MainWindow, overlay.Window);
+        return overlay;
     }
-
-    [Fact]
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:46-54
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:48-53
-    public void With_no_screen_negative_half_points_round_away_from_zero_and_are_not_clamped()
-    {
-        // midX=-810+1321/2=-149.5; midY=-800+861/2=-369.5. Subtract (390,290) and round
-        // (-539.5,-659.5) to (-540,-660). :50 has no visibleFrame.
-        Assert.Equal(new Rect(-540, -660, 780, 580), Centered(new Rect(-810, -800, 1321, 861), new Size(780, 580), null));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:50-52
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:51-52
-    public void A_work_area_smaller_than_Settings_uses_the_outer_min_and_preserves_the_window_size()
-    {
-        // maxX-width=700-780=-80; maxY-height=600-580=20. The outer min wins even below minX/minY.
-        Assert.Equal(new Rect(-80, 20, 780, 580), Centered(new Rect(200, 300, 1320, 860), new Size(780, 580), new Rect(100, 200, 600, 400)));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-SETTINGS-002")] // App/Window/WindowManager.swift:50-54
-    [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:50-54
-    public void A_display_left_and_below_the_primary_keeps_its_own_work_area_origin()
-    {
-        // Rounded centre origin=(-2230,-1560), clamped to this display's (-1920,-1280), not primary (0,0).
-        Assert.Equal(new Rect(-1920, -1280, 780, 580), Centered(new Rect(-2500, -1700, 1320, 860), new Size(780, 580), new Rect(-1920, -1280, 1920, 1280)));
-    }
-
-    private static AvaloniaWindow SettingsWindow(WindowManager manager) => Assert.IsType<SecondaryWindow>(
-        typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
 
     private static T[] Nodes<T>(Control root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).ToArray();
 
@@ -83,8 +53,8 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         try { check(harness, manager); }
         finally
         {
+            manager.SettingsOverlay?.Close(); // OD-0140: Settings is a panel in the main window
             if (manager.MainWindow is { } main) { main.Content = null; main.Hide(); }
-            if (typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager) is AvaloniaWindow settings) { settings.Content = null; settings.Hide(); }
             SettingsNavigation.Shared.RequestedPage = requested;
             ThemeManager.Current = theme;
             application.RequestedThemeVariant = appearance;
@@ -97,15 +67,19 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-003")] // WIN.json:79-81: retained Settings state, not only cached object identity.
     [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84
     [Trait("Req", "UI-SETTINGS-001")] // App/Views/Settings/SettingsView.swift:93-98, :118-127
+    [Trait("Decision", "OD-0140")]
     public void The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen() => WithManager((harness, manager) =>
     {
         manager.ShowSettings(SettingsPage.Archive);
-        var window = SettingsWindow(manager);
+        var overlay = OpenSettings(manager);
+        var window = overlay.Window;
         Settle(window);
         var view = Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(window.Content)));
+        Assert.Same(view, overlay.Content);
         Assert.Same(manager.Model, AppEnvironment.GetAppModel(view));
-        Assert.Equal(new Size(780, 580), window.ClientSize);
-        Assert.Equal("Settings", window.Title);
+        // OD-0140: the panel named Settings, which the view fills (it was the 780 x 580 window titled Settings).
+        Assert.Equal("Settings", Avalonia.Automation.AutomationProperties.GetName(overlay.Card));
+        Assert.Equal(overlay.Card.Bounds.Size, view.Bounds.Size);
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Archive");
         // SettingsView.swift:201-204: the empty Archive body, not the permanently available sidebar label.
@@ -115,20 +89,24 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         var input = Assert.Single(Nodes<TextBox>(search));
         input.Text = "archive";
         Settle(window);
-        window.Close();
-        Assert.False(window.IsVisible);
+        manager.CloseSettings();
+        Assert.False(manager.IsSettingsOpen);
+        Assert.True(window.IsVisible); // the main window it was in stays
         manager.ShowSettings();
         Settle(window);
-        Assert.Same(window, SettingsWindow(manager));
+        Assert.Same(overlay, OpenSettings(manager));
+        Assert.Same(window, overlay.Window);
         Assert.Same(view, Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(window.Content))));
         Assert.Equal("archive", input.Text);
         Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Archive");
         Assert.Single(Nodes<Control>(view), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads");
         input.Text = "";
         Settle(window);
-        window.Close();
+        manager.CloseSettings();
+        Assert.False(manager.IsSettingsOpen);
         manager.ShowSettings(SettingsPage.Shortcuts);
         Settle(window);
+        Assert.Same(overlay, OpenSettings(manager));
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Shortcuts");
         Assert.Single(Nodes<ShortcutsSettingsPage>(view));
@@ -139,31 +117,38 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-THEME-039")] // App/Window/WindowManager.swift:149-159
     [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:187-192; App/Views/Settings/SettingsView.swift:93-98
-    public void Theme_changes_reach_both_cached_windows_and_a_hidden_Settings_view_without_rebuilding_it() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0140")]
+    public void Theme_changes_reach_the_main_window_and_a_closed_Settings_panel_without_rebuilding_it() => WithManager((harness, manager) =>
     {
         manager.Model.Settings.Theme = AppTheme.Light;
         manager.ShowMain();
-        manager.ShowSettings(SettingsPage.Archive);
         var main = manager.MainWindow!;
-        var settings = SettingsWindow(manager);
-        Settle(main); Settle(settings);
-        var view = Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(settings.Content)));
+        Settle(main);
         var mainRoot = Assert.Single(Nodes<ThemeVariantScope>(Assert.IsAssignableFrom<Control>(main.Content)));
-        var settingsRoot = Assert.Single(Nodes<ThemeVariantScope>(Assert.IsAssignableFrom<Control>(settings.Content)));
-        settings.Close();
+        manager.ShowSettings(SettingsPage.Archive);
+        var overlay = OpenSettings(manager);
+        Settle(main);
+        var view = Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(main.Content)));
+        // OD-0140: the panel's own hosted root (WindowManager.HostedRoot) lies beside the main one, in the main window.
+        var settingsRoot = Assert.Single(Nodes<ThemeVariantScope>(overlay));
+        Assert.NotSame(mainRoot, settingsRoot);
+        Assert.Equal(2, Nodes<ThemeVariantScope>(Assert.IsAssignableFrom<Control>(main.Content)).Length);
+        manager.CloseSettings();
+        Assert.False(manager.IsSettingsOpen);
         manager.Model.Settings.Theme = AppTheme.Dracula;
         Settle(main);
         Assert.Equal(ThemeVariant.Dark, Application.Current!.RequestedThemeVariant);
         manager.ShowSettings();
-        Settle(settings);
+        Settle(main);
+        Assert.Same(overlay, OpenSettings(manager));
         Assert.Equal(ThemeVariant.Dark, settingsRoot.RequestedThemeVariant);
         Assert.Equal(ThemeVariant.Dark, mainRoot.RequestedThemeVariant);
         manager.Model.Settings.Theme = AppTheme.System;
-        Settle(main); Settle(settings);
+        Settle(main);
         Assert.Equal(ThemeVariant.Default, Application.Current.RequestedThemeVariant);
         Assert.Equal(ThemeVariant.Default, mainRoot.RequestedThemeVariant);
         Assert.Equal(ThemeVariant.Default, settingsRoot.RequestedThemeVariant);
-        Assert.Same(view, Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(settings.Content))));
+        Assert.Same(view, Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(main.Content))));
         Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Archive");
     });
 
@@ -172,6 +157,7 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-007")] // App/Window/WindowManager.swift:63, :81, :93-94
     [Trait("Req", "PR-WIN-008")] // App/Window/WindowManager.swift:98-100 (OD-0008 C1)
     [Trait("Req", "PR-WIN-009")] // App/Window/WindowManager.swift:63, :97
+    [Trait("Decision", "OD-0140")]
     public void Main_close_requests_the_shell_handshake_while_Settings_close_keeps_its_real_content() => WithManager((harness, manager) =>
     {
         using var name = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?> { ["CFBundleDisplayName"] = "Marrow" }, isDevelopment: false));
@@ -180,30 +166,31 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         manager.ShowMain();
         manager.ShowSettings(SettingsPage.Archive);
         var main = manager.MainWindow!;
-        var settings = SettingsWindow(manager);
-        var content = settings.Content;
-        Assert.Equal("Marrow", main.Title);
+        var overlay = OpenSettings(manager);
+        var content = overlay.Content;
+        Assert.Same(main, overlay.Window);
+        Assert.Equal("Marrow", main.Title); // Settings, a panel in it, leaves the window's title alone
         Assert.True(main.CanResize);
-        Assert.False(settings.CanResize);
-        Assert.True(settings.CanMaximize); // T45 owner caption override.
-        Assert.True(settings.CanMinimize);
         main.Close();
         Assert.Equal(1, requests);
         Assert.True(main.IsVisible); // Only the shell may finish quit after the Hydra wait.
-        settings.Close();
-        Assert.Equal(1, requests);
-        Assert.False(settings.IsVisible);
+        manager.CloseSettings();
+        Assert.Equal(1, requests); // closing Settings closes no window
+        Assert.False(manager.IsSettingsOpen);
+        Assert.True(main.IsVisible);
         manager.ShowMain();
         manager.ShowSettings();
         Assert.Same(main, manager.MainWindow);
-        Assert.Same(settings, SettingsWindow(manager));
-        Assert.Same(content, settings.Content);
+        Assert.Same(overlay, OpenSettings(manager));
+        Assert.Same(content, overlay.Content);
+        Assert.Same(overlay, Assert.Single(Assert.IsAssignableFrom<Panel>(main.Content).Children.OfType<SettingsOverlay>()));
     });
 
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:24, :67-70 (ED-006)
     [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:80-84 (no autosave)
-    public void A_real_Settings_window_never_overwrites_the_saved_main_frame() => WithManager((harness, manager) =>
+    [Trait("Decision", "OD-0140")]
+    public void The_real_Settings_panel_never_overwrites_the_saved_main_frame() => WithManager((harness, manager) =>
     {
         manager.ShowMain();
         var main = manager.MainWindow!;
@@ -213,13 +200,18 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         Settle(main);
         harness.Defaults.Writes.Clear();
         manager.ShowSettings(SettingsPage.Archive);
-        var settings = SettingsWindow(manager);
-        settings.Position = new PixelPoint(23, 45);
-        Settle(settings);
-        settings.Close();
+        var overlay = OpenSettings(manager);
+        Settle(main);
+        manager.CloseSettings();
+        Assert.False(manager.IsSettingsOpen);
         manager.ShowSettings();
-        Settle(settings);
+        Settle(main);
+        Assert.Same(overlay, OpenSettings(manager));
         Assert.Empty(harness.Defaults.Writes);
+        // Settings opens in the main window without moving or resizing it.
+        Assert.Equal(new PixelPoint(-3000, -2000), main.Position);
+        Assert.Equal(1000, main.Width);
+        Assert.Equal(700, main.Height);
         var next = new WindowManager { MainContent = () => new Border() };
         try
         {
@@ -258,11 +250,9 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     // constructor blocker is superseded by WindowManagerTitleMutationTests' real default-factory proof.
     // WindowManagerHighRiskTests covers the reflected/message-only boundary; WindowManagerNativeTests
     // separately exercises actual factory HWND registration, physical input and retained resize hooks.
-    // STOP UI-SETTINGS-001: these headless views do not prove the native Settings caption/sidebar or the Acrylic pixels; those are
-    // native tests now: WindowManagerNativeTests (the sidebar is the caption region of the real HWND), GlassWindowNativeTests (Acrylic
-    // under the scrim, and the corners of OD-0075 on the real Settings window). The continuous-corner geometry is asserted (ED-181
-    // closed 2026-10-04): the backdrop's hairline is Apple's path of the 780 x 580 window (WindowManagerSettingsSurfaceTests); the corner
-    // pixels of the production HWND stay native.
-    // ED-225 now binds WindowManager.swift:43, :68, :82; WindowManagerCenteringTests covers the three sites.
+    // STOP UI-SETTINGS-001: these headless views do not prove the pixels of the Settings panel's glass. OD-0140 (2026-10-11) made Settings
+    // a panel inside the main window: there is no Settings HWND, caption or window corner any more. The panel's 26 pt continuous shape and
+    // its backdrop's hairline on that curve are asserted in WindowManagerSettingsSurfaceTests.
+    // ED-225 now binds WindowManager.swift:43, :68 (the :82 Settings window is not ported, OD-0140); WindowManagerCenteringTests covers them.
     // Apple's exact vertical bias remains UNVERIFIED OD-0001, rather than blocking the Windows binding.
 }

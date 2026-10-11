@@ -338,6 +338,7 @@ public sealed class SettingsView : Decorator
         pageStack.Track(() => scrollTracker.IsFrozen, value => pageStack.IsHitTestVisible = !value);
         var scroll = new ScrollViewer { Template = SettingsScrollTemplate, Content = ClearingCaptionButtons(pageStack, hasControls), VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
         WireScroll(scroll, page: true);
+        ScrollEdgeFade.SetTopInset(scroll, Chrome.ChromeTopPadding + Chrome.CapsuleHeight); // OD-0140: the page fades out under its title row
         var accessories = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var chromeRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10, MinHeight = Chrome.CapsuleHeight, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome), accessories } }; Grid.SetColumn(accessories, 1);
         var chrome = new StackPanel { Spacing = 10, MinHeight = Chrome.CapsuleHeight, Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0), VerticalAlignment = VerticalAlignment.Top, Children = { chromeRow } }; // :246-267; trailing: DEVIATION OD-0044, clear of the Windows caption buttons. Grid's star track is Swift's flexible title frame.

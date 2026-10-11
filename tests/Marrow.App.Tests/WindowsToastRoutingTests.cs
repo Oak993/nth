@@ -13,7 +13,8 @@ namespace Marrow.App.Tests;
 // click of each kind stays on the Windows verification list). Expected values from the Swift lines cited:
 //   :82-83 threadID is read as a string; the update branch is the mere presence of "update"
 //   :85 showMain() unless it is an update; :86-87 a parsable threadID becomes the selection; :89 activate;
-//   :90 an update opens Settings on About (WindowManager.swift:32-38) and never the main window
+//   :90 an update opens Settings on About (WindowManager.swift:32-38) and skips :85's showMain(); DEVIATION OD-0140: Settings is a
+//   panel inside the main window, so opening it shows that window with the panel on About
 [Collection("Headless")]
 public sealed class WindowsToastRoutingTests(HeadlessSession headless)
 {
@@ -54,26 +55,32 @@ public sealed class WindowsToastRoutingTests(HeadlessSession headless)
         Assert.True(main.IsActive); // :89
         Assert.Equal(thread, launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID)); // :86-87
         Assert.DoesNotContain("settings window built", launch.Events);
+        Assert.False(launch.Manager.IsSettingsOpen); // OD-0140: no Settings panel in the main window either
     });
 
     [Theory]
     [Trait("Req", "PR-LAUNCH-065")] // App/AppDelegate.swift:83-90; owner_decisions.md OD-0037
     [Trait("Req", "PR-UPDATE-024")] // App/AppDelegate.swift:71-86; App/Window/WindowManager.swift:32-38
     [Trait("Req", "PR-WIN-076")] // App/AppDelegate.swift:83 presence, whatever the value
-    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:84 the update tap opens Settings on About without the main window
+    [Trait("Req", "UI-LAUNCH-003")] // App/AppDelegate.swift:84 the update tap opens Settings on About (OD-0140: the panel in the main window)
     [Trait("Req", "UI-LAUNCH-005")] // App/AppDelegate.swift:77-92 the update tap (the records are amended, STOP App.AppDelegate #8)
+    [Trait("Decision", "OD-0140")] // Settings is a panel inside the main window
     [InlineData("1.7.1")]
     [InlineData("")]
-    public void Clicking_an_update_notification_opens_Settings_on_About_and_never_the_main_window(string version) => WithLaunch(launch =>
+    public void Clicking_an_update_notification_opens_Settings_on_About_as_the_panel_in_the_main_window(string version) => WithLaunch(launch =>
     {
         var before = launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID);
         Click(launch, new Dictionary<string, object> { ["update"] = version });
 
-        Assert.Null(LaunchHarness.WindowOf(launch.MainContent)); // :85 skipped: no main window was made
-        Assert.DoesNotContain("main window built", launch.Events);
+        // :85 is skipped; :90's showSettings makes the main window only because Settings is a panel in it (OD-0140), then the panel.
+        Assert.Equal(["main window built", "settings window built"], launch.Events);
         var settings = LaunchHarness.WindowOf(launch.SettingsContent);
         Assert.NotNull(settings); // :90
+        Assert.Same(launch.Manager.MainWindow, settings);
+        Assert.Same(settings, LaunchHarness.WindowOf(launch.MainContent));
+        Assert.True(launch.Harness.Main.OnMain(() => launch.Manager.IsSettingsOpen));
         Assert.True(settings.IsVisible);
+        Assert.True(settings.IsActive); // WindowManager.swift:37, :58-59
         Assert.Equal(SettingsPage.About, launch.Harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage));
         Assert.Equal(before, launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID)); // no threadID
     });
@@ -91,5 +98,6 @@ public sealed class WindowsToastRoutingTests(HeadlessSession headless)
         Assert.True(main.IsVisible);
         Assert.Equal(before, launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID));
         Assert.DoesNotContain("settings window built", launch.Events);
+        Assert.False(launch.Manager.IsSettingsOpen); // OD-0140: no Settings panel in the main window either
     });
 }

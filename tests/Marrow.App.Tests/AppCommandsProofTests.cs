@@ -48,10 +48,11 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-090")] // App/AppCommands.swift:12-15; Window/WindowManager.swift:32-38,40-55
+    [Trait("Req", "PR-WIN-090")] // App/AppCommands.swift:12-15; Window/WindowManager.swift:32-38
     [Trait("Req", "UI-LAUNCH-007")] // App/AppCommands.swift:12-15; Views/Palette/CommandPalette.swift:176-178
     [Trait("Req", "UI-WIN-006")] // App/AppCommands.swift:12-15; OD-0008 C3,B7
-    public void Settings_keys_and_real_palette_click_preserve_the_page_center_and_focus_the_same_window() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // Settings is a panel inside the main window; the Settings chord toggles it
+    public void Settings_keys_and_real_palette_click_preserve_the_page_and_open_the_same_panel_in_the_main_window_and_front_it() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h =>
         {
@@ -64,8 +65,8 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
         var appearance = Application.Current!.RequestedThemeVariant;
         var theme = ThemeManager.Current;
         var requested = SettingsNavigation.Shared.RequestedPage;
-        AvaloniaWindow settings = null!;
         AvaloniaWindow main = null!;
+        SettingsOverlay overlay = null!;
         SettingsView view = null!;
         TextBox input = null!;
         CommandPalette palette = null!;
@@ -77,53 +78,69 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
                 launch.Manager.SettingsContent = () => view;
                 launch.Manager.ShowMain();
                 main = LaunchHarness.WindowOf(launch.MainContent)!;
-                main.Position = new PixelPoint(100, 80); // source :48-49: centered by parent.Center minus half own frame.
                 launch.Manager.ShowSettings(SettingsPage.Archive);
-                settings = LaunchHarness.WindowOf(view)!;
-                Settle(settings!);
+                // OD-0140: the Settings content is a panel inside the main window, no window of its own.
+                Assert.Same(main, LaunchHarness.WindowOf(view));
+                overlay = Assert.IsType<SettingsOverlay>(launch.Manager.SettingsOverlay);
+                Assert.Same(main, overlay.Window);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Settle(main);
                 var search = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarSearchField>(view));
                 input = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(search));
                 input.Text = "archive";
-                Settle(settings!);
-                settings.Close();
-                Assert.False(settings!.IsVisible);
-                main.Position = new PixelPoint(120, 100); // Move after initial construction: each chord must re-center.
+                Settle(main);
+                launch.Manager.CloseSettings();
+                Assert.False(launch.Manager.IsSettingsOpen);
+                Assert.True(main.IsVisible); // closing the panel keeps the window
 
                 launch.Manager.Model.SelectedThreadID = launch.Manager.Model.SidebarThreads[0].Id;
                 // Source :14 takes the live store; default Shortcuts.swift:234 is Command-comma, Ctrl+, (ED-050/099).
                 Press(main, Key.OemComma, PhysicalKey.Comma, RawInputModifiers.Control);
-                Settle(settings!);
-                Assert.True(settings.IsVisible);
-                Assert.True(settings!.IsActive); // WindowManager.swift:37,58-59 focuses the requested window.
-                main.Activate();
-                // Headless Activate does not deliver deactivation to the other top-level. Supply the documented
-                // OS callback to establish Settings visible but inactive; production must activate it again.
-                var deactivated = (Action)typeof(Avalonia.Platform.IWindowBaseImpl)
-                    .GetProperty("Deactivated", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)!
-                    .GetValue(settings.PlatformImpl)!;
-                deactivated();
-                Assert.False(settings.IsActive);
-                Press(main, Key.OemComma, PhysicalKey.Comma, RawInputModifiers.Control);
-                Assert.True(settings.IsActive); // Also front an already-visible Settings window, :37,58-59.
-                Assert.Same(settings, LaunchHarness.WindowOf(view));
+                Settle(main);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.Same(overlay, launch.Manager.SettingsOverlay); // the cached panel (:34-35)
+                Assert.True(main.IsVisible);
+                Assert.True(main.IsActive); // WindowManager.swift:37,58-59 fronts the window Settings is in.
+                Assert.Same(main, LaunchHarness.WindowOf(view));
                 Assert.Equal("archive", input.Text); // :13 requests no page; cached view keeps page/search.
                 Assert.Contains(view.GetVisualDescendants().OfType<Control>(), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads"); // SettingsView.swift:201-204: actual Archive empty page, not its sidebar label.
                 Assert.Null(SettingsNavigation.Shared.RequestedPage);
-                Assert.Equal(new PixelPoint(390, 240), settings!.Position); // (120+(1320-780)/2,100+(860-580)/2), :48-49.
-                NoMenu(main!); NoMenu(settings!);
-                settings.Close();
+
+                // Asked for again while it is open and the main window is behind another: the same panel stays open, on its page, and
+                // its window comes to the front again (:37,58-59). Headless Activate does not deliver deactivation to a top-level, so
+                // the documented OS callback is supplied to establish the window visible but inactive; production must activate it again.
+                var deactivated = (Action)typeof(Avalonia.Platform.IWindowBaseImpl)
+                    .GetProperty("Deactivated", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)!
+                    .GetValue(main.PlatformImpl)!;
+                deactivated();
+                Assert.False(main.IsActive);
+                launch.Manager.ShowSettings();
+                Settle(main);
+                Assert.True(main.IsActive);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.Same(overlay, launch.Manager.SettingsOverlay);
+                Assert.Equal("archive", input.Text);
+                Assert.Contains(view.GetVisualDescendants().OfType<Control>(), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads");
+
+                // OD-0140: the Settings chord closes the open panel; the window stays.
+                Press(main, Key.OemComma, PhysicalKey.Comma, RawInputModifiers.Control);
+                Settle(main);
+                Assert.False(launch.Manager.IsSettingsOpen);
+                Assert.True(main.IsVisible);
+                NoMenu(main);
 
                 launch.Manager.Model.SelectedThreadID = null;
                 var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Shift); // US Y position, ED-099.
                 ShortcutStore.Shared.Current.Set(rebound, AppShortcut.OpenSettings);
                 Press(main, Key.OemComma, PhysicalKey.Comma, RawInputModifiers.Control);
-                Assert.False(settings.IsVisible); // source :14 relinquishes the old chord.
+                Assert.False(launch.Manager.IsSettingsOpen); // source :14 relinquishes the old chord.
                 Press(main, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Shift);
-                Assert.True(settings.IsVisible);
-                Assert.True(settings.IsActive);
-                settings.Close();
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.Same(overlay, launch.Manager.SettingsOverlay);
+                Assert.True(main.IsActive);
+                launch.Manager.CloseSettings();
+                Assert.False(launch.Manager.IsSettingsOpen);
 
-                main.Position = new PixelPoint(140, 120); // Palette opens must re-center the same cached window too.
                 palette = new CommandPalette();
                 launch.MainContent.Child = palette;
                 launch.Manager.Model.IsCommandPalettePresented = true;
@@ -136,26 +153,33 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
                 var row = Assert.Single(palette.RowsPanel.Children);
                 Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(row), text => text.Text == "Settings"); // :176
                 Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(row), text => text.Text == ShortcutStore.Label(AppShortcut.OpenSettings)); // :177
+                // The window behind another, so the row's open must front it again.
+                var deactivated = (Action)typeof(Avalonia.Platform.IWindowBaseImpl)
+                    .GetProperty("Deactivated", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)!
+                    .GetValue(main.PlatformImpl)!;
+                deactivated();
+                Assert.False(main.IsActive);
                 var point = row.TranslatePoint(new Point(row.Bounds.Width / 2, row.Bounds.Height / 2), main!)!.Value;
                 main!.MouseMove(point);
                 main!.MouseDown(point, MouseButton.Left);
                 main!.MouseUp(point, MouseButton.Left); // real hit testing, palette :86-89,201-206.
-                Settle(settings!);
+                Settle(main);
                 Assert.False(launch.Manager.Model.IsCommandPalettePresented);
-                Assert.True(settings.IsVisible);
-                Assert.True(settings.IsActive);
-                Assert.Same(settings, LaunchHarness.WindowOf(view));
+                Assert.True(launch.Manager.IsSettingsOpen);
+                Assert.Same(overlay, launch.Manager.SettingsOverlay);
+                Assert.True(main.IsVisible);
+                Assert.True(main.IsActive);
+                Assert.Same(main, LaunchHarness.WindowOf(view));
                 Assert.Equal("archive", input.Text);
                 Assert.Contains(view.GetVisualDescendants().OfType<Control>(), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads"); // SettingsView.swift:201-204: actual Archive empty page, not its sidebar label.
-                Assert.Equal(new PixelPoint(410, 260), settings.Position); // (140+(1320-780)/2,120+(860-580)/2), WindowManager.swift:48-49.
-                NoMenu(main); NoMenu(settings);
+                NoMenu(main);
             });
         }
         finally
         {
             launch.Harness.Main.OnMain(() =>
             {
-                if (settings is not null) { settings.Content = null; settings.Hide(); }
+                launch.Manager.CloseSettings();
                 if (main is not null) { main.Content = null; main.Hide(); }
                 SettingsNavigation.Shared.RequestedPage = requested;
                 ThemeManager.Current = theme;
@@ -176,7 +200,8 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
     [InlineData(8, Key.D8, PhysicalKey.Digit8, 0x09)]
     [InlineData(9, Key.D9, PhysicalKey.Digit9, 0x0A)]
     [Trait("Req", "PR-WIN-110")] // App/AppCommands.swift:95-98; AppModel.swift:1119-1123; Shortcuts.swift:251-257; OD-0008 B8
-    public void Every_digit_is_named_enabled_hard_coded_reserved_and_selects_its_sidebar_thread_from_both_production_windows(int number, Key key, PhysicalKey physical, long scanCode) => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // Settings is a panel inside the main window, so the production window is the main one, with the panel open and closed
+    public void Every_digit_is_named_enabled_hard_coded_reserved_and_selects_its_sidebar_thread_with_the_Settings_panel_open_and_closed(int number, Key key, PhysicalKey physical, long scanCode) => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h =>
         {
@@ -208,27 +233,37 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
             var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
             try
             {
-                model.SelectedThreadID = null;
-                Press(settings, key, physical, RawInputModifiers.Control);
-                Assert.Equal(order[number - 1], model.SelectedThreadID); // :1119-1123 uses sidebar order[number-1].
-                model.SelectedThreadID = null;
+                Assert.Same(main, settings); // OD-0140: the panel is in the main window
+                Assert.True(launch.Manager.IsSettingsOpen);
                 var numbers = new List<long>();
                 var threadWindow = Assert.IsType<ThreadWindow>(main);
                 var monitorAction = threadWindow.SelectThreadNumber;
                 Assert.NotNull(monitorAction);
                 threadWindow.SelectThreadNumber = digit => { numbers.Add(digit); monitorAction(digit); };
+                // With the panel open the window's digit monitor stands still under it, as under any sheet (ThreadWindow.swift:12-14),
+                // and the Thread item of the command table takes the chord.
+                model.SelectedThreadID = null;
+                Press(settings, key, physical, RawInputModifiers.Control);
+                Assert.Equal(order[number - 1], model.SelectedThreadID); // :1119-1123 uses sidebar order[number-1].
+                Assert.Empty(numbers);
+                Assert.True(launch.Manager.IsSettingsOpen);
+                NoMenu(settings);
+                launch.Manager.CloseSettings();
+                Assert.False(launch.Manager.IsSettingsOpen);
+                model.SelectedThreadID = null;
                 Press(main, key, physical, RawInputModifiers.Control);
                 Assert.Equal([number], numbers); // ThreadWindow.swift:5-19 local monitor runs before table dispatch.
                 Assert.Equal(order[number - 1], model.SelectedThreadID); // ThreadWindow.swift:5-23 local digit monitor.
-                NoMenu(main); NoMenu(settings);
+                NoMenu(main);
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 
     [Fact]
     [Trait("Req", "PR-WIN-110")] // App/AppCommands.swift:95-98; AppModel.swift:1119-1123
-    public void A_digit_past_the_end_preserves_selection_in_both_production_windows_even_when_the_list_is_empty() => headless.OnUiThread(() =>
+    [Trait("Decision", "OD-0140")] // Settings is a panel inside the main window, so the production window is the main one, with the panel closed and open
+    public void A_digit_past_the_end_preserves_selection_with_the_Settings_panel_closed_and_open_even_when_the_list_is_empty() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness(h =>
         {
@@ -242,26 +277,36 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
             var first = model.SidebarThreads[0].Id;
             launch.Manager.ShowMain(); launch.Manager.ShowSettings();
             var main = LaunchHarness.WindowOf(launch.MainContent)!;
-            var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            Assert.Same(main, LaunchHarness.WindowOf(launch.SettingsContent)); // OD-0140: the panel is in the main window
+            void SetPanel(bool open)
+            {
+                if (open) launch.Manager.ShowSettings();
+                else launch.Manager.CloseSettings();
+                Assert.Equal(open, launch.Manager.IsSettingsOpen);
+            }
             try
             {
-                foreach (var window in new[] { main, settings })
+                foreach (var open in new[] { false, true })
                 {
+                    SetPanel(open);
                     model.SelectedThreadID = first;
-                    Press(window, Key.D9, PhysicalKey.Digit9, RawInputModifiers.Control);
+                    Press(main, Key.D9, PhysicalKey.Digit9, RawInputModifiers.Control);
                     Assert.Equal(first, model.SelectedThreadID); // guard order.indices.contains(number-1).
+                    Assert.Equal(open, launch.Manager.IsSettingsOpen);
                 }
                 foreach (var thread in model.Threads.ToArray()) model.Archive(thread.Id);
                 Assert.Empty(model.SidebarThreads);
                 model.SelectedThreadID = null;
-                foreach (var window in new[] { main, settings })
+                foreach (var open in new[] { false, true })
                 {
-                    Press(window, Key.D1, PhysicalKey.Digit1, RawInputModifiers.Control);
+                    SetPanel(open);
+                    Press(main, Key.D1, PhysicalKey.Digit1, RawInputModifiers.Control);
                     Assert.Null(model.SelectedThreadID);
-                    NoMenu(window);
+                    Assert.Equal(open, launch.Manager.IsSettingsOpen);
+                    NoMenu(main);
                 }
             }
-            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+            finally { launch.Manager.CloseSettings(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
         });
     });
 }
