@@ -199,26 +199,31 @@ public sealed class FloatingSidebarPanel : Decorator
 
         // :60-66 `if canClose { ChromeCircleButton(symbol: "xmark", help: "Back into the column") }`. The input can change while the panel stays (Floating and Panel only
         // differ only in it, ED-NEW-sidebarmodes-4), so the button comes and goes in the same strip rather than the panel being built again.
+        // ED-NEW-sidebarmodes-10: it arrives and leaves through .softAppear (a fade with a 4-point rise in, a quick fade out), as the
+        // toolbar's own buttons do, never cut in or out; a button still fading out stands in its column until it has gone.
         ChromeCircleButton? closeButton = null;
+        var stripBuilt = false;
         void SetCanClose(bool value)
         {
             CanClose = value;
-            dragHandle.Margin = new Thickness(0, 0, value ? 8 : 0, 0);
+            dragHandle.Margin = new Thickness(0, 0, value ? 8 : 0, 0); // the drag strip is not drawn: its reach changes, nothing seen moves
             if (value && closeButton is null)
             {
                 closeButton = new ChromeCircleButton("xmark", "Back into the column", close)
                 {
                     Margin = new Thickness(0, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0),
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
-                };
-                Grid.SetColumn(closeButton, 2);
-                strip.Children.Add(closeButton);
+                }.Transition(Marrow.App.Views.Chat.ChatChromeRow.SoftAppear);
+                if (stripBuilt) SwiftTransition.Insert(strip, strip.Children.Count, closeButton);
+                else SwiftTransition.Place(strip, strip.Children.Count, closeButton);
+                Grid.SetColumn(SwiftTransition.Container(closeButton), 2);
             }
             else if (!value && closeButton is { } shown)
             {
-                strip.Children.Remove(shown);
+                SwiftTransition.Remove(strip, shown);
                 closeButton = null;
             }
+            stripBuilt = true;
         }
         SetCanClose(canClose);
         updateCanClose = SetCanClose;

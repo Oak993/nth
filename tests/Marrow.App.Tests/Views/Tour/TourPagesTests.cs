@@ -47,6 +47,27 @@ public sealed class TourPagesTests(HeadlessSession headless)
         Assert.Equal(expected, TourPages.Pages.Select(page => (page.ImageName, page.Title, page.Description)));
     }
 
+    // ED-NEW-sidebarmodes-11: page 5 names the Toggle sidebar chord the owner has set, not a Ctrl+B written into its words, and leaves the
+    // chord out once it is cleared.
+    [Fact]
+    [Trait("Req", "UI-UPDATE-050")] // App/Views/Tour/TourPages.swift:9; DEVIATION ED-NEW-sidebarmodes-7
+    public void Page_five_names_the_Toggle_sidebar_chord_as_remapped_and_none_once_it_is_cleared() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness(withRuntime: false); // R-TEST-9: the store reads and writes a throwaway settings store
+        var shortcuts = (global::Marrow.Core.Models.ShortcutStore)System.Activator.CreateInstance(typeof(global::Marrow.Core.Models.ShortcutStore), nonPublic: true)!;
+        using var store = global::Marrow.Core.Models.ShortcutStore.Shared.Override(shortcuts);
+        string Words() => TourPages.Pages.Single(page => page.ImageName == "tour-threads").Description;
+        Assert.Contains("The list button in the toolbar, or Ctrl+B, slides it back.", Words(), System.StringComparison.Ordinal);
+        var rebound = new global::Marrow.Core.Models.KeyChord(0x15, global::Marrow.Core.Port.ChordModifiers.Control | global::Marrow.Core.Port.ChordModifiers.Alt);
+        shortcuts.Set(rebound, global::Marrow.Core.Models.AppShortcut.ToggleSidebar);
+        Assert.Equal(rebound.Description, global::Marrow.Core.Models.ShortcutStore.Label(global::Marrow.Core.Models.AppShortcut.ToggleSidebar));
+        Assert.Contains("The list button in the toolbar, or " + rebound.Description + ", slides it back.", Words(), System.StringComparison.Ordinal);
+        Assert.DoesNotContain("Ctrl+B", Words(), System.StringComparison.Ordinal);
+        shortcuts.Set(null, global::Marrow.Core.Models.AppShortcut.ToggleSidebar);
+        Assert.Contains("The list button in the toolbar slides it back.", Words(), System.StringComparison.Ordinal);
+        Assert.StartsWith("Hide the sidebar and the chat has the whole window.", Words(), System.StringComparison.Ordinal);
+    });
+
     [Fact]
     [Trait("Req", "PR-UPDATE-088")] // App/Views/Tour/TourPages.swift:4-13
     public void Advancing_past_the_last_page_does_not_wrap_to_the_first()

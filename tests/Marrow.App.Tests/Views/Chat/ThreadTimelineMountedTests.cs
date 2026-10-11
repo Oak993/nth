@@ -123,9 +123,14 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         mount.Window.Width = 900; mount.Advance(100);
         Assert.Equal(660, mount.Column.Width, 3);
         Assert.Equal(620, mount.Rows[0].Bounds.Width, 3);
-        // A second slide while the first runs moves the target: the delta alone changed, the width follows it.
+        // A second slide while the first runs starts from where the first was heading (ED-NEW-sidebarmodes-8; the Mac adds the new delta to
+        // the first slide's start, a width the pane never reaches): 960 - 300, then - 200.
         BeginSidebarSlide(mount, -200); mount.Advance(60);
-        Assert.Equal(760, mount.Column.Width, 3);
+        Assert.Equal(460, mount.Column.Width, 3);
+        // A press that turns the column round mid-slide (its delta back the other way) lays the text out at the width the pane returns to,
+        // not at the first start plus the delta (660 here, not 860 = min(860, 960 + 200)).
+        BeginSidebarSlide(mount, 200); mount.Advance(60);
+        Assert.Equal(660, mount.Column.Width, 3);
         mount.Advance(500);
         Assert.False(mount.Model.Sidebar.IsSliding);
         Assert.Equal(860, mount.Column.Width, 3);

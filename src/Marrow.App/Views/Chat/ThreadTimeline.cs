@@ -369,8 +369,26 @@ public sealed class ThreadTimeline : Decorator
         // :59-67 layoutWidth is read by the body, which runs again when the reshape starts or ends, when the pane's width moves (onGeometryChange,
         // :450) and while the sidebar slides: the stepped width follows all of them, and the exact width lands when the drag ends (:454-457).
         this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { RefreshLayoutWidth(); if (!active) SettleAfterResize(); else if (currentScroll is { } resizing) SoftScroll.StopAnimation(resizing); });
-        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsSliding, sliding => { if (sliding) paneWidthAtSlideStart = paneWidth; RefreshLayoutWidth(); }); // :458-462
-        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.SlideDelta, _ => RefreshLayoutWidth());
+        // :458-462 `.onChange(of: sidebar.isSliding) { if $1 { paneWidthAtSlideStart = paneWidth } }`. DEVIATION (ED-NEW-sidebarmodes-8): a
+        // slide that begins while one runs (a second press turning the column round) leaves isSliding true, so the Mac keeps the first
+        // slide's start and adds the new delta to it, a width the pane never reaches (the text too wide, then a re-wrap as the slide
+        // ends). A slide that begins mid-slide starts here from the width the running one was heading for.
+        int? seenEpoch = null;
+        var wasSliding = false;
+        var runningDelta = 0.0;
+        this.Track(() =>
+        {
+            var sidebar = AppEnvironment.GetAppModel(this).Sidebar;
+            return (sidebar.IsSliding, sidebar.SlideEpoch, sidebar.SlideDelta);
+        }, slide =>
+        {
+            if (slide.IsSliding && (!wasSliding || seenEpoch != slide.SlideEpoch))
+                paneWidthAtSlideStart = wasSliding && paneWidthAtSlideStart > 0 ? paneWidthAtSlideStart + runningDelta : paneWidth;
+            seenEpoch = slide.SlideEpoch;
+            wasSliding = slide.IsSliding;
+            runningDelta = slide.SlideDelta;
+            RefreshLayoutWidth();
+        });
     }
 
     // :59-67. No lower clamp in the ordinary width branch; only the sidebar-slide target is clamped to 12.

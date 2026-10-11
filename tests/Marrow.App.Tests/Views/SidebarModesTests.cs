@@ -463,4 +463,217 @@ public sealed class SidebarModesTests(HeadlessSession headless)
             }
         });
     }, Saved(mode, open), width: 860, height: 560);
+
+    // ---- the review of 30496ce3e (ED-NEW-sidebarmodes-8..11) ----
+
+    // Column's words promise the list button "in the toolbar"; with no thread open there is no chat toolbar, and a fresh install or a window
+    // whose last thread was archived starts with the column collapsed. The empty pages carry the same button in the toolbar's first slot,
+    // in Column and Floating, and it brings the column out; Panel only has none (ED-NEW-sidebarmodes-9).
+    [Theory]
+    [InlineData(SidebarMode.Column, false)]
+    [InlineData(SidebarMode.Column, true)]
+    [InlineData(SidebarMode.Floating, false)]
+    [InlineData(SidebarMode.Floating, true)]
+    [InlineData(SidebarMode.PanelOnly, false)]
+    [InlineData(SidebarMode.PanelOnly, true)]
+    [Trait("Req", "PR-SETTINGS-255")] // App/AppSettings.swift:63 "the list button in the toolbar shows and hides it"
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1125-1131
+    public void With_no_thread_open_the_empty_page_carries_the_list_button_that_shows_and_hides_the_column(SidebarMode mode, bool withProject) => WithRoot(rig =>
+    {
+        var model = rig.Model;
+        if (withProject)
+        {
+            rig.OnMain(() => { model.AddProject(new Project("P", rig.Launch.Harness.NewFolder("p")).Url); model.SelectedThreadID = null; });
+            rig.Finish();
+        }
+        Assert.Null(model.SelectedThreadID);
+        Assert.False(model.Sidebar.IsVisible);
+        Assert.Equal(withProject ? 1 : 0, rig.Launch.Harness.Main.OnMain(() => LogicalQuery.SelfAndDescendants<NoThreadView>(rig.Root).Count()));
+        Assert.Equal(withProject ? 0 : 1, rig.Launch.Harness.Main.OnMain(() => LogicalQuery.SelfAndDescendants<WelcomeView>(rig.Root).Count()));
+        Assert.Empty(rig.Launch.Harness.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ChatChromeRow>(rig.Root).ToList())); // no chat toolbar here
+        var button = rig.Launch.Harness.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(rig.Root).SingleOrDefault());
+        Assert.Equal(mode != SidebarMode.PanelOnly, button is not null);
+        if (button is null) return;
+        rig.OnMain(() =>
+        {
+            // The toolbar's first slot: 14 in from the chat's leading edge and 12 down, over the page and fully drawn.
+            var surface = LogicalQuery.SelfAndDescendants<Button>(button).Single();
+            var at = surface.TranslatePoint(default, rig.Root.DetailClip)!.Value;
+            Assert.Equal(Chrome.ChromeHorizontalPadding, at.X, 1);
+            Assert.Equal(Chrome.ChromeTopPadding, at.Y, 1);
+            Assert.True(surface.IsEffectivelyVisible);
+            Assert.Equal(1, Seen(surface), 3);
+            Assert.Equal("Show the sidebar" + ShortcutStore.Hint(AppShortcut.ToggleSidebar), ToolTip.GetTip(surface));
+        });
+        void Press() => rig.OnMain(() => LogicalQuery.SelfAndDescendants<Button>(button).Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent)));
+        Press();
+        rig.Finish();
+        AssertDraws(rig, mode, columnOpen: true);
+        rig.OnMain(() => Assert.Equal("Hide the sidebar" + ShortcutStore.Hint(AppShortcut.ToggleSidebar), ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(button).Single())));
+        Press();
+        rig.Finish();
+        AssertDraws(rig, mode, columnOpen: false);
+        // Panel only takes it away through its soft fade, not a cut.
+        rig.OnMain(() => AppearanceSettingsPage.PickSidebarMode(model, SidebarMode.PanelOnly));
+        rig.Settle();
+        rig.Step(16);
+        var leaving = rig.Launch.Harness.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(rig.Root).Select(Seen).ToList());
+        Assert.Single(leaving);
+        Assert.InRange(leaving[0], 0.01, 0.99);
+        rig.Finish();
+        Assert.Empty(rig.Launch.Harness.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(rig.Root).ToList()));
+    }, Saved(mode, startsOpen: false));
+
+    // The opacity a control is drawn at, through every parent up to the window.
+    private static double Seen(Control control)
+    {
+        var opacity = 1.0;
+        for (Control? at = control; at is not null; at = at.Parent as Control) opacity *= at.Opacity;
+        return opacity;
+    }
+
+    // SwiftUI's layout gives the column its new width at once and only the drawing slides, so the width the Mac reports (:21
+    // onGeometryChange) is the settled one: HoldsTrafficLights changes once, at the press, never part-way through a slide, where it rebuilt
+    // and glided the chat's toolbar on a frame of its own (ED-NEW-sidebarmodes-8).
+    [Fact]
+    [Trait("Req", "PR-WIN-046")] // App/Views/RootView.swift:19-21; UI/Chrome/WindowChrome.swift:303-308
+    public void The_column_reports_its_settled_width_so_the_window_buttons_owner_changes_once_at_the_press_not_mid_slide() => WithRoot(rig =>
+    {
+        var model = rig.Model;
+        Assert.False(model.Sidebar.HoldsTrafficLights);
+        foreach (var opening in new[] { true, false })
+        {
+            var flips = 0;
+            var last = model.Sidebar.HoldsTrafficLights;
+            rig.OnMain(() => model.Sidebar.Toggle());
+            rig.Settle();
+            var widths = new List<double>();
+            for (var i = 0; i < 30; i++)
+            {
+                var holds = model.Sidebar.HoldsTrafficLights;
+                if (holds != last) flips++;
+                last = holds;
+                Assert.Equal(opening, holds); // from the first frame: the width it is heading for, not the width drawn
+                widths.Add(rig.ColumnWidth);
+                rig.Step(16);
+            }
+            Assert.Equal(1, flips);
+            Assert.Contains(widths, width => width > 1 && width < SidebarLayout.TrafficLightsFitWidth); // the drawn width did cross the line
+        }
+    }, Saved(SidebarMode.Column, startsOpen: false));
+
+    // Floating with the column open: the button closes the column and the list floats instead. The panel is made where it will rest, at the
+    // detail's final width, and stays there through the slide; it used to be clamped into the narrow detail and chase the widening edge.
+    [Fact]
+    [Trait("Req", "PR-WIN-040")] // App/Views/RootView.swift:44-51
+    public void A_floating_panel_made_as_the_column_closes_starts_at_its_resting_place_and_stays_there_through_the_slide() => WithRoot(rig =>
+    {
+        var model = rig.Model;
+        rig.OnMain(() => model.Settings.SidebarPanelOrigin = new Point(5000, 60)); // left at the far right last time
+        rig.Settle();
+        AssertDraws(rig, SidebarMode.Floating, columnOpen: true);
+        rig.OnMain(() => model.Sidebar.Toggle());
+        rig.Settle();
+        Control Surface() => LogicalQuery.SelfAndDescendants<Canvas>(rig.Root.FloatingPanel!).First().Children.OfType<Control>().First();
+        double PanelLeft() => rig.Launch.Harness.Main.OnMain(() => Canvas.GetLeft(Surface()));
+        var lefts = new List<double> { PanelLeft() };
+        var widths = new List<double> { rig.ColumnWidth };
+        for (var i = 0; i < 8; i++) { rig.Step(16); lefts.Add(PanelLeft()); widths.Add(rig.ColumnWidth); }
+        Assert.Contains(widths, width => width > 1 && width < model.Sidebar.Width - 1); // the column was part-way: this is mid-slide
+        rig.Finish();
+        AssertDraws(rig, SidebarMode.Floating, columnOpen: false);
+        var rest = PanelLeft();
+        var (detailWidth, panelWidth) = rig.Launch.Harness.Main.OnMain(() => (rig.Root.FloatingPanel!.Bounds.Width, Surface().Bounds.Width));
+        Assert.Equal(detailWidth - panelWidth - FloatingSidebarPanel.FloatingSidebarPanelMargin, rest, 1); // against the far edge
+        Assert.All(lefts, left => Assert.Equal(rest, left, 1)); // from its first frame
+    }, Saved(SidebarMode.Floating, startsOpen: true));
+
+    // A second press while the column slides turns it round without stopping it dead: the slide's speed carries into the turn, and the chat
+    // keeps riding the column's edge on every frame (ED-NEW-sidebarmodes-8).
+    [Fact]
+    [Trait("Req", "PR-WIN-046")] // UI/Chrome/WindowChrome.swift:358-364, pressed again mid-slide
+    public void A_second_press_mid_slide_turns_the_column_round_without_a_stop() => WithRoot(rig =>
+    {
+        var model = rig.Model;
+        var full = model.Sidebar.Width;
+        rig.OnMain(() => model.Sidebar.Toggle());
+        rig.Settle();
+        var seen = new List<double> { rig.ColumnWidth };
+        for (var i = 0; i < 4; i++) { rig.Step(16); seen.Add(rig.ColumnWidth); }
+        var before = seen[^1] - seen[^2];
+        Assert.True(before > 5, "it was sliding out");
+        Assert.InRange(seen[^1], 10, full - 10);
+        rig.OnMain(() => model.Sidebar.Toggle());
+        rig.Settle();
+        Assert.Equal(seen[^1], rig.ColumnWidth, 1); // no jump at the press
+        rig.Step(16);
+        var after = rig.ColumnWidth - seen[^1];
+        Assert.True(after > 0, $"the turn keeps the slide's speed for a moment: {before:0.0} px a frame before, {after:0.0} after"); // a dead stop restarts at rest
+        Assert.True(Math.Abs(after - before) < before, "no sudden change of speed at the turn");
+        var back = new List<double>();
+        for (var i = 0; i < 40; i++)
+        {
+            rig.Step(16);
+            back.Add(rig.ColumnWidth);
+            Assert.Equal(rig.ColumnWidth, rig.DetailX, 1);
+        }
+        Assert.All(back, width => Assert.InRange(width, 0, full));
+        rig.Finish();
+        AssertDraws(rig, SidebarMode.Column, columnOpen: false);
+    }, Saved(SidebarMode.Column, startsOpen: false));
+
+    // A window whose tree is taken away mid-slide (hidden and shown again, re-parented) stops the slide; when it comes back the column
+    // stands at the width the model says, never stuck part-way (ED-NEW-sidebarmodes-8).
+    [Fact]
+    [Trait("Req", "PR-WIN-046")] // App/Views/RootView.swift:19
+    public void A_column_whose_window_leaves_and_returns_mid_slide_is_never_left_part_way() => WithRoot(rig =>
+    {
+        var model = rig.Model;
+        var full = model.Sidebar.Width;
+        rig.OnMain(() => model.Sidebar.Toggle());
+        rig.Settle();
+        rig.Step(16); rig.Step(16);
+        Assert.InRange(rig.ColumnWidth, 1, full - 1);
+        Control host = null!;
+        rig.OnMain(() => { host = (Control)rig.Window.Content!; rig.Window.Content = null; Dispatcher.UIThread.RunJobs(); });
+        rig.Step(16);
+        rig.OnMain(() => { rig.Window.Content = host; Dispatcher.UIThread.RunJobs(); });
+        rig.Settle();
+        Assert.Equal(full, rig.ColumnWidth, 1);
+        Assert.Equal(full, rig.DetailX, 1);
+        rig.Finish();
+        AssertDraws(rig, SidebarMode.Column, columnOpen: true);
+    }, Saved(SidebarMode.Column, startsOpen: false));
+
+    // Floating and Panel only keep the same panel and differ in its close button; the button fades in and out as the toolbar's own buttons
+    // do, never cut (ED-NEW-sidebarmodes-10).
+    [Fact]
+    [Trait("Req", "PR-WIN-040")] // App/Views/RootView.swift:47; App/Views/Sidebar/FloatingSidebarPanel.swift:60-66
+    public void The_panels_close_button_fades_out_for_Panel_only_and_back_in_for_Floating() => WithRoot(rig =>
+    {
+        var model = rig.Model;
+        AssertDraws(rig, SidebarMode.Floating, columnOpen: false);
+        var panel = rig.Panel!;
+        List<double> CloseButtons() => rig.Launch.Harness.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ChromeCircleButton>(panel)
+            .Where(button => ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(button).First()) as string == "Back into the column").Select(Seen).ToList());
+        Assert.Equal([1.0], CloseButtons());
+        rig.OnMain(() => AppearanceSettingsPage.PickSidebarMode(model, SidebarMode.PanelOnly));
+        rig.Settle();
+        rig.Step(16);
+        var leaving = CloseButtons();
+        Assert.Single(leaving);
+        Assert.InRange(leaving[0], 0.01, 0.99);
+        rig.Finish();
+        Assert.Empty(CloseButtons());
+        rig.OnMain(() => AppearanceSettingsPage.PickSidebarMode(model, SidebarMode.Floating));
+        rig.Settle();
+        rig.Step(16);
+        var arriving = CloseButtons();
+        Assert.Single(arriving);
+        Assert.InRange(arriving[0], 0.01, 0.99);
+        rig.Finish();
+        Assert.Equal([1.0], CloseButtons());
+        Assert.Same(panel, rig.Panel);
+        AssertDraws(rig, SidebarMode.Floating, columnOpen: false);
+    }, Saved(SidebarMode.Floating, startsOpen: false));
 }
