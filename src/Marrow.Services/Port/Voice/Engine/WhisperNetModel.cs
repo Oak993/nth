@@ -1,4 +1,5 @@
 // PORT-ONLY, owner-ruled addition (OD-0091, OD-0092, OD-0099 Q-V-9 C; first-release voice typing, VT-6): a Whisper.net model (V-7.1, V-7.2).
+using Marrow.Core.Port.Voice.Seams;
 using Whisper.net;
 
 namespace Marrow.Services.Port.Voice.Engine;
@@ -23,6 +24,26 @@ public sealed class WhisperNetModel(WhisperFactory factory, RuntimeKind runtime)
             segments.Add(new BackendSegment(WhisperTokenText.Repair([.. segment.Tokens.Select(ToToken)], segment.Text), segment.Language));
         return segments;
     }
+
+    // ED-NEW-voicefix-4: Whisper.net 1.9.1's WhisperProcessor.DetectLanguageWithProbability runs whisper_lang_auto_detect_with_state on the audio's first 30 s and returns the
+    // top language (or, with candidates, the most likely of them) and its probability; null and 0 when whisper.cpp fails. One call for the top, a second for the runners-up
+    // only when the top is not one of them. The native calls are synchronous, so they run on the thread pool; the token is checked before each.
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio, IReadOnlyList<string> runnersUp, int threads, CancellationToken cancellationToken) =>
+        Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var processor = factory.CreateBuilder().WithThreads(threads).Build();
+            var (top, probability) = processor.DetectLanguageWithProbability(audio.Span, ReadOnlySpan<string>.Empty);
+            if (string.IsNullOrEmpty(top)) return null;
+            if (runnersUp.Count == 0) return new LanguageOdds(top, probability);
+            if (runnersUp.Contains(top, StringComparer.Ordinal)) return new LanguageOdds(top, probability, top, probability);
+            cancellationToken.ThrowIfCancellationRequested();
+            var (runnerUp, runnerUpProbability) = processor.DetectLanguageWithProbability(audio.Span, [.. runnersUp]);
+            // with no candidate it knows, Whisper.net answers the top again: that is no runner-up
+            return runnerUp is not null && runnersUp.Contains(runnerUp, StringComparer.Ordinal)
+                ? new LanguageOdds(top, probability, runnerUp, runnerUpProbability)
+                : new LanguageOdds(top, probability);
+        }, cancellationToken);
 
     public void Dispose() => factory.Dispose();
 

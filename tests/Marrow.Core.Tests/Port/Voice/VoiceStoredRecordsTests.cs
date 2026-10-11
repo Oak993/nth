@@ -97,6 +97,21 @@ public sealed class VoiceStoredRecordsTests
     }
 
     [Fact]
+    [Trait("Feature", "VT-3")]
+    [Trait("Decision", "ED-NEW-voicefix-4")]
+    public void The_last_Hindustani_is_written_only_when_set_and_read_only_as_hi_or_ur()
+    {
+        Assert.Null(VoiceTypingSettings.Default.LastHindustani);
+        Assert.Equal("{\"engine\":\"local\",\"lang\":null,\"model\":null,\"lastHindustani\":\"ur\"}", Json(VoiceTypingSettings.Default with { LastHindustani = "ur" }));
+        Assert.Equal("{\"engine\":\"local\",\"lang\":null,\"model\":null}", Json(VoiceTypingSettings.Default with { LastHindustani = "en" }));
+        Assert.Equal("hi", Read("{\"lastHindustani\":\"hi\"}").LastHindustani);
+        Assert.Equal("ur", Read("{\"lastHindustani\":\"ur\"}").LastHindustani);
+        foreach (var other in new[] { "\"en\"", "\"HI\"", "\"\"", "null", "7", "true", "[\"hi\"]" }) Assert.Null(Read("{\"lastHindustani\":" + other + "}").LastHindustani);
+        var all = new VoiceTypingSettings { Engine = VoiceEngine.Cloud, Lang = "auto", Model = "large-v3-turbo-q8_0", Mic = "device-1", SlowChoice = LiveWordsChoice.Live, SlowChoiceKey = "k", LastHindustani = "hi" };
+        Assert.Equal(all, VoiceTypingSettings.FromJson(all.ToJson()));
+    }
+
+    [Fact]
     [Trait("Feature", "VT-1")]
     [Trait("Spec", "V-T10")]
     [Trait("Decision", "ED-267")] // voice-SPEC V-16.6: all keys read leniently; unreadable data as a whole is the default

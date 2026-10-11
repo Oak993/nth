@@ -347,7 +347,7 @@ public sealed class VoiceSession : IAudioCaptureSink
         active = current;
         resolution = resolved;
         sessionEngine = engine;
-        transcriber = new StreamingTranscriber(engine, resolved.Language, current.LiveWords, processingOnly: cloud);
+        transcriber = new StreamingTranscriber(engine, resolved.Language, current.LiveWords, processingOnly: cloud, HindustaniBefore(current));
         shown = [];
         detectedLanguage = null;
         suppressSend = false;
@@ -654,10 +654,25 @@ public sealed class VoiceSession : IAudioCaptureSink
         }
         shown = delta.Words;
         if (delta.Language is { } language) detectedLanguage = language;
+        RememberHindustani();
         TranscriptChanged?.Invoke(new TranscriptUpdate(TranscriptUpdateKind.Final, plan.Ops, delta.Words));
         var resultAfterClick = SwiftClock.Now - clickAt;
         var remaining = plan.ProcessingDuration(resultAfterClick) - resultAfterClick;
         processingTimer = MainActor.AsyncAfter(remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero, EnterLanding);
+    }
+
+    // ED-NEW-voicefix-4: the Hindustani the user has dictated in before: the last session written in Hindi or Urdu, else a Hindi or Urdu Windows display language.
+    private static string? HindustaniBefore(VoiceSessionSettings current) =>
+        current.Typing.LastHindustani ?? (VoiceLanguage.WindowsLanguageCode(current.WindowsUiLanguage) is ("hi" or "ur") and var windows ? windows : null);
+
+    // ED-NEW-voicefix-4: a session whose words were written in Hindi or Urdu (forced, or chosen by Auto-detect: StreamingTranscriber.HindustaniWritten) is remembered, so
+    // the next Auto-detect session weighs it and keeps its script. Stored only when it changes.
+    private void RememberHindustani()
+    {
+        if (transcriber?.HindustaniWritten is not { } language || shown.Count == 0) return;
+        var typing = settings().Typing;
+        if (typing.LastHindustani == language) return;
+        storeTyping(typing with { LastHindustani = language });
     }
 
     private void EnterLanding()

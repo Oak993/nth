@@ -1,3 +1,4 @@
+using Marrow.Core.Port.Voice.Seams;
 using Marrow.Services.Port.Voice.Engine;
 
 namespace Marrow.Services.Tests.Port.Voice.Engine;
@@ -29,6 +30,12 @@ public sealed class ScriptedWhisperBackend : IWhisperBackend
     /// <summary>What a decode answers.</summary>
     public Func<BackendDecode, IReadOnlyList<BackendSegment>> Script { get; set; } = _ => [];
 
+    /// <summary>What a language detection answers (ED-NEW-voicefix-4): from the runners-up asked about.</summary>
+    public Func<IReadOnlyList<string>, LanguageOdds?> DetectScript { get; set; } = _ => null;
+
+    /// <summary>The detections asked for: the runners-up, the threads and the samples.</summary>
+    public List<(IReadOnlyList<string> RunnersUp, int Threads, int Samples)> Detections { get; } = [];
+
     public int InFlight { get; private set; }
 
     public int MaxInFlight { get; private set; }
@@ -59,6 +66,24 @@ public sealed class ScriptedWhisperBackend : IWhisperBackend
         var model = new ScriptedWhisperModel(this, load.ModelPath, Reports);
         Models.Add(model);
         return model;
+    }
+
+    internal async Task<LanguageOdds?> DetectAsync(ScriptedWhisperModel model, ReadOnlyMemory<float> audio, IReadOnlyList<string> runnersUp, int threads, CancellationToken cancellationToken)
+    {
+        InFlight += 1;
+        MaxInFlight = Math.Max(MaxInFlight, InFlight);
+        Detections.Add((runnersUp, threads, audio.Length));
+        Log.Add("detect:" + model.Path);
+        try
+        {
+            if (decodeGate is { } gate) await gate.Task.WaitAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return DetectScript(runnersUp);
+        }
+        finally
+        {
+            InFlight -= 1;
+        }
     }
 
     internal async Task<IReadOnlyList<BackendSegment>> DecodeAsync(ScriptedWhisperModel model, ReadOnlyMemory<float> audio, BackendDecode decode, CancellationToken cancellationToken)

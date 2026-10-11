@@ -19,5 +19,9 @@ public sealed class HeldVoiceSpeedEngine(ManualTimeProvider clock) : ISpeechEngi
         clock.Advance(TimeSpan.FromSeconds(Model == "large-v3-turbo-q5_0" ? 9 : 7));
         return Hypothesis.Empty;
     }
+
+    // A speed run decodes in a forced language; this engine has no detection (ED-NEW-voicefix-4).
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken) =>
+        Task.FromResult<LanguageOdds?>(null);
     public void Complete() => gate.SetResult();
 }

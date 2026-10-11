@@ -38,6 +38,12 @@ public sealed record VoiceTypingSettings
     /// </summary>
     public string? SlowChoiceKey { get; init; }
 
+    /// <summary>
+    /// ED-NEW-voicefix-4: the Hindustani code ("hi" or "ur") of the last session whose text was written in Hindi or Urdu, stored as <c>lastHindustani</c>; null until one
+    /// was. Auto-detect weighs it (<c>AutoLanguagePolicy</c>) and writes Hindustani in its script.
+    /// </summary>
+    public string? LastHindustani { get; init; }
+
     public static VoiceTypingSettings Default { get; } = new();
 
     private static readonly string[] EngineNames = ["local", "cloud"];
@@ -45,7 +51,7 @@ public sealed record VoiceTypingSettings
 
     /// <summary>
     /// Compact JSON: <c>{"engine":"local","lang":null,"model":null}</c> for the defaults (V-16.2 as written). ED: <c>mic</c> and
-    /// <c>liveWordsChoice</c> (and its <c>liveWordsChoiceKey</c>, R5) are written only when set, so the default bytes stay V-16.2's.
+    /// <c>liveWordsChoice</c> (and its <c>liveWordsChoiceKey</c>, R5) are written only when set, so the default bytes stay V-16.2's; so is <c>lastHindustani</c> (ED-NEW-voicefix-4).
     /// </summary>
     public byte[] ToJson()
     {
@@ -59,6 +65,7 @@ public sealed record VoiceTypingSettings
             if (Mic is not null) w.WriteString("mic", Mic);
             if (SlowChoice is { } choice && (int)choice >= 0 && (int)choice < ChoiceNames.Length) w.WriteString("liveWordsChoice", ChoiceNames[(int)choice]); // an unknown answer is no answer
             if (SlowChoiceKey is not null) w.WriteString("liveWordsChoiceKey", SlowChoiceKey);
+            if (IsHindustani(LastHindustani)) w.WriteString("lastHindustani", LastHindustani);
             w.WriteEndObject();
         }
         return stream.ToArray();
@@ -66,7 +73,8 @@ public sealed record VoiceTypingSettings
 
     /// <summary>
     /// Lenient read (V-16.2, V-16.6): a missing <c>lang</c> is null and so is an unknown string (a code outside the list, any case other
-    /// than the list's); an unknown engine is Local; a model that is not in the catalogue is null; an empty or non-string <c>mic</c> or <c>liveWordsChoiceKey</c> is null.
+    /// than the list's); an unknown engine is Local; a model that is not in the catalogue is null; an empty or non-string <c>mic</c> or <c>liveWordsChoiceKey</c> is null;
+    /// a <c>lastHindustani</c> other than "hi" or "ur" is null.
     /// </summary>
     public static VoiceTypingSettings FromJson(ReadOnlySpan<byte> json) => VoiceJson.ReadObject(json, Default, o =>
     {
@@ -75,6 +83,7 @@ public sealed record VoiceTypingSettings
         var mic = VoiceJson.Text(o, "mic");
         var choiceText = VoiceJson.Text(o, "liveWordsChoice");
         var choiceKey = VoiceJson.Text(o, "liveWordsChoiceKey");
+        var hindustani = VoiceJson.Text(o, "lastHindustani");
         var choice = choiceText is null ? -1 : Array.IndexOf(ChoiceNames, choiceText);
         return new VoiceTypingSettings
         {
@@ -84,8 +93,11 @@ public sealed record VoiceTypingSettings
             Mic = string.IsNullOrEmpty(mic) ? null : mic,
             SlowChoice = choice < 0 ? null : (LiveWordsChoice)choice,
             SlowChoiceKey = string.IsNullOrEmpty(choiceKey) ? null : choiceKey,
+            LastHindustani = IsHindustani(hindustani) ? hindustani : null,
         };
     });
+
+    private static bool IsHindustani(string? code) => code is "hi" or "ur";
 }
 
 /// <summary>The one-time privacy note per engine (V-16.5, OD-0099 Q-V-8 A): whether each engine's note has been shown.</summary>

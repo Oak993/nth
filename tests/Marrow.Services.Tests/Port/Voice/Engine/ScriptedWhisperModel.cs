@@ -1,3 +1,4 @@
+using Marrow.Core.Port.Voice.Seams;
 using Marrow.Services.Port.Voice.Engine;
 
 namespace Marrow.Services.Tests.Port.Voice.Engine;
@@ -15,6 +16,12 @@ public sealed class ScriptedWhisperModel(ScriptedWhisperBackend owner, string pa
     {
         if (Disposed) throw new ObjectDisposedException(nameof(ScriptedWhisperModel));
         return await owner.DecodeAsync(this, audio, decode, cancellationToken);
+    }
+
+    public async Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio, IReadOnlyList<string> runnersUp, int threads, CancellationToken cancellationToken)
+    {
+        if (Disposed) throw new ObjectDisposedException(nameof(ScriptedWhisperModel));
+        return await owner.DetectAsync(this, audio, runnersUp, threads, cancellationToken);
     }
 
     public void Dispose()

@@ -30,6 +30,12 @@ public sealed record Hypothesis(IReadOnlyList<HypothesisWord> Words, string? Lan
 }
 
 /// <summary>
+/// What an engine's language detection heard (ED-NEW-voicefix-4): the most likely of all its languages with its probability, and the most likely of the runners-up it
+/// was asked about with that one's probability (the top itself when the top is one of them; null when none of them could be measured).
+/// </summary>
+public sealed record LanguageOdds(string Top, float TopProbability, string? RunnerUp = null, float RunnerUpProbability = 0f);
+
+/// <summary>
 /// The recogniser (V-2.4). Production: <c>WhisperNetEngine</c> (VT-6) and <c>OpenAiTranscriber</c> (VT-16). Tests: <see cref="ScriptedEngine"/>.
 /// Both calls take a token that aborts the work in flight (V-7.10).
 /// </summary>
@@ -38,4 +44,10 @@ public interface ISpeechEngine
     Task LoadAsync(SpeechModel model, EngineLoadOptions options, CancellationToken cancellationToken);
 
     Task<Hypothesis> TranscribeAsync(ReadOnlyMemory<float> audio16k, DecodeRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Detects the language of <paramref name="audio16k"/> without decoding it (ED-NEW-voicefix-4): the top language and the most likely of <paramref name="runnersUp"/>,
+    /// with their probabilities. Null when the engine has no detection (the cloud engine) or the detection failed; the caller then decodes with "auto".
+    /// </summary>
+    Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken);
 }

@@ -28,4 +28,8 @@ public sealed class VoicePrepEngine(ManualTimeProvider clock, IReadOnlyDictionar
         clock.Advance(TimeSpan.FromSeconds(seconds[current]));
         return Task.FromResult(Hypothesis.Empty);
     }
+
+    // The self-test decodes in a forced language; this engine has no detection (ED-NEW-voicefix-4).
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken) =>
+        Task.FromResult<LanguageOdds?>(null);
 }

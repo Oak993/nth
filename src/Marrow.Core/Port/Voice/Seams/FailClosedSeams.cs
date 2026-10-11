@@ -28,6 +28,9 @@ public sealed class FailClosedSpeechEngine : ISpeechEngine
 
     public Task<Hypothesis> TranscribeAsync(ReadOnlyMemory<float> audio16k, DecodeRequest request, CancellationToken cancellationToken) =>
         throw new SeamNotBoundException(nameof(ISpeechEngine), nameof(TranscribeAsync));
+
+    public Task<LanguageOdds?> DetectLanguageAsync(ReadOnlyMemory<float> audio16k, IReadOnlyList<string> runnersUp, CancellationToken cancellationToken) =>
+        throw new SeamNotBoundException(nameof(ISpeechEngine), nameof(DetectLanguageAsync));
 }
 
 /// <summary><see cref="IMicrophoneAccess"/> default.</summary>
