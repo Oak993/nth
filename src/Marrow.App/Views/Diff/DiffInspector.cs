@@ -978,7 +978,19 @@ public sealed class DiffPopoverCoordinator
     // :523
     public const double Height = 540;
 
+    /// <summary>PORT-ONLY (web W1, ED-NEW-web-w1-7, DESIGN 4.3): the smallest the popover is resized to.</summary>
+    public static Size MinimumSize { get; } = new(420, 320);
+
+    /// <summary>PORT-ONLY (web W1): the largest is the window's work area less this on each axis.</summary>
+    public const double WorkAreaInset = 48;
+
     private readonly Popup popover;
+    private Border? shownFrame;
+    private DiffInspector? shownInspector;
+    private Size shownSize = new(Width, Height);
+    private Size? growTarget;
+    private Size? resizeStart;
+    private ChatFrameAnimation? grow;
     private WeakView? anchor;
     private WeakView? fallback;
     private ThreadRuntime? runtime;
@@ -1116,7 +1128,19 @@ public sealed class DiffPopoverCoordinator
         if (runtime is null || ResolvedAnchor() is not { } target) return;
         session++;
         if (isShown) return;
-        popover.SetFixedContent(new DiffInspector(runtime), new Size(Width, Height));
+        // PORT-ONLY (web W1, ED-NEW-web-w1-7, DESIGN 4.3): the fixed 640 x 540 (:522-523) is the default of a size the
+        // popover's edge and corner grips change, at least 420 x 320, at most the work area less 48, remembered globally.
+        var size = Fit(StoredSize(target.View), target.View);
+        var inspector = new DiffInspector(runtime) { Width = size.Width, Height = size.Height };
+        popover.SetFixedContent(new Panel { Children = { inspector, ResizeGrips(target.Edge) } }, size);
+        shownFrame = popover.Child as Border;
+        shownInspector = inspector;
+        grow?.Stop();
+        grow = new ChatFrameAnimation(inspector);
+        grow.AttachLifetime();
+        growTarget = null;
+        resizeStart = null;
+        ApplySize(size);
         popover.PlacementTarget = target.View;
         popover.Placement = target.Edge;
         shownOn = target.View;
@@ -1124,6 +1148,195 @@ public sealed class DiffPopoverCoordinator
         StartMonitors(); // :632
         isShown = true;
         Presentation.Presenter.Current.SetPresented(popover, true);
+    }
+
+    /// <summary>The popover's size now (the stored one when shown, then what its grips make it).</summary>
+    public Size ShownSize => shownSize;
+
+    private static AppModel? ModelOf(Control? view)
+    {
+        if (view is null) return null;
+        try
+        {
+            return AppEnvironment.GetAppModel(view);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private Control? Anchor => shownOn;
+
+    private static Size StoredSize(Control anchor) => ModelOf(anchor)?.Settings.DiffPopoverSize ?? new Size(Width, Height);
+
+    /// <summary>The largest size: the work area of the anchor's screen, less <see cref="WorkAreaInset"/> on each axis.</summary>
+    internal static Size Largest(Control? anchor)
+    {
+        if (anchor is not null && TopLevel.GetTopLevel(anchor) is { } top)
+        {
+            if (top.Screens?.ScreenFromVisual(anchor) is { } screen && screen.Scaling > 0)
+                return new Size(
+                    Math.Max(MinimumSize.Width, screen.WorkingArea.Width / screen.Scaling - WorkAreaInset),
+                    Math.Max(MinimumSize.Height, screen.WorkingArea.Height / screen.Scaling - WorkAreaInset));
+            if (top.ClientSize is { Width: > 0, Height: > 0 } client)
+                return new Size(Math.Max(MinimumSize.Width, client.Width - WorkAreaInset), Math.Max(MinimumSize.Height, client.Height - WorkAreaInset));
+        }
+        return new Size(double.PositiveInfinity, double.PositiveInfinity);
+    }
+
+    internal static Size Fit(Size wanted, Control? anchor)
+    {
+        var largest = Largest(anchor);
+        return new Size(
+            Math.Min(Math.Max(MinimumSize.Width, wanted.Width), largest.Width),
+            Math.Min(Math.Max(MinimumSize.Height, wanted.Height), largest.Height));
+    }
+
+    private void ApplySize(Size size)
+    {
+        shownSize = size;
+        if (shownFrame is { } frame)
+        {
+            frame.Width = size.Width;
+            frame.Height = size.Height;
+        }
+        if (shownInspector is { } inspector)
+        {
+            inspector.Width = size.Width;
+            inspector.Height = size.Height;
+        }
+        popover.Width = size.Width;
+        popover.Height = size.Height;
+    }
+
+    private void CommitSize()
+    {
+        if (ModelOf(Anchor) is { } model) model.Settings.DiffPopoverSize = shownSize;
+    }
+
+    // A key, Home, End or the double-click reset moves the size under PanelSlide from the size drawn now; a press lands a
+    // change still in flight first (pointer-down settling).
+    private void GrowTo(Size wanted)
+    {
+        SettleSize();
+        var to = Fit(wanted, Anchor);
+        var from = shownSize;
+        if (to == from) return;
+        if (grow is null || !FrameClock.IsBound || shownInspector is null || TopLevel.GetTopLevel(shownInspector) is null)
+        {
+            ApplySize(to);
+            CommitSize();
+            return;
+        }
+        growTarget = to;
+        grow.Start(Chrome.PanelSlide, progress =>
+        {
+            ApplySize(new Size(from.Width + (to.Width - from.Width) * progress, from.Height + (to.Height - from.Height) * progress));
+            if (progress < 1) return;
+            growTarget = null;
+            CommitSize();
+        });
+    }
+
+    private void SettleSize()
+    {
+        if (growTarget is not { } to) return;
+        grow?.Stop();
+        growTarget = null;
+        ApplySize(to);
+        CommitSize();
+    }
+
+    // The popover sits centred above (Top) or below (Bottom) its anchor: its far edge and both sides are free, and a side
+    // grows on both sides at once, so a side's travel counts twice to keep that edge under the pointer.
+    private Grid ResizeGrips(PlacementMode edge)
+    {
+        var top = edge == PlacementMode.Top;
+        var far = top ? -1 : 1;
+        var farAlignment = top ? Avalonia.Layout.VerticalAlignment.Top : Avalonia.Layout.VerticalAlignment.Bottom;
+        var grid = new Grid();
+        grid.Children.Add(Grip(SplitterOrientation.Vertical, -2, 0, "Resize changes width", Avalonia.Layout.HorizontalAlignment.Left, Avalonia.Layout.VerticalAlignment.Stretch));
+        grid.Children.Add(Grip(SplitterOrientation.Vertical, 2, 0, "Resize changes width", Avalonia.Layout.HorizontalAlignment.Right, Avalonia.Layout.VerticalAlignment.Stretch));
+        grid.Children.Add(Grip(SplitterOrientation.Horizontal, 0, far, "Resize changes height", Avalonia.Layout.HorizontalAlignment.Stretch, farAlignment));
+        var leading = Grip(SplitterOrientation.Both, -2, far, "Resize changes", Avalonia.Layout.HorizontalAlignment.Left, farAlignment);
+        leading.SetCorner(top ? SplitterCorner.TopLeft : SplitterCorner.BottomLeft);
+        grid.Children.Add(leading);
+        var trailing = Grip(SplitterOrientation.Both, 2, far, "Resize changes", Avalonia.Layout.HorizontalAlignment.Right, farAlignment);
+        trailing.SetCorner(top ? SplitterCorner.TopRight : SplitterCorner.BottomRight);
+        grid.Children.Add(trailing);
+        return grid;
+    }
+
+    private Splitter Grip(SplitterOrientation orientation, int across, int down, string label,
+        Avalonia.Layout.HorizontalAlignment horizontal, Avalonia.Layout.VerticalAlignment vertical)
+    {
+        var width = across != 0;
+        var height = down != 0;
+        Size Toward(Size limit) => new(width ? limit.Width : (growTarget ?? shownSize).Width, height ? limit.Height : (growTarget ?? shownSize).Height);
+        var splitter = new Splitter(orientation, new SplitterTarget
+        {
+            OnReport = () => Report(height && !width),
+            OnSettle = SettleSize,
+            OnBegin = () =>
+            {
+                SettleSize();
+                resizeStart = shownSize;
+            },
+            OnMove = travel =>
+            {
+                var start = resizeStart ?? shownSize;
+                ApplySize(Fit(new Size(start.Width + travel.X * across, start.Height + travel.Y * down), Anchor));
+            },
+            OnEnd = _ =>
+            {
+                resizeStart = null;
+                CommitSize();
+            },
+            OnReset = () => GrowTo(new Size(Width, Height)),
+            OnStep = delta =>
+            {
+                var from = growTarget ?? shownSize;
+                GrowTo(new Size(from.Width + delta.X * Math.Sign(across), from.Height + delta.Y * down));
+            },
+            OnStepTo = maximum => GrowTo(Toward(maximum ? Largest(Anchor) : MinimumSize)),
+            OnSetValue = width && height ? null : value => GrowTo(width
+                ? new Size(value, (growTarget ?? shownSize).Height)
+                : new Size((growTarget ?? shownSize).Width, value)),
+        })
+        {
+            Label = label,
+            HelpHint = "Double-click for the default size",
+            MirrorsInRightToLeft = false,
+            FineInset = 0,
+            TracksInScreenSpace = true, // the popup's own window moves as it grows
+            HorizontalAlignment = horizontal,
+            VerticalAlignment = vertical,
+        };
+        if (orientation == SplitterOrientation.Both)
+        {
+            splitter.Width = Splitter.CornerSize;
+            splitter.Height = Splitter.CornerSize;
+        }
+        else if (orientation == SplitterOrientation.Vertical) splitter.Width = Splitter.EdgeThickness;
+        else splitter.Height = Splitter.EdgeThickness;
+        return splitter;
+    }
+
+    private SplitterReport Report(bool height)
+    {
+        var largest = Largest(Anchor);
+        var shown = growTarget ?? shownSize;
+        var limits = height
+            ? Limits(MinimumSize.Height, largest.Height, Height)
+            : Limits(MinimumSize.Width, largest.Width, Width);
+        return SplitterMath.Report(height ? shown.Height : shown.Width, false, limits);
+
+        static SplitterLimits Limits(double minimum, double largest, double fallback)
+        {
+            var maximum = Math.Max(minimum, Math.Min(largest, 100_000));
+            return new SplitterLimits(minimum, maximum, Math.Min(fallback, maximum));
+        }
     }
 
     // :640-658

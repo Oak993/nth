@@ -302,6 +302,7 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
         public const string SidebarOnlyFloats = "sidebarOnlyFloats";
         public const string SidebarPanelOrigin = "sidebarPanelOrigin";
         public const string SidebarPanelSize = "sidebarPanelSize";
+        public const string DiffPopoverSize = "diffPopoverSize"; // PORT-ONLY (web W1, ED-NEW-web-w1-7): the Alt diff popover's size
         public const string UsagePanelDock = "usagePanelDock";
         public const string UsagePanelHeight = "usagePanelHeight";
         public const string HydraPairs = "hydraPairs";
@@ -447,6 +448,7 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
     private bool sidebarOnlyFloats;
     private Point? sidebarPanelOrigin;
     private Size? sidebarPanelSize;
+    private Size? diffPopoverSize;
     private PanelDockCorner usagePanelDock;
     private double? usagePanelHeight;
     private ValueList<HydraPair> hydraPairs = ValueList<HydraPair>.Empty;
@@ -1193,6 +1195,17 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
         });
     }
 
+    /// <summary>PORT-ONLY (web W1, ED-NEW-web-w1-7): the Alt diff popover's size, once resized (DESIGN 4.3, saved globally).</summary>
+    public Size? DiffPopoverSize
+    {
+        get => Read(diffPopoverSize);
+        set => Set(ref diffPopoverSize, value, _ =>
+        {
+            if (value is { } size) defaults.Set(Key.DiffPopoverSize, new object[] { size.Width, size.Height });
+            else defaults.RemoveObject(Key.DiffPopoverSize);
+        });
+    }
+
     // :687-689
     public PanelDockCorner UsagePanelDock
     {
@@ -1304,6 +1317,9 @@ public sealed partial class AppSettings : MainActorModel, ProviderSettings, Acco
         if (defaults.Array(Key.SidebarPanelSize) is { } sizeStored && sizeStored.Count == 2)
             sidebarPanelSize = new Size((double)Plist.AsDouble(sizeStored[0])!, (double)Plist.AsDouble(sizeStored[1])!);
         else sidebarPanelSize = null;
+        diffPopoverSize = defaults.Array(Key.DiffPopoverSize) is { } diffStored && diffStored.Count == 2
+            && Plist.AsDouble(diffStored[0]) is { } diffWidth && Plist.AsDouble(diffStored[1]) is { } diffHeight
+            ? new Size(diffWidth, diffHeight) : null;
         usagePanelDock = defaults.String(Key.UsagePanelDock) is { } dockStored
             ? SwiftEnum<PanelDockCorner>.FromRawValue(dockStored) ?? PanelDockCorner.BottomLeading
             : PanelDockCorner.BottomLeading;
