@@ -172,7 +172,7 @@ public sealed class RegistryUserHiveTests : IDisposable
     {
         var registry = new RegistryUserHive(hive.Root);
         var launch = new LaunchTarget(Root + @"\current\nth.exe", "", Root + @"\current", Root + @"\current\nth.exe", 0, FromStart: true);
-        var command = "\"" + Root + "\current\nth.exe\" --at-sign-in";
+        var command = "\"" + Root + @"\current\nth.exe" + "\" --at-sign-in";
 
         Assert.Equal(SignInChangeOutcome.Changed, SignInEntry.Enable(registry, Root, launch).Outcome); // the profile had no Run key at all
         Assert.Equal(new SignInState(SignInStatus.On, command), SignInEntry.Read(registry, Root));

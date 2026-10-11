@@ -73,6 +73,11 @@ public sealed class ShellLinksBindingTests
             @"src\Marrow.Core\Support\InstallLayout.cs",
             @"src\Marrow.Setup\Support\AfterSetupExit.cs",
             @"src\Marrow.App\Port\NthInstallHook.cs",
+            // unit U8 (ED-NEW-inst-u8-1 and -2): Settings > General > "On this PC" gets the shell and the registry from the platform bound in Program.cs
+            @"src\Marrow.Core\Support\DesktopShortcutProbe.cs",
+            @"src\Marrow.Core\Support\SignInEntry.cs",
+            @"src\Marrow.App\Port\OnThisPcModel.cs",
+            @"src\Marrow.App\Views\Settings\OnThisPcSettingsSection.cs",
         ];
         foreach (var step in steps)
         {

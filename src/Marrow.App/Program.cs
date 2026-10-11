@@ -55,6 +55,22 @@ public static class Program
         app.Run();
     }
 
+    /// <summary>
+    /// ED-002 reopens the running instance when a second nth is started; ED-NEW-inst-u8-3 makes one exception: a start by the
+    /// "Open at sign-in" entry (<see cref="SignInEntry.Argument"/>) does nothing to a running nth.
+    /// </summary>
+    internal static bool ShouldReopenRunningInstance(IReadOnlyList<string> args) => !SignInEntry.IsAtSignInLaunch(args);
+
+    /// <summary>
+    /// nth installer PLAN.md 8 and 8a (unit U8, ED-NEW-inst-u8-1): Settings > General > "On this PC" manages nth's desktop shortcut and
+    /// sign-in entry, in a Velopack install only. The real shell and the real HKCU are bound here (and in the self-heal below) only.
+    /// </summary>
+    internal static void BindOnThisPc(string baseDirectory)
+    {
+        if (!InstalledByVelopack(baseDirectory) || InstallLayout.RootOf(baseDirectory) is not { } root) return;
+        OnThisPcPlatform.Slot.SetProcessDefault(new OnThisPcPlatform(root, () => new ShellLinks(), () => new RegistryUserHive(Microsoft.Win32.Registry.CurrentUser)));
+    }
+
     internal static bool InstalledByVelopack(string baseDirectory) =>
         Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root
         && File.Exists(Path.Combine(root, "Update.exe"));
@@ -111,10 +127,13 @@ public static class Program
             if (DroppyCodeApp.ForwardNotificationArguments(args)) return 0;
             // A recognized toast whose transport failed must not reopen the main window (especially an update).
             if (args.Any(argument => ToastActivation.Decode(WindowsToastStartup.Identity, argument) is not null)) return 1;
-            ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
+            // nth installer PLAN.md 8 (unit U8, ED-NEW-inst-u8-3): the sign-in entry starts nth with --at-sign-in, and a running nth must not
+            // be pulled to the front by it. A launch by the user (Start, the desktop shortcut, a double click) still reopens as ED-002 says.
+            if (ShouldReopenRunningInstance(args)) ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
             return 0;
         }
         using var instanceLock = singleInstanceLock;
+        BindOnThisPc(AppContext.BaseDirectory);
         // OD-0135: the product is named nth. Once, before anything reads settings, logs, the library or the GPU program cache, the
         // old "Marrow Code" data folder and .marrow state folder are COPIED to their new names (never moved; the old app may still run).
         LegacyDataCopy.CopyProductFolders(DevDataRoot.LocalApplicationData(), DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory, AppInfo.Current.IsDevelopment);
