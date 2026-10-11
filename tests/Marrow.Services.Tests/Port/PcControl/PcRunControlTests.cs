@@ -73,19 +73,22 @@ public sealed class PcRunControlTests
     {
         var control = new PcRunControl();
         using var watch = control.Watch(CancellationToken.None, "chat-1", "hung.exe", 0x1a);
-        var ran = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ran = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var release = new ManualResetEventSlim();
         using var registration = watch.Token.Register(() =>
         {
-            ran.TrySetResult(Environment.CurrentManagedThreadId);
+            ran.TrySetResult();
             // A call stuck in a hung app: its own code blocks.
-            release.Wait(TimeSpan.FromSeconds(5));
+            release.Wait(TimeSpan.FromSeconds(3));
         });
-        var stopping = Environment.CurrentManagedThreadId;
+        // The thread id cannot tell this apart: a pool thread that called Stop is free again at once and may run the
+        // callback itself. What must hold is that Stop returns while the call's code is still blocked.
+        var stopping = System.Diagnostics.Stopwatch.StartNew();
         control.Stop(PcScope.All, PcStopSource.StopKey);
-        // Stop returned while the call's code is still blocked, and the token was already cancelled.
+        var stopTook = stopping.Elapsed;
         Assert.True(watch.Token.IsCancellationRequested);
-        Assert.NotEqual(stopping, await ran.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        await ran.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(stopTook < TimeSpan.FromSeconds(1), "Stop waited on the call's own code: " + stopTook);
         release.Set();
     }
 
