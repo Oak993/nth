@@ -10,14 +10,14 @@
 // answers the pointer in the composer chip's language (ChipButtonStyle: a primary-text wash of 7 % under the pointer, 12 %
 // pressed, eased 0.12 s; here the press eases too, 0.08 s), with a hand cursor and no tooltip (OD-0138). The wash fills the
 // whole capsule, so the ring, the drop and the padding take the press (before, only the words' glyphs were hit-testable and
-// a press on the ring fell through to the composer). Cold and Off words rest at the composer's secondary text colour and
-// lift to primary under the pointer or while the popover is open; the ring and drop lift from the cold grey toward the
-// design's secondary tone and a cold core kindles faintly. Everything eases; Reduce Motion takes each value at once; nothing
-// runs at rest (eased values only, no timer).
+// a press on the ring fell through to the composer). The words stay primary in every state. A Cold capsule's ring track,
+// separator and drop rest a little above the design's cold grey (ColdRestLift: the drop at least 3:1 in both appearances);
+// under the pointer or while the popover is open, a Cold or Off capsule's ring and drop lift fully toward the design's
+// secondary tone and a Cold core kindles faintly. Everything eases; Reduce Motion takes each value at once; nothing runs at
+// rest (eased values only, no timer).
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -35,6 +35,9 @@ public sealed class KindleCapsule : Decorator
     public const double CapsuleHeight = 28, MinCapsuleWidth = 80;
     /// <summary>The pointer wash's primary-text opacity under the pointer and pressed (ChipButtonStyle's :86-87).</summary>
     public const double HoverWash = .07, PressedWash = .12;
+    /// <summary>A Cold capsule's resting lift of the ring track, separator and drop toward the design's text tones (the drop
+    /// 3.3:1 on a white surface, 4.9:1 on #1E1E20; 2.4:1 and 3.4:1 at the bare cold grey). Off rests at the bare grey.</summary>
+    public const double ColdRestLift = .3;
     private static readonly TimeSpan DefaultTtl = TimeSpan.FromHours(1);
 
     private sealed class ViewState : MainActorModel
@@ -57,7 +60,6 @@ public sealed class KindleCapsule : Decorator
     private readonly Border glow;
     private readonly Border wash;
     private readonly AnimatedColor washFill;
-    private readonly AnimatedColor words;
     private readonly AnimatedScalar glowLevel;
     private readonly Button button;
     private readonly Popup popup;
@@ -73,11 +75,9 @@ public sealed class KindleCapsule : Decorator
         {
             var text = new TextBlock { FontFeatures = Tabular() };
             SwiftFont.System(11.5, SwiftFont.Weight.Medium).Apply(text);
-            return text; // its colour is the roll's inherited foreground (words)
+            text.Foreground = Chrome.PrimaryText.Brush(text);
+            return text;
         }) { VerticalAlignment = VerticalAlignment.Center };
-        words = new AnimatedColor(roll);
-        words.Set(Chrome.PrimaryText, null);
-        roll.SetValue(TextElement.ForegroundProperty, words.Brush);
         var row = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -130,8 +130,8 @@ public sealed class KindleCapsule : Decorator
     internal Border Wash => wash;
     /// <summary>The pointer wash's colour drawn now.</summary>
     internal Color WashColor => washFill.Brush.Color;
-    /// <summary>The words' colour drawn now.</summary>
-    internal Color WordsColor => words.Brush.Color;
+    /// <summary>The words' colour drawn now (each character's own brush; all alike).</summary>
+    internal Color? WordsColor => roll.Children.OfType<Panel>().SelectMany(cell => cell.Children.OfType<TextBlock>()).Select(text => (text.Foreground as ISolidColorBrush)?.Color).FirstOrDefault();
     /// <summary>Whether the capsule shows its lifted (pointer or open popover) state.</summary>
     internal bool IsLifted => liftedShown;
     internal bool IsPresented { get => state.Presented; set => state.Presented = value; }
@@ -188,7 +188,7 @@ public sealed class KindleCapsule : Decorator
 
     private IgnisChatStatus? shown;
     private IgnisCacheState cacheShown = IgnisCacheState.Off;
-    private bool popoverOpen, liftedShown, primaryWordsShown = true;
+    private bool popoverOpen, liftedShown;
     private double washShown, liftShown, kindleShown;
 
     // hover is the chip's ease-out (0.12 s, ChipButtonStyle :80-81); a press lands a little faster
@@ -196,7 +196,7 @@ public sealed class KindleCapsule : Decorator
     private static readonly Animation HoverCurve = Animation.EaseOut(HoverSeconds);
     private static readonly Animation PressCurve = Animation.EaseOut(PressSeconds);
 
-    /// <summary>Paints the pointer's state (the wash, the words, the ring and drop's lift, a cold core's kindling) along the pointer's
+    /// <summary>Paints the pointer's state (the wash, the ring and drop's lift, a cold core's kindling) along the pointer's
     /// curves, or along <paramref name="change"/> for a change of the cache's state (Apply); <paramref name="immediate"/>: at once
     /// (the first showing). Each value is set only when its target moves, so the once-a-second tick restarts nothing.</summary>
     private void PaintPointer(Animation? change = null, bool immediate = false)
@@ -215,13 +215,7 @@ public sealed class KindleCapsule : Decorator
             washShown = washTo;
             washFill.Set(Chrome.Overlay(washTo), Reduce() ? null : curve);
         }
-        var primary = warm || lifted;
-        if (primary != primaryWordsShown)
-        {
-            primaryWordsShown = primary;
-            words.Set(primary ? Chrome.PrimaryText : Chrome.SecondaryText, Reduce() ? null : change ?? HoverCurve);
-        }
-        var liftTo = !warm && lifted ? 1 : 0;
+        var liftTo = warm ? 0 : lifted ? 1 : cacheShown == IgnisCacheState.Cold ? ColdRestLift : 0;
         var kindleTo = cacheShown == IgnisCacheState.Cold && lifted ? 1 : 0;
         if (liftTo != liftShown || kindleTo != kindleShown)
         {

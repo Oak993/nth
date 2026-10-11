@@ -6,8 +6,8 @@
 // (0.72 → 1.1 → 1 over 0.75 s). The heat eases over 0.6 s, the fill over 0.5 s. Reduce Motion: no breathing, no spin, no
 // sparks, no settle; values change at once.
 // ED-NEW-kindlehover-1 (owner: "Dull pill. Doesn't even do anything when I hover mouse over it?"): under the pointer (or while
-// the popover is open) a cold or off capsule's ring, separator and drop lift from the disabled grey toward the design's
-// secondary text tone (Lift), and a cold one's core kindles faintly (Kindle). Both are eased scalars that run only while they
+// the popover is open) a cold or off capsule's ring, separator and drop lift from the cold grey toward the design's text
+// tones (Lift; a Cold capsule rests part-lifted, KindleCapsule.ColdRestLift), and a cold one's core kindles faintly (Kindle). Both are eased scalars that run only while they
 // move: no timer and no ambient clock at rest.
 using Avalonia;
 using Avalonia.Controls;
@@ -47,7 +47,7 @@ internal sealed class KindleGlyph : AmbientCanvas
     /// <summary>Sparks in flight (0 ... 1 while a burst runs, 1 at rest).</summary>
     public double SparkProgress => spark.Value;
     public double SettleProgress => settle.Value;
-    /// <summary>The hover lift of the cold grey toward the secondary tone (0 at rest ... 1 under the pointer).</summary>
+    /// <summary>The lift of the cold grey toward the text tones (0 bare grey ... 1 under the pointer; a Cold capsule rests part-lifted).</summary>
     public double Lift => lift.Value;
     /// <summary>The faint ember a cold core shows under the pointer (0 ... 1).</summary>
     public double Kindle => kindle.Value;
